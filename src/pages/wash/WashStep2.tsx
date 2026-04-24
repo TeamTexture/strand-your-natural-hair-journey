@@ -43,7 +43,18 @@ const WashStep2 = () => {
         <TG label="Duration" options={["Under 1 hour", "1-2 hours", "2-3 hours", "3-4 hours", "4+ hours"]} value={duration} onChange={setDuration} />
         <TG label="Stress This Week" options={["Low", "Moderate", "High"]} value={stress} onChange={setStress} />
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/wash/step-3")}>
+        <Button
+          variant="gold"
+          size="pill"
+          className="mt-4"
+          onClick={() => {
+            localStorage.setItem(
+              "strand_wash_step2",
+              JSON.stringify({ scalp, breakage, style, duration, stress }),
+            );
+            navigate("/wash/step-3");
+          }}
+        >
           Next — How Did It Feel? →
         </Button>
       </div>
