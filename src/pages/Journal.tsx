@@ -138,6 +138,7 @@ const Journal = () => {
       <div className="px-5 space-y-3 pb-4">
         {journalEntries.map((j) => {
           const url = photoUrls[j.id];
+          const dateLabel = formatEntryDate(j.date);
           return (
             <button
               key={j.id}
@@ -160,8 +161,8 @@ const Journal = () => {
                   ) : (
                     <span className="text-5xl">{j.emoji}</span>
                   )}
-                  <span className="absolute bottom-2 right-3 text-[11px] text-white/90 font-body bg-black/40 px-2 py-1 rounded">
-                    {j.date}
+                  <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
+                    {dateLabel}
                   </span>
                 </div>
                 <div className="p-3">
