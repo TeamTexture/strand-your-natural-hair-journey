@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
 import { getWaterHardness } from "@/data/hardWaterPostcodes";
+import { generateProfilePdf } from "@/lib/profilePdf";
 
 // ---------- Types ----------
 interface BasicProfile {
