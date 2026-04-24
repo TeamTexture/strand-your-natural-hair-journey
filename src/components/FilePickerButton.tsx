@@ -19,7 +19,7 @@ interface Props extends Omit<ButtonProps, "onClick"> {
 const FilePickerButton = ({
   onPick,
   preferCamera = false,
-  accept = "image/*",
+  accept = "image/*,.heic,.heif",
   children,
   ...buttonProps
 }: Props) => {
