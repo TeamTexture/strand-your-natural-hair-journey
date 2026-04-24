@@ -41,9 +41,7 @@ const Home = () => {
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
   const [firstName, setFirstName] = useState<string>("");
-  const { alerts, loading: alertsLoading } = useHomeAlerts();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const visibleAlerts = alerts.filter((a) => !dismissed.has(a.id));
+  const { visibleAlerts, loading: alertsLoading, dismissAll } = useHomeAlerts();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
   const { last: lastWash, daysSinceLast } = useWashDays();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
@@ -185,7 +183,7 @@ const Home = () => {
             {visibleAlerts.length > 0 && (
               <button
                 onClick={() => {
-                  setDismissed(new Set(alerts.map((a) => a.id)));
+                  dismissAll();
                   toast("All alerts cleared");
                 }}
                 className="text-[11px] uppercase tracking-[0.15em] text-primary"
