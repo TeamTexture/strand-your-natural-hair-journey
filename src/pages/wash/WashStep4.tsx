@@ -140,9 +140,9 @@ const WashStep4 = () => {
       // Build the steps array from what the user actually completed.
       // Skipped / todo steps are dropped so the saved record reflects reality.
       const stepLabels: Record<string, string> = {
-        prePoo: "Pre-poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
+        prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
       };
-      const steps = (["prePoo", "cleanse", "condition", "treatment"] as const)
+      const steps = (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const)
         .filter((k) => step1[k] === "done")
         .map((k) => ({ name: stepLabels[k] }));
 
