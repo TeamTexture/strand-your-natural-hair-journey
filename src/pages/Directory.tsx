@@ -129,7 +129,15 @@ const Directory = () => {
                     Website
                   </button>
                   <button
-                    onClick={() => toast(`📅 Booking — ${p.bookCode} applied`)}
+                    onClick={() => {
+                      const url = p.bookingUrl || p.website || p.instaUrl;
+                      if (url) {
+                        window.open(url, "_blank", "noopener,noreferrer");
+                        if (p.bookCode) toast(`📅 Use code ${p.bookCode} at booking`);
+                      } else {
+                        toast(`Booking unavailable — try Instagram`);
+                      }
+                    }}
                     className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
                   >
                     Book Now
