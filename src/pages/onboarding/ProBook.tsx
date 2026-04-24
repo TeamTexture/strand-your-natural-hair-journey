@@ -84,13 +84,15 @@ const ProBook = () => {
             {searchResults.length === 0 ? (
               <EmptyState
                 icon="🔍"
-                message="No professionals match your search"
-                hint="Try a different name, clinic or condition."
+                message="No professionals found"
+                hint="Try a postcode, name, or specialism."
               />
             ) : (
               searchResults.map((p) => <ProCard key={p.id} p={p} />)
             )}
           </>
+        ) : loading && pros.length === 0 ? (
+          <LoadingDot label="Loading recommended pros…" fullScreen={false} />
         ) : (
           <>
             <SectionLabel>Recommended professionals</SectionLabel>
@@ -101,7 +103,7 @@ const ProBook = () => {
               onClick={() => navigate("/directory")}
               className="w-full text-center text-xs uppercase tracking-[0.15em] text-primary py-2 min-h-[44px]"
             >
-              See all {PROFESSIONALS.length} professionals →
+              See all {pros.length} professionals →
             </button>
           </>
         )}
