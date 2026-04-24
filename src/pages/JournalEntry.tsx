@@ -172,6 +172,40 @@ const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoPr
   );
 };
 
+/** UUID v4-ish detector — used to decide whether to fetch the entry from the
+ *  `journal_entries` table or fall back to the local mock catalog. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Parse the structured note body we write on save (lines starting with
+ *  "How:", "Liked:", "Next time:") back into the three reflection fields. */
+const parseReflectionNote = (note: string | null | undefined) => {
+  const out = { how: "", liked: "", next: "" };
+  if (!note) return out;
+  const blocks = note.split(/\n\n+/);
+  for (const block of blocks) {
+    const m = block.match(/^(How|Liked|Next time):\s*([\s\S]*)$/);
+    if (!m) continue;
+    const key = m[1];
+    const value = m[2].trim();
+    if (key === "How") out.how = value;
+    else if (key === "Liked") out.liked = value;
+    else if (key === "Next time") out.next = value;
+  }
+  // If we couldn't parse anything structured, fall back to dropping the whole
+  // note into "liked" so older free-form entries still render.
+  if (!out.how && !out.liked && !out.next) out.liked = note;
+  return out;
+};
+
+interface DbJournalEntry {
+  id: string;
+  title: string | null;
+  note: string | null;
+  entry_date: string;
+  photo_paths: string[];
+  products_used: string[];
+}
+
 const JournalEntry = () => {
   const { id: rawId = "" } = useParams();
   const navigate = useNavigate();
@@ -182,8 +216,47 @@ const JournalEntry = () => {
   // "Entry not found" fallback below.
   const newEntryIdRef = useRef<string>(`new-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`);
   const isNew = rawId === "new";
+  // A real saved row's id is a UUID coming from the journal_entries table.
+  // Anything that is neither "new" nor a UUID is treated as a mock-catalog id.
+  const isDbEntry = !isNew && UUID_RE.test(rawId);
   const id = isNew ? newEntryIdRef.current : rawId;
   const catalogEntry = getJournalEntry(rawId);
+
+  // DB-backed entry hydration. When we land on /journal/entry/<uuid>, fetch
+  // the row, then synthesise the `entry` shape the rest of the screen expects.
+  const [dbEntry, setDbEntry] = useState<DbJournalEntry | null>(null);
+  const [dbLoading, setDbLoading] = useState(isDbEntry);
+  const [dbMissing, setDbMissing] = useState(false);
+
+  useEffect(() => {
+    if (!isDbEntry || !user) return;
+    let cancelled = false;
+    (async () => {
+      setDbLoading(true);
+      const { data, error } = await supabase
+        .from("journal_entries")
+        .select("id, title, note, entry_date, photo_paths, products_used")
+        .eq("id", rawId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.error("journal entry load failed", error);
+        setDbMissing(true);
+      } else if (!data) {
+        setDbMissing(true);
+      } else {
+        setDbEntry(data as DbJournalEntry);
+      }
+      setDbLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [isDbEntry, rawId, user]);
+
+  // Strip the legacy "[id] " title prefix so the user sees a clean title.
+  const cleanDbTitle = (t: string | null | undefined) =>
+    (t ?? "").replace(/^\[[^\]]+\]\s*/, "").trim() || "Journal entry";
+
   const entry = catalogEntry ?? (isNew
     ? {
         id,
@@ -192,6 +265,16 @@ const JournalEntry = () => {
         date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
         title: "New journal entry",
         note: "",
+        productKeys: [] as string[],
+      }
+    : dbEntry
+    ? {
+        id: dbEntry.id,
+        gradient: "from-[#C8B89A] to-[#D4B96A]",
+        emoji: "",
+        date: new Date(dbEntry.entry_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+        title: cleanDbTitle(dbEntry.title),
+        note: dbEntry.note ?? "",
         productKeys: [] as string[],
       }
     : undefined);
@@ -219,9 +302,26 @@ const JournalEntry = () => {
 
   const coverUrl = photoPaths[0] ? photoUrls[photoPaths[0]] ?? null : null;
 
-  // Load any saved reflection / product selections
+  // Hydrate the reflection state. For DB entries we use the row's parsed
+  // note + products_used. For new / catalog entries we fall back to
+  // localStorage so a freshly-saved-but-not-reloaded session still works.
   useEffect(() => {
     if (!id) return;
+    if (isDbEntry) {
+      if (!dbEntry) return;
+      const parsed = parseReflectionNote(dbEntry.note);
+      setState({
+        how: parsed.how,
+        liked: parsed.liked,
+        next: parsed.next,
+        howAudio: null,
+        likedAudio: null,
+        nextAudio: null,
+        productIds: dbEntry.products_used ?? [],
+      });
+      setPhotoPaths(dbEntry.photo_paths ?? []);
+      return;
+    }
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
@@ -250,7 +350,7 @@ const JournalEntry = () => {
       nextAudio: null,
       productIds: [],
     });
-  }, [id, storageKey, entry]);
+  }, [id, storageKey, entry, isDbEntry, dbEntry]);
 
   const { allProducts } = useUserProducts("all");
   const selectedProducts = useMemo(
@@ -287,12 +387,13 @@ const JournalEntry = () => {
       return;
     }
     setDeleting(true);
-    const tag = `[${entry?.id}]`;
-    const { error } = await supabase
-      .from("journal_entries")
-      .delete()
-      .eq("user_id", user.id)
-      .ilike("title", `${tag}%`);
+    // For DB-backed entries, delete by row id directly. For legacy
+    // catalog/mock entries we still use the "[id] " title tag we wrote
+    // on save, since they don't have a known row id.
+    const query = supabase.from("journal_entries").delete().eq("user_id", user.id);
+    const { error } = dbEntry
+      ? await query.eq("id", dbEntry.id)
+      : await query.ilike("title", `[${entry?.id}]%`);
     setDeleting(false);
     if (error) {
       console.error("journal delete failed", error);
@@ -311,22 +412,25 @@ const JournalEntry = () => {
       return;
     }
     setSaving(true);
-    // Upsert into journal_entries keyed by user_id + the mock entry id stored in `title`-adjacent metadata.
-    // We use `entry.id` (mock catalog id) inside the note's leading marker so the same DB row is updated on edits.
     const noteBody = [
       state.how && `How: ${state.how}`,
       state.liked && `Liked: ${state.liked}`,
       state.next && `Next time: ${state.next}`,
     ].filter(Boolean).join("\n\n");
 
-    // Try to find an existing row for this entry id (we tag it via title prefix).
+    // Resolve the existing row. DB entries already know their row id;
+    // legacy / new flows look it up by the "[id] " title tag we write below.
     const tag = `[${entry?.id}]`;
-    const { data: existing } = await supabase
-      .from("journal_entries")
-      .select("id")
-      .eq("user_id", user.id)
-      .ilike("title", `${tag}%`)
-      .maybeSingle();
+    let existingId: string | null = dbEntry?.id ?? null;
+    if (!existingId) {
+      const { data: existing } = await supabase
+        .from("journal_entries")
+        .select("id")
+        .eq("user_id", user.id)
+        .ilike("title", `${tag}%`)
+        .maybeSingle();
+      existingId = existing?.id ?? null;
+    }
 
     const payload = {
       user_id: user.id,
@@ -337,8 +441,8 @@ const JournalEntry = () => {
       entry_date: new Date().toISOString().slice(0, 10),
     };
 
-    const { error } = existing
-      ? await supabase.from("journal_entries").update(payload).eq("id", existing.id)
+    const { error } = existingId
+      ? await supabase.from("journal_entries").update(payload).eq("id", existingId)
       : await supabase.from("journal_entries").insert(payload);
 
     setSaving(false);
@@ -531,6 +635,18 @@ const JournalEntry = () => {
   }, [entry, state.liked, selectedProducts]);
 
   if (!entry) {
+    // While fetching a DB-backed entry, show a soft loader rather than the
+    // "not found" fallback (which used to flash for a frame or two).
+    if (isDbEntry && dbLoading && !dbMissing) {
+      return (
+        <ScreenLayout bottomNav>
+          <TitleBar title="Journal Entry" back />
+          <div className="px-5 py-16 flex items-center justify-center text-muted-foreground">
+            <Loader2 className="size-5 animate-spin" />
+          </div>
+        </ScreenLayout>
+      );
+    }
     return (
       <ScreenLayout bottomNav>
         <TitleBar title="Journal Entry" />
