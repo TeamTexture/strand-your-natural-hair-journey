@@ -65,8 +65,9 @@ const BloodAiSummary = () => {
       const inputsChanged = lastFingerprint !== fingerprint;
       const shouldForce = force || inputsChanged;
 
+      const context = await buildAiContext();
       const { data, error: fnError } = await supabase.functions.invoke("blood-ai-summary", {
-        body: { ...payload, force: shouldForce },
+        body: { ...payload, force: shouldForce, context },
       });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
