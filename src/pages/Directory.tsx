@@ -58,7 +58,21 @@ const Directory = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Professionals" />
+      <TitleBar title={bloodOnly ? "Book a Doctor" : "Professionals"} />
+
+      {bloodOnly && (
+        <div className="px-5 pb-3">
+          <SurfaceCard tone="gold">
+            <p className="text-xs font-body leading-snug">
+              <span className="font-semibold uppercase tracking-[0.15em] text-primary">
+                Blood test —{" "}
+              </span>
+              These verified dermatologists can run the bloods we need to assess hair-loss
+              deficiencies. Tap any card to book.
+            </p>
+          </SurfaceCard>
+        </div>
+      )}
 
       <div className="px-5 pb-3">
         <div className="relative">
@@ -73,29 +87,31 @@ const Directory = () => {
         </div>
       </div>
 
-      <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 min-w-max">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
-                tab === t
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card border-border text-foreground",
-              )}
-            >
-              {t}
-              {t !== "All" && (
-                <span className="ml-1.5 opacity-60">
-                  {pros.filter((p) => p.type === t).length}
-                </span>
-              )}
-            </button>
-          ))}
+      {!bloodOnly && (
+        <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 min-w-max">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
+                  tab === t
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-foreground",
+                )}
+              >
+                {t}
+                {t !== "All" && (
+                  <span className="ml-1.5 opacity-60">
+                    {pros.filter((p) => p.type === t).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="px-5 space-y-4 pb-8">
         {loading && pros.length === 0 ? (
