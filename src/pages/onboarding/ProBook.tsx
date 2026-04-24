@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -5,37 +6,50 @@ import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { PROFESSIONALS, searchProfessionals, type Professional } from "@/data/professionals";
 
-const ProCard = ({
-  emoji, name, type, verified, clinic, code, codeText,
-}: { emoji: string; name: string; type: string; verified: string; clinic: string; code: string; codeText: string }) => (
+const ProCard = ({ p }: { p: Professional }) => (
   <SurfaceCard padded={false} className="overflow-hidden">
     <div className="p-4 flex gap-3">
       <div className="size-14 rounded-[12px] bg-primary/15 flex items-center justify-center text-2xl shrink-0">
-        {emoji}
+        {p.emoji}
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-display text-base font-semibold leading-tight">{name}</h3>
+        <h3 className="font-display text-base font-semibold leading-tight">{p.name}</h3>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-          <span className="text-xs text-muted-foreground">{type}</span>
+          <span className="text-xs text-muted-foreground">
+            {p.type} · {p.verified}
+          </span>
           <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
-            {verified} ✓
+            ✓
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">{clinic}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {p.clinic} · {p.location}
+        </p>
       </div>
     </div>
     <div className="bg-primary/15 px-4 py-2.5 text-xs font-body">
-      <span className="font-semibold tracking-[0.1em] uppercase text-primary">{code}</span>
-      <span className="text-foreground/80"> — {codeText}</span>
+      <span className="font-semibold tracking-[0.1em] uppercase text-primary">{p.bookCode}</span>
+      <span className="text-foreground/80"> — {p.discount.replace(`${p.bookCode} — `, "")}</span>
     </div>
   </SurfaceCard>
 );
 
 const ProBook = () => {
   const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const featured = useMemo(() => PROFESSIONALS.filter((p) => p.featured), []);
+  const searchResults = useMemo(
+    () => (query.trim().length >= 2 ? searchProfessionals(query) : []),
+    [query],
+  );
+  const showingSearch = query.trim().length >= 2;
+
   return (
     <ScreenLayout>
       <TitleBar title="Book a Professional" right={<span>3 of 9</span>} />
@@ -44,39 +58,65 @@ const ProBook = () => {
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard tone="orange">
           <p className="text-sm leading-snug">
-            Your app will unlock once you have had your appointment. Open Strand during or after your consultation to fill in your hair characteristics with your professional.
+            Your app will unlock once you have had your appointment. Open Strand during or after
+            your consultation to fill in your hair characteristics with your professional.
           </p>
         </SurfaceCard>
-
-        <SectionLabel>Recommended professionals near you</SectionLabel>
-
-        <ProCard
-          emoji="🏥" name="Teresa Richardson" type="Trichologist · IOT Verified"
-          verified="IOT Verified" clinic="Fulham Scalp & Hair Clinic"
-          code="STRAND15" codeText="15% off first consultation"
-        />
-        <ProCard
-          emoji="⚕️" name="Dr. Yvonne Abimbola" type="Dermatologist · GMC Verified"
-          verified="GMC Verified" clinic="Dr Eve Skin"
-          code="STRAND20" codeText="£20 off first assessment"
-        />
 
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
-            placeholder="Search all professionals near me"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, clinic, condition or location..."
+            autoComplete="off"
             className="w-full pl-10 pr-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
           />
         </div>
 
+        {showingSearch ? (
+          <>
+            <SectionLabel>
+              {searchResults.length} result{searchResults.length === 1 ? "" : "s"}
+            </SectionLabel>
+            {searchResults.length === 0 ? (
+              <EmptyState
+                icon="🔍"
+                message="No professionals match your search"
+                hint="Try a different name, clinic or condition."
+              />
+            ) : (
+              searchResults.map((p) => <ProCard key={p.id} p={p} />)
+            )}
+          </>
+        ) : (
+          <>
+            <SectionLabel>Recommended professionals</SectionLabel>
+            {featured.map((p) => (
+              <ProCard key={p.id} p={p} />
+            ))}
+            <button
+              onClick={() => navigate("/directory")}
+              className="w-full text-center text-xs uppercase tracking-[0.15em] text-primary py-2 min-h-[44px]"
+            >
+              See all {PROFESSIONALS.length} professionals →
+            </button>
+          </>
+        )}
+
         <SurfaceCard tone="gold">
           <p className="text-xs font-body">
             <span className="font-semibold uppercase tracking-[0.15em] text-primary">Tip — </span>
-            Show your professional this app at your appointment. They can help you fill in your hair characteristics in real time.
+            Show your professional this app at your appointment. They can help you fill in your
+            hair characteristics in real time.
           </p>
         </SurfaceCard>
 
-        <Button variant="goldGhost" size="pill" onClick={() => navigate("/onboarding/pro-gate")}>
+        <Button
+          variant="goldGhost"
+          size="pill"
+          onClick={() => navigate("/onboarding/pro-gate")}
+        >
           ← I do have a recent appointment
         </Button>
       </div>
