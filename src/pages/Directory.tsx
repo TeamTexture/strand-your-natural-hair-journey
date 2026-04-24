@@ -133,32 +133,69 @@ const Directory = () => {
                 <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
 
                 <div className="grid grid-cols-3 gap-2 mt-3">
-                  <button
-                    onClick={() => openExternal(p.instaUrl, "Instagram")}
-                    className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px]"
-                  >
-                    Instagram
-                  </button>
-                  <button
-                    onClick={() => openExternal(p.website, "Website")}
-                    className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px]"
-                  >
-                    Website
-                  </button>
-                  <button
-                    onClick={() => {
-                      const url = p.bookingUrl || p.website || p.instaUrl;
-                      if (url) {
-                        window.open(url, "_blank", "noopener,noreferrer");
-                        if (p.bookCode) toast(`📅 Use code ${p.bookCode} at booking`);
-                      } else {
-                        toast(`Booking unavailable — try Instagram`);
-                      }
-                    }}
-                    className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
-                  >
-                    Book Now
-                  </button>
+                  {/* Plain anchor tags so the iframe sandbox / popup-blocker
+                      treats them as a user-initiated navigation. window.open
+                      was being silently blocked in the embedded preview. */}
+                  {p.instaUrl ? (
+                    <a
+                      href={p.instaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
+                    >
+                      Instagram
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toast("Instagram unavailable")}
+                      className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
+                    >
+                      Instagram
+                    </button>
+                  )}
+                  {p.website ? (
+                    <a
+                      href={p.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
+                    >
+                      Website
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toast("Website unavailable")}
+                      className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
+                    >
+                      Website
+                    </button>
+                  )}
+                  {(() => {
+                    const bookUrl = p.bookingUrl || p.website || p.instaUrl;
+                    return bookUrl ? (
+                      <a
+                        href={bookUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          if (p.bookCode) toast(`📅 Use code ${p.bookCode} at booking`);
+                        }}
+                        className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                      >
+                        Book Now
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => toast("Booking unavailable — try Instagram")}
+                        className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary/60 text-primary-foreground rounded-md font-medium min-h-[44px]"
+                      >
+                        Book Now
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="bg-primary/15 px-4 py-2.5 text-xs">
