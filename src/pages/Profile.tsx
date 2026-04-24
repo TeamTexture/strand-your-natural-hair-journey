@@ -417,7 +417,9 @@ const Profile = () => {
       {/* Medications — only if user added any */}
       {Array.isArray(health.medications) && health.medications.length > 0 && (
         <>
-          <SectionLabel>Medications</SectionLabel>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-2")}>
+            Medications
+          </EditableSectionLabel>
           <div className="px-5 pb-4">
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {health.medications.slice(0, 5).map((m) => (
