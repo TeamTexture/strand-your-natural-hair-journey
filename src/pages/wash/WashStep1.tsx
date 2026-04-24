@@ -322,6 +322,12 @@ const WashStep1 = () => {
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const openPicker = (target: Exclude<PickerTarget, null>) => {
     setPickerTarget(target);
+    // Encode the target in the URL so when the picker fires off the scan
+    // flow (which navigates away and uses the current URL as returnTo),
+    // we know which step the freshly-shelved product belongs to.
+    const next = new URLSearchParams(searchParams);
+    next.set("picker", target);
+    setSearchParams(next, { replace: true });
     setPickerOpen(true);
   };
   const targetIds: Record<Exclude<PickerTarget, null>, string[]> = {
