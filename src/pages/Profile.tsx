@@ -136,12 +136,29 @@ const Profile = () => {
 
   const [appts, setAppts] = useState<Appt[]>([]);
   const [apptsLoaded, setApptsLoaded] = useState(false);
+  const [profileName, setProfileName] = useState<string | null>(null);
 
   // Load profile fragments from local storage (only what the user actually entered).
   const basic = safeJson<BasicProfile>(localStorage.getItem("strand_profile_basic")) ?? {};
   const hair = safeJson<HairProfile>(localStorage.getItem("strand_hair_profile")) ?? {};
   const health = safeJson<HealthProfile>(localStorage.getItem("strand_health_profile")) ?? {};
   const lastWashRaw = localStorage.getItem("strand_last_wash_date");
+
+  // Load the saved display_name from the profile row (set on signup from the
+  // name the user entered, falling back to the email prefix only as a last resort).
+  useEffect(() => {
+    if (!user) { setProfileName(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled) setProfileName(data?.display_name ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Load upcoming appointments from DB
   useEffect(() => {
@@ -164,7 +181,23 @@ const Profile = () => {
   }, [user]);
 
   // ---------- Derived: only present if real data exists ----------
-  const displayName = (basic.name && basic.name.trim()) || user?.email?.split("@")[0] || "";
+  // Name priority: onboarding "basic" name → DB display_name → auth metadata → titlecased email prefix.
+  // We only fall back to the email prefix as an absolute last resort, and we
+  // titlecase it (and replace dots/underscores with spaces) so it doesn't look like a login.
+  const titleCase = (s: string) =>
+    s
+      .replace(/[._-]+/g, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+
+  const rawName =
+    (basic.name && basic.name.trim()) ||
+    (profileName && profileName.trim()) ||
+    (user?.user_metadata?.display_name as string | undefined)?.trim() ||
+    "";
+  const displayName = rawName || (user?.email ? titleCase(user.email.split("@")[0]) : "");
   const ageDisplay = basic.age !== undefined && basic.age !== "" ? `Age ${basic.age}` : "";
 
   const hardness = basic.postcode ? getWaterHardness(basic.postcode) : null;
