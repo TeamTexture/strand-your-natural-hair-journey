@@ -132,3 +132,29 @@ export async function prepareImageForAi(file: File): Promise<PreparedImage> {
 }
 
 const stripExt = (name: string) => name.replace(/\.[^.]+$/, "");
+
+/**
+ * Lightweight HEIC→JPEG conversion for upload-only flows (journal photos,
+ * moodboard images, avatars) where we don't need a base64 data URL or canvas
+ * resize. Returns the original file untouched if it isn't HEIC.
+ */
+export async function convertHeicToJpeg(file: File): Promise<File> {
+  const looksHeicByName = /\.(heic|heif)$/i.test(file.name);
+  const looksHeicByType = /heic|heif/i.test(file.type);
+  if (!looksHeicByName && !looksHeicByType) return file;
+  try {
+    const heicCheck = await isHeic(file).catch(() => true);
+    if (!heicCheck) return file;
+    const blob = await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
+    return new File([blob], `${stripExt(file.name)}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch (e) {
+    console.error("HEIC conversion failed", e);
+    throw new Error(
+      "We couldn't read this HEIC photo. Try retaking it, or in Settings → Camera → Formats switch to 'Most Compatible'.",
+    );
+  }
+}
+
