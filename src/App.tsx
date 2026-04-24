@@ -32,6 +32,7 @@ import SuccessScreen from "./pages/onboarding/SuccessScreen";
 // Main app
 import Home from "./pages/Home";
 import WashDayHub from "./pages/WashDayHub";
+import WashDayDetail from "./pages/WashDayDetail";
 import WashStep1 from "./pages/wash/WashStep1";
 import WashStep2 from "./pages/wash/WashStep2";
 import WashStep3 from "./pages/wash/WashStep3";
@@ -92,6 +93,7 @@ const App = () => (
               {/* Main app */}
               <Route path="/home" element={<Protected><Home /></Protected>} />
               <Route path="/wash-day" element={<Protected><WashDayHub /></Protected>} />
+              <Route path="/wash-day/:id" element={<Protected><WashDayDetail /></Protected>} />
               <Route path="/wash/step-1" element={<Protected><WashStep1 /></Protected>} />
               <Route path="/wash/step-2" element={<Protected><WashStep2 /></Protected>} />
               <Route path="/wash/step-3" element={<Protected><WashStep3 /></Protected>} />
