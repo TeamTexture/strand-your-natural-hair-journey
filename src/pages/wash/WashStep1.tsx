@@ -436,6 +436,28 @@ const WashStep1 = () => {
               )}
             </ul>
           )}
+
+          {/* Affiliate CTA — let the user buy a TT Heat Hat right from the rationale,
+              with the Strand-only discount code shown directly underneath. */}
+          <div className="pt-2 space-y-1.5">
+            <Button
+              asChild
+              variant="gold"
+              size="pill"
+              className="w-full"
+            >
+              <a
+                href="https://www.teamtexture.co.uk"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Buy a TT Heat Hat
+              </a>
+            </Button>
+            <p className="text-[11px] text-center uppercase tracking-[0.15em] text-primary font-medium">
+              Use discount code STRAND10 for 10% off
+            </p>
+          </div>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
               variant="outline"
