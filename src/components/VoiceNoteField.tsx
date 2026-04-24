@@ -296,14 +296,7 @@ const VoiceNoteField = ({
               <Trash2 className="size-4" />
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => toast("Saved as voice note only")}
-              className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground border border-border rounded-full px-3 py-1.5 hover:border-primary/60"
-            >
-              Keep as voice note only
-            </button>
+          <div className="flex flex-wrap gap-2 items-center">
             <button
               type="button"
               onClick={transcribe}
@@ -315,8 +308,11 @@ const VoiceNoteField = ({
               ) : (
                 <Type className="size-3" />
               )}
-              {transcribing ? "Transcribing…" : "Transcribe to text"}
+              {transcribing ? "Transcribing…" : "Also transcribe to text"}
             </button>
+            <span className="text-[10px] text-muted-foreground font-body">
+              Voice note stays saved either way
+            </span>
           </div>
         </div>
       )}
