@@ -6,8 +6,43 @@ import {
   SetupShareIllustration,
   SetupStepsIllustration,
   SetupHomeScreenIllustration,
+  type SetupPlatform,
 } from "@/components/walkthrough/illustrations";
 import { useAuth } from "@/hooks/useAuth";
+
+const detectPlatform = (): SetupPlatform => {
+  if (typeof navigator === "undefined") return "ios-safari";
+  const ua = navigator.userAgent;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (/Mac/.test(ua) && typeof document !== "undefined" && "ontouchend" in document);
+  const isAndroid = /android/i.test(ua);
+  if (isIOS) {
+    const isSafari = /Safari/.test(ua) && !/(CriOS|FxiOS|EdgiOS|OPiOS|GSA)/.test(ua);
+    return isSafari ? "ios-safari" : "ios-other";
+  }
+  if (isAndroid) return "android";
+  return "desktop";
+};
+
+const PLATFORM_COPY: Record<SetupPlatform, { title: string; body: string }> = {
+  "ios-safari": {
+    title: "Three taps and you are done",
+    body: "Use the Share button at the bottom of Safari, then choose Add to Home Screen.",
+  },
+  "ios-other": {
+    title: "Open in Safari to install",
+    body: "On iPhone and iPad, installing to the home screen only works from Safari. Open this page in Safari, then follow the steps below.",
+  },
+  android: {
+    title: "A few taps and you are done",
+    body: "Open your browser's menu (three dots in Chrome) and choose Install app or Add to Home screen. The exact wording varies between browsers.",
+  },
+  desktop: {
+    title: "Install STRAND on your computer",
+    body: "Look for the install icon in your browser's address bar, or open the browser menu and choose Install STRAND. For the full mobile experience, open this page on your phone.",
+  },
+};
 
 const SetupGuide = () => {
   const navigate = useNavigate();
@@ -16,10 +51,8 @@ const SetupGuide = () => {
   const fromHelp = params.get("from") === "help";
 
   const [i, setI] = useState(0);
-  const isAndroid = useMemo(
-    () => typeof navigator !== "undefined" && /android/i.test(navigator.userAgent),
-    [],
-  );
+  const platform = useMemo(detectPlatform, []);
+  const platformCopy = PLATFORM_COPY[platform];
 
   const finish = () => {
     // Clear the per-user "first run" flag so it never auto-shows again.
@@ -27,10 +60,8 @@ const SetupGuide = () => {
       localStorage.removeItem(`strand_setup_pending:${user.id}`);
     }
     if (fromHelp) {
-      // User opened this from Help — return to where they came from.
       navigate(-1);
     } else {
-      // First-run flow → continue into onboarding.
       navigate("/onboarding/profile-step-1", { replace: true });
     }
   };
@@ -39,14 +70,12 @@ const SetupGuide = () => {
     {
       illustration: <SetupShareIllustration />,
       title: "Add STRAND to your home screen",
-      body: "For the best experience, install STRAND as an app. It takes 10 seconds and works exactly like a native app — no App Store needed.",
+      body: "For the best experience, install STRAND as an app. It takes about 10 seconds and works just like a native app — no app store needed.",
     },
     {
-      illustration: <SetupStepsIllustration android={isAndroid} />,
-      title: "Three taps and you are done",
-      body: isAndroid
-        ? "These instructions are for Android Chrome. On iPhone, use the share button in Safari."
-        : "These instructions are for iPhone Safari. On Android, tap the three dots in Chrome and select Add to Home Screen.",
+      illustration: <SetupStepsIllustration platform={platform} />,
+      title: platformCopy.title,
+      body: platformCopy.body,
     },
     {
       illustration: <SetupHomeScreenIllustration />,
