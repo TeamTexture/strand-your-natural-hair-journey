@@ -249,6 +249,13 @@ const MoodboardBoard = () => {
               >
                 <Trash2 className="size-4" />
               </button>
+              <button
+                onClick={() => setSharing(img)}
+                aria-label="Share image"
+                className="absolute bottom-2 right-2 size-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow"
+              >
+                <Share2 className="size-4" />
+              </button>
             </div>
           ))
         )}
