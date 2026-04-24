@@ -58,8 +58,8 @@ const Avoidlist = () => {
         <div className="px-5 space-y-3 pb-4">
           {avoid.length === 0 ? (
             <EmptyState
-              title="Nothing to avoid yet"
-              body="Rate two or more products 1-2★ and shared ingredients will appear here."
+              message="Nothing to avoid yet"
+              hint="Rate two or more products 1-2★ and shared ingredients will appear here."
             />
           ) : (
             avoid.map((r) => {
@@ -86,8 +86,8 @@ const Avoidlist = () => {
         <div className="px-5 pb-4 space-y-3">
           {favourites.length === 0 ? (
             <EmptyState
-              title="No favourites yet"
-              body="Rate two or more products 4-5★ and shared ingredients will appear here."
+              message="No favourites yet"
+              hint="Rate two or more products 4-5★ and shared ingredients will appear here."
             />
           ) : (
             favourites.map((r) => (
