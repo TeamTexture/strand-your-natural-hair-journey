@@ -25,7 +25,7 @@ const Avoidlist = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Ingredients" />
+      <TitleBar title="Ingredient Analysis" />
       <ItalicSub>
         Built automatically from your product ratings. Rate products 1-2★ to
         grow Avoid, 4-5★ to grow Favourites.
