@@ -18,7 +18,7 @@ const Avoidlist = () => {
   const [tab, setTab] = useState<"avoid" | "fav">("avoid");
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Ingredient Intel" />
+      <TitleBar title="Ingredients" />
       <ItalicSub>Based on your ratings and feedback across 14 products. Updates automatically.</ItalicSub>
 
       <div className="px-5 pb-4">
