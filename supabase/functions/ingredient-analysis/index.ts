@@ -16,6 +16,12 @@ interface RequestBody {
   hairProfile?: Record<string, unknown>;
   healthProfile?: Record<string, unknown>;
   heritage?: string[];
+  /** User's active hair goals (length retention, scalp health, frizz, etc.) */
+  goals?: Array<Record<string, unknown>>;
+  /** Current hairstyle + days in style (twists, locs, wash & go, etc.) */
+  currentStyle?: Record<string, unknown> | null;
+  /** Free-text challenges captured during onboarding / journal */
+  challenges?: string[];
   force?: boolean;
   /** Live AI context — see src/lib/aiContext.ts. */
   context?: Record<string, unknown>;
