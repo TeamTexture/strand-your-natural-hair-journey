@@ -593,11 +593,21 @@ const JournalEntry = () => {
             } flex items-center justify-center`}
           >
             {coverUrl ? (
-              <img
-                src={coverUrl}
-                alt={entry.title}
-                className="absolute inset-0 size-full object-cover"
-              />
+              isVideoPath(photoPaths[0]) ? (
+                <video
+                  src={coverUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 size-full object-cover bg-black"
+                />
+              ) : (
+                <img
+                  src={coverUrl}
+                  alt={entry.title}
+                  className="absolute inset-0 size-full object-cover"
+                />
+              )
             ) : (
               <span className="text-7xl">{entry.emoji}</span>
             )}
