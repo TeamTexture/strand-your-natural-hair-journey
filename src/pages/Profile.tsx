@@ -644,8 +644,8 @@ const Profile = () => {
       )}
 
       <div className="px-5 pb-6 space-y-3 mt-4">
-        <Button variant="gold" size="pill" onClick={() => toast("Profile PDF exported")}>
-          Export as PDF
+        <Button variant="gold" size="pill" onClick={handleExportPdf} disabled={exportingPdf}>
+          {exportingPdf ? "Generating PDF…" : "Export as PDF"}
         </Button>
         <Button variant="goldGhost" size="pill" onClick={() => toast("Share link copied")}>
           Copy Share Link
