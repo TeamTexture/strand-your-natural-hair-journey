@@ -69,6 +69,9 @@ const emptyReflection = (): ReflectionState => ({
   productIds: [],
 });
 
+/** Returns true if the storage path looks like a video (mp4 / mov / webm). */
+const isVideoPath = (p: string) => /\.(mp4|mov|m4v|webm|quicktime)$/i.test(p);
+
 interface SortablePhotoProps {
   id: string;
   url: string | undefined;
@@ -78,6 +81,7 @@ interface SortablePhotoProps {
 }
 
 const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoProps) => {
+  const isVideo = isVideoPath(id);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
 
@@ -99,11 +103,27 @@ const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoPr
       )}
     >
       {url ? (
-        <img src={url} alt="" className="size-full object-cover pointer-events-none" />
+        isVideo ? (
+          <video
+            src={url}
+            muted
+            playsInline
+            preload="metadata"
+            className="size-full object-cover pointer-events-none"
+          />
+        ) : (
+          <img src={url} alt="" className="size-full object-cover pointer-events-none" />
+        )
       ) : (
         <div className="size-full flex items-center justify-center">
           <Loader2 className="size-4 text-muted-foreground animate-spin" />
         </div>
+      )}
+
+      {isVideo && (
+        <span className="absolute bottom-1 right-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded pointer-events-none">
+          Video
+        </span>
       )}
 
       {isCover && (
@@ -378,27 +398,37 @@ const JournalEntry = () => {
       const uploaded: { path: string; url: string }[] = [];
       for (const rawFile of toUpload) {
         const isHeicFile = /\.(heic|heif)$/i.test(rawFile.name) || /heic|heif/i.test(rawFile.type);
-        if (!rawFile.type.startsWith("image/") && !isHeicFile) {
-          toast.error(`${rawFile.name}: not an image`);
+        const isVideoFile =
+          rawFile.type.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(rawFile.name);
+        if (!rawFile.type.startsWith("image/") && !isHeicFile && !isVideoFile) {
+          toast.error(`${rawFile.name}: not an image or video`);
           continue;
         }
-        if (rawFile.size > 8 * 1024 * 1024) {
-          toast.error(`${rawFile.name}: too large (max 8MB)`);
+        // Videos can be much larger than photos; allow up to 100MB.
+        const maxBytes = isVideoFile ? 100 * 1024 * 1024 : 8 * 1024 * 1024;
+        const maxLabel = isVideoFile ? "100MB" : "8MB";
+        if (rawFile.size > maxBytes) {
+          toast.error(`${rawFile.name}: too large (max ${maxLabel})`);
           continue;
         }
         let file: File;
-        try {
-          file = await convertHeicToJpeg(rawFile);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : `${rawFile.name}: couldn't read photo`;
-          toast.error(msg);
-          continue;
+        if (isVideoFile) {
+          // Don't run videos through the HEIC->JPEG converter.
+          file = rawFile;
+        } else {
+          try {
+            file = await convertHeicToJpeg(rawFile);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : `${rawFile.name}: couldn't read photo`;
+            toast.error(msg);
+            continue;
+          }
         }
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const ext = file.name.split(".").pop()?.toLowerCase() || (isVideoFile ? "mp4" : "jpg");
         const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from(PHOTO_BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false });
+          .upload(path, file, { contentType: file.type || (isVideoFile ? "video/mp4" : undefined), upsert: false });
         if (upErr) {
           console.error("Upload failed:", upErr);
           toast.error(`${file.name}: upload failed`);
@@ -524,11 +554,11 @@ const JournalEntry = () => {
         }
       />
 
-      {/* Hidden file input — supports multi-select from the photo library */}
+      {/* Hidden file input — supports multi-select photos AND videos (mp4/mov) from the library. */}
       <input
         ref={photoInputRef}
         type="file"
-        accept="image/*,.heic,.heif"
+        accept="image/*,video/mp4,video/quicktime,.heic,.heif,.mp4,.mov,.m4v"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -539,11 +569,12 @@ const JournalEntry = () => {
       />
       {/* Hidden camera input — opens the device camera directly. The
        * `capture` attribute hints to mobile browsers that the rear camera
-       * should be launched instead of the photo picker. */}
+       * should be launched instead of the photo picker. Accepts both
+       * photos and short videos so users can record from the camera too. */}
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*,.heic,.heif"
+        accept="image/*,video/mp4,video/quicktime,.heic,.heif,.mp4,.mov,.m4v"
         capture="environment"
         className="hidden"
         onChange={(e) => {
@@ -562,11 +593,21 @@ const JournalEntry = () => {
             } flex items-center justify-center`}
           >
             {coverUrl ? (
-              <img
-                src={coverUrl}
-                alt={entry.title}
-                className="absolute inset-0 size-full object-cover"
-              />
+              isVideoPath(photoPaths[0]) ? (
+                <video
+                  src={coverUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 size-full object-cover bg-black"
+                />
+              ) : (
+                <img
+                  src={coverUrl}
+                  alt={entry.title}
+                  className="absolute inset-0 size-full object-cover"
+                />
+              )
             ) : (
               <span className="text-7xl">{entry.emoji}</span>
             )}
@@ -617,17 +658,17 @@ const JournalEntry = () => {
 
       {/* Photos gallery — Shopify-style sortable grid. First image is the cover. */}
       <SectionLabel>
-        Photos {photoPaths.length > 0 ? `(${photoPaths.length}/${MAX_PHOTOS})` : ""}
+        Photos & Videos {photoPaths.length > 0 ? `(${photoPaths.length}/${MAX_PHOTOS})` : ""}
       </SectionLabel>
       <div className="px-5 pb-4">
         <SurfaceCard>
           {photoPaths.length === 0 ? (
             <p className="text-xs text-muted-foreground mb-3">
-              Add up to {MAX_PHOTOS} photos. Drag to reorder — the first photo is the cover shown on your Hair Journal.
+              Add up to {MAX_PHOTOS} photos or short videos (MP4 / MOV). Drag to reorder — the first item is the cover shown on your Hair Journal.
             </p>
           ) : (
             <p className="text-[11px] text-muted-foreground mb-3">
-              Drag to reorder. The first photo is the cover.
+              Drag to reorder. The first item is the cover.
             </p>
           )}
 
