@@ -41,24 +41,24 @@ function paintBackground(doc: jsPDF) {
 }
 
 function drawHeader(doc: jsPDF) {
-  // Wordmark
-  doc.setFont("times", "normal");
-  doc.setFontSize(28);
+  // Wordmark — use bold helvetica with letter-spacing-style padding via text
+  // call options. Times rendered odd kerning on capital Y/W in QA.
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(26);
   doc.setTextColor(...COLORS.charcoal);
-  doc.text("STRAND", MARGIN, 24);
+  doc.text("STRAND", MARGIN, 24, { charSpace: 1.2 });
 
   // Tiny tag under the mark
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.muted);
-  doc.text("HAIR · INGREDIENTS · CARE", MARGIN, 29);
+  doc.text("HAIR  ·  INGREDIENTS  ·  CARE", MARGIN, 29, { charSpace: 0.4 });
 
   // Right-aligned report label
-  doc.setFont("helvetica", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.gold);
-  const label = "INGREDIENT REPORT";
-  doc.text(label, PAGE.w - MARGIN, 24, { align: "right" });
+  doc.text("INGREDIENT REPORT", PAGE.w - MARGIN, 24, { align: "right", charSpace: 0.6 });
 
   // Gold rule under header
   doc.setDrawColor(...COLORS.gold);
@@ -107,7 +107,7 @@ function drawIntro(
 ): number {
   let y = 46;
 
-  doc.setFont("times", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text("Your Ingredient Profile", MARGIN, y);
@@ -129,7 +129,7 @@ function drawIntro(
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.charcoal);
   const intro =
-    "This report summarises the ingredients automatically flagged from this user's product ratings inside the STRAND app. Use it as a starting point for consultations — these patterns reflect real-world tolerance and preference, not clinical diagnosis.";
+    "This report summarises the ingredients automatically flagged from this user's product ratings inside the STRAND app. Use it as a starting point for consultations - these patterns reflect real-world tolerance and preference, not clinical diagnosis.";
   const introLines = doc.splitTextToSize(intro, CONTENT_W);
   doc.text(introLines, MARGIN, y);
   y += introLines.length * 4.6 + 4;
@@ -148,8 +148,8 @@ function drawIntro(
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.warn);
   doc.text("AVOID", MARGIN + 5, chipY + 6);
-  doc.setFont("times", "normal");
-  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(String(avoidCount), MARGIN + 5, chipY + 14);
   doc.setFont("helvetica", "normal");
@@ -170,8 +170,8 @@ function drawIntro(
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.good);
   doc.text("FAVOURITES", favX + 5, chipY + 6);
-  doc.setFont("times", "normal");
-  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(String(favCount), favX + 5, chipY + 14);
   doc.setFont("helvetica", "normal");
@@ -218,7 +218,7 @@ function drawIngredientRow(
   doc.circle(MARGIN + 4, y + rowH / 2, 1.1, "F");
 
   // Ingredient name
-  doc.setFont("times", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(row.ingredient, MARGIN + 8, y + 5.6);
@@ -248,7 +248,7 @@ function drawEmptyState(doc: jsPDF, y: number, message: string): number {
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.15);
   doc.roundedRect(MARGIN, y, CONTENT_W, 14, 1.5, 1.5, "FD");
-  doc.setFont("helvetica", "italic");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.muted);
   doc.text(message, MARGIN + 5, y + 8.5);
@@ -272,7 +272,7 @@ export function generateIngredientReportPdf(input: ReportInput) {
     y = drawEmptyState(
       doc,
       y,
-      "No ingredients flagged yet — rate two or more products 1–2★ to populate.",
+      "No ingredients flagged yet - rate two or more products 1-2 stars to populate.",
     );
   } else {
     for (const row of input.avoid) {
@@ -291,7 +291,7 @@ export function generateIngredientReportPdf(input: ReportInput) {
     y = drawEmptyState(
       doc,
       y,
-      "No favourites yet — rate two or more products 4–5★ to populate.",
+      "No favourites yet - rate two or more products 4-5 stars to populate.",
     );
   } else {
     for (const row of input.favourites) {
