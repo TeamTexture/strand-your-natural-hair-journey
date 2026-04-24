@@ -13,7 +13,7 @@ import { useProductPhotos } from "@/hooks/useProductPhotos";
 const tabs = [
   { id: "shelf", label: "Shelf" },
   { id: "wishlist", label: "Wishlist" },
-  { id: "intel", label: "Ingredient Intel" },
+  { id: "intel", label: "Ingredients" },
 ];
 
 interface P { key: string; emoji: string; name: string; brand: string; stars: number; score: number }
