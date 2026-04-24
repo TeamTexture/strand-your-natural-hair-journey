@@ -62,13 +62,27 @@ const ProductProfile = () => {
   const { allProducts, loading, setShelf, setWishlist, remove, reload } = useUserProducts("all");
   const { washDays } = useWashDays();
   const { avoid, favourites } = useIngredientLists();
+  const { goals } = useGoals();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
+
+  // Per-ingredient AI flags (good/warn/bad + body) for THIS product, scored
+  // against the user's full profile (hair, health, goals, current style).
+  const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const product = useMemo(() => allProducts.find(p => p.id === id) ?? null, [allProducts, id]);
 
   const avoidNames = useMemo(() => new Set(avoid.map(i => i.ingredient.toLowerCase())), [avoid]);
   const favNames = useMemo(() => new Set(favourites.map(i => i.ingredient.toLowerCase())), [favourites]);
+
+  // Map of lower-cased ingredient name -> AI flag, for O(1) lookup in the list.
+  const aiFlagByName = useMemo(() => {
+    const map = new Map<string, IngredientFlag>();
+    aiFlags.forEach((f) => map.set(f.name.toLowerCase().trim(), f));
+    return map;
+  }, [aiFlags]);
 
   const appearances = useMemo(() => {
     if (!product) return [] as Array<{ id: string; date: string; stepName?: string }>;
