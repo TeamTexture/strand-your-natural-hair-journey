@@ -259,7 +259,6 @@ const Profile = () => {
   const chips = useMemo(() => {
     const out: string[] = [];
     if (hardness === "hard") out.push("⚠ Hard water");
-    else if (hardness === "medium") out.push("💧 Medium water");
     else if (hardness === "soft") out.push("💧 Soft water");
     flaggedBlood.slice(0, 3).forEach((b) => {
       out.push(`🩸 ${b.status === "low" ? "Low" : "High"} ${b.marker.toLowerCase()}`);
