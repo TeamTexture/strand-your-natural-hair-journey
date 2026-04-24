@@ -66,6 +66,9 @@ Deno.serve(async (req) => {
       hairProfile,
       healthProfile,
       heritage,
+      goals,
+      currentStyle,
+      challenges,
       force,
     } = body;
 
