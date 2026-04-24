@@ -64,6 +64,8 @@ const Journal = () => {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<UserGoal | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [viewing, setViewing] = useState<UserGoal | null>(null);
 
   // Other (non-length) goals are listed beneath the primary card.
   const otherGoals = useMemo(
@@ -74,6 +76,11 @@ const Journal = () => {
   const openEditor = (goal: UserGoal | null) => {
     setEditing(goal);
     setEditorOpen(true);
+  };
+
+  const openDetail = (goal: UserGoal) => {
+    setViewing(goal);
+    setDetailOpen(true);
   };
 
   // Saved entries from the database — these appear above the mock catalog,
