@@ -346,12 +346,12 @@ const WashStep1 = () => {
           }
         />
         <StepCard
-          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: [] }}
+          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: treatmentProducts }}
           state={treatment}
           setState={setTreatment}
-          // The treatment chips are exactly what the user picked in the editor —
-          // so pressing Done collapses the card and shows e.g. "Bond repair" beneath it.
-          summaryChips={treatmentType}
+          // Show the treatment type tags the user picked, plus any matching shelf
+          // products so the collapsed card reflects what they actually captured.
+          summaryChips={[...treatmentType, ...treatmentProducts]}
           editor={
             <div className="flex flex-wrap gap-2">
               {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
