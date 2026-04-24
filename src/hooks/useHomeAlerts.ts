@@ -1,23 +1,42 @@
 // Generates real-time alerts for the Home screen from Supabase + localStorage.
-// PRINCIPLE: every alert must be backed by real user data. We do NOT show
-// "you haven't done X yet" prompts — those would feel like placeholders for a
-// new user. Alerts only fire when something the user previously logged is
-// now stale or overdue.
 //
-// Rules:
-// - Wash overdue (7+ days since last LOGGED wash) when current style is braids/locs
-// - Style logged for 42+ days → "Time to take down"
-// - Last blood test > 85 days old → "Blood retest due — STRAND20"
-// - Last appointment > 170 days ago → "Time to rebook your professional"
+// PRINCIPLE: every alert is backed by real user data. We never show "you
+// haven't done X yet" placeholders — alerts only fire when the user has
+// previously logged something and the system can now say something specific
+// about it (overdue, encouraging, cautionary, milestone, etc.).
 //
-// Dismissals persist to localStorage keyed by alert id + a "signature" describing
-// the underlying state. When the signature changes (e.g. new wash logged, new
-// blood test, new appointment), the dismissal no longer applies and the alert
+// There is *always* important data on the platform, so the rule set is wide:
+//
+//  Cautionary
+//   - Wash overdue (7+ days since last wash) when in protective style
+//   - Style worn 42+ days → time to take down
+//   - Blood retest due (>85 days since latest result)
+//   - Last appointment > 170 days ago → rebook
+//   - Any blood marker still flagged "low" → nutrition guidance available
+//   - Hard water area + no clarifying step in the last 3 wash days
+//   - Avoid-list ingredient detected on a product currently on the shelf
+//   - Product rated 1–2 still marked on shelf
+//   - Reported breakage on the most recent wash day
+//   - Planned next style date is in the past or within 3 days
+//   - Goal target date passed without status complete
+//   - Appointment scheduled in the next 3 days
+//
+//  Positive / encouraging
+//   - Wash logged in the last 3 days → streak reinforcement
+//   - Journal entry added in the last 3 days
+//   - 3+ wash days logged in the last 30 days
+//   - High-rated product (4–5) marked as a favourite
+//   - Goal status complete
+//
+// Dismissals persist to localStorage keyed by alert id + a "signature"
+// describing the underlying state. When the signature changes (e.g. new wash
+// logged, new blood test) the dismissal no longer applies and the alert
 // re-appears as a *new* alert. Until then it stays cleared across reloads.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { isHardWaterPostcode } from "@/data/hardWaterPostcodes";
 
 export interface HomeAlert {
   id: string;
@@ -25,6 +44,9 @@ export interface HomeAlert {
   title: string;
   body: string;
   to: string;
+  /** "warning" = cautionary; "good" = positive/encouraging. Used by the UI
+   *  if it wants to style alerts differently — Home renders both today. */
+  tone?: "warning" | "good";
   /** Stable signature representing the underlying state. If this changes, the
    *  alert is treated as new and any previous dismissal is ignored. */
   signature: string;
@@ -77,6 +99,39 @@ const daysSince = (iso: string | null | undefined) => {
   return Math.floor((Date.now() - t) / DAY_MS);
 };
 
+const daysUntil = (iso: string | null | undefined) => {
+  if (!iso) return Infinity;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return Infinity;
+  return Math.ceil((t - Date.now()) / DAY_MS);
+};
+
+const safeParse = <T,>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+/** Detect whether a wash_days row included a clarifying / cleanse step. */
+const washHadClarifier = (steps: unknown): boolean => {
+  if (!Array.isArray(steps)) return false;
+  return steps.some((s) => {
+    const label =
+      (typeof s === "string" ? s : (s as { name?: string; type?: string })?.name ?? (s as { type?: string })?.type ?? "") + "";
+    const lc = label.toLowerCase();
+    return (
+      lc.includes("clarify") ||
+      lc.includes("clarifier") ||
+      lc.includes("chelat") ||
+      lc.includes("cleanse") ||
+      lc.includes("shampoo")
+    );
+  });
+};
+
 export function useHomeAlerts() {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<HomeAlert[]>([]);
@@ -95,32 +150,153 @@ export function useHomeAlerts() {
       setLoading(true);
       const next: HomeAlert[] = [];
 
-      // --- Current style (localStorage, set on onboarding step 4) ---
-      let currentStyles: string[] = [];
-      let styleStartDate: string | null = null;
-      try {
-        const raw = localStorage.getItem("strand_current_style");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          currentStyles = Array.isArray(parsed?.style) ? parsed.style : [];
-          styleStartDate = typeof parsed?.styleStartDate === "string"
-            ? parsed.styleStartDate
-            : null;
-        }
-      } catch {
-        /* ignore parse errors */
-      }
+      // ---------------------------------------------------------------
+      // Local profile data
+      // ---------------------------------------------------------------
+      const styleLocal = safeParse<{
+        style?: string[];
+        styleStartDate?: string;
+        current_hairstyle?: string;
+        style_set_on?: string;
+        planned_next_style?: string;
+        planned_change_date?: string;
+      } | null>("strand_current_style", null);
+
+      const currentStyles: string[] = Array.isArray(styleLocal?.style)
+        ? (styleLocal!.style as string[])
+        : styleLocal?.current_hairstyle
+          ? [styleLocal.current_hairstyle]
+          : [];
+      const styleStartDate =
+        styleLocal?.styleStartDate ?? styleLocal?.style_set_on ?? null;
+      const plannedNext = styleLocal?.planned_next_style ?? null;
+      const plannedChangeDate = styleLocal?.planned_change_date ?? null;
       const inTakedownStyle = currentStyles.some(isTakedownStyle);
 
-      // --- Last wash day (localStorage, set in WashStep4) ---
-      const lastWashIso = localStorage.getItem("strand_last_wash_date");
-      const daysSinceWash = daysSince(lastWashIso);
+      const profileStep1 = safeParse<{ postcode?: string } | null>(
+        "strand_profile_step1",
+        null,
+      );
+      const hairProfile = safeParse<{ postcode?: string } | null>(
+        "strand_hair_profile",
+        null,
+      );
+      const postcode = profileStep1?.postcode ?? hairProfile?.postcode ?? null;
+      const hardWater = postcode ? isHardWaterPostcode(postcode) : false;
 
-      // Rule 1: Wash overdue + protective style. Only fires if the user has
-      // actually logged a wash before — otherwise it's just a placeholder.
-      // Signature is the last wash date so dismissal clears once a new wash
-      // is logged.
-      if (inTakedownStyle && lastWashIso && daysSinceWash >= 7) {
+      const lastWashIso = (() => {
+        try {
+          return localStorage.getItem("strand_last_wash_date");
+        } catch {
+          return null;
+        }
+      })();
+      const daysSinceWashLocal = daysSince(lastWashIso);
+
+      // ---------------------------------------------------------------
+      // Backend queries — batch for speed
+      // ---------------------------------------------------------------
+      const [
+        bloodRes,
+        apptRes,
+        recentWashRes,
+        washCountRes,
+        breakageWashRes,
+        upcomingApptRes,
+        shelfRes,
+        ingListsRes,
+        ratingsRes,
+        goalsRes,
+        journalRes,
+      ] = await Promise.all([
+        supabase
+          .from("blood_results")
+          .select("marker, status, updated_at")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false }),
+        supabase
+          .from("appointments")
+          .select("appointment_date, professional_name")
+          .eq("user_id", user.id)
+          .lte("appointment_date", new Date().toISOString().slice(0, 10))
+          .order("appointment_date", { ascending: false })
+          .limit(1),
+        supabase
+          .from("wash_days")
+          .select("wash_date, steps, breakage")
+          .eq("user_id", user.id)
+          .order("wash_date", { ascending: false })
+          .limit(3),
+        supabase
+          .from("wash_days")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte(
+            "wash_date",
+            new Date(Date.now() - 30 * DAY_MS).toISOString().slice(0, 10),
+          ),
+        supabase
+          .from("wash_days")
+          .select("wash_date, breakage")
+          .eq("user_id", user.id)
+          .order("wash_date", { ascending: false })
+          .limit(1),
+        supabase
+          .from("appointments")
+          .select("appointment_date, professional_name")
+          .eq("user_id", user.id)
+          .gte("appointment_date", new Date().toISOString().slice(0, 10))
+          .order("appointment_date", { ascending: true })
+          .limit(1),
+        supabase
+          .from("user_products")
+          .select("name, brand, ingredients, rating")
+          .eq("user_id", user.id)
+          .eq("on_shelf", true),
+        supabase
+          .from("ingredient_lists")
+          .select("ingredient, list_kind")
+          .eq("user_id", user.id),
+        supabase
+          .from("product_ratings")
+          .select("product_name, product_brand, rating, updated_at")
+          .eq("user_id", user.id)
+          .gte("rating", 4)
+          .order("updated_at", { ascending: false })
+          .limit(1),
+        supabase
+          .from("user_goals")
+          .select("id, title, status, target_date, updated_at")
+          .eq("user_id", user.id),
+        supabase
+          .from("journal_entries")
+          .select("entry_date, title")
+          .eq("user_id", user.id)
+          .order("entry_date", { ascending: false })
+          .limit(1),
+      ]);
+
+      // ---------------------------------------------------------------
+      // Wash day source-of-truth: prefer the most recent backend record.
+      // ---------------------------------------------------------------
+      const lastWashRow = recentWashRes.data?.[0] ?? null;
+      const lastWashDate = lastWashRow?.wash_date ?? lastWashIso ?? null;
+      const daysSinceWash = lastWashDate
+        ? daysSince(`${lastWashDate}T00:00:00`)
+        : daysSinceWashLocal;
+      const washCount30d = washCountRes.count ?? 0;
+
+      // ---------------------------------------------------------------
+      // CAUTIONARY ALERTS
+      // ---------------------------------------------------------------
+
+      // 1. Wash overdue + protective style
+      if (
+        inTakedownStyle &&
+        Number.isFinite(daysSinceWash) &&
+        daysSinceWash >= 7 &&
+        lastWashDate
+      ) {
         const dayLabel = `Day ${daysSinceWash} in ${currentStyles[0]?.toLowerCase() ?? "style"}`;
         next.push({
           id: "wash-overdue",
@@ -128,38 +304,88 @@ export function useHomeAlerts() {
           title: `Wash day overdue — ${dayLabel}`,
           body: "Product build-up begins now. Log a cleanse.",
           to: "/wash-day",
-          signature: `wash:${lastWashIso}`,
+          tone: "warning",
+          signature: `wash:${lastWashDate}`,
         });
       }
 
-
-      // Rule 2: Style worn 42+ days → take down.
-      // Signature is the style start date so a new style clears the dismissal.
+      // 2. Style worn 42+ days
       const daysInStyle = daysSince(styleStartDate);
-      if (Number.isFinite(daysInStyle) && daysInStyle >= 42 && currentStyles.length > 0) {
+      if (
+        Number.isFinite(daysInStyle) &&
+        daysInStyle >= 42 &&
+        currentStyles.length > 0
+      ) {
         next.push({
           id: "takedown-due",
           emoji: "✂️",
           title: "Time to take down",
           body: `${daysInStyle} days in ${currentStyles[0].toLowerCase()} — scalp needs a reset.`,
           to: "/onboarding/profile-step-4-colour",
+          tone: "warning",
           signature: `style:${styleStartDate ?? "none"}`,
         });
       }
 
-      // --- Blood results (Supabase) ---
-      const { data: bloodRows } = await supabase
-        .from("blood_results")
-        .select("updated_at")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(1);
-      const lastBloodIso = bloodRows?.[0]?.updated_at ?? null;
+      // 3. Planned next style date passed or imminent
+      const plannedDays = daysUntil(plannedChangeDate);
+      if (plannedNext && plannedChangeDate && plannedDays <= 3) {
+        const when =
+          plannedDays < 0
+            ? `was ${Math.abs(plannedDays)} day${Math.abs(plannedDays) === 1 ? "" : "s"} ago`
+            : plannedDays === 0
+              ? "is today"
+              : `is in ${plannedDays} day${plannedDays === 1 ? "" : "s"}`;
+        next.push({
+          id: "planned-style-due",
+          emoji: "🗓️",
+          title: `${plannedNext} change ${when}`,
+          body: "Update your current style so guidance keeps matching your hair.",
+          to: "/onboarding/profile-step-4-colour",
+          tone: "warning",
+          signature: `planned:${plannedChangeDate}`,
+        });
+      }
+
+      // 4. Blood markers — most recent record per marker
+      const bloodRows = (bloodRes.data ?? []) as Array<{
+        marker: string;
+        status: string | null;
+        updated_at: string;
+      }>;
+      const latestByMarker = new Map<
+        string,
+        { status: string | null; updated_at: string }
+      >();
+      for (const row of bloodRows) {
+        if (!latestByMarker.has(row.marker)) {
+          latestByMarker.set(row.marker, {
+            status: row.status,
+            updated_at: row.updated_at,
+          });
+        }
+      }
+      const lowMarkers = Array.from(latestByMarker.entries())
+        .filter(([, v]) => v.status === "low")
+        .map(([m]) => m);
+      const lastBloodIso = bloodRows[0]?.updated_at ?? null;
       const daysSinceBlood = daysSince(lastBloodIso);
 
-      // Rule 3: Blood retest due. Only fires if the user has at least one
-      // result on file and it's older than 85 days. Signature is the latest
-      // blood result timestamp so a new test clears the dismissal.
+      if (lowMarkers.length > 0) {
+        const sample = lowMarkers.slice(0, 2).join(", ");
+        const more = lowMarkers.length > 2 ? ` +${lowMarkers.length - 2} more` : "";
+        next.push({
+          id: "blood-low-markers",
+          emoji: "🩸",
+          title: `${lowMarkers.length} low marker${lowMarkers.length === 1 ? "" : "s"} on file`,
+          body: `${sample}${more} — see your nutrition plan.`,
+          to: "/nutrition-plan",
+          tone: "warning",
+          signature: `lowMarkers:${lowMarkers.sort().join(",")}`,
+        });
+      }
+
+      // 5. Blood retest due
       if (lastBloodIso && daysSinceBlood >= 85) {
         next.push({
           id: "blood-retest",
@@ -167,25 +393,15 @@ export function useHomeAlerts() {
           title: "Blood retest due — STRAND20",
           body: `Last test ${daysSinceBlood} days ago. Order your Daye kit with code STRAND20.`,
           to: "/onboarding/blood-iron-vitamins",
+          tone: "warning",
           signature: `blood:${lastBloodIso}`,
         });
       }
 
-
-      // --- Appointments (Supabase) ---
-      const { data: apptRows } = await supabase
-        .from("appointments")
-        .select("appointment_date, professional_name")
-        .eq("user_id", user.id)
-        .order("appointment_date", { ascending: false })
-        .limit(1);
-      const lastApptDate = apptRows?.[0]?.appointment_date ?? null;
-      const lastProName = apptRows?.[0]?.professional_name ?? null;
+      // 6. Rebook professional
+      const lastApptDate = apptRes.data?.[0]?.appointment_date ?? null;
+      const lastProName = apptRes.data?.[0]?.professional_name ?? null;
       const daysSinceAppt = daysSince(lastApptDate);
-
-      // Rule 4: Rebook professional. Only fires if the user has logged at
-      // least one appointment and it's been > 170 days. Signature is the last
-      // appointment date so logging a new one clears the dismissal.
       if (lastApptDate && daysSinceAppt >= 170) {
         next.push({
           id: "rebook-pro",
@@ -195,13 +411,264 @@ export function useHomeAlerts() {
             ? `${daysSinceAppt} days since you saw ${lastProName}.`
             : `${daysSinceAppt} days since your last appointment.`,
           to: "/appointments",
+          tone: "warning",
           signature: `appt:${lastApptDate}`,
         });
       }
 
+      // 7. Upcoming appointment in next 3 days
+      const upcomingAppt = upcomingApptRes.data?.[0];
+      if (upcomingAppt?.appointment_date) {
+        const dUntil = daysUntil(`${upcomingAppt.appointment_date}T00:00:00`);
+        if (dUntil >= 0 && dUntil <= 3) {
+          const when =
+            dUntil === 0
+              ? "today"
+              : dUntil === 1
+                ? "tomorrow"
+                : `in ${dUntil} days`;
+          next.push({
+            id: "appt-upcoming",
+            emoji: "📍",
+            title: `Appointment ${when}`,
+            body: upcomingAppt.professional_name
+              ? `With ${upcomingAppt.professional_name}. Tap to review.`
+              : "Tap to review the details.",
+            to: "/appointments",
+            tone: "warning",
+            signature: `apptUp:${upcomingAppt.appointment_date}`,
+          });
+        }
+      }
+
+      // 8. Hard water + no clarifier in the last 3 washes
+      const recentWashes = (recentWashRes.data ?? []) as Array<{
+        wash_date: string;
+        steps: unknown;
+        breakage: string | null;
+      }>;
+      if (
+        hardWater &&
+        recentWashes.length >= 1 &&
+        !recentWashes.some((w) => washHadClarifier(w.steps))
+      ) {
+        const lastIds = recentWashes.map((w) => w.wash_date).join(",");
+        next.push({
+          id: "hard-water-clarify",
+          emoji: "🚿",
+          title: "Hard water build-up risk",
+          body: "No clarifying step in your last washes. Add one to lift mineral residue.",
+          to: "/wash-day",
+          tone: "warning",
+          signature: `hardWater:${lastIds || "none"}`,
+        });
+      }
+
+      // 9. Recent breakage reported
+      const lastBreakageRow = breakageWashRes.data?.[0];
+      const breakageNote = (lastBreakageRow?.breakage ?? "").toString().trim();
+      if (
+        breakageNote &&
+        breakageNote.toLowerCase() !== "none" &&
+        breakageNote.toLowerCase() !== "no" &&
+        lastBreakageRow?.wash_date
+      ) {
+        next.push({
+          id: "breakage-flag",
+          emoji: "⚠️",
+          title: "Breakage logged on your last wash",
+          body: `Review your routine and check protein / moisture balance.`,
+          to: `/wash-day`,
+          tone: "warning",
+          signature: `breakage:${lastBreakageRow.wash_date}`,
+        });
+      }
+
+      // 10. Avoid-list ingredient currently on the shelf
+      const ingLists = (ingListsRes.data ?? []) as Array<{
+        ingredient: string;
+        list_kind: string;
+      }>;
+      const avoidSet = new Set(
+        ingLists
+          .filter((r) => r.list_kind === "avoid")
+          .map((r) => r.ingredient.toLowerCase()),
+      );
+      const shelfRows = (shelfRes.data ?? []) as Array<{
+        name: string;
+        brand: string | null;
+        ingredients: string[];
+        rating: number | null;
+      }>;
+      if (avoidSet.size > 0 && shelfRows.length > 0) {
+        const offenders = shelfRows.filter((p) =>
+          (p.ingredients ?? []).some((ing) => avoidSet.has(ing.toLowerCase())),
+        );
+        if (offenders.length > 0) {
+          const first = offenders[0];
+          const more = offenders.length > 1 ? ` +${offenders.length - 1} more` : "";
+          next.push({
+            id: "avoid-on-shelf",
+            emoji: "🚫",
+            title: "Avoid-list ingredient on your shelf",
+            body: `${first.brand ? `${first.brand} ` : ""}${first.name}${more}. Tap to review.`,
+            to: "/products",
+            tone: "warning",
+            signature: `avoidShelf:${offenders
+              .map((o) => `${o.brand}|${o.name}`)
+              .sort()
+              .join("/")}`,
+          });
+        }
+      }
+
+      // 11. Low-rated product still on shelf
+      const lowRatedShelf = shelfRows.filter(
+        (p) => p.rating != null && p.rating <= 2,
+      );
+      if (lowRatedShelf.length > 0) {
+        const first = lowRatedShelf[0];
+        const more =
+          lowRatedShelf.length > 1 ? ` +${lowRatedShelf.length - 1} more` : "";
+        next.push({
+          id: "low-rated-shelf",
+          emoji: "👎",
+          title: "Low-rated product still on shelf",
+          body: `${first.brand ? `${first.brand} ` : ""}${first.name}${more}. Move it off?`,
+          to: "/products",
+          tone: "warning",
+          signature: `lowShelf:${lowRatedShelf
+            .map((p) => `${p.brand}|${p.name}`)
+            .sort()
+            .join("/")}`,
+        });
+      }
+
+      // 12. Goal target date passed without completion
+      const goals = (goalsRes.data ?? []) as Array<{
+        id: string;
+        title: string;
+        status: string;
+        target_date: string | null;
+        updated_at: string;
+      }>;
+      const overdueGoal = goals.find(
+        (g) =>
+          g.status !== "complete" &&
+          g.target_date &&
+          daysUntil(`${g.target_date}T00:00:00`) < 0,
+      );
+      if (overdueGoal?.target_date) {
+        next.push({
+          id: `goal-overdue-${overdueGoal.id}`,
+          emoji: "🎯",
+          title: "Goal target date has passed",
+          body: `${overdueGoal.title} — review or extend it.`,
+          to: "/journal",
+          tone: "warning",
+          signature: `goalOverdue:${overdueGoal.id}:${overdueGoal.target_date}`,
+        });
+      }
+
+      // ---------------------------------------------------------------
+      // POSITIVE / ENCOURAGING ALERTS
+      // ---------------------------------------------------------------
+
+      // P1. Recent wash logged (last 3 days)
+      if (Number.isFinite(daysSinceWash) && daysSinceWash <= 3 && lastWashDate) {
+        const when =
+          daysSinceWash === 0
+            ? "today"
+            : daysSinceWash === 1
+              ? "yesterday"
+              : `${daysSinceWash} days ago`;
+        next.push({
+          id: "wash-recent",
+          emoji: "✨",
+          title: `Wash day logged ${when}`,
+          body: "Consistency compounds — keep going.",
+          to: "/wash-day",
+          tone: "good",
+          signature: `washGood:${lastWashDate}`,
+        });
+      }
+
+      // P2. 3+ wash days in the last 30 days → consistency win
+      if (washCount30d >= 3) {
+        next.push({
+          id: "wash-streak",
+          emoji: "🔥",
+          title: `${washCount30d} wash days in 30 days`,
+          body: "Your routine is locked in.",
+          to: "/wash-day",
+          tone: "good",
+          signature: `streak:${washCount30d}:${lastWashDate ?? "n/a"}`,
+        });
+      }
+
+      // P3. Recent journal entry
+      const lastJournal = journalRes.data?.[0];
+      if (lastJournal?.entry_date) {
+        const dJ = daysSince(`${lastJournal.entry_date}T00:00:00`);
+        if (dJ <= 3) {
+          next.push({
+            id: "journal-recent",
+            emoji: "📓",
+            title: "Journal entry added",
+            body: "Reflection makes patterns visible. Add another anytime.",
+            to: "/journal",
+            tone: "good",
+            signature: `journal:${lastJournal.entry_date}`,
+          });
+        }
+      }
+
+      // P4. High-rated product captured
+      const topRated = ratingsRes.data?.[0] as
+        | {
+            product_name: string | null;
+            product_brand: string | null;
+            rating: number;
+            updated_at: string;
+          }
+        | undefined;
+      if (topRated?.rating && topRated.rating >= 4) {
+        const label = `${topRated.product_brand ? `${topRated.product_brand} ` : ""}${
+          topRated.product_name ?? "a product"
+        }`;
+        next.push({
+          id: "fav-product",
+          emoji: "💛",
+          title: `${topRated.rating}★ favourite saved`,
+          body: `${label} is performing well — keep it close.`,
+          to: "/products",
+          tone: "good",
+          signature: `fav:${label}:${topRated.updated_at}`,
+        });
+      }
+
+      // P5. Goal completed
+      const completedGoal = goals.find((g) => g.status === "complete");
+      if (completedGoal) {
+        next.push({
+          id: `goal-complete-${completedGoal.id}`,
+          emoji: "🏆",
+          title: "Goal complete",
+          body: `${completedGoal.title} — set the next one.`,
+          to: "/journal",
+          tone: "good",
+          signature: `goalDone:${completedGoal.id}:${completedGoal.updated_at}`,
+        });
+      }
 
       if (!cancelled) {
-        setAlerts(next);
+        // Cap at 8 to keep the panel scannable; cautionary first, then good.
+        const ordered = [...next].sort((a, b) => {
+          const aw = a.tone === "warning" ? 0 : 1;
+          const bw = b.tone === "warning" ? 0 : 1;
+          return aw - bw;
+        });
+        setAlerts(ordered.slice(0, 8));
         setLoading(false);
       }
     })();
@@ -212,7 +679,6 @@ export function useHomeAlerts() {
   }, [user]);
 
   // Prune dismissals whose alert no longer exists (or whose signature changed).
-  // This keeps the storage map small and ensures stale entries don't linger.
   useEffect(() => {
     if (alerts.length === 0 && Object.keys(dismissals).length === 0) return;
     const sigById = new Map(alerts.map((a) => [a.id, a.signature]));
