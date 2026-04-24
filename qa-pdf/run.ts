@@ -1,26 +1,6 @@
-// Re-implement generateIngredientReportPdf inline by importing the source &
-// monkeypatching `doc.save` after construction. Easiest: patch jsPDF.prototype
-// THEN delete the own property on each instance after construction. We can't
-// inject into instances we don't see, so we shim the constructor.
-import * as JspdfMod from "jspdf";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { generateIngredientReportPdf } from "./ingredientReportPdf";
+import { mkdirSync } from "node:fs";
 mkdirSync("/tmp/pdfqa", { recursive: true });
-
-const Real = JspdfMod.jsPDF;
-function Wrapped(this: any, ...args: any[]) {
-  const inst = new (Real as any)(...args);
-  inst.save = function(filename: string) {
-    const buf = Buffer.from(inst.output("arraybuffer"));
-    writeFileSync(`/tmp/pdfqa/${filename}`, buf);
-    console.log("wrote", filename);
-  };
-  return inst;
-}
-Wrapped.prototype = Real.prototype;
-// @ts-ignore
-(JspdfMod as any).jsPDF = Wrapped;
-
-const { generateIngredientReportPdf } = await import("./ingredientReportPdf");
 generateIngredientReportPdf({
   userName: "Maya Thompson",
   avoid: [
