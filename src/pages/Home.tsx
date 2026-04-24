@@ -38,15 +38,25 @@ const Stars = ({ n }: { n: number }) => (
   </span>
 );
 
+const getTimeBasedGreeting = (date = new Date()) => {
+  const h = date.getHours();
+  if (h < 5) return "Good evening"; // late night → still "evening" feels natural
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 22) return "Good evening";
+  return "Good evening";
+};
+
 const Home = () => {
   const navigate = useNavigate();
+  const greeting = getTimeBasedGreeting();
 
   return (
     <ScreenLayout bottomNav>
       {/* greeting */}
       <header className="px-5 pt-3 pb-4 flex items-start justify-between">
         <div>
-          <p className="font-body text-sm text-muted-foreground">Good morning,</p>
+          <p className="font-body text-sm text-muted-foreground">{greeting},</p>
           <h1 className="font-display text-[24px] font-bold leading-tight">Paige</h1>
         </div>
         <div className="flex items-center gap-2">
