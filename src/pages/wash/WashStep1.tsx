@@ -332,11 +332,7 @@ const WashStep1 = () => {
             </div>
           }
         />
-        <StepCard
-          step={{ id: "5", emoji: "✨", name: "Style & Finish", sub: "Styling products applied", defaultDone: true, products: ["Flaxseed Styling Gel — Camille Rose"] }}
-          state={style}
-          setState={setStyle}
-        />
+
 
         <Button
           variant="gold"
