@@ -462,12 +462,21 @@ const WashStep1 = () => {
           className="mt-4"
           onClick={() => {
             // Only save products from steps that were actually completed —
-            // pulled from the user's real shelf, not hardcoded brands.
+            // pulled from the user's real shelf PLUS anything the user added
+            // inline via the link/photo picker.
             const products: string[] = [];
-            if (prePoo === "done") products.push(...prePooProducts);
-            if (cleanse === "done") products.push(...cleanseProducts);
-            if (condition === "done") products.push(...conditionProducts);
-            if (treatment === "done") products.push(...treatmentProducts);
+            const productIds: string[] = [];
+            const stepProducts: Array<{ name: string; products: string[] }> = [];
+            const collect = (key: StepKey, label: string, shelfList: string[]) => {
+              const merged = [...shelfList, ...addedByStep[key]];
+              if (merged.length) products.push(...merged);
+              productIds.push(...addedIdsByStep[key]);
+              stepProducts.push({ name: label, products: merged });
+            };
+            if (prePoo === "done") collect("prePoo", "Pre-poo", prePooProducts);
+            if (cleanse === "done") collect("cleanse", "Cleanse", cleanseProducts);
+            if (condition === "done") collect("condition", "Condition", conditionProducts);
+            if (treatment === "done") collect("treatment", "Treatment", treatmentProducts);
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
@@ -476,6 +485,8 @@ const WashStep1 = () => {
                 prePoo, cleanse, condition, treatment,
                 treatmentType,
                 products,
+                productIds,
+                stepProducts,
                 heatTreatment: heatChoice,
                 heatMinutes: heatChoice === "yes" ? heatMinutes : null,
                 skipped: {
