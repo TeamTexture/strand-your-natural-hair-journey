@@ -23,10 +23,11 @@ interface Analysis {
 
 interface NavState {
   analysis: Analysis;
-  storage_path: string;
-  preview_url: string;
+  storage_path: string | null;
+  preview_url: string | null;
   product_key: string;
   intent?: "shelf" | "wishlist";
+  source_url?: string;
 }
 
 const ProductDetailNew = () => {
