@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -6,8 +6,18 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { useUserProducts, KeyIngredient } from "@/hooks/useUserProducts";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
+import { useGoals } from "@/hooks/useGoals";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { buildAiContext } from "@/lib/aiContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+interface IngredientFlag {
+  name: string;
+  tone: "good" | "warn" | "bad";
+  body: string;
+}
 
 interface Analysis {
   product_name?: string;
