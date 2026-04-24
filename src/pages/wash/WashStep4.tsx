@@ -20,6 +20,8 @@ const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactN
 const WashStep4 = () => {
   const navigate = useNavigate();
   const save = () => {
+    // Stamp last wash so the Profile wash-day alert can compute "days since last wash".
+    localStorage.setItem("strand_last_wash_date", new Date().toISOString());
     toast("💧 Wash day saved!");
     navigate("/home");
   };
