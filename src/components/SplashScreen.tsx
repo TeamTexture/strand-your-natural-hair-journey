@@ -3,7 +3,7 @@ import HairStrandIcon from "./HairStrandIcon";
 
 const SplashScreen = () => {
   return (
-    <div className="flex flex-col min-h-screen sm:h-[792px] px-7 pt-16 pb-10 bg-background">
+    <div className="flex flex-col h-full px-7 pt-16 pb-10 bg-background">
       {/* Top: logo block */}
       <div className="flex-1 flex flex-col items-center justify-center text-center">
         <HairStrandIcon className="w-16 h-16 text-primary mb-8" />
