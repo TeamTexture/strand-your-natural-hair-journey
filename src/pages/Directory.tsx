@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUp, Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -17,11 +17,29 @@ const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>("All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
+  const [showTop, setShowTop] = useState(false);
 
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, tab),
     [pros, query, tab],
   );
+
+  // The scrollable surface is the <main> element inside ScreenLayout. We listen
+  // to it directly so the floating "back to top" only shows once the user has
+  // moved past the first viewport — keeps the UI calm by default.
+  useEffect(() => {
+    const main = document.querySelector("main") as HTMLElement | null;
+    if (!main) return;
+    const onScroll = () => setShowTop(main.scrollTop > 400);
+    main.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => main.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    const main = document.querySelector("main") as HTMLElement | null;
+    main?.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const openExternal = (url: string, label: string) => {
     if (!url) {
@@ -152,6 +170,17 @@ const Directory = () => {
           ))
         )}
       </div>
+
+      {showTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Back to top"
+          className="fixed bottom-6 right-6 z-30 size-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        >
+          <ArrowUp className="size-5" />
+        </button>
+      )}
     </ScreenLayout>
   );
 };
