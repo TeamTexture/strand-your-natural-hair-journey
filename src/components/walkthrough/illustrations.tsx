@@ -120,20 +120,34 @@ export const SetupShareIllustration = () => (
   </div>
 );
 
-export const SetupStepsIllustration = ({ android }: { android: boolean }) => (
+export type SetupPlatform = "ios-safari" | "ios-other" | "android" | "desktop";
+
+const STEP_SETS: Record<SetupPlatform, { i: string; t: string; s: string }[]> = {
+  "ios-safari": [
+    { i: "↑", t: "Tap the Share button", s: "The square with an arrow, at the bottom of Safari" },
+    { i: "🏠", t: "Tap 'Add to Home Screen'", s: "Scroll down in the share sheet if needed" },
+    { i: "✓", t: "Tap Add", s: "STRAND appears on your home screen" },
+  ],
+  "ios-other": [
+    { i: "🧭", t: "Open this page in Safari", s: "Install only works from Safari on iPhone or iPad" },
+    { i: "↑", t: "Tap the Share button", s: "The square with an arrow at the bottom of Safari" },
+    { i: "🏠", t: "Tap 'Add to Home Screen'", s: "Then tap Add — STRAND appears instantly" },
+  ],
+  android: [
+    { i: "⋮", t: "Tap the menu button", s: "Three dots in Chrome, or your browser's menu" },
+    { i: "📲", t: "Tap 'Install app' or 'Add to Home screen'", s: "Wording varies by browser" },
+    { i: "✓", t: "Confirm", s: "STRAND appears with your other apps" },
+  ],
+  desktop: [
+    { i: "⊕", t: "Look for the install icon", s: "In the address bar (Chrome, Edge, Brave) or browser menu" },
+    { i: "📲", t: "Click 'Install STRAND'", s: "Or 'Add to Home screen' on some browsers" },
+    { i: "✓", t: "Confirm", s: "STRAND opens in its own window like an app" },
+  ],
+};
+
+export const SetupStepsIllustration = ({ platform }: { platform: SetupPlatform }) => (
   <div className="space-y-2">
-    {(android
-      ? [
-          { i: "⋮", t: "Tap the three dots", s: "Top right of Chrome" },
-          { i: "🏠", t: "Tap Add to Home Screen", s: "In the dropdown" },
-          { i: "✓", t: "Tap Add", s: "STRAND appears instantly" },
-        ]
-      : [
-          { i: "↑", t: "Tap the Share button", s: "Bottom of Safari" },
-          { i: "🏠", t: "Tap Add to Home Screen", s: "Scroll down in share sheet" },
-          { i: "✓", t: "Tap Add", s: "STRAND appears instantly" },
-        ]
-    ).map((step, idx) => (
+    {STEP_SETS[platform].map((step, idx) => (
       <div key={idx} className="bg-card border border-border rounded-[14px] p-3 flex items-center gap-3">
         <div className="size-9 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-base">{step.i}</div>
         <div className="flex-1 min-w-0">
