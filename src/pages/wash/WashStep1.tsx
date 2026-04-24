@@ -53,8 +53,6 @@ interface Step {
   emoji: string;
   name: string;
   sub: string;
-  defaultDone: boolean;
-  products: string[];
 }
 
 /**
@@ -70,26 +68,34 @@ const StepCard = ({
   step,
   state,
   setState,
+  /** Resolved products the user has selected for this step (from their shelf). */
+  selectedProducts,
+  /** Remove a product from this step's selection. */
+  onRemoveProduct,
+  /** Open the inline picker sheet (lets the user pick existing or add new). */
+  onOpenPicker,
   /** What to render inside the inline editor (only visible while state === "editing"). */
   editor,
   /**
    * Optional collapsed summary chips shown under the header once the step is "done".
-   * If omitted we just show the default product list captured for this step.
+   * If omitted we just show the products captured for this step.
    */
   summaryChips,
 }: {
   step: Step;
   state: StepState;
   setState: (s: StepState) => void;
+  selectedProducts: UserProduct[];
+  onRemoveProduct: (id: string) => void;
+  onOpenPicker: () => void;
   editor?: React.ReactNode;
   summaryChips?: string[];
 }) => {
   const isEditing = state === "editing";
   const isDone = state === "done";
   const isSkipped = state === "skipped";
-  // Use caller-provided chips when given; otherwise fall back to the step's
-  // default product list so a "done" step is never visually empty.
-  const chips = summaryChips ?? step.products;
+  const productLabels = selectedProducts.map(formatProduct);
+  const chips = summaryChips ?? productLabels;
   return (
     <SurfaceCard className={cn(isSkipped && "opacity-70")}>
       <div className="flex items-center gap-3">
@@ -117,7 +123,6 @@ const StepCard = ({
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => {
-              // Toggle: todo → editing, editing → todo (cancel), done → editing (re-open to edit)
               if (isEditing) setState("todo");
               else if (isDone) setState("editing");
               else setState("editing");
@@ -170,17 +175,35 @@ const StepCard = ({
         </p>
       )}
 
-      {/* EDITING: inline editor with the per-step UI + a Done button to commit */}
+      {/* EDITING: inline editor — shows currently picked products with remove
+          buttons, plus a real "Add a product" CTA that opens the picker
+          (which itself supports photo / upload / link with auto-save to shelf). */}
       {isEditing && (
         <div className="mt-3 space-y-2">
-          {step.products.map((p) => (
-            <div key={p} className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/30 rounded-[10px]">
+          {selectedProducts.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/30 rounded-[10px]"
+            >
               <Check className="size-4 text-good shrink-0" />
-              <span className="text-xs flex-1 truncate">{p}</span>
+              <span className="text-xs flex-1 truncate">{formatProduct(p)}</span>
+              <button
+                type="button"
+                onClick={() => onRemoveProduct(p.id)}
+                aria-label={`Remove ${p.name}`}
+                className="size-6 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
             </div>
           ))}
-          <button className="w-full text-left px-3 py-2 border border-dashed border-border rounded-[10px] text-xs text-muted-foreground">
-            + Add product used
+          <button
+            type="button"
+            onClick={onOpenPicker}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-dashed border-primary/50 rounded-[10px] text-xs font-medium text-primary hover:bg-primary/5 transition-colors min-h-[40px]"
+          >
+            <Plus className="size-4" />
+            Add a product
           </button>
           {editor}
           <Button
