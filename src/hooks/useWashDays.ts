@@ -39,6 +39,21 @@ export function useWashDays() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Realtime — keep the list (and thus the calendar + monthly count) in sync
+  // whenever the user inserts/updates/deletes a wash day in any tab.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`wash_days:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "wash_days", filter: `user_id=eq.${user.id}` },
+        () => { void load(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [user, load]);
+
   const last = washDays[0] ?? null;
   const daysSinceLast = last
     ? Math.floor((Date.now() - new Date(last.wash_date).getTime()) / 86_400_000)
