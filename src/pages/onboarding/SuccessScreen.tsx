@@ -1,9 +1,24 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import ScreenLayout from "@/components/ScreenLayout";
 import { Button } from "@/components/ui/button";
 
 const SuccessScreen = () => {
   const navigate = useNavigate();
+
+  // Decide where to send the user when they tap Enter Strand
+  const handleContinue = () => {
+    const seen = localStorage.getItem("strand_walkthrough_complete") === "true";
+    navigate(seen ? "/home" : "/walkthrough", { replace: true });
+  };
+
+  // Auto-route forward after a moment so the success screen still feels celebratory
+  useEffect(() => {
+    const t = window.setTimeout(handleContinue, 2200);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <ScreenLayout>
       <div className="h-full flex flex-col px-7 pb-10">
@@ -16,7 +31,7 @@ const SuccessScreen = () => {
             Every recommendation, alert, and insight is now built around your verified clinical data. This is hair care that actually knows you.
           </p>
         </div>
-        <Button variant="gold" size="pill" onClick={() => navigate("/home")}>
+        <Button variant="gold" size="pill" onClick={handleContinue}>
           Enter Strand →
         </Button>
       </div>
