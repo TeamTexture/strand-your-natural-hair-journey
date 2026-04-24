@@ -294,6 +294,15 @@ const MoodboardBoard = () => {
           Share Board
         </Button>
       </div>
+
+      <ShareSheet
+        open={sharing !== null}
+        onOpenChange={(o) => !o && setSharing(null)}
+        imageUrl={sharing?.signedUrl ?? null}
+        title={`${board.name} mood board`}
+        caption={`From my ${board.name} mood board ✨\n\n#STRAND #naturalhair #moodboard`}
+        filename={`${board.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.jpg`}
+      />
     </ScreenLayout>
   );
 };
