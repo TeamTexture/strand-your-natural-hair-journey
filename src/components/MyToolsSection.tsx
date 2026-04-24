@@ -139,6 +139,11 @@ const MyToolsSection = () => {
         if (matched) setCategory(matched);
       }
       if (data?.summary && !notes) setNotes(String(data.summary));
+      if (data?.image_url && !photoPreview && !pickedPhoto) {
+        const img = String(data.image_url);
+        setRemoteImageUrl(img);
+        setPhotoPreview(img);
+      }
       toast.success("Tool details filled in — review and save");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Couldn't analyse that page";
@@ -159,6 +164,9 @@ const MyToolsSection = () => {
       rating: rating || undefined,
       notes,
       photoFile: pickedPhoto,
+      // If no file was picked, fall back to the remote product image we
+      // scraped from the URL so the tool tile isn't blank.
+      imageUrl: !pickedPhoto ? remoteImageUrl : null,
     });
     setSaving(false);
     if (created) {
