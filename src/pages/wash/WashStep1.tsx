@@ -186,7 +186,7 @@ const WashStep1 = () => {
   const [cleanse, setCleanse] = useState<StepState>("done");
   const [condition, setCondition] = useState<StepState>("done");
   const [treatment, setTreatment] = useState<StepState>("todo");
-  const [style, setStyle] = useState<StepState>("done");
+  
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
 
   // Heat-treatment state lives at the page level so we can persist it and so
