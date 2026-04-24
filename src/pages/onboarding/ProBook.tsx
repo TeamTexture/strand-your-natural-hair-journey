@@ -13,31 +13,65 @@ import { Button } from "@/components/ui/button";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 
-const ProCard = ({ p }: { p: Professional }) => (
-  <SurfaceCard padded={false} className="overflow-hidden">
-    <div className="p-4 flex gap-3">
-      <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-14" />
-      <div className="flex-1 min-w-0">
-        <h3 className="font-display text-base font-semibold leading-tight">{p.name}</h3>
-        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-          <span className="text-xs text-muted-foreground">
-            {p.type} · {p.verified}
-          </span>
-          <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
-            ✓
-          </span>
+const ProCard = ({ p }: { p: Professional }) => {
+  const bookHref = p.bookingUrl || p.website || p.instaUrl || "";
+  return (
+    <SurfaceCard padded={false} className="overflow-hidden">
+      <div className="p-4 flex gap-3">
+        <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-14" />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-display text-base font-semibold leading-tight">{p.name}</h3>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <span className="text-xs text-muted-foreground">
+              {p.type} · {p.verified}
+            </span>
+            <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
+              ✓
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {p.clinic} · {p.location}
+          </p>
+          {p.specs?.length ? (
+            <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+              {p.specs.slice(0, 4).join(" · ")}
+            </p>
+          ) : null}
+          {p.bio ? (
+            <p className="text-[11px] text-foreground/75 mt-1.5 line-clamp-2 font-body">
+              {p.bio}
+            </p>
+          ) : null}
+          {bookHref ? (
+            <a
+              href={bookHref}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex mt-2.5 items-center justify-center px-3.5 py-2 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold uppercase tracking-[0.15em] hover:bg-primary/90 transition-colors min-h-[36px]"
+            >
+              Book Now →
+            </a>
+          ) : null}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {p.clinic} · {p.location}
-        </p>
       </div>
-    </div>
-    <div className="bg-primary/15 px-4 py-2.5 text-xs font-body">
-      <span className="font-semibold tracking-[0.1em] uppercase text-primary">{p.bookCode}</span>
-      <span className="text-foreground/80"> — {p.discount.replace(`${p.bookCode} — `, "")}</span>
-    </div>
-  </SurfaceCard>
-);
+      {p.bookCode || p.discount ? (
+        <div className="bg-primary/15 px-4 py-2.5 text-xs font-body">
+          {p.bookCode && (
+            <span className="font-semibold tracking-[0.1em] uppercase text-primary">
+              {p.bookCode}
+            </span>
+          )}
+          {p.discount && (
+            <span className="text-foreground/80">
+              {p.bookCode ? " — " : ""}
+              {p.discount.replace(`${p.bookCode} — `, "")}
+            </span>
+          )}
+        </div>
+      ) : null}
+    </SurfaceCard>
+  );
+};
 
 const ProBook = () => {
   const navigate = useNavigate();
