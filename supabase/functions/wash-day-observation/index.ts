@@ -28,6 +28,7 @@ interface RequestBody {
   hairFeelNote?: string;
   hairProfile?: Record<string, unknown>;
   healthProfile?: Record<string, unknown>;
+  context?: Record<string, unknown>;
 }
 
 Deno.serve(async (req) => {
@@ -76,6 +77,8 @@ Deno.serve(async (req) => {
       ...body,
       bloodResults: bloodRows ?? [],
       medications: medRows ?? [],
+      // Live AI context provided by the client (see src/lib/aiContext.ts).
+      context: body.context ?? null,
     };
 
     const systemPrompt = `You are a trichologist + textured-hair specialist.
