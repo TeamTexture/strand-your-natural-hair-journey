@@ -1,10 +1,16 @@
 import { Button } from "@/components/ui/button";
 import HairStrandIcon from "./HairStrandIcon";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 const SplashScreen = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const memberNext = nextParam ? `?next=${encodeURIComponent(nextParam)}` : "?next=/home";
+  const joinNext = nextParam
+    ? `?next=${encodeURIComponent(nextParam)}`
+    : "?next=/onboarding/profile-step-1";
   return (
     <div className="flex flex-col h-full px-7 pt-16 pb-10 bg-background">
       {/* Top: logo block */}
