@@ -173,7 +173,12 @@ const BloodAiSummary = () => {
         </SurfaceCard>
 
         <div className="pt-2 space-y-3">
-          <Button variant="gold" size="pill" onClick={() => navigate("/nutrition-plan")}>
+          <Button
+            variant="gold"
+            size="pill"
+            onClick={() => navigate("/nutrition-plan")}
+            className="whitespace-normal leading-tight px-5 py-3 h-auto min-h-[48px] text-[11px]"
+          >
             See Your Personalised Nutrition Plan →
           </Button>
           <button
