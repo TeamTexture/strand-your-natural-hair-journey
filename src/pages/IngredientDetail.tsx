@@ -13,6 +13,7 @@ import { useSearchParams } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating } from "@/hooks/useIngredientLists";
+import { buildAiContext } from "@/lib/aiContext";
 import { cn } from "@/lib/utils";
 
 interface Ingredient { tone: "good" | "warn" | "bad"; name: string; body: string }
