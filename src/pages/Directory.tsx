@@ -4,17 +4,23 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
+import LoadingDot from "@/components/LoadingDot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PROFESSIONALS, searchProfessionals, type ProType } from "@/data/professionals";
+import { searchProfessionalsIn, type ProType } from "@/data/professionals";
+import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
 const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>("All");
   const [query, setQuery] = useState("");
+  const { pros, loading } = useDirectoryProfessionals();
 
-  const results = useMemo(() => searchProfessionals(query, tab), [query, tab]);
+  const results = useMemo(
+    () => searchProfessionalsIn(pros, query, tab),
+    [pros, query, tab],
+  );
 
   const openExternal = (url: string, label: string) => {
     if (!url) {
