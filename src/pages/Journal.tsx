@@ -22,6 +22,7 @@ import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
+import { useMoodboards } from "@/hooks/useMoodboards";
 import GoalEditorSheet from "@/components/GoalEditorSheet";
 
 const PHOTO_BUCKET = "journal-photos";
