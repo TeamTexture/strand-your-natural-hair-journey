@@ -102,24 +102,42 @@ const Journal = () => {
 
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
-        {journalEntries.map((j) => (
-          <button
-            key={j.id}
-            onClick={() => navigate(`/journal/entry/${j.id}`)}
-            className="w-full text-left"
-          >
-            <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
-              <div className={`relative h-40 bg-gradient-to-br ${j.gradient} flex items-center justify-center`}>
-                <span className="text-5xl">{j.emoji}</span>
-                <span className="absolute bottom-2 right-3 text-[11px] text-white/90 font-body bg-black/30 px-2 py-1 rounded">{j.date}</span>
-              </div>
-              <div className="p-3">
-                <p className="font-display text-base font-semibold">{j.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
-              </div>
-            </SurfaceCard>
-          </button>
-        ))}
+        {journalEntries.map((j) => {
+          const url = photoUrls[j.id];
+          return (
+            <button
+              key={j.id}
+              onClick={() => navigate(`/journal/entry/${j.id}`)}
+              className="w-full text-left"
+            >
+              <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
+                <div
+                  className={`relative h-40 flex items-center justify-center ${
+                    url ? "bg-secondary" : `bg-gradient-to-br ${j.gradient}`
+                  }`}
+                >
+                  {url ? (
+                    <img
+                      src={url}
+                      alt={j.title}
+                      className="absolute inset-0 size-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-5xl">{j.emoji}</span>
+                  )}
+                  <span className="absolute bottom-2 right-3 text-[11px] text-white/90 font-body bg-black/40 px-2 py-1 rounded">
+                    {j.date}
+                  </span>
+                </div>
+                <div className="p-3">
+                  <p className="font-display text-base font-semibold">{j.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
+                </div>
+              </SurfaceCard>
+            </button>
+          );
+        })}
       </div>
 
       <SectionLabel>Mood Boards</SectionLabel>
