@@ -41,6 +41,7 @@ import IngredientDetail from "./pages/IngredientDetail";
 import Wishlist from "./pages/Wishlist";
 import Avoidlist from "./pages/Avoidlist";
 import Journal from "./pages/Journal";
+import JournalEntry from "./pages/JournalEntry";
 import MoodboardList from "./pages/MoodboardList";
 import MoodboardBoard from "./pages/MoodboardBoard";
 import Appointments from "./pages/Appointments";
