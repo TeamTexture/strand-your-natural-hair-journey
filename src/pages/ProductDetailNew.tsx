@@ -47,15 +47,77 @@ const ProductDetailNew = () => {
   const state = (location.state as NavState | null) ?? null;
   const { upsert, allProducts } = useUserProducts("all");
   const { avoid, favourites } = useIngredientLists();
+  const { goals } = useGoals();
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+
+  const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!state) navigate("/products", { replace: true });
   }, [state, navigate]);
 
-  if (!state) return null;
-  const a = state.analysis ?? {};
+  const a = state?.analysis ?? {};
   const ingredients = a.ingredients ?? [];
+  const productKey = state?.product_key ?? "";
+  const ingredientsKey = ingredients.join("|");
+
+  // Fetch personalised per-ingredient flags as soon as the analysis lands.
+  useEffect(() => {
+    if (!user || !productKey || ingredients.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      setAiLoading(true);
+      setAiError(null);
+      try {
+        const context = await buildAiContext();
+        const styleLocal = (() => {
+          try { return JSON.parse(localStorage.getItem("strand_current_style") || "null"); }
+          catch { return null; }
+        })();
+        const challenges = goals
+          .map((g) => g.challenge)
+          .filter((c): c is string => Boolean(c && c.trim()));
+        const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
+          body: {
+            productKey,
+            productName: a.product_name ?? "Unknown",
+            productBrand: a.brand ?? "",
+            ingredients,
+            hairProfile: context.hairProfile ?? {},
+            healthProfile: context.healthProfile ?? {},
+            heritage: [],
+            goals: goals.map((g) => ({
+              kind: g.kind, title: g.title, target_text: g.target_text,
+              target_value: g.target_value, unit: g.unit, current_value: g.current_value,
+              target_date: g.target_date, challenge: g.challenge, status: g.status,
+            })),
+            currentStyle: styleLocal,
+            challenges,
+            context,
+          },
+        });
+        if (cancelled) return;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        setAiFlags((data?.analysis?.ingredients ?? []) as IngredientFlag[]);
+      } catch (e) {
+        if (cancelled) return;
+        setAiError(e instanceof Error ? e.message : "Could not analyse ingredients");
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, productKey, ingredientsKey]);
+
+  if (!state) return null;
+
+  const aiFlagByName = new Map<string, IngredientFlag>();
+  aiFlags.forEach((f) => aiFlagByName.set(f.name.toLowerCase().trim(), f));
 
   const avoidNames = new Set(avoid.map(i => i.ingredient.toLowerCase()));
   const favNames = new Set(favourites.map(i => i.ingredient.toLowerCase()));
