@@ -54,9 +54,24 @@ export const useMoodboards = () => {
       return;
     }
 
-    // Image counts + cover (most recent image)
+    // Image counts + cover (most recent image).
+    // The Favourites board is special: it does NOT own its own images. Instead it shows
+    // every image the user has favourited from any of their other boards. So for the
+    // Favourites tile we count and pick a cover from `is_favourite = true` rows scoped
+    // to the user, not by board_id.
     const enriched: Moodboard[] = await Promise.all(
       (rows ?? []).map(async (b) => {
+        if (b.is_favourites) {
+          const { data: favs } = await supabase
+            .from("moodboard_images")
+            .select("storage_path, created_at")
+            .eq("user_id", user.id)
+            .eq("is_favourite", true)
+            .order("created_at", { ascending: false });
+          const cover = favs?.[0]?.storage_path ?? null;
+          const coverUrl = cover ? await signUrl(cover) : null;
+          return { ...b, imageCount: favs?.length ?? 0, coverPath: cover, coverUrl };
+        }
         const { data: imgs } = await supabase
           .from("moodboard_images")
           .select("storage_path, created_at")
