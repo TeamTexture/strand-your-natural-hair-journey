@@ -82,6 +82,8 @@ const MyToolsSection = () => {
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [analysing, setAnalysing] = useState(false);
 
   const resetForm = () => {
     setPickedPhoto(null);
@@ -91,6 +93,7 @@ const MyToolsSection = () => {
     setCategory("");
     setNotes("");
     setRating(0);
+    setLinkUrl("");
   };
 
   const handlePickPhoto = (f: File) => {
