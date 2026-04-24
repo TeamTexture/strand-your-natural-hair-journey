@@ -284,6 +284,12 @@ ${JSON.stringify(context ?? {}, null, 2)}`;
     let out: Record<string, unknown> = {};
     try { out = JSON.parse(txt); } catch { out = { raw: txt }; }
 
+    // Attach the image URL pulled from the page so the client can save it
+    // straight onto the product (no upload required for link-added items).
+    if (scraped.imageUrl && !out.image_url) {
+      out.image_url = scraped.imageUrl;
+    }
+
     return new Response(JSON.stringify(out), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
