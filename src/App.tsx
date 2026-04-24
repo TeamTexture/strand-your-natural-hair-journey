@@ -49,6 +49,7 @@ import LogAppointment from "./pages/LogAppointment";
 import Directory from "./pages/Directory";
 import Profile from "./pages/Profile";
 import NutritionPlan from "./pages/NutritionPlan";
+import Help from "./pages/Help";
 
 const queryClient = new QueryClient();
 
@@ -65,7 +66,7 @@ const App = () => (
           <PhoneShell>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/setup" element={<SetupGuide />} />
+              <Route path="/setup" element={<Protected><SetupGuide /></Protected>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/walkthrough" element={<Protected><Walkthrough /></Protected>} />
 
@@ -105,6 +106,7 @@ const App = () => (
               <Route path="/directory" element={<Protected><Directory /></Protected>} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
+              <Route path="/help" element={<Protected><Help /></Protected>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

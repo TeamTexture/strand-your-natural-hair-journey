@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -7,11 +7,14 @@ import {
   SetupStepsIllustration,
   SetupHomeScreenIllustration,
 } from "@/components/walkthrough/illustrations";
-
-const FLAG = "strand_setup_complete";
+import { useAuth } from "@/hooks/useAuth";
 
 const SetupGuide = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const { user } = useAuth();
+  const fromHelp = params.get("from") === "help";
+
   const [i, setI] = useState(0);
   const isAndroid = useMemo(
     () => typeof navigator !== "undefined" && /android/i.test(navigator.userAgent),
@@ -19,8 +22,17 @@ const SetupGuide = () => {
   );
 
   const finish = () => {
-    localStorage.setItem(FLAG, "true");
-    navigate("/", { replace: true });
+    // Clear the per-user "first run" flag so it never auto-shows again.
+    if (user?.id) {
+      localStorage.removeItem(`strand_setup_pending:${user.id}`);
+    }
+    if (fromHelp) {
+      // User opened this from Help — return to where they came from.
+      navigate(-1);
+    } else {
+      // First-run flow → continue into onboarding.
+      navigate("/onboarding/profile-step-1", { replace: true });
+    }
   };
 
   const slides = [
@@ -52,7 +64,7 @@ const SetupGuide = () => {
           onClick={finish}
           className="text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground font-body"
         >
-          Skip
+          {fromHelp ? "Close" : "Skip"}
         </button>
       </div>
 
@@ -85,7 +97,9 @@ const SetupGuide = () => {
         {i < slides.length - 1 ? (
           <Button variant="gold" size="pill" onClick={() => setI(i + 1)}>Next →</Button>
         ) : (
-          <Button variant="gold" size="pill" onClick={finish}>Get Started →</Button>
+          <Button variant="gold" size="pill" onClick={finish}>
+            {fromHelp ? "Done" : "Get Started →"}
+          </Button>
         )}
       </div>
     </div>
