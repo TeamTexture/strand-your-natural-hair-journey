@@ -368,7 +368,9 @@ const Profile = () => {
       {/* Hair Profile — only if user filled it in */}
       {(hair.diameter || hair.porosity || hair.density || hair.scalp || (hair.diagnosed?.length ?? 0) > 0) && (
         <>
-          <SectionLabel>Hair Profile</SectionLabel>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-3-hair")}>
+            Hair Profile
+          </EditableSectionLabel>
           <div className="px-5 pb-2">
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {hair.diameter && <ProfileRow icon="🧬" label="Strand diameter" value={hair.diameter} />}
