@@ -217,7 +217,7 @@ function drawIngredientRow(
   doc.circle(MARGIN + 4, y + rowH / 2, 1.1, "F");
 
   // Ingredient name
-  doc.setFont("times", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(row.ingredient, MARGIN + 8, y + 5.6);
