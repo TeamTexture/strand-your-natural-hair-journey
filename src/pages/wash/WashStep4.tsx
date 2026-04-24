@@ -34,6 +34,8 @@ interface Step1Saved {
   prePoo?: string; cleanse?: string; condition?: string; treatment?: string;
   treatmentType?: string[];
   products?: string[];
+  productIds?: string[];
+  stepProducts?: Array<{ name: string; products: string[] }>;
   heatTreatment?: "yes" | "no" | null;
   heatMinutes?: number | null;
 }
