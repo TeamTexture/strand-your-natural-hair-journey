@@ -147,6 +147,7 @@ export async function buildAiContext(): Promise<AiContext> {
       const allRatings = (ratings.data ?? []) as Array<Record<string, unknown>>;
       lowRated = allRatings.filter((r) => Number(r.rating) <= 2);
       highRated = allRatings.filter((r) => Number(r.rating) >= 4);
+      goals = (goalRows.data ?? []) as AiContext["goals"];
       // Merge meds back into healthProfile so prompts always see them.
       if (healthProfileLocal && meds.data) {
         healthProfileLocal.medications = meds.data.map((m) => m.name);
@@ -201,6 +202,7 @@ export async function buildAiContext(): Promise<AiContext> {
       low_rated_products: lowRated,
       high_rated_products: highRated,
     },
+    goals,
     shelf,
   };
 }
