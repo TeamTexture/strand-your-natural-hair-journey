@@ -247,7 +247,7 @@ function drawEmptyState(doc: jsPDF, y: number, message: string): number {
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.15);
   doc.roundedRect(MARGIN, y, CONTENT_W, 14, 1.5, 1.5, "FD");
-  doc.setFont("helvetica", "italic");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.muted);
   doc.text(message, MARGIN + 5, y + 8.5);
@@ -271,7 +271,7 @@ export function generateIngredientReportPdf(input: ReportInput) {
     y = drawEmptyState(
       doc,
       y,
-      "No ingredients flagged yet — rate two or more products 1–2★ to populate.",
+      "No ingredients flagged yet - rate two or more products 1-2 stars to populate.",
     );
   } else {
     for (const row of input.avoid) {
@@ -290,7 +290,7 @@ export function generateIngredientReportPdf(input: ReportInput) {
     y = drawEmptyState(
       doc,
       y,
-      "No favourites yet — rate two or more products 4–5★ to populate.",
+      "No favourites yet - rate two or more products 4-5 stars to populate.",
     );
   } else {
     for (const row of input.favourites) {
