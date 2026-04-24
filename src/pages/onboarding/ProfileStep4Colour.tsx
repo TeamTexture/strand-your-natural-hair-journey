@@ -144,15 +144,18 @@ const ProfileStep4Colour = () => {
                 ? num * 30
                 : num
               : 0;
-            const styleStartDate = new Date(
+            const style_set_at = new Date(
               Date.now() - days * 24 * 60 * 60 * 1000,
             ).toISOString();
+            // Use the same shape as SetCurrentStyle / Home so the value
+            // pulls through to the "Current Style" card on the homescreen.
             localStorage.setItem(
               "strand_current_style",
               JSON.stringify({
-                style,
+                current_hairstyle: style[0] ?? "",
+                style_set_at,
+                planned_next_style: changingTo[0] ?? "",
                 howLong,
-                styleStartDate,
                 plans,
                 changingTo,
                 defaultStyle,
