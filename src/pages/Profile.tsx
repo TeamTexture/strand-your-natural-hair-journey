@@ -290,22 +290,35 @@ const Profile = () => {
         </button>
       </div>
 
-      {/* Update after appointment CTA */}
-      <div className="px-5 pb-3">
+      {/* Update after appointment CTA — go straight to the section being updated */}
+      <div className="px-5 pb-3 grid grid-cols-2 gap-3">
         <button
-          onClick={() => navigate("/onboarding/profile-step-1")}
-          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[64px] text-left"
+          onClick={() => navigate("/onboarding/profile-step-3-hair")}
+          className="flex flex-col items-start gap-2 p-3.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[88px] text-left"
         >
-          <div className="size-10 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-            <RefreshCw className="size-5" />
+          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+            <RefreshCw className="size-4" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold leading-tight">Update your profile</p>
-            <p className="text-[11px] text-foreground/70 mt-0.5">
-              Just seen a professional? Refresh hair, blood or meds.
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight">Update hair details</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
+              Diameter, porosity, density &amp; scalp.
             </p>
           </div>
-          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Edit ›</span>
+        </button>
+        <button
+          onClick={() => navigate("/onboarding/blood-iron-vitamins")}
+          className="flex flex-col items-start gap-2 p-3.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[88px] text-left"
+        >
+          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+            <RefreshCw className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight">Update blood results</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
+              Just had a test? Refresh your markers.
+            </p>
+          </div>
         </button>
       </div>
 
