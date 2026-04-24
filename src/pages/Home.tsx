@@ -183,7 +183,7 @@ const Home = () => {
             {visibleAlerts.length > 0 && (
               <button
                 onClick={() => {
-                  setDismissed(new Set(alerts.map((a) => a.id)));
+                  dismissAll();
                   toast("All alerts cleared");
                 }}
                 className="text-[11px] uppercase tracking-[0.15em] text-primary"
