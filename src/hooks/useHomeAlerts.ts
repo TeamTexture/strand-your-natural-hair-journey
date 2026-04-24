@@ -183,18 +183,10 @@ export function useHomeAlerts() {
       const lastProName = apptRows?.[0]?.professional_name ?? null;
       const daysSinceAppt = daysSince(lastApptDate);
 
-      // Rule 4: No appointment OR > 170 days. Signature is the last appointment
-      // date so logging a new one clears the dismissal.
-      if (!lastApptDate) {
-        next.push({
-          id: "rebook-pro",
-          emoji: "📅",
-          title: "Time to rebook your professional",
-          body: "No appointments logged. Find a trusted pro in the directory.",
-          to: "/directory",
-          signature: "appt:none",
-        });
-      } else if (daysSinceAppt >= 170) {
+      // Rule 4: Rebook professional. Only fires if the user has logged at
+      // least one appointment and it's been > 170 days. Signature is the last
+      // appointment date so logging a new one clears the dismissal.
+      if (lastApptDate && daysSinceAppt >= 170) {
         next.push({
           id: "rebook-pro",
           emoji: "📅",
@@ -206,6 +198,7 @@ export function useHomeAlerts() {
           signature: `appt:${lastApptDate}`,
         });
       }
+
 
       if (!cancelled) {
         setAlerts(next);
