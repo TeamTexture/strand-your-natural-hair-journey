@@ -48,9 +48,11 @@ const Home = () => {
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(readStyle());
 
-  // Re-read localStorage whenever the user lands on Home, regains focus, or the
-  // tab becomes visible again — covers the post-onboarding redirect, returning
-  // from /home/style, and cross-tab edits via the storage event.
+  // Re-read localStorage whenever the user lands on Home, regains focus, the
+  // tab becomes visible again, OR an in-tab "strand:style-updated" event fires
+  // (dispatched by onboarding Step 4 and the SetCurrentStyle screen the moment
+  // they save). The native `storage` event does not fire in the same tab that
+  // wrote the value, which is why the custom event is essential.
   useEffect(() => {
     setStyle(readStyle());
   }, [location.key]);
@@ -59,10 +61,12 @@ const Home = () => {
     const refresh = () => setStyle(readStyle());
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
+    window.addEventListener("strand:style-updated", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
+      window.removeEventListener("strand:style-updated", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
   }, []);
