@@ -7,9 +7,10 @@ import ProgressDots from "@/components/ProgressDots";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
+import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { PROFESSIONALS, searchProfessionals, type Professional } from "@/data/professionals";
+import { searchProfessionalsIn, type Professional } from "@/data/professionals";
+import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 
 const ProCard = ({ p }: { p: Professional }) => (
   <SurfaceCard padded={false} className="overflow-hidden">
@@ -42,11 +43,12 @@ const ProCard = ({ p }: { p: Professional }) => (
 const ProBook = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const { pros, loading } = useDirectoryProfessionals();
 
-  const featured = useMemo(() => PROFESSIONALS.filter((p) => p.featured), []);
+  const featured = useMemo(() => pros.filter((p) => p.featured), [pros]);
   const searchResults = useMemo(
-    () => (query.trim().length >= 2 ? searchProfessionals(query) : []),
-    [query],
+    () => (query.trim().length >= 2 ? searchProfessionalsIn(pros, query) : []),
+    [pros, query],
   );
   const showingSearch = query.trim().length >= 2;
 
@@ -82,13 +84,15 @@ const ProBook = () => {
             {searchResults.length === 0 ? (
               <EmptyState
                 icon="🔍"
-                message="No professionals match your search"
-                hint="Try a different name, clinic or condition."
+                message="No professionals found"
+                hint="Try a postcode, name, or specialism."
               />
             ) : (
               searchResults.map((p) => <ProCard key={p.id} p={p} />)
             )}
           </>
+        ) : loading && pros.length === 0 ? (
+          <LoadingDot label="Loading recommended pros…" fullScreen={false} />
         ) : (
           <>
             <SectionLabel>Recommended professionals</SectionLabel>
@@ -99,7 +103,7 @@ const ProBook = () => {
               onClick={() => navigate("/directory")}
               className="w-full text-center text-xs uppercase tracking-[0.15em] text-primary py-2 min-h-[44px]"
             >
-              See all {PROFESSIONALS.length} professionals →
+              See all {pros.length} professionals →
             </button>
           </>
         )}

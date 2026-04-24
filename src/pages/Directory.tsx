@@ -4,17 +4,23 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
+import LoadingDot from "@/components/LoadingDot";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PROFESSIONALS, searchProfessionals, type ProType } from "@/data/professionals";
+import { searchProfessionalsIn, type ProType } from "@/data/professionals";
+import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
 const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>("All");
   const [query, setQuery] = useState("");
+  const { pros, loading } = useDirectoryProfessionals();
 
-  const results = useMemo(() => searchProfessionals(query, tab), [query, tab]);
+  const results = useMemo(
+    () => searchProfessionalsIn(pros, query, tab),
+    [pros, query, tab],
+  );
 
   const openExternal = (url: string, label: string) => {
     if (!url) {
@@ -57,7 +63,7 @@ const Directory = () => {
               {t}
               {t !== "All" && (
                 <span className="ml-1.5 opacity-60">
-                  {PROFESSIONALS.filter((p) => p.type === t).length}
+                  {pros.filter((p) => p.type === t).length}
                 </span>
               )}
             </button>
@@ -66,11 +72,13 @@ const Directory = () => {
       </div>
 
       <div className="px-5 space-y-4 pb-8">
-        {results.length === 0 ? (
+        {loading && pros.length === 0 ? (
+          <LoadingDot label="Loading directory…" fullScreen={false} />
+        ) : results.length === 0 ? (
           <EmptyState
             icon="🔍"
-            message="No professionals match your search"
-            hint="Try a different name, clinic, condition, or clear the filters."
+            message="No professionals found"
+            hint="Try a postcode, name, or specialism."
           />
         ) : (
           results.map((p) => (
@@ -121,7 +129,15 @@ const Directory = () => {
                     Website
                   </button>
                   <button
-                    onClick={() => toast(`📅 Booking — ${p.bookCode} applied`)}
+                    onClick={() => {
+                      const url = p.bookingUrl || p.website || p.instaUrl;
+                      if (url) {
+                        window.open(url, "_blank", "noopener,noreferrer");
+                        if (p.bookCode) toast(`📅 Use code ${p.bookCode} at booking`);
+                      } else {
+                        toast(`Booking unavailable — try Instagram`);
+                      }
+                    }}
                     className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
                   >
                     Book Now

@@ -20,6 +20,8 @@ export interface Professional {
   website: string;
   bookCode: string;
   discount: string;
+  /** Optional direct booking URL — opens in new tab when present. */
+  bookingUrl?: string;
   /** Featured = surfaced on the onboarding "Recommended" screen. */
   featured?: boolean;
 }
@@ -220,10 +222,14 @@ export const PROFESSIONALS: Professional[] = [
   ),
 ];
 
-/** Filter helper used by the Directory and ProBook screens. */
-export function searchProfessionals(query: string, type?: ProType | "All"): Professional[] {
+/** Search any list of professionals by name, clinic, postcode, location, bio, or specialism. */
+export function searchProfessionalsIn(
+  list: Professional[],
+  query: string,
+  type?: ProType | "All",
+): Professional[] {
   const q = query.trim().toLowerCase();
-  return PROFESSIONALS.filter((p) => {
+  return list.filter((p) => {
     if (type && type !== "All" && p.type !== type) return false;
     if (!q) return true;
     const haystack = [
@@ -233,4 +239,9 @@ export function searchProfessionals(query: string, type?: ProType | "All"): Prof
       .toLowerCase();
     return haystack.includes(q);
   });
+}
+
+/** Filter helper used by the Directory and ProBook screens (static catalogue). */
+export function searchProfessionals(query: string, type?: ProType | "All"): Professional[] {
+  return searchProfessionalsIn(PROFESSIONALS, query, type);
 }

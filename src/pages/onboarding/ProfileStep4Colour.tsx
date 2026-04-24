@@ -5,7 +5,25 @@ import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import Tag from "@/components/Tag";
 import FormField from "@/components/FormField";
+import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
+
+const HAIRSTYLE_OPTIONS = [
+  "Loose natural",
+  "Box braids",
+  "Faux locs",
+  "Cornrows",
+  "Locs",
+  "Wig unit",
+  "Weave",
+  "Relaxed",
+  "Curly perm",
+  "Silk press",
+  "Wash and go",
+  "Twist-out",
+  "Finger comb coils",
+  "Not sure yet",
+];
 
 interface TGProps {
   label: string;
@@ -42,8 +60,13 @@ const ProfileStep4Colour = () => {
   const [style, setStyle] = useState(["Box braids"]);
   const [howLong, setHowLong] = useState("9 days");
   const [plans, setPlans] = useState(["Yes — in 5 weeks"]);
-  const [changingTo, setChangingTo] = useState("Loose natural / wash and go");
-  const [defaultStyle, setDefaultStyle] = useState("Alternates braids and loose natural");
+  const [changingTo, setChangingTo] = useState<string[]>(["Loose natural"]);
+  const [defaultStyle, setDefaultStyle] = useState<string[]>([
+    "Box braids",
+    "Loose natural",
+  ]);
+
+  const isChanging = plans.includes("Yes — in 5 weeks");
 
   return (
     <ScreenLayout>
@@ -92,15 +115,22 @@ const ProfileStep4Colour = () => {
           value={plans} onChange={setPlans}
         />
 
-        <FormField
-          label="Changing To"
-          value={changingTo}
-          onChange={(e) => setChangingTo(e.target.value)}
-        />
-        <FormField
+        {isChanging && (
+          <MultiSelectDropdown
+            label="Changing To"
+            options={HAIRSTYLE_OPTIONS}
+            value={changingTo}
+            onChange={setChangingTo}
+            placeholder="Select your next style…"
+          />
+        )}
+
+        <MultiSelectDropdown
           label="Default / Normal Style"
+          options={HAIRSTYLE_OPTIONS}
           value={defaultStyle}
-          onChange={(e) => setDefaultStyle(e.target.value)}
+          onChange={setDefaultStyle}
+          placeholder="Select your usual styles…"
         />
 
         <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/blood-timing")}>

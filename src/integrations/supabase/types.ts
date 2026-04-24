@@ -14,7 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_summaries: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          payload: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blood_results: {
+        Row: {
+          category: string | null
+          id: string
+          marker: string
+          status: string | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+          value: number | null
+        }
+        Insert: {
+          category?: string | null
+          id?: string
+          marker: string
+          status?: string | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+          value?: number | null
+        }
+        Update: {
+          category?: string | null
+          id?: string
+          marker?: string
+          status?: string | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
+      professionals_directory: {
+        Row: {
+          address: string | null
+          bio: string | null
+          booking_url: string | null
+          clinic_name: string | null
+          created_at: string
+          discount_code: string | null
+          discount_description: string | null
+          id: string
+          instagram_handle: string | null
+          is_active: boolean
+          name: string
+          postcode: string | null
+          specialisms: string[]
+          title: string
+          type: Database["public"]["Enums"]["pro_type"]
+          verification_number: string | null
+          verification_type: string | null
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          bio?: string | null
+          booking_url?: string | null
+          clinic_name?: string | null
+          created_at?: string
+          discount_code?: string | null
+          discount_description?: string | null
+          id?: string
+          instagram_handle?: string | null
+          is_active?: boolean
+          name: string
+          postcode?: string | null
+          specialisms?: string[]
+          title: string
+          type: Database["public"]["Enums"]["pro_type"]
+          verification_number?: string | null
+          verification_type?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          bio?: string | null
+          booking_url?: string | null
+          clinic_name?: string | null
+          created_at?: string
+          discount_code?: string | null
+          discount_description?: string | null
+          id?: string
+          instagram_handle?: string | null
+          is_active?: boolean
+          name?: string
+          postcode?: string | null
+          specialisms?: string[]
+          title?: string
+          type?: Database["public"]["Enums"]["pro_type"]
+          verification_number?: string | null
+          verification_type?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_medications: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +196,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      pro_type: "Trichologist" | "Dermatologist" | "Curl Specialist"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +323,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      pro_type: ["Trichologist", "Dermatologist", "Curl Specialist"],
+    },
   },
 } as const
