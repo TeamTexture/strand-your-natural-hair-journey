@@ -32,6 +32,7 @@ const Stars = ({ n }: { n: number }) => (
 const Products = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const { counts } = useVoicenoteCounts(products.map((p) => p.key));
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
 
