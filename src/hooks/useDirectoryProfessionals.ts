@@ -70,12 +70,26 @@ export function useDirectoryProfessionals() {
           };
         });
 
-        // Merge: DB rows first (featured), then static rows that aren't duplicated by name.
-        const dbNameSet = new Set(dbPros.map((p) => p.name.toLowerCase()));
-        const merged = [
-          ...dbPros,
-          ...PROFESSIONALS.filter((p) => !dbNameSet.has(p.name.toLowerCase())),
-        ];
+        // Merge: DB rows win on name collisions. We normalise names by
+        // lower-casing and stripping punctuation/whitespace so "Dr. Smith" and
+        // "Dr Smith" collapse into the same person, then keep whichever entry
+        // has the most populated profile (more filled fields = richer record).
+        const norm = (s: string) =>
+          s.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const populationScore = (p: Professional) =>
+          [p.bio, p.clinic, p.location, p.website, p.bookingUrl, p.discount, p.insta]
+            .filter((v) => typeof v === "string" && v.trim().length > 0).length +
+          (p.specs?.length ?? 0);
+
+        const byKey = new Map<string, Professional>();
+        for (const p of [...dbPros, ...PROFESSIONALS]) {
+          const key = norm(p.name);
+          const existing = byKey.get(key);
+          if (!existing || populationScore(p) > populationScore(existing)) {
+            byKey.set(key, p);
+          }
+        }
+        const merged = Array.from(byKey.values());
 
         setPros(merged);
         setError(null);
