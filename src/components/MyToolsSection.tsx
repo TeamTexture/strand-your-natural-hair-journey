@@ -85,6 +85,9 @@ const MyToolsSection = () => {
   const [saving, setSaving] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [analysing, setAnalysing] = useState(false);
+  // Remote image URL pulled from the scraped product page (og:image / JSON-LD).
+  // Persisted on the tool row so the tile + detail page show the right photo.
+  const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
 
   const resetForm = () => {
     setPickedPhoto(null);
@@ -95,6 +98,7 @@ const MyToolsSection = () => {
     setNotes("");
     setRating(0);
     setLinkUrl("");
+    setRemoteImageUrl(null);
   };
 
   const handlePickPhoto = (f: File) => {
@@ -135,6 +139,11 @@ const MyToolsSection = () => {
         if (matched) setCategory(matched);
       }
       if (data?.summary && !notes) setNotes(String(data.summary));
+      if (data?.image_url && !photoPreview && !pickedPhoto) {
+        const img = String(data.image_url);
+        setRemoteImageUrl(img);
+        setPhotoPreview(img);
+      }
       toast.success("Tool details filled in — review and save");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Couldn't analyse that page";
@@ -155,6 +164,9 @@ const MyToolsSection = () => {
       rating: rating || undefined,
       notes,
       photoFile: pickedPhoto,
+      // If no file was picked, fall back to the remote product image we
+      // scraped from the URL so the tool tile isn't blank.
+      imageUrl: !pickedPhoto ? remoteImageUrl : null,
     });
     setSaving(false);
     if (created) {

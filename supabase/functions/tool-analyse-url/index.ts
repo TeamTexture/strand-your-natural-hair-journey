@@ -15,6 +15,8 @@ const TOOL_CATEGORIES = [
   "Hair dryer",
   "Diffuser",
   "Steamer",
+  "Deep conditioning cap / heat hat",
+  "Hair steamer cap",
   "Hot tools (curler / wand)",
   "Microfibre / T-shirt towel",
   "Bonnet / silk scarf",
@@ -25,7 +27,8 @@ const TOOL_CATEGORIES = [
 
 const SYSTEM = `You are an expert at identifying hair-care TOOLS (brushes, combs,
 clips, hair dryers, diffusers, steamers, curlers, wands, bonnets, scarves,
-satin pillowcases, microfibre towels, etc.) from a product page.
+satin pillowcases, microfibre towels, deep-conditioning / heat caps, etc.)
+from a product page.
 
 ABSOLUTE RULES
 1. READ the product directly from the page text. The brand and product title
@@ -36,7 +39,19 @@ ABSOLUTE RULES
    the page is for a shampoo, conditioner, oil, mask, leave-in, treatment or
    any other ingredient-based product, set "is_tool" to false and stop.
 3. category MUST be one of: ${TOOL_CATEGORIES.join(", ")}.
-   Pick the closest fit. Use "Other" only if none clearly apply.
+   Pick the closest fit using these disambiguation rules — read the page text
+   carefully before choosing:
+     • "Deep conditioning cap / heat hat" — any cap/hat/cordless heated cap
+       designed to deliver heat to a deep conditioner / mask while it sits
+       on the hair. Look for words like "deep conditioning", "deep
+       conditioner", "heat cap", "heat hat", "hot head", "thermal cap",
+       "conditioning treatment", "microwaveable cap". This is NOT a bonnet.
+     • "Hair steamer cap" — soft cap that produces steam (electric or
+       water-fed) for moisture treatments.
+     • "Bonnet / silk scarf" — sleep bonnet / silk or satin scarf worn at
+       night to protect hair. NOT heated, NOT for treatments.
+     • "Steamer" — large standalone hooded steamer.
+   Use "Other" only if none clearly apply.
 4. summary: 1–2 short sentences describing what this tool does and who it's
    good for. Plain English, second person.
 5. Output STRICT JSON only. No prose, no code fences.
@@ -72,7 +87,63 @@ function htmlToText(html: string): string {
 interface ScrapeResult {
   title: string;
   text: string;
+  image_url: string | null;
   source: "firecrawl" | "fetch";
+}
+
+/** Pulls the most likely product image out of raw HTML — og:image,
+ * twitter:image, JSON-LD product image, or the first decent <img>. */
+function extractImageFromHtml(html: string, baseUrl: string): string | null {
+  const pick = (re: RegExp): string | null => {
+    const m = html.match(re);
+    return m && m[1] ? m[1].trim() : null;
+  };
+  let candidate =
+    pick(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
+    pick(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i) ||
+    pick(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i) ||
+    pick(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i);
+
+  // JSON-LD Product image
+  if (!candidate) {
+    const ldMatches = html.matchAll(
+      /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+    );
+    for (const m of ldMatches) {
+      try {
+        const j = JSON.parse(m[1]);
+        const arr = Array.isArray(j) ? j : [j];
+        for (const node of arr) {
+          const img = node?.image;
+          if (typeof img === "string") { candidate = img; break; }
+          if (Array.isArray(img) && typeof img[0] === "string") { candidate = img[0]; break; }
+          if (img && typeof img === "object" && typeof img.url === "string") {
+            candidate = img.url; break;
+          }
+        }
+        if (candidate) break;
+      } catch { /* ignore bad JSON */ }
+    }
+  }
+
+  // Fallback: first reasonably-sized <img> that isn't a tracking pixel.
+  if (!candidate) {
+    const imgs = html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi);
+    for (const m of imgs) {
+      const src = m[1];
+      if (!src) continue;
+      if (/^data:/.test(src)) continue;
+      if (/(?:1x1|pixel|sprite|placeholder|loading|spacer)/i.test(src)) continue;
+      candidate = src; break;
+    }
+  }
+
+  if (!candidate) return null;
+  try {
+    return new URL(candidate, baseUrl).toString();
+  } catch {
+    return candidate.startsWith("http") ? candidate : null;
+  }
 }
 
 async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeResult | null> {
@@ -85,7 +156,8 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
       },
       body: JSON.stringify({
         url,
-        formats: ["markdown"],
+        // Ask for HTML too so we can pull og:image / JSON-LD product image.
+        formats: ["markdown", "html"],
         onlyMainContent: true,
         waitFor: 1500,
       }),
@@ -97,14 +169,19 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
     }
     const j = await resp.json();
     const data = (j?.data ?? j) as Record<string, unknown> | undefined;
-    const markdown =
-      (data?.markdown as string | undefined) ??
-      ((data?.data as { markdown?: string } | undefined)?.markdown);
-    const metadata =
-      (data?.metadata as { title?: string } | undefined) ??
-      ((data?.data as { metadata?: { title?: string } } | undefined)?.metadata);
+    const inner = (data?.data as Record<string, unknown> | undefined) ?? data;
+    const markdown = (inner?.markdown as string | undefined) ?? undefined;
+    const html = (inner?.html as string | undefined) ?? "";
+    const metadata = inner?.metadata as
+      | { title?: string; ogImage?: string; "og:image"?: string }
+      | undefined;
     if (!markdown) return null;
-    return { title: metadata?.title ?? "", text: markdown, source: "firecrawl" };
+    const image_url =
+      (metadata?.ogImage as string | undefined) ||
+      (metadata?.["og:image"] as string | undefined) ||
+      (html ? extractImageFromHtml(html, url) : null) ||
+      null;
+    return { title: metadata?.title ?? "", text: markdown, image_url, source: "firecrawl" };
   } catch (e) {
     console.error("Firecrawl error", e);
     return null;
@@ -129,6 +206,7 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
     return {
       title: titleMatch ? titleMatch[1].trim() : "",
       text: htmlToText(html),
+      image_url: extractImageFromHtml(html, url),
       source: "fetch",
     };
   } catch (e) {
@@ -235,6 +313,9 @@ ${trimmed}
     const txt: string = j.choices?.[0]?.message?.content ?? "{}";
     let out: Record<string, unknown> = {};
     try { out = JSON.parse(txt); } catch { out = { raw: txt }; }
+    // Always pass the scraped product image back so the client can show it
+    // on the tool tile / detail page without re-fetching the page.
+    if (scraped.image_url && !out.image_url) out.image_url = scraped.image_url;
 
     return new Response(JSON.stringify(out), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
