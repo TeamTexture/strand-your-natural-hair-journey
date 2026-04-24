@@ -82,7 +82,6 @@ const Home = () => {
         <SurfaceCard>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Current style</p>
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-[10px] bg-primary/15 flex items-center justify-center text-xl">🌀</div>
             <div className="flex-1 min-w-0">
               <p className="font-display text-base font-semibold leading-tight">Box Braids</p>
               <p className="text-xs text-muted-foreground">Day 9 · Take-down in ~5 weeks</p>
