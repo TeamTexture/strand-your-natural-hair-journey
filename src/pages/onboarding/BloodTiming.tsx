@@ -49,7 +49,6 @@ const BloodTiming = () => {
               )}
             >
               <p className="text-sm font-medium font-body">{o.t}</p>
-              <p className="text-xs text-muted-foreground mt-1">{o.s}</p>
             </button>
           ))}
         </div>
