@@ -28,7 +28,7 @@ const Auth = () => {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -37,7 +37,15 @@ const Auth = () => {
           },
         });
         if (error) throw error;
+        // Mark this account as needing the home-screen setup guide on first entry.
+        const uid = data.user?.id;
+        if (uid) {
+          localStorage.setItem(`strand_setup_pending:${uid}`, "true");
+        }
         toast.success("Welcome to Strand");
+        // Send brand new users through the setup guide first; then onboarding.
+        navigate("/setup", { replace: true });
+        return;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
