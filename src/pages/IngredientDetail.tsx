@@ -3,9 +3,11 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import ProductVoicenotes from "@/components/ProductVoicenotes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface Ing { tone: "good" | "warn" | "bad"; name: string; body: string }
@@ -21,6 +23,10 @@ const dotClass = { good: "bg-good", warn: "bg-warn", bad: "bg-destructive" };
 
 const IngredientDetail = () => {
   const [rating, setRating] = useState(5);
+  const [searchParams] = useSearchParams();
+  const productKey = searchParams.get("key") ?? "camille-rose-moisture-retention";
+  const productName = searchParams.get("name") ?? "Moisture Retention Serum";
+  const productBrand = searchParams.get("brand") ?? "Camille Rose";
   return (
     <ScreenLayout>
       <TitleBar
@@ -40,8 +46,8 @@ const IngredientDetail = () => {
         <SurfaceCard className="flex items-center gap-3">
           <div className="size-14 rounded-[12px] bg-primary/15 flex items-center justify-center text-2xl">🧴</div>
           <div className="flex-1 min-w-0">
-            <p className="font-display text-base font-semibold leading-tight">Moisture Retention Serum</p>
-            <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">Camille Rose</p>
+            <p className="font-display text-base font-semibold leading-tight">{productName}</p>
+            <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>
           </div>
           <div className="text-center">
             <div className="size-12 rounded-full border-2 border-primary text-primary flex items-center justify-center font-bold">92</div>
@@ -67,6 +73,15 @@ const IngredientDetail = () => {
               </div>
             </div>
           ))}
+        </SurfaceCard>
+
+        <SectionLabel>Your voicenotes</SectionLabel>
+        <SurfaceCard>
+          <ProductVoicenotes
+            productKey={productKey}
+            productName={productName}
+            productBrand={productBrand}
+          />
         </SurfaceCard>
 
         <div>
