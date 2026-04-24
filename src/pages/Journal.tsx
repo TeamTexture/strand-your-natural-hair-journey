@@ -46,11 +46,6 @@ const formatEntryDate = (raw: string): string => {
   return year === new Date().getFullYear() ? `${day} ${month}` : `${day} ${month} ${year}`;
 };
 
-const moodTiles = [
-  { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌀" },
-  { gradient: "from-[#D4AA52] to-[#C49A3C]", emoji: "🌿" },
-  { gradient: "from-[#E8D8C0] to-[#A07828]", emoji: "✨" },
-];
 
 const Journal = () => {
   const navigate = useNavigate();
