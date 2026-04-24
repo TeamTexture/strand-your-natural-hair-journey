@@ -65,16 +65,24 @@ const JournalEntry = () => {
   const entry = getJournalEntry(id);
 
   const storageKey = `strand_journal_entry_${id}`;
+  // Legacy single-photo key (kept in sync with photos[0]) so the Hair Journal list
+  // and any older code paths continue to work without changes.
   const photoPathKey = `strand_journal_photo_${id}`;
+  // New ordered list of up to 10 photo paths.
+  const photosKey = `strand_journal_photos_${id}`;
+  const MAX_PHOTOS = 10;
+
   const [state, setState] = useState<ReflectionState>(emptyReflection);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Hero photo
-  const [photoPath, setPhotoPath] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  // Photos: ordered list of storage paths + their signed URLs (by path).
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [photoBusy, setPhotoBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const coverUrl = photoPaths[0] ? photoUrls[photoPaths[0]] ?? null : null;
 
   // Load any saved reflection / product selections
   useEffect(() => {
@@ -94,7 +102,6 @@ const JournalEntry = () => {
     } catch {
       /* ignore */
     }
-    // Seed with entry's defaults if no saved state
     setState({
       how: "",
       liked: entry?.note ?? "",
@@ -132,73 +139,130 @@ const JournalEntry = () => {
     toast.success("Reflection saved");
   };
 
-  // ---- Hero photo: load existing path from localStorage and sign URL ----
+  // Persist photo order to localStorage and keep the legacy cover key in sync.
+  const persistPhotoPaths = (paths: string[]) => {
+    setPhotoPaths(paths);
+    try {
+      if (paths.length > 0) {
+        localStorage.setItem(photosKey, JSON.stringify(paths));
+        localStorage.setItem(photoPathKey, paths[0]);
+      } else {
+        localStorage.removeItem(photosKey);
+        localStorage.removeItem(photoPathKey);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // ---- Load existing photo paths and sign URLs ----
   useEffect(() => {
     if (!user || !id) return;
-    const saved = localStorage.getItem(photoPathKey);
-    if (!saved) {
-      setPhotoPath(null);
-      setPhotoUrl(null);
-      return;
-    }
-    setPhotoPath(saved);
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(saved, 3600);
-      if (!cancelled) setPhotoUrl(data?.signedUrl ?? null);
+      // Prefer the new ordered list. Migrate the legacy single-photo key if needed.
+      let paths: string[] = [];
+      try {
+        const raw = localStorage.getItem(photosKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) paths = parsed.filter((p): p is string => typeof p === "string");
+        }
+      } catch {
+        /* ignore */
+      }
+      if (paths.length === 0) {
+        const legacy = localStorage.getItem(photoPathKey);
+        if (legacy) paths = [legacy];
+      }
+      if (cancelled) return;
+      setPhotoPaths(paths);
+      // Sign URLs in parallel
+      const entries = await Promise.all(
+        paths.map(async (p) => {
+          const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(p, 3600);
+          return [p, data?.signedUrl ?? ""] as const;
+        }),
+      );
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      entries.forEach(([p, url]) => {
+        if (url) map[p] = url;
+      });
+      setPhotoUrls(map);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user, id, photoPathKey]);
+  }, [user, id, photoPathKey, photosKey]);
 
-  const handlePhotoUpload = async (file: File) => {
+  const handlePhotoUpload = async (files: FileList | File[]) => {
     if (!user) {
       toast.error("Please sign in to add photos");
       return;
     }
-    if (!file.type.startsWith("image/")) {
-      toast.error("That file isn't an image");
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    const remaining = MAX_PHOTOS - photoPaths.length;
+    if (remaining <= 0) {
+      toast.error(`You can add up to ${MAX_PHOTOS} photos per entry`);
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Photo too large (max 8MB)");
-      return;
+    const toUpload = list.slice(0, remaining);
+    if (list.length > remaining) {
+      toast.error(`Only the first ${remaining} added — limit is ${MAX_PHOTOS}`);
     }
+
     setPhotoBusy(true);
     try {
-      // Replace any existing photo
-      if (photoPath) {
-        await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
+      const uploaded: { path: string; url: string }[] = [];
+      for (const file of toUpload) {
+        if (!file.type.startsWith("image/")) {
+          toast.error(`${file.name}: not an image`);
+          continue;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          toast.error(`${file.name}: too large (max 8MB)`);
+          continue;
+        }
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) {
+          console.error("Upload failed:", upErr);
+          toast.error(`${file.name}: upload failed`);
+          continue;
+        }
+        const { data: sig } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .createSignedUrl(path, 3600);
+        uploaded.push({ path, url: sig?.signedUrl ?? "" });
       }
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw upErr;
-      const { data: sig } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
-      localStorage.setItem(photoPathKey, path);
-      setPhotoPath(path);
-      setPhotoUrl(sig?.signedUrl ?? null);
-      toast.success("Photo added");
-    } catch (e) {
-      console.error("Photo upload failed:", e);
-      toast.error("Could not upload photo");
+      if (uploaded.length === 0) return;
+      const nextPaths = [...photoPaths, ...uploaded.map((u) => u.path)];
+      const nextUrls = { ...photoUrls };
+      uploaded.forEach((u) => {
+        if (u.url) nextUrls[u.path] = u.url;
+      });
+      setPhotoUrls(nextUrls);
+      persistPhotoPaths(nextPaths);
+      toast.success(uploaded.length === 1 ? "Photo added" : `${uploaded.length} photos added`);
     } finally {
       setPhotoBusy(false);
     }
   };
 
-  const handleRemovePhoto = async () => {
-    if (!photoPath) return;
+  const handleRemovePhoto = async (path: string) => {
     if (!confirm("Remove this photo?")) return;
     setPhotoBusy(true);
     try {
-      await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
-      localStorage.removeItem(photoPathKey);
-      setPhotoPath(null);
-      setPhotoUrl(null);
+      await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+      const nextPaths = photoPaths.filter((p) => p !== path);
+      const { [path]: _removed, ...nextUrls } = photoUrls;
+      setPhotoUrls(nextUrls);
+      persistPhotoPaths(nextPaths);
       toast.success("Photo removed");
     } catch {
       toast.error("Could not remove");
@@ -206,6 +270,21 @@ const JournalEntry = () => {
       setPhotoBusy(false);
     }
   };
+
+  const handleReorder = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = photoPaths.indexOf(String(active.id));
+    const newIndex = photoPaths.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    persistPhotoPaths(arrayMove(photoPaths, oldIndex, newIndex));
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const shareCaption = useMemo(() => {
     if (!entry) return "";
