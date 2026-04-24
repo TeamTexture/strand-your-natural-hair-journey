@@ -293,7 +293,7 @@ const Profile = () => {
       {/* Update after appointment CTA */}
       <div className="px-5 pb-4">
         <button
-          onClick={() => navigate("/setup")}
+          onClick={() => navigate("/onboarding/profile-step-1")}
           className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[64px] text-left"
         >
           <div className="size-10 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
