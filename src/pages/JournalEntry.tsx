@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, Check, Camera, Share2, Trash2, Loader2, GripVertical, Star } from "lucide-react";
+import { Plus, X, Check, Camera, Share2, Trash2, Loader2, GripVertical, Star, ImagePlus } from "lucide-react";
 import {
   DndContext,
   closestCenter,
