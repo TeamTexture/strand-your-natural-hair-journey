@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, Check, Camera, Share2, Trash2, Loader2, GripVertical, Star } from "lucide-react";
+import { Plus, X, Check, Camera, Share2, Trash2, Loader2, GripVertical, Star, ImagePlus } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -155,6 +155,9 @@ const JournalEntry = () => {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  // Separate input wired to the device camera so "Take a photo" reliably
+  // launches the rear camera on iOS / Android (capture="environment").
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const coverUrl = photoPaths[0] ? photoUrls[photoPaths[0]] ?? null : null;
 
@@ -400,12 +403,27 @@ const JournalEntry = () => {
         }
       />
 
-      {/* Hidden file input — supports multi-select */}
+      {/* Hidden file input — supports multi-select from the photo library */}
       <input
         ref={photoInputRef}
         type="file"
         accept="image/*"
         multiple
+        className="hidden"
+        onChange={(e) => {
+          const fs = e.target.files;
+          if (fs && fs.length) handlePhotoUpload(fs);
+          e.target.value = "";
+        }}
+      />
+      {/* Hidden camera input — opens the device camera directly. The
+       * `capture` attribute hints to mobile browsers that the rear camera
+       * should be launched instead of the photo picker. */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={(e) => {
           const fs = e.target.files;
@@ -449,13 +467,22 @@ const JournalEntry = () => {
             </span>
 
             {!coverUrl && (
-              <button
-                onClick={() => photoInputRef.current?.click()}
-                disabled={photoBusy}
-                className="absolute bottom-2 left-3 text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <Camera className="size-3.5" /> Add photos
-              </button>
+              <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={photoBusy}
+                  className="text-[11px] uppercase tracking-[0.15em] font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Camera className="size-3.5" /> Take photo
+                </button>
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={photoBusy}
+                  className="text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <ImagePlus className="size-3.5" /> Library
+                </button>
+              </div>
             )}
           </div>
           <div className="p-4">
@@ -498,18 +525,32 @@ const JournalEntry = () => {
                 ))}
 
                 {photoPaths.length < MAX_PHOTOS && (
-                  <button
-                    type="button"
-                    onClick={() => photoInputRef.current?.click()}
-                    disabled={photoBusy}
-                    className="aspect-square rounded-[10px] border-2 border-dashed border-border hover:border-primary/60 bg-card flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-                    aria-label="Add photos"
-                  >
-                    <Plus className="size-5" />
-                    <span className="text-[10px] uppercase tracking-[0.15em] font-medium">
-                      Add
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={photoBusy}
+                      className="aspect-square rounded-[10px] border-2 border-dashed border-primary/50 bg-primary/5 flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                      aria-label="Take a photo with camera"
+                    >
+                      <Camera className="size-5" />
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium leading-tight text-center px-1">
+                        Take<br />photo
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={photoBusy}
+                      className="aspect-square rounded-[10px] border-2 border-dashed border-border hover:border-primary/60 bg-card flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                      aria-label="Choose from library"
+                    >
+                      <ImagePlus className="size-5" />
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium leading-tight text-center px-1">
+                        From<br />library
+                      </span>
+                    </button>
+                  </>
                 )}
               </div>
             </SortableContext>
