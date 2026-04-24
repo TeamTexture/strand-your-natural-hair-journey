@@ -15,6 +15,8 @@ const TOOL_CATEGORIES = [
   "Hair dryer",
   "Diffuser",
   "Steamer",
+  "Deep conditioning cap / heat hat",
+  "Hair steamer cap",
   "Hot tools (curler / wand)",
   "Microfibre / T-shirt towel",
   "Bonnet / silk scarf",
@@ -25,7 +27,8 @@ const TOOL_CATEGORIES = [
 
 const SYSTEM = `You are an expert at identifying hair-care TOOLS (brushes, combs,
 clips, hair dryers, diffusers, steamers, curlers, wands, bonnets, scarves,
-satin pillowcases, microfibre towels, etc.) from a product page.
+satin pillowcases, microfibre towels, deep-conditioning / heat caps, etc.)
+from a product page.
 
 ABSOLUTE RULES
 1. READ the product directly from the page text. The brand and product title
@@ -36,7 +39,19 @@ ABSOLUTE RULES
    the page is for a shampoo, conditioner, oil, mask, leave-in, treatment or
    any other ingredient-based product, set "is_tool" to false and stop.
 3. category MUST be one of: ${TOOL_CATEGORIES.join(", ")}.
-   Pick the closest fit. Use "Other" only if none clearly apply.
+   Pick the closest fit using these disambiguation rules — read the page text
+   carefully before choosing:
+     • "Deep conditioning cap / heat hat" — any cap/hat/cordless heated cap
+       designed to deliver heat to a deep conditioner / mask while it sits
+       on the hair. Look for words like "deep conditioning", "deep
+       conditioner", "heat cap", "heat hat", "hot head", "thermal cap",
+       "conditioning treatment", "microwaveable cap". This is NOT a bonnet.
+     • "Hair steamer cap" — soft cap that produces steam (electric or
+       water-fed) for moisture treatments.
+     • "Bonnet / silk scarf" — sleep bonnet / silk or satin scarf worn at
+       night to protect hair. NOT heated, NOT for treatments.
+     • "Steamer" — large standalone hooded steamer.
+   Use "Other" only if none clearly apply.
 4. summary: 1–2 short sentences describing what this tool does and who it's
    good for. Plain English, second person.
 5. Output STRICT JSON only. No prose, no code fences.
