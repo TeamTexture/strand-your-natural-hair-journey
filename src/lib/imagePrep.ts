@@ -59,10 +59,36 @@ const loadImage = (src: string): Promise<HTMLImageElement> =>
  * AI a predictable JPEG it can read.
  */
 export async function prepareImageForAi(file: File): Promise<PreparedImage> {
-  // Read original as data URL so <img> can decode it. Safari handles HEIC here;
-  // Chrome/Firefox typically don't, in which case loadImage rejects and we
-  // fall back below.
-  const originalDataUrl = await readAsDataUrl(file);
+  // Step 1 — if the picked file is HEIC/HEIF, decode it to a JPEG Blob first.
+  // iPhones save photos as HEIC by default; Chrome/Firefox/Android can't
+  // decode them natively. `heic-to` works in every modern browser via wasm.
+  let working: File = file;
+  const looksHeicByName = /\.(heic|heif)$/i.test(file.name);
+  const looksHeicByType = /heic|heif/i.test(file.type);
+  if (looksHeicByName || looksHeicByType) {
+    try {
+      const heicCheck = await isHeic(file).catch(() => true);
+      if (heicCheck) {
+        const jpegBlob = await heicTo({
+          blob: file,
+          type: "image/jpeg",
+          quality: 0.92,
+        });
+        working = new File([jpegBlob], `${stripExt(file.name)}.jpg`, {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        });
+      }
+    } catch (heicErr) {
+      console.error("HEIC decode failed", heicErr);
+      throw new Error(
+        "We couldn't read this HEIC photo. Try retaking it, or in Settings → Camera → Formats switch to 'Most Compatible'.",
+      );
+    }
+  }
+
+  // Step 2 — read as data URL so <img> can decode it for canvas re-encode.
+  const originalDataUrl = await readAsDataUrl(working);
 
   try {
     const img = await loadImage(originalDataUrl);
