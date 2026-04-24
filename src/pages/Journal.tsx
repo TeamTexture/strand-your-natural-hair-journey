@@ -5,12 +5,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
-interface JC { gradient: string; emoji: string; date: string; title: string; note: string }
-const journals: JC[] = [
-  { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌿", date: "14 Apr 2026", title: "Wash & Go — Day 1", note: "Best curl definition I have had. Camille Rose gel first time." },
-  { gradient: "from-[#D4AA52] to-[#C49A3C]", emoji: "✨", date: "2 Apr 2026", title: "Twist Out — Day 3", note: "Frizzy by midday. Humidity + no sealant = lesson learned." },
-];
+import { journalEntries } from "@/data/journalEntries";
 
 const moodTiles = [
   { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌀" },
@@ -54,17 +49,23 @@ const Journal = () => {
 
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
-        {journals.map((j) => (
-          <SurfaceCard key={j.date} padded={false} className="overflow-hidden">
-            <div className={`relative h-40 bg-gradient-to-br ${j.gradient} flex items-center justify-center`}>
-              <span className="text-5xl">{j.emoji}</span>
-              <span className="absolute bottom-2 right-3 text-[11px] text-white/90 font-body bg-black/30 px-2 py-1 rounded">{j.date}</span>
-            </div>
-            <div className="p-3">
-              <p className="font-display text-base font-semibold">{j.title}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
-            </div>
-          </SurfaceCard>
+        {journalEntries.map((j) => (
+          <button
+            key={j.id}
+            onClick={() => navigate(`/journal/entry/${j.id}`)}
+            className="w-full text-left"
+          >
+            <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
+              <div className={`relative h-40 bg-gradient-to-br ${j.gradient} flex items-center justify-center`}>
+                <span className="text-5xl">{j.emoji}</span>
+                <span className="absolute bottom-2 right-3 text-[11px] text-white/90 font-body bg-black/30 px-2 py-1 rounded">{j.date}</span>
+              </div>
+              <div className="p-3">
+                <p className="font-display text-base font-semibold">{j.title}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
+              </div>
+            </SurfaceCard>
+          </button>
         ))}
       </div>
 
