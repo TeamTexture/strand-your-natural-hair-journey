@@ -46,6 +46,7 @@ const RowList = ({ rows }: { rows: Row[] }) => (
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   return (
     <ScreenLayout bottomNav>
       <TitleBar
