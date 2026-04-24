@@ -326,30 +326,31 @@ const JournalEntry = () => {
         }
       />
 
-      {/* Hidden file input for hero photo */}
+      {/* Hidden file input — supports multi-select */}
       <input
         ref={photoInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) handlePhotoUpload(f);
+          const fs = e.target.files;
+          if (fs && fs.length) handlePhotoUpload(fs);
           e.target.value = "";
         }}
       />
 
-      {/* Hero image — real photo when uploaded, gradient/emoji fallback otherwise */}
-      <div className="px-5 pb-4">
+      {/* Cover image — first photo is the cover; falls back to entry gradient/emoji. */}
+      <div className="px-5 pb-3">
         <SurfaceCard padded={false} className="overflow-hidden">
           <div
             className={`relative h-56 ${
-              photoUrl ? "bg-secondary" : `bg-gradient-to-br ${entry.gradient}`
+              coverUrl ? "bg-secondary" : `bg-gradient-to-br ${entry.gradient}`
             } flex items-center justify-center`}
           >
-            {photoUrl ? (
+            {coverUrl ? (
               <img
-                src={photoUrl}
+                src={coverUrl}
                 alt={entry.title}
                 className="absolute inset-0 size-full object-cover"
               />
@@ -363,39 +364,23 @@ const JournalEntry = () => {
               </div>
             )}
 
-            {/* Photo controls */}
-            <div className="absolute top-2 right-2 flex gap-2">
-              <button
-                onClick={() => photoInputRef.current?.click()}
-                disabled={photoBusy}
-                className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
-                aria-label={photoUrl ? "Replace photo" : "Add photo"}
-              >
-                <Camera className="size-4" />
-              </button>
-              {photoUrl && (
-                <button
-                  onClick={handleRemovePhoto}
-                  disabled={photoBusy}
-                  className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
-                  aria-label="Remove photo"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              )}
-            </div>
+            {coverUrl && (
+              <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] font-semibold bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                <Star className="size-3" /> Cover
+              </span>
+            )}
 
             <span className="absolute bottom-2 right-3 text-[11px] text-white/95 font-body bg-black/40 px-2 py-1 rounded">
               {entry.date}
             </span>
 
-            {!photoUrl && (
+            {!coverUrl && (
               <button
                 onClick={() => photoInputRef.current?.click()}
                 disabled={photoBusy}
                 className="absolute bottom-2 left-3 text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
               >
-                <Camera className="size-3.5" /> Add photo
+                <Camera className="size-3.5" /> Add photos
               </button>
             )}
           </div>
@@ -408,11 +393,61 @@ const JournalEntry = () => {
         </SurfaceCard>
       </div>
 
+      {/* Photos gallery — Shopify-style sortable grid. First image is the cover. */}
+      <SectionLabel>
+        Photos {photoPaths.length > 0 ? `(${photoPaths.length}/${MAX_PHOTOS})` : ""}
+      </SectionLabel>
+      <div className="px-5 pb-4">
+        <SurfaceCard>
+          {photoPaths.length === 0 ? (
+            <p className="text-xs text-muted-foreground mb-3">
+              Add up to {MAX_PHOTOS} photos. Drag to reorder — the first photo is the cover shown on your Hair Journal.
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Drag to reorder. The first photo is the cover.
+            </p>
+          )}
+
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
+            <SortableContext items={photoPaths} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-3 gap-2">
+                {photoPaths.map((p, idx) => (
+                  <SortablePhoto
+                    key={p}
+                    id={p}
+                    url={photoUrls[p]}
+                    isCover={idx === 0}
+                    disabled={photoBusy}
+                    onRemove={() => handleRemovePhoto(p)}
+                  />
+                ))}
+
+                {photoPaths.length < MAX_PHOTOS && (
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={photoBusy}
+                    className="aspect-square rounded-[10px] border-2 border-dashed border-border hover:border-primary/60 bg-card flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                    aria-label="Add photos"
+                  >
+                    <Plus className="size-5" />
+                    <span className="text-[10px] uppercase tracking-[0.15em] font-medium">
+                      Add
+                    </span>
+                  </button>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </SurfaceCard>
+      </div>
+
       {/* Share sheet */}
       <ShareSheet
         open={shareOpen}
         onOpenChange={setShareOpen}
-        imageUrl={photoUrl}
+        imageUrl={coverUrl}
         title={entry.title}
         caption={shareCaption}
         filename={`${entry.id}.jpg`}
