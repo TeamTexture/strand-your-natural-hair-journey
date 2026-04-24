@@ -35,6 +35,7 @@ interface Step1Saved {
   treatmentType?: string[];
   products?: string[];
   heatTreatment?: "yes" | "no" | null;
+  heatMinutes?: number | null;
 }
 interface Step2Saved {
   scalp?: string[]; breakage?: string[]; style?: string[]; duration?: string[]; stress?: string[];
