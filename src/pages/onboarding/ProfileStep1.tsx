@@ -108,7 +108,7 @@ const ProfileStep1 = () => {
   };
 
   // Tap outside any input to dismiss the keyboard on mobile.
-  const dismissKeyboard = (e: React.MouseEvent<HTMLDivElement>) => {
+  const dismissKeyboard = (e: React.MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
     if (!target.closest("input, select, textarea, button")) {
       (document.activeElement as HTMLElement | null)?.blur();
