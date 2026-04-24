@@ -658,17 +658,17 @@ const JournalEntry = () => {
 
       {/* Photos gallery — Shopify-style sortable grid. First image is the cover. */}
       <SectionLabel>
-        Photos {photoPaths.length > 0 ? `(${photoPaths.length}/${MAX_PHOTOS})` : ""}
+        Photos & Videos {photoPaths.length > 0 ? `(${photoPaths.length}/${MAX_PHOTOS})` : ""}
       </SectionLabel>
       <div className="px-5 pb-4">
         <SurfaceCard>
           {photoPaths.length === 0 ? (
             <p className="text-xs text-muted-foreground mb-3">
-              Add up to {MAX_PHOTOS} photos. Drag to reorder — the first photo is the cover shown on your Hair Journal.
+              Add up to {MAX_PHOTOS} photos or short videos (MP4 / MOV). Drag to reorder — the first item is the cover shown on your Hair Journal.
             </p>
           ) : (
             <p className="text-[11px] text-muted-foreground mb-3">
-              Drag to reorder. The first photo is the cover.
+              Drag to reorder. The first item is the cover.
             </p>
           )}
 
