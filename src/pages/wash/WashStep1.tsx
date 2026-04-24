@@ -762,7 +762,16 @@ const WashStep1 = () => {
         open={pickerOpen}
         onOpenChange={(o) => {
           setPickerOpen(o);
-          if (!o) setPickerTarget(null);
+          if (!o) {
+            setPickerTarget(null);
+            // Drop the picker target from the URL once the sheet closes so
+            // the auto-merge effect doesn't fire again on subsequent visits.
+            const next = new URLSearchParams(searchParams);
+            if (next.has("picker")) {
+              next.delete("picker");
+              setSearchParams(next, { replace: true });
+            }
+          }
         }}
         selectedIds={pickerTarget ? targetIds[pickerTarget] : []}
         onToggle={handleTogglePicked}
