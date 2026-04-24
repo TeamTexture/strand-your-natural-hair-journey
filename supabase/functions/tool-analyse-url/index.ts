@@ -87,7 +87,63 @@ function htmlToText(html: string): string {
 interface ScrapeResult {
   title: string;
   text: string;
+  image_url: string | null;
   source: "firecrawl" | "fetch";
+}
+
+/** Pulls the most likely product image out of raw HTML — og:image,
+ * twitter:image, JSON-LD product image, or the first decent <img>. */
+function extractImageFromHtml(html: string, baseUrl: string): string | null {
+  const pick = (re: RegExp): string | null => {
+    const m = html.match(re);
+    return m && m[1] ? m[1].trim() : null;
+  };
+  let candidate =
+    pick(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
+    pick(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i) ||
+    pick(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i) ||
+    pick(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i);
+
+  // JSON-LD Product image
+  if (!candidate) {
+    const ldMatches = html.matchAll(
+      /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+    );
+    for (const m of ldMatches) {
+      try {
+        const j = JSON.parse(m[1]);
+        const arr = Array.isArray(j) ? j : [j];
+        for (const node of arr) {
+          const img = node?.image;
+          if (typeof img === "string") { candidate = img; break; }
+          if (Array.isArray(img) && typeof img[0] === "string") { candidate = img[0]; break; }
+          if (img && typeof img === "object" && typeof img.url === "string") {
+            candidate = img.url; break;
+          }
+        }
+        if (candidate) break;
+      } catch { /* ignore bad JSON */ }
+    }
+  }
+
+  // Fallback: first reasonably-sized <img> that isn't a tracking pixel.
+  if (!candidate) {
+    const imgs = html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi);
+    for (const m of imgs) {
+      const src = m[1];
+      if (!src) continue;
+      if (/^data:/.test(src)) continue;
+      if (/(?:1x1|pixel|sprite|placeholder|loading|spacer)/i.test(src)) continue;
+      candidate = src; break;
+    }
+  }
+
+  if (!candidate) return null;
+  try {
+    return new URL(candidate, baseUrl).toString();
+  } catch {
+    return candidate.startsWith("http") ? candidate : null;
+  }
 }
 
 async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeResult | null> {
@@ -100,7 +156,8 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
       },
       body: JSON.stringify({
         url,
-        formats: ["markdown"],
+        // Ask for HTML too so we can pull og:image / JSON-LD product image.
+        formats: ["markdown", "html"],
         onlyMainContent: true,
         waitFor: 1500,
       }),
@@ -112,14 +169,19 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
     }
     const j = await resp.json();
     const data = (j?.data ?? j) as Record<string, unknown> | undefined;
-    const markdown =
-      (data?.markdown as string | undefined) ??
-      ((data?.data as { markdown?: string } | undefined)?.markdown);
-    const metadata =
-      (data?.metadata as { title?: string } | undefined) ??
-      ((data?.data as { metadata?: { title?: string } } | undefined)?.metadata);
+    const inner = (data?.data as Record<string, unknown> | undefined) ?? data;
+    const markdown = (inner?.markdown as string | undefined) ?? undefined;
+    const html = (inner?.html as string | undefined) ?? "";
+    const metadata = inner?.metadata as
+      | { title?: string; ogImage?: string; "og:image"?: string }
+      | undefined;
     if (!markdown) return null;
-    return { title: metadata?.title ?? "", text: markdown, source: "firecrawl" };
+    const image_url =
+      (metadata?.ogImage as string | undefined) ||
+      (metadata?.["og:image"] as string | undefined) ||
+      (html ? extractImageFromHtml(html, url) : null) ||
+      null;
+    return { title: metadata?.title ?? "", text: markdown, image_url, source: "firecrawl" };
   } catch (e) {
     console.error("Firecrawl error", e);
     return null;
@@ -144,6 +206,7 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
     return {
       title: titleMatch ? titleMatch[1].trim() : "",
       text: htmlToText(html),
+      image_url: extractImageFromHtml(html, url),
       source: "fetch",
     };
   } catch (e) {
