@@ -38,6 +38,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
+import VoiceNoteField from "@/components/VoiceNoteField";
 import ShareSheet from "@/components/ShareSheet";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import { Button } from "@/components/ui/button";
