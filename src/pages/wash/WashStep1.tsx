@@ -432,6 +432,7 @@ const WashStep1 = () => {
                 treatmentType,
                 products,
                 heatTreatment: heatChoice,
+                heatMinutes: heatChoice === "yes" ? heatMinutes : null,
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",
