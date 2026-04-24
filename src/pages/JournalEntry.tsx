@@ -1,6 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, Check, Camera, Share2, Trash2, Loader2 } from "lucide-react";
+import { Plus, X, Check, Camera, Share2, Trash2, Loader2, GripVertical, Star } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -40,6 +58,80 @@ const emptyReflection = (): ReflectionState => ({
   productKeys: [],
 });
 
+interface SortablePhotoProps {
+  id: string;
+  url: string | undefined;
+  isCover: boolean;
+  disabled: boolean;
+  onRemove: () => void;
+}
+
+const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 10 : "auto",
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative aspect-square rounded-[10px] overflow-hidden border bg-secondary touch-none",
+        isCover ? "border-primary ring-2 ring-primary/40" : "border-border",
+        isDragging && "shadow-lg",
+      )}
+    >
+      {url ? (
+        <img src={url} alt="" className="size-full object-cover pointer-events-none" />
+      ) : (
+        <div className="size-full flex items-center justify-center">
+          <Loader2 className="size-4 text-muted-foreground animate-spin" />
+        </div>
+      )}
+
+      {isCover && (
+        <span className="absolute top-1 left-1 inline-flex items-center gap-0.5 text-[9px] uppercase tracking-[0.12em] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full z-10">
+          <Star className="size-2.5" /> Cover
+        </span>
+      )}
+
+      {/* Drag handle covers the tile — the whole image is draggable. */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        className="absolute inset-0 cursor-grab active:cursor-grabbing"
+      />
+
+      {/* Grip indicator */}
+      <span className="absolute bottom-1 left-1 size-5 rounded-full bg-black/45 text-white flex items-center justify-center pointer-events-none">
+        <GripVertical className="size-3" />
+      </span>
+
+      {/* Remove (above drag handle via z-index) */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        disabled={disabled}
+        aria-label="Remove photo"
+        className="absolute top-1 right-1 z-10 size-6 rounded-full bg-black/55 text-white flex items-center justify-center disabled:opacity-50 hover:bg-black/75"
+      >
+        <X className="size-3.5" />
+      </button>
+    </div>
+  );
+};
+
 const JournalEntry = () => {
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -47,16 +139,24 @@ const JournalEntry = () => {
   const entry = getJournalEntry(id);
 
   const storageKey = `strand_journal_entry_${id}`;
+  // Legacy single-photo key (kept in sync with photos[0]) so the Hair Journal list
+  // and any older code paths continue to work without changes.
   const photoPathKey = `strand_journal_photo_${id}`;
+  // New ordered list of up to 10 photo paths.
+  const photosKey = `strand_journal_photos_${id}`;
+  const MAX_PHOTOS = 10;
+
   const [state, setState] = useState<ReflectionState>(emptyReflection);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Hero photo
-  const [photoPath, setPhotoPath] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  // Photos: ordered list of storage paths + their signed URLs (by path).
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [photoBusy, setPhotoBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const coverUrl = photoPaths[0] ? photoUrls[photoPaths[0]] ?? null : null;
 
   // Load any saved reflection / product selections
   useEffect(() => {
@@ -76,7 +176,6 @@ const JournalEntry = () => {
     } catch {
       /* ignore */
     }
-    // Seed with entry's defaults if no saved state
     setState({
       how: "",
       liked: entry?.note ?? "",
@@ -114,73 +213,130 @@ const JournalEntry = () => {
     toast.success("Reflection saved");
   };
 
-  // ---- Hero photo: load existing path from localStorage and sign URL ----
+  // Persist photo order to localStorage and keep the legacy cover key in sync.
+  const persistPhotoPaths = (paths: string[]) => {
+    setPhotoPaths(paths);
+    try {
+      if (paths.length > 0) {
+        localStorage.setItem(photosKey, JSON.stringify(paths));
+        localStorage.setItem(photoPathKey, paths[0]);
+      } else {
+        localStorage.removeItem(photosKey);
+        localStorage.removeItem(photoPathKey);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // ---- Load existing photo paths and sign URLs ----
   useEffect(() => {
     if (!user || !id) return;
-    const saved = localStorage.getItem(photoPathKey);
-    if (!saved) {
-      setPhotoPath(null);
-      setPhotoUrl(null);
-      return;
-    }
-    setPhotoPath(saved);
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(saved, 3600);
-      if (!cancelled) setPhotoUrl(data?.signedUrl ?? null);
+      // Prefer the new ordered list. Migrate the legacy single-photo key if needed.
+      let paths: string[] = [];
+      try {
+        const raw = localStorage.getItem(photosKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) paths = parsed.filter((p): p is string => typeof p === "string");
+        }
+      } catch {
+        /* ignore */
+      }
+      if (paths.length === 0) {
+        const legacy = localStorage.getItem(photoPathKey);
+        if (legacy) paths = [legacy];
+      }
+      if (cancelled) return;
+      setPhotoPaths(paths);
+      // Sign URLs in parallel
+      const entries = await Promise.all(
+        paths.map(async (p) => {
+          const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(p, 3600);
+          return [p, data?.signedUrl ?? ""] as const;
+        }),
+      );
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      entries.forEach(([p, url]) => {
+        if (url) map[p] = url;
+      });
+      setPhotoUrls(map);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user, id, photoPathKey]);
+  }, [user, id, photoPathKey, photosKey]);
 
-  const handlePhotoUpload = async (file: File) => {
+  const handlePhotoUpload = async (files: FileList | File[]) => {
     if (!user) {
       toast.error("Please sign in to add photos");
       return;
     }
-    if (!file.type.startsWith("image/")) {
-      toast.error("That file isn't an image");
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    const remaining = MAX_PHOTOS - photoPaths.length;
+    if (remaining <= 0) {
+      toast.error(`You can add up to ${MAX_PHOTOS} photos per entry`);
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Photo too large (max 8MB)");
-      return;
+    const toUpload = list.slice(0, remaining);
+    if (list.length > remaining) {
+      toast.error(`Only the first ${remaining} added — limit is ${MAX_PHOTOS}`);
     }
+
     setPhotoBusy(true);
     try {
-      // Replace any existing photo
-      if (photoPath) {
-        await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
+      const uploaded: { path: string; url: string }[] = [];
+      for (const file of toUpload) {
+        if (!file.type.startsWith("image/")) {
+          toast.error(`${file.name}: not an image`);
+          continue;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          toast.error(`${file.name}: too large (max 8MB)`);
+          continue;
+        }
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) {
+          console.error("Upload failed:", upErr);
+          toast.error(`${file.name}: upload failed`);
+          continue;
+        }
+        const { data: sig } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .createSignedUrl(path, 3600);
+        uploaded.push({ path, url: sig?.signedUrl ?? "" });
       }
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw upErr;
-      const { data: sig } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
-      localStorage.setItem(photoPathKey, path);
-      setPhotoPath(path);
-      setPhotoUrl(sig?.signedUrl ?? null);
-      toast.success("Photo added");
-    } catch (e) {
-      console.error("Photo upload failed:", e);
-      toast.error("Could not upload photo");
+      if (uploaded.length === 0) return;
+      const nextPaths = [...photoPaths, ...uploaded.map((u) => u.path)];
+      const nextUrls = { ...photoUrls };
+      uploaded.forEach((u) => {
+        if (u.url) nextUrls[u.path] = u.url;
+      });
+      setPhotoUrls(nextUrls);
+      persistPhotoPaths(nextPaths);
+      toast.success(uploaded.length === 1 ? "Photo added" : `${uploaded.length} photos added`);
     } finally {
       setPhotoBusy(false);
     }
   };
 
-  const handleRemovePhoto = async () => {
-    if (!photoPath) return;
+  const handleRemovePhoto = async (path: string) => {
     if (!confirm("Remove this photo?")) return;
     setPhotoBusy(true);
     try {
-      await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
-      localStorage.removeItem(photoPathKey);
-      setPhotoPath(null);
-      setPhotoUrl(null);
+      await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+      const nextPaths = photoPaths.filter((p) => p !== path);
+      const { [path]: _removed, ...nextUrls } = photoUrls;
+      setPhotoUrls(nextUrls);
+      persistPhotoPaths(nextPaths);
       toast.success("Photo removed");
     } catch {
       toast.error("Could not remove");
@@ -188,6 +344,21 @@ const JournalEntry = () => {
       setPhotoBusy(false);
     }
   };
+
+  const handleReorder = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = photoPaths.indexOf(String(active.id));
+    const newIndex = photoPaths.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    persistPhotoPaths(arrayMove(photoPaths, oldIndex, newIndex));
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const shareCaption = useMemo(() => {
     if (!entry) return "";
@@ -229,30 +400,31 @@ const JournalEntry = () => {
         }
       />
 
-      {/* Hidden file input for hero photo */}
+      {/* Hidden file input — supports multi-select */}
       <input
         ref={photoInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) handlePhotoUpload(f);
+          const fs = e.target.files;
+          if (fs && fs.length) handlePhotoUpload(fs);
           e.target.value = "";
         }}
       />
 
-      {/* Hero image — real photo when uploaded, gradient/emoji fallback otherwise */}
-      <div className="px-5 pb-4">
+      {/* Cover image — first photo is the cover; falls back to entry gradient/emoji. */}
+      <div className="px-5 pb-3">
         <SurfaceCard padded={false} className="overflow-hidden">
           <div
             className={`relative h-56 ${
-              photoUrl ? "bg-secondary" : `bg-gradient-to-br ${entry.gradient}`
+              coverUrl ? "bg-secondary" : `bg-gradient-to-br ${entry.gradient}`
             } flex items-center justify-center`}
           >
-            {photoUrl ? (
+            {coverUrl ? (
               <img
-                src={photoUrl}
+                src={coverUrl}
                 alt={entry.title}
                 className="absolute inset-0 size-full object-cover"
               />
@@ -266,39 +438,23 @@ const JournalEntry = () => {
               </div>
             )}
 
-            {/* Photo controls */}
-            <div className="absolute top-2 right-2 flex gap-2">
-              <button
-                onClick={() => photoInputRef.current?.click()}
-                disabled={photoBusy}
-                className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
-                aria-label={photoUrl ? "Replace photo" : "Add photo"}
-              >
-                <Camera className="size-4" />
-              </button>
-              {photoUrl && (
-                <button
-                  onClick={handleRemovePhoto}
-                  disabled={photoBusy}
-                  className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
-                  aria-label="Remove photo"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              )}
-            </div>
+            {coverUrl && (
+              <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] font-semibold bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                <Star className="size-3" /> Cover
+              </span>
+            )}
 
             <span className="absolute bottom-2 right-3 text-[11px] text-white/95 font-body bg-black/40 px-2 py-1 rounded">
               {entry.date}
             </span>
 
-            {!photoUrl && (
+            {!coverUrl && (
               <button
                 onClick={() => photoInputRef.current?.click()}
                 disabled={photoBusy}
                 className="absolute bottom-2 left-3 text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
               >
-                <Camera className="size-3.5" /> Add photo
+                <Camera className="size-3.5" /> Add photos
               </button>
             )}
           </div>
@@ -311,11 +467,61 @@ const JournalEntry = () => {
         </SurfaceCard>
       </div>
 
+      {/* Photos gallery — Shopify-style sortable grid. First image is the cover. */}
+      <SectionLabel>
+        Photos {photoPaths.length > 0 ? `(${photoPaths.length}/${MAX_PHOTOS})` : ""}
+      </SectionLabel>
+      <div className="px-5 pb-4">
+        <SurfaceCard>
+          {photoPaths.length === 0 ? (
+            <p className="text-xs text-muted-foreground mb-3">
+              Add up to {MAX_PHOTOS} photos. Drag to reorder — the first photo is the cover shown on your Hair Journal.
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Drag to reorder. The first photo is the cover.
+            </p>
+          )}
+
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
+            <SortableContext items={photoPaths} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-3 gap-2">
+                {photoPaths.map((p, idx) => (
+                  <SortablePhoto
+                    key={p}
+                    id={p}
+                    url={photoUrls[p]}
+                    isCover={idx === 0}
+                    disabled={photoBusy}
+                    onRemove={() => handleRemovePhoto(p)}
+                  />
+                ))}
+
+                {photoPaths.length < MAX_PHOTOS && (
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={photoBusy}
+                    className="aspect-square rounded-[10px] border-2 border-dashed border-border hover:border-primary/60 bg-card flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                    aria-label="Add photos"
+                  >
+                    <Plus className="size-5" />
+                    <span className="text-[10px] uppercase tracking-[0.15em] font-medium">
+                      Add
+                    </span>
+                  </button>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </SurfaceCard>
+      </div>
+
       {/* Share sheet */}
       <ShareSheet
         open={shareOpen}
         onOpenChange={setShareOpen}
-        imageUrl={photoUrl}
+        imageUrl={coverUrl}
         title={entry.title}
         caption={shareCaption}
         filename={`${entry.id}.jpg`}
