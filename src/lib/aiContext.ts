@@ -114,6 +114,10 @@ export async function buildAiContext(): Promise<AiContext> {
           .select("name, brand, category, ingredients, key_ingredients, match_score, rating")
           .eq("user_id", userId)
           .eq("on_shelf", true),
+        supabase
+          .from("product_ratings")
+          .select("product_name, product_brand, rating, ingredients")
+          .eq("user_id", userId),
       ]);
       bloodResults = (blood.data ?? []) as Array<Record<string, unknown>>;
       const lists = ingLists.data ?? [];
@@ -125,6 +129,9 @@ export async function buildAiContext(): Promise<AiContext> {
         .map((r) => r.ingredient);
       recentWashes = (washes.data ?? []) as Array<Record<string, unknown>>;
       shelf = (shelfRows.data ?? []) as Array<Record<string, unknown>>;
+      const allRatings = (ratings.data ?? []) as Array<Record<string, unknown>>;
+      lowRated = allRatings.filter((r) => Number(r.rating) <= 2);
+      highRated = allRatings.filter((r) => Number(r.rating) >= 4);
       // Merge meds back into healthProfile so prompts always see them.
       if (healthProfileLocal && meds.data) {
         healthProfileLocal.medications = meds.data.map((m) => m.name);
@@ -176,6 +183,8 @@ export async function buildAiContext(): Promise<AiContext> {
       last_3_wash_days: last3,
       avoid_ingredients: avoidIngredients,
       favourite_ingredients: favouriteIngredients,
+      low_rated_products: lowRated,
+      high_rated_products: highRated,
     },
     shelf,
   };
