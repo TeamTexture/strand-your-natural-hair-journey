@@ -627,6 +627,8 @@ const WashStep1 = () => {
                 },
               }),
             );
+            // Draft is no longer needed once we've moved on to step 2.
+            localStorage.removeItem("strand_wash_step1_draft");
             navigate("/wash/step-2");
           }}
         >
