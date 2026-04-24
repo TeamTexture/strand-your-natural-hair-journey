@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Pencil, Plus, Target } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -9,6 +10,8 @@ import { journalEntries } from "@/data/journalEntries";
 import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoals, type UserGoal } from "@/hooks/useGoals";
+import GoalEditorSheet from "@/components/GoalEditorSheet";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -22,7 +25,21 @@ const Journal = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { signals, banner, loading } = useJournalEncouragement();
+  const { goals, lengthGoal, loading: goalsLoading } = useGoals();
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<UserGoal | null>(null);
+
+  // Other (non-length) goals are listed beneath the primary card.
+  const otherGoals = useMemo(
+    () => goals.filter((g) => g.id !== lengthGoal?.id),
+    [goals, lengthGoal],
+  );
+
+  const openEditor = (goal: UserGoal | null) => {
+    setEditing(goal);
+    setEditorOpen(true);
+  };
 
   // Pull through any photos uploaded on individual entries.
   // Photo paths are stored per-entry under `strand_journal_photo_<id>` by JournalEntry.tsx.
@@ -76,17 +93,45 @@ const Journal = () => {
         </div>
       </div>
 
-      <div className="px-5 pb-4">
-        <SurfaceCard>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium">Length Retention</p>
-            <span className="text-[11px] uppercase tracking-[0.15em] text-primary">In Progress</span>
-          </div>
-          <div className="h-2 bg-border rounded-full overflow-hidden">
-            <div className="h-full w-[60%] bg-primary rounded-full" />
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-2">Goal: 2 inches by September · Current: 1.2 inches</p>
-        </SurfaceCard>
+      <div className="px-5 pb-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
+            Goals & Challenges
+          </h2>
+          {goals.length > 0 && (
+            <button
+              onClick={() => openEditor(null)}
+              className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[36px]"
+              aria-label="Add a new goal"
+            >
+              <Plus className="size-3.5" /> Add
+            </button>
+          )}
+        </div>
+
+        {goalsLoading ? (
+          <SurfaceCard>
+            <div className="h-4 w-2/3 bg-border/60 rounded animate-pulse" />
+            <div className="h-2 w-full bg-border/60 rounded mt-3 animate-pulse" />
+          </SurfaceCard>
+        ) : lengthGoal ? (
+          <GoalCard goal={lengthGoal} onEdit={() => openEditor(lengthGoal)} />
+        ) : (
+          <SurfaceCard className="text-center">
+            <Target className="size-6 text-primary mx-auto mb-2" />
+            <p className="text-sm font-medium">Set your first goal</p>
+            <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+              Track length retention or any hair challenge you're working on.
+            </p>
+            <Button variant="gold" size="pill" onClick={() => openEditor(null)}>
+              + Add a goal
+            </Button>
+          </SurfaceCard>
+        )}
+
+        {otherGoals.map((g) => (
+          <GoalCard key={g.id} goal={g} onEdit={() => openEditor(g)} />
+        ))}
       </div>
 
       <SectionLabel>Photo Journal</SectionLabel>
@@ -145,7 +190,64 @@ const Journal = () => {
           + Add to Mood Board
         </Button>
       </div>
+
+      <GoalEditorSheet open={editorOpen} onOpenChange={setEditorOpen} goal={editing} />
     </ScreenLayout>
+  );
+};
+
+interface GoalCardProps {
+  goal: UserGoal;
+  onEdit: () => void;
+}
+
+const formatDate = (iso: string | null) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+};
+
+const GoalCard = ({ goal, onEdit }: GoalCardProps) => {
+  // Progress is measured against the distance from start to target so a goal
+  // like "go from 12in to 14in" reads correctly even when start_value > 0.
+  const span = Math.max(goal.target_value - goal.start_value, 0.0001);
+  const progressed = Math.min(
+    Math.max(goal.current_value - goal.start_value, 0),
+    span,
+  );
+  const pct = Math.round((progressed / span) * 100);
+  const dateLabel = formatDate(goal.target_date);
+  const isComplete = goal.current_value >= goal.target_value;
+
+  return (
+    <SurfaceCard>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <p className="text-sm font-medium leading-tight">{goal.title}</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] uppercase tracking-[0.15em] text-primary">
+            {isComplete ? "Complete" : "In Progress"}
+          </span>
+          <button
+            onClick={onEdit}
+            className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary"
+            aria-label="Edit goal"
+          >
+            <Pencil className="size-3.5" />
+          </button>
+        </div>
+      </div>
+      <div className="h-2 bg-border rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-2">
+        Goal: {goal.target_value} {goal.unit}
+        {dateLabel ? ` by ${dateLabel}` : ""} · Current: {goal.current_value} {goal.unit}
+      </p>
+    </SurfaceCard>
   );
 };
 

@@ -358,6 +358,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_goals: {
+        Row: {
+          created_at: string
+          current_value: number
+          id: string
+          kind: string
+          notes: string | null
+          start_value: number
+          status: string
+          target_date: string | null
+          target_value: number
+          title: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          kind?: string
+          notes?: string | null
+          start_value?: number
+          status?: string
+          target_date?: string | null
+          target_value: number
+          title: string
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          kind?: string
+          notes?: string | null
+          start_value?: number
+          status?: string
+          target_date?: string | null
+          target_value?: number
+          title?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_medications: {
         Row: {
           category: string | null
