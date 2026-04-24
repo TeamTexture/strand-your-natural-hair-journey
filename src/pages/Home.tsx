@@ -109,19 +109,15 @@ const Home = () => {
       <SectionLabel>Quick actions</SectionLabel>
       <div className="px-5 grid grid-cols-2 gap-3">
         {quickActions.map((qa) => (
-          <SurfaceCard
+          <button
             key={qa.title}
-            as="button"
-            className="text-left cursor-pointer hover:border-primary/50 transition-colors"
-            // @ts-expect-error -- as prop pass-through unsupported, fallback below
             onClick={() => navigate(qa.to)}
+            className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
           >
-            <div onClick={() => navigate(qa.to)} className="cursor-pointer">
-              <div className="text-2xl mb-2">{qa.emoji}</div>
-              <p className="text-sm font-medium font-body leading-tight">{qa.title}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{qa.sub}</p>
-            </div>
-          </SurfaceCard>
+            <div className="text-2xl mb-2">{qa.emoji}</div>
+            <p className="text-sm font-medium font-body leading-tight">{qa.title}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{qa.sub}</p>
+          </button>
         ))}
       </div>
 
