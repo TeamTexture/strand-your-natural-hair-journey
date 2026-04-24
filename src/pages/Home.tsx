@@ -127,28 +127,43 @@ const Home = () => {
         <SurfaceCard tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
-              🔔 Alerts
+              🔔 Alerts {visibleAlerts.length > 0 && `(${visibleAlerts.length})`}
             </span>
-            <button
-              onClick={() => toast("All alerts cleared")}
-              className="text-[11px] uppercase tracking-[0.15em] text-primary"
-            >
-              Clear all
-            </button>
+            {visibleAlerts.length > 0 && (
+              <button
+                onClick={() => {
+                  setDismissed(new Set(alerts.map((a) => a.id)));
+                  toast("All alerts cleared");
+                }}
+                className="text-[11px] uppercase tracking-[0.15em] text-primary"
+              >
+                Clear all
+              </button>
+            )}
           </div>
           <div className="px-3 pb-3 space-y-2">
-            {alerts.map((a) => (
-              <button
-                key={a.title}
-                onClick={() => navigate(a.to)}
-                className="w-full text-left p-3 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
-              >
-                <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
-                  {a.emoji} {a.title}
-                </p>
-                <p className="text-[11px] text-alert-dark-foreground/70 mt-1">{a.body}</p>
-              </button>
-            ))}
+            {alertsLoading ? (
+              <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/60">
+                Checking your data…
+              </p>
+            ) : visibleAlerts.length === 0 ? (
+              <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/70">
+                ✨ All caught up — nothing needs your attention right now.
+              </p>
+            ) : (
+              visibleAlerts.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => navigate(a.to)}
+                  className="w-full text-left p-3 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
+                >
+                  <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
+                    {a.emoji} {a.title}
+                  </p>
+                  <p className="text-[11px] text-alert-dark-foreground/70 mt-1">{a.body}</p>
+                </button>
+              ))
+            )}
           </div>
         </SurfaceCard>
       </div>
