@@ -37,7 +37,15 @@ const Avoidlist = () => {
           user.email?.split("@")[0] ||
           userName;
       }
-      generateIngredientReportPdf({ userName, avoid, favourites });
+      const { blob, fileName } = generateIngredientReportPdf({ userName, avoid, favourites });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success("Ingredient report downloaded");
     } catch (e) {
       console.error("PDF export failed", e);

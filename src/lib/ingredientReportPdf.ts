@@ -308,5 +308,7 @@ export function generateIngredientReportPdf(input: ReportInput) {
 
   const safeName = input.userName.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "client";
   const dateStamp = new Date().toISOString().slice(0, 10);
-  doc.save(`STRAND-ingredient-report-${safeName}-${dateStamp}.pdf`);
+  const fileName = `STRAND-ingredient-report-${safeName}-${dateStamp}.pdf`;
+  const blob = doc.output("blob");
+  return { blob, fileName };
 }
