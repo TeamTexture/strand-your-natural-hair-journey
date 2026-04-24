@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic } from "lucide-react";
+import { ChevronDown, Mic, Link as LinkIcon, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import FilePickerButton from "@/components/FilePickerButton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
+import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 
 const tabs = [
   { id: "shelf",    label: "Shelf" },
@@ -27,12 +31,21 @@ const Stars = ({ n }: { n: number }) => (
 const Products = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [linkSheetOpen, setLinkSheetOpen] = useState(false);
+  const [linkValue, setLinkValue] = useState("");
   const { products, loading } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
+  const { startUrlScan, busy: urlBusy } = useProductUrlScan();
 
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
+
+  const handleLinkSubmit = async () => {
+    await startUrlScan(linkValue, "shelf");
+    setLinkSheetOpen(false);
+    setLinkValue("");
+  };
 
   return (
     <ScreenLayout bottomNav>
@@ -151,18 +164,73 @@ const Products = () => {
       </div>
 
       <div className="px-5 pb-6 space-y-3">
-        <FilePickerButton variant="gold" size="pill" preferCamera disabled={busy} onPick={(f) => startScan(f, "shelf")}>
+        <FilePickerButton variant="gold" size="pill" preferCamera disabled={busy || urlBusy} onPick={(f) => startScan(f, "shelf")}>
           {busy ? "Preparing photo…" : "+ Scan a New Product"}
         </FilePickerButton>
-        <FilePickerButton variant="goldOutline" size="pill" disabled={busy} onPick={(f) => startScan(f, "shelf")}>
+        <FilePickerButton variant="goldOutline" size="pill" disabled={busy || urlBusy} onPick={(f) => startScan(f, "shelf")}>
           + Upload Screenshot
         </FilePickerButton>
+        <Button
+          variant="goldOutline"
+          size="pill"
+          disabled={busy || urlBusy}
+          onClick={() => setLinkSheetOpen(true)}
+          className="w-full"
+        >
+          <LinkIcon className="size-4 mr-1.5" />
+          {urlBusy ? "Reading link…" : "Paste Web Link"}
+        </Button>
         <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
-          Tip: capture the front of the bottle with the brand and product name
-          clearly visible. Good lighting helps the AI flag ingredients against
-          your hair profile.
+          Tip: snap the bottle, upload a screenshot, or paste a product page
+          link — the AI reads the label and matches ingredients to your hair
+          profile.
         </p>
       </div>
+
+      <Sheet open={linkSheetOpen} onOpenChange={(o) => !urlBusy && setLinkSheetOpen(o)}>
+        <SheetContent side="bottom" className="rounded-t-[24px] pb-8">
+          <SheetHeader className="text-left">
+            <SheetTitle className="font-display">Add product from a link</SheetTitle>
+            <SheetDescription className="text-xs">
+              Paste a product page URL from any retailer or brand site. The AI
+              will read the page and pull the ingredients.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-3">
+            <Input
+              type="url"
+              inputMode="url"
+              autoFocus
+              placeholder="https://brand.com/products/curl-cream"
+              value={linkValue}
+              onChange={(e) => setLinkValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && linkValue.trim() && !urlBusy) handleLinkSubmit();
+              }}
+              disabled={urlBusy}
+              className="h-12 text-sm"
+            />
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={handleLinkSubmit}
+              disabled={!linkValue.trim() || urlBusy}
+              className="w-full"
+            >
+              {urlBusy ? (
+                <><Loader2 className="size-4 mr-2 animate-spin" /> Reading page…</>
+              ) : (
+                "Analyse this link"
+              )}
+            </Button>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Works best with direct product pages (not search results or home
+              pages). If a page hides ingredients behind a tab, the AI may
+              return only what's visible.
+            </p>
+          </div>
+        </SheetContent>
+      </Sheet>
     </ScreenLayout>
   );
 };

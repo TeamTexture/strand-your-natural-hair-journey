@@ -23,10 +23,11 @@ interface Analysis {
 
 interface NavState {
   analysis: Analysis;
-  storage_path: string;
-  preview_url: string;
+  storage_path: string | null;
+  preview_url: string | null;
   product_key: string;
   intent?: "shelf" | "wishlist";
+  source_url?: string;
 }
 
 const ProductDetailNew = () => {
@@ -91,11 +92,17 @@ const ProductDetailNew = () => {
     <ScreenLayout bottomNav={false}>
       <TitleBar title="Product Analysis" back />
       <div className="px-5 pb-8 space-y-4">
-        <img
-          src={state.preview_url}
-          alt={a.product_name ?? "Product"}
-          className="w-full aspect-square object-cover rounded-[18px] border border-border"
-        />
+        {state.preview_url ? (
+          <img
+            src={state.preview_url}
+            alt={a.product_name ?? "Product"}
+            className="w-full aspect-square object-cover rounded-[18px] border border-border"
+          />
+        ) : (
+          <div className="w-full aspect-square rounded-[18px] border border-border bg-primary/10 flex items-center justify-center text-6xl">
+            🧴
+          </div>
+        )}
 
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
