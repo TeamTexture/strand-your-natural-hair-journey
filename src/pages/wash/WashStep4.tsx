@@ -50,7 +50,9 @@ const WashStep4 = () => {
   // instead of a hardcoded summary line.
   const step1 = safeParse<Step1Saved>("strand_wash_step1", {});
   const step2 = safeParse<Step2Saved>("strand_wash_step2", {});
-  const step3 = safeParse<{ note?: string }>("strand_wash_step3", {});
+  const step3 = safeParse<{ note?: string; audioPath?: string | null }>("strand_wash_step3", {});
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
 
   // Build a "Pre-poo ✓ · Cleanse (X) · Condition ✓ + Heat ✓" style line from
   // the user's actual selections. Skipped steps are dropped, todo steps too.
