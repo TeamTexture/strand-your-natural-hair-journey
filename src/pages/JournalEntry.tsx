@@ -103,11 +103,27 @@ const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoPr
       )}
     >
       {url ? (
-        <img src={url} alt="" className="size-full object-cover pointer-events-none" />
+        isVideo ? (
+          <video
+            src={url}
+            muted
+            playsInline
+            preload="metadata"
+            className="size-full object-cover pointer-events-none"
+          />
+        ) : (
+          <img src={url} alt="" className="size-full object-cover pointer-events-none" />
+        )
       ) : (
         <div className="size-full flex items-center justify-center">
           <Loader2 className="size-4 text-muted-foreground animate-spin" />
         </div>
+      )}
+
+      {isVideo && (
+        <span className="absolute bottom-1 right-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded pointer-events-none">
+          Video
+        </span>
       )}
 
       {isCover && (
