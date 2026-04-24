@@ -579,6 +579,30 @@ const WashStep1 = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pickerStep && (
+        <AddWashProductSheet
+          open={!!pickerStep}
+          onOpenChange={(o) => { if (!o) setPickerStep(null); }}
+          stepLabel={stepLabels[pickerStep]}
+          onAdded={(product) => {
+            const label = product.brand ? `${product.name} — ${product.brand}` : product.name;
+            setAddedByStep((prev) => ({
+              ...prev,
+              [pickerStep]: prev[pickerStep].includes(label)
+                ? prev[pickerStep]
+                : [...prev[pickerStep], label],
+            }));
+            setAddedIdsByStep((prev) => ({
+              ...prev,
+              [pickerStep]: prev[pickerStep].includes(product.id)
+                ? prev[pickerStep]
+                : [...prev[pickerStep], product.id],
+            }));
+            setPickerStep(null);
+          }}
+        />
+      )}
     </ScreenLayout>
   );
 };
