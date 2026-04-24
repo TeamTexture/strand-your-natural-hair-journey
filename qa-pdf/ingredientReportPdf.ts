@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 // Generates a STRAND-branded PDF report of the user's auto-derived ingredient
 // lists (avoid + favourites). Uses jsPDF directly — no DOM rasterization — so
 // the output is sharp, selectable text, and small file size.
@@ -308,5 +309,5 @@ export function generateIngredientReportPdf(input: ReportInput) {
 
   const safeName = input.userName.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "client";
   const dateStamp = new Date().toISOString().slice(0, 10);
-  doc.save(`STRAND-ingredient-report-${safeName}-${dateStamp}.pdf`);
+  writeFileSync("/tmp/pdfqa/" + (`STRAND-ingredient-report-${safeName}-${dateStamp}.pdf`), Buffer.from(doc.output("arraybuffer"))); console.log("wrote");
 }
