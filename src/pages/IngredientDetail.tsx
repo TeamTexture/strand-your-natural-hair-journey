@@ -75,6 +75,15 @@ const IngredientDetail = () => {
           ))}
         </SurfaceCard>
 
+        <SectionLabel>Your voicenotes</SectionLabel>
+        <SurfaceCard>
+          <ProductVoicenotes
+            productKey={productKey}
+            productName={productName}
+            productBrand={productBrand}
+          />
+        </SurfaceCard>
+
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your Rating</p>
           <div className="flex items-center gap-2">
