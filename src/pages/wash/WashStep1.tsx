@@ -251,75 +251,87 @@ const WashStep1 = () => {
           step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: ["Honey & Turmeric Deep Cond — TGIN"] }}
           state={condition}
           setState={setCondition}
-        >
-          <div className="px-3 py-2.5 bg-primary/5 border border-primary/30 rounded-[10px] space-y-2">
-            <div className="flex items-center gap-2">
-              <Flame className="size-4 text-primary" />
-              <span className="text-xs font-medium flex-1">Did you use a heat treatment?</span>
+          // Once Done, surface the conditioner + the heat-treatment answer as chips
+          // so the user can see at a glance what they captured for this step.
+          summaryChips={[
+            "Honey & Turmeric Deep Cond — TGIN",
+            ...(heatChoice === "yes" ? ["Heat treatment"] : []),
+            ...(heatChoice === "no" ? ["No heat"] : []),
+          ]}
+          editor={
+            <div className="px-3 py-2.5 bg-primary/5 border border-primary/30 rounded-[10px] space-y-2">
+              <div className="flex items-center gap-2">
+                <Flame className="size-4 text-primary" />
+                <span className="text-xs font-medium flex-1">Did you use a heat treatment?</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHeatChoice("yes")}
+                  aria-pressed={heatChoice === "yes"}
+                  className={cn(
+                    "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
+                    heatChoice === "yes"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border",
+                  )}
+                >
+                  Yes ✓
+                </button>
+                <button
+                  type="button"
+                  onClick={handleHeatNo}
+                  aria-pressed={heatChoice === "no"}
+                  className={cn(
+                    "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
+                    heatChoice === "no"
+                      ? "bg-muted text-foreground border-border"
+                      : "bg-card text-muted-foreground border-border",
+                  )}
+                >
+                  No
+                </button>
+              </div>
+              {heatChoice === "yes" && (
+                <p className="text-[11px] text-muted-foreground">
+                  Nice — log the cap/steamer and minutes on the next step.
+                </p>
+              )}
+              {heatChoice === "no" && !heatDialogOpen && (
+                <button
+                  type="button"
+                  onClick={() => setHeatDialogOpen(true)}
+                  className="text-[11px] text-primary underline underline-offset-2"
+                >
+                  Why heat could help your hair →
+                </button>
+              )}
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setHeatChoice("yes")}
-                aria-pressed={heatChoice === "yes"}
-                className={cn(
-                  "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
-                  heatChoice === "yes"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border",
-                )}
-              >
-                Yes ✓
-              </button>
-              <button
-                type="button"
-                onClick={handleHeatNo}
-                aria-pressed={heatChoice === "no"}
-                className={cn(
-                  "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
-                  heatChoice === "no"
-                    ? "bg-muted text-foreground border-border"
-                    : "bg-card text-muted-foreground border-border",
-                )}
-              >
-                No
-              </button>
-            </div>
-            {heatChoice === "yes" && (
-              <p className="text-[11px] text-muted-foreground">
-                Nice — log the cap/steamer and minutes on the next step.
-              </p>
-            )}
-            {heatChoice === "no" && !heatDialogOpen && (
-              <button
-                type="button"
-                onClick={() => setHeatDialogOpen(true)}
-                className="text-[11px] text-primary underline underline-offset-2"
-              >
-                Why heat could help your hair →
-              </button>
-            )}
-          </div>
-        </StepCard>
+          }
+        />
         <StepCard
           step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: [] }}
           state={treatment}
           setState={setTreatment}
-        >
-          <div className="flex flex-wrap gap-2">
-            {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
-              <Tag
-                key={t}
-                selected={treatmentType.includes(t)}
-                onClick={() =>
-                  setTreatmentType(treatmentType.includes(t) ? treatmentType.filter((x) => x !== t) : [...treatmentType, t])
-                }
-              >
-                {t}
-              </Tag>
-            ))}
-          </div>
-        </StepCard>
+          // The treatment chips are exactly what the user picked in the editor —
+          // so pressing Done collapses the card and shows e.g. "Bond repair" beneath it.
+          summaryChips={treatmentType}
+          editor={
+            <div className="flex flex-wrap gap-2">
+              {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
+                <Tag
+                  key={t}
+                  selected={treatmentType.includes(t)}
+                  onClick={() =>
+                    setTreatmentType(treatmentType.includes(t) ? treatmentType.filter((x) => x !== t) : [...treatmentType, t])
+                  }
+                >
+                  {t}
+                </Tag>
+              ))}
+            </div>
+          }
+        />
         <StepCard
           step={{ id: "5", emoji: "✨", name: "Style & Finish", sub: "Styling products applied", defaultDone: true, products: ["Flaxseed Styling Gel — Camille Rose"] }}
           state={style}
