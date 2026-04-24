@@ -43,7 +43,6 @@ import ShareSheet from "@/components/ShareSheet";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { getJournalEntry } from "@/data/journalEntries";
