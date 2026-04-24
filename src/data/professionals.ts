@@ -138,6 +138,86 @@ export const PROFESSIONALS: Professional[] = [
     bookCode: "STRAND10",
     discount: "STRAND10 — 10% off consultation",
   },
+
+  // ───────────── Curl Specialists, Salons & Stylists ─────────────
+  // Sourced from Paige Lewin's "Hair Care Professionals" cheat sheet.
+  // Default discount code STRAND10 unless otherwise specified.
+  ...([
+    // ── LONDON ──
+    ["the-muse-salon", "✂️", "The Muse Salon", "Textured hair salon for curls, kinks, waves & coils", "London", "themusesalon", ["Curls", "Kinks", "Waves", "Coils", "Textured Hair"]],
+    ["erica-liburd", "✂️", "Erica Liburd", "Natural & textured hair specialist · Educator (The Muse Salon)", "London", "ericaliburdofficial", ["Natural Hair", "Textured Hair", "Education", "Curl Assessment"]],
+    ["tribe-salons", "✂️", "Tribe Salons", "Inclusive textured hair salon", "London", "tribesalons", ["Textured Hair", "Inclusive", "Curls", "Coils"]],
+    ["anneliese-hesse", "🏥", "Anneliese Hesse", "Certified Trichologist · Curl, Coil & Wave Specialist · Colourist · Educator", "London", "anneliese_hesse", ["Trichology", "Curls", "Coils", "Waves", "Colour", "Education"], "Trichologist", "IOT Verified"],
+    ["texture-salon-london", "✂️", "Texture Salon London", "Curly, coily and wavy salon", "London", "texturesalonlondon", ["Curly", "Coily", "Wavy"]],
+    ["hair-by-floria", "✂️", "Hair by Floria", "Curly & coily hair stylist (Texture Salon London)", "London", "hairbyfloria", ["Curly Hair", "Coily Hair", "Styling"]],
+    ["originally-dee-hair", "✂️", "Originally Dee Hair", "Afro & textured hair specialist (Texture Salon London)", "London", "originallydeehair", ["Afro Hair", "Textured Hair"]],
+    ["hair-by-trina-london", "✂️", "Hair by Trina London", "Curl & textured hair specialist (Texture Salon London)", "London", "hairbytrinalondon", ["Curls", "Textured Hair"]],
+    ["yonkel-c-slays-hair", "✂️", "Yonkel C Slays Hair", "Textured hair stylist (Texture Salon London)", "London", "yonkelcslayshair", ["Textured Hair", "Styling"]],
+    ["blue-tit-london", "✂️", "Blue Tit London", "Textured hair & curl specialist", "London", "bluetitlondon", ["Textured Hair", "Curls"]],
+    ["pash-canel", "✂️", "Pash Canel", "Textured hair stylist (Blue Tit London)", "London", "pashcanel", ["Textured Hair", "Styling"]],
+    ["cille-hebsi", "✂️", "Cille", "All textures & lengths (Blue Tit London)", "London", "cillhebsi", ["All Textures", "All Lengths"]],
+    ["natural-hair-loc-bar", "✂️", "Natural Hair & Loc Bar", "Locs and natural hair specialist", "London", "naturalhairandlocbar", ["Locs", "Natural Hair"]],
+    ["ama-hair-salon", "✂️", "Ama Hair Salon", "Afro and textured hair salon", "London", "amahairsalon", ["Afro Hair", "Textured Hair"]],
+    ["simply-g-hair", "✂️", "Simply G Hair", "Curly & coily hair specialist", "London", "simplyg_hair", ["Curly Hair", "Coily Hair"]],
+    ["entwined-curls", "✂️", "Entwined Curls", "Curly & coily hair specialist", "London", "entwined.curls", ["Curly Hair", "Coily Hair"]],
+    ["the-curl-clinic", "✂️", "The Curl Clinic", "Curly & coily hair treatments and care", "London", "thecurlclinic", ["Curls", "Coils", "Treatments"]],
+    ["moiso-london", "✂️", "Moïso London", "Textured hair salon", "London", "moiso_london", ["Textured Hair"]],
+    ["purely-natural-salon", "✂️", "Purely Natural Salon", "Afro & mixed-texture salon in Stratford", "Stratford, London", "purelynaturalsalon", ["Afro Hair", "Mixed Texture"]],
+    ["the-curl-bar-london", "✂️", "The Curl Bar London", "Curls, coils and waves", "London", "thecurlbarlondon", ["Curls", "Coils", "Waves"]],
+    ["claire-the-curl-therapist", "✂️", "Claire the Curl Therapist", "Curl therapy & textured hair treatments", "London", "claire_the_curl_therapist", ["Curl Therapy", "Treatments"]],
+    ["boombastic-braids", "✂️", "Boombastic Braids", "Braids and protective styles", "London", "boombasticbraids", ["Braids", "Protective Styles"]],
+    ["dolly-curls", "✂️", "Dolly Curls", "Curly hair specialist", "London", "dolly_curls", ["Curly Hair"]],
+    ["jdv-hair", "✂️", "JDV Hair", "Textured hair stylist", "London", "jdv_hair", ["Textured Hair"]],
+    ["curl-talk", "✂️", "Curl Talk", "Curly hair community & specialist styling", "London", "curl.talk", ["Curly Hair", "Community"]],
+    ["zateesha-hairstylist", "✂️", "Zateesha Hairstylist", "Natural & textured hair stylist", "London", "zateeshahairstylist", ["Natural Hair", "Textured Hair"]],
+    ["hype-coiffure-salon", "✂️", "Hype Coiffure Salon", "Afro hair salon", "London", "hypecoiffureuk", ["Afro Hair", "Salon"]],
+    ["aminata-creative", "✂️", "Aminata Creative", "Creative hairstylist for textured hair", "London", "aminatacreative", ["Textured Hair", "Creative Styling"]],
+    ["afro-hair-coach", "✂️", "Afro Hair Coach", "Hair health educator and textured hair expert", "London", "afrohaircoach", ["Hair Health", "Education", "Textured Hair"]],
+    ["nicola-harrowell", "✂️", "Nicola Harrowell", "Textured hair stylist", "London", "nicola_harrowell", ["Textured Hair"]],
+    ["shout-at-ishas-hair", "✂️", "Shout at Isha's Hair", "Textured hair treatments and styling", "London", "shoutatishashair", ["Textured Hair", "Treatments"]],
+    ["devine-rootz", "✂️", "Devine Rootz", "Scalp and textured hair specialist", "London", "devinerootz", ["Scalp", "Textured Hair"]],
+    ["casey-styles", "✂️", "Casey Styles", "Curl and wave stylist", "London", "iamcaseystyles", ["Curls", "Waves"]],
+    ["hair-by-laura-lyn-clinton", "✂️", "Hair by Laura Lyn Clinton", "Textured hair styling and treatments", "London", "hairbylauralynclintonlondon", ["Textured Hair", "Treatments"]],
+    ["the-natural-hair-whisperer", "✂️", "The Natural Hair Whisperer", "Natural hair care and styling specialist", "London", "thenaturalhairwhisperer", ["Natural Hair", "Styling"]],
+
+    // ── MANCHESTER ──
+    ["hair-king-callum", "✂️", "Hair King Callum (Callum Ashley Townsend)", "Curl artisan & inclusive textured hair expert", "Manchester", "hairkingcallum", ["Curls", "Textured Hair", "Inclusive"]],
+    ["curly-gal-chloe-salon", "✂️", "Curly Gal Chloe Salon", "Curly & coily hair specialist", "Manchester", "curlygalchlosalon", ["Curly Hair", "Coily Hair"]],
+
+    // ── LEEDS ──
+    ["the-curl-therapist-leeds", "✂️", "The Curl Therapist", "Curly specialist", "Leeds", "the_curltherapist", ["Curly Hair", "Curl Therapy"]],
+
+    // ── WEST MIDLANDS ──
+    ["yasmine-byfield-hair", "✂️", "Yasmine Byfield Hair", "Specialist in naturally wavy, curly & coily hair", "West Midlands", "yasminebyfieldhair", ["Wavy", "Curly", "Coily"]],
+
+    // ── BOURNEMOUTH ──
+    ["curl-specialist-bournemouth", "✂️", "Curl Specialist Bournemouth", "Curly & coily hair expert", "Bournemouth", "curlspecialistbournemouth", ["Curly Hair", "Coily Hair"]],
+
+    // ── BRISTOL ──
+    ["bristol-loc", "✂️", "Bristol Loc", "Locs & textured hair specialist", "Bristol", "bristol_loc", ["Locs", "Textured Hair"]],
+    ["gaudi-hair", "✂️", "Gaudi Hair", "Textured hair salon", "Bristol", "gaudihair", ["Textured Hair"]],
+
+    // ── SCOTLAND ──
+    ["the-curly-scott", "✂️", "The Curly Scott", "Curly & coily texture specialist", "Scotland", "thecurlyscott", ["Curly Hair", "Coily Hair"]],
+  ] as Array<[string, string, string, string, string, string, string[], ProType?, string?]>).map(
+    ([id, emoji, name, title, location, instaHandle, specs, type, verified]) => ({
+      id,
+      emoji,
+      name,
+      title,
+      type: (type ?? "Curl Specialist") as ProType,
+      verified: verified ?? "Specialist",
+      clinic: name,
+      location,
+      specs,
+      bio: `${title}. Based in ${location}. Recommended in Paige Lewin's UK Hair Care Professionals guide.`,
+      insta: `@${instaHandle}`,
+      instaUrl: `https://www.instagram.com/${instaHandle}/`,
+      website: `https://www.instagram.com/${instaHandle}/`,
+      bookCode: "STRAND10",
+      discount: "STRAND10 — 10% off first booking",
+    }),
+  ),
 ];
 
 /** Filter helper used by the Directory and ProBook screens. */
