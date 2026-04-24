@@ -29,6 +29,8 @@ const IngredientDetail = () => {
   const productKey = searchParams.get("key") ?? "camille-rose-moisture-retention";
   const productName = searchParams.get("name") ?? "Moisture Retention Serum";
   const productBrand = searchParams.get("brand") ?? "Camille Rose";
+  const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
+  const photoUrl = photos[productKey]?.signedUrl ?? null;
   return (
     <ScreenLayout>
       <TitleBar
