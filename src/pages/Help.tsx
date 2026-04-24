@@ -316,7 +316,7 @@ const Help = () => {
           },
           {
             q: "How do I delete my account?",
-            a: "Email hello@strand.app from your account address and we will erase your data within 30 days.",
+            a: "Email info@teamtexture.co.uk from your account address and we will erase your data within 30 days.",
           },
         ].map(({ q, a }) => (
           <SurfaceCard key={q}>
