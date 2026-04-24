@@ -324,6 +324,45 @@ const MyToolsSection = () => {
               </div>
             </div>
 
+            <div className="space-y-1.5 rounded-[12px] border border-dashed border-primary/30 bg-primary/5 p-3">
+              <label className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium flex items-center gap-1.5">
+                <Link2 className="size-3" /> Or paste a product link
+              </label>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                We'll fetch the page and pre-fill the name, brand, category and a short note.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://…"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  disabled={saving || analysing}
+                  className="h-10 text-sm"
+                  type="url"
+                  inputMode="url"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <Button
+                  type="button"
+                  variant="goldOutline"
+                  size="pill"
+                  onClick={handleAnalyseLink}
+                  disabled={saving || analysing || !linkUrl.trim()}
+                  className="shrink-0"
+                >
+                  {analysing ? (
+                    <>
+                      <Loader2 className="size-3.5 mr-1 animate-spin" /> Reading…
+                    </>
+                  ) : (
+                    "Analyse"
+                  )}
+                </Button>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
                 Name *
