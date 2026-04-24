@@ -8,20 +8,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
-
-interface QA { emoji: string; title: string; sub: string; to: string }
-const quickActions: QA[] = [
-  { emoji: "💧", title: "Log Wash Day", sub: "Last: 9 days ago", to: "/wash-day" },
-  { emoji: "📸", title: "Add Product", sub: "Scan or screenshot", to: "/products/wishlist" },
-  { emoji: "📖", title: "Hair Journal", sub: "3 entries", to: "/journal" },
-  { emoji: "📅", title: "Appointments", sub: "Next: 15 May", to: "/appointments" },
-];
-
-interface Shelf { emoji: string; name: string; brand: string; stars: number; score: number }
-const shelf: Shelf[] = [
-  { emoji: "🧴", name: "Moisture Retention Serum", brand: "Camille Rose", stars: 5, score: 92 },
-  { emoji: "🌿", name: "Scalp Serum", brand: "Mielle", stars: 4, score: 88 },
-];
+import { useUserProducts } from "@/hooks/useUserProducts";
+import { useWashDays } from "@/hooks/useWashDays";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight" aria-label={`${n} stars`}>
@@ -32,11 +20,20 @@ const Stars = ({ n }: { n: number }) => (
 
 const getTimeBasedGreeting = (date = new Date()) => {
   const h = date.getHours();
-  if (h < 5) return "Good evening"; // late night → still "evening" feels natural
+  if (h < 5) return "Good evening";
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
-  if (h < 22) return "Good evening";
   return "Good evening";
+};
+
+interface ProfileStyle {
+  current_hairstyle?: string;
+  style_set_at?: string;
+  planned_next_style?: string;
+}
+const readStyle = (): ProfileStyle => {
+  try { return JSON.parse(localStorage.getItem("strand_current_style") ?? "{}"); }
+  catch { return {}; }
 };
 
 const Home = () => {
@@ -47,15 +44,21 @@ const Home = () => {
   const { alerts, loading: alertsLoading } = useHomeAlerts();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const visibleAlerts = alerts.filter((a) => !dismissed.has(a.id));
+  const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
+  const { last: lastWash, daysSinceLast } = useWashDays();
+  const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
+  const [style, setStyle] = useState<ProfileStyle>(readStyle());
 
-  // Resolve the display name from the profiles table first (source of truth),
-  // falling back to user_metadata or the email local-part so the greeting
-  // never shows a blank or someone else's name.
+  // Refresh local-storage-backed current style on focus so edits elsewhere appear.
   useEffect(() => {
-    if (!user) {
-      setFirstName("");
-      return;
-    }
+    const onFocus = () => setStyle(readStyle());
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  // Resolve the display name from the profiles table first
+  useEffect(() => {
+    if (!user) { setFirstName(""); return; }
     let cancelled = false;
     const fallback =
       (user.user_metadata?.display_name as string | undefined) ??
@@ -72,10 +75,44 @@ const Home = () => {
         setFirstName(data.display_name.split(" ")[0]);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user]);
+
+  // Next appointment
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("appointments")
+        .select("appointment_date, professional_name")
+        .eq("user_id", user.id)
+        .gte("appointment_date", today)
+        .order("appointment_date", { ascending: true })
+        .limit(1);
+      if (!cancelled && data && data[0]) {
+        setNextAppt({ date: data[0].appointment_date, pro: data[0].professional_name });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Days in style
+  const daysInStyle = style.style_set_at
+    ? Math.max(0, Math.floor((Date.now() - new Date(style.style_set_at).getTime()) / 86_400_000))
+    : null;
+
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  };
+
+  const lastWashSub = lastWash
+    ? `Last: ${daysSinceLast === 0 ? "today" : `${daysSinceLast} day${daysSinceLast === 1 ? "" : "s"} ago`}`
+    : "Tap to log your first wash day";
+
+  const apptSub = nextAppt ? `Next: ${fmtDate(nextAppt.date)}` : "No upcoming appointments";
 
   return (
     <ScreenLayout bottomNav>
@@ -109,18 +146,34 @@ const Home = () => {
         {/* current style */}
         <SurfaceCard>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Current style</p>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-base font-semibold leading-tight">Box Braids</p>
-              <p className="text-xs text-muted-foreground">Day 9 · Take-down in ~5 weeks</p>
+          {style.current_hairstyle ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-base font-semibold leading-tight">
+                  {style.current_hairstyle}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {daysInStyle != null ? `Day ${daysInStyle}` : "Just set"}
+                  {style.planned_next_style && ` · Next: ${style.planned_next_style}`}
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/onboarding/profile-step-4-colour")}
+                className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+              >
+                Edit
+              </button>
             </div>
+          ) : (
             <button
               onClick={() => navigate("/onboarding/profile-step-4-colour")}
-              className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+              className="text-left w-full"
             >
-              Edit
+              <p className="text-sm text-muted-foreground">
+                No style logged yet. Tap to add your current style.
+              </p>
             </button>
-          </div>
+          )}
         </SurfaceCard>
 
         {/* alerts */}
@@ -147,9 +200,11 @@ const Home = () => {
                 Checking your data…
               </p>
             ) : visibleAlerts.length === 0 ? (
-              <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/70">
-                ✨ All caught up — nothing needs your attention right now.
-              </p>
+              <div className="mx-1 my-1 p-3 rounded-[10px] border border-good/40 bg-good/10">
+                <p className="text-xs text-good font-medium">
+                  No alerts right now. Your hair is on track ✓
+                </p>
+              </div>
             ) : (
               visibleAlerts.map((a) => (
                 <button
@@ -170,39 +225,75 @@ const Home = () => {
 
       <SectionLabel>Quick actions</SectionLabel>
       <div className="px-5 grid grid-cols-2 gap-3">
-        {quickActions.map((qa) => (
-          <button
-            key={qa.title}
-            onClick={() => navigate(qa.to)}
-            className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-          >
-            <div className="text-2xl mb-2">{qa.emoji}</div>
-            <p className="text-sm font-medium font-body leading-tight">{qa.title}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{qa.sub}</p>
-          </button>
-        ))}
+        <button
+          onClick={() => navigate("/wash-day")}
+          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-2xl mb-2">💧</div>
+          <p className="text-sm font-medium font-body leading-tight">Log Wash Day</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{lastWashSub}</p>
+        </button>
+        <button
+          onClick={() => navigate("/products")}
+          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-2xl mb-2">📸</div>
+          <p className="text-sm font-medium font-body leading-tight">Add Product</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Scan or screenshot</p>
+        </button>
+        <button
+          onClick={() => navigate("/journal")}
+          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-2xl mb-2">📖</div>
+          <p className="text-sm font-medium font-body leading-tight">Hair Journal</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Reflect & document</p>
+        </button>
+        <button
+          onClick={() => navigate("/appointments")}
+          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-2xl mb-2">📅</div>
+          <p className="text-sm font-medium font-body leading-tight">Appointments</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{apptSub}</p>
+        </button>
       </div>
 
       <SectionLabel>My shelf</SectionLabel>
       <div className="px-5 pb-6">
         <SurfaceCard padded={false} className="divide-y divide-border/60">
-          {shelf.map((s) => (
+          {shelfLoading ? (
+            <div className="p-4 text-[11px] text-muted-foreground">Loading…</div>
+          ) : shelfProducts.length === 0 ? (
             <button
-              key={s.name}
-              onClick={() => navigate("/products/ingredient")}
-              className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px] last:rounded-b-[14px]"
+              onClick={() => navigate("/products")}
+              className="w-full p-4 text-left text-xs text-muted-foreground hover:bg-primary/5 transition-colors rounded-[14px]"
             >
-              <div className="size-11 rounded-[10px] bg-primary/15 flex items-center justify-center text-xl">{s.emoji}</div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
-                <p className="text-[11px] text-muted-foreground">{s.brand}</p>
-                <Stars n={s.stars} />
-              </div>
-              <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold">
-                {s.score}
-              </div>
+              Your shelf is empty. Tap + to add your first product.
             </button>
-          ))}
+          ) : (
+            shelfProducts.slice(0, 4).map((s) => (
+              <button
+                key={s.id}
+                onClick={() => navigate(`/products/ingredient?key=${encodeURIComponent(s.product_key)}&name=${encodeURIComponent(s.name)}&brand=${encodeURIComponent(s.brand ?? "")}`)}
+                className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px] last:rounded-b-[14px]"
+              >
+                <div className="size-11 rounded-[10px] overflow-hidden bg-primary/15 flex items-center justify-center text-xl">
+                  {s.image_url ? <img src={s.image_url} alt="" className="size-full object-cover" /> : "🧴"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
+                  <p className="text-[11px] text-muted-foreground">{s.brand}</p>
+                  <Stars n={s.rating ?? 0} />
+                </div>
+                {s.match_score != null && (
+                  <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold">
+                    {s.match_score}
+                  </div>
+                )}
+              </button>
+            ))
+          )}
         </SurfaceCard>
       </div>
     </ScreenLayout>
