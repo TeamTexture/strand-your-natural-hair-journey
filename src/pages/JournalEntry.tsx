@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, Camera, Share2, Loader2, GripVertical, Star, ImagePlus } from "lucide-react";
+import { Plus, X, Camera, Share2, Loader2, GripVertical, Star, ImagePlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   DndContext,
   closestCenter,
@@ -210,6 +224,31 @@ const JournalEntry = () => {
   };
 
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!user) {
+      toast.error("Please sign in");
+      return;
+    }
+    setDeleting(true);
+    const tag = `[${entry?.id}]`;
+    const { error } = await supabase
+      .from("journal_entries")
+      .delete()
+      .eq("user_id", user.id)
+      .ilike("title", `${tag}%`);
+    setDeleting(false);
+    if (error) {
+      console.error("journal delete failed", error);
+      toast.error("Could not delete entry");
+      return;
+    }
+    setConfirmDelete(false);
+    toast.success("Journal entry deleted.");
+    navigate("/journal");
+  };
 
   const onSave = async () => {
     persist(state);
@@ -437,12 +476,41 @@ const JournalEntry = () => {
       <TitleBar
         title="Journal Entry"
         right={
-          <button
-            onClick={() => setShareOpen(true)}
-            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px] inline-flex items-center gap-1"
-          >
-            <Share2 className="size-3.5" /> Share
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShareOpen(true)}
+              className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px] inline-flex items-center gap-1"
+            >
+              <Share2 className="size-3.5" /> Share
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label="Entry menu"
+                  className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center text-foreground"
+                >
+                  <MoreHorizontal className="size-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    // Already on the edit screen — focus the first reflection field for clarity.
+                    const ta = document.querySelector<HTMLTextAreaElement>("textarea");
+                    ta?.focus();
+                  }}
+                >
+                  <Pencil className="size-4 mr-2" /> Edit entry
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={(e) => { e.preventDefault(); setConfirmDelete(true); }}
+                >
+                  <Trash2 className="size-4 mr-2" /> Delete entry
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         }
       />
 
@@ -718,6 +786,36 @@ const JournalEntry = () => {
           Back to Journal
         </Button>
       </div>
+
+      <Sheet open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <SheetContent side="bottom" className="rounded-t-[20px]">
+          <SheetHeader className="text-left">
+            <SheetTitle>Delete this entry?</SheetTitle>
+            <SheetDescription>
+              Are you sure you want to delete this entry? This cannot be undone.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetFooter className="mt-4 flex-col gap-2 sm:flex-col">
+            <Button
+              variant="default"
+              size="pill"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="pill"
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </ScreenLayout>
   );
 };
