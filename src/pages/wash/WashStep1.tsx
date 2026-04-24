@@ -592,13 +592,21 @@ const WashStep1 = () => {
               toast.error("Add or skip at least one step before continuing");
               return;
             }
-            // Only save products from steps that were actually completed —
-            // pulled from the user's real shelf, not hardcoded brands.
-            const products: string[] = [];
-            if (prePoo === "done") products.push(...prePooProducts);
-            if (cleanse === "done" || coWash === "done") products.push(...cleanseProducts);
-            if (condition === "done") products.push(...conditionProducts);
-            if (treatment === "done") products.push(...treatmentProducts);
+            // Only save products from steps that were actually completed.
+            // We persist the user_product IDs (used by Step3 to attach
+            // products to the saved wash record) and a human-readable list
+            // for any UI that wants to show them inline.
+            const productIds: string[] = [];
+            const productLabels: string[] = [];
+            const collect = (ids: string[]) => {
+              productIds.push(...ids);
+              productLabels.push(...resolve(ids).map(formatProduct));
+            };
+            if (prePoo === "done") collect(prePooIds);
+            if (cleanse === "done") collect(cleanseIds);
+            if (coWash === "done") collect(coWashIds);
+            if (condition === "done") collect(conditionIds);
+            if (treatment === "done") collect(treatmentIds);
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
