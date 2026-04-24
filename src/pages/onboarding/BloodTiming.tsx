@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Copy, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -55,9 +57,34 @@ const BloodTiming = () => {
             <p className="text-xs text-foreground/80 mb-3">
               Full hair and scalp blood panel. Results in 5 days. Exclusive Strand member discount.
             </p>
-            <span className="inline-block bg-primary text-primary-foreground text-[11px] tracking-[0.2em] font-medium px-3 py-1.5 rounded">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText("STRAND20");
+                  toast.success("✓ Code STRAND20 copied");
+                } catch {
+                  toast("Code: STRAND20");
+                }
+              }}
+              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-[11px] tracking-[0.2em] font-medium px-3 py-1.5 rounded hover:bg-primary/90 transition-colors min-h-[36px]"
+              aria-label="Copy discount code STRAND20"
+            >
               STRAND20
-            </span>
+              <Copy className="size-3" />
+            </button>
+
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full mt-3"
+              onClick={() =>
+                window.open("https://www.yourdaye.com", "_blank", "noopener,noreferrer")
+              }
+            >
+              Order Your Daye Kit
+              <ExternalLink className="size-4 ml-1" />
+            </Button>
           </SurfaceCard>
         )}
 
