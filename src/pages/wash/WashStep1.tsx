@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+import { toast } from "sonner";
 import WashGuidanceCard from "@/components/WashGuidanceCard";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
@@ -213,6 +214,7 @@ const WashStep1 = () => {
   // the user ever opened the screen, which doubled as hardcoded data.
   const [prePoo, setPrePoo] = useState<StepState>("todo");
   const [cleanse, setCleanse] = useState<StepState>("todo");
+  const [coWash, setCoWash] = useState<StepState>("todo");
   const [condition, setCondition] = useState<StepState>("todo");
   const [treatment, setTreatment] = useState<StepState>("todo");
 
@@ -285,10 +287,40 @@ const WashStep1 = () => {
           setState={setPrePoo}
         />
         <StepCard
-          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo / co-wash", defaultDone: true, products: cleanseProducts }}
+          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo — clarifying or gentle", defaultDone: true, products: cleanseProducts }}
           state={cleanse}
           setState={setCleanse}
         />
+        <StepCard
+          step={{ id: "2b", emoji: "🧴", name: "Co-wash", sub: "Conditioning wash (between shampoos)", defaultDone: false, products: cleanseProducts }}
+          state={coWash}
+          setState={setCoWash}
+        />
+        {/* Science-grounded caution: cationic surfactants in co-washes (e.g.
+            behentrimonium methosulfate / cetrimonium chloride) condition and
+            lift light debris, but they're not anionic surfactants. They can't
+            emulsify oily build-up (sebum, butters, silicones, sunscreen, hard-
+            water minerals) the way sulphates / mild anionic cleansers do.
+            Co-washing alone week after week leads to product accumulation,
+            scalp inflammation and dullness — surface the warning the moment
+            the user logs a co-wash without a true cleanse, as advised in
+            "How To Love Your Afro". */}
+        {coWash === "done" && cleanse !== "done" && (
+          <SurfaceCard className="border-destructive/40 bg-destructive/5">
+            <div className="flex gap-2.5">
+              <div className="size-8 rounded-full bg-destructive/15 text-destructive flex items-center justify-center shrink-0 text-sm font-bold">!</div>
+              <div className="flex-1">
+                <p className="text-[12px] font-semibold mb-1">Co-wash isn't a deep cleanse</p>
+                <p className="text-[11.5px] leading-snug text-muted-foreground">
+                  Co-washes use <strong>cationic</strong> conditioning surfactants — they smooth and lift light dirt, but they can't emulsify oily build-up (sebum, butters, silicones, hard-water minerals). Only <strong>anionic</strong> surfactants in a true shampoo can lift that residue from the scalp and strands.
+                </p>
+                <p className="text-[11.5px] leading-snug text-muted-foreground mt-1.5">
+                  Pair co-washes with a proper cleanse <strong>at least every 2–3 weeks</strong> to prevent build-up, flakes and scalp inflammation.
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
         <StepCard
           step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: conditionProducts }}
           state={condition}
@@ -419,11 +451,19 @@ const WashStep1 = () => {
           size="pill"
           className="mt-4"
           onClick={() => {
+            // Require the user to have logged at least one step (done OR
+            // skipped) so wash days aren't saved entirely empty.
+            const allStates = [prePoo, cleanse, coWash, condition, treatment];
+            const anyAnswered = allStates.some((s) => s === "done" || s === "skipped");
+            if (!anyAnswered) {
+              toast.error("Add or skip at least one step before continuing");
+              return;
+            }
             // Only save products from steps that were actually completed —
             // pulled from the user's real shelf, not hardcoded brands.
             const products: string[] = [];
             if (prePoo === "done") products.push(...prePooProducts);
-            if (cleanse === "done") products.push(...cleanseProducts);
+            if (cleanse === "done" || coWash === "done") products.push(...cleanseProducts);
             if (condition === "done") products.push(...conditionProducts);
             if (treatment === "done") products.push(...treatmentProducts);
             localStorage.setItem(
@@ -431,7 +471,7 @@ const WashStep1 = () => {
               JSON.stringify({
                 // Persist explicit done/skipped state so the rest of the flow
                 // and the saved wash record can reflect what was skipped.
-                prePoo, cleanse, condition, treatment,
+                prePoo, cleanse, coWash, condition, treatment,
                 treatmentType,
                 products,
                 heatTreatment: heatChoice,
@@ -439,6 +479,7 @@ const WashStep1 = () => {
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",
+                  coWash: coWash === "skipped",
                   condition: condition === "skipped",
                   treatment: treatment === "skipped",
                 },

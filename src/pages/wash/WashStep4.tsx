@@ -31,7 +31,7 @@ const safeParse = <T,>(key: string, fallback: T): T => {
 };
 
 interface Step1Saved {
-  prePoo?: string; cleanse?: string; condition?: string; treatment?: string;
+  prePoo?: string; cleanse?: string; coWash?: string; condition?: string; treatment?: string;
   treatmentType?: string[];
   products?: string[];
   heatTreatment?: "yes" | "no" | null;
@@ -60,9 +60,9 @@ const WashStep4 = () => {
   const stepsSummary = useMemo(() => {
     const parts: string[] = [];
     const labels: Record<string, string> = {
-      prePoo: "Pre-poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
+      prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
     };
-    (["prePoo", "cleanse", "condition", "treatment"] as const).forEach((key) => {
+    (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const).forEach((key) => {
       const state = step1[key];
       if (state === "done") parts.push(`${labels[key]} ✓`);
       else if (state === "skipped") parts.push(`${labels[key]} skipped`);
@@ -140,9 +140,9 @@ const WashStep4 = () => {
       // Build the steps array from what the user actually completed.
       // Skipped / todo steps are dropped so the saved record reflects reality.
       const stepLabels: Record<string, string> = {
-        prePoo: "Pre-poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
+        prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
       };
-      const steps = (["prePoo", "cleanse", "condition", "treatment"] as const)
+      const steps = (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const)
         .filter((k) => step1[k] === "done")
         .map((k) => ({ name: stepLabels[k] }));
 
