@@ -35,7 +35,7 @@ const SplashScreen = () => {
         <Button
           variant="gold"
           size="pill"
-          onClick={() => navigate("/auth?next=/onboarding/profile-step-1")}
+          onClick={() => navigate(`/auth${joinNext}`)}
         >
           Join TT Collective Pro
         </Button>
@@ -43,7 +43,7 @@ const SplashScreen = () => {
         <Button
           variant="goldOutline"
           size="pill"
-          onClick={() => navigate("/auth?next=/home")}
+          onClick={() => navigate(`/auth${memberNext}`)}
         >
           I'm Already a Member
         </Button>
