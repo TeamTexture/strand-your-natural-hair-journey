@@ -8,15 +8,19 @@ export interface UserGoal {
   kind: string;
   title: string;
   unit: string;
-  target_value: number;
+  target_value: number | null;
   current_value: number;
   start_value: number;
   target_date: string | null;
   status: string;
   notes: string | null;
+  challenge: string | null;
+  target_text: string | null;
+  challenge_voice_url: string | null;
+  target_voice_url: string | null;
 }
 
-export type GoalDraft = Omit<UserGoal, "id" | "user_id">;
+export type GoalDraft = Partial<Omit<UserGoal, "id" | "user_id">>;
 
 export const useGoals = () => {
   const { user } = useAuth();
@@ -35,7 +39,7 @@ export const useGoals = () => {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    setGoals((data ?? []) as UserGoal[]);
+    setGoals((data ?? []) as unknown as UserGoal[]);
     setLoading(false);
   }, [user]);
 
@@ -46,10 +50,15 @@ export const useGoals = () => {
   const upsertGoal = useCallback(
     async (draft: GoalDraft, id?: string) => {
       if (!user) return null;
+      // The DB still has NOT NULL on title; provide a sensible default when blank.
+      const safeDraft = {
+        ...draft,
+        title: draft.title?.trim() || draft.challenge?.slice(0, 60) || "Hair goal",
+      };
       if (id) {
         const { data } = await supabase
           .from("user_goals")
-          .update(draft)
+          .update(safeDraft)
           .eq("id", id)
           .eq("user_id", user.id)
           .select()
@@ -57,9 +66,11 @@ export const useGoals = () => {
         await refresh();
         return data;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const insertPayload: any = { ...safeDraft, user_id: user.id };
       const { data } = await supabase
         .from("user_goals")
-        .insert({ ...draft, user_id: user.id })
+        .insert(insertPayload)
         .select()
         .single();
       await refresh();

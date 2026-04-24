@@ -1,56 +1,46 @@
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import VoiceNoteField from "@/components/VoiceNoteField";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   goal: UserGoal | null;
-  /** When true, the sheet creates a length-retention goal by default. */
   defaultKind?: string;
-  defaultTitle?: string;
-  defaultUnit?: string;
 }
 
+/**
+ * Simplified goal editor — just Challenge and Target fields, both supporting
+ * voice notes that can be transcribed to text. No title, start, or current
+ * fields. Both fields are optional, but at least one must be filled.
+ */
 const GoalEditorSheet = ({
   open,
   onOpenChange,
   goal,
-  defaultKind = "length_retention",
-  defaultTitle = "Length Retention",
-  defaultUnit = "inches",
+  defaultKind = "challenge",
 }: Props) => {
   const { upsertGoal, deleteGoal } = useGoals();
-  const [title, setTitle] = useState(defaultTitle);
-  const [unit, setUnit] = useState(defaultUnit);
+  const [challenge, setChallenge] = useState("");
   const [target, setTarget] = useState("");
-  const [current, setCurrent] = useState("");
-  const [start, setStart] = useState("");
-  const [date, setDate] = useState("");
-  const [notes, setNotes] = useState("");
+  const [challengeVoice, setChallengeVoice] = useState<string | null>(null);
+  const [targetVoice, setTargetVoice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Sync form when the editor opens for a different goal.
   useEffect(() => {
     if (!open) return;
-    setTitle(goal?.title ?? defaultTitle);
-    setUnit(goal?.unit ?? defaultUnit);
-    setTarget(goal?.target_value?.toString() ?? "");
-    setCurrent(goal?.current_value?.toString() ?? "0");
-    setStart(goal?.start_value?.toString() ?? "0");
-    setDate(goal?.target_date ?? "");
-    setNotes(goal?.notes ?? "");
-  }, [open, goal, defaultTitle, defaultUnit]);
+    setChallenge(goal?.challenge ?? "");
+    setTarget(goal?.target_text ?? "");
+    setChallengeVoice(goal?.challenge_voice_url ?? null);
+    setTargetVoice(goal?.target_voice_url ?? null);
+  }, [open, goal]);
 
   const handleSave = async () => {
-    const targetNum = parseFloat(target);
-    if (!title.trim() || isNaN(targetNum) || targetNum <= 0) {
-      toast.error("Add a title and a positive target value");
+    if (!challenge.trim() && !target.trim() && !challengeVoice && !targetVoice) {
+      toast.error("Add a challenge or a target to save");
       return;
     }
     setSaving(true);
@@ -58,18 +48,16 @@ const GoalEditorSheet = ({
       await upsertGoal(
         {
           kind: goal?.kind ?? defaultKind,
-          title: title.trim(),
-          unit: unit.trim() || defaultUnit,
-          target_value: targetNum,
-          current_value: parseFloat(current) || 0,
-          start_value: parseFloat(start) || 0,
-          target_date: date || null,
+          title: challenge.trim().slice(0, 80) || "Hair goal",
+          challenge: challenge.trim() || null,
+          target_text: target.trim() || null,
+          challenge_voice_url: challengeVoice,
+          target_voice_url: targetVoice,
           status: "in_progress",
-          notes: notes.trim() || null,
         },
         goal?.id,
       );
-      toast.success(goal ? "Goal updated" : "Goal created");
+      toast.success(goal ? "Goal updated" : "Goal saved");
       onOpenChange(false);
     } finally {
       setSaving(false);
@@ -92,92 +80,32 @@ const GoalEditorSheet = ({
           </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 mt-4 pb-6">
-          <div className="space-y-1.5">
-            <Label htmlFor="goal-title">Title</Label>
-            <Input
-              id="goal-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Length Retention"
-            />
-          </div>
+        <div className="space-y-5 mt-4 pb-6">
+          <VoiceNoteField
+            label="Challenge"
+            placeholder="What do you want to tackle?"
+            value={challenge}
+            onChange={setChallenge}
+            audioPath={challengeVoice}
+            onAudioPathChange={setChallengeVoice}
+            folder="goal-challenge"
+            rows={3}
+          />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="goal-target">Target</Label>
-              <Input
-                id="goal-target"
-                type="number"
-                step="0.1"
-                inputMode="decimal"
-                value={target}
-                onChange={(e) => setTarget(e.target.value)}
-                placeholder="2"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="goal-unit">Unit</Label>
-              <Input
-                id="goal-unit"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="inches"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="goal-start">Starting</Label>
-              <Input
-                id="goal-start"
-                type="number"
-                step="0.1"
-                inputMode="decimal"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="goal-current">Current</Label>
-              <Input
-                id="goal-current"
-                type="number"
-                step="0.1"
-                inputMode="decimal"
-                value={current}
-                onChange={(e) => setCurrent(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="goal-date">Target date</Label>
-            <Input
-              id="goal-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="goal-notes">Notes (optional)</Label>
-            <Textarea
-              id="goal-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="What's your strategy? What are you tracking?"
-              rows={3}
-            />
-          </div>
+          <VoiceNoteField
+            label="Target"
+            placeholder="What does success look like?"
+            value={target}
+            onChange={setTarget}
+            audioPath={targetVoice}
+            onAudioPathChange={setTargetVoice}
+            folder="goal-target"
+            rows={3}
+          />
 
           <div className="flex flex-col gap-2 pt-2">
             <Button variant="gold" size="pill" onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : goal ? "Save changes" : "Create goal"}
+              {saving ? "Saving..." : goal ? "Save changes" : "Save"}
             </Button>
             {goal && (
               <Button variant="ghost" size="pill" onClick={handleDelete} className="text-destructive">
