@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
+import { Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -8,6 +8,7 @@ import ItalicSub from "@/components/ItalicSub";
 import FormField from "@/components/FormField";
 import Tag from "@/components/Tag";
 import ProAvatar from "@/components/ProAvatar";
+import VoiceNoteField from "@/components/VoiceNoteField";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
@@ -133,15 +134,20 @@ const ProDetails = () => {
   const navigate = useNavigate();
   const { pros } = useDirectoryProfessionals();
 
-  const [query, setQuery] = useState("");
-  const [pickedFrom, setPickedFrom] = useState<string | null>(null);
-
   const [name, setName] = useState("");
+  const [pickedFrom, setPickedFrom] = useState<string | null>(null);
+  // Hidden background fields populated when a directory pro is picked.
+  const [bgInsta, setBgInsta] = useState("");
+  const [bgWebsite, setBgWebsite] = useState("");
+  const [bgBookingUrl, setBgBookingUrl] = useState("");
+
   const [type, setType] = useState("Dermatologist");
   const [gmc, setGmc] = useState("");
   const [iot, setIot] = useState("");
+  const [clinic, setClinic] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [notesAudioPath, setNotesAudioPath] = useState<string | null>(null);
 
   const showIot = type === "Trichologist";
 
@@ -156,11 +162,7 @@ const ProDetails = () => {
     }
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) {
-      return {
-        dateError: "Please enter a valid date.",
-        isWithinWindow: false,
-        isExpired: false,
-      };
+      return { dateError: "Please enter a valid date.", isWithinWindow: false, isExpired: false };
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -168,38 +170,40 @@ const ProDetails = () => {
     consult.setHours(0, 0, 0, 0);
     const daysAgo = Math.floor((today.getTime() - consult.getTime()) / 86_400_000);
     if (daysAgo < 0) {
-      return {
-        dateError: "Consultation date cannot be in the future.",
-        isWithinWindow: false,
-        isExpired: false,
-      };
+      return { dateError: "Consultation date cannot be in the future.", isWithinWindow: false, isExpired: false };
     }
-    if (daysAgo > 90) {
-      return { dateError: "", isWithinWindow: false, isExpired: true };
-    }
+    if (daysAgo > 90) return { dateError: "", isWithinWindow: false, isExpired: true };
     return { dateError: "", isWithinWindow: true, isExpired: false };
   }, [date]);
 
+  // Search directory once the user has typed at least 2 characters into Name.
   const matches = useMemo(() => {
-    const q = query.trim();
+    const q = name.trim();
     if (q.length < 2 || pickedFrom) return [];
     return searchProfessionalsIn(pros, q).slice(0, 5);
-  }, [pros, query, pickedFrom]);
+  }, [pros, name, pickedFrom]);
 
-  /** Apply a directory pick into the manual form. */
   const applyPro = (p: Professional) => {
     setName(p.name);
     setType(p.type);
     if (p.gmcNumber) setGmc(p.gmcNumber);
     if (p.iotNumber) setIot(p.iotNumber);
-    setQuery(p.name);
+    if (p.clinic) setClinic(p.clinic);
+    setBgInsta(p.insta ?? "");
+    setBgWebsite(p.website ?? "");
+    setBgBookingUrl(p.bookingUrl ?? "");
     setPickedFrom(p.clinic ?? p.name);
   };
 
   const clearPick = () => {
     setPickedFrom(null);
-    setQuery("");
+    setBgInsta("");
+    setBgWebsite("");
+    setBgBookingUrl("");
   };
+
+  const notesValid = notes.trim().length > 0 || !!notesAudioPath;
+  const canContinue = isWithinWindow && notesValid && name.trim().length > 0;
 
   return (
     <ScreenLayout>
@@ -208,18 +212,21 @@ const ProDetails = () => {
       <ItalicSub>Search our directory or add manually. We verify against the official register.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-4">
+        {/* Name field doubles as a directory search */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <input
-            value={query}
+          <FormField
+            label="Professional's Name"
+            value={name}
             onChange={(e) => {
-              setQuery(e.target.value);
-              if (pickedFrom) setPickedFrom(null);
+              setName(e.target.value);
+              if (pickedFrom) clearPick();
             }}
-            placeholder="Name, clinic, or postcode..."
+            placeholder="Dr. Adaeze Okafor"
             autoComplete="off"
-            className="w-full pl-10 pr-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
           />
+          <p className="text-[11px] text-muted-foreground mt-1.5 font-body leading-relaxed">
+            We will verify your professional's registration and add them to our directory for other members to find.
+          </p>
 
           {matches.length > 0 && (
             <div className="absolute z-20 left-0 right-0 mt-1 bg-card border border-border rounded-[10px] shadow-lg overflow-hidden max-h-[280px] overflow-y-auto">
@@ -234,7 +241,7 @@ const ProDetails = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">
-                      {p.clinic} · {p.location}
+                      {p.title} · {p.clinic}
                     </p>
                   </div>
                   {(p.gmcNumber || p.iotNumber) && (
@@ -264,32 +271,6 @@ const ProDetails = () => {
           </div>
         )}
 
-        {/* Visual separator between directory search and manual entry */}
-        <div className="pt-4 pb-1">
-          <div className="relative h-[2px] bg-border rounded-full">
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
-              or
-            </span>
-          </div>
-          <div className="flex justify-center mt-3">
-            <span className="bg-primary/15 border border-primary/30 text-primary text-[10px] uppercase tracking-[0.2em] font-medium px-3 py-1.5 rounded-full">
-              Add details manually
-            </span>
-          </div>
-          <p className="text-[12px] text-muted-foreground text-center mt-3 font-body leading-relaxed px-4">
-            Use this if your professional is not yet in our directory. We will verify their
-            registration and add them for others to find.
-          </p>
-        </div>
-
-        <FormField
-          label="Professional's Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Dr. Adaeze Okafor"
-          autoComplete="off"
-        />
-
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
             Type
@@ -307,10 +288,7 @@ const ProDetails = () => {
           label="GMC Number"
           placeholder="Enter GMC number (7 digits)"
           value={gmc}
-          onChange={(v) => {
-            setGmc(v);
-            if (pickedFrom) setPickedFrom(null);
-          }}
+          onChange={(v) => setGmc(v)}
           validator={validateGmc}
           autoFilledFrom={pickedFrom && gmc ? pickedFrom : undefined}
         />
@@ -320,14 +298,19 @@ const ProDetails = () => {
             label="IOT Membership Number"
             placeholder="Enter IOT membership number"
             value={iot}
-            onChange={(v) => {
-              setIot(v);
-              if (pickedFrom) setPickedFrom(null);
-            }}
+            onChange={(v) => setIot(v)}
             validator={validateIot}
             autoFilledFrom={pickedFrom && iot ? pickedFrom : undefined}
           />
         )}
+
+        <FormField
+          label="Clinic"
+          value={clinic}
+          onChange={(e) => setClinic(e.target.value)}
+          placeholder="Clinic or salon name"
+          autoComplete="off"
+        />
 
         <div>
           <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
@@ -370,20 +353,10 @@ const ProDetails = () => {
                 </p>
               </div>
               <div className="space-y-2 pt-1">
-                <Button
-                  variant="gold"
-                  size="pill"
-                  className="w-full"
-                  onClick={() => navigate("/onboarding/pro-book")}
-                >
+                <Button variant="gold" size="pill" className="w-full" onClick={() => navigate("/onboarding/pro-book")}>
                   Find a Professional →
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="pill"
-                  className="w-full"
-                  onClick={() => navigate("/onboarding/pro-gate")}
-                >
+                <Button variant="ghost" size="pill" className="w-full" onClick={() => navigate("/onboarding/pro-gate")}>
                   ← Go Back
                 </Button>
               </div>
@@ -391,27 +364,40 @@ const ProDetails = () => {
           )}
         </div>
 
-        <label className="block">
-          <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
-            Professional's Notes
-          </span>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any treatment plan or recommendations given..."
-            rows={4}
-            autoComplete="off"
-            className="w-full px-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60 resize-none"
-          />
-        </label>
+        <VoiceNoteField
+          label="Professional's Notes"
+          placeholder="Any treatment plan or recommendations given..."
+          value={notes}
+          onChange={setNotes}
+          audioPath={notesAudioPath}
+          onAudioPathChange={setNotesAudioPath}
+          folder="pro-notes"
+          rows={4}
+          required
+          errorMessage="Please add notes from your consultation"
+        />
 
         {!isExpired && (
           <Button
             variant="gold"
             size="pill"
             className="mt-4"
-            disabled={!isWithinWindow}
-            onClick={() => navigate("/onboarding/profile-step-3-hair")}
+            disabled={!canContinue}
+            onClick={() => {
+              try {
+                localStorage.setItem(
+                  "strand_professional",
+                  JSON.stringify({
+                    name, type, gmc, iot, clinic, date, notes, notesAudioPath,
+                    instagram: bgInsta, website: bgWebsite, bookingUrl: bgBookingUrl,
+                    pickedFromDirectory: !!pickedFrom,
+                  }),
+                );
+              } catch {
+                /* ignore */
+              }
+              navigate("/onboarding/profile-step-3-hair");
+            }}
           >
             Continue →
           </Button>

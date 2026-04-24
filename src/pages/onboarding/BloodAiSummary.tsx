@@ -11,6 +11,7 @@ import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
+import { buildAiContext } from "@/lib/aiContext";
 
 interface Deficiency {
   marker: string;
@@ -65,8 +66,9 @@ const BloodAiSummary = () => {
       const inputsChanged = lastFingerprint !== fingerprint;
       const shouldForce = force || inputsChanged;
 
+      const context = await buildAiContext();
       const { data, error: fnError } = await supabase.functions.invoke("blood-ai-summary", {
-        body: { ...payload, force: shouldForce },
+        body: { ...payload, force: shouldForce, context },
       });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);

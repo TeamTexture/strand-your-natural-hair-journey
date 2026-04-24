@@ -5,11 +5,13 @@ import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
+import VoiceNoteField from "@/components/VoiceNoteField";
 import { Button } from "@/components/ui/button";
 
 const WashStep3 = () => {
   const navigate = useNavigate();
   const [text, setText] = useState("");
+  const [audioPath, setAudioPath] = useState<string | null>(null);
   return (
     <ScreenLayout>
       <TitleBar title="Wash Day" right={<span>3 of 4</span>} onBack={() => navigate("/wash/step-2")} />
@@ -19,26 +21,15 @@ const WashStep3 = () => {
       </ItalicSub>
 
       <div className="px-5 pb-8 space-y-4">
-        <div className="bg-card border-2 border-primary/40 rounded-[14px] p-6 text-center">
-          <div className="text-5xl mb-3">🎙️</div>
-          <p className="font-display text-lg font-semibold">Record a voice note</p>
-          <p className="font-body text-sm text-muted-foreground mt-2 leading-snug">
-            How does your hair feel right now? How does it move? Is it soft, dry, crunchy, frizzy, defined? Tap to record — we will transcribe it.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">or type instead</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+        <VoiceNoteField
+          label="How does your hair feel?"
           placeholder="My hair feels..."
+          value={text}
+          onChange={setText}
+          audioPath={audioPath}
+          onAudioPathChange={setAudioPath}
+          folder="wash-day"
           rows={5}
-          className="w-full px-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60 resize-none"
         />
 
         <SurfaceCard tone="gold">
@@ -53,7 +44,7 @@ const WashStep3 = () => {
           size="pill"
           className="mt-4"
           onClick={() => {
-            localStorage.setItem("strand_wash_step3", JSON.stringify({ note: text }));
+            localStorage.setItem("strand_wash_step3", JSON.stringify({ note: text, audioPath }));
             navigate("/wash/step-4");
           }}
         >

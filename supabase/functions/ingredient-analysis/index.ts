@@ -17,6 +17,8 @@ interface RequestBody {
   healthProfile?: Record<string, unknown>;
   heritage?: string[];
   force?: boolean;
+  /** Live AI context — see src/lib/aiContext.ts. */
+  context?: Record<string, unknown>;
 }
 
 Deno.serve(async (req) => {
@@ -104,6 +106,7 @@ Deno.serve(async (req) => {
       heritage: heritage ?? [],
       bloodResults: bloodRows ?? [],
       medications: medRows ?? [],
+      context: body.context ?? null,
     };
 
     const systemPrompt = `You are a cosmetic chemist + trichologist specialising in Afro and textured hair.

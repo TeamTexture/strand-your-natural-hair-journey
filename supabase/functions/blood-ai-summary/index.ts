@@ -22,6 +22,8 @@ interface RequestBody {
   healthProfile?: Record<string, unknown>;
   heritage?: string[];
   force?: boolean;
+  /** Live AI context — see src/lib/aiContext.ts. */
+  context?: Record<string, unknown>;
 }
 
 Deno.serve(async (req) => {
@@ -55,7 +57,7 @@ Deno.serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { bloodResults, hairProfile, healthProfile, heritage, force } = body;
+    const { bloodResults, hairProfile, healthProfile, heritage, force, context } = body;
 
     // Return cached summary if present and not forced
     if (!force) {
@@ -78,6 +80,7 @@ Deno.serve(async (req) => {
       hairProfile: hairProfile ?? {},
       healthProfile: healthProfile ?? {},
       heritage: heritage ?? [],
+      context: context ?? null,
     };
 
     const systemPrompt = `You are a hair and nutrition specialist with expertise in Afro and textured hair.

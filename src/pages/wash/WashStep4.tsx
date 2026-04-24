@@ -8,6 +8,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { buildAiContext } from "@/lib/aiContext";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>
@@ -45,6 +46,7 @@ const WashStep4 = () => {
         const step3 = safeParse<{ note?: string }>("strand_wash_step3", {});
         const hairProfile = safeParse<Record<string, unknown>>("strand_hair_profile", {});
         const healthProfile = safeParse<Record<string, unknown>>("strand_health_profile", {});
+        const context = await buildAiContext();
 
         const { data, error } = await supabase.functions.invoke("wash-day-observation", {
           body: {
@@ -53,6 +55,7 @@ const WashStep4 = () => {
             hairFeelNote: step3.note ?? "",
             hairProfile,
             healthProfile,
+            context,
           },
         });
         if (error) throw error;
