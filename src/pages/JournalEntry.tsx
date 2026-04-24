@@ -583,7 +583,7 @@ const JournalEntry = () => {
               </span>
             )}
 
-            <span className="absolute bottom-2 right-3 text-[11px] text-white/95 font-body bg-black/40 px-2 py-1 rounded">
+            <span className="absolute top-2 right-2 text-[11px] text-white/95 font-body bg-black/40 px-2 py-1 rounded">
               {entry.date}
             </span>
 
