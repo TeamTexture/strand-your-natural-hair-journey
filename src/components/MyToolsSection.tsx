@@ -332,13 +332,13 @@ const MyToolsSection = () => {
               <p className="text-[11px] text-muted-foreground leading-snug">
                 We'll fetch the page and pre-fill the name, brand, category and a short note.
               </p>
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <Input
-                  placeholder="https://…"
+                  placeholder="https://brand.com/products/wide-tooth-comb"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   disabled={saving || analysing}
-                  className="h-10 text-sm"
+                  className="h-11 text-sm w-full"
                   type="url"
                   inputMode="url"
                   autoCapitalize="off"
@@ -351,14 +351,14 @@ const MyToolsSection = () => {
                   size="pill"
                   onClick={handleAnalyseLink}
                   disabled={saving || analysing || !linkUrl.trim()}
-                  className="shrink-0"
+                  className="w-full"
                 >
                   {analysing ? (
                     <>
                       <Loader2 className="size-3.5 mr-1 animate-spin" /> Reading…
                     </>
                   ) : (
-                    "Analyse"
+                    "Analyse link"
                   )}
                 </Button>
               </div>
