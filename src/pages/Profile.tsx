@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
 import { getWaterHardness } from "@/data/hardWaterPostcodes";
+import { generateProfilePdf } from "@/lib/profilePdf";
 
 // ---------- Types ----------
 interface BasicProfile {
@@ -145,6 +146,7 @@ const Profile = () => {
   const [apptsLoaded, setApptsLoaded] = useState(false);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [editPickerOpen, setEditPickerOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Quick-jump destinations for the edit picker.
   const editTargets = useMemo(
@@ -317,6 +319,37 @@ const Profile = () => {
 
     return out;
   }, [flaggedBlood, washAlert, appts, navigate]);
+
+  const handleExportPdf = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const { blob, fileName } = generateProfilePdf({
+        displayName: displayName || "STRAND Member",
+        age: ageDisplay ? String(basic.age ?? "") : undefined,
+        postcode: basic.postcode?.trim() || undefined,
+        waterHardness: hardness === "hard" ? "Hard water" : hardness === "soft" ? "Soft water" : null,
+        hair,
+        flaggedBlood,
+        hasAnyBloodValues: Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v)),
+        medications: Array.isArray(health.medications) ? health.medications : [],
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Profile PDF downloaded");
+    } catch (e) {
+      console.error("Profile PDF export failed", e);
+      toast.error("Could not export PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const hasAnyProfileData = displayName || hair.diameter || flaggedBlood.length > 0 || health.medications;
 
@@ -611,8 +644,8 @@ const Profile = () => {
       )}
 
       <div className="px-5 pb-6 space-y-3 mt-4">
-        <Button variant="gold" size="pill" onClick={() => toast("Profile PDF exported")}>
-          Export as PDF
+        <Button variant="gold" size="pill" onClick={handleExportPdf} disabled={exportingPdf}>
+          {exportingPdf ? "Generating PDF…" : "Export as PDF"}
         </Button>
         <Button variant="goldGhost" size="pill" onClick={() => toast("Share link copied")}>
           Copy Share Link
