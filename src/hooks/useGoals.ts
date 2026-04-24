@@ -18,6 +18,8 @@ export interface UserGoal {
   target_text: string | null;
   challenge_voice_url: string | null;
   target_voice_url: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type GoalDraft = Partial<Omit<UserGoal, "id" | "user_id">>;
