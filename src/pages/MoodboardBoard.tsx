@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMoodboardImages, type MoodboardImage } from "@/hooks/useMoodboards";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
 
 interface BoardMeta {
   id: string;
@@ -179,7 +180,7 @@ const MoodboardBoard = () => {
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         capture="environment"
         className="hidden"
         onChange={(e) => {
@@ -190,7 +191,7 @@ const MoodboardBoard = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         multiple
         className="hidden"
         onChange={(e) => {
