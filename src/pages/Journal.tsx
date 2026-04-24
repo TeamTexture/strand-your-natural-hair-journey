@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Plus, Target } from "lucide-react";
+import { Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -68,6 +79,30 @@ const Journal = () => {
     coverUrl?: string;
   }
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteSaved = async () => {
+    if (!pendingDelete || !user) return;
+    setDeleting(true);
+    // Best-effort: remove any uploaded photos from storage too.
+    if (pendingDelete.photo_paths?.length) {
+      await supabase.storage.from(PHOTO_BUCKET).remove(pendingDelete.photo_paths).catch(() => {});
+    }
+    const { error } = await supabase
+      .from("journal_entries")
+      .delete()
+      .eq("id", pendingDelete.id)
+      .eq("user_id", user.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Could not delete entry");
+      return;
+    }
+    setSavedEntries((rows) => rows.filter((r) => r.id !== pendingDelete.id));
+    setPendingDelete(null);
+    toast.success("Journal entry deleted.");
+  };
 
   useEffect(() => {
     if (!user) { setSavedEntries([]); return; }
@@ -196,10 +231,18 @@ const Journal = () => {
           const displayTitle = match?.[2] || s.title || "Journal entry";
           const dateLabel = formatEntryDate(s.entry_date);
           return (
-            <button
+            <div
               key={s.id}
+              role="button"
+              tabIndex={0}
               onClick={() => linkId && navigate(`/journal/entry/${linkId}`)}
-              className="w-full text-left"
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && linkId) {
+                  e.preventDefault();
+                  navigate(`/journal/entry/${linkId}`);
+                }
+              }}
+              className="w-full text-left cursor-pointer"
             >
               <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
                 <div className={`relative h-40 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
@@ -212,12 +255,25 @@ const Journal = () => {
                     {dateLabel}
                   </span>
                 </div>
-                <div className="p-3">
-                  <p className="font-display text-base font-semibold">{displayTitle}</p>
-                  {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
+                <div className="p-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-base font-semibold">{displayTitle}</p>
+                    {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingDelete(s);
+                    }}
+                    aria-label="Delete journal entry"
+                    className="shrink-0 size-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
               </SurfaceCard>
-            </button>
+            </div>
           );
         })}
         {journalEntries.map((j) => {
@@ -277,6 +333,27 @@ const Journal = () => {
       </div>
 
       <GoalEditorSheet open={editorOpen} onOpenChange={setEditorOpen} goal={editing} />
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the entry and any photos attached to it. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteSaved(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
