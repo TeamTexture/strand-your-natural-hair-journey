@@ -390,25 +390,6 @@ const Journal = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!pendingHideMock} onOpenChange={(o) => !o && setPendingHideMock(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This entry will be removed from your journal.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); if (pendingHideMock) hideMockEntry(pendingHideMock); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </ScreenLayout>
   );
 };
