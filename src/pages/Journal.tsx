@@ -358,6 +358,15 @@ const Journal = () => {
       )}
 
       <GoalEditorSheet open={editorOpen} onOpenChange={setEditorOpen} goal={editing} />
+      <GoalDetailSheet
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        goal={viewing}
+        onEdit={() => {
+          setDetailOpen(false);
+          if (viewing) openEditor(viewing);
+        }}
+      />
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
