@@ -5,11 +5,29 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
-import BloodResultRow from "@/components/BloodResultRow";
+import BloodInputRow from "@/components/BloodInputRow";
+import BloodSummaryBar from "@/components/BloodSummaryBar";
 import { Button } from "@/components/ui/button";
+import { useBloodValues, persistBloodValues } from "@/hooks/useBloodValues";
+import { toast } from "sonner";
+
+const IRON = ["Ferritin", "Serum Iron", "TIBC", "Transferrin Saturation"];
+const VITS = ["Vitamin D", "Vitamin B12", "Folate", "Vitamin A", "Vitamin E", "Biotin"];
+const ALL = [...IRON, ...VITS];
 
 const BloodIronVitamins = () => {
   const navigate = useNavigate();
+  const { values, setValue } = useBloodValues();
+
+  const onContinue = async () => {
+    const res = await persistBloodValues();
+    if (!res.ok) {
+      toast.error("Could not save. Check your connection.");
+      return;
+    }
+    navigate("/onboarding/blood-minerals");
+  };
+
   return (
     <ScreenLayout>
       <TitleBar title="Iron & Vitamins" right={<span>1 of 4</span>} />
@@ -19,23 +37,21 @@ const BloodIronVitamins = () => {
       <div className="px-5 pb-8 space-y-3">
         <SectionLabel>Iron & Storage</SectionLabel>
         <SurfaceCard className="divide-y divide-border/60 !py-1">
-          <BloodResultRow label="Ferritin (ng/mL)" value="12 — LOW ⚠" status="low" />
-          <BloodResultRow label="Serum Iron (μmol/L)" value="9.2 — LOW ⚠" status="low" />
-          <BloodResultRow label="TIBC (μmol/L)" value="Not tested" status="untested" />
-          <BloodResultRow label="Transferrin Saturation (%)" value="Not tested" status="untested" />
+          {IRON.map((m) => (
+            <BloodInputRow key={m} marker={m} value={values[m] ?? null} onChange={(v) => setValue(m, v)} />
+          ))}
         </SurfaceCard>
 
         <SectionLabel>Vitamins</SectionLabel>
         <SurfaceCard className="divide-y divide-border/60 !py-1">
-          <BloodResultRow label="Vitamin D (nmol/L)" value="28 — LOW ⚠" status="low" />
-          <BloodResultRow label="Vitamin B12 (pmol/L)" value="342 — Normal ✓" status="normal" />
-          <BloodResultRow label="Folate / B9 (nmol/L)" value="18.2 — Normal ✓" status="normal" />
-          <BloodResultRow label="Vitamin A" value="Not tested" status="untested" />
-          <BloodResultRow label="Vitamin E" value="Not tested" status="untested" />
-          <BloodResultRow label="Biotin / B7" value="Not tested" status="untested" />
+          {VITS.map((m) => (
+            <BloodInputRow key={m} marker={m} value={values[m] ?? null} onChange={(v) => setValue(m, v)} />
+          ))}
         </SurfaceCard>
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/blood-minerals")}>
+        <BloodSummaryBar markers={ALL} />
+
+        <Button variant="gold" size="pill" className="mt-4" onClick={onContinue}>
           Next — Minerals →
         </Button>
       </div>
