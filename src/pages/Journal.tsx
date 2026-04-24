@@ -190,6 +190,36 @@ const Journal = () => {
 
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
+        {savedEntries.map((s) => {
+          const match = s.title?.match(/^\[([^\]]+)\]\s*(.*)$/);
+          const linkId = match?.[1] ?? journalEntries[0]?.id ?? "";
+          const displayTitle = match?.[2] || s.title || "Journal entry";
+          const dateLabel = formatEntryDate(s.entry_date);
+          return (
+            <button
+              key={s.id}
+              onClick={() => linkId && navigate(`/journal/entry/${linkId}`)}
+              className="w-full text-left"
+            >
+              <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
+                <div className={`relative h-40 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
+                  {s.coverUrl ? (
+                    <img src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                  ) : (
+                    <span className="text-5xl">📔</span>
+                  )}
+                  <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
+                    {dateLabel}
+                  </span>
+                </div>
+                <div className="p-3">
+                  <p className="font-display text-base font-semibold">{displayTitle}</p>
+                  {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
+                </div>
+              </SurfaceCard>
+            </button>
+          );
+        })}
         {journalEntries.map((j) => {
           const url = photoUrls[j.id];
           const dateLabel = formatEntryDate(j.date);
