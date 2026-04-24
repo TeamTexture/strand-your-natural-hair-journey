@@ -122,6 +122,77 @@ export type Database = {
         }
         Relationships: []
       }
+      moodboard_images: {
+        Row: {
+          board_id: string
+          caption: string | null
+          created_at: string
+          id: string
+          is_favourite: boolean
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          is_favourite?: boolean
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          is_favourite?: boolean
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodboard_images_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "moodboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodboards: {
+        Row: {
+          created_at: string
+          emoji: string
+          gradient: string
+          id: string
+          is_favourites: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          gradient?: string
+          id?: string
+          is_favourites?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          gradient?: string
+          id?: string
+          is_favourites?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_voicenotes: {
         Row: {
           audio_url: string
