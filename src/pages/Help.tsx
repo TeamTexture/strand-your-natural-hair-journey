@@ -153,7 +153,7 @@ const Help = () => {
       title: "Rate STRAND",
       body: "If STRAND is helping you, a quick review goes a long way.",
       action: () => {
-        window.location.href = "mailto:hello@strand.app?subject=STRAND%20review";
+        window.location.href = "mailto:info@teamtexture.co.uk?subject=STRAND%20review";
       },
       cta: "Leave a review",
     },
