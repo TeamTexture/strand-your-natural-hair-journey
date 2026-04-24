@@ -26,6 +26,9 @@ import GoalEditorSheet from "@/components/GoalEditorSheet";
 
 const PHOTO_BUCKET = "journal-photos";
 
+/** Returns true if the storage path looks like a video (mp4 / mov / webm). */
+const isVideoPath = (p: string) => /\.(mp4|mov|m4v|webm|quicktime)$/i.test(p);
+
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /**
