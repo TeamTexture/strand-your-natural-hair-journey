@@ -60,8 +60,13 @@ export default {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
+        md: "0.625rem", /* 10px */
         sm: "calc(var(--radius) - 4px)",
+        pill: "50px",
+      },
+      fontFamily: {
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
+        body: ['Jost', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         "accordion-down": {
