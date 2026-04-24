@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -6,6 +7,7 @@ import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>
@@ -17,14 +19,64 @@ const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactN
   </SurfaceCard>
 );
 
+const safeParse = <T,>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 const WashStep4 = () => {
   const navigate = useNavigate();
+  const [observation, setObservation] = useState<string | null>(null);
+  const [obsLoading, setObsLoading] = useState(true);
+  const [obsError, setObsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setObsLoading(true);
+      setObsError(null);
+      try {
+        const steps = safeParse<Record<string, unknown>>("strand_wash_step1", {});
+        const results = safeParse<Record<string, unknown>>("strand_wash_step2", {});
+        const step3 = safeParse<{ note?: string }>("strand_wash_step3", {});
+        const hairProfile = safeParse<Record<string, unknown>>("strand_hair_profile", {});
+        const healthProfile = safeParse<Record<string, unknown>>("strand_health_profile", {});
+
+        const { data, error } = await supabase.functions.invoke("wash-day-observation", {
+          body: {
+            steps,
+            results,
+            hairFeelNote: step3.note ?? "",
+            hairProfile,
+            healthProfile,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (!cancelled) setObservation(data?.observation ?? "");
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setObsError(e instanceof Error ? e.message : "Could not generate observation");
+        }
+      } finally {
+        if (!cancelled) setObsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const save = () => {
-    // Stamp last wash so the Profile wash-day alert can compute "days since last wash".
     localStorage.setItem("strand_last_wash_date", new Date().toISOString());
     toast("💧 Wash day saved!");
     navigate("/home");
   };
+
   return (
     <ScreenLayout>
       <TitleBar title="Wash Day" right={<span>4 of 4</span>} onBack={() => navigate("/wash/step-3")} />
@@ -61,10 +113,22 @@ const WashStep4 = () => {
         />
 
         <SurfaceCard tone="green">
-          <p className="text-sm leading-snug">
-            <span className="font-semibold">🤖 </span>
-            Heat treatment during conditioning is working well for your high-porosity hair. The Camille Rose gel is a strong match — no avoid-list ingredients flagged.
-          </p>
+          {obsLoading ? (
+            <p className="text-sm leading-snug text-foreground/70">
+              <span className="font-semibold">🤖 </span>
+              Analysing your wash day…
+            </p>
+          ) : obsError ? (
+            <p className="text-sm leading-snug text-foreground/70">
+              <span className="font-semibold">🤖 </span>
+              Couldn’t generate an observation right now — your wash day is still saved.
+            </p>
+          ) : (
+            <p className="text-sm leading-snug">
+              <span className="font-semibold">🤖 </span>
+              {observation}
+            </p>
+          )}
         </SurfaceCard>
 
         <Button variant="gold" size="pill" className="mt-4" onClick={save}>
