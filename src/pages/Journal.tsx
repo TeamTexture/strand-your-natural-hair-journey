@@ -87,31 +87,7 @@ const Journal = () => {
   }
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
-  const [pendingHideMock, setPendingHideMock] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // Mock catalog entries the user has dismissed. Persisted so they stay gone
-  // across reloads. They aren't real DB rows so we can't actually delete them
-  // — we just hide them from the list.
-  const HIDDEN_KEY = "strand_hidden_mock_journal_v1";
-  const [hiddenMockIds, setHiddenMockIds] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(HIDDEN_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
-  });
-  const hideMockEntry = (id: string) => {
-    const next = Array.from(new Set([...hiddenMockIds, id]));
-    setHiddenMockIds(next);
-    try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-    setPendingHideMock(null);
-    toast.success("Journal entry deleted.");
-  };
-  const visibleMockEntries = useMemo(
-    () => journalEntries.filter((j) => !hiddenMockIds.includes(j.id)),
-    [hiddenMockIds],
-  );
 
   const handleDeleteSaved = async () => {
     if (!pendingDelete || !user) return;
