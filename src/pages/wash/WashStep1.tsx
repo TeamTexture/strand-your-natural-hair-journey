@@ -343,13 +343,12 @@ const WashStep1 = () => {
             const products: string[] = [];
             if (cleanse === "done") products.push("Moisture Retention Shampoo — Camille Rose");
             if (condition === "done") products.push("Honey & Turmeric Deep Cond — TGIN");
-            if (style === "done") products.push("Flaxseed Styling Gel — Camille Rose");
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
                 // Persist explicit done/skipped state so the rest of the flow
                 // and the saved wash record can reflect what was skipped.
-                prePoo, cleanse, condition, treatment, style,
+                prePoo, cleanse, condition, treatment,
                 treatmentType,
                 products,
                 heatTreatment: heatChoice,
@@ -358,7 +357,6 @@ const WashStep1 = () => {
                   cleanse: cleanse === "skipped",
                   condition: condition === "skipped",
                   treatment: treatment === "skipped",
-                  style: style === "skipped",
                 },
               }),
             );
