@@ -313,7 +313,9 @@ const WashStep1 = () => {
   const treatmentSelected = useMemo(() => resolve(treatmentIds), [treatmentIds, shelfProducts]);
 
   // Picker sheet — one global sheet, opened with a target step so toggling
-  // selects/deselects from that step's IDs.
+  // selects/deselects from that step's IDs. We also pass the target through
+  // the picker's returnTo URL so any product added via auto_save lands back
+  // on this step automatically (see hydration effect above).
   type PickerTarget = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment" | null;
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
