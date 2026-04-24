@@ -1,14 +1,20 @@
 // Generates real-time alerts for the Home screen from Supabase + localStorage.
+// PRINCIPLE: every alert must be backed by real user data. We do NOT show
+// "you haven't done X yet" prompts — those would feel like placeholders for a
+// new user. Alerts only fire when something the user previously logged is
+// now stale or overdue.
+//
 // Rules:
-// - Wash overdue (7+ days since last wash) when current style is braids/locs/faux locs
+// - Wash overdue (7+ days since last LOGGED wash) when current style is braids/locs
 // - Style logged for 42+ days → "Time to take down"
-// - No blood results, or last results > 85 days old → "Blood retest due — STRAND20"
-// - No appointment, or last appointment > 170 days ago → "Time to rebook your professional"
+// - Last blood test > 85 days old → "Blood retest due — STRAND20"
+// - Last appointment > 170 days ago → "Time to rebook your professional"
 //
 // Dismissals persist to localStorage keyed by alert id + a "signature" describing
 // the underlying state. When the signature changes (e.g. new wash logged, new
 // blood test, new appointment), the dismissal no longer applies and the alert
 // re-appears as a *new* alert. Until then it stays cleared across reloads.
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -110,22 +116,22 @@ export function useHomeAlerts() {
       const lastWashIso = localStorage.getItem("strand_last_wash_date");
       const daysSinceWash = daysSince(lastWashIso);
 
-      // Rule 1: Wash overdue + protective style.
-      // Signature is the last wash date (or "none") so dismissal clears once a
-      // new wash is logged.
-      if (inTakedownStyle && daysSinceWash >= 7) {
-        const dayLabel = Number.isFinite(daysSinceWash)
-          ? `Day ${daysSinceWash} in ${currentStyles[0]?.toLowerCase() ?? "style"}`
-          : `In ${currentStyles[0]?.toLowerCase() ?? "style"}`;
+      // Rule 1: Wash overdue + protective style. Only fires if the user has
+      // actually logged a wash before — otherwise it's just a placeholder.
+      // Signature is the last wash date so dismissal clears once a new wash
+      // is logged.
+      if (inTakedownStyle && lastWashIso && daysSinceWash >= 7) {
+        const dayLabel = `Day ${daysSinceWash} in ${currentStyles[0]?.toLowerCase() ?? "style"}`;
         next.push({
           id: "wash-overdue",
           emoji: "💧",
           title: `Wash day overdue — ${dayLabel}`,
           body: "Product build-up begins now. Log a cleanse.",
           to: "/wash-day",
-          signature: `wash:${lastWashIso ?? "none"}`,
+          signature: `wash:${lastWashIso}`,
         });
       }
+
 
       // Rule 2: Style worn 42+ days → take down.
       // Signature is the style start date so a new style clears the dismissal.
@@ -151,18 +157,10 @@ export function useHomeAlerts() {
       const lastBloodIso = bloodRows?.[0]?.updated_at ?? null;
       const daysSinceBlood = daysSince(lastBloodIso);
 
-      // Rule 3: No blood OR > 85 days. Signature is the latest blood result
-      // timestamp so a new test clears the dismissal.
-      if (!lastBloodIso) {
-        next.push({
-          id: "blood-retest",
-          emoji: "🧪",
-          title: "Blood retest due — STRAND20",
-          body: "No results on file. Order your Daye kit with code STRAND20.",
-          to: "/onboarding/blood-iron-vitamins",
-          signature: "blood:none",
-        });
-      } else if (daysSinceBlood >= 85) {
+      // Rule 3: Blood retest due. Only fires if the user has at least one
+      // result on file and it's older than 85 days. Signature is the latest
+      // blood result timestamp so a new test clears the dismissal.
+      if (lastBloodIso && daysSinceBlood >= 85) {
         next.push({
           id: "blood-retest",
           emoji: "🧪",
@@ -172,6 +170,7 @@ export function useHomeAlerts() {
           signature: `blood:${lastBloodIso}`,
         });
       }
+
 
       // --- Appointments (Supabase) ---
       const { data: apptRows } = await supabase
@@ -184,18 +183,10 @@ export function useHomeAlerts() {
       const lastProName = apptRows?.[0]?.professional_name ?? null;
       const daysSinceAppt = daysSince(lastApptDate);
 
-      // Rule 4: No appointment OR > 170 days. Signature is the last appointment
-      // date so logging a new one clears the dismissal.
-      if (!lastApptDate) {
-        next.push({
-          id: "rebook-pro",
-          emoji: "📅",
-          title: "Time to rebook your professional",
-          body: "No appointments logged. Find a trusted pro in the directory.",
-          to: "/directory",
-          signature: "appt:none",
-        });
-      } else if (daysSinceAppt >= 170) {
+      // Rule 4: Rebook professional. Only fires if the user has logged at
+      // least one appointment and it's been > 170 days. Signature is the last
+      // appointment date so logging a new one clears the dismissal.
+      if (lastApptDate && daysSinceAppt >= 170) {
         next.push({
           id: "rebook-pro",
           emoji: "📅",
@@ -207,6 +198,7 @@ export function useHomeAlerts() {
           signature: `appt:${lastApptDate}`,
         });
       }
+
 
       if (!cancelled) {
         setAlerts(next);
