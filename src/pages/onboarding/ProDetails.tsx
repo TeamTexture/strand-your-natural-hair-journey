@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Shield, AlertCircle, Loader2, Check } from "lucide-react";
+import { Search, Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -144,6 +144,41 @@ const ProDetails = () => {
   const [notes, setNotes] = useState("");
 
   const showIot = type === "Trichologist";
+
+  // Validate consultation date: must exist and be within 90 days.
+  const { dateError, isWithinWindow, isExpired } = useMemo(() => {
+    if (!date.trim()) {
+      return {
+        dateError: "Please enter the date of your consultation.",
+        isWithinWindow: false,
+        isExpired: false,
+      };
+    }
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) {
+      return {
+        dateError: "Please enter a valid date.",
+        isWithinWindow: false,
+        isExpired: false,
+      };
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const consult = new Date(parsed);
+    consult.setHours(0, 0, 0, 0);
+    const daysAgo = Math.floor((today.getTime() - consult.getTime()) / 86_400_000);
+    if (daysAgo < 0) {
+      return {
+        dateError: "Consultation date cannot be in the future.",
+        isWithinWindow: false,
+        isExpired: false,
+      };
+    }
+    if (daysAgo > 90) {
+      return { dateError: "", isWithinWindow: false, isExpired: true };
+    }
+    return { dateError: "", isWithinWindow: true, isExpired: false };
+  }, [date]);
 
   const matches = useMemo(() => {
     const q = query.trim();
@@ -294,13 +329,67 @@ const ProDetails = () => {
           />
         )}
 
-        <FormField
-          label="Date of Consultation"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          placeholder="10 March 2026"
-          autoComplete="off"
-        />
+        <div>
+          <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+            Date of Consultation
+          </span>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+            className={cn(
+              "w-full px-3.5 py-3 bg-card rounded-[10px] border text-sm font-body",
+              "focus:outline-none transition-colors",
+              dateError ? "border-warn" : "border-border focus:border-primary/60",
+            )}
+          />
+
+          {dateError && !isExpired && (
+            <div className="mt-2 flex items-center gap-1.5 text-[11px] text-warn font-body">
+              <AlertCircle className="size-3" />
+              {dateError}
+            </div>
+          )}
+
+          {isWithinWindow && (
+            <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-good font-body bg-good/10 px-2 py-1 rounded">
+              <Check className="size-3" />
+              Consultation within 3 months
+            </div>
+          )}
+
+          {isExpired && (
+            <div className="mt-3 p-4 bg-warn/5 border-2 border-warn/40 rounded-[12px] space-y-3">
+              <div className="flex items-start gap-2">
+                <CalendarX className="size-4 text-warn shrink-0 mt-0.5" />
+                <p className="text-xs text-foreground font-body leading-relaxed">
+                  Your consultation was over 3 months ago. Strand requires a consultation
+                  within the last 3 months to ensure your hair characteristics are accurate
+                  and up to date. Please go back and book a new appointment.
+                </p>
+              </div>
+              <div className="space-y-2 pt-1">
+                <Button
+                  variant="gold"
+                  size="pill"
+                  className="w-full"
+                  onClick={() => navigate("/onboarding/pro-book")}
+                >
+                  Find a Professional →
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="pill"
+                  className="w-full"
+                  onClick={() => navigate("/onboarding/pro-gate")}
+                >
+                  ← Go Back
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <label className="block">
           <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
@@ -316,9 +405,17 @@ const ProDetails = () => {
           />
         </label>
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/profile-step-3-hair")}>
-          Continue →
-        </Button>
+        {!isExpired && (
+          <Button
+            variant="gold"
+            size="pill"
+            className="mt-4"
+            disabled={!isWithinWindow}
+            onClick={() => navigate("/onboarding/profile-step-3-hair")}
+          >
+            Continue →
+          </Button>
+        )}
       </div>
     </ScreenLayout>
   );
