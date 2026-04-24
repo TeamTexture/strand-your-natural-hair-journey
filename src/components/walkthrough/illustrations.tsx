@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 // ---------- Shared phone shell ----------
 type PhoneFrameProps = {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   /** Pretend label rendered in the status bar / title area */
   title?: string;
