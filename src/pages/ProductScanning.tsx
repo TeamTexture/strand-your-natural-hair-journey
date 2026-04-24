@@ -14,6 +14,12 @@ interface NavState {
    * never has to fetch a HEIC URL. */
   image_data_url?: string;
   intent?: "shelf" | "wishlist";
+  /** When true, the detail screen will save straight to the user's shelf
+   *  without waiting for them to tap a button. Used by the journal/wash-day
+   *  product-picker "add new product" flow. */
+  auto_save?: boolean;
+  /** Where to send the user once auto_save completes. */
+  returnTo?: string;
 }
 
 const ProductScanning = () => {
@@ -62,6 +68,8 @@ const ProductScanning = () => {
             preview_url: state.preview_url,
             product_key,
             intent: state.intent ?? "shelf",
+            auto_save: state.auto_save ?? false,
+            returnTo: state.returnTo,
           },
         });
       } catch (e) {
