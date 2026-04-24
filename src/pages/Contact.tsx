@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Send, Check } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -18,6 +18,7 @@ const SUPPORT_EMAIL = "info@teamtexture.co.uk";
 const Contact = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [params] = useSearchParams();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
