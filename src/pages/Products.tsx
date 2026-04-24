@@ -40,8 +40,8 @@ const Products = () => {
         title="My Products"
         back={false}
         right={
-          <button onClick={goWishlist} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
-            Wishlist
+          <button onClick={() => navigate("/products/repository")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
+            All Products
           </button>
         }
       />
