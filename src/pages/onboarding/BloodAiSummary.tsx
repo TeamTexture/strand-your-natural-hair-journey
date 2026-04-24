@@ -11,6 +11,7 @@ import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
+import { buildAiContext } from "@/lib/aiContext";
 
 interface Deficiency {
   marker: string;

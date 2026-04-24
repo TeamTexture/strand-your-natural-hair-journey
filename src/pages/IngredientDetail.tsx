@@ -103,6 +103,7 @@ const IngredientDetail = () => {
           localStorage.getItem("strand_heritage") || "[]",
         );
 
+        const context = await buildAiContext();
         const { data, error: fnError } = await supabase.functions.invoke(
           "ingredient-analysis",
           {
@@ -113,6 +114,7 @@ const IngredientDetail = () => {
               hairProfile,
               healthProfile,
               heritage,
+              context,
               force,
             },
           },
