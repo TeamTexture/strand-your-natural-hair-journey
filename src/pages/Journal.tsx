@@ -54,6 +54,8 @@ const Journal = () => {
   const { signals, banner, loading } = useJournalEncouragement();
   const { goals, lengthGoal, loading: goalsLoading } = useGoals();
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  // Tracks whether each mock-entry cover is a video (mp4/mov) so we can render <video> instead of <img>.
+  const [photoIsVideo, setPhotoIsVideo] = useState<Record<string, boolean>>({});
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<UserGoal | null>(null);
 
