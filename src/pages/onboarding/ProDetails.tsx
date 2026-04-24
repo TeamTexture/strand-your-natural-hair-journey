@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
+import { Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -8,6 +8,7 @@ import ItalicSub from "@/components/ItalicSub";
 import FormField from "@/components/FormField";
 import Tag from "@/components/Tag";
 import ProAvatar from "@/components/ProAvatar";
+import VoiceNoteField from "@/components/VoiceNoteField";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
