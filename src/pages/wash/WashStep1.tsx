@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X } from "lucide-react";
+import { Check, X, Flame, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -8,7 +8,17 @@ import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { buildAiContext } from "@/lib/aiContext";
 
 interface Step {
   id: string;
@@ -113,6 +123,17 @@ const StepCard = ({
   );
 };
 
+// Heat-treatment selection inside the Condition step.
+//   - "yes": user used a heat treatment (cap / steamer / hooded dryer over conditioner)
+//   - "no":  user explicitly didn't — triggers a personalised AI explainer
+//   - null:  not yet answered
+type HeatChoice = "yes" | "no" | null;
+
+interface HeatRationale {
+  headline: string;
+  reasons: string[];
+}
+
 const WashStep1 = () => {
   const navigate = useNavigate();
   const [prePoo, setPrePoo] = useState<StepState>("done");
@@ -121,6 +142,45 @@ const WashStep1 = () => {
   const [treatment, setTreatment] = useState<StepState>("todo");
   const [style, setStyle] = useState<StepState>("done");
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
+
+  // Heat-treatment state lives at the page level so we can persist it and so
+  // the "why" dialog can read/write the choice.
+  const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
+  const [heatDialogOpen, setHeatDialogOpen] = useState(false);
+  const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
+  const [heatLoading, setHeatLoading] = useState(false);
+
+  // Fetch a personalised "why heat could help YOU" explanation grounded in the
+  // user's hair profile, goals, challenges and recent wash history. Cached for
+  // the lifetime of the component so re-opening the dialog is instant.
+  const handleHeatNo = async () => {
+    setHeatChoice("no");
+    setHeatDialogOpen(true);
+    if (heatRationale) return;
+    setHeatLoading(true);
+    try {
+      const context = await buildAiContext();
+      const { data, error } = await supabase.functions.invoke("heat-treatment-rationale", {
+        body: { context },
+      });
+      if (error) throw error;
+      setHeatRationale({
+        headline: data?.headline ?? "Heat could help your conditioner work harder",
+        reasons: Array.isArray(data?.reasons) ? data.reasons : [],
+      });
+    } catch (e) {
+      console.warn("heat rationale failed", e);
+      setHeatRationale({
+        headline: "Heat could help your conditioner work harder",
+        reasons: [
+          "Gentle heat lifts the cuticle so deep conditioner absorbs further.",
+          "Especially useful for length retention, dryness, or coarser strands.",
+        ],
+      });
+    } finally {
+      setHeatLoading(false);
+    }
+  };
 
   return (
     <ScreenLayout>
@@ -146,10 +206,53 @@ const WashStep1 = () => {
           state={condition}
           setState={setCondition}
         >
-          <div className="flex items-center gap-2 px-3 py-2 bg-primary/15 border border-primary/30 rounded-[10px]">
-            <span className="text-base">🔥</span>
-            <span className="text-xs flex-1">Heat Treatment · TT Heat Hat · 25 mins ✓</span>
-            <button className="text-xs text-primary uppercase tracking-[0.15em]">Edit</button>
+          <div className="px-3 py-2.5 bg-primary/5 border border-primary/30 rounded-[10px] space-y-2">
+            <div className="flex items-center gap-2">
+              <Flame className="size-4 text-primary" />
+              <span className="text-xs font-medium flex-1">Did you use a heat treatment?</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setHeatChoice("yes")}
+                aria-pressed={heatChoice === "yes"}
+                className={cn(
+                  "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
+                  heatChoice === "yes"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border",
+                )}
+              >
+                Yes ✓
+              </button>
+              <button
+                type="button"
+                onClick={handleHeatNo}
+                aria-pressed={heatChoice === "no"}
+                className={cn(
+                  "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
+                  heatChoice === "no"
+                    ? "bg-muted text-foreground border-border"
+                    : "bg-card text-muted-foreground border-border",
+                )}
+              >
+                No
+              </button>
+            </div>
+            {heatChoice === "yes" && (
+              <p className="text-[11px] text-muted-foreground">
+                Nice — log the cap/steamer and minutes on the next step.
+              </p>
+            )}
+            {heatChoice === "no" && !heatDialogOpen && (
+              <button
+                type="button"
+                onClick={() => setHeatDialogOpen(true)}
+                className="text-[11px] text-primary underline underline-offset-2"
+              >
+                Why heat could help your hair →
+              </button>
+            )}
           </div>
         </StepCard>
         <StepCard
@@ -195,6 +298,7 @@ const WashStep1 = () => {
                 prePoo, cleanse, condition, treatment, style,
                 treatmentType,
                 products,
+                heatTreatment: heatChoice,
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",
@@ -210,6 +314,60 @@ const WashStep1 = () => {
           Next — Scalp & Results →
         </Button>
       </div>
+
+      <Dialog open={heatDialogOpen} onOpenChange={setHeatDialogOpen}>
+        <DialogContent className="max-w-[92vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flame className="size-5 text-primary" />
+              {heatLoading ? "Pulling your data…" : heatRationale?.headline ?? "Why heat could help"}
+            </DialogTitle>
+            <DialogDescription>
+              Personalised to your hair profile, goals and recent wash notes — not generic advice.
+            </DialogDescription>
+          </DialogHeader>
+          {heatLoading ? (
+            <div className="py-6 flex items-center justify-center text-muted-foreground text-sm gap-2">
+              <Loader2 className="size-4 animate-spin" /> Building your rationale…
+            </div>
+          ) : (
+            <ul className="space-y-2.5 py-1">
+              {(heatRationale?.reasons ?? []).map((r, i) => (
+                <li key={i} className="flex gap-2 text-sm">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span className="flex-1">{r}</span>
+                </li>
+              ))}
+              {(!heatRationale?.reasons || heatRationale.reasons.length === 0) && !heatLoading && (
+                <li className="text-sm text-muted-foreground">
+                  We couldn't generate a personalised reason this time. Try again after logging a bit more about your hair.
+                </li>
+              )}
+            </ul>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => setHeatDialogOpen(false)}
+              className="flex-1"
+            >
+              Maybe next time
+            </Button>
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={() => {
+                setHeatChoice("yes");
+                setHeatDialogOpen(false);
+              }}
+              className="flex-1"
+            >
+              I'll add one
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 };
