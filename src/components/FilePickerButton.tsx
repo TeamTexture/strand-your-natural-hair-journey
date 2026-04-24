@@ -42,7 +42,14 @@ const FilePickerButton = ({
         {...buttonProps}
         onClick={() => inputRef.current?.click()}
       >
-        {children}
+        {/* Allow long, multi-line tile labels to wrap inside the button.
+         * The default Button uses whitespace-nowrap + inline-flex which
+         * causes captions like "From your camera roll" to spill out of
+         * narrow half-width tiles. Wrapping in a flex column with
+         * whitespace-normal lets long labels break cleanly. */}
+        <span className="flex flex-col items-center justify-center w-full whitespace-normal break-words leading-tight">
+          {children}
+        </span>
       </Button>
     </>
   );
