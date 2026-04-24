@@ -39,6 +39,16 @@ export interface AiContext {
     low_rated_products: Array<Record<string, unknown>>;
     high_rated_products: Array<Record<string, unknown>>;
   };
+  goals: Array<{
+    kind: string;
+    title: string;
+    challenge: string | null;
+    target_text: string | null;
+    target_value: number | null;
+    target_date: string | null;
+    unit: string;
+    status: string;
+  }>;
   shelf: Array<Record<string, unknown>>;
 }
 
@@ -85,12 +95,13 @@ export async function buildAiContext(): Promise<AiContext> {
   let shelf: Array<Record<string, unknown>> = [];
   let lowRated: Array<Record<string, unknown>> = [];
   let highRated: Array<Record<string, unknown>> = [];
+  let goals: AiContext["goals"] = [];
 
   try {
     const { data: u } = await supabase.auth.getUser();
     const userId = u?.user?.id;
     if (userId) {
-      const [blood, ingLists, meds, washes, shelfRows, ratings] = await Promise.all([
+      const [blood, ingLists, meds, washes, shelfRows, ratings, goalRows] = await Promise.all([
         supabase
           .from("blood_results")
           .select("marker, value, unit, status, category")
@@ -117,6 +128,10 @@ export async function buildAiContext(): Promise<AiContext> {
         supabase
           .from("product_ratings")
           .select("product_name, product_brand, rating, ingredients")
+          .eq("user_id", userId),
+        supabase
+          .from("user_goals")
+          .select("kind, title, challenge, target_text, target_value, target_date, unit, status")
           .eq("user_id", userId),
       ]);
       bloodResults = (blood.data ?? []) as Array<Record<string, unknown>>;
