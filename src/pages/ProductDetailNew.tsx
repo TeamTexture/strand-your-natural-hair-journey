@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -6,8 +6,18 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { useUserProducts, KeyIngredient } from "@/hooks/useUserProducts";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
+import { useGoals } from "@/hooks/useGoals";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { buildAiContext } from "@/lib/aiContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+interface IngredientFlag {
+  name: string;
+  tone: "good" | "warn" | "bad";
+  body: string;
+}
 
 interface Analysis {
   product_name?: string;
@@ -37,15 +47,77 @@ const ProductDetailNew = () => {
   const state = (location.state as NavState | null) ?? null;
   const { upsert, allProducts } = useUserProducts("all");
   const { avoid, favourites } = useIngredientLists();
+  const { goals } = useGoals();
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+
+  const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!state) navigate("/products", { replace: true });
   }, [state, navigate]);
 
-  if (!state) return null;
-  const a = state.analysis ?? {};
+  const a = state?.analysis ?? {};
   const ingredients = a.ingredients ?? [];
+  const productKey = state?.product_key ?? "";
+  const ingredientsKey = ingredients.join("|");
+
+  // Fetch personalised per-ingredient flags as soon as the analysis lands.
+  useEffect(() => {
+    if (!user || !productKey || ingredients.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      setAiLoading(true);
+      setAiError(null);
+      try {
+        const context = await buildAiContext();
+        const styleLocal = (() => {
+          try { return JSON.parse(localStorage.getItem("strand_current_style") || "null"); }
+          catch { return null; }
+        })();
+        const challenges = goals
+          .map((g) => g.challenge)
+          .filter((c): c is string => Boolean(c && c.trim()));
+        const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
+          body: {
+            productKey,
+            productName: a.product_name ?? "Unknown",
+            productBrand: a.brand ?? "",
+            ingredients,
+            hairProfile: context.hairProfile ?? {},
+            healthProfile: context.healthProfile ?? {},
+            heritage: [],
+            goals: goals.map((g) => ({
+              kind: g.kind, title: g.title, target_text: g.target_text,
+              target_value: g.target_value, unit: g.unit, current_value: g.current_value,
+              target_date: g.target_date, challenge: g.challenge, status: g.status,
+            })),
+            currentStyle: styleLocal,
+            challenges,
+            context,
+          },
+        });
+        if (cancelled) return;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        setAiFlags((data?.analysis?.ingredients ?? []) as IngredientFlag[]);
+      } catch (e) {
+        if (cancelled) return;
+        setAiError(e instanceof Error ? e.message : "Could not analyse ingredients");
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, productKey, ingredientsKey]);
+
+  if (!state) return null;
+
+  const aiFlagByName = new Map<string, IngredientFlag>();
+  aiFlags.forEach((f) => aiFlagByName.set(f.name.toLowerCase().trim(), f));
 
   const avoidNames = new Set(avoid.map(i => i.ingredient.toLowerCase()));
   const favNames = new Set(favourites.map(i => i.ingredient.toLowerCase()));
@@ -204,10 +276,54 @@ const ProductDetailNew = () => {
         )}
 
         {ingredients.length > 0 && (
-          <details className="bg-card border border-border rounded-[14px] p-3.5">
-            <summary className="text-sm font-medium cursor-pointer">Full ingredient list ({ingredients.length})</summary>
-            <p className="text-[11px] text-muted-foreground mt-2 leading-snug">{ingredients.join(", ")}</p>
-          </details>
+          <div>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Ingredients ({ingredients.length})
+              </p>
+              {aiLoading && (
+                <p className="text-[10px] text-muted-foreground italic">Analysing…</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 mb-2 px-1 text-[10px] text-muted-foreground flex-wrap">
+              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-500" /> Good for you</span>
+              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-amber-500" /> Caution</span>
+              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-destructive" /> Avoid</span>
+            </div>
+
+            <SurfaceCard padded={false} className="divide-y divide-border/60">
+              {ingredients.map((name, i) => {
+                const lower = name.toLowerCase().trim();
+                const aiFlag = aiFlagByName.get(lower);
+                const tone = aiFlag?.tone;
+                const dotClass =
+                  tone === "good" ? "bg-emerald-500" :
+                  tone === "bad"  ? "bg-destructive" :
+                  tone === "warn" ? "bg-amber-500" :
+                  "bg-border";
+                return (
+                  <div key={i} className="p-3 flex items-start gap-2.5">
+                    <span
+                      className={cn("size-2 rounded-full shrink-0 mt-1.5", dotClass)}
+                      aria-label={tone ?? "neutral"}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">{name}</p>
+                      {aiFlag?.body && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                          {aiFlag.body}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </SurfaceCard>
+            {aiError && (
+              <p className="text-[11px] text-destructive mt-2 px-1">{aiError}</p>
+            )}
+          </div>
         )}
 
         <div className="space-y-2 pt-2">

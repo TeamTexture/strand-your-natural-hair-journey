@@ -304,29 +304,48 @@ const ProductProfile = () => {
                 Ingredients ({ingredients.length})
               </p>
               {aiLoading && (
-                <p className="text-[10px] text-muted-foreground italic">Loading info…</p>
+                <p className="text-[10px] text-muted-foreground italic">Analysing…</p>
               )}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-3 mb-2 px-1 text-[10px] text-muted-foreground flex-wrap">
+              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-500" /> Good for you</span>
+              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-amber-500" /> Caution</span>
+              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-destructive" /> Avoid</span>
             </div>
 
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {ingredients.map((name, i) => {
                 const lower = name.toLowerCase().trim();
                 const aiFlag = aiFlagByName.get(lower);
-                // Neutral: present the AI-supplied description if available,
-                // but no colour-coded verdict — the user decides.
-                const info = aiFlag?.body ?? null;
+                const tone = aiFlag?.tone;
+                const dotClass =
+                  tone === "good" ? "bg-emerald-500" :
+                  tone === "bad"  ? "bg-destructive" :
+                  tone === "warn" ? "bg-amber-500" :
+                  "bg-border";
                 return (
-                  <div key={i} className="p-3">
-                    <p className="text-sm font-medium leading-tight">{name}</p>
-                    {info && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                        {info}
-                      </p>
-                    )}
+                  <div key={i} className="p-3 flex items-start gap-2.5">
+                    <span
+                      className={cn("size-2 rounded-full shrink-0 mt-1.5", dotClass)}
+                      aria-label={tone ?? "neutral"}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">{name}</p>
+                      {aiFlag?.body && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                          {aiFlag.body}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </SurfaceCard>
+            {aiError && (
+              <p className="text-[11px] text-destructive mt-2 px-1">{aiError}</p>
+            )}
           </div>
         )}
 
