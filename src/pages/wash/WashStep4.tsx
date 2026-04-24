@@ -35,6 +35,7 @@ interface Step1Saved {
   treatmentType?: string[];
   products?: string[];
   heatTreatment?: "yes" | "no" | null;
+  heatMinutes?: number | null;
 }
 interface Step2Saved {
   scalp?: string[]; breakage?: string[]; style?: string[]; duration?: string[]; stress?: string[];
@@ -66,7 +67,9 @@ const WashStep4 = () => {
       if (state === "done") parts.push(`${labels[key]} ✓`);
       else if (state === "skipped") parts.push(`${labels[key]} skipped`);
     });
-    if (step1.heatTreatment === "yes") parts.push("Heat treatment ✓");
+    if (step1.heatTreatment === "yes") {
+      parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
+    }
     if (step1.heatTreatment === "no") parts.push("No heat");
     if (step1.products?.length) {
       parts.push(`Products: ${step1.products.join(", ")}`);
@@ -145,7 +148,10 @@ const WashStep4 = () => {
 
       // Heat treatment: only persist when the user explicitly said yes/no during Condition.
       const heatTreatment = step1.heatTreatment
-        ? { used: step1.heatTreatment === "yes" }
+        ? {
+            used: step1.heatTreatment === "yes",
+            ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
+          }
         : null;
 
       const payload = {
