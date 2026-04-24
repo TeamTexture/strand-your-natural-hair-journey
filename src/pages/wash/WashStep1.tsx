@@ -450,11 +450,19 @@ const WashStep1 = () => {
           size="pill"
           className="mt-4"
           onClick={() => {
+            // Require the user to have logged at least one step (done OR
+            // skipped) so wash days aren't saved entirely empty.
+            const allStates = [prePoo, cleanse, coWash, condition, treatment];
+            const anyAnswered = allStates.some((s) => s === "done" || s === "skipped");
+            if (!anyAnswered) {
+              toast.error("Add or skip at least one step before continuing");
+              return;
+            }
             // Only save products from steps that were actually completed —
             // pulled from the user's real shelf, not hardcoded brands.
             const products: string[] = [];
             if (prePoo === "done") products.push(...prePooProducts);
-            if (cleanse === "done") products.push(...cleanseProducts);
+            if (cleanse === "done" || coWash === "done") products.push(...cleanseProducts);
             if (condition === "done") products.push(...conditionProducts);
             if (treatment === "done") products.push(...treatmentProducts);
             localStorage.setItem(
@@ -462,7 +470,7 @@ const WashStep1 = () => {
               JSON.stringify({
                 // Persist explicit done/skipped state so the rest of the flow
                 // and the saved wash record can reflect what was skipped.
-                prePoo, cleanse, condition, treatment,
+                prePoo, cleanse, coWash, condition, treatment,
                 treatmentType,
                 products,
                 heatTreatment: heatChoice,
@@ -470,6 +478,7 @@ const WashStep1 = () => {
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",
+                  coWash: coWash === "skipped",
                   condition: condition === "skipped",
                   treatment: treatment === "skipped",
                 },
