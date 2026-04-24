@@ -647,11 +647,25 @@ const JournalEntry = () => {
               </div>
             )}
           </div>
-          <div className="p-4">
-            <p className="font-display text-xl font-semibold leading-tight">{entry.title}</p>
-            <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">
-              {entry.date}
-            </p>
+          <div className="p-4 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-xl font-semibold leading-tight">{entry.title}</p>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">
+                {entry.date}
+              </p>
+            </div>
+            {/* Prominent inline Delete — sits right next to the title so it's
+             * obvious which entry the action applies to. Opens the same
+             * confirmation sheet used by the dropdown + footer button. */}
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              disabled={deleting}
+              aria-label="Delete journal entry"
+              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] font-semibold px-3 py-2 rounded-full border border-destructive/40 text-destructive hover:bg-destructive/10 disabled:opacity-50 min-h-[36px]"
+            >
+              <Trash2 className="size-3.5" /> Delete
+            </button>
           </div>
         </SurfaceCard>
       </div>
