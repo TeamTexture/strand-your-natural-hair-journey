@@ -29,6 +29,7 @@ const MoodboardBoard = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [sharing, setSharing] = useState<MoodboardImage | null>(null);
 
   // Resolve "favourites" alias to the user's actual Favourites board UUID
   useEffect(() => {
