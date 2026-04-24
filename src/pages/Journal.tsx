@@ -5,12 +5,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
-interface JC { gradient: string; emoji: string; date: string; title: string; note: string }
-const journals: JC[] = [
-  { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌿", date: "14 Apr 2026", title: "Wash & Go — Day 1", note: "Best curl definition I have had. Camille Rose gel first time." },
-  { gradient: "from-[#D4AA52] to-[#C49A3C]", emoji: "✨", date: "2 Apr 2026", title: "Twist Out — Day 3", note: "Frizzy by midday. Humidity + no sealant = lesson learned." },
-];
+import { journalEntries } from "@/data/journalEntries";
 
 const moodTiles = [
   { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌀" },
