@@ -711,6 +711,21 @@ const WashStep1 = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inline product picker — shared across all steps. Lets the user pick
+          existing shelf/wishlist products OR add a brand new one (photo /
+          upload / link). New products are saved straight to the shelf via
+          auto_save and the user is returned here, where the new product
+          shows up in the shelf list and can be toggled into the step. */}
+      <ProductPickerSheet
+        open={pickerOpen}
+        onOpenChange={(o) => {
+          setPickerOpen(o);
+          if (!o) setPickerTarget(null);
+        }}
+        selectedIds={pickerTarget ? targetIds[pickerTarget] : []}
+        onToggle={handleTogglePicked}
+      />
     </ScreenLayout>
   );
 };
