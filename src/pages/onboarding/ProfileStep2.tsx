@@ -90,7 +90,28 @@ const ProfileStep2 = () => {
 
         <MedicationPicker value={meds} onChange={setMeds} />
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/pro-gate")}>
+        <Button variant="gold" size="pill" className="mt-4" onClick={() => {
+          // Persist health context for AI summary + nutrition.
+          // Map first selection to a single canonical value where helpful.
+          const dietRaw = (diet[0] || "").toLowerCase();
+          const dietCanon =
+            dietRaw === "vegan" ? "vegan" :
+            dietRaw === "vegetarian" ? "vegetarian" :
+            dietRaw ? "omnivore" : "unknown";
+          const alcoholRaw = (alcohol[0] || "").toLowerCase();
+          const alcoholCanon =
+            alcoholRaw === "none" ? "none" :
+            alcoholRaw.includes("light") ? "light" :
+            alcoholRaw.includes("moderate") ? "moderate" :
+            alcoholRaw.includes("heavy") ? "heavy" : "unknown";
+          localStorage.setItem("strand_health_profile", JSON.stringify({
+            lifeStage, contraception, conditions, diet: dietCanon, dietBalance,
+            smoke, alcohol: alcoholCanon, water, exercise, sleep,
+            medications: meds.map((m) => m.name),
+          }));
+          localStorage.setItem("strand_onboarding_step", "/onboarding/pro-gate");
+          navigate("/onboarding/pro-gate");
+        }}>
           Continue →
         </Button>
       </div>
