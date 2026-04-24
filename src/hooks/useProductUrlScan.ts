@@ -14,7 +14,11 @@ export function useProductUrlScan() {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
 
-  const startUrlScan = async (rawUrl: string, intent: "shelf" | "wishlist" = "shelf") => {
+  const startUrlScan = async (
+    rawUrl: string,
+    intent: "shelf" | "wishlist" = "shelf",
+    extras?: { auto_save?: boolean; returnTo?: string },
+  ) => {
     if (!user) { toast.error("Please sign in"); return; }
     const url = rawUrl.trim();
     if (!url) { toast.error("Paste a product link first"); return; }
@@ -46,6 +50,8 @@ export function useProductUrlScan() {
           product_key,
           intent,
           source_url: normalised,
+          auto_save: extras?.auto_save ?? false,
+          returnTo: extras?.returnTo,
         },
       });
     } catch (e) {
