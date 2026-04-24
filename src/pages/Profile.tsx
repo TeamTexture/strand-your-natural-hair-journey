@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -291,7 +291,7 @@ const Profile = () => {
       </div>
 
       {/* Update after appointment CTA */}
-      <div className="px-5 pb-4">
+      <div className="px-5 pb-3">
         <button
           onClick={() => navigate("/onboarding/profile-step-1")}
           className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[64px] text-left"
@@ -306,6 +306,25 @@ const Profile = () => {
             </p>
           </div>
           <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Edit ›</span>
+        </button>
+      </div>
+
+      {/* Help & Support — always-visible entry point */}
+      <div className="px-5 pb-4">
+        <button
+          onClick={() => navigate("/help")}
+          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
+        >
+          <div className="size-10 rounded-full bg-secondary text-foreground/80 flex items-center justify-center shrink-0">
+            <HelpCircle className="size-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight">Help & Support</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5">
+              Install guide, FAQs and how to reach us.
+            </p>
+          </div>
+          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
         </button>
       </div>
 
