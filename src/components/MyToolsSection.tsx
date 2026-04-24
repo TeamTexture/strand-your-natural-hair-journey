@@ -284,10 +284,6 @@ const MyToolsSection = () => {
         >
           <Wrench className="size-4 mr-1.5" /> + Add a Tool
         </Button>
-        <p className="text-[11px] text-muted-foreground text-center leading-snug px-2 mt-3">
-          Tools don't have ingredients — just snap a photo and rate how it
-          performs on your hair.
-        </p>
       </div>
 
       {/* Add tool sheet */}
