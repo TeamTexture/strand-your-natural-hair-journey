@@ -80,6 +80,7 @@ const MyToolsSection = () => {
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [notesAudio, setNotesAudio] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [saving, setSaving] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
