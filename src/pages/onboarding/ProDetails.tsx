@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Shield, AlertCircle, Loader2, Check } from "lucide-react";
+import { Search, Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
