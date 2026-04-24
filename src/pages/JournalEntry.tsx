@@ -213,6 +213,9 @@ const JournalEntry = () => {
           how: parsed.how ?? "",
           liked: parsed.liked ?? "",
           next: parsed.next ?? "",
+          howAudio: parsed.howAudio ?? null,
+          likedAudio: parsed.likedAudio ?? null,
+          nextAudio: parsed.nextAudio ?? null,
           productIds: parsed.productIds ?? [],
           productKeys: parsed.productKeys ?? [],
         });
@@ -225,6 +228,9 @@ const JournalEntry = () => {
       how: "",
       liked: entry?.note ?? "",
       next: "",
+      howAudio: null,
+      likedAudio: null,
+      nextAudio: null,
       productIds: [],
     });
   }, [id, storageKey, entry]);
