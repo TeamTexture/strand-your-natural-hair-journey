@@ -85,6 +85,9 @@ const MyToolsSection = () => {
   const [saving, setSaving] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [analysing, setAnalysing] = useState(false);
+  // Remote image URL pulled from the scraped product page (og:image / JSON-LD).
+  // Persisted on the tool row so the tile + detail page show the right photo.
+  const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
 
   const resetForm = () => {
     setPickedPhoto(null);
@@ -95,6 +98,7 @@ const MyToolsSection = () => {
     setNotes("");
     setRating(0);
     setLinkUrl("");
+    setRemoteImageUrl(null);
   };
 
   const handlePickPhoto = (f: File) => {
