@@ -5,10 +5,11 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import ProductPhotoTile from "@/components/ProductPhotoTile";
+import FilePickerButton from "@/components/FilePickerButton";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
+import { useProductPhotos } from "@/hooks/useProductPhotos";
 
 interface P { key: string; emoji: string; name: string; brand: string; pct: number }
 const items: P[] = [
@@ -21,6 +22,13 @@ const Wishlist = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
   const { counts } = useVoicenoteCounts(items.map((i) => i.key));
+  const { photos, uploadPhoto, removePhoto } = useProductPhotos(items.map((i) => i.key));
+
+  // For the top "Take/Upload" tiles we add the photo under a fresh wishlist key.
+  const handleNewWishlistPhoto = async (file: File) => {
+    const key = `wl-unscanned-${Date.now()}`;
+    await uploadPhoto(key, file, { name: "Wishlist item", brand: "" });
+  };
 
   return (
     <ScreenLayout bottomNav>
@@ -34,32 +42,41 @@ const Wishlist = () => {
       />
 
       <div className="px-5 pb-4 grid grid-cols-2 gap-3">
-        <button
-          onClick={() => toast("Camera opening")}
-          className="p-4 rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center"
+        <FilePickerButton
+          variant="goldGhost"
+          preferCamera
+          onPick={handleNewWishlistPhoto}
+          className="!h-auto !p-4 !rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center flex-col"
         >
           <div className="text-3xl mb-2">📷</div>
           <p className="text-xs font-medium">Take a Photo</p>
           <p className="text-[10px] text-muted-foreground">Use your camera</p>
-        </button>
-        <button
-          onClick={() => toast("Choose from camera roll")}
-          className="p-4 rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center"
+        </FilePickerButton>
+        <FilePickerButton
+          variant="goldGhost"
+          onPick={handleNewWishlistPhoto}
+          className="!h-auto !p-4 !rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center flex-col"
         >
           <div className="text-3xl mb-2">🖼️</div>
           <p className="text-xs font-medium">Upload a Photo</p>
           <p className="text-[10px] text-muted-foreground">From your camera roll</p>
-        </button>
+        </FilePickerButton>
       </div>
 
       <div className="px-5 space-y-3 pb-4">
         {items.map((p) => {
           const isOpen = expanded === p.key;
           const noteCount = counts[p.key] ?? 0;
+          const photoUrl = photos[p.key]?.signedUrl ?? null;
           return (
             <SurfaceCard key={p.key} padded={false} className="overflow-hidden">
               <div className="p-3.5 flex items-center gap-3">
-                <div className="size-12 rounded-[10px] bg-primary/15 flex items-center justify-center text-2xl shrink-0">{p.emoji}</div>
+                <ProductPhotoTile
+                  imageUrl={photoUrl}
+                  fallbackEmoji={p.emoji}
+                  onPick={(f) => uploadPhoto(p.key, f, { name: p.name, brand: p.brand })}
+                  onRemove={() => removePhoto(p.key)}
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
