@@ -17,7 +17,7 @@ interface Props {
  * optional bottom nav. Lives inside <PhoneShell>.
  */
 const ScreenLayout = ({ children, status = true, bottomNav = false, contentClassName = "" }: Props) => (
-  <div className="flex flex-col h-full min-h-screen sm:min-h-0 sm:h-[792px] bg-background">
+  <div className="flex flex-col h-full bg-background">
     {status && <StatusBar />}
     <main className={`flex-1 overflow-y-auto scrollbar-hide ${contentClassName}`}>
       {children}
