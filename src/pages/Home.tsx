@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { HelpCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -38,6 +38,7 @@ const readStyle = (): ProfileStyle => {
 
 const Home = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
   const [firstName, setFirstName] = useState<string>("");
@@ -47,11 +48,23 @@ const Home = () => {
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(readStyle());
 
-  // Refresh local-storage-backed current style on focus so edits elsewhere appear.
+  // Re-read localStorage whenever the user lands on Home, regains focus, or the
+  // tab becomes visible again — covers the post-onboarding redirect, returning
+  // from /home/style, and cross-tab edits via the storage event.
   useEffect(() => {
-    const onFocus = () => setStyle(readStyle());
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    setStyle(readStyle());
+  }, [location.key]);
+
+  useEffect(() => {
+    const refresh = () => setStyle(readStyle());
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
 
   // Resolve the display name from the profiles table first
