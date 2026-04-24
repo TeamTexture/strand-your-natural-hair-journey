@@ -30,36 +30,45 @@ interface Step {
 }
 
 /**
- * Each step has three states so people can be honest about what they actually did:
+ * Each step has four states so people can be honest about what they actually did:
  *   - "todo"    — not yet logged (default)
- *   - "done"    — completed; show products & extras
+ *   - "editing" — user opened the step to log products / options (the inline editor is open)
+ *   - "done"    — finished logging; editor collapses and shows a summary of what was captured
  *   - "skipped" — explicitly didn't do it today (logged for accuracy, no products saved)
- *
- * "Skipped" steps still get recorded in the saved payload so the user's history
- * reflects what was deliberately omitted, not just what's missing.
  */
-type StepState = "todo" | "done" | "skipped";
+type StepState = "todo" | "editing" | "done" | "skipped";
 
 const StepCard = ({
   step,
   state,
   setState,
-  children,
+  /** What to render inside the inline editor (only visible while state === "editing"). */
+  editor,
+  /**
+   * Optional collapsed summary chips shown under the header once the step is "done".
+   * If omitted we just show the default product list captured for this step.
+   */
+  summaryChips,
 }: {
   step: Step;
   state: StepState;
   setState: (s: StepState) => void;
-  children?: React.ReactNode;
+  editor?: React.ReactNode;
+  summaryChips?: string[];
 }) => {
+  const isEditing = state === "editing";
   const isDone = state === "done";
   const isSkipped = state === "skipped";
+  // Use caller-provided chips when given; otherwise fall back to the step's
+  // default product list so a "done" step is never visually empty.
+  const chips = summaryChips ?? step.products;
   return (
     <SurfaceCard className={cn(isSkipped && "opacity-70")}>
       <div className="flex items-center gap-3">
         <div
           className={cn(
             "size-10 rounded-[10px] flex items-center justify-center text-xl",
-            isSkipped ? "bg-muted" : "bg-primary/15",
+            isSkipped ? "bg-muted" : isDone ? "bg-primary/25" : "bg-primary/15",
           )}
         >
           {isSkipped ? <X className="size-5 text-muted-foreground" /> : step.emoji}
@@ -74,21 +83,28 @@ const StepCard = ({
             {step.name}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            {isSkipped ? "Skipped today" : step.sub}
+            {isSkipped ? "Skipped today" : isDone ? "Logged ✓" : step.sub}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => setState(isDone ? "todo" : "done")}
-            aria-pressed={isDone}
+            onClick={() => {
+              // Toggle: todo → editing, editing → todo (cancel), done → editing (re-open to edit)
+              if (isEditing) setState("todo");
+              else if (isDone) setState("editing");
+              else setState("editing");
+            }}
+            aria-pressed={isEditing || isDone}
             className={cn(
               "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors min-h-[32px]",
               isDone
                 ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border",
+                : isEditing
+                  ? "bg-muted text-foreground border-border"
+                  : "bg-card text-muted-foreground border-border",
             )}
           >
-            {isDone ? "Done ✓" : "Add"}
+            {isDone ? "Edit" : isEditing ? "Cancel" : "Add"}
           </button>
           <button
             onClick={() => setState(isSkipped ? "todo" : "skipped")}
@@ -105,7 +121,29 @@ const StepCard = ({
           </button>
         </div>
       </div>
-      {isDone && (
+
+      {/* DONE: collapsed summary so users can see at a glance what they logged */}
+      {isDone && chips.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {chips.map((c) => (
+            <span
+              key={c}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/30 text-[11px]"
+            >
+              <Check className="size-3 text-good shrink-0" />
+              <span className="truncate max-w-[180px]">{c}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {isDone && chips.length === 0 && (
+        <p className="mt-3 text-[11px] text-muted-foreground italic">
+          Logged with no extras.
+        </p>
+      )}
+
+      {/* EDITING: inline editor with the per-step UI + a Done button to commit */}
+      {isEditing && (
         <div className="mt-3 space-y-2">
           {step.products.map((p) => (
             <div key={p} className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/30 rounded-[10px]">
@@ -116,7 +154,15 @@ const StepCard = ({
           <button className="w-full text-left px-3 py-2 border border-dashed border-border rounded-[10px] text-xs text-muted-foreground">
             + Add product used
           </button>
-          {children}
+          {editor}
+          <Button
+            variant="gold"
+            size="pill"
+            className="w-full mt-1"
+            onClick={() => setState("done")}
+          >
+            Done
+          </Button>
         </div>
       )}
     </SurfaceCard>
