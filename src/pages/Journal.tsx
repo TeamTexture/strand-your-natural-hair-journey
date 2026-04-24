@@ -58,9 +58,9 @@ const Journal = () => {
     () => moodboards.filter((b) => (b.imageCount ?? 0) > 0).slice(0, 3),
     [moodboards],
   );
-  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
-  // Tracks whether each mock-entry cover is a video (mp4/mov) so we can render <video> instead of <img>.
-  const [photoIsVideo, setPhotoIsVideo] = useState<Record<string, boolean>>({});
+  // Cover URLs and video flags are computed inline per saved entry now —
+  // no separate map needed since the mock catalog is gone.
+
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<UserGoal | null>(null);
 
