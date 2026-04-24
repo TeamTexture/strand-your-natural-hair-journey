@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -6,6 +7,10 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { journalEntries } from "@/data/journalEntries";
 import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+const PHOTO_BUCKET = "journal-photos";
 
 const moodTiles = [
   { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌀" },
@@ -15,7 +20,36 @@ const moodTiles = [
 
 const Journal = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { signals, banner, loading } = useJournalEncouragement();
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+
+  // Pull through any photos uploaded on individual entries.
+  // Photo paths are stored per-entry under `strand_journal_photo_<id>` by JournalEntry.tsx.
+  useEffect(() => {
+    if (!user) {
+      setPhotoUrls({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      await Promise.all(
+        journalEntries.map(async (j) => {
+          const path = localStorage.getItem(`strand_journal_photo_${j.id}`);
+          if (!path) return;
+          const { data } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(path, 3600);
+          if (data?.signedUrl) next[j.id] = data.signedUrl;
+        }),
+      );
+      if (!cancelled) setPhotoUrls(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <ScreenLayout bottomNav>
