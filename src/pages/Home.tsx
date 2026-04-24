@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HelpCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Alert {
   emoji: string;
@@ -49,7 +52,38 @@ const getTimeBasedGreeting = (date = new Date()) => {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
+  const [firstName, setFirstName] = useState<string>("");
+
+  // Resolve the display name from the profiles table first (source of truth),
+  // falling back to user_metadata or the email local-part so the greeting
+  // never shows a blank or someone else's name.
+  useEffect(() => {
+    if (!user) {
+      setFirstName("");
+      return;
+    }
+    let cancelled = false;
+    const fallback =
+      (user.user_metadata?.display_name as string | undefined) ??
+      user.email?.split("@")[0] ??
+      "";
+    setFirstName(fallback.split(" ")[0]);
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled && data?.display_name) {
+        setFirstName(data.display_name.split(" ")[0]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <ScreenLayout bottomNav>
@@ -57,7 +91,9 @@ const Home = () => {
       <header className="px-5 pt-3 pb-4 flex items-start justify-between">
         <div>
           <p className="font-body text-sm text-muted-foreground">{greeting},</p>
-          <h1 className="font-display text-[24px] font-bold leading-tight">Paige</h1>
+          <h1 className="font-display text-[24px] font-bold leading-tight">
+            {firstName || "there"}
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button

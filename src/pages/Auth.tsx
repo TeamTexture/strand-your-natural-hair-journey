@@ -10,10 +10,19 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
+// Only allow same-origin relative paths for redirect to avoid open-redirect
+// attacks via crafted ?next=https://evil.com links.
+const safeNext = (raw: string | null, fallback: string) => {
+  if (!raw) return fallback;
+  // Must start with a single "/" but not "//" (protocol-relative URL).
+  if (!raw.startsWith("/") || raw.startsWith("//")) return fallback;
+  return raw;
+};
+
 const Auth = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const next = params.get("next") || "/onboarding/profile-step-1";
+  const next = safeNext(params.get("next"), "/onboarding/profile-step-1");
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +34,7 @@ const Auth = () => {
   const { user, loading: authLoading } = useAuth();
   useEffect(() => {
     if (!authLoading && user) {
-      const target = params.get("next") || "/home";
+      const target = safeNext(params.get("next"), "/home");
       navigate(target, { replace: true });
     }
   }, [authLoading, user, navigate, params]);
