@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Mic } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 
 const tabs = [
   { id: "shelf", label: "Shelf" },
