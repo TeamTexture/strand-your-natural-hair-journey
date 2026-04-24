@@ -92,9 +92,7 @@ const ProfileStep2 = () => {
 
         <MedicationPicker value={meds} onChange={setMeds} />
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => {
-          // Persist health context for AI summary + nutrition.
-          // Map first selection to a single canonical value where helpful.
+        <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           const dietRaw = (diet[0] || "").toLowerCase();
           const dietCanon =
             dietRaw === "vegan" ? "vegan" :
@@ -111,6 +109,23 @@ const ProfileStep2 = () => {
             smoke, alcohol: alcoholCanon, water, exercise, sleep,
             medications: meds.map((m) => m.name),
           }));
+          // Persist meds to DB (replace existing for this user)
+          try {
+            const { data: u } = await supabase.auth.getUser();
+            if (u?.user) {
+              await supabase.from("user_medications").delete().eq("user_id", u.user.id);
+              if (meds.length > 0) {
+                await supabase.from("user_medications").insert(
+                  meds.slice(0, 20).map((m) => ({
+                    user_id: u.user.id, name: m.name, category: m.category,
+                  })),
+                );
+              }
+            }
+          } catch (e) {
+            toast.error("Could not save medications. Check your connection.");
+            return;
+          }
           localStorage.setItem("strand_onboarding_step", "/onboarding/pro-gate");
           navigate("/onboarding/pro-gate");
         }}>
