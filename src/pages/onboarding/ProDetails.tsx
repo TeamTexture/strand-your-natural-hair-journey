@@ -7,7 +7,6 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import FormField from "@/components/FormField";
 import Tag from "@/components/Tag";
-import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
