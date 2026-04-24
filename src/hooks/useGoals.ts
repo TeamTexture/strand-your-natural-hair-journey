@@ -48,8 +48,8 @@ export const useGoals = () => {
   const initialLoad = useCallback(() => refresh(true), [refresh]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    initialLoad();
+  }, [initialLoad]);
 
   const upsertGoal = useCallback(
     async (draft: GoalDraft, id?: string) => {
