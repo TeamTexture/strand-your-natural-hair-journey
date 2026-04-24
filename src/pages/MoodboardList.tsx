@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Camera, ImagePlus, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import {
@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useMoodboards, type Moodboard } from "@/hooks/useMoodboards";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
 
-const EMOJI_CHOICES = ["🌸", "🌀", "🌿", "✨", "🫧", "💛", "🌻", "💫", "🪞", "🦋"];
 const GRADIENTS = [
   "from-[#C8B89A] to-[#D4B96A]",
   "from-[#D4AA52] to-[#C49A3C]",
@@ -27,12 +27,45 @@ const GRADIENTS = [
 
 const MoodboardList = () => {
   const navigate = useNavigate();
-  const { boards, loading, createBoard, deleteBoard } = useMoodboards();
+  const { boards, loading, createBoard, deleteBoard, reload } = useMoodboards();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [emoji, setEmoji] = useState(EMOJI_CHOICES[0]);
   const [gradient, setGradient] = useState(GRADIENTS[0]);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePickCover = async (file: File | undefined) => {
+    if (!file) return;
+    const isHeic = /\.(heic|heif)$/i.test(file.name) || /heic|heif/i.test(file.type);
+    if (!file.type.startsWith("image/") && !isHeic) {
+      toast.error("Please choose an image");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image is too large (max 8MB)");
+      return;
+    }
+    try {
+      const prepped = await convertHeicToJpeg(file);
+      setCoverFile(prepped);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverPreview(URL.createObjectURL(prepped));
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not load image");
+    }
+  };
+
+  const resetForm = () => {
+    setName("");
+    setGradient(GRADIENTS[0]);
+    setCoverFile(null);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(null);
+  };
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -41,12 +74,12 @@ const MoodboardList = () => {
     }
     setSaving(true);
     try {
-      await createBoard({ name: name.trim(), emoji, gradient });
+      const board = await createBoard({ name: name.trim(), gradient, coverFile: coverFile ?? undefined });
       toast.success(`${name.trim()} created`);
       setOpen(false);
-      setName("");
-      setEmoji(EMOJI_CHOICES[0]);
-      setGradient(GRADIENTS[0]);
+      resetForm();
+      if (board) navigate(`/journal/moodboards/${board.id}`);
+      else await reload();
     } catch (e) {
       console.error(e);
       toast.error("Could not create board");
@@ -102,10 +135,10 @@ const MoodboardList = () => {
               <img
                 src={favourites.coverUrl}
                 alt=""
-                className="absolute inset-0 size-full object-cover opacity-50"
+                className="absolute inset-0 size-full object-cover"
               />
             )}
-            <span className="text-3xl relative">{favourites.emoji}</span>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
             <div className="relative">
               <p className="font-display text-lg font-semibold">{favourites.name}</p>
               <p className="text-xs opacity-90">
@@ -130,20 +163,20 @@ const MoodboardList = () => {
             <button
               key={b.id}
               onClick={() => navigate(`/journal/moodboards/${b.id}`)}
-              className={`relative h-36 rounded-[14px] bg-gradient-to-br ${b.gradient} p-3 flex flex-col justify-between text-left text-foreground overflow-hidden group`}
+              className={`relative h-36 rounded-[14px] bg-gradient-to-br ${b.gradient} p-3 flex flex-col justify-between text-left text-white overflow-hidden group`}
             >
               {b.coverUrl && (
                 <img
                   src={b.coverUrl}
                   alt=""
-                  className="absolute inset-0 size-full object-cover opacity-60"
+                  className="absolute inset-0 size-full object-cover"
                 />
               )}
-              <div className="flex items-start justify-between relative">
-                <span className="text-2xl">{b.emoji}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+              <div className="flex items-start justify-end relative">
                 <button
                   onClick={(e) => handleDelete(b, e)}
-                  className="size-7 rounded-full bg-black/30 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  className="size-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100"
                   aria-label="Delete board"
                 >
                   <Trash2 className="size-3.5" />
@@ -186,21 +219,65 @@ const MoodboardList = () => {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold mb-1.5 block">Icon</label>
-              <div className="flex flex-wrap gap-1.5">
-                {EMOJI_CHOICES.map((e) => (
+              <label className="text-xs font-semibold mb-1.5 block">Cover image</label>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*,.heic,.heif"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  handlePickCover(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.heic,.heif"
+                className="hidden"
+                onChange={(e) => {
+                  handlePickCover(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              {coverPreview ? (
+                <div className={`relative h-28 rounded-[12px] overflow-hidden bg-gradient-to-br ${gradient}`}>
+                  <img src={coverPreview} alt="Cover preview" className="absolute inset-0 size-full object-cover" />
                   <button
-                    key={e}
                     type="button"
-                    onClick={() => setEmoji(e)}
-                    className={`size-9 rounded-full text-lg flex items-center justify-center border ${
-                      emoji === e ? "border-primary bg-primary/10" : "border-border bg-card"
-                    }`}
+                    onClick={() => {
+                      setCoverFile(null);
+                      if (coverPreview) URL.revokeObjectURL(coverPreview);
+                      setCoverPreview(null);
+                    }}
+                    className="absolute top-1.5 right-1.5 size-7 rounded-full bg-black/55 text-white flex items-center justify-center"
+                    aria-label="Remove cover"
                   >
-                    {e}
+                    <X className="size-3.5" />
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
+                  >
+                    <Camera className="size-5 mx-auto mb-1 text-primary" />
+                    <p className="text-[11px] font-medium">Take a Photo</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
+                  >
+                    <ImagePlus className="size-5 mx-auto mb-1 text-primary" />
+                    <p className="text-[11px] font-medium">Upload Photo</p>
+                  </button>
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-1.5">Optional — you can add one later.</p>
             </div>
             <div>
               <label className="text-xs font-semibold mb-1.5 block">Colour</label>

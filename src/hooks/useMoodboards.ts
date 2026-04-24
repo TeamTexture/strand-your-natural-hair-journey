@@ -91,7 +91,7 @@ export const useMoodboards = () => {
   }, [load]);
 
   const createBoard = useCallback(
-    async (input: { name: string; emoji?: string; gradient?: string }) => {
+    async (input: { name: string; emoji?: string; gradient?: string; coverFile?: File }) => {
       if (!user) throw new Error("Sign in required");
       const { data, error } = await supabase
         .from("moodboards")
@@ -104,6 +104,33 @@ export const useMoodboards = () => {
         .select("id, name, emoji, gradient, is_favourites")
         .single();
       if (error) throw error;
+
+      // If a cover image was supplied, upload it as the board's first image so it
+      // becomes the cover automatically (cover = most recent image).
+      if (data && input.coverFile) {
+        try {
+          const file = input.coverFile;
+          const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+          const path = `${user.id}/${data.id}/${crypto.randomUUID()}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from(BUCKET)
+            .upload(path, file, { contentType: file.type, upsert: false });
+          if (!upErr) {
+            await supabase.from("moodboard_images").insert({
+              user_id: user.id,
+              board_id: data.id,
+              storage_path: path,
+              caption: null,
+              is_favourite: false,
+            });
+          } else {
+            console.error("Cover upload failed:", upErr);
+          }
+        } catch (e) {
+          console.error("Cover upload error:", e);
+        }
+      }
+
       await load();
       return data;
     },
