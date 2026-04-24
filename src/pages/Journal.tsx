@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -6,6 +7,10 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { journalEntries } from "@/data/journalEntries";
 import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+const PHOTO_BUCKET = "journal-photos";
 
 const moodTiles = [
   { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌀" },
@@ -15,7 +20,36 @@ const moodTiles = [
 
 const Journal = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { signals, banner, loading } = useJournalEncouragement();
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+
+  // Pull through any photos uploaded on individual entries.
+  // Photo paths are stored per-entry under `strand_journal_photo_<id>` by JournalEntry.tsx.
+  useEffect(() => {
+    if (!user) {
+      setPhotoUrls({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      await Promise.all(
+        journalEntries.map(async (j) => {
+          const path = localStorage.getItem(`strand_journal_photo_${j.id}`);
+          if (!path) return;
+          const { data } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(path, 3600);
+          if (data?.signedUrl) next[j.id] = data.signedUrl;
+        }),
+      );
+      if (!cancelled) setPhotoUrls(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <ScreenLayout bottomNav>
@@ -68,24 +102,42 @@ const Journal = () => {
 
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
-        {journalEntries.map((j) => (
-          <button
-            key={j.id}
-            onClick={() => navigate(`/journal/entry/${j.id}`)}
-            className="w-full text-left"
-          >
-            <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
-              <div className={`relative h-40 bg-gradient-to-br ${j.gradient} flex items-center justify-center`}>
-                <span className="text-5xl">{j.emoji}</span>
-                <span className="absolute bottom-2 right-3 text-[11px] text-white/90 font-body bg-black/30 px-2 py-1 rounded">{j.date}</span>
-              </div>
-              <div className="p-3">
-                <p className="font-display text-base font-semibold">{j.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
-              </div>
-            </SurfaceCard>
-          </button>
-        ))}
+        {journalEntries.map((j) => {
+          const url = photoUrls[j.id];
+          return (
+            <button
+              key={j.id}
+              onClick={() => navigate(`/journal/entry/${j.id}`)}
+              className="w-full text-left"
+            >
+              <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
+                <div
+                  className={`relative h-40 flex items-center justify-center ${
+                    url ? "bg-secondary" : `bg-gradient-to-br ${j.gradient}`
+                  }`}
+                >
+                  {url ? (
+                    <img
+                      src={url}
+                      alt={j.title}
+                      className="absolute inset-0 size-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-5xl">{j.emoji}</span>
+                  )}
+                  <span className="absolute bottom-2 right-3 text-[11px] text-white/90 font-body bg-black/40 px-2 py-1 rounded">
+                    {j.date}
+                  </span>
+                </div>
+                <div className="p-3">
+                  <p className="font-display text-base font-semibold">{j.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
+                </div>
+              </SurfaceCard>
+            </button>
+          );
+        })}
       </div>
 
       <SectionLabel>Mood Boards</SectionLabel>
