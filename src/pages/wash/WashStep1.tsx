@@ -274,23 +274,23 @@ const WashStep1 = () => {
 
       <div className="px-5 space-y-3 pb-8">
         <StepCard
-          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: [] }}
+          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: prePooProducts }}
           state={prePoo}
           setState={setPrePoo}
         />
         <StepCard
-          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo / co-wash", defaultDone: true, products: ["Moisture Retention Shampoo — Camille Rose"] }}
+          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo / co-wash", defaultDone: true, products: cleanseProducts }}
           state={cleanse}
           setState={setCleanse}
         />
         <StepCard
-          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: ["Honey & Turmeric Deep Cond — TGIN"] }}
+          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: conditionProducts }}
           state={condition}
           setState={setCondition}
-          // Once Done, surface the conditioner + the heat-treatment answer as chips
-          // so the user can see at a glance what they captured for this step.
+          // Once Done, surface the conditioner(s) the user owns + the heat-treatment answer
+          // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
-            "Honey & Turmeric Deep Cond — TGIN",
+            ...conditionProducts,
             ...(heatChoice === "yes" ? ["Heat treatment"] : []),
             ...(heatChoice === "no" ? ["No heat"] : []),
           ]}
