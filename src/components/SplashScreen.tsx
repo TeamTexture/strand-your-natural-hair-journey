@@ -29,9 +29,9 @@ const SplashScreen = () => {
         <Button
           variant="gold"
           size="pill"
-          onClick={() => toast("Membership flow opening — £19.50/mo")}
+          onClick={() => toast("Membership flow opening")}
         >
-          Join TT Collective Pro — £19.50/mo
+          Join TT Collective Pro
         </Button>
 
         <Button
