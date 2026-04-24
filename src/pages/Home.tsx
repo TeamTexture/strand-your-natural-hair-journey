@@ -41,9 +41,7 @@ const Home = () => {
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
   const [firstName, setFirstName] = useState<string>("");
-  const { alerts, loading: alertsLoading } = useHomeAlerts();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const visibleAlerts = alerts.filter((a) => !dismissed.has(a.id));
+  const { visibleAlerts, loading: alertsLoading, dismissAll } = useHomeAlerts();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
   const { last: lastWash, daysSinceLast } = useWashDays();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
