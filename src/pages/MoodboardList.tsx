@@ -135,10 +135,10 @@ const MoodboardList = () => {
               <img
                 src={favourites.coverUrl}
                 alt=""
-                className="absolute inset-0 size-full object-cover opacity-50"
+                className="absolute inset-0 size-full object-cover"
               />
             )}
-            <span className="text-3xl relative">{favourites.emoji}</span>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
             <div className="relative">
               <p className="font-display text-lg font-semibold">{favourites.name}</p>
               <p className="text-xs opacity-90">
