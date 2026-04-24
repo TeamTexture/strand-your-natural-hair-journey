@@ -169,14 +169,14 @@ const MoodboardList = () => {
                 <img
                   src={b.coverUrl}
                   alt=""
-                  className="absolute inset-0 size-full object-cover opacity-60"
+                  className="absolute inset-0 size-full object-cover"
                 />
               )}
-              <div className="flex items-start justify-between relative">
-                <span className="text-2xl">{b.emoji}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+              <div className="flex items-start justify-end relative">
                 <button
                   onClick={(e) => handleDelete(b, e)}
-                  className="size-7 rounded-full bg-black/30 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  className="size-7 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100"
                   aria-label="Delete board"
                 >
                   <Trash2 className="size-3.5" />
