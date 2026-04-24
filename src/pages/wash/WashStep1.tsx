@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+import AddWashProductSheet from "@/components/AddWashProductSheet";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
@@ -74,19 +75,26 @@ const StepCard = ({
    * If omitted we just show the default product list captured for this step.
    */
   summaryChips,
+  /** User-added products (via link/photo) that should appear as chips inside the editor + summary. */
+  addedProducts = [],
+  /** Open the inline product picker for this step. */
+  onAddProduct,
 }: {
   step: Step;
   state: StepState;
   setState: (s: StepState) => void;
   editor?: React.ReactNode;
   summaryChips?: string[];
+  addedProducts?: string[];
+  onAddProduct?: () => void;
 }) => {
   const isEditing = state === "editing";
   const isDone = state === "done";
   const isSkipped = state === "skipped";
   // Use caller-provided chips when given; otherwise fall back to the step's
-  // default product list so a "done" step is never visually empty.
-  const chips = summaryChips ?? step.products;
+  // default product list + anything the user manually added so a "done" step
+  // is never visually empty.
+  const chips = summaryChips ?? [...step.products, ...addedProducts];
   return (
     <SurfaceCard className={cn(isSkipped && "opacity-70")}>
       <div className="flex items-center gap-3">
@@ -176,7 +184,18 @@ const StepCard = ({
               <span className="text-xs flex-1 truncate">{p}</span>
             </div>
           ))}
-          <button className="w-full text-left px-3 py-2 border border-dashed border-border rounded-[10px] text-xs text-muted-foreground">
+          {addedProducts.map((p) => (
+            <div key={p} className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/40 rounded-[10px]">
+              <Check className="size-4 text-good shrink-0" />
+              <span className="text-xs flex-1 truncate">{p}</span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">New</span>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={onAddProduct}
+            className="w-full text-left px-3 py-2 border border-dashed border-border rounded-[10px] text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[40px]"
+          >
             + Add product used
           </button>
           {editor}
@@ -216,6 +235,22 @@ const WashStep1 = () => {
   const [treatment, setTreatment] = useState<StepState>("todo");
 
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
+
+  // Per-step list of products the user manually added during THIS wash day via
+  // the inline picker (link / upload / camera). They're already saved to the
+  // shelf, but we keep the labels separately so we can show + persist them
+  // exactly under the step they were added to.
+  type StepKey = "prePoo" | "cleanse" | "condition" | "treatment";
+  const [addedByStep, setAddedByStep] = useState<Record<StepKey, string[]>>({
+    prePoo: [], cleanse: [], condition: [], treatment: [],
+  });
+  const [addedIdsByStep, setAddedIdsByStep] = useState<Record<StepKey, string[]>>({
+    prePoo: [], cleanse: [], condition: [], treatment: [],
+  });
+  const [pickerStep, setPickerStep] = useState<StepKey | null>(null);
+  const stepLabels: Record<StepKey, string> = {
+    prePoo: "Pre-Poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
+  };
 
   // Pull the user's actual on-shelf products so each step's product chips
   // reflect what they own, not a hardcoded brand (e.g. "Camille Rose").
@@ -280,20 +315,27 @@ const WashStep1 = () => {
           step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: prePooProducts }}
           state={prePoo}
           setState={setPrePoo}
+          addedProducts={addedByStep.prePoo}
+          onAddProduct={() => setPickerStep("prePoo")}
         />
         <StepCard
           step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo / co-wash", defaultDone: true, products: cleanseProducts }}
           state={cleanse}
           setState={setCleanse}
+          addedProducts={addedByStep.cleanse}
+          onAddProduct={() => setPickerStep("cleanse")}
         />
         <StepCard
           step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: conditionProducts }}
           state={condition}
           setState={setCondition}
+          addedProducts={addedByStep.condition}
+          onAddProduct={() => setPickerStep("condition")}
           // Once Done, surface the conditioner(s) the user owns + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
             ...conditionProducts,
+            ...addedByStep.condition,
             ...(heatChoice === "yes"
               ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
               : []),
@@ -390,9 +432,12 @@ const WashStep1 = () => {
           step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: treatmentProducts }}
           state={treatment}
           setState={setTreatment}
+          addedProducts={addedByStep.treatment}
+          onAddProduct={() => setPickerStep("treatment")}
           // Show the treatment type tags the user picked, plus any matching shelf
-          // products so the collapsed card reflects what they actually captured.
-          summaryChips={[...treatmentType, ...treatmentProducts]}
+          // products + manually-added products so the collapsed card reflects what
+          // they actually captured.
+          summaryChips={[...treatmentType, ...treatmentProducts, ...addedByStep.treatment]}
           editor={
             <div className="flex flex-wrap gap-2">
               {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
@@ -417,12 +462,21 @@ const WashStep1 = () => {
           className="mt-4"
           onClick={() => {
             // Only save products from steps that were actually completed —
-            // pulled from the user's real shelf, not hardcoded brands.
+            // pulled from the user's real shelf PLUS anything the user added
+            // inline via the link/photo picker.
             const products: string[] = [];
-            if (prePoo === "done") products.push(...prePooProducts);
-            if (cleanse === "done") products.push(...cleanseProducts);
-            if (condition === "done") products.push(...conditionProducts);
-            if (treatment === "done") products.push(...treatmentProducts);
+            const productIds: string[] = [];
+            const stepProducts: Array<{ name: string; products: string[] }> = [];
+            const collect = (key: StepKey, label: string, shelfList: string[]) => {
+              const merged = [...shelfList, ...addedByStep[key]];
+              if (merged.length) products.push(...merged);
+              productIds.push(...addedIdsByStep[key]);
+              stepProducts.push({ name: label, products: merged });
+            };
+            if (prePoo === "done") collect("prePoo", "Pre-poo", prePooProducts);
+            if (cleanse === "done") collect("cleanse", "Cleanse", cleanseProducts);
+            if (condition === "done") collect("condition", "Condition", conditionProducts);
+            if (treatment === "done") collect("treatment", "Treatment", treatmentProducts);
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
@@ -431,6 +485,8 @@ const WashStep1 = () => {
                 prePoo, cleanse, condition, treatment,
                 treatmentType,
                 products,
+                productIds,
+                stepProducts,
                 heatTreatment: heatChoice,
                 heatMinutes: heatChoice === "yes" ? heatMinutes : null,
                 skipped: {
@@ -523,6 +579,30 @@ const WashStep1 = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pickerStep && (
+        <AddWashProductSheet
+          open={!!pickerStep}
+          onOpenChange={(o) => { if (!o) setPickerStep(null); }}
+          stepLabel={stepLabels[pickerStep]}
+          onAdded={(product) => {
+            const label = product.brand ? `${product.name} — ${product.brand}` : product.name;
+            setAddedByStep((prev) => ({
+              ...prev,
+              [pickerStep]: prev[pickerStep].includes(label)
+                ? prev[pickerStep]
+                : [...prev[pickerStep], label],
+            }));
+            setAddedIdsByStep((prev) => ({
+              ...prev,
+              [pickerStep]: prev[pickerStep].includes(product.id)
+                ? prev[pickerStep]
+                : [...prev[pickerStep], product.id],
+            }));
+            setPickerStep(null);
+          }}
+        />
+      )}
     </ScreenLayout>
   );
 };
