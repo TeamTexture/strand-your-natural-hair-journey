@@ -58,11 +58,19 @@ const ages = Array.from({ length: 80 - 16 + 1 }, (_, i) => 16 + i);
 
 const ProfileStep1 = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [postcode, setPostcode] = useState("");
   const [country, setCountry] = useState("United Kingdom");
   const [heritage, setHeritage] = useState("");
+
+  // Profile photo state
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [submitted, setSubmitted] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
@@ -75,8 +83,94 @@ const ProfileStep1 = () => {
   const hardWater = useMemo(() => isHardWaterPostcode(postcode), [postcode]);
   const isUK = country === "United Kingdom";
 
+  // Load any existing avatar so users returning to the step see their photo.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const p = data?.avatar_url ?? null;
+      setAvatarPath(p);
+      if (p) {
+        const { data: sig } = await supabase.storage
+          .from(AVATAR_BUCKET)
+          .createSignedUrl(p, 3600);
+        if (!cancelled) setAvatarUrl(sig?.signedUrl ?? null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const handlePickPhoto = async (rawFile: File | undefined) => {
+    if (!rawFile) return;
+    if (!user) {
+      toast.error("Please sign in to add a photo");
+      return;
+    }
+    const isHeic = /\.(heic|heif)$/i.test(rawFile.name) || /heic|heif/i.test(rawFile.type);
+    if (!rawFile.type.startsWith("image/") && !isHeic) {
+      toast.error("Pick an image file");
+      return;
+    }
+    if (rawFile.size > 8 * 1024 * 1024) {
+      toast.error("Photo too large (max 8MB)");
+      return;
+    }
+    setAvatarBusy(true);
+    try {
+      const file = await convertHeicToJpeg(rawFile);
+      if (avatarPath) await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const newPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from(AVATAR_BUCKET)
+        .upload(newPath, file, { contentType: file.type });
+      if (upErr) throw upErr;
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .upsert({ user_id: user.id, avatar_url: newPath }, { onConflict: "user_id" });
+      if (dbErr) throw dbErr;
+      const { data: sig } = await supabase.storage
+        .from(AVATAR_BUCKET)
+        .createSignedUrl(newPath, 3600);
+      setAvatarPath(newPath);
+      setAvatarUrl(sig?.signedUrl ?? null);
+      toast.success("Photo added");
+    } catch (e) {
+      console.error("Avatar upload failed:", e);
+      toast.error("Could not upload photo");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    if (!user || !avatarPath) return;
+    setAvatarBusy(true);
+    try {
+      await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
+      await supabase
+        .from("profiles")
+        .upsert({ user_id: user.id, avatar_url: null }, { onConflict: "user_id" });
+      setAvatarPath(null);
+      setAvatarUrl(null);
+    } catch (e) {
+      console.error("Remove avatar failed:", e);
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
   // Per-field validity (only surface errors after submit-attempt).
   const errors = {
+    photo: !avatarPath ? "Add a profile photo to continue" : "",
     name: name.trim().length === 0 ? "Enter your full name" : "",
     age: age === "" ? "Select your age" : "",
     postcode:
