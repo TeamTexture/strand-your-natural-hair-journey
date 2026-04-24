@@ -396,13 +396,20 @@ const Journal = () => {
 interface GoalCardProps {
   goal: UserGoal;
   onEdit: () => void;
+  onView: () => void;
 }
 
-const GoalCard = ({ goal, onEdit }: GoalCardProps) => {
+const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
   // New simple shape: Challenge + Target. Fall back to legacy length-retention
   // numeric progress only when the user hasn't migrated yet.
   const hasNewShape = !!(goal.challenge || goal.target_text);
   const isComplete = goal.status === "complete";
+
+  // Stop the card-level click from firing when the pencil is tapped.
+  const stopAndEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit();
+  };
 
   if (!hasNewShape && goal.target_value != null) {
     const span = Math.max((goal.target_value ?? 0) - goal.start_value, 0.0001);
@@ -412,54 +419,80 @@ const GoalCard = ({ goal, onEdit }: GoalCardProps) => {
     );
     const pct = Math.round((progressed / span) * 100);
     return (
-      <SurfaceCard>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onView}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onView();
+          }
+        }}
+        className="cursor-pointer"
+      >
+        <SurfaceCard className="hover:border-primary/50 transition-colors">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <p className="text-sm font-medium leading-tight">{goal.title}</p>
+            <button
+              onClick={stopAndEdit}
+              className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary"
+              aria-label="Edit goal"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+          </div>
+          <div className="h-2 bg-border rounded-full overflow-hidden">
+            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Goal: {goal.target_value} {goal.unit} · Current: {goal.current_value} {goal.unit}
+          </p>
+        </SurfaceCard>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onView}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onView();
+        }
+      }}
+      className="cursor-pointer"
+    >
+      <SurfaceCard className="hover:border-primary/50 transition-colors">
         <div className="flex items-start justify-between gap-3 mb-2">
-          <p className="text-sm font-medium leading-tight">{goal.title}</p>
+          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
+            {isComplete ? "Complete" : "In progress"}
+          </span>
           <button
-            onClick={onEdit}
+            onClick={stopAndEdit}
             className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary"
             aria-label="Edit goal"
           >
             <Pencil className="size-3.5" />
           </button>
         </div>
-        <div className="h-2 bg-border rounded-full overflow-hidden">
-          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-2">
-          Goal: {goal.target_value} {goal.unit} · Current: {goal.current_value} {goal.unit}
-        </p>
+        {goal.challenge && (
+          <div className="mb-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Challenge</p>
+            <p className="text-sm leading-snug whitespace-pre-line">{goal.challenge}</p>
+          </div>
+        )}
+        {goal.target_text && (
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Target</p>
+            <p className="text-sm leading-snug whitespace-pre-line">{goal.target_text}</p>
+          </div>
+        )}
       </SurfaceCard>
-    );
-  }
-
-  return (
-    <SurfaceCard>
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
-          {isComplete ? "Complete" : "In progress"}
-        </span>
-        <button
-          onClick={onEdit}
-          className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary"
-          aria-label="Edit goal"
-        >
-          <Pencil className="size-3.5" />
-        </button>
-      </div>
-      {goal.challenge && (
-        <div className="mb-2">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Challenge</p>
-          <p className="text-sm leading-snug">{goal.challenge}</p>
-        </div>
-      )}
-      {goal.target_text && (
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Target</p>
-          <p className="text-sm leading-snug">{goal.target_text}</p>
-        </div>
-      )}
-    </SurfaceCard>
+    </div>
   );
 };
 
