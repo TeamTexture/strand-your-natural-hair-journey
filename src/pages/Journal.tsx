@@ -20,8 +20,11 @@ const Journal = () => {
         title="Hair Journal"
         back={false}
         right={
-          <button onClick={() => toast("New entry — add a photo")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
-            + Add
+          <button
+            onClick={() => navigate(`/journal/${journalEntries[0]?.id}`)}
+            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium"
+          >
+            + Photo
           </button>
         }
       />
