@@ -69,7 +69,10 @@ const MoodboardBoard = () => {
     };
   }, [id, user, navigate]);
 
-  const { images, loading, uploadImage, toggleFavourite, deleteImage } = useMoodboardImages(board?.id);
+  const { images, loading, uploadImage, toggleFavourite, deleteImage } = useMoodboardImages(
+    board?.id,
+    { isFavouritesBoard: !!board?.is_favourites },
+  );
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
