@@ -84,15 +84,25 @@ const Profile = () => {
       </div>
 
       <div className="px-5 grid grid-cols-2 gap-3 pb-2">
-        <button onClick={() => navigate("/appointments")} className="text-left p-4 rounded-[14px] border border-border bg-card">
+        <button onClick={() => navigate("/appointments")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">📅</div>
           <p className="text-sm font-medium leading-tight">Appointments</p>
           <p className="text-[11px] text-muted-foreground">3 logged</p>
         </button>
-        <button onClick={() => navigate("/directory")} className="text-left p-4 rounded-[14px] border border-border bg-card">
+        <button onClick={() => navigate("/directory")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🩺</div>
           <p className="text-sm font-medium leading-tight">Find Professionals</p>
           <p className="text-[11px] text-muted-foreground">Verified directory</p>
+        </button>
+        <button onClick={() => navigate("/nutrition-plan")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
+          <div className="text-2xl mb-1.5">🥗</div>
+          <p className="text-sm font-medium leading-tight">Nutrition Plan</p>
+          <p className="text-[11px] text-muted-foreground">Personalised</p>
+        </button>
+        <button onClick={() => navigate("/onboarding/blood-ai-summary")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
+          <div className="text-2xl mb-1.5">🧪</div>
+          <p className="text-sm font-medium leading-tight">Blood Summary</p>
+          <p className="text-[11px] text-muted-foreground">AI-generated</p>
         </button>
       </div>
 
