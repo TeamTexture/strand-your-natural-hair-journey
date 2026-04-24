@@ -52,6 +52,7 @@ export const PROFESSIONALS: Professional[] = [
     bookCode: "STRAND15",
     discount: "STRAND15 — 15% off first consultation",
     featured: true,
+    iotNumber: "1247",
   },
   {
     id: "spencer-clinic",

@@ -42,6 +42,11 @@ export function useDirectoryProfessionals() {
               ? `${bookCode} — ${row.discount_description}`
               : row.discount_description ?? "";
 
+          // Pull verification number into typed slot so the manual form can
+          // auto-populate when this pro is picked.
+          const isGmc = (row.verification_type ?? "").toUpperCase().includes("GMC");
+          const isIot = (row.verification_type ?? "").toUpperCase().includes("IOT");
+
           return {
             id: row.id,
             emoji,
@@ -60,6 +65,8 @@ export function useDirectoryProfessionals() {
             discount,
             bookingUrl: row.booking_url ?? row.website_url ?? undefined,
             featured: true,
+            gmcNumber: isGmc ? row.verification_number ?? undefined : undefined,
+            iotNumber: isIot ? row.verification_number ?? undefined : undefined,
           };
         });
 
