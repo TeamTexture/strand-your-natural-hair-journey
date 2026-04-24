@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { Shield, LogOut } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -7,6 +7,7 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Row { icon: string; label: string; value: string; tone?: "good" | "warn" | "default" }
 const hair: Row[] = [
