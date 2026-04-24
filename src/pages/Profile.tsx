@@ -129,6 +129,12 @@ const Profile = () => {
         <Button variant="goldGhost" size="pill" onClick={() => toast("Share link copied")}>
           Copy Share Link
         </Button>
+        <button
+          onClick={async () => { await signOut(); navigate("/", { replace: true }); }}
+          className="w-full flex items-center justify-center gap-2 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground py-3 min-h-[44px]"
+        >
+          <LogOut className="size-3.5" /> Sign out
+        </button>
       </div>
     </ScreenLayout>
   );
