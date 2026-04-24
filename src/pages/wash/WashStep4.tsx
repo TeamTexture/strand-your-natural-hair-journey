@@ -67,7 +67,9 @@ const WashStep4 = () => {
       if (state === "done") parts.push(`${labels[key]} ✓`);
       else if (state === "skipped") parts.push(`${labels[key]} skipped`);
     });
-    if (step1.heatTreatment === "yes") parts.push("Heat treatment ✓");
+    if (step1.heatTreatment === "yes") {
+      parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
+    }
     if (step1.heatTreatment === "no") parts.push("No heat");
     if (step1.products?.length) {
       parts.push(`Products: ${step1.products.join(", ")}`);
