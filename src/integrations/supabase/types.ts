@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string | null
+          clinic_name: string | null
+          created_at: string
+          follow_up_needed: boolean
+          id: string
+          notes: string | null
+          professional_name: string
+          professional_type: string | null
+          reason: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time?: string | null
+          clinic_name?: string | null
+          created_at?: string
+          follow_up_needed?: boolean
+          id?: string
+          notes?: string | null
+          professional_name: string
+          professional_type?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string | null
+          clinic_name?: string | null
+          created_at?: string
+          follow_up_needed?: boolean
+          id?: string
+          notes?: string | null
+          professional_name?: string
+          professional_type?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       blood_results: {
         Row: {
           category: string | null
@@ -71,6 +119,45 @@ export type Database = {
           updated_at?: string
           user_id?: string
           value?: number | null
+        }
+        Relationships: []
+      }
+      product_voicenotes: {
+        Row: {
+          audio_url: string
+          created_at: string
+          duration_sec: number | null
+          id: string
+          product_brand: string | null
+          product_key: string
+          product_name: string | null
+          transcript: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_url: string
+          created_at?: string
+          duration_sec?: number | null
+          id?: string
+          product_brand?: string | null
+          product_key: string
+          product_name?: string | null
+          transcript?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string
+          created_at?: string
+          duration_sec?: number | null
+          id?: string
+          product_brand?: string | null
+          product_key?: string
+          product_name?: string | null
+          transcript?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
