@@ -315,20 +315,27 @@ const WashStep1 = () => {
           step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: prePooProducts }}
           state={prePoo}
           setState={setPrePoo}
+          addedProducts={addedByStep.prePoo}
+          onAddProduct={() => setPickerStep("prePoo")}
         />
         <StepCard
           step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo / co-wash", defaultDone: true, products: cleanseProducts }}
           state={cleanse}
           setState={setCleanse}
+          addedProducts={addedByStep.cleanse}
+          onAddProduct={() => setPickerStep("cleanse")}
         />
         <StepCard
           step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: conditionProducts }}
           state={condition}
           setState={setCondition}
+          addedProducts={addedByStep.condition}
+          onAddProduct={() => setPickerStep("condition")}
           // Once Done, surface the conditioner(s) the user owns + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
             ...conditionProducts,
+            ...addedByStep.condition,
             ...(heatChoice === "yes"
               ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
               : []),
