@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import HairStrandIcon from "./HairStrandIcon";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const SplashScreen = () => {
+  const navigate = useNavigate();
   return (
-    <div className="flex flex-col min-h-screen sm:h-[792px] px-7 pt-16 pb-10 bg-background">
+    <div className="flex flex-col h-full px-7 pt-16 pb-10 bg-background">
       {/* Top: logo block */}
       <div className="flex-1 flex flex-col items-center justify-center text-center">
         <HairStrandIcon className="w-16 h-16 text-primary mb-8" />
@@ -24,20 +27,22 @@ const SplashScreen = () => {
       {/* Bottom: CTAs */}
       <div className="flex flex-col gap-3">
         <Button
-          variant="default"
-          className="h-12 w-full rounded-md uppercase tracking-[0.12em] text-xs font-medium shadow-sm"
+          variant="gold"
+          size="pill"
+          onClick={() => toast("Membership flow opening — £19.50/mo")}
         >
           Join TT Collective Pro — £19.50/mo
         </Button>
 
         <Button
-          variant="outline"
-          className="h-12 w-full rounded-md uppercase tracking-[0.12em] text-xs font-medium border-primary text-primary bg-transparent hover:bg-primary/5 hover:text-primary"
+          variant="goldOutline"
+          size="pill"
+          onClick={() => navigate("/onboarding/profile-step-1")}
         >
           I'm Already a Member
         </Button>
 
-        <p className="mt-3 text-center font-display italic text-xs text-foreground/60">
+        <p className="mt-3 text-center font-script italic text-sm text-foreground/60">
           Exclusive to TT Collective members.
         </p>
       </div>
