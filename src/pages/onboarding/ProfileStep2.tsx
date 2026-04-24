@@ -88,7 +88,46 @@ const ProfileStep2 = () => {
         <TagGroup label="Exercise" options={["Rarely", "1-3x per week", "4-5x per week", "Daily"]} value={exercise} onChange={setExercise} />
         <TagGroup label="Sleep Quality" options={["Poor", "Average", "Good"]} value={sleep} onChange={setSleep} />
 
-        <FormField label="Medications" value={meds} onChange={(e) => setMeds(e.target.value)} placeholder="Tap to add..." />
+        {(() => {
+          const medsList = meds
+            .split(",")
+            .map((m) => m.trim())
+            .filter(Boolean);
+          const overLimit = medsList.length > 20;
+          return (
+            <FormField
+              label="Medications"
+              value={meds}
+              onChange={(e) => {
+                const next = e.target.value;
+                // Allow typing freely but cap at 20 entries on commit (comma).
+                const parts = next.split(",").map((m) => m.trim()).filter(Boolean);
+                if (parts.length <= 20) {
+                  setMeds(next);
+                } else {
+                  // Truncate to first 20, preserving trailing comma if user is mid-typing.
+                  setMeds(parts.slice(0, 20).join(", "));
+                }
+              }}
+              placeholder="e.g. Levothyroxine, Metformin, Sertraline"
+              helper={`Separate each medication with a comma. Max 20. (${medsList.length}/20)`}
+              autoComplete="off"
+              rightAdornment={
+                medsList.length > 0 ? (
+                  <span
+                    className={
+                      overLimit
+                        ? "text-[10px] uppercase tracking-[0.15em] font-medium text-warn"
+                        : "text-[10px] uppercase tracking-[0.15em] font-medium text-primary"
+                    }
+                  >
+                    {medsList.length}/20
+                  </span>
+                ) : undefined
+              }
+            />
+          );
+        })()}
 
         <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/pro-gate")}>
           Continue →
