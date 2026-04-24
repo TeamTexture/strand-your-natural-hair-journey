@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
 
 interface Props {
   name: string;
@@ -56,21 +57,23 @@ const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
     };
   }, [user]);
 
-  const handlePick = async (file: File) => {
+  const handlePick = async (rawFile: File) => {
     if (!user) {
       toast.error("Please sign in to add a photo");
       return;
     }
-    if (!file.type.startsWith("image/")) {
+    const isHeicFile = /\.(heic|heif)$/i.test(rawFile.name) || /heic|heif/i.test(rawFile.type);
+    if (!rawFile.type.startsWith("image/") && !isHeicFile) {
       toast.error("Pick an image file");
       return;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Photo too large (max 4MB)");
+    if (rawFile.size > 8 * 1024 * 1024) {
+      toast.error("Photo too large (max 8MB)");
       return;
     }
     setBusy(true);
     try {
+      const file = await convertHeicToJpeg(rawFile);
       // Remove existing avatar
       if (path) await supabase.storage.from(BUCKET).remove([path]);
 
@@ -125,7 +128,7 @@ const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         className="hidden"
         onChange={async (e) => {
           const f = e.target.files?.[0];

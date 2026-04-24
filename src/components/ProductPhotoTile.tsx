@@ -49,7 +49,7 @@ const ProductPhotoTile = ({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         {...(preferCamera ? { capture: "environment" as const } : {})}
         className="hidden"
         onChange={async (e) => {

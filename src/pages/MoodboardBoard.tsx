@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMoodboardImages, type MoodboardImage } from "@/hooks/useMoodboards";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
 
 interface BoardMeta {
   id: string;
@@ -78,21 +79,24 @@ const MoodboardBoard = () => {
     if (!files || files.length === 0) return;
     setUploading(true);
     let okCount = 0;
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) {
-        toast.error(`${file.name} is not an image`);
+    for (const rawFile of Array.from(files)) {
+      const isHeicFile = /\.(heic|heif)$/i.test(rawFile.name) || /heic|heif/i.test(rawFile.type);
+      if (!rawFile.type.startsWith("image/") && !isHeicFile) {
+        toast.error(`${rawFile.name} is not an image`);
         continue;
       }
-      if (file.size > 8 * 1024 * 1024) {
-        toast.error(`${file.name} is too large (max 8MB)`);
+      if (rawFile.size > 8 * 1024 * 1024) {
+        toast.error(`${rawFile.name} is too large (max 8MB)`);
         continue;
       }
       try {
+        const file = await convertHeicToJpeg(rawFile);
         await uploadImage(file);
         okCount++;
       } catch (e) {
         console.error("Upload failed:", e);
-        toast.error(`Could not upload ${file.name}`);
+        const msg = e instanceof Error ? e.message : `Could not upload ${rawFile.name}`;
+        toast.error(msg);
       }
     }
     if (okCount > 0) toast.success(`${okCount} image${okCount === 1 ? "" : "s"} added`);
@@ -176,7 +180,7 @@ const MoodboardBoard = () => {
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         capture="environment"
         className="hidden"
         onChange={(e) => {
@@ -187,7 +191,7 @@ const MoodboardBoard = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         multiple
         className="hidden"
         onChange={(e) => {

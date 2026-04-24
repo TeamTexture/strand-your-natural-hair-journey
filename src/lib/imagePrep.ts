@@ -3,10 +3,15 @@
 // straight to the model, removing the need for the model to fetch a signed
 // URL (which has previously failed for HEIC content-type).
 //
-// Strategy: decode via the browser's native image pipeline (Safari can decode
-// HEIC there), then re-encode to JPEG via canvas. Falls back to the original
-// File when re-encoding fails (e.g. some Android Chrome HEIC pickers) so the
-// upload still succeeds — the AI call will then surface a clear error.
+// Strategy:
+//   1. If the file is HEIC/HEIF, decode it to JPEG via the `heic-to` library
+//      (works in every modern browser including Chrome / Firefox / Android).
+//   2. Otherwise rely on the browser's native image pipeline.
+//   3. Re-encode through canvas to a size-capped JPEG for predictable AI input.
+//
+// Falls back to the original File only when the canvas re-encode itself
+// fails on an already-supported format.
+import { heicTo, isHeic } from "heic-to";
 
 const MAX_DIM = 1600; // long-edge cap; keeps base64 payload small
 const JPEG_QUALITY = 0.9;
@@ -54,10 +59,36 @@ const loadImage = (src: string): Promise<HTMLImageElement> =>
  * AI a predictable JPEG it can read.
  */
 export async function prepareImageForAi(file: File): Promise<PreparedImage> {
-  // Read original as data URL so <img> can decode it. Safari handles HEIC here;
-  // Chrome/Firefox typically don't, in which case loadImage rejects and we
-  // fall back below.
-  const originalDataUrl = await readAsDataUrl(file);
+  // Step 1 — if the picked file is HEIC/HEIF, decode it to a JPEG Blob first.
+  // iPhones save photos as HEIC by default; Chrome/Firefox/Android can't
+  // decode them natively. `heic-to` works in every modern browser via wasm.
+  let working: File = file;
+  const looksHeicByName = /\.(heic|heif)$/i.test(file.name);
+  const looksHeicByType = /heic|heif/i.test(file.type);
+  if (looksHeicByName || looksHeicByType) {
+    try {
+      const heicCheck = await isHeic(file).catch(() => true);
+      if (heicCheck) {
+        const jpegBlob = await heicTo({
+          blob: file,
+          type: "image/jpeg",
+          quality: 0.92,
+        });
+        working = new File([jpegBlob], `${stripExt(file.name)}.jpg`, {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        });
+      }
+    } catch (heicErr) {
+      console.error("HEIC decode failed", heicErr);
+      throw new Error(
+        "We couldn't read this HEIC photo. Try retaking it, or in Settings → Camera → Formats switch to 'Most Compatible'.",
+      );
+    }
+  }
+
+  // Step 2 — read as data URL so <img> can decode it for canvas re-encode.
+  const originalDataUrl = await readAsDataUrl(working);
 
   try {
     const img = await loadImage(originalDataUrl);
@@ -77,24 +108,22 @@ export async function prepareImageForAi(file: File): Promise<PreparedImage> {
 
     const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
     const blob = await (await fetch(dataUrl)).blob();
-    const jpegFile = new File([blob], `${stripExt(file.name)}.jpg`, {
+    const jpegFile = new File([blob], `${stripExt(working.name)}.jpg`, {
       type: "image/jpeg",
       lastModified: Date.now(),
     });
     return { uploadFile: jpegFile, dataUrl, width: w, height: h };
   } catch (e) {
     console.warn("prepareImageForAi: re-encode failed, using original", e);
-    // Last-resort fallback. If the original is a format the AI definitely
-    // can't read (HEIC), we still need *something*. We surface the original
-    // so the upload + AI call can still proceed and fail with a clear
-    // server-side message.
-    if (!SUPPORTED_DIRECT.has(file.type)) {
+    // Last-resort fallback. If the working file is still a format the AI
+    // definitely can't read, surface a clear error.
+    if (!SUPPORTED_DIRECT.has(working.type)) {
       throw new Error(
-        "We couldn't read this image. iPhone users: in Settings → Camera → Formats, switch to 'Most Compatible' and try again, or pick a JPEG/PNG screenshot.",
+        "We couldn't read this image. Try a JPEG or PNG screenshot.",
       );
     }
     return {
-      uploadFile: file,
+      uploadFile: working,
       dataUrl: originalDataUrl,
       width: 0,
       height: 0,
@@ -103,3 +132,29 @@ export async function prepareImageForAi(file: File): Promise<PreparedImage> {
 }
 
 const stripExt = (name: string) => name.replace(/\.[^.]+$/, "");
+
+/**
+ * Lightweight HEIC→JPEG conversion for upload-only flows (journal photos,
+ * moodboard images, avatars) where we don't need a base64 data URL or canvas
+ * resize. Returns the original file untouched if it isn't HEIC.
+ */
+export async function convertHeicToJpeg(file: File): Promise<File> {
+  const looksHeicByName = /\.(heic|heif)$/i.test(file.name);
+  const looksHeicByType = /heic|heif/i.test(file.type);
+  if (!looksHeicByName && !looksHeicByType) return file;
+  try {
+    const heicCheck = await isHeic(file).catch(() => true);
+    if (!heicCheck) return file;
+    const blob = await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
+    return new File([blob], `${stripExt(file.name)}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch (e) {
+    console.error("HEIC conversion failed", e);
+    throw new Error(
+      "We couldn't read this HEIC photo. Try retaking it, or in Settings → Camera → Formats switch to 'Most Compatible'.",
+    );
+  }
+}
+
