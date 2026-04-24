@@ -231,10 +231,18 @@ const Journal = () => {
           const displayTitle = match?.[2] || s.title || "Journal entry";
           const dateLabel = formatEntryDate(s.entry_date);
           return (
-            <button
+            <div
               key={s.id}
+              role="button"
+              tabIndex={0}
               onClick={() => linkId && navigate(`/journal/entry/${linkId}`)}
-              className="w-full text-left"
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && linkId) {
+                  e.preventDefault();
+                  navigate(`/journal/entry/${linkId}`);
+                }
+              }}
+              className="w-full text-left cursor-pointer"
             >
               <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
                 <div className={`relative h-40 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
@@ -247,12 +255,25 @@ const Journal = () => {
                     {dateLabel}
                   </span>
                 </div>
-                <div className="p-3">
-                  <p className="font-display text-base font-semibold">{displayTitle}</p>
-                  {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
+                <div className="p-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-base font-semibold">{displayTitle}</p>
+                    {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingDelete(s);
+                    }}
+                    aria-label="Delete journal entry"
+                    className="shrink-0 size-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
               </SurfaceCard>
-            </button>
+            </div>
           );
         })}
         {journalEntries.map((j) => {
