@@ -266,16 +266,19 @@ const Journal = () => {
             </div>
           );
         })}
-        {savedEntries.length === 0 && (
-          <button
-            type="button"
-            onClick={() => navigate("/journal/entry/new")}
-            className="w-full h-36 rounded-[14px] border-2 border-dashed border-primary/60 bg-card flex flex-col items-center justify-center gap-2 text-primary"
-          >
-            <Plus className="size-7" />
-            <span className="text-[11px] uppercase tracking-[0.2em] font-medium">New Entry</span>
-          </button>
-        )}
+        {/* Always-visible "new entry" tile so users can keep adding entries
+            once they have some saved (previously this only rendered when
+            the photo journal was empty, leaving no entry point). */}
+        <button
+          type="button"
+          onClick={() => navigate("/journal/entry/new")}
+          className="w-full h-36 rounded-[14px] border-2 border-dashed border-primary/60 bg-card flex flex-col items-center justify-center gap-2 text-primary"
+        >
+          <Plus className="size-7" />
+          <span className="text-[11px] uppercase tracking-[0.2em] font-medium">
+            {savedEntries.length === 0 ? "Add Your First Entry" : "New Entry"}
+          </span>
+        </button>
       </div>
 
       {(boardsLoading || populatedBoards.length > 0) && (

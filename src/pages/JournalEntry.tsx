@@ -173,10 +173,28 @@ const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoPr
 };
 
 const JournalEntry = () => {
-  const { id = "" } = useParams();
+  const { id: rawId = "" } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const entry = getJournalEntry(id);
+  // Brand-new entries arrive at /journal/entry/new. We mint a stable per-session
+  // id so all the localStorage keys (photos, reflection) line up, and synthesize
+  // a blank `entry` so the screen renders normally instead of hitting the
+  // "Entry not found" fallback below.
+  const newEntryIdRef = useRef<string>(`new-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`);
+  const isNew = rawId === "new";
+  const id = isNew ? newEntryIdRef.current : rawId;
+  const catalogEntry = getJournalEntry(rawId);
+  const entry = catalogEntry ?? (isNew
+    ? {
+        id,
+        gradient: "from-[#C8B89A] to-[#D4B96A]",
+        emoji: "📔",
+        date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+        title: "New journal entry",
+        note: "",
+        productKeys: [] as string[],
+      }
+    : undefined);
 
   const storageKey = `strand_journal_entry_${id}`;
   // Legacy single-photo key (kept in sync with photos[0]) so the Hair Journal list
