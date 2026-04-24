@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -106,6 +106,26 @@ const AlertCard = ({ alert }: { alert: AlertItem }) => (
     </div>
   </button>
 );
+
+// Section label with an inline "Edit" affordance routing to the right onboarding screen.
+const EditableSectionLabel = ({
+  children,
+  onEdit,
+  editLabel = "Edit",
+}: { children: React.ReactNode; onEdit: () => void; editLabel?: string }) => (
+  <div className="px-5 pt-2 pb-1.5 flex items-end justify-between">
+    <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+      {children}
+    </span>
+    <button
+      onClick={onEdit}
+      className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium inline-flex items-center gap-1 px-2 -mr-2 min-h-[36px]"
+    >
+      <Pencil className="size-3" /> {editLabel}
+    </button>
+  </div>
+);
+
 
 // ---------- Page ----------
 const Profile = () => {
@@ -260,6 +280,32 @@ const Profile = () => {
             STRAND Member{ageDisplay ? ` · ${ageDisplay}` : ""}
           </p>
         </div>
+        <button
+          onClick={() => navigate("/onboarding/profile-step-1")}
+          aria-label="Edit basic details"
+          className="size-10 rounded-full border border-border bg-card flex items-center justify-center text-foreground/80 hover:text-primary hover:border-primary/50 transition-colors shrink-0"
+        >
+          <Pencil className="size-4" />
+        </button>
+      </div>
+
+      {/* Update after appointment CTA */}
+      <div className="px-5 pb-4">
+        <button
+          onClick={() => navigate("/setup")}
+          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[64px] text-left"
+        >
+          <div className="size-10 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+            <RefreshCw className="size-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight">Update your profile</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5">
+              Just seen a professional? Refresh hair, blood or meds.
+            </p>
+          </div>
+          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Edit ›</span>
+        </button>
       </div>
 
       {/* Alerts — replaces the chips area when data exists */}
@@ -322,7 +368,9 @@ const Profile = () => {
       {/* Hair Profile — only if user filled it in */}
       {(hair.diameter || hair.porosity || hair.density || hair.scalp || (hair.diagnosed?.length ?? 0) > 0) && (
         <>
-          <SectionLabel>Hair Profile</SectionLabel>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-3-hair")}>
+            Hair Profile
+          </EditableSectionLabel>
           <div className="px-5 pb-2">
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {hair.diameter && <ProfileRow icon="🧬" label="Strand diameter" value={hair.diameter} />}
@@ -340,7 +388,9 @@ const Profile = () => {
       {/* Blood Results — only if user entered any */}
       {flaggedBlood.length > 0 ? (
         <>
-          <SectionLabel>Flagged Blood Results</SectionLabel>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/blood-iron-vitamins")} editLabel="Update">
+            Flagged Blood Results
+          </EditableSectionLabel>
           <div className="px-5 pb-4">
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {flaggedBlood.map((b) => (
@@ -356,18 +406,25 @@ const Profile = () => {
           </div>
         </>
       ) : Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v)) ? (
-        <div className="px-5 pb-4">
-          <div className="p-4 rounded-[14px] bg-good/10 border border-good/30 flex items-center gap-3">
-            <Sparkles className="size-5 text-good shrink-0" />
-            <p className="text-sm">All blood markers in normal range</p>
+        <>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/blood-iron-vitamins")} editLabel="Update">
+            Blood Results
+          </EditableSectionLabel>
+          <div className="px-5 pb-4">
+            <div className="p-4 rounded-[14px] bg-good/10 border border-good/30 flex items-center gap-3">
+              <Sparkles className="size-5 text-good shrink-0" />
+              <p className="text-sm">All blood markers in normal range</p>
+            </div>
           </div>
-        </div>
+        </>
       ) : null}
 
       {/* Medications — only if user added any */}
       {Array.isArray(health.medications) && health.medications.length > 0 && (
         <>
-          <SectionLabel>Medications</SectionLabel>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-2")}>
+            Medications
+          </EditableSectionLabel>
           <div className="px-5 pb-4">
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {health.medications.slice(0, 5).map((m) => (
