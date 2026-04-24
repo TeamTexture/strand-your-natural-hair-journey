@@ -36,6 +36,8 @@ export interface AiContext {
     last_3_wash_days: Array<Record<string, unknown>>;
     avoid_ingredients: string[];
     favourite_ingredients: string[];
+    low_rated_products: Array<Record<string, unknown>>;
+    high_rated_products: Array<Record<string, unknown>>;
   };
   shelf: Array<Record<string, unknown>>;
 }
@@ -81,12 +83,14 @@ export async function buildAiContext(): Promise<AiContext> {
   let favouriteIngredients: string[] = [];
   let recentWashes: Array<Record<string, unknown>> = [];
   let shelf: Array<Record<string, unknown>> = [];
+  let lowRated: Array<Record<string, unknown>> = [];
+  let highRated: Array<Record<string, unknown>> = [];
 
   try {
     const { data: u } = await supabase.auth.getUser();
     const userId = u?.user?.id;
     if (userId) {
-      const [blood, ingLists, meds, washes, shelfRows] = await Promise.all([
+      const [blood, ingLists, meds, washes, shelfRows, ratings] = await Promise.all([
         supabase
           .from("blood_results")
           .select("marker, value, unit, status, category")
