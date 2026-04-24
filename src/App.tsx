@@ -44,6 +44,7 @@ import Journal from "./pages/Journal";
 import MoodboardList from "./pages/MoodboardList";
 import MoodboardBoard from "./pages/MoodboardBoard";
 import Appointments from "./pages/Appointments";
+import LogAppointment from "./pages/LogAppointment";
 import Directory from "./pages/Directory";
 import Profile from "./pages/Profile";
 import NutritionPlan from "./pages/NutritionPlan";
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/journal/moodboards" element={<Protected><MoodboardList /></Protected>} />
               <Route path="/journal/moodboards/:id" element={<Protected><MoodboardBoard /></Protected>} />
               <Route path="/appointments" element={<Protected><Appointments /></Protected>} />
+              <Route path="/appointments/log" element={<Protected><LogAppointment /></Protected>} />
               <Route path="/directory" element={<Protected><Directory /></Protected>} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
