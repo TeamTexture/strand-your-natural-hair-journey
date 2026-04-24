@@ -101,6 +101,50 @@ const MyToolsSection = () => {
     setPhotoPreview(URL.createObjectURL(f));
   };
 
+  const handleAnalyseLink = async () => {
+    const raw = linkUrl.trim();
+    if (!raw) {
+      toast.error("Paste a product link first");
+      return;
+    }
+    let normalised = raw;
+    if (!/^https?:\/\//i.test(normalised)) normalised = `https://${normalised}`;
+    try { new URL(normalised); } catch {
+      toast.error("That doesn't look like a valid web link.");
+      return;
+    }
+    setAnalysing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("tool-analyse-url", {
+        body: { url: normalised },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.is_tool === false) {
+        toast.error("That page doesn't look like a hair tool. Try a different link.");
+        return;
+      }
+      // Pre-fill — keep anything the user has already typed.
+      if (data?.name && !name) setName(String(data.name));
+      if (data?.brand && !brand) setBrand(String(data.brand));
+      if (data?.category && !category) {
+        const matched = TOOL_CATEGORIES.find(
+          (c) => c.toLowerCase() === String(data.category).toLowerCase(),
+        );
+        if (matched) setCategory(matched);
+      }
+      if (data?.summary && !notes) setNotes(String(data.summary));
+      toast.success("Tool details filled in — review and save");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Couldn't analyse that page";
+      console.error("tool URL scan failed", e);
+      toast.error(msg);
+    } finally {
+      setAnalysing(false);
+    }
+  };
+
+
   const handleSave = async () => {
     setSaving(true);
     const created = await addTool({
