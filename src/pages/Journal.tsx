@@ -196,7 +196,11 @@ const Journal = () => {
             <div className="h-2 w-full bg-border/60 rounded mt-3 animate-pulse" />
           </SurfaceCard>
         ) : lengthGoal ? (
-          <GoalCard goal={lengthGoal} onEdit={() => openEditor(lengthGoal)} />
+          <GoalCard
+            goal={lengthGoal}
+            onEdit={() => openEditor(lengthGoal)}
+            onView={() => openDetail(lengthGoal)}
+          />
         ) : (
           <SurfaceCard className="text-center">
             <Target className="size-6 text-primary mx-auto mb-2" />
@@ -211,7 +215,12 @@ const Journal = () => {
         )}
 
         {otherGoals.map((g) => (
-          <GoalCard key={g.id} goal={g} onEdit={() => openEditor(g)} />
+          <GoalCard
+            key={g.id}
+            goal={g}
+            onEdit={() => openEditor(g)}
+            onView={() => openDetail(g)}
+          />
         ))}
       </div>
 
