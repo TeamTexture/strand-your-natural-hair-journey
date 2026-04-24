@@ -43,11 +43,12 @@ const ProCard = ({ p }: { p: Professional }) => (
 const ProBook = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const { pros, loading } = useDirectoryProfessionals();
 
-  const featured = useMemo(() => PROFESSIONALS.filter((p) => p.featured), []);
+  const featured = useMemo(() => pros.filter((p) => p.featured), [pros]);
   const searchResults = useMemo(
-    () => (query.trim().length >= 2 ? searchProfessionals(query) : []),
-    [query],
+    () => (query.trim().length >= 2 ? searchProfessionalsIn(pros, query) : []),
+    [pros, query],
   );
   const showingSearch = query.trim().length >= 2;
 
