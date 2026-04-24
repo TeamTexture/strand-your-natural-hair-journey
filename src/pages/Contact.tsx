@@ -8,7 +8,7 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import VoiceNoteField from "@/components/VoiceNoteField";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +25,7 @@ const Contact = () => {
   const [phone, setPhone] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [messageAudio, setMessageAudio] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -230,20 +231,17 @@ const Contact = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label
-                htmlFor="contact-message"
-                className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
-              >
-                Message
-              </Label>
-              <Textarea
-                id="contact-message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+              <VoiceNoteField
+                label="Message"
                 placeholder="Tell us what is going on…"
+                value={message}
+                onChange={(v) => setMessage(v.slice(0, 4000))}
+                audioPath={messageAudio}
+                onAudioPathChange={setMessageAudio}
+                folder="contact/messages"
                 rows={5}
-                maxLength={4000}
                 required
+                errorMessage="Please share a message"
               />
               <p className="text-[10px] text-muted-foreground text-right">
                 {message.length}/4000

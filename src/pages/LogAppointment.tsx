@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { toast } from "sonner";
+import VoiceNoteField from "@/components/VoiceNoteField";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 
@@ -35,6 +36,7 @@ const LogAppointment = () => {
   const [time, setTime] = useState("");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
+  const [notesAudio, setNotesAudio] = useState<string | null>(null);
   const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
   const [followUp, setFollowUp] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -221,19 +223,16 @@ const LogAppointment = () => {
           autoComplete="off"
         />
 
-        <label className="block">
-          <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
-            Notes
-          </span>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Diagnosis, treatment plan, recommendations..."
-            rows={4}
-            autoComplete="off"
-            className="w-full px-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60 resize-none"
-          />
-        </label>
+        <VoiceNoteField
+          label="Notes"
+          placeholder="Diagnosis, treatment plan, recommendations..."
+          value={notes}
+          onChange={setNotes}
+          audioPath={notesAudio}
+          onAudioPathChange={setNotesAudio}
+          folder="appointments/notes"
+          rows={4}
+        />
 
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
