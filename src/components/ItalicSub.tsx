@@ -4,9 +4,12 @@ interface Props {
   children: ReactNode;
 }
 
-/** Italic Cormorant Garamond sub-text used under titles */
+/**
+ * Sub-text shown under titles. Now uses clear, readable body type at a larger
+ * size (was italic Cormorant — replaced for legibility per design feedback).
+ */
 const ItalicSub = ({ children }: Props) => (
-  <p className="font-script italic text-[15px] leading-snug text-muted-foreground px-5 pb-4 text-center">
+  <p className="font-body text-[15px] leading-relaxed text-foreground/75 px-5 pb-4 text-center">
     {children}
   </p>
 );

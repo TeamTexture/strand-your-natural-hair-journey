@@ -8,6 +8,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ProAvatar from "@/components/ProAvatar";
 import { Button } from "@/components/ui/button";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
@@ -15,9 +16,7 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 const ProCard = ({ p }: { p: Professional }) => (
   <SurfaceCard padded={false} className="overflow-hidden">
     <div className="p-4 flex gap-3">
-      <div className="size-14 rounded-[12px] bg-primary/15 flex items-center justify-center text-2xl shrink-0">
-        {p.emoji}
-      </div>
+      <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-14" />
       <div className="flex-1 min-w-0">
         <h3 className="font-display text-base font-semibold leading-tight">{p.name}</h3>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">

@@ -24,6 +24,12 @@ export interface Professional {
   bookingUrl?: string;
   /** Featured = surfaced on the onboarding "Recommended" screen. */
   featured?: boolean;
+  /** Optional headshot URL (square). When absent, initials avatar is used. */
+  photoUrl?: string;
+  /** GMC number (Dermatologists / GPs) — auto-filled in ProDetails when picked. */
+  gmcNumber?: string;
+  /** IOT membership number (Trichologists) — auto-filled in ProDetails when picked. */
+  iotNumber?: string;
 }
 
 export const PROFESSIONALS: Professional[] = [
@@ -46,6 +52,7 @@ export const PROFESSIONALS: Professional[] = [
     bookCode: "STRAND15",
     discount: "STRAND15 — 15% off first consultation",
     featured: true,
+    iotNumber: "1247",
   },
   {
     id: "spencer-clinic",
@@ -99,10 +106,12 @@ export const PROFESSIONALS: Professional[] = [
       "CQC-registered, doctor-led clinic celebrating skin of colour. Long evidence-based consultations covering skin, hair and scalp, with trichologist Asha Downes (MSc) and aesthetic doctor Dr Azin Amin on the team. Paige's current dermatologist.",
     insta: "@dreveskin",
     instaUrl: "https://www.instagram.com/dreveskin/",
-    website: "https://www.dreveskin.co.uk",
+    website: "https://www.dreveskin.com/",
+    bookingUrl: "https://www.dreveskin.com/",
     bookCode: "STRAND20",
     discount: "STRAND20 — £20 off first assessment",
     featured: true,
+    gmcNumber: "7053519",
   },
   {
     id: "dr-emma-amoafo-mensah",

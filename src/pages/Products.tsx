@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import SurfaceCard from "@/components/SurfaceCard";
+import ProductVoicenotes from "@/components/ProductVoicenotes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -12,12 +14,12 @@ const tabs = [
   { id: "intel", label: "Ingredient Intel" },
 ];
 
-interface P { emoji: string; name: string; brand: string; stars: number; score: number }
+interface P { key: string; emoji: string; name: string; brand: string; stars: number; score: number }
 const products: P[] = [
-  { emoji: "🧴", name: "Moisture Retention Serum", brand: "Camille Rose", stars: 5, score: 92 },
-  { emoji: "🫙", name: "Honey Whip Moisturiser", brand: "Briogeo", stars: 4, score: 78 },
-  { emoji: "🧪", name: "Curl Defining Cream", brand: "Cantu", stars: 3, score: 64 },
-  { emoji: "🌿", name: "Scalp Serum", brand: "Mielle", stars: 4, score: 88 },
+  { key: "camille-rose-moisture-retention", emoji: "🧴", name: "Moisture Retention Serum", brand: "Camille Rose", stars: 5, score: 92 },
+  { key: "briogeo-honey-whip", emoji: "🫙", name: "Honey Whip Moisturiser", brand: "Briogeo", stars: 4, score: 78 },
+  { key: "cantu-curl-defining-cream", emoji: "🧪", name: "Curl Defining Cream", brand: "Cantu", stars: 3, score: 64 },
+  { key: "mielle-scalp-serum", emoji: "🌿", name: "Scalp Serum", brand: "Mielle", stars: 4, score: 88 },
 ];
 
 const Stars = ({ n }: { n: number }) => (
@@ -28,6 +30,7 @@ const Stars = ({ n }: { n: number }) => (
 
 const Products = () => {
   const navigate = useNavigate();
+  const [expanded, setExpanded] = useState<string | null>(null);
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
 
@@ -37,7 +40,7 @@ const Products = () => {
         title="My Products"
         back={false}
         right={
-          <button onClick={goWishlist} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
+          <button onClick={goWishlist} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
             Wishlist
           </button>
         }
@@ -55,7 +58,7 @@ const Products = () => {
                   else if (t.id === "intel") goIntel();
                 }}
                 className={cn(
-                  "py-2 text-xs rounded-md font-medium transition-colors",
+                  "py-2 text-xs rounded-md font-medium transition-colors min-h-[40px] truncate px-1",
                   active ? "bg-primary text-primary-foreground" : "text-muted-foreground",
                 )}
               >
@@ -67,23 +70,57 @@ const Products = () => {
       </div>
 
       <div className="px-5 space-y-3 pb-4">
-        {products.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => navigate("/products/ingredient")}
-            className="w-full p-3.5 flex items-center gap-3 text-left bg-card border border-border rounded-[14px] hover:border-primary/50 transition-colors"
-          >
-            <div className="size-12 rounded-[10px] bg-primary/15 flex items-center justify-center text-2xl">{p.emoji}</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
-              <p className="text-[11px] text-muted-foreground">{p.brand}</p>
-              <Stars n={p.stars} />
+        {products.map((p) => {
+          const isOpen = expanded === p.key;
+          return (
+            <div
+              key={p.key}
+              className="bg-card border border-border rounded-[14px] overflow-hidden"
+            >
+              <div className="p-3.5 flex items-center gap-3">
+                <button
+                  onClick={() => navigate("/products/ingredient")}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                >
+                  <div className="size-12 rounded-[10px] bg-primary/15 flex items-center justify-center text-2xl shrink-0">
+                    {p.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                    <Stars n={p.stars} />
+                  </div>
+                  <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                    {p.score}
+                  </div>
+                </button>
+                <button
+                  onClick={() => setExpanded(isOpen ? null : p.key)}
+                  className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                  aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
+                  aria-expanded={isOpen}
+                >
+                  <ChevronDown
+                    className={cn(
+                      "size-4 text-muted-foreground transition-transform",
+                      isOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+              </div>
+
+              {isOpen && (
+                <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60">
+                  <ProductVoicenotes
+                    productKey={p.key}
+                    productName={p.name}
+                    productBrand={p.brand}
+                  />
+                </div>
+              )}
             </div>
-            <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold">
-              {p.score}
-            </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
 
       <div className="px-5 pb-6 space-y-3">

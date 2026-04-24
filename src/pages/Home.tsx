@@ -45,7 +45,7 @@ const Home = () => {
       {/* greeting */}
       <header className="px-5 pt-3 pb-4 flex items-start justify-between">
         <div>
-          <p className="font-script italic text-sm text-muted-foreground">Good morning,</p>
+          <p className="font-body text-sm text-muted-foreground">Good morning,</p>
           <h1 className="font-display text-[24px] font-bold leading-tight">Paige</h1>
         </div>
         <button

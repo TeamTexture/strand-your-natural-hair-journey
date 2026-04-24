@@ -1,0 +1,279 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, Check } from "lucide-react";
+import ScreenLayout from "@/components/ScreenLayout";
+import TitleBar from "@/components/TitleBar";
+import FormField from "@/components/FormField";
+import Tag from "@/components/Tag";
+import ProAvatar from "@/components/ProAvatar";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
+import { searchProfessionalsIn, type Professional } from "@/data/professionals";
+import { toast } from "sonner";
+
+const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
+
+const STATUSES = [
+  { id: "upcoming", label: "Upcoming" },
+  { id: "completed", label: "Completed" },
+];
+
+const LogAppointment = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { pros } = useDirectoryProfessionals();
+
+  const [query, setQuery] = useState("");
+  const [pickedFromDirectory, setPickedFromDirectory] = useState<Professional | null>(null);
+
+  const [proName, setProName] = useState("");
+  const [proType, setProType] = useState("Dermatologist");
+  const [clinic, setClinic] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [reason, setReason] = useState("");
+  const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
+  const [followUp, setFollowUp] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Default date to today (yyyy-mm-dd)
+  useEffect(() => {
+    if (!date) {
+      const d = new Date();
+      const iso = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
+      setDate(iso);
+    }
+  }, [date]);
+
+  const matches = useMemo(() => {
+    const q = query.trim();
+    if (q.length < 2 || pickedFromDirectory) return [];
+    return searchProfessionalsIn(pros, q).slice(0, 5);
+  }, [pros, query, pickedFromDirectory]);
+
+  const applyPro = (p: Professional) => {
+    setProName(p.name);
+    setProType(p.type);
+    setClinic(p.clinic);
+    setQuery(p.name);
+    setPickedFromDirectory(p);
+  };
+
+  const clearPick = () => {
+    setPickedFromDirectory(null);
+    setQuery("");
+  };
+
+  const canSave = proName.trim().length > 0 && date.trim().length > 0 && !saving;
+
+  const onSave = async () => {
+    if (!user) {
+      toast.error("Please sign in to log appointments");
+      return;
+    }
+    if (!canSave) return;
+    setSaving(true);
+    const { error } = await supabase.from("appointments").insert({
+      user_id: user.id,
+      professional_name: proName.trim(),
+      professional_type: proType,
+      clinic_name: clinic.trim() || null,
+      appointment_date: date,
+      appointment_time: time.trim() || null,
+      reason: reason.trim() || null,
+      notes: notes.trim() || null,
+      status,
+      follow_up_needed: followUp,
+    });
+    setSaving(false);
+    if (error) {
+      console.error("Appointment save failed:", error);
+      toast.error("Could not save appointment");
+      return;
+    }
+    toast.success("Appointment logged");
+    navigate("/appointments");
+  };
+
+  return (
+    <ScreenLayout>
+      <TitleBar title="Log Appointment" onBack={() => navigate("/appointments")} />
+
+      <div className="px-5 pb-8 space-y-4">
+        {/* Directory search */}
+        <div>
+          <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+            Find Professional
+          </span>
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (pickedFromDirectory) setPickedFromDirectory(null);
+              }}
+              placeholder="Search name, clinic, or location"
+              autoComplete="off"
+              className="w-full pl-10 pr-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
+            />
+            {matches.length > 0 && (
+              <div className="absolute z-20 left-0 right-0 mt-1 bg-card border border-border rounded-[10px] shadow-lg overflow-hidden max-h-[280px] overflow-y-auto">
+                {matches.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPro(p)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/5 border-b border-border/50 last:border-b-0 min-h-[56px]"
+                  >
+                    <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-9" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {p.clinic} · {p.location}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {pickedFromDirectory && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30 rounded-[10px]">
+            <Check className="size-4 text-primary shrink-0" />
+            <p className="text-xs text-foreground flex-1 min-w-0 truncate">
+              From directory · <span className="font-medium">{pickedFromDirectory.clinic}</span>
+            </p>
+            <button
+              type="button"
+              onClick={clearPick}
+              className="text-[11px] uppercase tracking-[0.1em] text-primary font-medium px-2 min-h-[36px]"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        <FormField
+          label="Professional's Name"
+          value={proName}
+          onChange={(e) => setProName(e.target.value)}
+          placeholder="Dr. Yvonne Abimbola"
+          autoComplete="off"
+        />
+
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            Type
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {TYPES.map((t) => (
+              <Tag key={t} selected={proType === t} onClick={() => setProType(t)}>
+                {t}
+              </Tag>
+            ))}
+          </div>
+        </div>
+
+        <FormField
+          label="Clinic / Salon"
+          value={clinic}
+          onChange={(e) => setClinic(e.target.value)}
+          placeholder="Dr Eve Skin"
+          autoComplete="off"
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+              Date
+            </span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+              Time
+            </span>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full px-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
+            />
+          </label>
+        </div>
+
+        <FormField
+          label="Reason for Visit"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Hair loss assessment, scalp consult..."
+          autoComplete="off"
+        />
+
+        <label className="block">
+          <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+            Notes
+          </span>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Diagnosis, treatment plan, recommendations..."
+            rows={4}
+            autoComplete="off"
+            className="w-full px-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60 resize-none"
+          />
+        </label>
+
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            Status
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {STATUSES.map((s) => (
+              <Tag
+                key={s.id}
+                selected={status === s.id}
+                onClick={() => setStatus(s.id as "upcoming" | "completed")}
+              >
+                {s.label}
+              </Tag>
+            ))}
+          </div>
+        </div>
+
+        <label className="flex items-center gap-3 cursor-pointer min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={followUp}
+            onChange={(e) => setFollowUp(e.target.checked)}
+            className="size-5 rounded border-border accent-primary"
+          />
+          <span className="text-sm font-body">Follow-up needed</span>
+        </label>
+
+        <Button
+          variant="gold"
+          size="pill"
+          className="mt-4"
+          disabled={!canSave}
+          onClick={onSave}
+        >
+          {saving ? "Saving…" : "Save Appointment"}
+        </Button>
+      </div>
+    </ScreenLayout>
+  );
+};
+
+export default LogAppointment;

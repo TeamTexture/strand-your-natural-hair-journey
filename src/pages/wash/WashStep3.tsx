@@ -22,7 +22,7 @@ const WashStep3 = () => {
         <div className="bg-card border-2 border-primary/40 rounded-[14px] p-6 text-center">
           <div className="text-5xl mb-3">🎙️</div>
           <p className="font-display text-lg font-semibold">Record a voice note</p>
-          <p className="font-script italic text-sm text-muted-foreground mt-2 leading-snug">
+          <p className="font-body text-sm text-muted-foreground mt-2 leading-snug">
             How does your hair feel right now? How does it move? Is it soft, dry, crunchy, frizzy, defined? Tap to record — we will transcribe it.
           </p>
         </div>
@@ -43,7 +43,7 @@ const WashStep3 = () => {
 
         <SurfaceCard tone="gold">
           <p className="text-xs font-semibold mb-1">Previous entry — 7 Apr</p>
-          <p className="font-script italic text-sm text-muted-foreground leading-snug">
+          <p className="font-body text-sm text-muted-foreground leading-snug">
             "Really soft after the heat hat, curls looked defined day 1 but by day 3 it felt a bit crunchy at the ends."
           </p>
         </SurfaceCard>

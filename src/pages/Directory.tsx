@@ -5,6 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ProAvatar from "@/components/ProAvatar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType } from "@/data/professionals";
@@ -85,9 +86,7 @@ const Directory = () => {
             <SurfaceCard key={p.id} padded={false} className="overflow-hidden">
               <div className="p-4">
                 <div className="flex gap-3">
-                  <div className="size-[52px] rounded-[12px] bg-primary/15 flex items-center justify-center text-2xl shrink-0">
-                    {p.emoji}
-                  </div>
+                  <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />
                   <div className="flex-1 min-w-0">
                     <p className="font-display text-base font-semibold leading-tight">{p.name}</p>
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">

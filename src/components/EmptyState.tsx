@@ -25,7 +25,7 @@ const EmptyState = ({ icon, message, hint, action, tone = "gold", className }: P
     {icon && <div className="text-4xl leading-none mb-1">{icon}</div>}
     <p className="font-display text-[16px] leading-snug text-foreground">{message}</p>
     {hint && (
-      <p className="font-script italic text-[14px] text-muted-foreground leading-snug">{hint}</p>
+      <p className="font-body text-[14px] text-muted-foreground leading-snug">{hint}</p>
     )}
     {action && <div className="pt-2">{action}</div>}
   </SurfaceCard>

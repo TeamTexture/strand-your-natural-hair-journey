@@ -80,9 +80,9 @@ export function evaluate(marker: string, value: number | null | undefined): Bloo
 
 export function statusLabel(status: BloodStatus): string {
   switch (status) {
-    case "low": return "LOW ⚠";
-    case "high": return "HIGH ⚠";
-    case "normal": return "Normal ✓";
+    case "low": return "Low";
+    case "high": return "High";
+    case "normal": return "Normal";
     default: return "Not tested";
   }
 }

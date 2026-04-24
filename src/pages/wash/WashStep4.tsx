@@ -51,7 +51,7 @@ const WashStep4 = () => {
         <Card
           title="How Your Hair Felt"
           body={
-            <p className="font-script italic text-sm text-muted-foreground leading-snug">
+            <p className="font-body text-sm text-muted-foreground leading-snug">
               "Soft and bouncy after the heat hat. Curls feel really defined and the ends are not as dry as last time."
             </p>
           }

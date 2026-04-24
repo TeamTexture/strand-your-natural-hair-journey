@@ -71,7 +71,7 @@ const Walkthrough = () => {
         <div className="mb-6"><Illustration /></div>
         <h2 className="font-display text-[24px] leading-tight text-foreground mb-3">{slide.title}</h2>
         <p className="text-sm font-body leading-relaxed text-foreground/85 max-w-[300px] mb-3">{slide.what}</p>
-        <p className="font-script italic text-base leading-snug text-muted-foreground max-w-[300px]">{slide.why}</p>
+        <p className="font-body text-base leading-snug text-muted-foreground max-w-[300px]">{slide.why}</p>
       </div>
 
       <div className="flex justify-center gap-1.5 pb-4">

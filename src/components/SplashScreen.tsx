@@ -42,7 +42,7 @@ const SplashScreen = () => {
           I'm Already a Member
         </Button>
 
-        <p className="mt-3 text-center font-script italic text-sm text-foreground/60">
+        <p className="mt-3 text-center font-body text-sm text-foreground/60">
           Exclusive to TT Collective members.
         </p>
       </div>
