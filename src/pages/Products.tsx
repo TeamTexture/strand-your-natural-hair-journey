@@ -74,6 +74,7 @@ const Products = () => {
       <div className="px-5 space-y-3 pb-4">
         {products.map((p) => {
           const isOpen = expanded === p.key;
+          const noteCount = counts[p.key] ?? 0;
           return (
             <div
               key={p.key}
@@ -81,7 +82,11 @@ const Products = () => {
             >
               <div className="p-3.5 flex items-center gap-3">
                 <button
-                  onClick={() => navigate("/products/ingredient")}
+                  onClick={() =>
+                    navigate(
+                      `/products/ingredient?key=${encodeURIComponent(p.key)}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(p.brand)}`,
+                    )
+                  }
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
                   <div className="size-12 rounded-[10px] bg-primary/15 flex items-center justify-center text-2xl shrink-0">
@@ -90,7 +95,14 @@ const Products = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
-                    <Stars n={p.stars} />
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Stars n={p.stars} />
+                      {noteCount > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
+                          <Mic className="size-3" /> {noteCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold shrink-0">
                     {p.score}
