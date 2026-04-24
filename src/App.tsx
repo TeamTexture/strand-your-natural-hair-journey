@@ -43,6 +43,8 @@ import Wishlist from "./pages/Wishlist";
 import Avoidlist from "./pages/Avoidlist";
 import ProductScanning from "./pages/ProductScanning";
 import ProductDetailNew from "./pages/ProductDetailNew";
+import ProductRepository from "./pages/ProductRepository";
+import ProductProfile from "./pages/ProductProfile";
 import Journal from "./pages/Journal";
 import JournalEntry from "./pages/JournalEntry";
 import MoodboardList from "./pages/MoodboardList";
@@ -104,6 +106,8 @@ const App = () => (
               <Route path="/products/avoidlist" element={<Protected><Avoidlist /></Protected>} />
               <Route path="/products/scanning" element={<Protected><ProductScanning /></Protected>} />
               <Route path="/products/detail-new" element={<Protected><ProductDetailNew /></Protected>} />
+              <Route path="/products/repository" element={<Protected><ProductRepository /></Protected>} />
+              <Route path="/products/profile/:id" element={<Protected><ProductProfile /></Protected>} />
               <Route path="/journal" element={<Protected><Journal /></Protected>} />
               <Route path="/journal/entry/:id" element={<Protected><JournalEntry /></Protected>} />
               <Route path="/journal/moodboards" element={<Protected><MoodboardList /></Protected>} />
