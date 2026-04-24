@@ -141,12 +141,19 @@ const WashStep4 = () => {
     try {
       // Build the steps array from what the user actually completed.
       // Skipped / todo steps are dropped so the saved record reflects reality.
+      // Each step also captures the product names attached to it (shelf matches +
+      // anything the user added inline via the link/photo picker).
       const stepLabels: Record<string, string> = {
         prePoo: "Pre-poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
       };
+      const productsByStep: Record<string, string[]> = {};
+      (step1.stepProducts ?? []).forEach((s) => { productsByStep[s.name] = s.products; });
       const steps = (["prePoo", "cleanse", "condition", "treatment"] as const)
         .filter((k) => step1[k] === "done")
-        .map((k) => ({ name: stepLabels[k] }));
+        .map((k) => ({
+          name: stepLabels[k],
+          products: productsByStep[stepLabels[k]] ?? [],
+        }));
 
       // Heat treatment: only persist when the user explicitly said yes/no during Condition.
       const heatTreatment = step1.heatTreatment
@@ -161,7 +168,8 @@ const WashStep4 = () => {
         wash_date: new Date().toISOString().slice(0, 10),
         steps,
         heat_treatment: heatTreatment,
-        product_ids: [], // free-text products live in `steps`; product_ids stays empty until we link real shelf rows
+        // Real shelf rows the user added inline during this wash day.
+        product_ids: step1.productIds ?? [],
         scalp_feel: step2.scalp?.[0] ?? null,
         breakage: step2.breakage?.[0] ?? null,
         style_after: step2.style?.[0] ?? null,
