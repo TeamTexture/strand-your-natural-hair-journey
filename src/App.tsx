@@ -50,6 +50,7 @@ import Directory from "./pages/Directory";
 import Profile from "./pages/Profile";
 import NutritionPlan from "./pages/NutritionPlan";
 import Help from "./pages/Help";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -107,6 +108,7 @@ const App = () => (
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
+              <Route path="/contact" element={<Protected><Contact /></Protected>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

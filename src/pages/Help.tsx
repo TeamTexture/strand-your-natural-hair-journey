@@ -97,33 +97,31 @@ const Help = () => {
 
   const contactItems: ActionItem[] = [
     {
-      key: "email",
-      icon: <Mail className="size-5" />,
-      title: "Email support",
-      body: "Get a response within 1 working day.",
-      action: () => {
-        window.location.href = "mailto:hello@strand.app?subject=STRAND%20support";
-      },
-      cta: "hello@strand.app",
+      key: "contact-form",
+      icon: <MessageCircle className="size-5" />,
+      title: "Contact us",
+      body: "Send us a message via the in-app form — we reply within 1 working day.",
+      action: () => navigate("/contact"),
+      cta: "Open form",
     },
     {
-      key: "feedback",
-      icon: <MessageCircle className="size-5" />,
-      title: "Send feedback",
-      body: "Tell us what is missing or what we should fix.",
+      key: "email",
+      icon: <Mail className="size-5" />,
+      title: "Email us directly",
+      body: "Prefer email? Reach the team straight from your inbox.",
       action: () => {
-        window.location.href = "mailto:hello@strand.app?subject=STRAND%20feedback";
+        window.location.href =
+          "mailto:info@teamtexture.co.uk?subject=STRAND%20support";
       },
-      cta: "Open email",
+      cta: "info@teamtexture.co.uk",
     },
     {
       key: "report",
       icon: <AlertTriangle className="size-5" />,
       title: "Report a problem",
       body: "Bug, broken page, or wrong information? Send a quick note.",
-      action: () => {
-        window.location.href = "mailto:hello@strand.app?subject=STRAND%20bug%20report";
-      },
+      action: () =>
+        navigate("/contact?subject=" + encodeURIComponent("STRAND bug report")),
       cta: "Report",
     },
   ];
@@ -155,7 +153,7 @@ const Help = () => {
       title: "Rate STRAND",
       body: "If STRAND is helping you, a quick review goes a long way.",
       action: () => {
-        window.location.href = "mailto:hello@strand.app?subject=STRAND%20review";
+        window.location.href = "mailto:info@teamtexture.co.uk?subject=STRAND%20review";
       },
       cta: "Leave a review",
     },
@@ -318,7 +316,7 @@ const Help = () => {
           },
           {
             q: "How do I delete my account?",
-            a: "Email hello@strand.app from your account address and we will erase your data within 30 days.",
+            a: "Email info@teamtexture.co.uk from your account address and we will erase your data within 30 days.",
           },
         ].map(({ q, a }) => (
           <SurfaceCard key={q}>
