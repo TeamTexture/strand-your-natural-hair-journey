@@ -352,6 +352,38 @@ const WashStep1 = () => {
     );
   };
 
+  // When the user adds a brand new product via the picker (auto_save) they
+  // get bounced through the scan/detail flow and back to this URL. We watch
+  // for the most-recently-added shelf product and auto-merge it into the
+  // step we encoded in `?picker=...`, so the new product shows up in the
+  // right step without the user having to re-pick it. We track which IDs
+  // we've already auto-added to avoid double-adding on subsequent renders.
+  const [autoAdded, setAutoAdded] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!hydrated) return;
+    const target = searchParams.get("picker") as Exclude<PickerTarget, null> | null;
+    if (!target) return;
+    const cutoff = Date.now() - 2 * 60 * 1000;
+    const fresh = shelfProducts.filter((p) => {
+      if (autoAdded.has(p.id)) return false;
+      const ts = p.added_to_shelf_at ?? p.created_at;
+      return ts ? new Date(ts).getTime() > cutoff : false;
+    });
+    if (!fresh.length) return;
+    const current = targetIds[target];
+    const additions = fresh.map((p) => p.id).filter((id) => !current.includes(id));
+    if (additions.length) {
+      targetSetters[target]([...current, ...additions]);
+      setAutoAdded((prev) => {
+        const next = new Set(prev);
+        for (const id of additions) next.add(id);
+        return next;
+      });
+      setPickerTarget(target);
+      setPickerOpen(true);
+    }
+  }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters]);
+
   // Heat-treatment state lives at the page level so we can persist it and so
   // the "why" dialog can read/write the choice.
   const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
