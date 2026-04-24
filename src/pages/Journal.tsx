@@ -391,22 +391,64 @@ const Journal = () => {
         })}
       </div>
 
-      <SectionLabel>Mood Boards</SectionLabel>
-      <div className="px-5 pb-6 space-y-3">
-        <div className="grid grid-cols-3 gap-2">
-          {moodTiles.map((t, i) => (
-            <div key={i} className={`aspect-square rounded-[12px] bg-gradient-to-br ${t.gradient} flex items-center justify-center text-3xl`}>
-              {t.emoji}
-            </div>
-          ))}
-        </div>
-        <Button variant="goldOutline" size="pill" onClick={() => navigate("/journal/moodboards")}>
-          View Mood Boards
-        </Button>
-        <Button variant="goldGhost" size="pill" onClick={() => navigate("/journal/moodboards/favourites")}>
-          + Add to Mood Board
-        </Button>
-      </div>
+      {(boardsLoading || populatedBoards.length > 0) && (
+        <>
+          <SectionLabel>Mood Boards</SectionLabel>
+          <div className="px-5 pb-6 space-y-3">
+            {boardsLoading ? (
+              <div className="grid grid-cols-3 gap-2">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="aspect-square rounded-[12px] bg-border/40 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {populatedBoards.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => navigate(`/journal/moodboards/${b.is_favourites ? "favourites" : b.id}`)}
+                    className={`relative aspect-square rounded-[12px] overflow-hidden flex items-center justify-center text-3xl bg-gradient-to-br ${b.gradient}`}
+                    aria-label={`Open ${b.name} mood board`}
+                  >
+                    {b.coverUrl ? (
+                      <img src={b.coverUrl} alt={b.name} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                    ) : (
+                      <span>{b.emoji}</span>
+                    )}
+                    <span className="absolute bottom-1 left-1 right-1 truncate text-[10px] font-body text-white bg-black/55 px-1.5 py-0.5 rounded text-center">
+                      {b.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <Button variant="goldOutline" size="pill" onClick={() => navigate("/journal/moodboards")}>
+              View Mood Boards
+            </Button>
+            <Button variant="goldGhost" size="pill" onClick={() => navigate("/journal/moodboards/favourites")}>
+              + Add to Mood Board
+            </Button>
+          </div>
+        </>
+      )}
+
+      {!boardsLoading && populatedBoards.length === 0 && (
+        <>
+          <SectionLabel>Mood Boards</SectionLabel>
+          <div className="px-5 pb-6 space-y-3">
+            <SurfaceCard className="text-center">
+              <p className="text-sm font-medium">No mood boards yet</p>
+              <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+                Create a board and start saving inspiration to see it here.
+              </p>
+              <Button variant="gold" size="pill" onClick={() => navigate("/journal/moodboards")}>
+                + Create a mood board
+              </Button>
+            </SurfaceCard>
+          </div>
+        </>
+      )}
 
       <GoalEditorSheet open={editorOpen} onOpenChange={setEditorOpen} goal={editing} />
 
