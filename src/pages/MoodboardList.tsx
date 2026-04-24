@@ -1,67 +1,234 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Trash2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ItalicSub from "@/components/ItalicSub";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useMoodboards, type Moodboard } from "@/hooks/useMoodboards";
 
-interface Board { id: string; name: string; emoji: string; gradient: string; count: number }
-const boards: Board[] = [
-  { id: "protective", name: "Protective Styles", emoji: "🌀", gradient: "from-[#C8B89A] to-[#D4B96A]", count: 12 },
-  { id: "growth", name: "Growth Inspo", emoji: "🌿", gradient: "from-[#D4AA52] to-[#C49A3C]", count: 8 },
-  { id: "colour", name: "Colour Goals", emoji: "✨", gradient: "from-[#E8D8C0] to-[#A07828]", count: 5 },
-  { id: "washgo", name: "Wash & Go Vibes", emoji: "🫧", gradient: "from-[#DDD0B8] to-[#C8B89A]", count: 9 },
-  { id: "style", name: "Style Inspo", emoji: "🌸", gradient: "from-[#D4B96A] to-[#8B6914]", count: 14 },
+const EMOJI_CHOICES = ["🌸", "🌀", "🌿", "✨", "🫧", "💛", "🌻", "💫", "🪞", "🦋"];
+const GRADIENTS = [
+  "from-[#C8B89A] to-[#D4B96A]",
+  "from-[#D4AA52] to-[#C49A3C]",
+  "from-[#E8D8C0] to-[#A07828]",
+  "from-[#DDD0B8] to-[#C8B89A]",
+  "from-[#D4B96A] to-[#8B6914]",
+  "from-[#C49A3C] to-[#8B6914]",
 ];
 
 const MoodboardList = () => {
   const navigate = useNavigate();
+  const { boards, loading, createBoard, deleteBoard } = useMoodboards();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState(EMOJI_CHOICES[0]);
+  const [gradient, setGradient] = useState(GRADIENTS[0]);
+  const [saving, setSaving] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name.trim()) {
+      toast.error("Give your board a name");
+      return;
+    }
+    setSaving(true);
+    try {
+      await createBoard({ name: name.trim(), emoji, gradient });
+      toast.success(`${name.trim()} created`);
+      setOpen(false);
+      setName("");
+      setEmoji(EMOJI_CHOICES[0]);
+      setGradient(GRADIENTS[0]);
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not create board");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (b: Moodboard, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (b.is_favourites) {
+      toast("Favourites board can't be deleted");
+      return;
+    }
+    if (!confirm(`Delete "${b.name}" and all its images?`)) return;
+    try {
+      await deleteBoard(b);
+      toast.success("Board deleted");
+    } catch {
+      toast.error("Could not delete");
+    }
+  };
+
+  const favourites = boards.find((b) => b.is_favourites);
+  const others = boards.filter((b) => !b.is_favourites);
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar
         title="Mood Boards"
         right={
-          <button onClick={() => toast("New board created")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
+          <button
+            onClick={() => setOpen(true)}
+            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
+          >
             + New
           </button>
         }
       />
-      <ItalicSub>Tap ♡ on any image to add to your Favourites board.</ItalicSub>
 
-      <div className="px-5 pb-4">
-        <button
-          onClick={() => navigate("/journal/moodboards/favourites")}
-          className="w-full h-32 rounded-[14px] bg-gradient-to-br from-primary to-[#8B6914] text-primary-foreground p-4 flex flex-col justify-between text-left"
-        >
-          <span className="text-3xl">❤️</span>
-          <div>
-            <p className="font-display text-lg font-semibold">Favourites</p>
-            <p className="text-xs opacity-80">6 images</p>
-          </div>
-        </button>
-      </div>
+      <p className="text-[11px] text-muted-foreground px-5 pb-3">
+        Save inspiration. Tap any image's heart to add it to your Favourites board.
+      </p>
 
-      <div className="px-5 pb-6 grid grid-cols-2 gap-3">
-        {boards.map((b) => (
+      {/* Favourites hero */}
+      {favourites && (
+        <div className="px-5 pb-4">
           <button
-            key={b.id}
-            onClick={() => navigate(`/journal/moodboards/${b.id}`)}
-            className={`h-36 rounded-[14px] bg-gradient-to-br ${b.gradient} p-3 flex flex-col justify-between text-left text-foreground`}
+            onClick={() => navigate(`/journal/moodboards/${favourites.id}`)}
+            className={`w-full h-32 rounded-[14px] bg-gradient-to-br ${favourites.gradient} text-primary-foreground p-4 flex flex-col justify-between text-left overflow-hidden relative`}
           >
-            <span className="text-2xl">{b.emoji}</span>
-            <div>
-              <p className="font-display text-sm font-semibold leading-tight">{b.name}</p>
-              <p className="text-[10px] opacity-80">{b.count} images</p>
+            {favourites.coverUrl && (
+              <img
+                src={favourites.coverUrl}
+                alt=""
+                className="absolute inset-0 size-full object-cover opacity-50"
+              />
+            )}
+            <span className="text-3xl relative">{favourites.emoji}</span>
+            <div className="relative">
+              <p className="font-display text-lg font-semibold">{favourites.name}</p>
+              <p className="text-xs opacity-90">
+                {favourites.imageCount ?? 0} {favourites.imageCount === 1 ? "image" : "images"}
+              </p>
             </div>
           </button>
-        ))}
-        <button
-          onClick={() => toast("New board created")}
-          className="h-36 rounded-[14px] border-2 border-dashed border-primary/60 bg-card flex flex-col items-center justify-center gap-2 text-primary"
-        >
-          <span className="text-3xl">+</span>
-          <span className="text-[11px] uppercase tracking-[0.2em] font-medium">New Board</span>
-        </button>
+        </div>
+      )}
+
+      {/* User boards */}
+      <div className="px-5 pb-6 grid grid-cols-2 gap-3">
+        {loading && (
+          <>
+            <div className="h-36 rounded-[14px] bg-card border border-border animate-pulse" />
+            <div className="h-36 rounded-[14px] bg-card border border-border animate-pulse" />
+          </>
+        )}
+
+        {!loading &&
+          others.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => navigate(`/journal/moodboards/${b.id}`)}
+              className={`relative h-36 rounded-[14px] bg-gradient-to-br ${b.gradient} p-3 flex flex-col justify-between text-left text-foreground overflow-hidden group`}
+            >
+              {b.coverUrl && (
+                <img
+                  src={b.coverUrl}
+                  alt=""
+                  className="absolute inset-0 size-full object-cover opacity-60"
+                />
+              )}
+              <div className="flex items-start justify-between relative">
+                <span className="text-2xl">{b.emoji}</span>
+                <button
+                  onClick={(e) => handleDelete(b, e)}
+                  className="size-7 rounded-full bg-black/30 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Delete board"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+              <div className="relative">
+                <p className="font-display text-sm font-semibold leading-tight truncate">{b.name}</p>
+                <p className="text-[10px] opacity-90">
+                  {b.imageCount ?? 0} {b.imageCount === 1 ? "image" : "images"}
+                </p>
+              </div>
+            </button>
+          ))}
+
+        {!loading && (
+          <button
+            onClick={() => setOpen(true)}
+            className="h-36 rounded-[14px] border-2 border-dashed border-primary/60 bg-card flex flex-col items-center justify-center gap-2 text-primary"
+          >
+            <Plus className="size-7" />
+            <span className="text-[11px] uppercase tracking-[0.2em] font-medium">New Board</span>
+          </button>
+        )}
       </div>
+
+      {/* Create board dialog */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle>New Mood Board</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold mb-1.5 block">Name</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Protective Styles"
+                maxLength={40}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-1.5 block">Icon</label>
+              <div className="flex flex-wrap gap-1.5">
+                {EMOJI_CHOICES.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => setEmoji(e)}
+                    className={`size-9 rounded-full text-lg flex items-center justify-center border ${
+                      emoji === e ? "border-primary bg-primary/10" : "border-border bg-card"
+                    }`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-1.5 block">Colour</label>
+              <div className="grid grid-cols-3 gap-2">
+                {GRADIENTS.map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGradient(g)}
+                    className={`h-12 rounded-[10px] bg-gradient-to-br ${g} border-2 ${
+                      gradient === g ? "border-primary" : "border-transparent"
+                    }`}
+                    aria-label="Pick colour"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="goldGhost" size="pill" onClick={() => setOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button variant="gold" size="pill" onClick={handleCreate} disabled={saving}>
+              {saving ? "Creating…" : "Create Board"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 };
