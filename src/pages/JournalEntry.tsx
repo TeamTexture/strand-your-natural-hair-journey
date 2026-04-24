@@ -188,7 +188,7 @@ const JournalEntry = () => {
     ? {
         id,
         gradient: "from-[#C8B89A] to-[#D4B96A]",
-        emoji: "📔",
+        emoji: "",
         date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
         title: "New journal entry",
         note: "",

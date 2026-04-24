@@ -14,7 +14,11 @@ export function useProductScan() {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
 
-  const startScan = async (file: File, intent: "shelf" | "wishlist" = "shelf") => {
+  const startScan = async (
+    file: File,
+    intent: "shelf" | "wishlist" = "shelf",
+    extras?: { auto_save?: boolean; returnTo?: string },
+  ) => {
     if (!user) { toast.error("Please sign in"); return; }
     if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) {
       toast.error("Pick an image file");
@@ -47,6 +51,8 @@ export function useProductScan() {
           preview_url: signed?.signedUrl ?? prepared.dataUrl,
           image_data_url: prepared.dataUrl,
           intent,
+          auto_save: extras?.auto_save ?? false,
+          returnTo: extras?.returnTo,
         },
       });
     } catch (e) {
