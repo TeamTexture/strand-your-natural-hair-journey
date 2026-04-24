@@ -236,6 +236,22 @@ const WashStep1 = () => {
 
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
 
+  // Per-step list of products the user manually added during THIS wash day via
+  // the inline picker (link / upload / camera). They're already saved to the
+  // shelf, but we keep the labels separately so we can show + persist them
+  // exactly under the step they were added to.
+  type StepKey = "prePoo" | "cleanse" | "condition" | "treatment";
+  const [addedByStep, setAddedByStep] = useState<Record<StepKey, string[]>>({
+    prePoo: [], cleanse: [], condition: [], treatment: [],
+  });
+  const [addedIdsByStep, setAddedIdsByStep] = useState<Record<StepKey, string[]>>({
+    prePoo: [], cleanse: [], condition: [], treatment: [],
+  });
+  const [pickerStep, setPickerStep] = useState<StepKey | null>(null);
+  const stepLabels: Record<StepKey, string> = {
+    prePoo: "Pre-Poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
+  };
+
   // Pull the user's actual on-shelf products so each step's product chips
   // reflect what they own, not a hardcoded brand (e.g. "Camille Rose").
   const { products: shelfProducts } = useUserProducts("shelf");
