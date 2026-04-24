@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -8,6 +8,13 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -137,6 +144,29 @@ const Profile = () => {
   const [appts, setAppts] = useState<Appt[]>([]);
   const [apptsLoaded, setApptsLoaded] = useState(false);
   const [profileName, setProfileName] = useState<string | null>(null);
+  const [editPickerOpen, setEditPickerOpen] = useState(false);
+
+  // Quick-jump destinations for the edit picker.
+  const editTargets = useMemo(
+    () => [
+      { key: "basic", label: "Basic details", hint: "Name, age, postcode", icon: User, route: "/onboarding/profile-step-1" },
+      { key: "health", label: "Health & lifestyle", hint: "Conditions, diet, habits", icon: Heart, route: "/onboarding/profile-step-2" },
+      { key: "hair", label: "Hair profile", hint: "Diameter, porosity, density", icon: Activity, route: "/onboarding/profile-step-3-hair" },
+      { key: "colour", label: "Colour & styling", hint: "Treatments & products", icon: Palette, route: "/onboarding/profile-step-4-colour" },
+      { key: "meds", label: "Medications", hint: "Prescriptions & supplements", icon: Pill, route: "/onboarding/profile-step-2" },
+      { key: "blood-iv", label: "Iron & vitamins", hint: "Ferritin, B12, vit D", icon: Droplet, route: "/onboarding/blood-iron-vitamins" },
+      { key: "blood-thy", label: "Thyroid", hint: "TSH, T3, T4", icon: FlaskConical, route: "/onboarding/blood-thyroid" },
+      { key: "blood-min", label: "Minerals", hint: "Zinc, magnesium", icon: FlaskConical, route: "/onboarding/blood-minerals" },
+      { key: "blood-horm", label: "Hormones", hint: "Oestrogen, testosterone", icon: FlaskConical, route: "/onboarding/blood-hormones" },
+      { key: "blood-sum", label: "Blood AI summary", hint: "View interpretation", icon: Sparkles, route: "/onboarding/blood-ai-summary" },
+    ],
+    [],
+  );
+
+  const jumpTo = (route: string) => {
+    setEditPickerOpen(false);
+    navigate(route);
+  };
 
   // Load profile fragments from local storage (only what the user actually entered).
   const basic = safeJson<BasicProfile>(localStorage.getItem("strand_profile_basic")) ?? {};
@@ -315,13 +345,60 @@ const Profile = () => {
           </p>
         </div>
         <button
-          onClick={() => navigate("/onboarding/profile-step-1")}
-          aria-label="Edit basic details"
+          onClick={() => setEditPickerOpen(true)}
+          aria-label="Edit profile"
           className="size-10 rounded-full border border-border bg-card flex items-center justify-center text-foreground/80 hover:text-primary hover:border-primary/50 transition-colors shrink-0"
         >
           <Pencil className="size-4" />
         </button>
       </div>
+
+      {/* Edit picker: jump straight to any section */}
+      <Dialog open={editPickerOpen} onOpenChange={setEditPickerOpen}>
+        <DialogContent className="max-w-md rounded-[20px] p-5 gap-3">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="font-display text-lg">What would you like to edit?</DialogTitle>
+            <DialogDescription className="text-[12px]">
+              Tap a bubble to jump straight to that section.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {editTargets.map((t) => {
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => jumpTo(t.route)}
+                  className="group inline-flex items-center gap-2 pl-3 pr-3.5 py-2 rounded-full border border-border bg-card hover:border-primary/60 hover:bg-primary/10 transition-colors min-h-[40px]"
+                >
+                  <span className="size-6 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                    <Icon className="size-3.5" />
+                  </span>
+                  <span className="text-[13px] font-medium leading-none">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="pt-2 mt-1 border-t border-border/60 -mx-5 px-5">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground pt-3 pb-1">Or browse all</p>
+            <div className="space-y-1">
+              {editTargets.map((t) => (
+                <button
+                  key={`row-${t.key}`}
+                  onClick={() => jumpTo(t.route)}
+                  className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-secondary/60 rounded-lg px-2 -mx-2 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight">{t.label}</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{t.hint}</p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Update after appointment CTA — go straight to the section being updated */}
       <div className="px-5 pb-3 grid grid-cols-2 gap-3">
