@@ -4,10 +4,12 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
+import ProductPhotoTile from "@/components/ProductPhotoTile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { cn } from "@/lib/utils";
 
 interface Ing { tone: "good" | "warn" | "bad"; name: string; body: string }
@@ -27,6 +29,8 @@ const IngredientDetail = () => {
   const productKey = searchParams.get("key") ?? "camille-rose-moisture-retention";
   const productName = searchParams.get("name") ?? "Moisture Retention Serum";
   const productBrand = searchParams.get("brand") ?? "Camille Rose";
+  const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
+  const photoUrl = photos[productKey]?.signedUrl ?? null;
   return (
     <ScreenLayout>
       <TitleBar
@@ -44,7 +48,13 @@ const IngredientDetail = () => {
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="flex items-center gap-3">
-          <div className="size-14 rounded-[12px] bg-primary/15 flex items-center justify-center text-2xl">🧴</div>
+          <ProductPhotoTile
+            imageUrl={photoUrl}
+            fallbackEmoji="🧴"
+            size="size-14"
+            onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
+            onRemove={() => removePhoto(productKey)}
+          />
           <div className="flex-1 min-w-0">
             <p className="font-display text-base font-semibold leading-tight">{productName}</p>
             <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>

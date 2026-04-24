@@ -6,6 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
+import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -271,7 +272,7 @@ const Profile = () => {
 
       {/* Identity */}
       <div className="px-5 pb-4 flex items-center gap-3">
-        <InitialAvatar name={displayName || "?"} />
+        <UserAvatar name={displayName || "?"} />
         <div className="flex-1 min-w-0">
           <p className="font-display text-lg font-semibold leading-tight truncate">
             {displayName || "Welcome"}
