@@ -63,7 +63,7 @@ const Directory = () => {
               {t}
               {t !== "All" && (
                 <span className="ml-1.5 opacity-60">
-                  {PROFESSIONALS.filter((p) => p.type === t).length}
+                  {pros.filter((p) => p.type === t).length}
                 </span>
               )}
             </button>
