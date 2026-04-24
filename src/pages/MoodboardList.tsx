@@ -27,12 +27,45 @@ const GRADIENTS = [
 
 const MoodboardList = () => {
   const navigate = useNavigate();
-  const { boards, loading, createBoard, deleteBoard } = useMoodboards();
+  const { boards, loading, createBoard, deleteBoard, reload } = useMoodboards();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [emoji, setEmoji] = useState(EMOJI_CHOICES[0]);
   const [gradient, setGradient] = useState(GRADIENTS[0]);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePickCover = async (file: File | undefined) => {
+    if (!file) return;
+    const isHeic = /\.(heic|heif)$/i.test(file.name) || /heic|heif/i.test(file.type);
+    if (!file.type.startsWith("image/") && !isHeic) {
+      toast.error("Please choose an image");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image is too large (max 8MB)");
+      return;
+    }
+    try {
+      const prepped = await convertHeicToJpeg(file);
+      setCoverFile(prepped);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverPreview(URL.createObjectURL(prepped));
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not load image");
+    }
+  };
+
+  const resetForm = () => {
+    setName("");
+    setGradient(GRADIENTS[0]);
+    setCoverFile(null);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(null);
+  };
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -41,12 +74,12 @@ const MoodboardList = () => {
     }
     setSaving(true);
     try {
-      await createBoard({ name: name.trim(), emoji, gradient });
+      const board = await createBoard({ name: name.trim(), gradient, coverFile: coverFile ?? undefined });
       toast.success(`${name.trim()} created`);
       setOpen(false);
-      setName("");
-      setEmoji(EMOJI_CHOICES[0]);
-      setGradient(GRADIENTS[0]);
+      resetForm();
+      if (board) navigate(`/journal/moodboards/${board.id}`);
+      else await reload();
     } catch (e) {
       console.error(e);
       toast.error("Could not create board");
