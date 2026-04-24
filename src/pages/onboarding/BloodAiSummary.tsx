@@ -48,9 +48,11 @@ const BloodAiSummary = () => {
     const hairProfile = JSON.parse(localStorage.getItem("strand_hair_profile") || "{}");
     const healthProfile = JSON.parse(localStorage.getItem("strand_health_profile") || "{}");
     const heritage = JSON.parse(localStorage.getItem("strand_heritage") || "[]");
+    // Bump promptVersion when the server-side prompt changes to bust the cache.
+    const promptVersion = "v2-full-coverage";
     return {
       payload: { bloodResults, hairProfile, healthProfile, heritage },
-      fingerprint: JSON.stringify({ bloodResults, hairProfile, healthProfile, heritage }),
+      fingerprint: JSON.stringify({ bloodResults, hairProfile, healthProfile, heritage, promptVersion }),
     };
   };
 
