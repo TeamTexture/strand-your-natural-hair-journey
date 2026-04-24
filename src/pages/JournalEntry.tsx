@@ -772,8 +772,15 @@ const JournalEntry = () => {
               {selectedProducts.map((p) => (
                 <span
                   key={p.id}
-                  className="inline-flex items-center gap-1.5 bg-primary/10 text-foreground text-xs px-3 py-1.5 rounded-full border border-primary/30"
+                  className="inline-flex items-center gap-2 bg-primary/10 text-foreground text-xs pl-1 pr-3 py-1 rounded-full border border-primary/30"
                 >
+                  <span className="size-6 rounded-full overflow-hidden bg-secondary shrink-0">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt="" className="size-full object-cover" />
+                    ) : (
+                      <span className="size-full flex items-center justify-center text-[11px] bg-primary/15">🧴</span>
+                    )}
+                  </span>
                   <span className="font-medium">{p.name}</span>
                   <button
                     type="button"
