@@ -20,6 +20,8 @@ export interface Professional {
   website: string;
   bookCode: string;
   discount: string;
+  /** Optional direct booking URL — opens in new tab when present. */
+  bookingUrl?: string;
   /** Featured = surfaced on the onboarding "Recommended" screen. */
   featured?: boolean;
 }
