@@ -17,11 +17,29 @@ const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>("All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
+  const [showTop, setShowTop] = useState(false);
 
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, tab),
     [pros, query, tab],
   );
+
+  // The scrollable surface is the <main> element inside ScreenLayout. We listen
+  // to it directly so the floating "back to top" only shows once the user has
+  // moved past the first viewport — keeps the UI calm by default.
+  useEffect(() => {
+    const main = document.querySelector("main") as HTMLElement | null;
+    if (!main) return;
+    const onScroll = () => setShowTop(main.scrollTop > 400);
+    main.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => main.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    const main = document.querySelector("main") as HTMLElement | null;
+    main?.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const openExternal = (url: string, label: string) => {
     if (!url) {
