@@ -432,9 +432,12 @@ const WashStep1 = () => {
           step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: treatmentProducts }}
           state={treatment}
           setState={setTreatment}
+          addedProducts={addedByStep.treatment}
+          onAddProduct={() => setPickerStep("treatment")}
           // Show the treatment type tags the user picked, plus any matching shelf
-          // products so the collapsed card reflects what they actually captured.
-          summaryChips={[...treatmentType, ...treatmentProducts]}
+          // products + manually-added products so the collapsed card reflects what
+          // they actually captured.
+          summaryChips={[...treatmentType, ...treatmentProducts, ...addedByStep.treatment]}
           editor={
             <div className="flex flex-wrap gap-2">
               {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
