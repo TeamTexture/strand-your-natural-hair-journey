@@ -190,6 +190,8 @@ const Products = () => {
         </p>
       </div>
 
+      <MyToolsSection />
+
       <Sheet open={linkSheetOpen} onOpenChange={(o) => !urlBusy && setLinkSheetOpen(o)}>
         <SheetContent side="bottom" className="rounded-t-[24px] pb-8">
           <SheetHeader className="text-left">
