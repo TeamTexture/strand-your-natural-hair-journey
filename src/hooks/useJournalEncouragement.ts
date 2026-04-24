@@ -1,26 +1,56 @@
+// Powers the warm "encouragement" banner shown at the top of the Hair Journal.
+//
+// PRINCIPLE: every word is AI-generated against REAL user data, never hardcoded.
+// We compute live signals from Supabase (saved journal entries, wash days,
+// active goals, last wash, last appointment) and ship them to the
+// `journal-encouragement` edge function which writes the copy via Lovable AI.
+//
+// Caching: the AI response is cached in localStorage for 6h keyed by user +
+// signal-signature. As soon as the underlying numbers change (new wash, new
+// entry, new goal progress), the signature changes and a fresh banner is
+// generated. There is NO hardcoded fallback copy — if the AI is unreachable we
+// surface a neutral one-liner derived directly from the live counts so the UI
+// still reads as data-aware.
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { journalEntries } from "@/data/journalEntries";
-
-export type Milestone =
-  | "first_week"
-  | "month_1"
-  | "month_3"
-  | "month_6"
-  | "month_12"
-  | "year_plus"
-  | "first_entry_pending"
-  | "streak"
-  | "comeback"
-  | "keep_going";
 
 export interface JournalSignals {
   daysSinceSignup: number;
+  /** Real saved journal entries (DB), not the seeded mock catalogue. */
   entryCount: number;
+  /** Days since the most recent saved entry (any source). null = none yet. */
   daysSinceLastEntry: number | null;
-  milestone: Milestone;
-  /** Human-readable label used for fallback copy and the milestone "tag". */
+  /** Number of logged wash days. */
+  washCount: number;
+  /** Days since most recent wash day. null = none yet. */
+  daysSinceLastWash: number | null;
+  /** Active (non-complete) goals the user is tracking. */
+  activeGoalCount: number;
+  /** Title of the most recently updated goal, used for personal references. */
+  recentGoalTitle: string | null;
+  /** Days since the most recent goal update. */
+  daysSinceGoalUpdate: number | null;
+  /** Days since the most recent logged appointment. */
+  daysSinceLastAppointment: number | null;
+  /** Lifecycle bucket the AI uses to set tone. Derived, never hardcoded copy. */
+  lifecycleStage:
+    | "brand_new"
+    | "first_week"
+    | "first_month"
+    | "settling_in"
+    | "established"
+    | "long_term";
+  /** Engagement state derived purely from live activity. */
+  engagementState:
+    | "no_data"
+    | "active_streak"
+    | "consistent"
+    | "slowing_down"
+    | "comeback"
+    | "dormant";
+  /** A short label shown above the banner (e.g. "Day 12 · 3 entries"). */
   milestoneLabel: string;
 }
 
@@ -29,126 +59,80 @@ export interface EncouragementBanner {
   subline: string;
 }
 
-const CACHE_PREFIX = "strand_journal_banner_v1";
+const CACHE_PREFIX = "strand_journal_banner_v2";
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+interface CacheEntry {
+  banner: EncouragementBanner;
+  ts: number;
+  signature: string;
+}
 
-const parseEntryDate = (s: string): Date | null => {
-  // entries are formatted like "14 Apr 2026"
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
+const daysBetween = (iso: string | null | undefined, now = Date.now()): number | null => {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.floor((now - t) / 86_400_000));
 };
 
-const computeSignals = (createdAt: string | null | undefined): JournalSignals => {
-  const now = new Date();
-  const createdDate = createdAt ? new Date(createdAt) : now;
-  const daysSinceSignup = Math.max(
-    0,
-    Math.floor((now.getTime() - createdDate.getTime()) / 86_400_000),
+const deriveLifecycle = (days: number): JournalSignals["lifecycleStage"] => {
+  if (days <= 1) return "brand_new";
+  if (days < 7) return "first_week";
+  if (days < 30) return "first_month";
+  if (days < 90) return "settling_in";
+  if (days < 365) return "established";
+  return "long_term";
+};
+
+const deriveEngagement = (
+  entryCount: number,
+  daysSinceLastEntry: number | null,
+  daysSinceLastWash: number | null,
+): JournalSignals["engagementState"] => {
+  const recentActivityDays = Math.min(
+    daysSinceLastEntry ?? Infinity,
+    daysSinceLastWash ?? Infinity,
   );
-
-  const entryDates = journalEntries
-    .map((e) => parseEntryDate(e.date))
-    .filter((d): d is Date => d !== null)
-    .sort((a, b) => b.getTime() - a.getTime());
-
-  const entryCount = entryDates.length;
-  const daysSinceLastEntry = entryDates.length
-    ? Math.max(
-        0,
-        Math.floor((now.getTime() - entryDates[0].getTime()) / 86_400_000),
-      )
-    : null;
-
-  let milestone: Milestone;
-  let milestoneLabel: string;
-
-  if (entryCount === 0) {
-    milestone = "first_entry_pending";
-    milestoneLabel = "Start your journal";
-  } else if (daysSinceSignup >= 365) {
-    const years = Math.floor(daysSinceSignup / 365);
-    milestone = years >= 1 && daysSinceSignup < 400 ? "month_12" : "year_plus";
-    milestoneLabel = years === 1 ? "1 Year with STRAND" : `${years} Years with STRAND`;
-  } else if (daysSinceSignup >= 180) {
-    milestone = "month_6";
-    milestoneLabel = "6 Months with STRAND";
-  } else if (daysSinceSignup >= 90) {
-    milestone = "month_3";
-    milestoneLabel = "3 Months with STRAND";
-  } else if (daysSinceSignup >= 30) {
-    milestone = "month_1";
-    milestoneLabel = "1 Month with STRAND";
-  } else if (daysSinceSignup >= 7) {
-    milestone = "first_week";
-    milestoneLabel = "1 Week with STRAND";
-  } else if (daysSinceLastEntry !== null && daysSinceLastEntry >= 21) {
-    milestone = "comeback";
-    milestoneLabel = "Welcome back";
-  } else if (entryCount >= 3 && (daysSinceLastEntry ?? 99) <= 7) {
-    milestone = "streak";
-    milestoneLabel = `${entryCount} entries logged`;
-  } else {
-    milestone = "keep_going";
-    milestoneLabel = "Keep tracking";
+  if (entryCount === 0 && daysSinceLastWash === null) return "no_data";
+  if (recentActivityDays <= 3 && entryCount + (daysSinceLastWash != null ? 1 : 0) >= 3) {
+    return "active_streak";
   }
-
-  return { daysSinceSignup, entryCount, daysSinceLastEntry, milestone, milestoneLabel };
+  if (recentActivityDays <= 10) return "consistent";
+  if (recentActivityDays <= 30) return "slowing_down";
+  if (recentActivityDays <= 90) return "comeback";
+  return "dormant";
 };
 
-const fallbackBanner = (s: JournalSignals): EncouragementBanner => {
-  switch (s.milestone) {
-    case "first_entry_pending":
-      return {
-        headline: "📷 Start your hair journal",
-        subline: "Log your first wash day to track what works.",
-      };
-    case "first_week":
-      return {
-        headline: "🌱 One week in",
-        subline: "Small notes today become big patterns later.",
-      };
-    case "month_1":
-      return {
-        headline: "✨ One month with STRAND",
-        subline: "You are building a record only you can use.",
-      };
-    case "month_3":
-      return {
-        headline: "🌟 3 months tracking",
-        subline: "Consistency is the work — keep going.",
-      };
-    case "month_6":
-      return {
-        headline: "💫 6 months in",
-        subline: "Your data is starting to tell a real story.",
-      };
-    case "month_12":
-      return {
-        headline: "🎉 1 year with STRAND",
-        subline: "A full year of notes you can look back on.",
-      };
-    case "year_plus":
-      return {
-        headline: "🏆 Long-term tracker",
-        subline: "Your archive keeps every wash day in one place.",
-      };
-    case "comeback":
-      return {
-        headline: "👋 Welcome back",
-        subline: "Pick up where you left off with a quick entry.",
-      };
-    case "streak":
-      return {
-        headline: "🔥 You are on a roll",
-        subline: `${s.entryCount} entries logged. Add today's notes.`,
-      };
-    default:
-      return {
-        headline: "🌿 Today's wash day",
-        subline: "Note what worked and what did not.",
-      };
+const buildLabel = (s: Omit<JournalSignals, "milestoneLabel">): string => {
+  const parts: string[] = [];
+  parts.push(`Day ${s.daysSinceSignup}`);
+  if (s.entryCount > 0) parts.push(`${s.entryCount} ${s.entryCount === 1 ? "entry" : "entries"}`);
+  if (s.washCount > 0) parts.push(`${s.washCount} wash${s.washCount === 1 ? "" : "es"}`);
+  return parts.join(" · ");
+};
+
+const neutralBannerFromSignals = (s: JournalSignals): EncouragementBanner => {
+  // Used only if AI is unavailable. Reads live numbers — never invented copy.
+  if (s.entryCount === 0 && s.washCount === 0) {
+    return {
+      headline: "Your journal is empty",
+      subline: `Day ${s.daysSinceSignup} with STRAND. Log your first entry to start building patterns.`,
+    };
   }
+  const recent = Math.min(
+    s.daysSinceLastEntry ?? Infinity,
+    s.daysSinceLastWash ?? Infinity,
+  );
+  if (recent === Infinity) {
+    return {
+      headline: "Pick up where you left off",
+      subline: `${s.entryCount} entries and ${s.washCount} washes logged so far.`,
+    };
+  }
+  return {
+    headline: `${s.entryCount + s.washCount} logs and counting`,
+    subline: `Last activity ${recent} day${recent === 1 ? "" : "s"} ago. Keep the record going.`,
+  };
 };
 
 export const useJournalEncouragement = () => {
@@ -158,43 +142,142 @@ export const useJournalEncouragement = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const s = computeSignals(user?.created_at);
-    setSignals(s);
-
-    // Cache key combines user, milestone, and the date so the copy refreshes
-    // at most once per day per state — saves AI credits.
-    const cacheKey = `${CACHE_PREFIX}:${user?.id ?? "anon"}:${s.milestone}:${todayKey()}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        setBanner(JSON.parse(cached));
-        setLoading(false);
-        return;
-      } catch {
-        /* ignore */
-      }
+    if (!user) {
+      setSignals(null);
+      setBanner(null);
+      setLoading(false);
+      return;
     }
 
     let cancelled = false;
+    setLoading(true);
+
     (async () => {
+      // --- Pull real-time data in parallel ---------------------------------
+      const [entryRes, washRes, goalRes, apptRes] = await Promise.all([
+        supabase
+          .from("journal_entries")
+          .select("entry_date, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("wash_days")
+          .select("wash_date, created_at")
+          .eq("user_id", user.id)
+          .order("wash_date", { ascending: false }),
+        supabase
+          .from("user_goals")
+          .select("title, status, updated_at")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false }),
+        supabase
+          .from("appointments")
+          .select("appointment_date")
+          .eq("user_id", user.id)
+          .order("appointment_date", { ascending: false })
+          .limit(1),
+      ]);
+
+      if (cancelled) return;
+
+      const now = Date.now();
+      const createdAt = user.created_at ?? new Date().toISOString();
+      const daysSinceSignup = daysBetween(createdAt, now) ?? 0;
+
+      const entries = entryRes.data ?? [];
+      const washes = washRes.data ?? [];
+      const goalsRows = goalRes.data ?? [];
+      const appts = apptRes.data ?? [];
+
+      const lastEntryIso =
+        entries[0]?.created_at ?? entries[0]?.entry_date ?? null;
+      const lastWashIso = washes[0]?.wash_date ?? washes[0]?.created_at ?? null;
+      const activeGoals = goalsRows.filter((g) => g.status !== "complete");
+      const recentGoal = goalsRows[0] ?? null;
+
+      const partial = {
+        daysSinceSignup,
+        entryCount: entries.length,
+        daysSinceLastEntry: daysBetween(lastEntryIso, now),
+        washCount: washes.length,
+        daysSinceLastWash: daysBetween(lastWashIso, now),
+        activeGoalCount: activeGoals.length,
+        recentGoalTitle: recentGoal?.title ?? null,
+        daysSinceGoalUpdate: daysBetween(recentGoal?.updated_at ?? null, now),
+        daysSinceLastAppointment: daysBetween(
+          appts[0]?.appointment_date ?? null,
+          now,
+        ),
+        lifecycleStage: deriveLifecycle(daysSinceSignup),
+        engagementState: deriveEngagement(
+          entries.length,
+          daysBetween(lastEntryIso, now),
+          daysBetween(lastWashIso, now),
+        ),
+      } satisfies Omit<JournalSignals, "milestoneLabel">;
+
+      const next: JournalSignals = {
+        ...partial,
+        milestoneLabel: buildLabel(partial),
+      };
+
+      setSignals(next);
+
+      // --- Cache lookup keyed by signal signature --------------------------
+      const signature = JSON.stringify({
+        s: next.daysSinceSignup,
+        e: next.entryCount,
+        le: next.daysSinceLastEntry,
+        w: next.washCount,
+        lw: next.daysSinceLastWash,
+        g: next.activeGoalCount,
+        gu: next.daysSinceGoalUpdate,
+        ls: next.lifecycleStage,
+        es: next.engagementState,
+      });
+      const cacheKey = `${CACHE_PREFIX}:${user.id}`;
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          const parsed = JSON.parse(raw) as CacheEntry;
+          if (
+            parsed.signature === signature &&
+            now - parsed.ts < CACHE_TTL_MS &&
+            parsed.banner?.headline
+          ) {
+            setBanner(parsed.banner);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        /* ignore cache parse errors */
+      }
+
+      // --- Ask the AI for fresh copy ---------------------------------------
       try {
         const { data, error } = await supabase.functions.invoke(
           "journal-encouragement",
-          { body: s },
+          { body: next },
         );
         if (cancelled) return;
-        if (error || !data?.banner) {
-          setBanner(fallbackBanner(s));
+        if (error || !data?.banner?.headline) {
+          setBanner(neutralBannerFromSignals(next));
         } else {
           setBanner(data.banner);
           try {
-            localStorage.setItem(cacheKey, JSON.stringify(data.banner));
+            const entry: CacheEntry = {
+              banner: data.banner,
+              ts: now,
+              signature,
+            };
+            localStorage.setItem(cacheKey, JSON.stringify(entry));
           } catch {
             /* quota — ignore */
           }
         }
       } catch {
-        if (!cancelled) setBanner(fallbackBanner(s));
+        if (!cancelled) setBanner(neutralBannerFromSignals(next));
       } finally {
         if (!cancelled) setLoading(false);
       }
