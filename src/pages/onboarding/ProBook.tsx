@@ -7,9 +7,10 @@ import ProgressDots from "@/components/ProgressDots";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
+import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { PROFESSIONALS, searchProfessionals, type Professional } from "@/data/professionals";
+import { searchProfessionalsIn, type Professional } from "@/data/professionals";
+import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 
 const ProCard = ({ p }: { p: Professional }) => (
   <SurfaceCard padded={false} className="overflow-hidden">
