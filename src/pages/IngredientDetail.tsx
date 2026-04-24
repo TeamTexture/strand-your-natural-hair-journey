@@ -224,14 +224,12 @@ const IngredientDetail = () => {
               ))}
             </SurfaceCard>
 
-            <button
-              onClick={() => runAnalysis(true)}
-              className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-            >
-              <RefreshCw className="size-3" /> Re-run analysis
-            </button>
           </>
         )}
+
+        {/* "Re-run analysis" intentionally removed — analysis runs once on
+         * load (and on retry after error). */}
+        {false && null}
 
         <SectionLabel>Your voicenotes</SectionLabel>
         <SurfaceCard>
