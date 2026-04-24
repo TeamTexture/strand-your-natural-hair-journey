@@ -398,27 +398,37 @@ const JournalEntry = () => {
       const uploaded: { path: string; url: string }[] = [];
       for (const rawFile of toUpload) {
         const isHeicFile = /\.(heic|heif)$/i.test(rawFile.name) || /heic|heif/i.test(rawFile.type);
-        if (!rawFile.type.startsWith("image/") && !isHeicFile) {
-          toast.error(`${rawFile.name}: not an image`);
+        const isVideoFile =
+          rawFile.type.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(rawFile.name);
+        if (!rawFile.type.startsWith("image/") && !isHeicFile && !isVideoFile) {
+          toast.error(`${rawFile.name}: not an image or video`);
           continue;
         }
-        if (rawFile.size > 8 * 1024 * 1024) {
-          toast.error(`${rawFile.name}: too large (max 8MB)`);
+        // Videos can be much larger than photos; allow up to 100MB.
+        const maxBytes = isVideoFile ? 100 * 1024 * 1024 : 8 * 1024 * 1024;
+        const maxLabel = isVideoFile ? "100MB" : "8MB";
+        if (rawFile.size > maxBytes) {
+          toast.error(`${rawFile.name}: too large (max ${maxLabel})`);
           continue;
         }
         let file: File;
-        try {
-          file = await convertHeicToJpeg(rawFile);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : `${rawFile.name}: couldn't read photo`;
-          toast.error(msg);
-          continue;
+        if (isVideoFile) {
+          // Don't run videos through the HEIC->JPEG converter.
+          file = rawFile;
+        } else {
+          try {
+            file = await convertHeicToJpeg(rawFile);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : `${rawFile.name}: couldn't read photo`;
+            toast.error(msg);
+            continue;
+          }
         }
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const ext = file.name.split(".").pop()?.toLowerCase() || (isVideoFile ? "mp4" : "jpg");
         const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from(PHOTO_BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false });
+          .upload(path, file, { contentType: file.type || (isVideoFile ? "video/mp4" : undefined), upsert: false });
         if (upErr) {
           console.error("Upload failed:", upErr);
           toast.error(`${file.name}: upload failed`);
