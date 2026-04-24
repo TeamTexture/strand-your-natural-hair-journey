@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, Check, Camera, Share2, Trash2, Loader2, GripVertical, Star, ImagePlus } from "lucide-react";
+import { Plus, X, Camera, Share2, Loader2, GripVertical, Star, ImagePlus } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -25,6 +25,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import ShareSheet from "@/components/ShareSheet";
+import ProductPickerSheet from "@/components/ProductPickerSheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -32,30 +33,25 @@ import { cn } from "@/lib/utils";
 import { getJournalEntry } from "@/data/journalEntries";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProducts } from "@/hooks/useUserProducts";
 
 const PHOTO_BUCKET = "journal-photos";
-
-// Product catalog (mirrors keys/labels in src/pages/Products.tsx)
-interface Product { key: string; emoji: string; name: string; brand: string }
-const PRODUCT_CATALOG: Product[] = [
-  { key: "camille-rose-moisture-retention", emoji: "🧴", name: "Moisture Retention Serum", brand: "Camille Rose" },
-  { key: "briogeo-honey-whip", emoji: "🫙", name: "Honey Whip Moisturiser", brand: "Briogeo" },
-  { key: "cantu-curl-defining-cream", emoji: "🧪", name: "Curl Defining Cream", brand: "Cantu" },
-  { key: "mielle-scalp-serum", emoji: "🌿", name: "Scalp Serum", brand: "Mielle" },
-];
 
 interface ReflectionState {
   how: string;
   liked: string;
   next: string;
-  productKeys: string[];
+  /** Selected product IDs (uuid) from user_products */
+  productIds: string[];
+  /** Legacy: product keys from the old hardcoded catalog (kept for migration) */
+  productKeys?: string[];
 }
 
 const emptyReflection = (): ReflectionState => ({
   how: "",
   liked: "",
   next: "",
-  productKeys: [],
+  productIds: [],
 });
 
 interface SortablePhotoProps {
