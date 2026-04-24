@@ -614,7 +614,8 @@ const WashStep1 = () => {
                 // and the saved wash record can reflect what was skipped.
                 prePoo, cleanse, coWash, condition, treatment,
                 treatmentType,
-                products,
+                products: productLabels,
+                productIds,
                 heatTreatment: heatChoice,
                 heatMinutes: heatChoice === "yes" ? heatMinutes : null,
                 skipped: {
