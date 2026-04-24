@@ -334,9 +334,45 @@ const WashStep1 = () => {
                 </button>
               </div>
               {heatChoice === "yes" && (
-                <p className="text-[11px] text-muted-foreground">
-                  Nice — log the cap/steamer and minutes on the next step.
-                </p>
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-[11px] font-medium text-foreground">How long for?</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[15, 20, 30, 45, 60].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setHeatMinutes(m)}
+                        aria-pressed={heatMinutes === m}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-[11px] font-medium border transition-colors min-h-[32px]",
+                          heatMinutes === m
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-card text-muted-foreground border-border",
+                        )}
+                      >
+                        {m} min
+                      </button>
+                    ))}
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={240}
+                      placeholder="Custom"
+                      value={heatMinutes && ![15, 20, 30, 45, 60].includes(heatMinutes) ? heatMinutes : ""}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        setHeatMinutes(Number.isFinite(v) && v > 0 ? v : null);
+                      }}
+                      className="w-20 px-2.5 py-1 rounded-full text-[11px] bg-card border border-border min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-center"
+                    />
+                  </div>
+                  {heatMinutes && (
+                    <p className="text-[11px] text-muted-foreground">
+                      ✓ Logged: {heatMinutes} minutes. Tap <strong>Done</strong> on the Condition step to save.
+                    </p>
+                  )}
+                </div>
               )}
               {heatChoice === "no" && !heatDialogOpen && (
                 <button
