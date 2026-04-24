@@ -1,1 +1,4 @@
 project_id = "wibimeglifveruvtvaxe"
+
+[functions.journal-encouragement]
+verify_jwt = false
