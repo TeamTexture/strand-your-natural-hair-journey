@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+import { toast } from "sonner";
 import WashGuidanceCard from "@/components/WashGuidanceCard";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
