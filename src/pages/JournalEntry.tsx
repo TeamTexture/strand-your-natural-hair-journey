@@ -786,6 +786,36 @@ const JournalEntry = () => {
           Back to Journal
         </Button>
       </div>
+
+      <Sheet open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <SheetContent side="bottom" className="rounded-t-[20px]">
+          <SheetHeader className="text-left">
+            <SheetTitle>Delete this entry?</SheetTitle>
+            <SheetDescription>
+              Are you sure you want to delete this entry? This cannot be undone.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetFooter className="mt-4 flex-col gap-2 sm:flex-col">
+            <Button
+              variant="default"
+              size="pill"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="pill"
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </ScreenLayout>
   );
 };
