@@ -107,6 +107,26 @@ const AlertCard = ({ alert }: { alert: AlertItem }) => (
   </button>
 );
 
+// Section label with an inline "Edit" affordance routing to the right onboarding screen.
+const EditableSectionLabel = ({
+  children,
+  onEdit,
+  editLabel = "Edit",
+}: { children: React.ReactNode; onEdit: () => void; editLabel?: string }) => (
+  <div className="px-5 pt-2 pb-1.5 flex items-end justify-between">
+    <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+      {children}
+    </span>
+    <button
+      onClick={onEdit}
+      className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium inline-flex items-center gap-1 px-2 -mr-2 min-h-[36px]"
+    >
+      <Pencil className="size-3" /> {editLabel}
+    </button>
+  </div>
+);
+
+
 // ---------- Page ----------
 const Profile = () => {
   const navigate = useNavigate();
