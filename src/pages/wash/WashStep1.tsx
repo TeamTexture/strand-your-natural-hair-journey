@@ -400,19 +400,28 @@ const WashStep1 = () => {
 
       <div className="px-5 space-y-3 pb-8">
         <StepCard
-          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: prePooProducts }}
+          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment" }}
           state={prePoo}
           setState={setPrePoo}
+          selectedProducts={prePooSelected}
+          onRemoveProduct={removeFrom(setPrePooIds, prePooIds)}
+          onOpenPicker={() => openPicker("prepoo")}
         />
         <StepCard
-          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo — clarifying or gentle", defaultDone: true, products: cleanseProducts }}
+          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo — clarifying or gentle" }}
           state={cleanse}
           setState={setCleanse}
+          selectedProducts={cleanseSelected}
+          onRemoveProduct={removeFrom(setCleanseIds, cleanseIds)}
+          onOpenPicker={() => openPicker("cleanse")}
         />
         <StepCard
-          step={{ id: "2b", emoji: "🧴", name: "Co-wash", sub: "Conditioning wash (between shampoos)", defaultDone: false, products: cleanseProducts }}
+          step={{ id: "2b", emoji: "🧴", name: "Co-wash", sub: "Conditioning wash (between shampoos)" }}
           state={coWash}
           setState={setCoWash}
+          selectedProducts={coWashSelected}
+          onRemoveProduct={removeFrom(setCoWashIds, coWashIds)}
+          onOpenPicker={() => openPicker("cowash")}
         />
         {/* Science-grounded caution: cationic surfactants in co-washes (e.g.
             behentrimonium methosulfate / cetrimonium chloride) condition and
