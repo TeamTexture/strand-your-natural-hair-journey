@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useMoodboards, useMoodboardImages, type Moodboard } from "@/hooks/useMoodboards";
+import { useMoodboards, type Moodboard } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 
 const GRADIENTS = [
