@@ -313,6 +313,9 @@ ${trimmed}
     const txt: string = j.choices?.[0]?.message?.content ?? "{}";
     let out: Record<string, unknown> = {};
     try { out = JSON.parse(txt); } catch { out = { raw: txt }; }
+    // Always pass the scraped product image back so the client can show it
+    // on the tool tile / detail page without re-fetching the page.
+    if (scraped.image_url && !out.image_url) out.image_url = scraped.image_url;
 
     return new Response(JSON.stringify(out), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
