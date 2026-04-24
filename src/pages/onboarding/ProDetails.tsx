@@ -227,7 +227,3 @@ const ProDetails = () => {
 };
 
 export default ProDetails;
-
-// Note: SurfaceCard import removed — verified badge replaced by inline ValidatedField status pills.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _Keep = typeof SurfaceCard;
