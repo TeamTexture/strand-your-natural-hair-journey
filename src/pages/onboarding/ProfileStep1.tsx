@@ -224,8 +224,10 @@ const ProfileStep1 = () => {
                 Hard water ⚠
               </span>
             )}
-            {hardWater === false && postcode.trim().length >= 3 && (
-              <Check className="size-4 text-good mr-3 shrink-0" />
+            {hardWater === false && (
+              <span className="bg-good/15 text-good text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded mr-2 shrink-0">
+                Soft water ✓
+              </span>
             )}
           </FieldFrame>
           {submitted && errors.postcode && <FieldError>{errors.postcode}</FieldError>}
