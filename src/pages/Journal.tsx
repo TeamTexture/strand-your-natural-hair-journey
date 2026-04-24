@@ -145,6 +145,7 @@ const Journal = () => {
     let cancelled = false;
     (async () => {
       const next: Record<string, string> = {};
+      const nextIsVideo: Record<string, boolean> = {};
       await Promise.all(
         journalEntries.map(async (j) => {
           const path = localStorage.getItem(`strand_journal_photo_${j.id}`);
@@ -152,10 +153,16 @@ const Journal = () => {
           const { data } = await supabase.storage
             .from(PHOTO_BUCKET)
             .createSignedUrl(path, 3600);
-          if (data?.signedUrl) next[j.id] = data.signedUrl;
+          if (data?.signedUrl) {
+            next[j.id] = data.signedUrl;
+            nextIsVideo[j.id] = isVideoPath(path);
+          }
         }),
       );
-      if (!cancelled) setPhotoUrls(next);
+      if (!cancelled) {
+        setPhotoUrls(next);
+        setPhotoIsVideo(nextIsVideo);
+      }
     })();
     return () => {
       cancelled = true;
