@@ -17,9 +17,10 @@ import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 
 const tabs = [
-  { id: "shelf",    label: "Shelf" },
-  { id: "wishlist", label: "Wishlist" },
-  { id: "intel",    label: "Ingredients" },
+  { id: "shelf",     label: "Shelf" },
+  { id: "wishlist",  label: "Wishlist" },
+  { id: "off-shelf", label: "Off Shelf" },
+  { id: "intel",     label: "Ingredients" },
 ];
 
 const Stars = ({ n }: { n: number }) => (
@@ -60,18 +61,19 @@ const Products = () => {
       />
 
       <div className="px-5 pb-4">
-        <div className="grid grid-cols-3 gap-1 p-1 bg-card border border-border rounded-[10px]">
+        <div className="grid grid-cols-4 gap-1 p-1 bg-card border border-border rounded-[10px]">
           {tabs.map((t) => {
             const active = t.id === "shelf";
             return (
               <button
                 key={t.id}
                 onClick={() => {
-                  if (t.id === "wishlist") goWishlist();
-                  else if (t.id === "intel") goIntel();
+                  if (t.id === "wishlist") navigate("/products/wishlist");
+                  else if (t.id === "off-shelf") navigate("/products/off-shelf");
+                  else if (t.id === "intel") navigate("/products/avoidlist");
                 }}
                 className={cn(
-                  "py-2 text-xs rounded-md font-medium transition-colors min-h-[40px] truncate px-1",
+                  "py-2 text-[11px] rounded-md font-medium transition-colors min-h-[40px] truncate px-1",
                   active ? "bg-primary text-primary-foreground" : "text-muted-foreground",
                 )}
               >
