@@ -23,6 +23,7 @@ import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
 import { getWaterHardness } from "@/data/hardWaterPostcodes";
 import { generateProfilePdf } from "@/lib/profilePdf";
+import { copyToClipboard, shareOrCopyLink } from "@/lib/clipboard";
 
 // ---------- Types ----------
 interface BasicProfile {
@@ -359,7 +360,19 @@ const Profile = () => {
         title="My Profile"
         back={false}
         right={
-          <button onClick={() => toast("Profile link copied")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
+          <button
+            onClick={async () => {
+              const url = `${window.location.origin}/profile`;
+              const result = await shareOrCopyLink({
+                title: `${displayName || "STRAND"} · Profile`,
+                text: "My STRAND profile",
+                url,
+              });
+              if (result === "copied") toast.success("Profile link copied");
+              else if (result === "failed") toast.error("Could not copy link");
+            }}
+            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
+          >
             Share ↗
           </button>
         }
@@ -647,7 +660,16 @@ const Profile = () => {
         <Button variant="gold" size="pill" onClick={handleExportPdf} disabled={exportingPdf}>
           {exportingPdf ? "Generating PDF…" : "Export as PDF"}
         </Button>
-        <Button variant="goldGhost" size="pill" onClick={() => toast("Share link copied")}>
+        <Button
+          variant="goldGhost"
+          size="pill"
+          onClick={async () => {
+            const url = `${window.location.origin}/profile`;
+            const ok = await copyToClipboard(url);
+            if (ok) toast.success("Share link copied");
+            else toast.error("Could not copy link");
+          }}
+        >
           Copy Share Link
         </Button>
         <button
