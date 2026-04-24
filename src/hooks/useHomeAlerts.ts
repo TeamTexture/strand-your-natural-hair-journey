@@ -116,22 +116,22 @@ export function useHomeAlerts() {
       const lastWashIso = localStorage.getItem("strand_last_wash_date");
       const daysSinceWash = daysSince(lastWashIso);
 
-      // Rule 1: Wash overdue + protective style.
-      // Signature is the last wash date (or "none") so dismissal clears once a
-      // new wash is logged.
-      if (inTakedownStyle && daysSinceWash >= 7) {
-        const dayLabel = Number.isFinite(daysSinceWash)
-          ? `Day ${daysSinceWash} in ${currentStyles[0]?.toLowerCase() ?? "style"}`
-          : `In ${currentStyles[0]?.toLowerCase() ?? "style"}`;
+      // Rule 1: Wash overdue + protective style. Only fires if the user has
+      // actually logged a wash before — otherwise it's just a placeholder.
+      // Signature is the last wash date so dismissal clears once a new wash
+      // is logged.
+      if (inTakedownStyle && lastWashIso && daysSinceWash >= 7) {
+        const dayLabel = `Day ${daysSinceWash} in ${currentStyles[0]?.toLowerCase() ?? "style"}`;
         next.push({
           id: "wash-overdue",
           emoji: "💧",
           title: `Wash day overdue — ${dayLabel}`,
           body: "Product build-up begins now. Log a cleanse.",
           to: "/wash-day",
-          signature: `wash:${lastWashIso ?? "none"}`,
+          signature: `wash:${lastWashIso}`,
         });
       }
+
 
       // Rule 2: Style worn 42+ days → take down.
       // Signature is the style start date so a new style clears the dismissal.
