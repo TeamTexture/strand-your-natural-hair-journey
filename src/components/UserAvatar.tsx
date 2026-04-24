@@ -135,19 +135,24 @@ const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        aria-label={signedUrl ? "Change avatar" : "Add avatar"}
+        aria-label={signedUrl ? "Change profile photo" : "Add profile photo"}
         className={cn(
           "size-full rounded-full bg-primary text-primary-foreground flex items-center justify-center overflow-hidden",
+          "transition-transform active:scale-95 hover:opacity-90 cursor-pointer",
+          "focus:outline-none focus:ring-2 focus:ring-primary/60 focus:ring-offset-2 focus:ring-offset-background",
         )}
       >
         {inner}
       </button>
       {busy ? (
-        <span className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+        <span className="pointer-events-none absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
           <Loader2 className="size-4 text-white animate-spin" />
         </span>
       ) : (
-        <span className="absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center"
+        >
           <Camera className="size-2.5" />
         </span>
       )}
