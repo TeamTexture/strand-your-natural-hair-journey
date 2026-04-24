@@ -50,6 +50,7 @@ import Directory from "./pages/Directory";
 import Profile from "./pages/Profile";
 import NutritionPlan from "./pages/NutritionPlan";
 import Help from "./pages/Help";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
