@@ -120,6 +120,44 @@ const ProductDetailNew = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, productKey, ingredientsKey]);
 
+  // Auto-save when the picker sheet sent us here. Refs aren't allowed
+  // to short-circuit on early returns, so this hook lives above the
+  // `if (!state)` guard.
+  const autoSavedRef = useMemo(() => ({ done: false }), []);
+  const autoSave = state?.auto_save ?? false;
+  const autoSaveIntent = state?.intent ?? "shelf";
+  const autoSaveReturnTo = state?.returnTo;
+  useEffect(() => {
+    if (!autoSave || autoSavedRef.done) return;
+    const name = a.product_name;
+    const key = state?.product_key;
+    if (!name || !key) return;
+    autoSavedRef.done = true;
+    void (async () => {
+      const ok = await upsert({
+        product_key: key,
+        name,
+        brand: a.brand ?? null,
+        category: a.category ?? null,
+        image_url: state?.preview_url ?? null,
+        storage_path: state?.storage_path ?? null,
+        ingredients: a.ingredients ?? [],
+        key_ingredients: a.key_ingredients ?? [],
+        ai_summary: a.ai_summary ?? null,
+        match_score: Math.max(0, Math.min(100, Math.round(a.match_score ?? 0))),
+        on_shelf: autoSaveIntent === "shelf",
+        on_wishlist: autoSaveIntent === "wishlist",
+        added_to_shelf_at: autoSaveIntent === "shelf" ? new Date().toISOString() : null,
+      });
+      if (ok) {
+        toast.success(autoSaveIntent === "shelf" ? "Added to your shelf" : "Added to wishlist");
+        const fallback = autoSaveIntent === "shelf" ? "/products" : "/products/wishlist";
+        navigate(autoSaveReturnTo ?? fallback, { replace: true });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSave, a.product_name, state?.product_key]);
+
   if (!state) return null;
 
   const aiFlagByName = new Map<string, IngredientFlag>();
