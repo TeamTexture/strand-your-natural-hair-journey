@@ -233,6 +233,7 @@ interface HeatRationale {
 
 const WashStep1 = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
