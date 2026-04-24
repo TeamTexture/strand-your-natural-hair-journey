@@ -27,7 +27,7 @@ const SuccessScreen = () => {
           <h1 className="font-display text-[26px] leading-tight text-foreground mb-4">
             Your Strand profile is ready.
           </h1>
-          <p className="font-script italic text-base leading-snug text-muted-foreground max-w-[280px]">
+          <p className="font-body text-base leading-snug text-muted-foreground max-w-[280px]">
             Every recommendation, alert, and insight is now built around your verified clinical data. This is hair care that actually knows you.
           </p>
         </div>

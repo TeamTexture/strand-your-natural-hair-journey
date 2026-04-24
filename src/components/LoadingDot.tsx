@@ -27,7 +27,7 @@ const LoadingDot = ({ label, fullScreen = true, className }: Props) => (
       aria-hidden="true"
     />
     {label && (
-      <span className="font-script italic text-sm text-muted-foreground">{label}</span>
+      <span className="font-body text-sm text-muted-foreground">{label}</span>
     )}
     <span className="sr-only">{label ?? "Loading"}</span>
   </div>

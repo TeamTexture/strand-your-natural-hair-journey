@@ -35,7 +35,7 @@ const Journal = () => {
       <div className="px-5 pb-4">
         <div className="rounded-[14px] p-4 bg-gradient-to-r from-primary to-[#8B6914] text-primary-foreground">
           <p className="text-base font-semibold">🌟 3 Month Natural Anniversary</p>
-          <p className="font-script italic text-sm opacity-90 mt-1">You have come so far. Keep going.</p>
+          <p className="font-body text-sm opacity-90 mt-1">You have come so far. Keep going.</p>
         </div>
       </div>
 

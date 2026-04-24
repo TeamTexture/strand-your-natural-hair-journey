@@ -22,7 +22,7 @@ const ProGate = () => {
           <h2 className="font-display text-[22px] leading-tight mb-3">
             Your hair characteristics need to come from a professional.
           </h2>
-          <p className="font-script italic text-[15px] leading-snug text-muted-foreground">
+          <p className="font-body text-[15px] leading-snug text-muted-foreground">
             Self-diagnosing porosity, elasticity and density is one of the biggest sources of misinformation in the natural hair community. A trichologist or dermatologist will assess your hair accurately — and that accuracy is what makes every Strand recommendation genuinely useful.
           </p>
         </SurfaceCard>

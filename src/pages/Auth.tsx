@@ -58,7 +58,7 @@ const Auth = () => {
       <div className="px-7 pt-2 pb-10 flex flex-col h-full">
         <div className="flex flex-col items-center text-center mb-8">
           <HairStrandIcon className="w-12 h-12 text-primary mb-4" />
-          <p className="font-script italic text-base text-muted-foreground max-w-[260px] leading-snug">
+          <p className="font-body text-base text-muted-foreground max-w-[260px] leading-snug">
             Your verified hair journal — built around your clinical data.
           </p>
         </div>

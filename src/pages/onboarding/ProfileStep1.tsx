@@ -332,7 +332,7 @@ const ProfileStep1 = () => {
             </select>
             <ChevronDown className="size-4 text-muted-foreground absolute right-3 pointer-events-none" />
           </FieldFrame>
-          <p className="mt-1.5 text-[11px] font-script italic text-muted-foreground leading-snug">
+          <p className="mt-1.5 text-[11px] font-body text-muted-foreground leading-snug">
             This is never shared and used only to personalise your hair care recommendations.
           </p>
         </label>

@@ -76,7 +76,7 @@ const WashDayHub = () => {
         <Calendar />
         <SurfaceCard tone="gold">
           <p className="text-sm font-medium">💧 4 wash days this month</p>
-          <p className="font-script italic text-sm text-muted-foreground mt-1">
+          <p className="font-body text-sm text-muted-foreground mt-1">
             Great consistency — washing weekly keeps your scalp clean and your hair hydrated.
           </p>
         </SurfaceCard>
