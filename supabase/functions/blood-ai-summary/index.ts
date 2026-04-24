@@ -84,7 +84,14 @@ Deno.serve(async (req) => {
 Analyse these blood test results and return JSON only via the provided tool.
 Hair health guidance only. No medical advice. Recommend GP for medical concerns.
 Be specific and personal — reference the user's actual values, hair type, and heritage where relevant.
-Plain English, one-sentence hair impacts.`;
+Plain English, one-sentence hair impacts.
+
+CRITICAL COVERAGE RULE:
+- The "deficiencies" array MUST include EVERY blood marker whose status is "low", "high", or "borderline" — no exceptions.
+- This includes secondary iron-panel markers (TIBC, transferrin, transferrin saturation, MCV, MCH), thyroid markers (TSH, T3, T4), hormones, and any minerals/vitamins flagged.
+- Never silently skip a flagged marker because it's "less common" or "related to another one already mentioned". Each flagged marker gets its own entry with its own hair_impact sentence.
+- The "overall_summary" must explicitly acknowledge the FULL pattern (e.g. "low ferritin AND low TIBC together suggest…"), not just the headline marker.
+- "priority_actions" must address the combined picture, not a single deficiency in isolation.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
