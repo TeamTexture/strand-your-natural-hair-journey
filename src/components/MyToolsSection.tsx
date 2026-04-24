@@ -3,7 +3,9 @@
 // so there's no match score, no AI scan, no URL paste, and no ingredient
 // detail navigation. Photos + name/brand/category/rating + voicenotes only.
 import { useState } from "react";
-import { ChevronDown, Trash2, Wrench } from "lucide-react";
+import { ChevronDown, Link2, Loader2, Trash2, Wrench } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
@@ -80,6 +82,8 @@ const MyToolsSection = () => {
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [analysing, setAnalysing] = useState(false);
 
   const resetForm = () => {
     setPickedPhoto(null);
@@ -89,12 +93,57 @@ const MyToolsSection = () => {
     setCategory("");
     setNotes("");
     setRating(0);
+    setLinkUrl("");
   };
 
   const handlePickPhoto = (f: File) => {
     setPickedPhoto(f);
     setPhotoPreview(URL.createObjectURL(f));
   };
+
+  const handleAnalyseLink = async () => {
+    const raw = linkUrl.trim();
+    if (!raw) {
+      toast.error("Paste a product link first");
+      return;
+    }
+    let normalised = raw;
+    if (!/^https?:\/\//i.test(normalised)) normalised = `https://${normalised}`;
+    try { new URL(normalised); } catch {
+      toast.error("That doesn't look like a valid web link.");
+      return;
+    }
+    setAnalysing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("tool-analyse-url", {
+        body: { url: normalised },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.is_tool === false) {
+        toast.error("That page doesn't look like a hair tool. Try a different link.");
+        return;
+      }
+      // Pre-fill — keep anything the user has already typed.
+      if (data?.name && !name) setName(String(data.name));
+      if (data?.brand && !brand) setBrand(String(data.brand));
+      if (data?.category && !category) {
+        const matched = TOOL_CATEGORIES.find(
+          (c) => c.toLowerCase() === String(data.category).toLowerCase(),
+        );
+        if (matched) setCategory(matched);
+      }
+      if (data?.summary && !notes) setNotes(String(data.summary));
+      toast.success("Tool details filled in — review and save");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Couldn't analyse that page";
+      console.error("tool URL scan failed", e);
+      toast.error(msg);
+    } finally {
+      setAnalysing(false);
+    }
+  };
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -272,6 +321,45 @@ const MyToolsSection = () => {
                 >
                   Upload from camera roll
                 </FilePickerButton>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 rounded-[12px] border border-dashed border-primary/30 bg-primary/5 p-3">
+              <label className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium flex items-center gap-1.5">
+                <Link2 className="size-3" /> Or paste a product link
+              </label>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                We'll fetch the page and pre-fill the name, brand, category and a short note.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://…"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  disabled={saving || analysing}
+                  className="h-10 text-sm"
+                  type="url"
+                  inputMode="url"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <Button
+                  type="button"
+                  variant="goldOutline"
+                  size="pill"
+                  onClick={handleAnalyseLink}
+                  disabled={saving || analysing || !linkUrl.trim()}
+                  className="shrink-0"
+                >
+                  {analysing ? (
+                    <>
+                      <Loader2 className="size-3.5 mr-1 animate-spin" /> Reading…
+                    </>
+                  ) : (
+                    "Analyse"
+                  )}
+                </Button>
               </div>
             </div>
 
