@@ -578,14 +578,13 @@ const JournalEntry = () => {
             <div className="flex flex-wrap gap-2 mb-3">
               {selectedProducts.map((p) => (
                 <span
-                  key={p.key}
-                  className="inline-flex items-center gap-1.5 bg-secondary text-foreground/90 text-xs px-3 py-1.5 rounded-full"
+                  key={p.id}
+                  className="inline-flex items-center gap-1.5 bg-primary/10 text-foreground text-xs px-3 py-1.5 rounded-full border border-primary/30"
                 >
-                  <span>{p.emoji}</span>
                   <span className="font-medium">{p.name}</span>
                   <button
                     type="button"
-                    onClick={() => toggleProduct(p.key)}
+                    onClick={() => toggleProduct(p.id)}
                     className="ml-1 text-muted-foreground hover:text-warn"
                     aria-label={`Remove ${p.name}`}
                   >
@@ -598,42 +597,21 @@ const JournalEntry = () => {
           <Button
             variant="goldOutline"
             size="pill"
-            onClick={() => setPickerOpen((v) => !v)}
+            onClick={() => setPickerOpen(true)}
             className="gap-2"
           >
             <Plus className="size-4" />
-            {pickerOpen ? "Done" : "Add products used"}
+            Add product
           </Button>
-
-          {pickerOpen && (
-            <div className="mt-3 space-y-2 border-t border-border pt-3">
-              {PRODUCT_CATALOG.map((p) => {
-                const selected = state.productKeys.includes(p.key);
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => toggleProduct(p.key)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] border min-h-[48px] transition-colors text-left",
-                      selected
-                        ? "bg-primary/10 border-primary"
-                        : "bg-card border-border hover:border-primary/50",
-                    )}
-                  >
-                    <span className="text-lg shrink-0">{p.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
-                    </div>
-                    {selected && <Check className="size-4 text-primary shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </SurfaceCard>
       </div>
+
+      <ProductPickerSheet
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        selectedIds={state.productIds}
+        onToggle={toggleProduct}
+      />
 
       {/* Reflection prompts */}
       <SectionLabel>Reflection</SectionLabel>
