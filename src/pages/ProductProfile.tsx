@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -20,10 +20,19 @@ import {
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
+import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { buildAiContext } from "@/lib/aiContext";
+
+/** Per-ingredient flag returned by the ingredient-analysis edge function. */
+interface IngredientFlag {
+  name: string;
+  tone: "good" | "warn" | "bad";
+  body: string;
+}
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
