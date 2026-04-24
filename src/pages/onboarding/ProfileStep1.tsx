@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronDown, Mail } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -34,7 +34,7 @@ const FieldFrame = ({
     className={cn(
       "relative flex items-center bg-card rounded-[10px] border transition-colors",
       invalid
-        ? "border-destructive"
+        ? "border-[#A04040]"
         : filled
           ? "border-primary/60"
           : "border-border",
@@ -42,6 +42,11 @@ const FieldFrame = ({
   >
     {children}
   </div>
+);
+
+/** Inline error text shown below a field. */
+const FieldError = ({ children }: { children: React.ReactNode }) => (
+  <p className="mt-1 text-[12px] font-body text-[#A04040]">{children}</p>
 );
 
 const ages = Array.from({ length: 80 - 16 + 1 }, (_, i) => 16 + i);
@@ -54,24 +59,39 @@ const ProfileStep1 = () => {
   const [country, setCountry] = useState("United Kingdom");
   const [heritage, setHeritage] = useState("");
 
+  const [submitted, setSubmitted] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState("");
+
+  // Refs for keyboard "Next" key focus advance.
+  const ageRef = useRef<HTMLSelectElement>(null);
+  const postcodeRef = useRef<HTMLInputElement>(null);
 
   const hardWater = useMemo(() => isHardWaterPostcode(postcode), [postcode]);
   const isUK = country === "United Kingdom";
 
-  const canContinue =
-    name.trim().length > 0 &&
-    age !== "" &&
-    postcode.trim().length >= 3 &&
-    isUK;
+  // Per-field validity (only surface errors after submit-attempt).
+  const errors = {
+    name: name.trim().length === 0 ? "Enter your full name" : "",
+    age: age === "" ? "Select your age" : "",
+    postcode:
+      postcode.trim().length < 3 ? "Enter a postcode (at least 3 characters)" : "",
+    country: !isUK ? "STRAND is only available in the UK right now" : "",
+  };
+  const canContinue = Object.values(errors).every((e) => e === "");
 
   const handleContinue = () => {
+    setSubmitted(true);
     if (!canContinue) return;
-    // Persist to local state for now — wired into Cloud once schema is built.
     sessionStorage.setItem(
       "strand_profile_step1",
-      JSON.stringify({ name: name.trim(), age, postcode: postcode.trim().toUpperCase(), country, heritage }),
+      JSON.stringify({
+        name: name.trim(),
+        age,
+        postcode: postcode.trim().toUpperCase(),
+        country,
+        heritage,
+      }),
     );
     navigate("/onboarding/profile-step-2");
   };
@@ -87,61 +107,114 @@ const ProfileStep1 = () => {
     setWaitlistEmail("");
   };
 
+  // Tap outside any input to dismiss the keyboard on mobile.
+  const dismissKeyboard = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest("input, select, textarea, button")) {
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+  };
+
   return (
     <ScreenLayout>
       <TitleBar title="About You" right={<span>1 of 9</span>} />
       <ProgressDots total={9} current={1} />
       <ItalicSub>This shapes every recommendation Strand makes.</ItalicSub>
 
-      <div className="px-5 space-y-4 pb-8">
+      <form
+        className="px-5 space-y-4 pb-8"
+        onClick={dismissKeyboard}
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleContinue();
+        }}
+        noValidate
+      >
         {/* Full Name */}
         <label className="block">
           <FieldLabel>Full Name</FieldLabel>
-          <FieldFrame filled={name.trim().length > 0}>
+          <FieldFrame
+            filled={name.trim().length > 0}
+            invalid={submitted && !!errors.name}
+          >
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your full name"
               maxLength={100}
-              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px]"
+              autoComplete="name"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  ageRef.current?.focus();
+                }
+              }}
+              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]"
             />
             {name.trim().length > 0 && <Check className="size-4 text-good mr-3 shrink-0" />}
           </FieldFrame>
+          {submitted && errors.name && <FieldError>{errors.name}</FieldError>}
         </label>
 
         {/* Age */}
         <label className="block">
           <FieldLabel>Age</FieldLabel>
-          <FieldFrame filled={age !== ""}>
+          <FieldFrame filled={age !== ""} invalid={submitted && !!errors.age}>
             <select
+              ref={ageRef}
               value={age}
-              onChange={(e) => setAge(e.target.value)}
+              onChange={(e) => {
+                setAge(e.target.value);
+                postcodeRef.current?.focus();
+              }}
+              autoComplete="off"
               className={cn(
-                "w-full appearance-none bg-transparent px-3.5 py-3 text-sm focus:outline-none rounded-[10px] pr-10",
+                "w-full appearance-none bg-transparent px-3.5 py-3 text-sm focus:outline-none rounded-[10px] pr-10 min-h-[44px]",
                 age === "" ? "text-muted-foreground/60" : "text-foreground",
               )}
             >
-              <option value="" disabled>Select your age</option>
+              <option value="" disabled>
+                Select one
+              </option>
               {ages.map((a) => (
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>
             <ChevronDown className="size-4 text-muted-foreground absolute right-3 pointer-events-none" />
           </FieldFrame>
+          {submitted && errors.age && <FieldError>{errors.age}</FieldError>}
         </label>
 
         {/* Postcode */}
         <label className="block">
           <FieldLabel>Postcode</FieldLabel>
-          <FieldFrame filled={postcode.trim().length >= 3}>
+          <FieldFrame
+            filled={postcode.trim().length >= 3}
+            invalid={submitted && !!errors.postcode}
+          >
             <input
+              ref={postcodeRef}
               type="text"
               value={postcode}
               onChange={(e) => setPostcode(e.target.value.toUpperCase())}
               placeholder="e.g. SW6 3BX"
               maxLength={8}
-              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] uppercase"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              enterKeyHint="next"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.currentTarget.form?.querySelector(
+                    'select[name="country"]',
+                  ) as HTMLSelectElement | null)?.focus();
+                }
+              }}
+              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] uppercase min-h-[44px]"
             />
             {hardWater === true && (
               <span className="bg-primary/15 text-primary text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded mr-2 shrink-0">
@@ -152,16 +225,19 @@ const ProfileStep1 = () => {
               <Check className="size-4 text-good mr-3 shrink-0" />
             )}
           </FieldFrame>
+          {submitted && errors.postcode && <FieldError>{errors.postcode}</FieldError>}
         </label>
 
         {/* Country */}
         <label className="block">
           <FieldLabel>Country of Residence</FieldLabel>
-          <FieldFrame filled={true} invalid={!isUK}>
+          <FieldFrame filled={true} invalid={submitted && !isUK}>
             <select
+              name="country"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full appearance-none bg-transparent px-3.5 py-3 text-sm text-foreground focus:outline-none rounded-[10px] pr-10"
+              autoComplete="country-name"
+              className="w-full appearance-none bg-transparent px-3.5 py-3 text-sm text-foreground focus:outline-none rounded-[10px] pr-10 min-h-[44px]"
             >
               {COUNTRIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -169,6 +245,7 @@ const ProfileStep1 = () => {
             </select>
             <ChevronDown className="size-4 text-muted-foreground absolute right-3 pointer-events-none" />
           </FieldFrame>
+          {submitted && errors.country && <FieldError>{errors.country}</FieldError>}
         </label>
 
         {/* UK-only block */}
@@ -179,7 +256,7 @@ const ProfileStep1 = () => {
               We are working on expanding. Join the waitlist to be notified when we launch in your country.
             </p>
             {!waitlistOpen ? (
-              <Button variant="gold" size="pill" onClick={() => setWaitlistOpen(true)}>
+              <Button variant="gold" size="pill" onClick={() => setWaitlistOpen(true)} type="button">
                 Join Waitlist
               </Button>
             ) : (
@@ -191,14 +268,28 @@ const ProfileStep1 = () => {
                     value={waitlistEmail}
                     onChange={(e) => setWaitlistEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full bg-transparent px-2.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                    autoComplete="email"
+                    inputMode="email"
+                    enterKeyHint="go"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleWaitlistJoin();
+                      }
+                    }}
+                    className="w-full bg-transparent px-2.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none min-h-[44px]"
                   />
                 </FieldFrame>
                 <div className="flex gap-2">
-                  <Button variant="gold" size="pill" onClick={handleWaitlistJoin}>
+                  <Button variant="gold" size="pill" onClick={handleWaitlistJoin} type="button">
                     Notify Me
                   </Button>
-                  <Button variant="goldGhost" size="pill" onClick={() => setWaitlistOpen(false)}>
+                  <Button
+                    variant="goldGhost"
+                    size="pill"
+                    onClick={() => setWaitlistOpen(false)}
+                    type="button"
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -219,12 +310,13 @@ const ProfileStep1 = () => {
             <select
               value={heritage}
               onChange={(e) => setHeritage(e.target.value)}
+              autoComplete="off"
               className={cn(
-                "w-full appearance-none bg-transparent px-3.5 py-3 text-sm focus:outline-none rounded-[10px] pr-10",
+                "w-full appearance-none bg-transparent px-3.5 py-3 text-sm focus:outline-none rounded-[10px] pr-10 min-h-[44px]",
                 heritage === "" ? "text-muted-foreground/60" : "text-foreground",
               )}
             >
-              <option value="">Select if you wish</option>
+              <option value="">Select one</option>
               {HERITAGE_OPTIONS.map((opt, i) =>
                 opt.kind === "header" ? (
                   <option key={`h-${i}`} disabled>
@@ -245,15 +337,15 @@ const ProfileStep1 = () => {
         </label>
 
         <Button
+          type="submit"
           variant="gold"
           size="pill"
           className="mt-4"
           disabled={!canContinue}
-          onClick={handleContinue}
         >
           Continue →
         </Button>
-      </div>
+      </form>
     </ScreenLayout>
   );
 };
