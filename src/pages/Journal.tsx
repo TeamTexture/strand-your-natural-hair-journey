@@ -5,6 +5,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { journalEntries } from "@/data/journalEntries";
+import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
 
 const moodTiles = [
   { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌀" },
@@ -14,6 +15,8 @@ const moodTiles = [
 
 const Journal = () => {
   const navigate = useNavigate();
+  const { signals, banner, loading } = useJournalEncouragement();
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar
@@ -31,8 +34,22 @@ const Journal = () => {
 
       <div className="px-5 pb-4">
         <div className="rounded-[14px] p-4 bg-gradient-to-r from-primary to-[#8B6914] text-primary-foreground">
-          <p className="text-base font-semibold">🌟 3 Month Natural Anniversary</p>
-          <p className="font-body text-sm opacity-90 mt-1">You have come so far. Keep going.</p>
+          {loading || !banner ? (
+            <>
+              <div className="h-4 w-2/3 bg-primary-foreground/20 rounded animate-pulse" />
+              <div className="h-3 w-5/6 bg-primary-foreground/15 rounded animate-pulse mt-2" />
+            </>
+          ) : (
+            <>
+              {signals?.milestoneLabel && (
+                <p className="text-[10px] uppercase tracking-[0.18em] opacity-80 mb-1">
+                  {signals.milestoneLabel}
+                </p>
+              )}
+              <p className="text-base font-semibold">{banner.headline}</p>
+              <p className="font-body text-sm opacity-90 mt-1">{banner.subline}</p>
+            </>
+          )}
         </div>
       </div>
 
