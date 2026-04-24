@@ -95,7 +95,9 @@ const Journal = () => {
 
       <div className="px-5 pb-4 space-y-3">
         <div className="flex items-center justify-between">
-          <SectionLabel className="!mb-0 !px-0">Goals & Challenges</SectionLabel>
+          <h2 className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
+            Goals & Challenges
+          </h2>
           {goals.length > 0 && (
             <button
               onClick={() => openEditor(null)}
