@@ -241,10 +241,10 @@ const WashStep4 = () => {
           )}
         </SurfaceCard>
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={save}>
-          Save Wash Day
+        <Button variant="gold" size="pill" className="mt-4" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save Wash Day"}
         </Button>
-        <Button variant="goldGhost" size="pill" onClick={() => navigate("/home")}>
+        <Button variant="goldGhost" size="pill" onClick={() => navigate("/home")} disabled={saving}>
           Save & Exit
         </Button>
       </div>
