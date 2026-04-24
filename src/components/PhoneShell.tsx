@@ -1,0 +1,28 @@
+import { ReactNode } from "react";
+
+interface Props {
+  children: ReactNode;
+}
+
+/**
+ * iOS-style phone frame, 375px wide. Used to preview STRAND screens on desktop.
+ * On small screens (<420px), renders fullscreen without the frame.
+ */
+const PhoneShell = ({ children }: Props) => (
+  <div className="min-h-screen w-full bg-foreground/[0.04] flex items-center justify-center p-0 sm:p-6">
+    <div
+      className="
+        relative w-full max-w-[375px] bg-background overflow-hidden
+        min-h-screen sm:min-h-0 sm:h-[812px]
+        sm:rounded-[50px] sm:border-[10px] sm:border-foreground/90
+        sm:shadow-[0_30px_80px_-20px_rgba(44,36,22,0.45)]
+      "
+    >
+      {/* Status bar spacer (iOS notch area) */}
+      <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground/90 rounded-b-2xl z-20" />
+      <div className="relative z-10 h-full">{children}</div>
+    </div>
+  </div>
+);
+
+export default PhoneShell;
