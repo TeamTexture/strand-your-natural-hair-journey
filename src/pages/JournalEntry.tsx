@@ -525,18 +525,32 @@ const JournalEntry = () => {
                 ))}
 
                 {photoPaths.length < MAX_PHOTOS && (
-                  <button
-                    type="button"
-                    onClick={() => photoInputRef.current?.click()}
-                    disabled={photoBusy}
-                    className="aspect-square rounded-[10px] border-2 border-dashed border-border hover:border-primary/60 bg-card flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-                    aria-label="Add photos"
-                  >
-                    <Plus className="size-5" />
-                    <span className="text-[10px] uppercase tracking-[0.15em] font-medium">
-                      Add
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={photoBusy}
+                      className="aspect-square rounded-[10px] border-2 border-dashed border-primary/50 bg-primary/5 flex flex-col items-center justify-center gap-1 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                      aria-label="Take a photo with camera"
+                    >
+                      <Camera className="size-5" />
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium leading-tight text-center px-1">
+                        Take<br />photo
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={photoBusy}
+                      className="aspect-square rounded-[10px] border-2 border-dashed border-border hover:border-primary/60 bg-card flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                      aria-label="Choose from library"
+                    >
+                      <ImagePlus className="size-5" />
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-medium leading-tight text-center px-1">
+                        From<br />library
+                      </span>
+                    </button>
+                  </>
                 )}
               </div>
             </SortableContext>
