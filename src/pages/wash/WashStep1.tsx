@@ -276,6 +276,8 @@ const WashStep1 = () => {
         Tap <strong>Add</strong> for steps you did and <strong>Skip</strong> for steps you didn't — be honest, it makes your history more useful.
       </ItalicSub>
 
+      <WashGuidanceCard />
+
       <div className="px-5 space-y-3 pb-8">
         <StepCard
           step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: prePooProducts }}
