@@ -23,6 +23,10 @@ const dotClass = { good: "bg-good", warn: "bg-warn", bad: "bg-destructive" };
 
 const IngredientDetail = () => {
   const [rating, setRating] = useState(5);
+  const [searchParams] = useSearchParams();
+  const productKey = searchParams.get("key") ?? "camille-rose-moisture-retention";
+  const productName = searchParams.get("name") ?? "Moisture Retention Serum";
+  const productBrand = searchParams.get("brand") ?? "Camille Rose";
   return (
     <ScreenLayout>
       <TitleBar
