@@ -168,7 +168,8 @@ const JournalEntry = () => {
           how: parsed.how ?? "",
           liked: parsed.liked ?? "",
           next: parsed.next ?? "",
-          productKeys: parsed.productKeys ?? entry?.productKeys ?? [],
+          productIds: parsed.productIds ?? [],
+          productKeys: parsed.productKeys ?? [],
         });
         return;
       }
@@ -179,13 +180,14 @@ const JournalEntry = () => {
       how: "",
       liked: entry?.note ?? "",
       next: "",
-      productKeys: entry?.productKeys ?? [],
+      productIds: [],
     });
   }, [id, storageKey, entry]);
 
+  const { allProducts } = useUserProducts("all");
   const selectedProducts = useMemo(
-    () => PRODUCT_CATALOG.filter((p) => state.productKeys.includes(p.key)),
-    [state.productKeys],
+    () => allProducts.filter((p) => state.productIds.includes(p.id)),
+    [allProducts, state.productIds],
   );
 
   const persist = (next: ReflectionState) => {
@@ -197,13 +199,13 @@ const JournalEntry = () => {
     }
   };
 
-  const toggleProduct = (key: string) => {
-    const has = state.productKeys.includes(key);
+  const toggleProduct = (productId: string) => {
+    const has = state.productIds.includes(productId);
     persist({
       ...state,
-      productKeys: has
-        ? state.productKeys.filter((k) => k !== key)
-        : [...state.productKeys, key],
+      productIds: has
+        ? state.productIds.filter((k) => k !== productId)
+        : [...state.productIds, productId],
     });
   };
 
