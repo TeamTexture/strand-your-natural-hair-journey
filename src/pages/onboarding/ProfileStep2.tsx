@@ -7,6 +7,8 @@ import ItalicSub from "@/components/ItalicSub";
 import Tag from "@/components/Tag";
 import MedicationPicker from "@/components/MedicationPicker";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TagGroupProps {
   label: string;
