@@ -6,18 +6,16 @@ interface Props {
 
 /**
  * iOS-style phone frame, 375px wide.
- * - Mobile (<640px): full screen, native feel.
- * - Desktop (>=640px): 375x812 framed device on a tinted backdrop.
- *
- * Children render inside a fixed-height area (h-full) so that ScreenLayout
- * can use flex column with overflow-y-auto on the main region.
+ * - Mobile (<640px): full screen, native feel — respects safe-area insets,
+ *   disables overscroll bounce so the browser background never peeks through.
+ * - Desktop (>=640px): 375x812 framed device on a tinted backdrop (preview only).
  */
 const PhoneShell = ({ children }: Props) => (
-  <div className="min-h-screen w-full bg-foreground/[0.04] sm:bg-foreground/[0.06] flex items-center justify-center p-0 sm:p-6">
+  <div className="min-h-[100dvh] w-full bg-foreground/[0.04] sm:bg-foreground/[0.06] flex items-center justify-center p-0 sm:p-6 select-none overscroll-none">
     <div
       className="
         relative w-full max-w-[375px] bg-background overflow-hidden
-        h-screen sm:h-[812px]
+        h-[100dvh] sm:h-[812px]
         sm:rounded-[50px] sm:border-[10px] sm:border-foreground/90
         sm:shadow-[0_30px_80px_-20px_rgba(44,36,22,0.45)]
       "
