@@ -795,6 +795,15 @@ const JournalEntry = () => {
         <Button variant="goldGhost" size="pill" onClick={() => navigate("/journal")} disabled={saving}>
           Back to Journal
         </Button>
+        <Button
+          variant="ghost"
+          size="pill"
+          onClick={() => setConfirmDelete(true)}
+          disabled={saving || deleting}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="size-4 mr-1.5" /> Delete entry
+        </Button>
       </div>
 
       <Sheet open={confirmDelete} onOpenChange={setConfirmDelete}>
