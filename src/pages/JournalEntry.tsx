@@ -467,13 +467,22 @@ const JournalEntry = () => {
             </span>
 
             {!coverUrl && (
-              <button
-                onClick={() => photoInputRef.current?.click()}
-                disabled={photoBusy}
-                className="absolute bottom-2 left-3 text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <Camera className="size-3.5" /> Add photos
-              </button>
+              <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={photoBusy}
+                  className="text-[11px] uppercase tracking-[0.15em] font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Camera className="size-3.5" /> Take photo
+                </button>
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={photoBusy}
+                  className="text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <ImagePlus className="size-3.5" /> Library
+                </button>
+              </div>
             )}
           </div>
           <div className="p-4">
