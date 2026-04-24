@@ -158,7 +158,7 @@ const Home = () => {
                 </p>
               </div>
               <button
-                onClick={() => navigate("/onboarding/profile-step-4-colour")}
+                onClick={() => navigate("/home/style")}
                 className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
               >
                 Edit
@@ -166,7 +166,7 @@ const Home = () => {
             </div>
           ) : (
             <button
-              onClick={() => navigate("/onboarding/profile-step-4-colour")}
+              onClick={() => navigate("/home/style")}
               className="text-left w-full"
             >
               <p className="text-sm text-muted-foreground">
