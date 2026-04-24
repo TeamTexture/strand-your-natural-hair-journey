@@ -22,24 +22,38 @@ ABSOLUTE RULES
    comma-separated source split into array). If only some are visible, return
    what you see — do not pad.
 3. Personalise everything to the user's profile passed in context: hairProfile
-   (porosity, texture, density, scalp), location (hard water?), bloodResults,
+   (porosity, texture, density, scalp), currentStyle (current_hairstyle,
+   days_in_style, planned_next_style), goals (each with a "challenge" the user
+   wrote and an optional "target_text"), location (hard water?), bloodResults,
    healthProfile (medications, conditions), history.avoid_ingredients,
    history.favourite_ingredients, history.low_rated_products and
    history.high_rated_products.
 4. RED/GREEN FLAG LOGIC for key_ingredients[].flag:
    - "avoid" if in history.avoid_ingredients OR appears in any
      history.low_rated_products[].ingredients OR is contraindicated by their
-     hair/health profile.
+     hair/health profile OR works against a stated goal/challenge.
    - "good" if in history.favourite_ingredients OR in
      history.high_rated_products[].ingredients OR well-matched to their
-     porosity/texture/scalp.
+     porosity/texture/scalp OR directly supports a stated goal/challenge.
    - "warn" for neutral-but-noteworthy.
 5. match_score (0–100): lower sharply for "avoid" flags; raise for "good";
-   consider category fit and any blood-result deficiencies.
-6. ai_summary: 2 short sentences MAX, second-person, citing ONE specific
-   reason from THIS user's context.
-7. use_cases: 2–4 concrete tips for how THIS user should use the product.
-8. Output STRICT JSON only. No prose, no code fences.
+   consider category fit, current hairstyle suitability, blood-result
+   deficiencies, and goal alignment.
+6. ai_summary: 2 short sentences MAX, second-person. The FIRST sentence cites
+   a specific reason from THIS user's context — prefer their goal, challenge,
+   or current_hairstyle when relevant.
+7. usage_instructions: VERBATIM manufacturer directions. If the page contains
+   a "Directions", "How to use", "Apply" or "Usage" block, transcribe it
+   word-for-word into this field. If no manufacturer directions are visible
+   on the page, set this to an empty string ("") — do NOT invent or
+   paraphrase. This is the manufacturer's voice; keep it untouched.
+8. use_cases: 2–4 concrete tips for how THIS user should use the product.
+   Each tip MUST tie back to one of: their hair profile, current_hairstyle,
+   a goal, or a challenge they listed (e.g. "Use weekly on wash day to
+   support your length-retention goal", "Smooth onto edges between braid
+   refreshes — your braids are 4 weeks in"). Do NOT repeat the manufacturer's
+   directions verbatim here; build on them with personal reasoning.
+9. Output STRICT JSON only. No prose, no code fences.
 
 SCHEMA
 {
@@ -50,6 +64,7 @@ SCHEMA
   "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string}],
   "match_score": number,
   "ai_summary": string,
+  "usage_instructions": string,
   "use_cases": string[],
   "tips": string[]
 }`;

@@ -17,6 +17,7 @@ interface Analysis {
   key_ingredients?: KeyIngredient[];
   match_score?: number;
   ai_summary?: string;
+  usage_instructions?: string;
   use_cases?: string[];
   tips?: string[];
 }
@@ -160,9 +161,27 @@ const ProductDetailNew = () => {
           </div>
         )}
 
+        {a.usage_instructions && a.usage_instructions.trim().length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">
+              Manufacturer directions
+            </p>
+            <SurfaceCard>
+              <p className="text-xs leading-relaxed text-foreground/85 whitespace-pre-line">
+                {a.usage_instructions}
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-2">
+                Source: brand label
+              </p>
+            </SurfaceCard>
+          </div>
+        )}
+
         {(a.use_cases?.length ?? 0) > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">How to use it</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">
+              Why it could work for you
+            </p>
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {a.use_cases!.map((u, i) => (
                 <div key={i} className="p-3 flex items-start gap-2">
