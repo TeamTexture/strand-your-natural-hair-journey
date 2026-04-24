@@ -516,10 +516,24 @@ const Profile = () => {
           </EditableSectionLabel>
           <div className="px-5 pb-2">
             <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {hair.diameter && <ProfileRow icon="🧬" label="Strand diameter" value={hair.diameter} />}
-              {hair.porosity && <ProfileRow icon="💧" label="Porosity" value={hair.porosity} tone={hair.porosity.toLowerCase().includes("high") ? "warn" : undefined} />}
-              {hair.density && <ProfileRow icon="🌾" label="Density" value={hair.density} />}
-              {hair.scalp && <ProfileRow icon="💆" label="Scalp condition" value={hair.scalp} tone={hair.scalp.toLowerCase().includes("dry") || hair.scalp.toLowerCase().includes("oily") ? "warn" : undefined} />}
+              {(() => {
+                // Some onboarding steps store multi-select values as arrays;
+                // older entries are plain strings. Normalize before rendering.
+                const toStr = (v: unknown): string =>
+                  Array.isArray(v) ? v.join(", ") : typeof v === "string" ? v : "";
+                const diameter = toStr(hair.diameter);
+                const porosity = toStr(hair.porosity);
+                const density = toStr(hair.density);
+                const scalp = toStr(hair.scalp);
+                return (
+                  <>
+                    {diameter && <ProfileRow icon="🧬" label="Strand diameter" value={diameter} />}
+                    {porosity && <ProfileRow icon="💧" label="Porosity" value={porosity} tone={porosity.toLowerCase().includes("high") ? "warn" : undefined} />}
+                    {density && <ProfileRow icon="🌾" label="Density" value={density} />}
+                    {scalp && <ProfileRow icon="💆" label="Scalp condition" value={scalp} tone={scalp.toLowerCase().includes("dry") || scalp.toLowerCase().includes("oily") ? "warn" : undefined} />}
+                  </>
+                );
+              })()}
               {hair.diagnosed && hair.diagnosed.length > 0 && (
                 <ProfileRow icon="🩺" label="Diagnosed" value={hair.diagnosed.join(", ")} tone="warn" />
               )}
