@@ -267,15 +267,14 @@ const Journal = () => {
           );
         })}
         {savedEntries.length === 0 && (
-          <SurfaceCard className="text-center">
-            <p className="text-sm font-medium">No journal entries yet</p>
-            <p className="text-[11px] text-muted-foreground mt-1 mb-3">
-              Add your first entry to capture how a wash day felt — photo, voice or words.
-            </p>
-            <Button variant="gold" size="pill" onClick={() => navigate("/journal/entry/new")}>
-              + New entry
-            </Button>
-          </SurfaceCard>
+          <button
+            type="button"
+            onClick={() => navigate("/journal/entry/new")}
+            className="w-full h-36 rounded-[14px] border-2 border-dashed border-primary/60 bg-card flex flex-col items-center justify-center gap-2 text-primary"
+          >
+            <Plus className="size-7" />
+            <span className="text-[11px] uppercase tracking-[0.2em] font-medium">New Entry</span>
+          </button>
         )}
       </div>
 
