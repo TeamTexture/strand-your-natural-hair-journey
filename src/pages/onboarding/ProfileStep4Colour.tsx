@@ -102,11 +102,6 @@ const ProfileStep4Colour = () => {
           value={howLong}
           onChange={(e) => setHowLong(e.target.value)}
           showTick={false}
-          rightAdornment={
-            <span className="bg-primary/15 text-primary text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded">
-              Alert active
-            </span>
-          }
         />
 
         <TagGroup
