@@ -163,7 +163,7 @@ const MoodboardList = () => {
             <button
               key={b.id}
               onClick={() => navigate(`/journal/moodboards/${b.id}`)}
-              className={`relative h-36 rounded-[14px] bg-gradient-to-br ${b.gradient} p-3 flex flex-col justify-between text-left text-foreground overflow-hidden group`}
+              className={`relative h-36 rounded-[14px] bg-gradient-to-br ${b.gradient} p-3 flex flex-col justify-between text-left text-white overflow-hidden group`}
             >
               {b.coverUrl && (
                 <img
