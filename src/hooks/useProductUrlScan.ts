@@ -34,13 +34,15 @@ export function useProductUrlScan() {
       if (data?.error) throw new Error(data.error);
 
       const product_key = `link-${Date.now()}`;
+      // The edge function returns a remote `image_url` pulled from the page's
+      // og:image / first image. Pass it through as `preview_url` so the detail
+      // screen shows it and persists it on the product row.
+      const remoteImage = (data?.image_url as string | undefined) ?? null;
       navigate("/products/detail-new", {
         state: {
           analysis: data,
-          // No image for link-added products — detail screen falls back to
-          // the emoji placeholder.
           storage_path: null,
-          preview_url: null,
+          preview_url: remoteImage,
           product_key,
           intent,
           source_url: normalised,
