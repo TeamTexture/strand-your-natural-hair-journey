@@ -58,12 +58,9 @@ const ProductRepository = () => {
     }
   }, [allProducts, tab]);
 
-  const flagFor = (p: UserProduct): "good" | "bad" | null => {
-    const ings = p.ingredients.map(i => i.toLowerCase());
-    if (ings.some(i => avoidNames.has(i))) return "bad";
-    if (ings.some(i => favNames.has(i))) return "good";
-    return null;
-  };
+  // Personalised flags removed — we present neutral information only and
+  // leave decisions to the user. Avoid/favourite lists are still kept for
+  // the user's own reference inside the ingredient lists screen.
 
   return (
     <ScreenLayout bottomNav>
@@ -109,7 +106,6 @@ const ProductRepository = () => {
           filtered.map(p => {
             const score = p.match_score ?? 0;
             const stars = p.rating ?? 0;
-            const flag = flagFor(p);
             const lastUsed = formatDate(lastUsedByProductId.get(p.id) ?? p.last_used_at);
             return (
               <button
@@ -117,20 +113,11 @@ const ProductRepository = () => {
                 onClick={() => navigate(`/products/profile/${p.id}`)}
                 className="w-full bg-card border border-border rounded-[14px] p-3.5 flex items-center gap-3 text-left hover:border-primary/40 transition-colors"
               >
-                <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0 relative">
+                <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0">
                   {p.image_url ? (
                     <img src={p.image_url} alt="" className="size-full object-cover" />
                   ) : (
                     <div className="size-full flex items-center justify-center text-2xl bg-primary/15">🧴</div>
-                  )}
-                  {flag && (
-                    <span
-                      className={cn(
-                        "absolute -top-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-card",
-                        flag === "good" ? "bg-good" : "bg-destructive",
-                      )}
-                      aria-label={flag === "good" ? "Green light ingredient" : "Red flag ingredient"}
-                    />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
