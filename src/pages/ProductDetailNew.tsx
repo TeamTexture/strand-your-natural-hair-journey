@@ -116,27 +116,9 @@ const ProductDetailNew = () => {
           </div>
         </div>
 
-        {redFlags.length > 0 && (
-          <SurfaceCard className="border-2 border-destructive/60 bg-destructive/5">
-            <p className="text-xs font-semibold text-destructive mb-1">⚠ Red flag</p>
-            <p className="text-xs text-foreground/80 leading-snug">
-              Contains <strong>{redFlags.join(", ")}</strong> — on your avoid list based on your hair history.
-            </p>
-          </SurfaceCard>
-        )}
-
-        {greenLights.length > 0 && (
-          <SurfaceCard className="border-2 border-good/60 bg-good/5">
-            <p className="text-xs font-semibold text-good mb-1">✓ Green light</p>
-            <p className="text-xs text-foreground/80 leading-snug">
-              Contains <strong>{greenLights.join(", ")}</strong> — has worked well for your hair.
-            </p>
-          </SurfaceCard>
-        )}
-
         {a.ai_summary && (
           <SurfaceCard tone="gold">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">AI Summary</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">Summary</p>
             <p className="text-sm leading-snug">{a.ai_summary}</p>
           </SurfaceCard>
         )}
@@ -145,18 +127,12 @@ const ProductDetailNew = () => {
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Key Ingredients</p>
             <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {a.key_ingredients!.map((k, i) => {
-                const tone = k.flag === "good" ? "bg-good" : k.flag === "warn" ? "bg-warn" : k.flag === "avoid" ? "bg-destructive" : "bg-muted";
-                return (
-                  <div key={i} className="p-3 flex items-start gap-3">
-                    <span className={cn("size-2.5 rounded-full mt-1.5 shrink-0", tone)} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium leading-tight">{k.name}</p>
-                      {k.benefit && <p className="text-[11px] text-muted-foreground mt-0.5">{k.benefit}</p>}
-                    </div>
-                  </div>
-                );
-              })}
+              {a.key_ingredients!.map((k, i) => (
+                <div key={i} className="p-3">
+                  <p className="text-sm font-medium leading-tight">{k.name}</p>
+                  {k.benefit && <p className="text-[11px] text-muted-foreground mt-0.5">{k.benefit}</p>}
+                </div>
+              ))}
             </SurfaceCard>
           </div>
         )}
@@ -210,7 +186,13 @@ const ProductDetailNew = () => {
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {similar.map(p => (
                 <div key={p.id} className="p-3 flex items-center gap-3">
-                  <div className="size-10 rounded-[8px] bg-primary/15 flex items-center justify-center text-lg">🧴</div>
+                  <div className="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt="" className="size-full object-cover" />
+                    ) : (
+                      <div className="size-full flex items-center justify-center text-lg bg-primary/15">🧴</div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{p.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
