@@ -388,7 +388,9 @@ const Profile = () => {
       {/* Blood Results — only if user entered any */}
       {flaggedBlood.length > 0 ? (
         <>
-          <SectionLabel>Flagged Blood Results</SectionLabel>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/blood-iron-vitamins")} editLabel="Update">
+            Flagged Blood Results
+          </EditableSectionLabel>
           <div className="px-5 pb-4">
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {flaggedBlood.map((b) => (
