@@ -652,6 +652,63 @@ export type Database = {
         }
         Relationships: []
       }
+      user_tools: {
+        Row: {
+          added_at: string
+          brand: string | null
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          last_used_at: string | null
+          name: string
+          notes: string | null
+          on_shelf: boolean
+          rating: number | null
+          storage_path: string | null
+          tool_key: string
+          updated_at: string
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          last_used_at?: string | null
+          name: string
+          notes?: string | null
+          on_shelf?: boolean
+          rating?: number | null
+          storage_path?: string | null
+          tool_key: string
+          updated_at?: string
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          last_used_at?: string | null
+          name?: string
+          notes?: string | null
+          on_shelf?: boolean
+          rating?: number | null
+          storage_path?: string | null
+          tool_key?: string
+          updated_at?: string
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       wash_days: {
         Row: {
           ai_insight: string | null
