@@ -31,7 +31,7 @@ const safeParse = <T,>(key: string, fallback: T): T => {
 };
 
 interface Step1Saved {
-  prePoo?: string; cleanse?: string; condition?: string; treatment?: string;
+  prePoo?: string; cleanse?: string; coWash?: string; condition?: string; treatment?: string;
   treatmentType?: string[];
   products?: string[];
   heatTreatment?: "yes" | "no" | null;
