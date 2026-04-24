@@ -387,12 +387,13 @@ const JournalEntry = () => {
       return;
     }
     setDeleting(true);
-    const tag = `[${entry?.id}]`;
-    const { error } = await supabase
-      .from("journal_entries")
-      .delete()
-      .eq("user_id", user.id)
-      .ilike("title", `${tag}%`);
+    // For DB-backed entries, delete by row id directly. For legacy
+    // catalog/mock entries we still use the "[id] " title tag we wrote
+    // on save, since they don't have a known row id.
+    const query = supabase.from("journal_entries").delete().eq("user_id", user.id);
+    const { error } = dbEntry
+      ? await query.eq("id", dbEntry.id)
+      : await query.ilike("title", `[${entry?.id}]%`);
     setDeleting(false);
     if (error) {
       console.error("journal delete failed", error);
@@ -411,22 +412,25 @@ const JournalEntry = () => {
       return;
     }
     setSaving(true);
-    // Upsert into journal_entries keyed by user_id + the mock entry id stored in `title`-adjacent metadata.
-    // We use `entry.id` (mock catalog id) inside the note's leading marker so the same DB row is updated on edits.
     const noteBody = [
       state.how && `How: ${state.how}`,
       state.liked && `Liked: ${state.liked}`,
       state.next && `Next time: ${state.next}`,
     ].filter(Boolean).join("\n\n");
 
-    // Try to find an existing row for this entry id (we tag it via title prefix).
+    // Resolve the existing row. DB entries already know their row id;
+    // legacy / new flows look it up by the "[id] " title tag we write below.
     const tag = `[${entry?.id}]`;
-    const { data: existing } = await supabase
-      .from("journal_entries")
-      .select("id")
-      .eq("user_id", user.id)
-      .ilike("title", `${tag}%`)
-      .maybeSingle();
+    let existingId: string | null = dbEntry?.id ?? null;
+    if (!existingId) {
+      const { data: existing } = await supabase
+        .from("journal_entries")
+        .select("id")
+        .eq("user_id", user.id)
+        .ilike("title", `${tag}%`)
+        .maybeSingle();
+      existingId = existing?.id ?? null;
+    }
 
     const payload = {
       user_id: user.id,
@@ -437,8 +441,8 @@ const JournalEntry = () => {
       entry_date: new Date().toISOString().slice(0, 10),
     };
 
-    const { error } = existing
-      ? await supabase.from("journal_entries").update(payload).eq("id", existing.id)
+    const { error } = existingId
+      ? await supabase.from("journal_entries").update(payload).eq("id", existingId)
       : await supabase.from("journal_entries").insert(payload);
 
     setSaving(false);
