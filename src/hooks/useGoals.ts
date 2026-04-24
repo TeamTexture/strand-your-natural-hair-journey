@@ -27,13 +27,13 @@ export const useGoals = () => {
   const [goals, setGoals] = useState<UserGoal[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (showSpinner = false) => {
     if (!user) {
       setGoals([]);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (showSpinner) setLoading(true);
     const { data } = await supabase
       .from("user_goals")
       .select("*")
@@ -42,6 +42,10 @@ export const useGoals = () => {
     setGoals((data ?? []) as unknown as UserGoal[]);
     setLoading(false);
   }, [user]);
+
+  // Initial load shows spinner; later refreshes are silent so the UI doesn't
+  // flash while we re-fetch after a save.
+  const initialLoad = useCallback(() => refresh(true), [refresh]);
 
   useEffect(() => {
     refresh();
