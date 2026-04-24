@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -28,7 +28,8 @@
     --secondary-foreground: 36 32% 13%;
 
     --muted: 37 38% 84%;
-    --muted-foreground: 36 18% 35%;
+    /* Light text #7A6A54 */
+    --muted-foreground: 33 19% 40%;
 
     --accent: 40 55% 50%;
     --accent-foreground: 0 0% 100%;
@@ -42,6 +43,15 @@
     --ring: 40 55% 50%;
 
     --radius: 0.875rem; /* 14px */
+
+    /* STRAND status colors */
+    --good: 120 21% 45%;       /* #5A8A5A */
+    --good-foreground: 0 0% 100%;
+    --warn: 26 70% 42%;        /* #B87020 */
+    --warn-foreground: 0 0% 100%;
+    --alert-dark: 0 0% 10%;    /* #1a1a1a */
+    --alert-dark-foreground: 0 0% 100%;
+    --gold-tint: 40 55% 50%;   /* used at low opacity */
 
     --sidebar-background: 0 0% 98%;
 
@@ -122,7 +132,16 @@
   .font-body {
     font-family: 'Jost', system-ui, sans-serif;
   }
+  .font-script {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
   .tracking-strand {
     letter-spacing: 0.2em;
   }
+  .tracking-button {
+    letter-spacing: 0.2em;
+  }
+  /* Hide scrollbar for the phone screen scroll area */
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }
