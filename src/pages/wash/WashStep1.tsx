@@ -244,13 +244,104 @@ const WashStep1 = () => {
 
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
 
-  // Pull the user's actual on-shelf products so each step's product chips
-  // reflect what they own, not a hardcoded brand (e.g. "Camille Rose").
+  // Pull the user's full shelf so we can both auto-suggest products per step
+  // and resolve any IDs the user has manually picked or just added via the
+  // inline picker (auto_save lands them straight on the shelf and we return
+  // here with the new product available).
   const { products: shelfProducts } = useUserProducts("shelf");
-  const prePooProducts = useMemo(() => pickStepProducts(shelfProducts, "prepoo"), [shelfProducts]);
-  const cleanseProducts = useMemo(() => pickStepProducts(shelfProducts, "cleanse"), [shelfProducts]);
-  const conditionProducts = useMemo(() => pickStepProducts(shelfProducts, "condition"), [shelfProducts]);
-  const treatmentProducts = useMemo(() => pickStepProducts(shelfProducts, "treatment"), [shelfProducts]);
+
+  // Per-step selections — arrays of user_product IDs. We seed them from the
+  // shelf the first time it loads and on each step from a category match,
+  // then preserve any draft the user is mid-way through (so adding a brand
+  // new product doesn't wipe the others they already picked).
+  const [prePooIds, setPrePooIds] = useState<string[]>([]);
+  const [cleanseIds, setCleanseIds] = useState<string[]>([]);
+  const [coWashIds, setCoWashIds] = useState<string[]>([]);
+  const [conditionIds, setConditionIds] = useState<string[]>([]);
+  const [treatmentIds, setTreatmentIds] = useState<string[]>([]);
+
+  // Restore any in-progress draft (e.g. user came back from the scan flow
+  // after adding a new product). Run once shelfProducts is available so we
+  // can also auto-merge any newly-shelved products into the right step.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (hydrated) return;
+    let draft: Record<string, unknown> = {};
+    try {
+      const raw = localStorage.getItem("strand_wash_step1_draft");
+      if (raw) draft = JSON.parse(raw) as Record<string, unknown>;
+    } catch { /* ignore */ }
+    const arr = (k: string) => (Array.isArray(draft[k]) ? (draft[k] as string[]) : []);
+    setPrePooIds(arr("prePooIds").length ? arr("prePooIds") : suggestStepProductIds(shelfProducts, "prepoo"));
+    setCleanseIds(arr("cleanseIds").length ? arr("cleanseIds") : suggestStepProductIds(shelfProducts, "cleanse"));
+    setCoWashIds(arr("coWashIds"));
+    setConditionIds(arr("conditionIds").length ? arr("conditionIds") : suggestStepProductIds(shelfProducts, "condition"));
+    setTreatmentIds(arr("treatmentIds").length ? arr("treatmentIds") : suggestStepProductIds(shelfProducts, "treatment"));
+    if (typeof draft.prePoo === "string") setPrePoo(draft.prePoo as StepState);
+    if (typeof draft.cleanse === "string") setCleanse(draft.cleanse as StepState);
+    if (typeof draft.coWash === "string") setCoWash(draft.coWash as StepState);
+    if (typeof draft.condition === "string") setCondition(draft.condition as StepState);
+    if (typeof draft.treatment === "string") setTreatment(draft.treatment as StepState);
+    if (Array.isArray(draft.treatmentType)) setTreatmentType(draft.treatmentType as string[]);
+    if (typeof draft.heatChoice === "string") setHeatChoice(draft.heatChoice as HeatChoice);
+    if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
+    setHydrated(true);
+  }, [shelfProducts, hydrated]);
+
+  // Persist the draft on every change so a trip through the scan flow
+  // (which navigates away and back) doesn't lose the user's progress.
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(
+      "strand_wash_step1_draft",
+      JSON.stringify({
+        prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
+        prePoo, cleanse, coWash, condition, treatment,
+        treatmentType,
+      }),
+    );
+  }, [hydrated, prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
+      prePoo, cleanse, coWash, condition, treatment, treatmentType]);
+
+  // Resolve IDs → full product objects for display.
+  const resolve = (ids: string[]) =>
+    ids.map((id) => shelfProducts.find((p) => p.id === id)).filter((p): p is UserProduct => !!p);
+  const prePooSelected = useMemo(() => resolve(prePooIds), [prePooIds, shelfProducts]);
+  const cleanseSelected = useMemo(() => resolve(cleanseIds), [cleanseIds, shelfProducts]);
+  const coWashSelected = useMemo(() => resolve(coWashIds), [coWashIds, shelfProducts]);
+  const conditionSelected = useMemo(() => resolve(conditionIds), [conditionIds, shelfProducts]);
+  const treatmentSelected = useMemo(() => resolve(treatmentIds), [treatmentIds, shelfProducts]);
+
+  // Picker sheet — one global sheet, opened with a target step so toggling
+  // selects/deselects from that step's IDs.
+  type PickerTarget = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment" | null;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
+  const openPicker = (target: Exclude<PickerTarget, null>) => {
+    setPickerTarget(target);
+    setPickerOpen(true);
+  };
+  const targetIds: Record<Exclude<PickerTarget, null>, string[]> = {
+    prepoo: prePooIds,
+    cleanse: cleanseIds,
+    cowash: coWashIds,
+    condition: conditionIds,
+    treatment: treatmentIds,
+  };
+  const targetSetters: Record<Exclude<PickerTarget, null>, (v: string[]) => void> = {
+    prepoo: setPrePooIds,
+    cleanse: setCleanseIds,
+    cowash: setCoWashIds,
+    condition: setConditionIds,
+    treatment: setTreatmentIds,
+  };
+  const handleTogglePicked = (productId: string) => {
+    if (!pickerTarget) return;
+    const current = targetIds[pickerTarget];
+    targetSetters[pickerTarget](
+      current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
+    );
+  };
 
   // Heat-treatment state lives at the page level so we can persist it and so
   // the "why" dialog can read/write the choice.
@@ -293,6 +384,9 @@ const WashStep1 = () => {
       setHeatLoading(false);
     }
   };
+
+  const removeFrom = (setter: (v: string[]) => void, ids: string[]) => (id: string) =>
+    setter(ids.filter((x) => x !== id));
 
   return (
     <ScreenLayout>
