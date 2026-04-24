@@ -219,21 +219,65 @@ const MoodboardList = () => {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold mb-1.5 block">Icon</label>
-              <div className="flex flex-wrap gap-1.5">
-                {EMOJI_CHOICES.map((e) => (
+              <label className="text-xs font-semibold mb-1.5 block">Cover image</label>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*,.heic,.heif"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  handlePickCover(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.heic,.heif"
+                className="hidden"
+                onChange={(e) => {
+                  handlePickCover(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              {coverPreview ? (
+                <div className={`relative h-28 rounded-[12px] overflow-hidden bg-gradient-to-br ${gradient}`}>
+                  <img src={coverPreview} alt="Cover preview" className="absolute inset-0 size-full object-cover" />
                   <button
-                    key={e}
                     type="button"
-                    onClick={() => setEmoji(e)}
-                    className={`size-9 rounded-full text-lg flex items-center justify-center border ${
-                      emoji === e ? "border-primary bg-primary/10" : "border-border bg-card"
-                    }`}
+                    onClick={() => {
+                      setCoverFile(null);
+                      if (coverPreview) URL.revokeObjectURL(coverPreview);
+                      setCoverPreview(null);
+                    }}
+                    className="absolute top-1.5 right-1.5 size-7 rounded-full bg-black/55 text-white flex items-center justify-center"
+                    aria-label="Remove cover"
                   >
-                    {e}
+                    <X className="size-3.5" />
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
+                  >
+                    <Camera className="size-5 mx-auto mb-1 text-primary" />
+                    <p className="text-[11px] font-medium">Take a Photo</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
+                  >
+                    <ImagePlus className="size-5 mx-auto mb-1 text-primary" />
+                    <p className="text-[11px] font-medium">Upload Photo</p>
+                  </button>
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-1.5">Optional — you can add one later.</p>
             </div>
             <div>
               <label className="text-xs font-semibold mb-1.5 block">Colour</label>
