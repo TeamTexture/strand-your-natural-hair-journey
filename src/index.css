@@ -106,5 +106,23 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Jost', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+  .font-body {
+    font-family: 'Jost', system-ui, sans-serif;
+  }
+  .tracking-strand {
+    letter-spacing: 0.2em;
   }
 }
