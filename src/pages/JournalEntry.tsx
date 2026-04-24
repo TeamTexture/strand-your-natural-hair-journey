@@ -114,6 +114,93 @@ const JournalEntry = () => {
     toast.success("Reflection saved");
   };
 
+  // ---- Hero photo: load existing path from localStorage and sign URL ----
+  useEffect(() => {
+    if (!user || !id) return;
+    const saved = localStorage.getItem(photoPathKey);
+    if (!saved) {
+      setPhotoPath(null);
+      setPhotoUrl(null);
+      return;
+    }
+    setPhotoPath(saved);
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(saved, 3600);
+      if (!cancelled) setPhotoUrl(data?.signedUrl ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, id, photoPathKey]);
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!user) {
+      toast.error("Please sign in to add photos");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("That file isn't an image");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Photo too large (max 8MB)");
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      // Replace any existing photo
+      if (photoPath) {
+        await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
+      }
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { data: sig } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
+      localStorage.setItem(photoPathKey, path);
+      setPhotoPath(path);
+      setPhotoUrl(sig?.signedUrl ?? null);
+      toast.success("Photo added");
+    } catch (e) {
+      console.error("Photo upload failed:", e);
+      toast.error("Could not upload photo");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!photoPath) return;
+    if (!confirm("Remove this photo?")) return;
+    setPhotoBusy(true);
+    try {
+      await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
+      localStorage.removeItem(photoPathKey);
+      setPhotoPath(null);
+      setPhotoUrl(null);
+      toast.success("Photo removed");
+    } catch {
+      toast.error("Could not remove");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const shareCaption = useMemo(() => {
+    if (!entry) return "";
+    const products = selectedProducts.map((p) => `${p.brand} ${p.name}`).join(", ");
+    const lines = [
+      `${entry.title} · ${entry.date}`,
+      state.liked || entry.note,
+      products ? `Products: ${products}` : null,
+      "#STRAND #naturalhair",
+    ].filter(Boolean);
+    return lines.join("\n\n");
+  }, [entry, state.liked, selectedProducts]);
+
   if (!entry) {
     return (
       <ScreenLayout bottomNav>
