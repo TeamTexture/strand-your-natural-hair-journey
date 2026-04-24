@@ -58,6 +58,7 @@ export function useDirectoryProfessionals() {
             website: row.website_url ?? instaUrl,
             bookCode,
             discount,
+            bookingUrl: row.booking_url ?? row.website_url ?? undefined,
             featured: true,
           };
         });
