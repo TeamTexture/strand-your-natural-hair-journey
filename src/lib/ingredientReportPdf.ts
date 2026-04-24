@@ -40,24 +40,24 @@ function paintBackground(doc: jsPDF) {
 }
 
 function drawHeader(doc: jsPDF) {
-  // Wordmark
-  doc.setFont("times", "normal");
-  doc.setFontSize(28);
+  // Wordmark — use bold helvetica with letter-spacing-style padding via text
+  // call options. Times rendered odd kerning on capital Y/W in QA.
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(26);
   doc.setTextColor(...COLORS.charcoal);
-  doc.text("STRAND", MARGIN, 24);
+  doc.text("STRAND", MARGIN, 24, { charSpace: 1.2 });
 
   // Tiny tag under the mark
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.muted);
-  doc.text("HAIR · INGREDIENTS · CARE", MARGIN, 29);
+  doc.text("HAIR  ·  INGREDIENTS  ·  CARE", MARGIN, 29, { charSpace: 0.4 });
 
   // Right-aligned report label
-  doc.setFont("helvetica", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.gold);
-  const label = "INGREDIENT REPORT";
-  doc.text(label, PAGE.w - MARGIN, 24, { align: "right" });
+  doc.text("INGREDIENT REPORT", PAGE.w - MARGIN, 24, { align: "right", charSpace: 0.6 });
 
   // Gold rule under header
   doc.setDrawColor(...COLORS.gold);
