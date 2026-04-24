@@ -85,7 +85,31 @@ const Journal = () => {
   }
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
+  const [pendingHideMock, setPendingHideMock] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Mock catalog entries the user has dismissed. Persisted so they stay gone
+  // across reloads. They aren't real DB rows so we can't actually delete them
+  // — we just hide them from the list.
+  const HIDDEN_KEY = "strand_hidden_mock_journal_v1";
+  const [hiddenMockIds, setHiddenMockIds] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(HIDDEN_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  });
+  const hideMockEntry = (id: string) => {
+    const next = Array.from(new Set([...hiddenMockIds, id]));
+    setHiddenMockIds(next);
+    try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    setPendingHideMock(null);
+    toast.success("Journal entry deleted.");
+  };
+  const visibleMockEntries = useMemo(
+    () => journalEntries.filter((j) => !hiddenMockIds.includes(j.id)),
+    [hiddenMockIds],
+  );
 
   const handleDeleteSaved = async () => {
     if (!pendingDelete || !user) return;
@@ -273,12 +297,6 @@ const Journal = () => {
                   <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
                     {dateLabel}
                   </span>
-                </div>
-                <div className="p-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-base font-semibold">{displayTitle}</p>
-                    {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
-                  </div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -286,24 +304,36 @@ const Journal = () => {
                       setPendingDelete(s);
                     }}
                     aria-label="Delete journal entry"
-                    className="shrink-0 size-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center"
+                    className="absolute top-2 left-2 size-9 rounded-full bg-black/55 hover:bg-destructive text-white flex items-center justify-center backdrop-blur-sm transition-colors"
                   >
                     <Trash2 className="size-4" />
                   </button>
+                </div>
+                <div className="p-3">
+                  <p className="font-display text-base font-semibold">{displayTitle}</p>
+                  {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
                 </div>
               </SurfaceCard>
             </div>
           );
         })}
-        {journalEntries.map((j) => {
+        {visibleMockEntries.map((j) => {
           const url = photoUrls[j.id];
           const isVideo = photoIsVideo[j.id];
           const dateLabel = formatEntryDate(j.date);
           return (
-            <button
+            <div
               key={j.id}
+              role="button"
+              tabIndex={0}
               onClick={() => navigate(`/journal/entry/${j.id}`)}
-              className="w-full text-left"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate(`/journal/entry/${j.id}`);
+                }
+              }}
+              className="w-full text-left cursor-pointer"
             >
               <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
                 <div
@@ -337,13 +367,24 @@ const Journal = () => {
                   <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
                     {dateLabel}
                   </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingHideMock(j.id);
+                    }}
+                    aria-label="Delete journal entry"
+                    className="absolute top-2 left-2 size-9 rounded-full bg-black/55 hover:bg-destructive text-white flex items-center justify-center backdrop-blur-sm transition-colors"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
                 <div className="p-3">
                   <p className="font-display text-base font-semibold">{j.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
                 </div>
               </SurfaceCard>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -383,6 +424,26 @@ const Journal = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingHideMock} onOpenChange={(o) => !o && setPendingHideMock(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This entry will be removed from your journal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); if (pendingHideMock) hideMockEntry(pendingHideMock); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
