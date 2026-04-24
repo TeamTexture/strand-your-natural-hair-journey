@@ -30,11 +30,11 @@ interface BasicProfile {
   postcode?: string;
 }
 interface HairProfile {
-  diameter?: string;
-  texture?: string;
-  density?: string;
-  porosity?: string;
-  scalp?: string;
+  diameter?: string | string[];
+  texture?: string | string[];
+  density?: string | string[];
+  porosity?: string | string[];
+  scalp?: string | string[];
   diagnosed?: string[];
 }
 interface HealthProfile {
