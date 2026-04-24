@@ -273,12 +273,6 @@ const Journal = () => {
                   <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
                     {dateLabel}
                   </span>
-                </div>
-                <div className="p-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-base font-semibold">{displayTitle}</p>
-                    {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
-                  </div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -286,10 +280,14 @@ const Journal = () => {
                       setPendingDelete(s);
                     }}
                     aria-label="Delete journal entry"
-                    className="shrink-0 size-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center"
+                    className="absolute top-2 left-2 size-9 rounded-full bg-black/55 hover:bg-destructive text-white flex items-center justify-center backdrop-blur-sm transition-colors"
                   >
                     <Trash2 className="size-4" />
                   </button>
+                </div>
+                <div className="p-3">
+                  <p className="font-display text-base font-semibold">{displayTitle}</p>
+                  {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
                 </div>
               </SurfaceCard>
             </div>
