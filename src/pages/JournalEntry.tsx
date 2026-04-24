@@ -1,16 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, Check } from "lucide-react";
+import { Plus, X, Check, Camera, Share2, Trash2, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
+import ShareSheet from "@/components/ShareSheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getJournalEntry } from "@/data/journalEntries";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+const PHOTO_BUCKET = "journal-photos";
 
 // Product catalog (mirrors keys/labels in src/pages/Products.tsx)
 interface Product { key: string; emoji: string; name: string; brand: string }
@@ -38,11 +43,20 @@ const emptyReflection = (): ReflectionState => ({
 const JournalEntry = () => {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const entry = getJournalEntry(id);
 
   const storageKey = `strand_journal_entry_${id}`;
+  const photoPathKey = `strand_journal_photo_${id}`;
   const [state, setState] = useState<ReflectionState>(emptyReflection);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Hero photo
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Load any saved reflection / product selections
   useEffect(() => {
@@ -100,6 +114,93 @@ const JournalEntry = () => {
     toast.success("Reflection saved");
   };
 
+  // ---- Hero photo: load existing path from localStorage and sign URL ----
+  useEffect(() => {
+    if (!user || !id) return;
+    const saved = localStorage.getItem(photoPathKey);
+    if (!saved) {
+      setPhotoPath(null);
+      setPhotoUrl(null);
+      return;
+    }
+    setPhotoPath(saved);
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(saved, 3600);
+      if (!cancelled) setPhotoUrl(data?.signedUrl ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, id, photoPathKey]);
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!user) {
+      toast.error("Please sign in to add photos");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("That file isn't an image");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Photo too large (max 8MB)");
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      // Replace any existing photo
+      if (photoPath) {
+        await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
+      }
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { data: sig } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
+      localStorage.setItem(photoPathKey, path);
+      setPhotoPath(path);
+      setPhotoUrl(sig?.signedUrl ?? null);
+      toast.success("Photo added");
+    } catch (e) {
+      console.error("Photo upload failed:", e);
+      toast.error("Could not upload photo");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!photoPath) return;
+    if (!confirm("Remove this photo?")) return;
+    setPhotoBusy(true);
+    try {
+      await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
+      localStorage.removeItem(photoPathKey);
+      setPhotoPath(null);
+      setPhotoUrl(null);
+      toast.success("Photo removed");
+    } catch {
+      toast.error("Could not remove");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const shareCaption = useMemo(() => {
+    if (!entry) return "";
+    const products = selectedProducts.map((p) => `${p.brand} ${p.name}`).join(", ");
+    const lines = [
+      `${entry.title} · ${entry.date}`,
+      state.liked || entry.note,
+      products ? `Products: ${products}` : null,
+      "#STRAND #naturalhair",
+    ].filter(Boolean);
+    return lines.join("\n\n");
+  }, [entry, state.liked, selectedProducts]);
+
   if (!entry) {
     return (
       <ScreenLayout bottomNav>
@@ -116,18 +217,90 @@ const JournalEntry = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Journal Entry" />
+      <TitleBar
+        title="Journal Entry"
+        right={
+          <button
+            onClick={() => setShareOpen(true)}
+            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px] inline-flex items-center gap-1"
+          >
+            <Share2 className="size-3.5" /> Share
+          </button>
+        }
+      />
 
-      {/* Hero image */}
+      {/* Hidden file input for hero photo */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handlePhotoUpload(f);
+          e.target.value = "";
+        }}
+      />
+
+      {/* Hero image — real photo when uploaded, gradient/emoji fallback otherwise */}
       <div className="px-5 pb-4">
         <SurfaceCard padded={false} className="overflow-hidden">
           <div
-            className={`relative h-56 bg-gradient-to-br ${entry.gradient} flex items-center justify-center`}
+            className={`relative h-56 ${
+              photoUrl ? "bg-secondary" : `bg-gradient-to-br ${entry.gradient}`
+            } flex items-center justify-center`}
           >
-            <span className="text-7xl">{entry.emoji}</span>
-            <span className="absolute bottom-2 right-3 text-[11px] text-white/95 font-body bg-black/30 px-2 py-1 rounded">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={entry.title}
+                className="absolute inset-0 size-full object-cover"
+              />
+            ) : (
+              <span className="text-7xl">{entry.emoji}</span>
+            )}
+
+            {photoBusy && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Loader2 className="size-6 text-white animate-spin" />
+              </div>
+            )}
+
+            {/* Photo controls */}
+            <div className="absolute top-2 right-2 flex gap-2">
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoBusy}
+                className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
+                aria-label={photoUrl ? "Replace photo" : "Add photo"}
+              >
+                <Camera className="size-4" />
+              </button>
+              {photoUrl && (
+                <button
+                  onClick={handleRemovePhoto}
+                  disabled={photoBusy}
+                  className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
+                  aria-label="Remove photo"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
+            </div>
+
+            <span className="absolute bottom-2 right-3 text-[11px] text-white/95 font-body bg-black/40 px-2 py-1 rounded">
               {entry.date}
             </span>
+
+            {!photoUrl && (
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoBusy}
+                className="absolute bottom-2 left-3 text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Camera className="size-3.5" /> Add photo
+              </button>
+            )}
           </div>
           <div className="p-4">
             <p className="font-display text-xl font-semibold leading-tight">{entry.title}</p>
@@ -137,6 +310,16 @@ const JournalEntry = () => {
           </div>
         </SurfaceCard>
       </div>
+
+      {/* Share sheet */}
+      <ShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        imageUrl={photoUrl}
+        title={entry.title}
+        caption={shareCaption}
+        filename={`${entry.id}.jpg`}
+      />
 
       {/* Products used — placed ABOVE notes & voicenotes per spec */}
       <SectionLabel>Products Used</SectionLabel>

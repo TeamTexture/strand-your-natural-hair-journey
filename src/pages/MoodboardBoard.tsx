@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Heart, Trash2, Loader2, ImagePlus, Camera } from "lucide-react";
+import { Heart, Trash2, Loader2, ImagePlus, Camera, Share2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import ShareSheet from "@/components/ShareSheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ const MoodboardBoard = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [sharing, setSharing] = useState<MoodboardImage | null>(null);
 
   // Resolve "favourites" alias to the user's actual Favourites board UUID
   useEffect(() => {
@@ -247,6 +249,13 @@ const MoodboardBoard = () => {
               >
                 <Trash2 className="size-4" />
               </button>
+              <button
+                onClick={() => setSharing(img)}
+                aria-label="Share image"
+                className="absolute bottom-2 right-2 size-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow"
+              >
+                <Share2 className="size-4" />
+              </button>
             </div>
           ))
         )}
@@ -285,6 +294,15 @@ const MoodboardBoard = () => {
           Share Board
         </Button>
       </div>
+
+      <ShareSheet
+        open={sharing !== null}
+        onOpenChange={(o) => !o && setSharing(null)}
+        imageUrl={sharing?.signedUrl ?? null}
+        title={`${board.name} mood board`}
+        caption={`From my ${board.name} mood board ✨\n\n#STRAND #naturalhair #moodboard`}
+        filename={`${board.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.jpg`}
+      />
     </ScreenLayout>
   );
 };
