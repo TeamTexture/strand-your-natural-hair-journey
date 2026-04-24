@@ -57,6 +57,44 @@ const Journal = () => {
     setEditorOpen(true);
   };
 
+  // Saved entries from the database — these appear above the mock catalog,
+  // newest first, so a freshly-saved entry shows at the top of the list.
+  interface SavedEntry {
+    id: string;
+    title: string | null;
+    note: string | null;
+    entry_date: string;
+    photo_paths: string[];
+    coverUrl?: string;
+  }
+  const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
+
+  useEffect(() => {
+    if (!user) { setSavedEntries([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("journal_entries")
+        .select("id, title, note, entry_date, photo_paths")
+        .eq("user_id", user.id)
+        .order("entry_date", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (cancelled || !data) return;
+      const rows: SavedEntry[] = await Promise.all(
+        (data as SavedEntry[]).map(async (r) => {
+          const cover = r.photo_paths?.[0];
+          if (!cover) return r;
+          const { data: sig } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(cover, 3600);
+          return { ...r, coverUrl: sig?.signedUrl };
+        }),
+      );
+      if (!cancelled) setSavedEntries(rows);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   // Pull through any photos uploaded on individual entries.
   // Photo paths are stored per-entry under `strand_journal_photo_<id>` by JournalEntry.tsx.
   useEffect(() => {
