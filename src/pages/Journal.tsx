@@ -295,76 +295,17 @@ const Journal = () => {
             </div>
           );
         })}
-        {visibleMockEntries.map((j) => {
-          const url = photoUrls[j.id];
-          const isVideo = photoIsVideo[j.id];
-          const dateLabel = formatEntryDate(j.date);
-          return (
-            <div
-              key={j.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate(`/journal/entry/${j.id}`)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  navigate(`/journal/entry/${j.id}`);
-                }
-              }}
-              className="w-full text-left cursor-pointer"
-            >
-              <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
-                <div
-                  className={`relative h-40 flex items-center justify-center ${
-                    url ? "bg-secondary" : `bg-gradient-to-br ${j.gradient}`
-                  }`}
-                >
-                  {url ? (
-                    isVideo ? (
-                      <>
-                        <video
-                          src={url}
-                          muted
-                          playsInline
-                          preload="metadata"
-                          className="absolute inset-0 size-full object-cover bg-black"
-                        />
-                        <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
-                      </>
-                    ) : (
-                      <img
-                        src={url}
-                        alt={j.title}
-                        className="absolute inset-0 size-full object-cover"
-                        loading="lazy"
-                      />
-                    )
-                  ) : (
-                    <span className="text-5xl">{j.emoji}</span>
-                  )}
-                  <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
-                    {dateLabel}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPendingHideMock(j.id);
-                    }}
-                    aria-label="Delete journal entry"
-                    className="absolute top-2 left-2 size-9 rounded-full bg-black/55 hover:bg-destructive text-white flex items-center justify-center backdrop-blur-sm transition-colors"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-                <div className="p-3">
-                  <p className="font-display text-base font-semibold">{j.title}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
-                </div>
-              </SurfaceCard>
-            </div>
-          );
-        })}
+        {savedEntries.length === 0 && (
+          <SurfaceCard className="text-center">
+            <p className="text-sm font-medium">No journal entries yet</p>
+            <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+              Add your first entry to capture how a wash day felt — photo, voice or words.
+            </p>
+            <Button variant="gold" size="pill" onClick={() => navigate("/journal/entry/new")}>
+              + New entry
+            </Button>
+          </SurfaceCard>
+        )}
       </div>
 
       {(boardsLoading || populatedBoards.length > 0) && (
