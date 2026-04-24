@@ -320,6 +320,37 @@ const Profile = () => {
     return out;
   }, [flaggedBlood, washAlert, appts, navigate]);
 
+  const handleExportPdf = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const { blob, fileName } = generateProfilePdf({
+        displayName: displayName || "STRAND Member",
+        age: ageDisplay ? String(basic.age ?? "") : undefined,
+        postcode: basic.postcode?.trim() || undefined,
+        waterHardness: hardness === "hard" ? "Hard water" : hardness === "soft" ? "Soft water" : null,
+        hair,
+        flaggedBlood,
+        hasAnyBloodValues: Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v)),
+        medications: Array.isArray(health.medications) ? health.medications : [],
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Profile PDF downloaded");
+    } catch (e) {
+      console.error("Profile PDF export failed", e);
+      toast.error("Could not export PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const hasAnyProfileData = displayName || hair.diameter || flaggedBlood.length > 0 || health.medications;
 
   return (
