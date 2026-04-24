@@ -209,9 +209,54 @@ const JournalEntry = () => {
     });
   };
 
-  const onSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const onSave = async () => {
     persist(state);
-    toast.success("Reflection saved");
+    if (!user) {
+      toast.error("Please sign in to save");
+      return;
+    }
+    setSaving(true);
+    // Upsert into journal_entries keyed by user_id + the mock entry id stored in `title`-adjacent metadata.
+    // We use `entry.id` (mock catalog id) inside the note's leading marker so the same DB row is updated on edits.
+    const noteBody = [
+      state.how && `How: ${state.how}`,
+      state.liked && `Liked: ${state.liked}`,
+      state.next && `Next time: ${state.next}`,
+    ].filter(Boolean).join("\n\n");
+
+    // Try to find an existing row for this entry id (we tag it via title prefix).
+    const tag = `[${entry?.id}]`;
+    const { data: existing } = await supabase
+      .from("journal_entries")
+      .select("id")
+      .eq("user_id", user.id)
+      .ilike("title", `${tag}%`)
+      .maybeSingle();
+
+    const payload = {
+      user_id: user.id,
+      title: `${tag} ${entry?.title ?? "Journal entry"}`.trim(),
+      note: noteBody || null,
+      photo_paths: photoPaths,
+      products_used: state.productIds,
+      entry_date: new Date().toISOString().slice(0, 10),
+    };
+
+    const { error } = existing
+      ? await supabase.from("journal_entries").update(payload).eq("id", existing.id)
+      : await supabase.from("journal_entries").insert(payload);
+
+    setSaving(false);
+
+    if (error) {
+      console.error("journal save failed", error);
+      toast.error("Could not save entry");
+      return;
+    }
+    toast.success("✓ Journal entry saved");
+    navigate("/journal");
   };
 
   // Persist photo order to localStorage and keep the legacy cover key in sync.
@@ -666,10 +711,10 @@ const JournalEntry = () => {
       </div>
 
       <div className="px-5 pb-6 space-y-3">
-        <Button variant="gold" size="pill" onClick={onSave}>
-          Save Reflection
+        <Button variant="gold" size="pill" onClick={onSave} disabled={saving}>
+          {saving ? "Saving…" : "Save Reflection"}
         </Button>
-        <Button variant="goldGhost" size="pill" onClick={() => navigate("/journal")}>
+        <Button variant="goldGhost" size="pill" onClick={() => navigate("/journal")} disabled={saving}>
           Back to Journal
         </Button>
       </div>
