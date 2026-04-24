@@ -1,93 +1,304 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useBloodValues } from "@/hooks/useBloodValues";
+import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
+import { getWaterHardness } from "@/data/hardWaterPostcodes";
 
-interface Row { icon: string; label: string; value: string; tone?: "good" | "warn" | "default" }
-const hair: Row[] = [
-  { icon: "🧬", label: "Strand diameter", value: "Medium" },
-  { icon: "💧", label: "Porosity", value: "High", tone: "warn" },
-  { icon: "🌾", label: "Density", value: "High" },
-  { icon: "💆", label: "Scalp condition", value: "Dry", tone: "warn" },
-  { icon: "🩺", label: "Diagnosed", value: "Traction alopecia", tone: "warn" },
-  { icon: "🎨", label: "Colour status", value: "Natural", tone: "good" },
-];
-const blood: Row[] = [
-  { icon: "🩸", label: "Ferritin", value: "12 ng/mL — Low ⚠", tone: "warn" },
-  { icon: "☀️", label: "Vitamin D", value: "28 nmol/L — Low ⚠", tone: "warn" },
-  { icon: "🔬", label: "Vitamin B12", value: "342 pmol/L ✓", tone: "good" },
-  { icon: "🫀", label: "Folate", value: "18.2 nmol/L ✓", tone: "good" },
-];
+// ---------- Types ----------
+interface BasicProfile {
+  name?: string;
+  age?: string | number;
+  postcode?: string;
+}
+interface HairProfile {
+  diameter?: string;
+  texture?: string;
+  density?: string;
+  porosity?: string;
+  scalp?: string;
+  diagnosed?: string[];
+}
+interface HealthProfile {
+  conditions?: string[];
+  medications?: string[];
+  diet?: string;
+  smoke?: string;
+  alcohol?: string;
+}
+interface Appt {
+  id: string;
+  appointment_date: string;
+  appointment_time: string | null;
+  professional_name: string;
+  professional_type: string | null;
+  status: string;
+}
 
-const RowList = ({ rows }: { rows: Row[] }) => (
-  <SurfaceCard padded={false} className="divide-y divide-border/60">
-    {rows.map((r) => (
-      <div key={r.label} className="flex items-center gap-3 px-4 py-3">
-        <span className="text-lg w-6 text-center">{r.icon}</span>
-        <span className="flex-1 text-sm text-foreground font-body">{r.label}</span>
-        <span className={cn(
-          "text-xs font-medium text-right",
-          r.tone === "warn" && "text-warn",
-          r.tone === "good" && "text-good",
-          !r.tone && "text-foreground/80",
-        )}>
-          {r.value}
-        </span>
-      </div>
-    ))}
-  </SurfaceCard>
+const safeJson = <T,>(raw: string | null): T | null => {
+  if (!raw) return null;
+  try { return JSON.parse(raw) as T; } catch { return null; }
+};
+
+const formatShortDate = (iso: string): string => {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  } catch { return iso; }
+};
+
+// ---------- Sub-components ----------
+const InitialAvatar = ({ name }: { name: string }) => {
+  const initials = useMemo(() => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }, [name]);
+  return (
+    <div className="size-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-lg font-semibold">
+      {initials}
+    </div>
+  );
+};
+
+interface AlertItem {
+  key: string;
+  icon: React.ReactNode;
+  label: string;
+  detail: string;
+  tone: "warn" | "info" | "good";
+  onClick?: () => void;
+}
+
+const AlertCard = ({ alert }: { alert: AlertItem }) => (
+  <button
+    onClick={alert.onClick}
+    disabled={!alert.onClick}
+    className={cn(
+      "w-full text-left flex items-center gap-3 p-3.5 rounded-[12px] border min-h-[64px] transition-colors",
+      alert.tone === "warn" && "bg-warn/10 border-warn/40 hover:bg-warn/15",
+      alert.tone === "info" && "bg-primary/10 border-primary/30 hover:bg-primary/15",
+      alert.tone === "good" && "bg-good/10 border-good/30 hover:bg-good/15",
+      !alert.onClick && "cursor-default",
+    )}
+  >
+    <div className={cn(
+      "size-10 rounded-full flex items-center justify-center shrink-0",
+      alert.tone === "warn" && "bg-warn/20 text-warn",
+      alert.tone === "info" && "bg-primary/20 text-primary",
+      alert.tone === "good" && "bg-good/20 text-good",
+    )}>
+      {alert.icon}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-semibold leading-tight truncate">{alert.label}</p>
+      <p className="text-[11px] text-foreground/70 mt-0.5 truncate">{alert.detail}</p>
+    </div>
+  </button>
 );
 
+// ---------- Page ----------
 const Profile = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const { values: bloodValues } = useBloodValues();
+
+  const [appts, setAppts] = useState<Appt[]>([]);
+  const [apptsLoaded, setApptsLoaded] = useState(false);
+
+  // Load profile fragments from local storage (only what the user actually entered).
+  const basic = safeJson<BasicProfile>(localStorage.getItem("strand_profile_basic")) ?? {};
+  const hair = safeJson<HairProfile>(localStorage.getItem("strand_hair_profile")) ?? {};
+  const health = safeJson<HealthProfile>(localStorage.getItem("strand_health_profile")) ?? {};
+  const lastWashRaw = localStorage.getItem("strand_last_wash_date");
+
+  // Load upcoming appointments from DB
+  useEffect(() => {
+    if (!user) { setApptsLoaded(true); return; }
+    let cancelled = false;
+    (async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("appointments")
+        .select("id, appointment_date, appointment_time, professional_name, professional_type, status")
+        .eq("user_id", user.id)
+        .gte("appointment_date", today)
+        .order("appointment_date", { ascending: true })
+        .limit(2);
+      if (cancelled) return;
+      setAppts((data ?? []) as Appt[]);
+      setApptsLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // ---------- Derived: only present if real data exists ----------
+  const displayName = (basic.name && basic.name.trim()) || user?.email?.split("@")[0] || "";
+  const ageDisplay = basic.age !== undefined && basic.age !== "" ? `Age ${basic.age}` : "";
+
+  const hardness = basic.postcode ? getWaterHardness(basic.postcode) : null;
+
+  // Flagged blood markers (low/high) — only built from values the user entered.
+  const flaggedBlood = useMemo(() => {
+    const out: { marker: string; value: number; status: BloodStatus; unit: string }[] = [];
+    for (const [marker, value] of Object.entries(bloodValues)) {
+      if (value === null || value === undefined || Number.isNaN(value)) continue;
+      const status = evaluate(marker, value as number);
+      if (status === "low" || status === "high") {
+        out.push({ marker, value: value as number, status, unit: BLOOD_RANGES[marker]?.unit ?? "" });
+      }
+    }
+    return out;
+  }, [bloodValues]);
+
+  // Wash day alert: due if last wash was 7+ days ago.
+  const washAlert = useMemo(() => {
+    if (!lastWashRaw) return null;
+    const last = new Date(lastWashRaw);
+    if (isNaN(last.getTime())) return null;
+    const days = Math.floor((Date.now() - last.getTime()) / (1000 * 60 * 60 * 24));
+    if (days >= 7) return { days, lastDate: last };
+    return null;
+  }, [lastWashRaw]);
+
+  // Build chips list — ONLY from real data
+  const chips = useMemo(() => {
+    const out: string[] = [];
+    if (hardness === "hard") out.push("⚠ Hard water");
+    else if (hardness === "medium") out.push("💧 Medium water");
+    else if (hardness === "soft") out.push("💧 Soft water");
+    flaggedBlood.slice(0, 3).forEach((b) => {
+      out.push(`🩸 ${b.status === "low" ? "Low" : "High"} ${b.marker.toLowerCase()}`);
+    });
+    if (Array.isArray(health.medications) && health.medications.length === 0) {
+      out.push("💊 No medications");
+    } else if (Array.isArray(health.medications) && health.medications.length > 0) {
+      out.push(`💊 ${health.medications.length} medication${health.medications.length === 1 ? "" : "s"}`);
+    }
+    if (Array.isArray(hair.diagnosed)) {
+      hair.diagnosed.slice(0, 2).forEach((d) => out.push(`🩺 ${d}`));
+    }
+    return out;
+  }, [hardness, flaggedBlood, health.medications, hair.diagnosed]);
+
+  // Build alerts list (priority: blood > wash > appointments)
+  const alerts = useMemo<AlertItem[]>(() => {
+    const out: AlertItem[] = [];
+
+    // Most-flagged blood marker first
+    if (flaggedBlood.length > 0) {
+      const worst = flaggedBlood[0];
+      out.push({
+        key: "blood",
+        icon: <AlertCircle className="size-5" />,
+        label: `${worst.status === "low" ? "Low" : "High"} ${worst.marker}`,
+        detail: `${worst.value} ${worst.unit} · ${flaggedBlood.length > 1 ? `+${flaggedBlood.length - 1} more flagged` : "View blood summary"}`,
+        tone: "warn",
+        onClick: () => navigate("/onboarding/blood-ai-summary"),
+      });
+    }
+
+    // Wash day overdue
+    if (washAlert) {
+      out.push({
+        key: "wash",
+        icon: <Droplet className="size-5" />,
+        label: "Wash day due",
+        detail: `${washAlert.days} days since last wash`,
+        tone: washAlert.days >= 14 ? "warn" : "info",
+        onClick: () => navigate("/wash"),
+      });
+    }
+
+    // Next 1-2 upcoming appointments
+    appts.slice(0, 2).forEach((a) => {
+      out.push({
+        key: `appt-${a.id}`,
+        icon: <Calendar className="size-5" />,
+        label: `${a.professional_name}`,
+        detail: `${formatShortDate(a.appointment_date)}${a.appointment_time ? ` · ${a.appointment_time}` : ""}${a.professional_type ? ` · ${a.professional_type}` : ""}`,
+        tone: "info",
+        onClick: () => navigate("/appointments"),
+      });
+    });
+
+    return out;
+  }, [flaggedBlood, washAlert, appts, navigate]);
+
+  const hasAnyProfileData = displayName || hair.diameter || flaggedBlood.length > 0 || health.medications;
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar
         title="My Profile"
         back={false}
         right={
-          <button onClick={() => toast("Profile link copied")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
+          <button onClick={() => toast("Profile link copied")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
             Share ↗
           </button>
         }
       />
 
+      {/* Identity */}
       <div className="px-5 pb-4 flex items-center gap-3">
-        <div className="size-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl">✨</div>
+        <InitialAvatar name={displayName || "?"} />
         <div className="flex-1 min-w-0">
-          <p className="font-display text-lg font-semibold leading-tight">Paige Lewin</p>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">TT Collective Pro · Age 35</p>
+          <p className="font-display text-lg font-semibold leading-tight truncate">
+            {displayName || "Welcome"}
+          </p>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium truncate">
+            STRAND Member{ageDisplay ? ` · ${ageDisplay}` : ""}
+          </p>
         </div>
       </div>
 
-      <div className="px-5 pb-4 flex flex-wrap gap-2">
-        {["⚠ Hard water", "🩸 Low ferritin", "☀️ Low vitamin D", "💊 No medications"].map((c) => (
-          <span key={c} className="bg-secondary text-foreground/80 text-[11px] px-2.5 py-1.5 rounded-full">{c}</span>
-        ))}
-      </div>
-
+      {/* Alerts — replaces the chips area when data exists */}
+      <SectionLabel>Alerts & Upcoming</SectionLabel>
       <div className="px-5 pb-4">
-        <SurfaceCard tone="green" className="flex items-center gap-3">
-          <Shield className="size-5 text-good shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold font-body">Dr. Adaeze Okafor</p>
-            <p className="text-[11px] text-good">✓ GMC Verified Dermatologist · 10 Mar 2026</p>
+        {!apptsLoaded ? (
+          <div className="h-[64px] rounded-[12px] bg-card border border-border animate-pulse" />
+        ) : alerts.length > 0 ? (
+          <div className="space-y-2">
+            {alerts.map((a) => <AlertCard key={a.key} alert={a} />)}
           </div>
-        </SurfaceCard>
+        ) : (
+          <div className="p-4 rounded-[12px] bg-good/10 border border-good/30 flex items-center gap-3">
+            <Sparkles className="size-5 text-good shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold leading-tight">All clear</p>
+              <p className="text-[11px] text-foreground/70 mt-0.5">
+                No flagged blood markers, wash days, or upcoming appointments.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Context chips — only render if there's something real */}
+      {chips.length > 0 && (
+        <div className="px-5 pb-4 flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <span key={c} className="bg-secondary text-foreground/80 text-[11px] px-2.5 py-1.5 rounded-full">{c}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Quick actions */}
       <div className="px-5 grid grid-cols-2 gap-3 pb-2">
         <button onClick={() => navigate("/appointments")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">📅</div>
           <p className="text-sm font-medium leading-tight">Appointments</p>
-          <p className="text-[11px] text-muted-foreground">3 logged</p>
+          <p className="text-[11px] text-muted-foreground">{appts.length > 0 ? `${appts.length} upcoming` : "Tap to log"}</p>
         </button>
         <button onClick={() => navigate("/directory")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🩺</div>
@@ -102,27 +313,91 @@ const Profile = () => {
         <button onClick={() => navigate("/onboarding/blood-ai-summary")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🧪</div>
           <p className="text-sm font-medium leading-tight">Blood Summary</p>
-          <p className="text-[11px] text-muted-foreground">AI-generated</p>
+          <p className="text-[11px] text-muted-foreground">
+            {flaggedBlood.length > 0 ? `${flaggedBlood.length} flagged` : "AI-generated"}
+          </p>
         </button>
       </div>
 
-      <SectionLabel>Hair Profile</SectionLabel>
-      <div className="px-5 pb-2"><RowList rows={hair} /></div>
+      {/* Hair Profile — only if user filled it in */}
+      {(hair.diameter || hair.porosity || hair.density || hair.scalp || (hair.diagnosed?.length ?? 0) > 0) && (
+        <>
+          <SectionLabel>Hair Profile</SectionLabel>
+          <div className="px-5 pb-2">
+            <SurfaceCard padded={false} className="divide-y divide-border/60">
+              {hair.diameter && <ProfileRow icon="🧬" label="Strand diameter" value={hair.diameter} />}
+              {hair.porosity && <ProfileRow icon="💧" label="Porosity" value={hair.porosity} tone={hair.porosity.toLowerCase().includes("high") ? "warn" : undefined} />}
+              {hair.density && <ProfileRow icon="🌾" label="Density" value={hair.density} />}
+              {hair.scalp && <ProfileRow icon="💆" label="Scalp condition" value={hair.scalp} tone={hair.scalp.toLowerCase().includes("dry") || hair.scalp.toLowerCase().includes("oily") ? "warn" : undefined} />}
+              {hair.diagnosed && hair.diagnosed.length > 0 && (
+                <ProfileRow icon="🩺" label="Diagnosed" value={hair.diagnosed.join(", ")} tone="warn" />
+              )}
+            </SurfaceCard>
+          </div>
+        </>
+      )}
 
-      <SectionLabel>Blood Results</SectionLabel>
-      <div className="px-5 pb-4"><RowList rows={blood} /></div>
+      {/* Blood Results — only if user entered any */}
+      {flaggedBlood.length > 0 ? (
+        <>
+          <SectionLabel>Flagged Blood Results</SectionLabel>
+          <div className="px-5 pb-4">
+            <SurfaceCard padded={false} className="divide-y divide-border/60">
+              {flaggedBlood.map((b) => (
+                <ProfileRow
+                  key={b.marker}
+                  icon={b.status === "low" ? "🩸" : "⚠️"}
+                  label={b.marker}
+                  value={`${b.value} ${b.unit} — ${statusLabel(b.status)}`}
+                  tone="warn"
+                />
+              ))}
+            </SurfaceCard>
+          </div>
+        </>
+      ) : Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v)) ? (
+        <div className="px-5 pb-4">
+          <div className="p-4 rounded-[14px] bg-good/10 border border-good/30 flex items-center gap-3">
+            <Sparkles className="size-5 text-good shrink-0" />
+            <p className="text-sm">All blood markers in normal range</p>
+          </div>
+        </div>
+      ) : null}
 
-      <div className="px-5 pb-4">
-        <SurfaceCard tone="gold">
-          <p className="text-sm font-semibold mb-1">Retest in 72 days — 25 Jun 2026</p>
-          <p className="text-xs text-foreground/80">Order your Daye at-home kit when ready.</p>
-          <span className="inline-block mt-3 bg-primary text-primary-foreground text-[11px] tracking-[0.2em] font-medium px-3 py-1.5 rounded">
-            STRAND20
-          </span>
-        </SurfaceCard>
-      </div>
+      {/* Medications — only if user added any */}
+      {Array.isArray(health.medications) && health.medications.length > 0 && (
+        <>
+          <SectionLabel>Medications</SectionLabel>
+          <div className="px-5 pb-4">
+            <SurfaceCard padded={false} className="divide-y divide-border/60">
+              {health.medications.slice(0, 5).map((m) => (
+                <div key={m} className="flex items-center gap-3 px-4 py-3">
+                  <Pill className="size-4 text-primary shrink-0" />
+                  <span className="flex-1 text-sm font-body truncate">{m}</span>
+                </div>
+              ))}
+            </SurfaceCard>
+          </div>
+        </>
+      )}
 
-      <div className="px-5 pb-6 space-y-3">
+      {/* Empty state for brand new users */}
+      {!hasAnyProfileData && (
+        <div className="px-5 py-6">
+          <EmptyState
+            icon="✨"
+            message="Let's set up your profile"
+            hint="Complete onboarding to see your alerts and recommendations here."
+          />
+          <div className="mt-4">
+            <Button variant="gold" size="pill" onClick={() => navigate("/onboarding/profile-step-1")}>
+              Start Onboarding
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 pb-6 space-y-3 mt-4">
         <Button variant="gold" size="pill" onClick={() => toast("Profile PDF exported")}>
           Export as PDF
         </Button>
@@ -139,5 +414,23 @@ const Profile = () => {
     </ScreenLayout>
   );
 };
+
+// ---------- Local row helper ----------
+const ProfileRow = ({
+  icon, label, value, tone,
+}: { icon: string; label: string; value: string; tone?: "warn" | "good" }) => (
+  <div className="flex items-center gap-3 px-4 py-3">
+    <span className="text-lg w-6 text-center">{icon}</span>
+    <span className="flex-1 text-sm text-foreground font-body truncate">{label}</span>
+    <span className={cn(
+      "text-xs font-medium text-right max-w-[55%] truncate",
+      tone === "warn" && "text-warn",
+      tone === "good" && "text-good",
+      !tone && "text-foreground/80",
+    )}>
+      {value}
+    </span>
+  </div>
+);
 
 export default Profile;
