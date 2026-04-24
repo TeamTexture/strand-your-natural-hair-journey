@@ -258,7 +258,9 @@ const Journal = () => {
                       <img src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover" loading="lazy" />
                     )
                   ) : (
-                    <span className="text-5xl">📔</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/80 font-medium">
+                      No photo
+                    </span>
                   )}
                   <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
                     {dateLabel}
