@@ -207,12 +207,23 @@ interface HeatRationale {
 
 const WashStep1 = () => {
   const navigate = useNavigate();
-  const [prePoo, setPrePoo] = useState<StepState>("done");
-  const [cleanse, setCleanse] = useState<StepState>("done");
-  const [condition, setCondition] = useState<StepState>("done");
+  // Default every step to "todo" so the user has to actively log what they did.
+  // The previous defaults (all "done") implied actions had been completed before
+  // the user ever opened the screen, which doubled as hardcoded data.
+  const [prePoo, setPrePoo] = useState<StepState>("todo");
+  const [cleanse, setCleanse] = useState<StepState>("todo");
+  const [condition, setCondition] = useState<StepState>("todo");
   const [treatment, setTreatment] = useState<StepState>("todo");
-  
+
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
+
+  // Pull the user's actual on-shelf products so each step's product chips
+  // reflect what they own, not a hardcoded brand (e.g. "Camille Rose").
+  const { products: shelfProducts } = useUserProducts("shelf");
+  const prePooProducts = useMemo(() => pickStepProducts(shelfProducts, "prepoo"), [shelfProducts]);
+  const cleanseProducts = useMemo(() => pickStepProducts(shelfProducts, "cleanse"), [shelfProducts]);
+  const conditionProducts = useMemo(() => pickStepProducts(shelfProducts, "condition"), [shelfProducts]);
+  const treatmentProducts = useMemo(() => pickStepProducts(shelfProducts, "treatment"), [shelfProducts]);
 
   // Heat-treatment state lives at the page level so we can persist it and so
   // the "why" dialog can read/write the choice.
