@@ -79,7 +79,14 @@ function htmlToText(html: string): string {
 interface ScrapeResult {
   title: string;
   text: string; // markdown preferred, falls back to plain text
+  imageUrl: string | null;
   source: "firecrawl" | "fetch";
+}
+
+/** Pick the first http(s) image URL from markdown ![](...) syntax. */
+function firstMarkdownImage(md: string): string | null {
+  const m = md.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
+  return m ? m[1] : null;
 }
 
 async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeResult | null> {
@@ -113,15 +120,23 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
       (data?.markdown as string | undefined) ??
       ((data?.data as { markdown?: string } | undefined)?.markdown);
     const metadata =
-      (data?.metadata as { title?: string } | undefined) ??
-      ((data?.data as { metadata?: { title?: string } } | undefined)?.metadata);
+      (data?.metadata as { title?: string; ogImage?: string; "og:image"?: string; image?: string } | undefined) ??
+      ((data?.data as { metadata?: { title?: string; ogImage?: string; "og:image"?: string; image?: string } } | undefined)?.metadata);
     if (!markdown) {
       console.error("Firecrawl returned no markdown", JSON.stringify(j).slice(0, 500));
       return null;
     }
+    // Prefer the OG image (set by retailers as the canonical product image),
+    // fall back to the first inline image in the markdown.
+    const imageUrl =
+      metadata?.ogImage ??
+      metadata?.["og:image"] ??
+      metadata?.image ??
+      firstMarkdownImage(markdown);
     return {
       title: metadata?.title ?? "",
       text: markdown,
+      imageUrl: imageUrl ?? null,
       source: "firecrawl",
     };
   } catch (e) {
@@ -145,9 +160,15 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
     if (!pageResp.ok) return null;
     const html = await pageResp.text();
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    // Pull og:image / twitter:image / first product <img>.
+    const ogMatch =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
     return {
       title: titleMatch ? titleMatch[1].trim() : "",
       text: htmlToText(html),
+      imageUrl: ogMatch ? ogMatch[1] : null,
       source: "fetch",
     };
   } catch (e) {
