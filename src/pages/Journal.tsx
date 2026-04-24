@@ -137,39 +137,9 @@ const Journal = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Pull through any photos uploaded on individual entries.
-  // Photo paths are stored per-entry under `strand_journal_photo_<id>` by JournalEntry.tsx.
-  useEffect(() => {
-    if (!user) {
-      setPhotoUrls({});
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const next: Record<string, string> = {};
-      const nextIsVideo: Record<string, boolean> = {};
-      await Promise.all(
-        journalEntries.map(async (j) => {
-          const path = localStorage.getItem(`strand_journal_photo_${j.id}`);
-          if (!path) return;
-          const { data } = await supabase.storage
-            .from(PHOTO_BUCKET)
-            .createSignedUrl(path, 3600);
-          if (data?.signedUrl) {
-            next[j.id] = data.signedUrl;
-            nextIsVideo[j.id] = isVideoPath(path);
-          }
-        }),
-      );
-      if (!cancelled) {
-        setPhotoUrls(next);
-        setPhotoIsVideo(nextIsVideo);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+  // Photo-pull effect for the old mock catalog removed — saved entries fetch
+  // their own cover URL from journal_entries.photo_paths above.
+
 
   return (
     <ScreenLayout bottomNav>
@@ -240,8 +210,9 @@ const Journal = () => {
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
         {savedEntries.map((s) => {
+          // Saved-entry titles previously embedded a mock catalog id like "[wash-go-day1] My title"
+          // so the detail page could load. Now we just navigate to the entry's real DB id.
           const match = s.title?.match(/^\[([^\]]+)\]\s*(.*)$/);
-          const linkId = match?.[1] ?? journalEntries[0]?.id ?? "";
           const displayTitle = match?.[2] || s.title || "Journal entry";
           const dateLabel = formatEntryDate(s.entry_date);
           return (
@@ -249,11 +220,11 @@ const Journal = () => {
               key={s.id}
               role="button"
               tabIndex={0}
-              onClick={() => linkId && navigate(`/journal/entry/${linkId}`)}
+              onClick={() => navigate(`/journal/entry/${s.id}`)}
               onKeyDown={(e) => {
-                if ((e.key === "Enter" || e.key === " ") && linkId) {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  navigate(`/journal/entry/${linkId}`);
+                  navigate(`/journal/entry/${s.id}`);
                 }
               }}
               className="w-full text-left cursor-pointer"
