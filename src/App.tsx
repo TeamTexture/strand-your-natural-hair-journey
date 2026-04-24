@@ -95,6 +95,7 @@ const App = () => (
 
               {/* Main app */}
               <Route path="/home" element={<Protected><Home /></Protected>} />
+              <Route path="/home/style" element={<Protected><SetCurrentStyle /></Protected>} />
               <Route path="/wash-day" element={<Protected><WashDayHub /></Protected>} />
               <Route path="/wash-day/:id" element={<Protected><WashDayDetail /></Protected>} />
               <Route path="/wash/step-1" element={<Protected><WashStep1 /></Protected>} />
