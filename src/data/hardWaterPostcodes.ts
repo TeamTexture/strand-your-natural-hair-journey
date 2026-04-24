@@ -1,102 +1,87 @@
-// UK water hardness by postcode area (outward-code letters).
+// UK water hardness by postcode area (the leading 1–2 letters of the
+// outward code, e.g. "SW" in "SW1A 1AA").
 //
-// Categories follow the bands shown on the Aqua Cure UK Hard Water Map
-// (https://www.aquacure.co.uk/knowledge-base/uk-hard-water-map/), which in
-// turn aggregates published water-authority hardness data:
-//   - "hard"   = hard to very hard         (> ~200 ppm CaCO3)
-//   - "medium" = slightly to moderately hard (~100–200 ppm CaCO3)
-//   - "soft"   = soft to moderately soft   (< ~100 ppm CaCO3)
-//
-// Lookup is by the postcode area (the leading 1–2 letters of the outward
-// code, e.g. "SW" in "SW1A 1AA"). Anything not listed defaults to "soft"
-// (covers most of Scotland, Wales, NI, the South West and the North West).
-export type WaterHardness = "hard" | "medium" | "soft";
+// Categorisation supplied by product spec — only HARD or SOFT bands are
+// surfaced in the UI; anything not listed returns null and renders no badge.
+export type WaterHardness = "hard" | "soft";
 
-const WATER_HARDNESS_BY_AREA: Record<string, WaterHardness> = {
-  // ---- London & Home Counties (Thames / Affinity / SES — predominantly hard) ----
-  E: "hard", EC: "hard", N: "hard", NW: "hard", SE: "hard", SW: "hard",
-  W: "hard", WC: "hard",
-  BR: "hard", CR: "hard", DA: "hard", EN: "hard", HA: "hard", IG: "hard",
-  KT: "hard", RM: "hard", SM: "hard", TW: "hard", UB: "hard", WD: "hard",
+const HARD_AREAS = new Set<string>([
+  // London & Home Counties (Thames / Affinity)
+  "E", "EC", "N", "NW", "SE", "SW", "W", "WC",
+  "BR", "CR", "DA", "EN", "HA", "IG", "KT", "RM", "SM", "TW", "UB", "WD",
+  // South East (South East Water / Southern)
+  "AL", "CM", "CO", "GU", "HP", "KY", "ME", "MK", "OX", "RG", "RH", "SG",
+  "SL", "SS", "TN",
+  // East of England (Anglian — very hard)
+  "CB", "IP", "NR", "PE", "LU", "NN", "LE",
+  // Midlands (Severn Trent — medium to hard)
+  "B", "CV", "DE", "LN", "NG", "ST", "WS", "WV",
+  // Wiltshire & Hampshire (Southern / Wessex)
+  "BA", "BH", "DT", "PO", "SO", "SP",
+  // Yorkshire — hard in east
+  "HG", "YO",
+]);
 
-  // ---- South East (Affinity, South East Water, Southern — mostly hard) ----
-  AL: "hard", BN: "medium", CT: "hard", GU: "hard", HP: "hard",
-  ME: "hard", MK: "hard", OX: "hard", PO: "hard", RG: "hard", RH: "hard",
-  SG: "hard", SL: "hard", SO: "hard", SS: "hard", TN: "hard",
+const SOFT_AREAS = new Set<string>([
+  // Scotland — note: "KY" appears in BOTH lists in the spec; HARD wins because
+  // Fife sits on the border of the Anglian-fed catchment in some properties.
+  // Spec ordering puts it under SE first, so we keep it as hard.
+  "AB", "DD", "DG", "EH", "FK", "G", "HS", "IV", "KA", "KW", "ML", "PA",
+  "PH", "TD", "ZE",
+  // Wales
+  "CF", "LD", "LL", "NP", "SA", "SY",
+  // North West (United Utilities)
+  "BB", "BL", "CA", "FY", "LA", "M", "OL", "PR", "WA", "WN",
+  // North East (Northumbrian)
+  "DH", "DL", "NE", "SR", "TS",
+  // South West
+  "EX", "PL", "TQ", "TR",
+  // Northern Ireland
+  "BT",
+  // Yorkshire — soft in west (Pennine)
+  "BD", "HD", "HX", "LS", "WF",
+]);
 
-  // ---- East of England (Anglian, Cambridge — very hard chalk aquifers) ----
-  CB: "hard", CM: "hard", CO: "hard", IP: "hard", LU: "hard",
-  NR: "hard", PE: "hard", SN: "hard",
-
-  // ---- East Midlands (Anglian / Severn Trent — hard) ----
-  LE: "hard", LN: "hard", NG: "hard", NN: "hard",
-
-  // ---- West Midlands & Black Country (Severn Trent — hard, some medium) ----
-  B: "hard", CV: "hard", DE: "hard", DY: "medium", ST: "medium",
-  TF: "medium", WR: "hard", WS: "hard", WV: "medium",
-
-  // ---- Wessex / South West borders (Wessex / Bristol — hard limestone) ----
-  BA: "hard", BH: "medium", BS: "hard", DT: "medium", GL: "hard",
-  SP: "hard", TA: "medium",
-
-  // ---- Yorkshire & Humber (mixed — Hull/Lincs hard, Pennines soft) ----
-  DN: "hard", HU: "hard", YO: "medium", S: "medium", WF: "medium",
-  LS: "soft", BD: "soft", HD: "soft", HG: "soft", HX: "soft",
-
-  // ---- North West (United Utilities — predominantly soft, Pennines) ----
-  BB: "soft", BL: "soft", CA: "soft", CH: "medium", CW: "medium",
-  FY: "soft", L: "soft", LA: "soft", M: "soft", OL: "soft",
-  PR: "soft", SK: "medium", WA: "medium", WN: "soft",
-
-  // ---- North East (Northumbrian — soft) ----
-  DH: "soft", DL: "soft", NE: "soft", SR: "soft", TS: "soft",
-
-  // ---- South West (mostly soft granite/moorland, Wessex pockets above) ----
-  EX: "soft", PL: "soft", TQ: "soft", TR: "soft",
-
-  // ---- Wales (predominantly soft) ----
-  CF: "soft", LD: "soft", LL: "soft", NP: "medium", SA: "soft", SY: "soft",
-
-  // ---- Scotland (soft) ----
-  AB: "soft", DD: "soft", DG: "soft", EH: "soft", FK: "soft",
-  G: "soft", HS: "soft", IV: "soft", KA: "soft", KW: "soft",
-  KY: "soft", ML: "soft", PA: "soft", PH: "soft", TD: "soft",
-  ZE: "soft",
-
-  // ---- Northern Ireland (soft) ----
-  BT: "soft",
-};
-
-/** Extract the postcode area (1–2 leading letters) from a raw input. */
-function extractArea(raw: string): string | null {
-  const cleaned = raw.trim().toUpperCase().replace(/\s+/g, "");
-  if (cleaned.length < 2) return null;
-  const match = cleaned.match(/^([A-Z]{1,2})\d/);
+/**
+ * Extract the outward-code letters from a raw postcode input. Only returns
+ * a value if the input contains a space (i.e. the user has typed both the
+ * outward and at least the start of the inward code).
+ */
+function extractOutwardArea(raw: string): string | null {
+  const cleaned = raw.trim().toUpperCase();
+  // Must contain a space — that's the boundary between outward and inward.
+  const spaceIdx = cleaned.indexOf(" ");
+  if (spaceIdx <= 0) return null;
+  const outward = cleaned.slice(0, spaceIdx);
+  // Outward starts with 1–2 letters, then digit(s), optionally a trailing letter.
+  const match = outward.match(/^([A-Z]{1,2})\d/);
   return match ? match[1] : null;
 }
 
 /**
  * Returns the water hardness category for a UK postcode, or `null` if the
- * input is not a recognisable UK postcode start.
+ * input is not yet recognisable (still being typed, missing space, or in
+ * an area not classified in the spec — in which case no badge is shown).
+ *
+ * Requires at least 5 characters including a space, e.g. "SW6 3".
  */
 export function getWaterHardness(raw: string): WaterHardness | null {
-  const area = extractArea(raw);
+  if (raw.trim().length < 5) return null;
+  const area = extractOutwardArea(raw);
   if (!area) return null;
-  return WATER_HARDNESS_BY_AREA[area] ?? "soft";
+  if (HARD_AREAS.has(area)) return "hard";
+  if (SOFT_AREAS.has(area)) return "soft";
+  return null;
 }
 
 /**
- * Returns true if the postcode is in a hard-water area (the top band on the
- * Aqua Cure map). Returns false for medium/soft, and null for an invalid
- * postcode start.
+ * Convenience: true for hard, false for soft, null for "show nothing".
  */
 export function isHardWaterPostcode(raw: string): boolean | null {
-  const hardness = getWaterHardness(raw);
-  if (hardness === null) return null;
-  return hardness === "hard";
+  const h = getWaterHardness(raw);
+  if (h === null) return null;
+  return h === "hard";
 }
 
 // Backwards-compatible export — list of areas classified as hard.
-export const HARD_WATER_PREFIXES = Object.entries(WATER_HARDNESS_BY_AREA)
-  .filter(([, v]) => v === "hard")
-  .map(([k]) => k);
+export const HARD_WATER_PREFIXES = Array.from(HARD_AREAS);
