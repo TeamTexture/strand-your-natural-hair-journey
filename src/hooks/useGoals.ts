@@ -67,7 +67,14 @@ export const useGoals = () => {
           .eq("user_id", user.id)
           .select()
           .single();
-        await refresh();
+        // Optimistic local merge so the card updates instantly.
+        if (data) {
+          setGoals((prev) =>
+            prev.map((g) => (g.id === id ? ({ ...g, ...(data as unknown as UserGoal) }) : g)),
+          );
+        }
+        // Background refresh keeps timestamps / server-side fields in sync.
+        void refresh();
         return data;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,7 +84,11 @@ export const useGoals = () => {
         .insert(insertPayload)
         .select()
         .single();
-      await refresh();
+      // Optimistic insert: prepend so it appears immediately at the top.
+      if (data) {
+        setGoals((prev) => [data as unknown as UserGoal, ...prev]);
+      }
+      void refresh();
       return data;
     },
     [user, refresh],
@@ -86,8 +97,10 @@ export const useGoals = () => {
   const deleteGoal = useCallback(
     async (id: string) => {
       if (!user) return;
+      // Optimistic removal first, then persist.
+      setGoals((prev) => prev.filter((g) => g.id !== id));
       await supabase.from("user_goals").delete().eq("id", id).eq("user_id", user.id);
-      await refresh();
+      void refresh();
     },
     [user, refresh],
   );
