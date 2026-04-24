@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Heart, Trash2, Loader2, ImagePlus, Camera } from "lucide-react";
+import { Heart, Trash2, Loader2, ImagePlus, Camera, Share2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import ShareSheet from "@/components/ShareSheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
