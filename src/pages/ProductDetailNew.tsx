@@ -39,6 +39,12 @@ interface NavState {
   product_key: string;
   intent?: "shelf" | "wishlist";
   source_url?: string;
+  /** When true, save straight to the user's shelf and return to `returnTo`
+   *  without showing the manual "Add to shelf" CTA. Used by the journal
+   *  / wash-day product picker. */
+  auto_save?: boolean;
+  /** Where to navigate back to after auto_save completes. Defaults to /products. */
+  returnTo?: string;
 }
 
 const ProductDetailNew = () => {
@@ -157,9 +163,21 @@ const ProductDetailNew = () => {
     setSaving(false);
     if (ok) {
       toast.success(target === "shelf" ? "Added to shelf" : "Added to wishlist");
-      navigate(target === "shelf" ? "/products" : "/products/wishlist");
+      const fallback = target === "shelf" ? "/products" : "/products/wishlist";
+      navigate(state.returnTo ?? fallback);
     }
   };
+
+  // Auto-save when the picker sheet sent us here. We wait until the
+  // analysis has rendered (so we have a name + key) and then save once.
+  const autoSavedRef = useMemo(() => ({ done: false }), []);
+  useEffect(() => {
+    if (!state?.auto_save || autoSavedRef.done) return;
+    if (!a.product_name || !state.product_key) return;
+    autoSavedRef.done = true;
+    void save(state.intent ?? "shelf");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.auto_save, a.product_name, state?.product_key]);
 
   return (
     <ScreenLayout bottomNav={false}>
