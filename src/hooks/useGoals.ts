@@ -18,6 +18,8 @@ export interface UserGoal {
   target_text: string | null;
   challenge_voice_url: string | null;
   target_voice_url: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type GoalDraft = Partial<Omit<UserGoal, "id" | "user_id">>;
@@ -27,13 +29,13 @@ export const useGoals = () => {
   const [goals, setGoals] = useState<UserGoal[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (showSpinner = false) => {
     if (!user) {
       setGoals([]);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (showSpinner) setLoading(true);
     const { data } = await supabase
       .from("user_goals")
       .select("*")
@@ -43,9 +45,13 @@ export const useGoals = () => {
     setLoading(false);
   }, [user]);
 
+  // Initial load shows spinner; later refreshes are silent so the UI doesn't
+  // flash while we re-fetch after a save.
+  const initialLoad = useCallback(() => refresh(true), [refresh]);
+
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    initialLoad();
+  }, [initialLoad]);
 
   const upsertGoal = useCallback(
     async (draft: GoalDraft, id?: string) => {
@@ -63,7 +69,14 @@ export const useGoals = () => {
           .eq("user_id", user.id)
           .select()
           .single();
-        await refresh();
+        // Optimistic local merge so the card updates instantly.
+        if (data) {
+          setGoals((prev) =>
+            prev.map((g) => (g.id === id ? ({ ...g, ...(data as unknown as UserGoal) }) : g)),
+          );
+        }
+        // Background refresh keeps timestamps / server-side fields in sync.
+        void refresh();
         return data;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,7 +86,11 @@ export const useGoals = () => {
         .insert(insertPayload)
         .select()
         .single();
-      await refresh();
+      // Optimistic insert: prepend so it appears immediately at the top.
+      if (data) {
+        setGoals((prev) => [data as unknown as UserGoal, ...prev]);
+      }
+      void refresh();
       return data;
     },
     [user, refresh],
@@ -82,8 +99,10 @@ export const useGoals = () => {
   const deleteGoal = useCallback(
     async (id: string) => {
       if (!user) return;
+      // Optimistic removal first, then persist.
+      setGoals((prev) => prev.filter((g) => g.id !== id));
       await supabase.from("user_goals").delete().eq("id", id).eq("user_id", user.id);
-      await refresh();
+      void refresh();
     },
     [user, refresh],
   );
