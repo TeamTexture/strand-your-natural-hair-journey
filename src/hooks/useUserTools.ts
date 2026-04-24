@@ -96,6 +96,10 @@ export function useUserTools() {
       rating?: number;
       notes?: string;
       photoFile?: File | null;
+      /** Remote image URL (e.g. og:image scraped from a product page) — used
+       * when the user adds the tool via "Paste link" instead of uploading
+       * their own photo. Stored directly on `image_url`. */
+      imageUrl?: string | null;
     }): Promise<UserTool | null> => {
       if (!user) {
         toast.error("Please sign in to add tools");
@@ -145,6 +149,9 @@ export function useUserTools() {
           brand: input.brand?.trim() || null,
           category: input.category || null,
           storage_path,
+          // Remote URL only used when no file was uploaded — uploaded photos
+          // are signed on load instead.
+          image_url: storage_path ? null : (input.imageUrl?.trim() || null),
           rating: input.rating ?? null,
           notes: input.notes?.trim() || null,
         })
