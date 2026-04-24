@@ -75,7 +75,13 @@ const ProfileStep3Hair = () => {
           value={areas} onChange={setAreas}
         />
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/profile-step-4-colour")}>
+        <Button variant="gold" size="pill" className="mt-4" onClick={() => {
+          localStorage.setItem("strand_hair_profile", JSON.stringify({
+            diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas,
+          }));
+          localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
+          navigate("/onboarding/profile-step-4-colour");
+        }}>
           Continue →
         </Button>
       </div>

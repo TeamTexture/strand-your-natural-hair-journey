@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { Shield, LogOut } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -7,6 +7,7 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Row { icon: string; label: string; value: string; tone?: "good" | "warn" | "default" }
 const hair: Row[] = [
@@ -45,6 +46,7 @@ const RowList = ({ rows }: { rows: Row[] }) => (
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   return (
     <ScreenLayout bottomNav>
       <TitleBar
@@ -82,15 +84,25 @@ const Profile = () => {
       </div>
 
       <div className="px-5 grid grid-cols-2 gap-3 pb-2">
-        <button onClick={() => navigate("/appointments")} className="text-left p-4 rounded-[14px] border border-border bg-card">
+        <button onClick={() => navigate("/appointments")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">📅</div>
           <p className="text-sm font-medium leading-tight">Appointments</p>
           <p className="text-[11px] text-muted-foreground">3 logged</p>
         </button>
-        <button onClick={() => navigate("/directory")} className="text-left p-4 rounded-[14px] border border-border bg-card">
+        <button onClick={() => navigate("/directory")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🩺</div>
           <p className="text-sm font-medium leading-tight">Find Professionals</p>
           <p className="text-[11px] text-muted-foreground">Verified directory</p>
+        </button>
+        <button onClick={() => navigate("/nutrition-plan")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
+          <div className="text-2xl mb-1.5">🥗</div>
+          <p className="text-sm font-medium leading-tight">Nutrition Plan</p>
+          <p className="text-[11px] text-muted-foreground">Personalised</p>
+        </button>
+        <button onClick={() => navigate("/onboarding/blood-ai-summary")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
+          <div className="text-2xl mb-1.5">🧪</div>
+          <p className="text-sm font-medium leading-tight">Blood Summary</p>
+          <p className="text-[11px] text-muted-foreground">AI-generated</p>
         </button>
       </div>
 
@@ -117,6 +129,12 @@ const Profile = () => {
         <Button variant="goldGhost" size="pill" onClick={() => toast("Share link copied")}>
           Copy Share Link
         </Button>
+        <button
+          onClick={async () => { await signOut(); navigate("/", { replace: true }); }}
+          className="w-full flex items-center justify-center gap-2 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground py-3 min-h-[44px]"
+        >
+          <LogOut className="size-3.5" /> Sign out
+        </button>
       </div>
     </ScreenLayout>
   );
