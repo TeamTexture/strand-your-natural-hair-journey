@@ -10,11 +10,14 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Subtitles intentionally removed — describing what each option unlocks
+// could nudge people to misreport when they last tested just to gain
+// access. We keep the timing options neutral.
 const opts = [
-  { id: 1, t: "Within the last month", s: "You can input your results now" },
-  { id: 2, t: "1-3 months ago", s: "Results accepted — retest reminder set" },
-  { id: 3, t: "3-6 months ago", s: "Accepted but flagged — retest recommended within 30 days" },
-  { id: 4, t: "Over 6 months ago / never tested", s: "We will help you book or order a kit" },
+  { id: 1, t: "Within the last month" },
+  { id: 2, t: "1-3 months ago" },
+  { id: 3, t: "3-6 months ago" },
+  { id: 4, t: "Over 6 months ago / never tested" },
 ];
 
 const BloodTiming = () => {
