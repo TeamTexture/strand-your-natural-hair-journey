@@ -52,6 +52,12 @@ const Journal = () => {
   const { user } = useAuth();
   const { signals, banner, loading } = useJournalEncouragement();
   const { goals, lengthGoal, loading: goalsLoading } = useGoals();
+  const { boards: moodboards, loading: boardsLoading } = useMoodboards();
+  // Only surface boards that actually have content (or the Favourites board if it has favourites).
+  const populatedBoards = useMemo(
+    () => moodboards.filter((b) => (b.imageCount ?? 0) > 0).slice(0, 3),
+    [moodboards],
+  );
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   // Tracks whether each mock-entry cover is a video (mp4/mov) so we can render <video> instead of <img>.
   const [photoIsVideo, setPhotoIsVideo] = useState<Record<string, boolean>>({});
