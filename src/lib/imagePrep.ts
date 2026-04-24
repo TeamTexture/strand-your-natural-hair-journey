@@ -3,10 +3,15 @@
 // straight to the model, removing the need for the model to fetch a signed
 // URL (which has previously failed for HEIC content-type).
 //
-// Strategy: decode via the browser's native image pipeline (Safari can decode
-// HEIC there), then re-encode to JPEG via canvas. Falls back to the original
-// File when re-encoding fails (e.g. some Android Chrome HEIC pickers) so the
-// upload still succeeds — the AI call will then surface a clear error.
+// Strategy:
+//   1. If the file is HEIC/HEIF, decode it to JPEG via the `heic-to` library
+//      (works in every modern browser including Chrome / Firefox / Android).
+//   2. Otherwise rely on the browser's native image pipeline.
+//   3. Re-encode through canvas to a size-capped JPEG for predictable AI input.
+//
+// Falls back to the original File only when the canvas re-encode itself
+// fails on an already-supported format.
+import { heicTo, isHeic } from "heic-to";
 
 const MAX_DIM = 1600; // long-edge cap; keeps base64 payload small
 const JPEG_QUALITY = 0.9;
