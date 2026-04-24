@@ -4,9 +4,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
+import { AuthProvider } from "@/hooks/useAuth";
+import RequireAuth from "@/components/RequireAuth";
 
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Auth from "./pages/Auth";
+import SetupGuide from "./pages/SetupGuide";
+import Walkthrough from "./pages/Walkthrough";
 
 // Onboarding flow
 import ProfileStep1 from "./pages/onboarding/ProfileStep1";
@@ -21,6 +26,7 @@ import BloodIronVitamins from "./pages/onboarding/BloodIronVitamins";
 import BloodMinerals from "./pages/onboarding/BloodMinerals";
 import BloodThyroid from "./pages/onboarding/BloodThyroid";
 import BloodHormones from "./pages/onboarding/BloodHormones";
+import BloodAiSummary from "./pages/onboarding/BloodAiSummary";
 import SuccessScreen from "./pages/onboarding/SuccessScreen";
 
 // Main app
@@ -40,8 +46,12 @@ import MoodboardBoard from "./pages/MoodboardBoard";
 import Appointments from "./pages/Appointments";
 import Directory from "./pages/Directory";
 import Profile from "./pages/Profile";
+import NutritionPlan from "./pages/NutritionPlan";
 
 const queryClient = new QueryClient();
+
+// Helper to wrap protected routes
+const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -49,47 +59,54 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <PhoneShell>
-          <Routes>
-            <Route path="/" element={<Index />} />
+        <AuthProvider>
+          <PhoneShell>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/setup" element={<SetupGuide />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/walkthrough" element={<Protected><Walkthrough /></Protected>} />
 
-            {/* Onboarding */}
-            <Route path="/onboarding/profile-step-1" element={<ProfileStep1 />} />
-            <Route path="/onboarding/profile-step-2" element={<ProfileStep2 />} />
-            <Route path="/onboarding/pro-gate" element={<ProGate />} />
-            <Route path="/onboarding/pro-book" element={<ProBook />} />
-            <Route path="/onboarding/pro-details" element={<ProDetails />} />
-            <Route path="/onboarding/profile-step-3-hair" element={<ProfileStep3Hair />} />
-            <Route path="/onboarding/profile-step-4-colour" element={<ProfileStep4Colour />} />
-            <Route path="/onboarding/blood-timing" element={<BloodTiming />} />
-            <Route path="/onboarding/blood-iron-vitamins" element={<BloodIronVitamins />} />
-            <Route path="/onboarding/blood-minerals" element={<BloodMinerals />} />
-            <Route path="/onboarding/blood-thyroid" element={<BloodThyroid />} />
-            <Route path="/onboarding/blood-hormones" element={<BloodHormones />} />
-            <Route path="/onboarding/success" element={<SuccessScreen />} />
+              {/* Onboarding (auth required so data persists) */}
+              <Route path="/onboarding/profile-step-1" element={<Protected><ProfileStep1 /></Protected>} />
+              <Route path="/onboarding/profile-step-2" element={<Protected><ProfileStep2 /></Protected>} />
+              <Route path="/onboarding/pro-gate" element={<Protected><ProGate /></Protected>} />
+              <Route path="/onboarding/pro-book" element={<Protected><ProBook /></Protected>} />
+              <Route path="/onboarding/pro-details" element={<Protected><ProDetails /></Protected>} />
+              <Route path="/onboarding/profile-step-3-hair" element={<Protected><ProfileStep3Hair /></Protected>} />
+              <Route path="/onboarding/profile-step-4-colour" element={<Protected><ProfileStep4Colour /></Protected>} />
+              <Route path="/onboarding/blood-timing" element={<Protected><BloodTiming /></Protected>} />
+              <Route path="/onboarding/blood-iron-vitamins" element={<Protected><BloodIronVitamins /></Protected>} />
+              <Route path="/onboarding/blood-minerals" element={<Protected><BloodMinerals /></Protected>} />
+              <Route path="/onboarding/blood-thyroid" element={<Protected><BloodThyroid /></Protected>} />
+              <Route path="/onboarding/blood-hormones" element={<Protected><BloodHormones /></Protected>} />
+              <Route path="/onboarding/blood-ai-summary" element={<Protected><BloodAiSummary /></Protected>} />
+              <Route path="/onboarding/success" element={<Protected><SuccessScreen /></Protected>} />
 
-            {/* Main app */}
-            <Route path="/home" element={<Home />} />
-            <Route path="/wash-day" element={<WashDayHub />} />
-            <Route path="/wash/step-1" element={<WashStep1 />} />
-            <Route path="/wash/step-2" element={<WashStep2 />} />
-            <Route path="/wash/step-3" element={<WashStep3 />} />
-            <Route path="/wash/step-4" element={<WashStep4 />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/products/ingredient" element={<IngredientDetail />} />
-            <Route path="/products/wishlist" element={<Wishlist />} />
-            <Route path="/products/avoidlist" element={<Avoidlist />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/journal/moodboards" element={<MoodboardList />} />
-            <Route path="/journal/moodboards/:id" element={<MoodboardBoard />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/directory" element={<Directory />} />
-            <Route path="/profile" element={<Profile />} />
+              {/* Main app */}
+              <Route path="/home" element={<Protected><Home /></Protected>} />
+              <Route path="/wash-day" element={<Protected><WashDayHub /></Protected>} />
+              <Route path="/wash/step-1" element={<Protected><WashStep1 /></Protected>} />
+              <Route path="/wash/step-2" element={<Protected><WashStep2 /></Protected>} />
+              <Route path="/wash/step-3" element={<Protected><WashStep3 /></Protected>} />
+              <Route path="/wash/step-4" element={<Protected><WashStep4 /></Protected>} />
+              <Route path="/products" element={<Protected><Products /></Protected>} />
+              <Route path="/products/ingredient" element={<Protected><IngredientDetail /></Protected>} />
+              <Route path="/products/wishlist" element={<Protected><Wishlist /></Protected>} />
+              <Route path="/products/avoidlist" element={<Protected><Avoidlist /></Protected>} />
+              <Route path="/journal" element={<Protected><Journal /></Protected>} />
+              <Route path="/journal/moodboards" element={<Protected><MoodboardList /></Protected>} />
+              <Route path="/journal/moodboards/:id" element={<Protected><MoodboardBoard /></Protected>} />
+              <Route path="/appointments" element={<Protected><Appointments /></Protected>} />
+              <Route path="/directory" element={<Protected><Directory /></Protected>} />
+              <Route path="/profile" element={<Protected><Profile /></Protected>} />
+              <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </PhoneShell>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </PhoneShell>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
