@@ -72,11 +72,13 @@ const Directory = () => {
       </div>
 
       <div className="px-5 space-y-4 pb-8">
-        {results.length === 0 ? (
+        {loading && pros.length === 0 ? (
+          <LoadingDot label="Loading directory…" fullScreen={false} />
+        ) : results.length === 0 ? (
           <EmptyState
             icon="🔍"
-            message="No professionals match your search"
-            hint="Try a different name, clinic, condition, or clear the filters."
+            message="No professionals found"
+            hint="Try a postcode, name, or specialism."
           />
         ) : (
           results.map((p) => (
