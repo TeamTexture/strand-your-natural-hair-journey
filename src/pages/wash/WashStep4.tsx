@@ -126,10 +126,63 @@ const WashStep4 = () => {
     };
   }, []);
 
-  const save = () => {
-    localStorage.setItem("strand_last_wash_date", new Date().toISOString());
-    toast("💧 Wash day saved!");
-    navigate("/home");
+  const save = async () => {
+    if (saving) return;
+    if (!user) {
+      toast.error("Please sign in to save your wash day.");
+      return;
+    }
+    setSaving(true);
+    try {
+      // Build the steps array from what the user actually completed.
+      // Skipped / todo steps are dropped so the saved record reflects reality.
+      const stepLabels: Record<string, string> = {
+        prePoo: "Pre-poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
+      };
+      const steps = (["prePoo", "cleanse", "condition", "treatment"] as const)
+        .filter((k) => step1[k] === "done")
+        .map((k) => ({ name: stepLabels[k] }));
+
+      // Heat treatment: only persist when the user explicitly said yes/no during Condition.
+      const heatTreatment = step1.heatTreatment
+        ? { used: step1.heatTreatment === "yes" }
+        : null;
+
+      const payload = {
+        user_id: user.id,
+        wash_date: new Date().toISOString().slice(0, 10),
+        steps,
+        heat_treatment: heatTreatment,
+        product_ids: [], // free-text products live in `steps`; product_ids stays empty until we link real shelf rows
+        scalp_feel: step2.scalp?.[0] ?? null,
+        breakage: step2.breakage?.[0] ?? null,
+        style_after: step2.style?.[0] ?? null,
+        // Step 2 stores duration as a label (e.g. "2-3 hours") — leave the numeric column null.
+        duration_min: null,
+        stress_level: null,
+        hair_feel_note: step3.note?.trim() ? step3.note.trim() : null,
+        // Persist the storage path so Step3 of the *next* wash day can sign + replay it.
+        hair_feel_voice_url: step3.audioPath ?? null,
+        ai_insight: observation,
+      };
+
+      const { error } = await supabase.from("wash_days").insert(payload);
+      if (error) throw error;
+
+      // Cache the timestamp + clear the in-progress draft.
+      localStorage.setItem("strand_last_wash_date", new Date().toISOString());
+      localStorage.removeItem("strand_wash_step1");
+      localStorage.removeItem("strand_wash_step2");
+      localStorage.removeItem("strand_wash_step3");
+
+      toast("💧 Wash day saved!");
+      navigate("/home");
+    } catch (e) {
+      console.error("wash_days insert failed", e);
+      toast.error(e instanceof Error ? e.message : "Could not save wash day");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
