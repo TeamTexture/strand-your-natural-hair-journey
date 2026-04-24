@@ -69,6 +69,9 @@ const emptyReflection = (): ReflectionState => ({
   productIds: [],
 });
 
+/** Returns true if the storage path looks like a video (mp4 / mov / webm). */
+const isVideoPath = (p: string) => /\.(mp4|mov|m4v|webm|quicktime)$/i.test(p);
+
 interface SortablePhotoProps {
   id: string;
   url: string | undefined;
@@ -78,6 +81,7 @@ interface SortablePhotoProps {
 }
 
 const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoProps) => {
+  const isVideo = isVideoPath(id);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
 
