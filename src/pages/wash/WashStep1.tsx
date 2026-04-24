@@ -375,10 +375,13 @@ const WashStep1 = () => {
           size="pill"
           className="mt-4"
           onClick={() => {
-            // Only save products from steps that were actually completed.
+            // Only save products from steps that were actually completed —
+            // pulled from the user's real shelf, not hardcoded brands.
             const products: string[] = [];
-            if (cleanse === "done") products.push("Moisture Retention Shampoo — Camille Rose");
-            if (condition === "done") products.push("Honey & Turmeric Deep Cond — TGIN");
+            if (prePoo === "done") products.push(...prePooProducts);
+            if (cleanse === "done") products.push(...cleanseProducts);
+            if (condition === "done") products.push(...conditionProducts);
+            if (treatment === "done") products.push(...treatmentProducts);
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
