@@ -217,18 +217,90 @@ const JournalEntry = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Journal Entry" />
+      <TitleBar
+        title="Journal Entry"
+        right={
+          <button
+            onClick={() => setShareOpen(true)}
+            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px] inline-flex items-center gap-1"
+          >
+            <Share2 className="size-3.5" /> Share
+          </button>
+        }
+      />
 
-      {/* Hero image */}
+      {/* Hidden file input for hero photo */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handlePhotoUpload(f);
+          e.target.value = "";
+        }}
+      />
+
+      {/* Hero image — real photo when uploaded, gradient/emoji fallback otherwise */}
       <div className="px-5 pb-4">
         <SurfaceCard padded={false} className="overflow-hidden">
           <div
-            className={`relative h-56 bg-gradient-to-br ${entry.gradient} flex items-center justify-center`}
+            className={`relative h-56 ${
+              photoUrl ? "bg-secondary" : `bg-gradient-to-br ${entry.gradient}`
+            } flex items-center justify-center`}
           >
-            <span className="text-7xl">{entry.emoji}</span>
-            <span className="absolute bottom-2 right-3 text-[11px] text-white/95 font-body bg-black/30 px-2 py-1 rounded">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={entry.title}
+                className="absolute inset-0 size-full object-cover"
+              />
+            ) : (
+              <span className="text-7xl">{entry.emoji}</span>
+            )}
+
+            {photoBusy && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Loader2 className="size-6 text-white animate-spin" />
+              </div>
+            )}
+
+            {/* Photo controls */}
+            <div className="absolute top-2 right-2 flex gap-2">
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoBusy}
+                className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
+                aria-label={photoUrl ? "Replace photo" : "Add photo"}
+              >
+                <Camera className="size-4" />
+              </button>
+              {photoUrl && (
+                <button
+                  onClick={handleRemovePhoto}
+                  disabled={photoBusy}
+                  className="size-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur disabled:opacity-50"
+                  aria-label="Remove photo"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
+            </div>
+
+            <span className="absolute bottom-2 right-3 text-[11px] text-white/95 font-body bg-black/40 px-2 py-1 rounded">
               {entry.date}
             </span>
+
+            {!photoUrl && (
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoBusy}
+                className="absolute bottom-2 left-3 text-[11px] uppercase tracking-[0.15em] font-medium bg-white/90 text-foreground px-3 py-1.5 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Camera className="size-3.5" /> Add photo
+              </button>
+            )}
           </div>
           <div className="p-4">
             <p className="font-display text-xl font-semibold leading-tight">{entry.title}</p>
@@ -238,6 +310,16 @@ const JournalEntry = () => {
           </div>
         </SurfaceCard>
       </div>
+
+      {/* Share sheet */}
+      <ShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        imageUrl={photoUrl}
+        title={entry.title}
+        caption={shareCaption}
+        filename={`${entry.id}.jpg`}
+      />
 
       {/* Products used — placed ABOVE notes & voicenotes per spec */}
       <SectionLabel>Products Used</SectionLabel>
