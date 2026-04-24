@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, X, Flame, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -19,6 +19,31 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
+import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+
+/** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
+const formatProduct = (p: UserProduct): string =>
+  p.brand ? `${p.name} — ${p.brand}` : p.name;
+
+/**
+ * Pick products from the user's shelf that look like they belong to a wash-day step.
+ * We match on the product `category` (set during scan/AI analysis) plus a few
+ * common keyword hints in the product name so we don't miss obvious matches when
+ * category data is missing.
+ */
+const pickStepProducts = (shelf: UserProduct[], kind: "cleanse" | "condition" | "treatment" | "prepoo"): string[] => {
+  const matches = shelf.filter((p) => {
+    const cat = (p.category ?? "").toLowerCase();
+    const name = (p.name ?? "").toLowerCase();
+    if (kind === "cleanse") return /shampoo|cleans|co-?wash/.test(cat) || /shampoo|cleans|co-?wash/.test(name);
+    if (kind === "condition") return /condition/.test(cat) || /condition/.test(name);
+    if (kind === "prepoo") return /pre-?poo|oil/.test(cat) || /pre-?poo|hot oil/.test(name);
+    if (kind === "treatment") return /treatment|mask|protein|bond/.test(cat) || /treatment|mask|protein|bond/.test(name);
+    return false;
+  });
+  return matches.map(formatProduct);
+};
+
 
 interface Step {
   id: string;
@@ -182,12 +207,23 @@ interface HeatRationale {
 
 const WashStep1 = () => {
   const navigate = useNavigate();
-  const [prePoo, setPrePoo] = useState<StepState>("done");
-  const [cleanse, setCleanse] = useState<StepState>("done");
-  const [condition, setCondition] = useState<StepState>("done");
+  // Default every step to "todo" so the user has to actively log what they did.
+  // The previous defaults (all "done") implied actions had been completed before
+  // the user ever opened the screen, which doubled as hardcoded data.
+  const [prePoo, setPrePoo] = useState<StepState>("todo");
+  const [cleanse, setCleanse] = useState<StepState>("todo");
+  const [condition, setCondition] = useState<StepState>("todo");
   const [treatment, setTreatment] = useState<StepState>("todo");
-  
+
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
+
+  // Pull the user's actual on-shelf products so each step's product chips
+  // reflect what they own, not a hardcoded brand (e.g. "Camille Rose").
+  const { products: shelfProducts } = useUserProducts("shelf");
+  const prePooProducts = useMemo(() => pickStepProducts(shelfProducts, "prepoo"), [shelfProducts]);
+  const cleanseProducts = useMemo(() => pickStepProducts(shelfProducts, "cleanse"), [shelfProducts]);
+  const conditionProducts = useMemo(() => pickStepProducts(shelfProducts, "condition"), [shelfProducts]);
+  const treatmentProducts = useMemo(() => pickStepProducts(shelfProducts, "treatment"), [shelfProducts]);
 
   // Heat-treatment state lives at the page level so we can persist it and so
   // the "why" dialog can read/write the choice.
@@ -238,23 +274,23 @@ const WashStep1 = () => {
 
       <div className="px-5 space-y-3 pb-8">
         <StepCard
-          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: [] }}
+          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: prePooProducts }}
           state={prePoo}
           setState={setPrePoo}
         />
         <StepCard
-          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo / co-wash", defaultDone: true, products: ["Moisture Retention Shampoo — Camille Rose"] }}
+          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo / co-wash", defaultDone: true, products: cleanseProducts }}
           state={cleanse}
           setState={setCleanse}
         />
         <StepCard
-          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: ["Honey & Turmeric Deep Cond — TGIN"] }}
+          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: conditionProducts }}
           state={condition}
           setState={setCondition}
-          // Once Done, surface the conditioner + the heat-treatment answer as chips
-          // so the user can see at a glance what they captured for this step.
+          // Once Done, surface the conditioner(s) the user owns + the heat-treatment answer
+          // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
-            "Honey & Turmeric Deep Cond — TGIN",
+            ...conditionProducts,
             ...(heatChoice === "yes" ? ["Heat treatment"] : []),
             ...(heatChoice === "no" ? ["No heat"] : []),
           ]}
@@ -310,12 +346,12 @@ const WashStep1 = () => {
           }
         />
         <StepCard
-          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: [] }}
+          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: treatmentProducts }}
           state={treatment}
           setState={setTreatment}
-          // The treatment chips are exactly what the user picked in the editor —
-          // so pressing Done collapses the card and shows e.g. "Bond repair" beneath it.
-          summaryChips={treatmentType}
+          // Show the treatment type tags the user picked, plus any matching shelf
+          // products so the collapsed card reflects what they actually captured.
+          summaryChips={[...treatmentType, ...treatmentProducts]}
           editor={
             <div className="flex flex-wrap gap-2">
               {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
@@ -339,10 +375,13 @@ const WashStep1 = () => {
           size="pill"
           className="mt-4"
           onClick={() => {
-            // Only save products from steps that were actually completed.
+            // Only save products from steps that were actually completed —
+            // pulled from the user's real shelf, not hardcoded brands.
             const products: string[] = [];
-            if (cleanse === "done") products.push("Moisture Retention Shampoo — Camille Rose");
-            if (condition === "done") products.push("Honey & Turmeric Deep Cond — TGIN");
+            if (prePoo === "done") products.push(...prePooProducts);
+            if (cleanse === "done") products.push(...cleanseProducts);
+            if (condition === "done") products.push(...conditionProducts);
+            if (treatment === "done") products.push(...treatmentProducts);
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({

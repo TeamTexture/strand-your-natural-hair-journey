@@ -32,9 +32,11 @@ const dotClass: Record<Ingredient["tone"], string> = {
 const IngredientDetail = () => {
   const [rating, setRating] = useState(5);
   const [searchParams] = useSearchParams();
-  const productKey = searchParams.get("key") ?? "camille-rose-moisture-retention";
-  const productName = searchParams.get("name") ?? "Moisture Retention Serum";
-  const productBrand = searchParams.get("brand") ?? "Camille Rose";
+  // No hardcoded brand/product fallbacks — if these are missing the page
+  // simply shows the empty state until a product is provided via the URL.
+  const productKey = searchParams.get("key") ?? "";
+  const productName = searchParams.get("name") ?? "";
+  const productBrand = searchParams.get("brand") ?? "";
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
   const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;

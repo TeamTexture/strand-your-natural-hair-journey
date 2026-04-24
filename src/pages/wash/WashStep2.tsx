@@ -25,11 +25,13 @@ const TG = ({ label, options, value, onChange }: { label: string; options: strin
 
 const WashStep2 = () => {
   const navigate = useNavigate();
-  const [scalp, setScalp] = useState(["Clean"]);
-  const [breakage, setBreakage] = useState(["Minimal — normal shedding"]);
-  const [style, setStyle] = useState(["Wash and go"]);
-  const [duration, setDuration] = useState(["2-3 hours"]);
-  const [stress, setStress] = useState(["Moderate"]);
+  // Default to empty so the screen reflects what the user actually picks,
+  // not pre-selected hardcoded answers.
+  const [scalp, setScalp] = useState<string[]>([]);
+  const [breakage, setBreakage] = useState<string[]>([]);
+  const [style, setStyle] = useState<string[]>([]);
+  const [duration, setDuration] = useState<string[]>([]);
+  const [stress, setStress] = useState<string[]>([]);
 
   return (
     <ScreenLayout>

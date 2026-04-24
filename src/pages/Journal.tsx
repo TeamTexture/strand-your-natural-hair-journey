@@ -58,9 +58,9 @@ const Journal = () => {
     () => moodboards.filter((b) => (b.imageCount ?? 0) > 0).slice(0, 3),
     [moodboards],
   );
-  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
-  // Tracks whether each mock-entry cover is a video (mp4/mov) so we can render <video> instead of <img>.
-  const [photoIsVideo, setPhotoIsVideo] = useState<Record<string, boolean>>({});
+  // Cover URLs and video flags are computed inline per saved entry now —
+  // no separate map needed since the mock catalog is gone.
+
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<UserGoal | null>(null);
 
@@ -87,31 +87,7 @@ const Journal = () => {
   }
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
-  const [pendingHideMock, setPendingHideMock] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // Mock catalog entries the user has dismissed. Persisted so they stay gone
-  // across reloads. They aren't real DB rows so we can't actually delete them
-  // — we just hide them from the list.
-  const HIDDEN_KEY = "strand_hidden_mock_journal_v1";
-  const [hiddenMockIds, setHiddenMockIds] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(HIDDEN_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
-  });
-  const hideMockEntry = (id: string) => {
-    const next = Array.from(new Set([...hiddenMockIds, id]));
-    setHiddenMockIds(next);
-    try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-    setPendingHideMock(null);
-    toast.success("Journal entry deleted.");
-  };
-  const visibleMockEntries = useMemo(
-    () => journalEntries.filter((j) => !hiddenMockIds.includes(j.id)),
-    [hiddenMockIds],
-  );
 
   const handleDeleteSaved = async () => {
     if (!pendingDelete || !user) return;
@@ -161,39 +137,9 @@ const Journal = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Pull through any photos uploaded on individual entries.
-  // Photo paths are stored per-entry under `strand_journal_photo_<id>` by JournalEntry.tsx.
-  useEffect(() => {
-    if (!user) {
-      setPhotoUrls({});
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const next: Record<string, string> = {};
-      const nextIsVideo: Record<string, boolean> = {};
-      await Promise.all(
-        journalEntries.map(async (j) => {
-          const path = localStorage.getItem(`strand_journal_photo_${j.id}`);
-          if (!path) return;
-          const { data } = await supabase.storage
-            .from(PHOTO_BUCKET)
-            .createSignedUrl(path, 3600);
-          if (data?.signedUrl) {
-            next[j.id] = data.signedUrl;
-            nextIsVideo[j.id] = isVideoPath(path);
-          }
-        }),
-      );
-      if (!cancelled) {
-        setPhotoUrls(next);
-        setPhotoIsVideo(nextIsVideo);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+  // Photo-pull effect for the old mock catalog removed — saved entries fetch
+  // their own cover URL from journal_entries.photo_paths above.
+
 
   return (
     <ScreenLayout bottomNav>
@@ -264,8 +210,9 @@ const Journal = () => {
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
         {savedEntries.map((s) => {
+          // Saved-entry titles previously embedded a mock catalog id like "[wash-go-day1] My title"
+          // so the detail page could load. Now we just navigate to the entry's real DB id.
           const match = s.title?.match(/^\[([^\]]+)\]\s*(.*)$/);
-          const linkId = match?.[1] ?? journalEntries[0]?.id ?? "";
           const displayTitle = match?.[2] || s.title || "Journal entry";
           const dateLabel = formatEntryDate(s.entry_date);
           return (
@@ -273,11 +220,11 @@ const Journal = () => {
               key={s.id}
               role="button"
               tabIndex={0}
-              onClick={() => linkId && navigate(`/journal/entry/${linkId}`)}
+              onClick={() => navigate(`/journal/entry/${s.id}`)}
               onKeyDown={(e) => {
-                if ((e.key === "Enter" || e.key === " ") && linkId) {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  navigate(`/journal/entry/${linkId}`);
+                  navigate(`/journal/entry/${s.id}`);
                 }
               }}
               className="w-full text-left cursor-pointer"
@@ -319,76 +266,17 @@ const Journal = () => {
             </div>
           );
         })}
-        {visibleMockEntries.map((j) => {
-          const url = photoUrls[j.id];
-          const isVideo = photoIsVideo[j.id];
-          const dateLabel = formatEntryDate(j.date);
-          return (
-            <div
-              key={j.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate(`/journal/entry/${j.id}`)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  navigate(`/journal/entry/${j.id}`);
-                }
-              }}
-              className="w-full text-left cursor-pointer"
-            >
-              <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
-                <div
-                  className={`relative h-40 flex items-center justify-center ${
-                    url ? "bg-secondary" : `bg-gradient-to-br ${j.gradient}`
-                  }`}
-                >
-                  {url ? (
-                    isVideo ? (
-                      <>
-                        <video
-                          src={url}
-                          muted
-                          playsInline
-                          preload="metadata"
-                          className="absolute inset-0 size-full object-cover bg-black"
-                        />
-                        <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
-                      </>
-                    ) : (
-                      <img
-                        src={url}
-                        alt={j.title}
-                        className="absolute inset-0 size-full object-cover"
-                        loading="lazy"
-                      />
-                    )
-                  ) : (
-                    <span className="text-5xl">{j.emoji}</span>
-                  )}
-                  <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
-                    {dateLabel}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPendingHideMock(j.id);
-                    }}
-                    aria-label="Delete journal entry"
-                    className="absolute top-2 left-2 size-9 rounded-full bg-black/55 hover:bg-destructive text-white flex items-center justify-center backdrop-blur-sm transition-colors"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-                <div className="p-3">
-                  <p className="font-display text-base font-semibold">{j.title}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{j.note}</p>
-                </div>
-              </SurfaceCard>
-            </div>
-          );
-        })}
+        {savedEntries.length === 0 && (
+          <SurfaceCard className="text-center">
+            <p className="text-sm font-medium">No journal entries yet</p>
+            <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+              Add your first entry to capture how a wash day felt — photo, voice or words.
+            </p>
+            <Button variant="gold" size="pill" onClick={() => navigate("/journal/entry/new")}>
+              + New entry
+            </Button>
+          </SurfaceCard>
+        )}
       </div>
 
       {(boardsLoading || populatedBoards.length > 0) && (
@@ -473,25 +361,6 @@ const Journal = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!pendingHideMock} onOpenChange={(o) => !o && setPendingHideMock(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This entry will be removed from your journal.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); if (pendingHideMock) hideMockEntry(pendingHideMock); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </ScreenLayout>
   );
 };
