@@ -190,7 +190,64 @@ const Journal = () => {
           + Add to Mood Board
         </Button>
       </div>
+
+      <GoalEditorSheet open={editorOpen} onOpenChange={setEditorOpen} goal={editing} />
     </ScreenLayout>
+  );
+};
+
+interface GoalCardProps {
+  goal: UserGoal;
+  onEdit: () => void;
+}
+
+const formatDate = (iso: string | null) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+};
+
+const GoalCard = ({ goal, onEdit }: GoalCardProps) => {
+  // Progress is measured against the distance from start to target so a goal
+  // like "go from 12in to 14in" reads correctly even when start_value > 0.
+  const span = Math.max(goal.target_value - goal.start_value, 0.0001);
+  const progressed = Math.min(
+    Math.max(goal.current_value - goal.start_value, 0),
+    span,
+  );
+  const pct = Math.round((progressed / span) * 100);
+  const dateLabel = formatDate(goal.target_date);
+  const isComplete = goal.current_value >= goal.target_value;
+
+  return (
+    <SurfaceCard>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <p className="text-sm font-medium leading-tight">{goal.title}</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] uppercase tracking-[0.15em] text-primary">
+            {isComplete ? "Complete" : "In Progress"}
+          </span>
+          <button
+            onClick={onEdit}
+            className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary"
+            aria-label="Edit goal"
+          >
+            <Pencil className="size-3.5" />
+          </button>
+        </div>
+      </div>
+      <div className="h-2 bg-border rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-2">
+        Goal: {goal.target_value} {goal.unit}
+        {dateLabel ? ` by ${dateLabel}` : ""} · Current: {goal.current_value} {goal.unit}
+      </p>
+    </SurfaceCard>
   );
 };
 
