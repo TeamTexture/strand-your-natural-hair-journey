@@ -83,16 +83,17 @@ const ProfileStep1 = () => {
   const handleContinue = () => {
     setSubmitted(true);
     if (!canContinue) return;
-    sessionStorage.setItem(
-      "strand_profile_step1",
-      JSON.stringify({
-        name: name.trim(),
-        age,
-        postcode: postcode.trim().toUpperCase(),
-        country,
-        heritage,
-      }),
-    );
+    const payload = {
+      name: name.trim(),
+      age,
+      postcode: postcode.trim().toUpperCase(),
+      country,
+      heritage,
+    };
+    sessionStorage.setItem("strand_profile_step1", JSON.stringify(payload));
+    // Persist heritage for AI summary / nutrition context
+    localStorage.setItem("strand_heritage", JSON.stringify(heritage ? [heritage] : []));
+    localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-2");
     navigate("/onboarding/profile-step-2");
   };
 
