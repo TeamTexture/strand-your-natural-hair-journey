@@ -9,10 +9,43 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
+import { useAuth } from "@/hooks/useAuth";
+import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
+import { supabase } from "@/integrations/supabase/client";
 
 const Avoidlist = () => {
   const [tab, setTab] = useState<"avoid" | "fav">("avoid");
+  const [exporting, setExporting] = useState(false);
   const { avoid, favourites, loading } = useIngredientLists();
+  const { user } = useAuth();
+
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      // Pull display name from profile so the report is personalised; fall
+      // back to email local-part, then a generic label.
+      let userName = "STRAND Member";
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        userName =
+          profile?.display_name?.trim() ||
+          user.email?.split("@")[0] ||
+          userName;
+      }
+      generateIngredientReportPdf({ userName, avoid, favourites });
+      toast.success("Ingredient report downloaded");
+    } catch (e) {
+      console.error("PDF export failed", e);
+      toast.error("Could not generate PDF — please try again");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Tone the dot red when an ingredient appears in 3+ lowest-rated products,
   // amber for the 2-product threshold case.
@@ -109,9 +142,10 @@ const Avoidlist = () => {
           <Button
             variant="gold"
             size="pill"
-            onClick={() => toast("Ingredient report exported as PDF")}
+            onClick={handleExport}
+            disabled={exporting || loading}
           >
-            Export Report for Professional
+            {exporting ? "Generating PDF…" : "Export Report for Professional"}
           </Button>
         </div>
       )}
