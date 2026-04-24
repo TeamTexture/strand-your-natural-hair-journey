@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, X, Flame, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -19,6 +19,31 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
+import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+
+/** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
+const formatProduct = (p: UserProduct): string =>
+  p.brand ? `${p.name} — ${p.brand}` : p.name;
+
+/**
+ * Pick products from the user's shelf that look like they belong to a wash-day step.
+ * We match on the product `category` (set during scan/AI analysis) plus a few
+ * common keyword hints in the product name so we don't miss obvious matches when
+ * category data is missing.
+ */
+const pickStepProducts = (shelf: UserProduct[], kind: "cleanse" | "condition" | "treatment" | "prepoo"): string[] => {
+  const matches = shelf.filter((p) => {
+    const cat = (p.category ?? "").toLowerCase();
+    const name = (p.name ?? "").toLowerCase();
+    if (kind === "cleanse") return /shampoo|cleans|co-?wash/.test(cat) || /shampoo|cleans|co-?wash/.test(name);
+    if (kind === "condition") return /condition/.test(cat) || /condition/.test(name);
+    if (kind === "prepoo") return /pre-?poo|oil/.test(cat) || /pre-?poo|hot oil/.test(name);
+    if (kind === "treatment") return /treatment|mask|protein|bond/.test(cat) || /treatment|mask|protein|bond/.test(name);
+    return false;
+  });
+  return matches.map(formatProduct);
+};
+
 
 interface Step {
   id: string;
