@@ -157,18 +157,10 @@ export function useHomeAlerts() {
       const lastBloodIso = bloodRows?.[0]?.updated_at ?? null;
       const daysSinceBlood = daysSince(lastBloodIso);
 
-      // Rule 3: No blood OR > 85 days. Signature is the latest blood result
-      // timestamp so a new test clears the dismissal.
-      if (!lastBloodIso) {
-        next.push({
-          id: "blood-retest",
-          emoji: "🧪",
-          title: "Blood retest due — STRAND20",
-          body: "No results on file. Order your Daye kit with code STRAND20.",
-          to: "/onboarding/blood-iron-vitamins",
-          signature: "blood:none",
-        });
-      } else if (daysSinceBlood >= 85) {
+      // Rule 3: Blood retest due. Only fires if the user has at least one
+      // result on file and it's older than 85 days. Signature is the latest
+      // blood result timestamp so a new test clears the dismissal.
+      if (lastBloodIso && daysSinceBlood >= 85) {
         next.push({
           id: "blood-retest",
           emoji: "🧪",
@@ -178,6 +170,7 @@ export function useHomeAlerts() {
           signature: `blood:${lastBloodIso}`,
         });
       }
+
 
       // --- Appointments (Supabase) ---
       const { data: apptRows } = await supabase
