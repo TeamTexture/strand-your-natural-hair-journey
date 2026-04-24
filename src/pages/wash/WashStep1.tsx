@@ -213,6 +213,7 @@ const WashStep1 = () => {
   // the user ever opened the screen, which doubled as hardcoded data.
   const [prePoo, setPrePoo] = useState<StepState>("todo");
   const [cleanse, setCleanse] = useState<StepState>("todo");
+  const [coWash, setCoWash] = useState<StepState>("todo");
   const [condition, setCondition] = useState<StepState>("todo");
   const [treatment, setTreatment] = useState<StepState>("todo");
 
