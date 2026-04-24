@@ -554,11 +554,11 @@ const JournalEntry = () => {
         }
       />
 
-      {/* Hidden file input — supports multi-select from the photo library */}
+      {/* Hidden file input — supports multi-select photos AND videos (mp4/mov) from the library. */}
       <input
         ref={photoInputRef}
         type="file"
-        accept="image/*,.heic,.heif"
+        accept="image/*,video/mp4,video/quicktime,.heic,.heif,.mp4,.mov,.m4v"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -569,11 +569,12 @@ const JournalEntry = () => {
       />
       {/* Hidden camera input — opens the device camera directly. The
        * `capture` attribute hints to mobile browsers that the rear camera
-       * should be launched instead of the photo picker. */}
+       * should be launched instead of the photo picker. Accepts both
+       * photos and short videos so users can record from the camera too. */}
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*,.heic,.heif"
+        accept="image/*,video/mp4,video/quicktime,.heic,.heif,.mp4,.mov,.m4v"
         capture="environment"
         className="hidden"
         onChange={(e) => {
