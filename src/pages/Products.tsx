@@ -17,9 +17,10 @@ import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 
 const tabs = [
-  { id: "shelf",    label: "Shelf" },
-  { id: "wishlist", label: "Wishlist" },
-  { id: "intel",    label: "Ingredients" },
+  { id: "shelf",     label: "Shelf" },
+  { id: "wishlist",  label: "Wishlist" },
+  { id: "off-shelf", label: "Off Shelf" },
+  { id: "intel",     label: "Ingredients" },
 ];
 
 const Stars = ({ n }: { n: number }) => (
