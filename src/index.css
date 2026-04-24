@@ -114,14 +114,48 @@
     @apply border-border;
   }
 
+  html, body, #root {
+    height: 100%;
+  }
+
+  html {
+    /* Disable native pinch-zoom on mobile — this is a native-feel app. */
+    touch-action: manipulation;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Jost', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    /* Prevent the browser background from peeking through when the user
+     * pulls down at the top of a screen. */
+    overscroll-behavior-y: none;
+    /* iOS rubber-band scroll cleanup. */
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6, .font-serif {
     font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  /* UI chrome (labels, buttons, tags, nav) shouldn't be selectable.
+   * Re-enable selection inside content surfaces with .selectable. */
+  button, label, nav, [role="tab"], [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .selectable, .selectable * {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  /* Visible focus ring for keyboard users — gold, matches the design system.
+   * Mouse/touch users don't see it (focus-visible). */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
