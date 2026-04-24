@@ -13,7 +13,7 @@ import FilePickerButton from "@/components/FilePickerButton";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import VoiceNoteField from "@/components/VoiceNoteField";
 import {
   Sheet,
   SheetContent,
@@ -80,6 +80,7 @@ const MyToolsSection = () => {
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [notesAudio, setNotesAudio] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [saving, setSaving] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
@@ -417,18 +418,16 @@ const MyToolsSection = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
-                Notes
-              </label>
-              <Textarea
-                placeholder="How it feels, when you use it, what it pairs well with…"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                disabled={saving}
-                className="min-h-[80px] text-sm"
-              />
-            </div>
+            <VoiceNoteField
+              label="Notes"
+              placeholder="How it feels, when you use it, what it pairs well with…"
+              value={notes}
+              onChange={setNotes}
+              audioPath={notesAudio}
+              onAudioPathChange={setNotesAudio}
+              folder="tools/notes"
+              rows={3}
+            />
 
             <Button
               variant="gold"
