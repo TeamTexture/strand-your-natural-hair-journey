@@ -106,7 +106,7 @@ function drawIntro(
 ): number {
   let y = 46;
 
-  doc.setFont("times", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text("Your Ingredient Profile", MARGIN, y);
@@ -128,7 +128,7 @@ function drawIntro(
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.charcoal);
   const intro =
-    "This report summarises the ingredients automatically flagged from this user's product ratings inside the STRAND app. Use it as a starting point for consultations — these patterns reflect real-world tolerance and preference, not clinical diagnosis.";
+    "This report summarises the ingredients automatically flagged from this user's product ratings inside the STRAND app. Use it as a starting point for consultations - these patterns reflect real-world tolerance and preference, not clinical diagnosis.";
   const introLines = doc.splitTextToSize(intro, CONTENT_W);
   doc.text(introLines, MARGIN, y);
   y += introLines.length * 4.6 + 4;
@@ -147,8 +147,8 @@ function drawIntro(
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.warn);
   doc.text("AVOID", MARGIN + 5, chipY + 6);
-  doc.setFont("times", "normal");
-  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(String(avoidCount), MARGIN + 5, chipY + 14);
   doc.setFont("helvetica", "normal");
@@ -169,8 +169,8 @@ function drawIntro(
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.good);
   doc.text("FAVOURITES", favX + 5, chipY + 6);
-  doc.setFont("times", "normal");
-  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(String(favCount), favX + 5, chipY + 14);
   doc.setFont("helvetica", "normal");
