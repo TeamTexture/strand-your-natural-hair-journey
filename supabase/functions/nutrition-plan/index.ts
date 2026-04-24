@@ -146,75 +146,89 @@ Deno.serve(async (req) => {
       context: context ?? null,
     };
 
-    const aiResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
-          messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${TASK_PROMPT}` },
-            { role: "user", content: JSON.stringify(userPayload) },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "return_nutrition_plan",
-                description: "Return the personalised hair nutrition plan.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    summary: { type: "string" },
-                    diet: {
-                      type: "array",
-                      minItems: 6,
-                      maxItems: 10,
-                      items: {
-                        type: "object",
-                        properties: {
-                          emoji: { type: "string" },
-                          name: { type: "string" },
-                          body: { type: "string" },
-                        },
-                        required: ["emoji", "name", "body"],
-                      },
-                    },
-                    avoid: {
-                      type: "array",
-                      minItems: 4,
-                      maxItems: 6,
-                      items: {
-                        type: "object",
-                        properties: {
-                          emoji: { type: "string" },
-                          name: { type: "string" },
-                          body: { type: "string" },
-                          severity: {
-                            type: "string",
-                            enum: ["high", "medium", "low"],
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55_000);
+    let aiResp: Response;
+    try {
+      aiResp = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: `${STRAND_PERSONA}\n\n${TASK_PROMPT}` },
+              { role: "user", content: JSON.stringify(userPayload) },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "return_nutrition_plan",
+                  description: "Return the personalised hair nutrition plan.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      summary: { type: "string" },
+                      diet: {
+                        type: "array",
+                        minItems: 6,
+                        maxItems: 10,
+                        items: {
+                          type: "object",
+                          properties: {
+                            emoji: { type: "string" },
+                            name: { type: "string" },
+                            body: { type: "string" },
                           },
+                          required: ["emoji", "name", "body"],
                         },
-                        required: ["emoji", "name", "body"],
+                      },
+                      avoid: {
+                        type: "array",
+                        minItems: 4,
+                        maxItems: 6,
+                        items: {
+                          type: "object",
+                          properties: {
+                            emoji: { type: "string" },
+                            name: { type: "string" },
+                            body: { type: "string" },
+                            severity: {
+                              type: "string",
+                              enum: ["high", "medium", "low"],
+                            },
+                          },
+                          required: ["emoji", "name", "body"],
+                        },
                       },
                     },
+                    required: ["summary", "diet", "avoid"],
                   },
-                  required: ["summary", "diet", "avoid"],
                 },
               },
+            ],
+            tool_choice: {
+              type: "function",
+              function: { name: "return_nutrition_plan" },
             },
-          ],
-          tool_choice: {
-            type: "function",
-            function: { name: "return_nutrition_plan" },
-          },
-        }),
-      },
-    );
+          }),
+        },
+      );
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error("AI gateway fetch failed", err);
+      return new Response(
+        JSON.stringify({ error: "AI request timed out. Please try again." }),
+        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    clearTimeout(timeoutId);
 
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
