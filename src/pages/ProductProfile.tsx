@@ -314,19 +314,74 @@ const ProductProfile = () => {
 
         {ingredients.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">
-              Ingredients ({ingredients.length})
-            </p>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Ingredients ({ingredients.length})
+              </p>
+              {aiLoading && (
+                <p className="text-[10px] text-muted-foreground italic">Personalising flags…</p>
+              )}
+              {aiError && !aiLoading && (
+                <p className="text-[10px] text-destructive">AI flags unavailable</p>
+              )}
+            </div>
+
+            {/* Legend so users can decode the dot colours at a glance */}
+            <div className="flex items-center gap-3 mb-2 px-1 text-[10px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-good" /> Good for you
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-warn" /> Caution
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-destructive" /> Avoid
+              </span>
+            </div>
+
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {ingredients.map((name, i) => {
-                const lower = name.toLowerCase();
+                const lower = name.toLowerCase().trim();
+                const aiFlag = aiFlagByName.get(lower);
                 const isAvoid = avoidNames.has(lower);
                 const isFav = favNames.has(lower);
-                const tone = isAvoid ? "bg-destructive" : isFav ? "bg-good" : "bg-muted";
+
+                // Resolve final tone: explicit avoid/favourite list wins over AI,
+                // then AI verdict, then neutral grey.
+                const tone: "good" | "warn" | "bad" | "neutral" = isAvoid
+                  ? "bad"
+                  : isFav
+                  ? "good"
+                  : aiFlag?.tone ?? "neutral";
+
+                const dotClass =
+                  tone === "good"
+                    ? "bg-good"
+                    : tone === "warn"
+                    ? "bg-warn"
+                    : tone === "bad"
+                    ? "bg-destructive"
+                    : "bg-muted-foreground/40";
+
+                // Reason text shown under the ingredient name. Personal lists take
+                // precedence so the user sees their own history first.
+                const reason = isAvoid
+                  ? "On your avoid list — flagged from your hair history."
+                  : isFav
+                  ? "On your favourites — has worked well for you."
+                  : aiFlag?.body ?? null;
+
                 return (
-                  <div key={i} className="p-3 flex items-center gap-3">
-                    <span className={cn("size-2.5 rounded-full shrink-0", tone)} />
-                    <span className="text-sm">{name}</span>
+                  <div key={i} className="p-3 flex items-start gap-3">
+                    <span className={cn("size-2.5 rounded-full shrink-0 mt-1.5", dotClass)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">{name}</p>
+                      {reason && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                          {reason}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
