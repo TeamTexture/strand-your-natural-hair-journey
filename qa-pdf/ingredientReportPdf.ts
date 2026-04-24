@@ -43,7 +43,7 @@ function paintBackground(doc: jsPDF) {
 function drawHeader(doc: jsPDF) {
   // Wordmark — use bold helvetica with letter-spacing-style padding via text
   // call options. Times rendered odd kerning on capital Y/W in QA.
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(26);
   doc.setTextColor(...COLORS.charcoal);
   doc.text("STRAND", MARGIN, 24, { charSpace: 1.2 });
@@ -55,7 +55,7 @@ function drawHeader(doc: jsPDF) {
   doc.text("HAIR  ·  INGREDIENTS  ·  CARE", MARGIN, 29, { charSpace: 0.4 });
 
   // Right-aligned report label
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.gold);
   doc.text("INGREDIENT REPORT", PAGE.w - MARGIN, 24, { align: "right", charSpace: 0.6 });
@@ -107,7 +107,7 @@ function drawIntro(
 ): number {
   let y = 46;
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text("Your Ingredient Profile", MARGIN, y);
@@ -148,7 +148,7 @@ function drawIntro(
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.warn);
   doc.text("AVOID", MARGIN + 5, chipY + 6);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(String(avoidCount), MARGIN + 5, chipY + 14);
@@ -170,7 +170,7 @@ function drawIntro(
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.good);
   doc.text("FAVOURITES", favX + 5, chipY + 6);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(String(favCount), favX + 5, chipY + 14);
@@ -187,7 +187,7 @@ function drawIntro(
 }
 
 function drawSectionHeading(doc: jsPDF, y: number, label: string, accent: [number, number, number]) {
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...accent);
   doc.text(label.toUpperCase(), MARGIN, y);
@@ -218,7 +218,7 @@ function drawIngredientRow(
   doc.circle(MARGIN + 4, y + rowH / 2, 1.1, "F");
 
   // Ingredient name
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.charcoal);
   doc.text(row.ingredient, MARGIN + 8, y + 5.6);
@@ -230,7 +230,7 @@ function drawIngredientRow(
   doc.text(row.reason, MARGIN + 8, y + 10);
 
   // Right-side count
-  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...accent);
   doc.text(
