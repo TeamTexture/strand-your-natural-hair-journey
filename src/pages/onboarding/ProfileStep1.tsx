@@ -232,6 +232,87 @@ const ProfileStep1 = () => {
         }}
         noValidate
       >
+        {/* Profile Photo */}
+        <div>
+          <FieldLabel>Profile Photo</FieldLabel>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*,.heic,.heif"
+            capture="user"
+            className="hidden"
+            onChange={(e) => {
+              handlePickPhoto(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.heic,.heif"
+            className="hidden"
+            onChange={(e) => {
+              handlePickPhoto(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "relative size-20 rounded-full overflow-hidden border-2 flex items-center justify-center bg-card shrink-0",
+                submitted && errors.photo
+                  ? "border-[#A04040]"
+                  : avatarUrl
+                    ? "border-primary/60"
+                    : "border-dashed border-primary/50",
+              )}
+            >
+              {avatarBusy ? (
+                <Loader2 className="size-5 text-primary animate-spin" />
+              ) : avatarUrl ? (
+                <img src={avatarUrl} alt="Your profile" className="size-full object-cover" />
+              ) : (
+                <Camera className="size-6 text-primary/70" />
+              )}
+            </div>
+            <div className="flex-1 grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="goldOutline"
+                size="pill"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={avatarBusy}
+                className="!px-2 !text-[11px]"
+              >
+                <Camera className="size-3.5 mr-1" />
+                Take Photo
+              </Button>
+              <Button
+                type="button"
+                variant="goldOutline"
+                size="pill"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarBusy}
+                className="!px-2 !text-[11px]"
+              >
+                <ImagePlus className="size-3.5 mr-1" />
+                Upload
+              </Button>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  disabled={avatarBusy}
+                  className="col-span-2 text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1 mt-0.5"
+                >
+                  <X className="size-3" /> Remove photo
+                </button>
+              )}
+            </div>
+          </div>
+          {submitted && errors.photo && <FieldError>{errors.photo}</FieldError>}
+        </div>
+
         {/* Full Name */}
         <label className="block">
           <FieldLabel>Full Name</FieldLabel>
