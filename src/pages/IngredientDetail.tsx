@@ -36,12 +36,44 @@ const IngredientDetail = () => {
   const productName = searchParams.get("name") ?? "Moisture Retention Serum";
   const productBrand = searchParams.get("brand") ?? "Camille Rose";
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
-  const photoUrl = photos[productKey]?.signedUrl ?? null;
+  const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
+  const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Fallback: if no separate photo upload exists, use the image stored on
+  // the user's product (uploaded during scan or pulled from the product URL).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) return;
+      const { data } = await supabase
+        .from("user_products")
+        .select("image_url, storage_path")
+        .eq("user_id", user.id)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      if (data.storage_path) {
+        const { data: sig } = await supabase.storage
+          .from("product-photos")
+          .createSignedUrl(data.storage_path, 3600);
+        if (!cancelled && sig?.signedUrl) {
+          setProductPhotoUrl(sig.signedUrl);
+          return;
+        }
+      }
+      if (!cancelled && data.image_url) setProductPhotoUrl(data.image_url);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [productKey]);
 
   // Load any previously-saved rating so the stars reflect the user's choice.
   useEffect(() => {
