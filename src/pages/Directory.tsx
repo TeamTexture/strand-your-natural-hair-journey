@@ -68,9 +68,9 @@ const Directory = () => {
       <div className="px-5 space-y-4 pb-8">
         {results.length === 0 ? (
           <EmptyState
-            emoji="🔍"
-            title="No professionals match your search"
-            body="Try a different name, clinic, condition, or clear the filters."
+            icon="🔍"
+            message="No professionals match your search"
+            hint="Try a different name, clinic, condition, or clear the filters."
           />
         ) : (
           results.map((p) => (
