@@ -58,6 +58,80 @@ const emptyReflection = (): ReflectionState => ({
   productKeys: [],
 });
 
+interface SortablePhotoProps {
+  id: string;
+  url: string | undefined;
+  isCover: boolean;
+  disabled: boolean;
+  onRemove: () => void;
+}
+
+const SortablePhoto = ({ id, url, isCover, disabled, onRemove }: SortablePhotoProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 10 : "auto",
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative aspect-square rounded-[10px] overflow-hidden border bg-secondary touch-none",
+        isCover ? "border-primary ring-2 ring-primary/40" : "border-border",
+        isDragging && "shadow-lg",
+      )}
+    >
+      {url ? (
+        <img src={url} alt="" className="size-full object-cover pointer-events-none" />
+      ) : (
+        <div className="size-full flex items-center justify-center">
+          <Loader2 className="size-4 text-muted-foreground animate-spin" />
+        </div>
+      )}
+
+      {isCover && (
+        <span className="absolute top-1 left-1 inline-flex items-center gap-0.5 text-[9px] uppercase tracking-[0.12em] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full z-10">
+          <Star className="size-2.5" /> Cover
+        </span>
+      )}
+
+      {/* Drag handle covers the tile — the whole image is draggable. */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        className="absolute inset-0 cursor-grab active:cursor-grabbing"
+      />
+
+      {/* Grip indicator */}
+      <span className="absolute bottom-1 left-1 size-5 rounded-full bg-black/45 text-white flex items-center justify-center pointer-events-none">
+        <GripVertical className="size-3" />
+      </span>
+
+      {/* Remove (above drag handle via z-index) */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        disabled={disabled}
+        aria-label="Remove photo"
+        className="absolute top-1 right-1 z-10 size-6 rounded-full bg-black/55 text-white flex items-center justify-center disabled:opacity-50 hover:bg-black/75"
+      >
+        <X className="size-3.5" />
+      </button>
+    </div>
+  );
+};
+
 const JournalEntry = () => {
   const { id = "" } = useParams();
   const navigate = useNavigate();
