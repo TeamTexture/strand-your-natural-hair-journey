@@ -188,6 +188,45 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_entries: {
+        Row: {
+          created_at: string
+          entry_date: string
+          id: string
+          mood: string | null
+          note: string | null
+          photo_paths: string[]
+          products_used: string[]
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          note?: string | null
+          photo_paths?: string[]
+          products_used?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          note?: string | null
+          photo_paths?: string[]
+          products_used?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       moodboard_images: {
         Row: {
           board_id: string
@@ -426,6 +465,8 @@ export type Database = {
       }
       user_goals: {
         Row: {
+          challenge: string | null
+          challenge_voice_url: string | null
           created_at: string
           current_value: number
           id: string
@@ -434,13 +475,17 @@ export type Database = {
           start_value: number
           status: string
           target_date: string | null
-          target_value: number
+          target_text: string | null
+          target_value: number | null
+          target_voice_url: string | null
           title: string
           unit: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          challenge?: string | null
+          challenge_voice_url?: string | null
           created_at?: string
           current_value?: number
           id?: string
@@ -449,13 +494,17 @@ export type Database = {
           start_value?: number
           status?: string
           target_date?: string | null
-          target_value: number
+          target_text?: string | null
+          target_value?: number | null
+          target_voice_url?: string | null
           title: string
           unit?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          challenge?: string | null
+          challenge_voice_url?: string | null
           created_at?: string
           current_value?: number
           id?: string
@@ -464,7 +513,9 @@ export type Database = {
           start_value?: number
           status?: string
           target_date?: string | null
-          target_value?: number
+          target_text?: string | null
+          target_value?: number | null
+          target_voice_url?: string | null
           title?: string
           unit?: string
           updated_at?: string
