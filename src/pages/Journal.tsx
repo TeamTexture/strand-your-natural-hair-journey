@@ -297,6 +297,7 @@ const Journal = () => {
         })}
         {journalEntries.map((j) => {
           const url = photoUrls[j.id];
+          const isVideo = photoIsVideo[j.id];
           const dateLabel = formatEntryDate(j.date);
           return (
             <button
@@ -311,12 +312,25 @@ const Journal = () => {
                   }`}
                 >
                   {url ? (
-                    <img
-                      src={url}
-                      alt={j.title}
-                      className="absolute inset-0 size-full object-cover"
-                      loading="lazy"
-                    />
+                    isVideo ? (
+                      <>
+                        <video
+                          src={url}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="absolute inset-0 size-full object-cover bg-black"
+                        />
+                        <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
+                      </>
+                    ) : (
+                      <img
+                        src={url}
+                        alt={j.title}
+                        className="absolute inset-0 size-full object-cover"
+                        loading="lazy"
+                      />
+                    )
                   ) : (
                     <span className="text-5xl">{j.emoji}</span>
                   )}
