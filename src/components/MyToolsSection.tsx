@@ -3,7 +3,9 @@
 // so there's no match score, no AI scan, no URL paste, and no ingredient
 // detail navigation. Photos + name/brand/category/rating + voicenotes only.
 import { useState } from "react";
-import { ChevronDown, Trash2, Wrench } from "lucide-react";
+import { ChevronDown, Link2, Loader2, Trash2, Wrench } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
