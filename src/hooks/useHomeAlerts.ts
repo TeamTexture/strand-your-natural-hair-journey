@@ -1,14 +1,20 @@
 // Generates real-time alerts for the Home screen from Supabase + localStorage.
+// PRINCIPLE: every alert must be backed by real user data. We do NOT show
+// "you haven't done X yet" prompts — those would feel like placeholders for a
+// new user. Alerts only fire when something the user previously logged is
+// now stale or overdue.
+//
 // Rules:
-// - Wash overdue (7+ days since last wash) when current style is braids/locs/faux locs
+// - Wash overdue (7+ days since last LOGGED wash) when current style is braids/locs
 // - Style logged for 42+ days → "Time to take down"
-// - No blood results, or last results > 85 days old → "Blood retest due — STRAND20"
-// - No appointment, or last appointment > 170 days ago → "Time to rebook your professional"
+// - Last blood test > 85 days old → "Blood retest due — STRAND20"
+// - Last appointment > 170 days ago → "Time to rebook your professional"
 //
 // Dismissals persist to localStorage keyed by alert id + a "signature" describing
 // the underlying state. When the signature changes (e.g. new wash logged, new
 // blood test, new appointment), the dismissal no longer applies and the alert
 // re-appears as a *new* alert. Until then it stays cleared across reloads.
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
