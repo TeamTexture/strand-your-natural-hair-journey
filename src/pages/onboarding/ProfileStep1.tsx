@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronDown, Mail } from "lucide-react";
+import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -12,6 +12,11 @@ import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import { isHardWaterPostcode } from "@/data/hardWaterPostcodes";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
+
+const AVATAR_BUCKET = "avatars";
 
 /** Shared label style. */
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
