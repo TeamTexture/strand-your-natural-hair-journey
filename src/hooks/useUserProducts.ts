@@ -74,7 +74,8 @@ export function useUserProducts(filter: Filter = "all") {
 
   const upsert = async (p: Partial<UserProduct> & { product_key: string; name: string }): Promise<UserProduct | null> => {
     if (!user) { toast.error("Please sign in"); return null; }
-    const payload = { ...p, user_id: user.id };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload: any = { ...p, user_id: user.id };
     const { data, error } = await supabase
       .from("user_products")
       .upsert(payload, { onConflict: "user_id,product_key" })
@@ -90,7 +91,7 @@ export function useUserProducts(filter: Filter = "all") {
   };
 
   const setShelf = async (id: string, on: boolean) => {
-    const updates: Partial<UserProduct> = on
+    const updates = on
       ? { on_shelf: true, on_wishlist: false, added_to_shelf_at: new Date().toISOString() }
       : { on_shelf: false, previously_on_shelf: true };
     const { error } = await supabase.from("user_products").update(updates).eq("id", id);
