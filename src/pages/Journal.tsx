@@ -4,7 +4,6 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { journalEntries } from "@/data/journalEntries";
 
 const moodTiles = [
