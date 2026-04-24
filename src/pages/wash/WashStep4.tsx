@@ -148,7 +148,10 @@ const WashStep4 = () => {
 
       // Heat treatment: only persist when the user explicitly said yes/no during Condition.
       const heatTreatment = step1.heatTreatment
-        ? { used: step1.heatTreatment === "yes" }
+        ? {
+            used: step1.heatTreatment === "yes",
+            ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
+          }
         : null;
 
       const payload = {
