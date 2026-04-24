@@ -4,10 +4,11 @@ import { ChevronDown, Mic } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import ProductPhotoTile from "@/components/ProductPhotoTile";
+import FilePickerButton from "@/components/FilePickerButton";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
+import { useProductPhotos } from "@/hooks/useProductPhotos";
 
 const tabs = [
   { id: "shelf", label: "Shelf" },
@@ -33,8 +34,17 @@ const Products = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
   const { counts } = useVoicenoteCounts(products.map((p) => p.key));
+  const { photos, uploadPhoto, removePhoto } = useProductPhotos(products.map((p) => p.key));
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
+
+  // For "Scan / Upload" we save the photo under a fresh key tied to today's
+  // timestamp so it lives under the user's product photos until full
+  // new-product creation flow is built.
+  const handleNewProductPhoto = async (file: File) => {
+    const key = `unscanned-${Date.now()}`;
+    await uploadPhoto(key, file, { name: "Unnamed product", brand: "" });
+  };
 
   return (
     <ScreenLayout bottomNav>
@@ -75,12 +85,19 @@ const Products = () => {
         {products.map((p) => {
           const isOpen = expanded === p.key;
           const noteCount = counts[p.key] ?? 0;
+          const photoUrl = photos[p.key]?.signedUrl ?? null;
           return (
             <div
               key={p.key}
               className="bg-card border border-border rounded-[14px] overflow-hidden"
             >
               <div className="p-3.5 flex items-center gap-3">
+                <ProductPhotoTile
+                  imageUrl={photoUrl}
+                  fallbackEmoji={p.emoji}
+                  onPick={(f) => uploadPhoto(p.key, f, { name: p.name, brand: p.brand })}
+                  onRemove={() => removePhoto(p.key)}
+                />
                 <button
                   onClick={() =>
                     navigate(
@@ -89,9 +106,6 @@ const Products = () => {
                   }
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
-                  <div className="size-12 rounded-[10px] bg-primary/15 flex items-center justify-center text-2xl shrink-0">
-                    {p.emoji}
-                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
@@ -138,12 +152,12 @@ const Products = () => {
       </div>
 
       <div className="px-5 pb-6 space-y-3">
-        <Button variant="gold" size="pill" onClick={() => toast("Camera opening — point at product label")}>
+        <FilePickerButton variant="gold" size="pill" preferCamera onPick={handleNewProductPhoto}>
           + Scan a New Product
-        </Button>
-        <Button variant="goldOutline" size="pill" onClick={() => toast("Choose from camera roll")}>
+        </FilePickerButton>
+        <FilePickerButton variant="goldOutline" size="pill" onPick={handleNewProductPhoto}>
           + Upload Screenshot
-        </Button>
+        </FilePickerButton>
       </div>
     </ScreenLayout>
   );
