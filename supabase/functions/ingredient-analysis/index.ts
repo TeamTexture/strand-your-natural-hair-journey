@@ -184,7 +184,7 @@ RULES:
                     summary: { type: "string" },
                     ingredients: {
                       type: "array",
-                      minItems: 3,
+                      minItems: 1,
                       items: {
                         type: "object",
                         properties: {
