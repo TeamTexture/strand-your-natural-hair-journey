@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArrowUp, Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -14,14 +15,20 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
 const Directory = () => {
-  const [tab, setTab] = useState<(typeof tabs)[number]>("All");
+  const [params] = useSearchParams();
+  // `?bloodOnly=1` is set by the onboarding Blood-Test screen when the user
+  // needs to book a doctor for blood work. We lock the directory to
+  // Dermatologists and hide the type tabs to keep the flow focused.
+  const bloodOnly = params.get("bloodOnly") === "1";
+
+  const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
   const [showTop, setShowTop] = useState(false);
 
   const results = useMemo(
-    () => searchProfessionalsIn(pros, query, tab),
-    [pros, query, tab],
+    () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
+    [pros, query, tab, bloodOnly],
   );
 
   // The scrollable surface is the <main> element inside ScreenLayout. We listen
@@ -51,7 +58,21 @@ const Directory = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Professionals" />
+      <TitleBar title={bloodOnly ? "Book a Doctor" : "Professionals"} />
+
+      {bloodOnly && (
+        <div className="px-5 pb-3">
+          <SurfaceCard tone="gold">
+            <p className="text-xs font-body leading-snug">
+              <span className="font-semibold uppercase tracking-[0.15em] text-primary">
+                Blood test —{" "}
+              </span>
+              These verified dermatologists can run the bloods we need to assess hair-loss
+              deficiencies. Tap any card to book.
+            </p>
+          </SurfaceCard>
+        </div>
+      )}
 
       <div className="px-5 pb-3">
         <div className="relative">
@@ -66,29 +87,31 @@ const Directory = () => {
         </div>
       </div>
 
-      <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 min-w-max">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
-                tab === t
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card border-border text-foreground",
-              )}
-            >
-              {t}
-              {t !== "All" && (
-                <span className="ml-1.5 opacity-60">
-                  {pros.filter((p) => p.type === t).length}
-                </span>
-              )}
-            </button>
-          ))}
+      {!bloodOnly && (
+        <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 min-w-max">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
+                  tab === t
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-foreground",
+                )}
+              >
+                {t}
+                {t !== "All" && (
+                  <span className="ml-1.5 opacity-60">
+                    {pros.filter((p) => p.type === t).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="px-5 space-y-4 pb-8">
         {loading && pros.length === 0 ? (
