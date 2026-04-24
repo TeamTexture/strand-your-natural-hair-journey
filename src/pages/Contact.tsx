@@ -31,6 +31,8 @@ const Contact = () => {
   // Pre-fill from auth + saved profile if available.
   useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
+    const presetSubject = params.get("subject");
+    if (presetSubject && !subject) setSubject(presetSubject);
     try {
       const raw = localStorage.getItem("strand_profile_basic");
       if (raw) {
@@ -41,7 +43,7 @@ const Contact = () => {
       /* ignore */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.email]);
+  }, [user?.email, params]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
