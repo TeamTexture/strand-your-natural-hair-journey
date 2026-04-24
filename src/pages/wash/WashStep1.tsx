@@ -75,19 +75,26 @@ const StepCard = ({
    * If omitted we just show the default product list captured for this step.
    */
   summaryChips,
+  /** User-added products (via link/photo) that should appear as chips inside the editor + summary. */
+  addedProducts = [],
+  /** Open the inline product picker for this step. */
+  onAddProduct,
 }: {
   step: Step;
   state: StepState;
   setState: (s: StepState) => void;
   editor?: React.ReactNode;
   summaryChips?: string[];
+  addedProducts?: string[];
+  onAddProduct?: () => void;
 }) => {
   const isEditing = state === "editing";
   const isDone = state === "done";
   const isSkipped = state === "skipped";
   // Use caller-provided chips when given; otherwise fall back to the step's
-  // default product list so a "done" step is never visually empty.
-  const chips = summaryChips ?? step.products;
+  // default product list + anything the user manually added so a "done" step
+  // is never visually empty.
+  const chips = summaryChips ?? [...step.products, ...addedProducts];
   return (
     <SurfaceCard className={cn(isSkipped && "opacity-70")}>
       <div className="flex items-center gap-3">
@@ -177,7 +184,18 @@ const StepCard = ({
               <span className="text-xs flex-1 truncate">{p}</span>
             </div>
           ))}
-          <button className="w-full text-left px-3 py-2 border border-dashed border-border rounded-[10px] text-xs text-muted-foreground">
+          {addedProducts.map((p) => (
+            <div key={p} className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/40 rounded-[10px]">
+              <Check className="size-4 text-good shrink-0" />
+              <span className="text-xs flex-1 truncate">{p}</span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">New</span>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={onAddProduct}
+            className="w-full text-left px-3 py-2 border border-dashed border-border rounded-[10px] text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[40px]"
+          >
             + Add product used
           </button>
           {editor}
