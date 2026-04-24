@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { copyToClipboard } from "@/lib/clipboard";
 
 interface ShareSheetProps {
   open: boolean;
@@ -52,10 +51,9 @@ const ShareSheet = ({ open, onOpenChange, imageUrl, title, caption, filename }: 
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Desktop fallback: copy caption + URL via robust helper
-        const ok = await copyToClipboard(`${caption}\n${imageUrl ?? ""}`.trim());
-        if (ok) toast.success("Caption copied to clipboard");
-        else toast.error("Could not copy");
+        // Desktop fallback: copy caption + URL
+        await navigator.clipboard.writeText(`${caption}\n${imageUrl ?? ""}`);
+        toast.success("Caption copied to clipboard");
       }
     } catch (e: unknown) {
       // AbortError = user cancelled — silent
@@ -96,21 +94,24 @@ const ShareSheet = ({ open, onOpenChange, imageUrl, title, caption, filename }: 
   };
 
   const handleCopyCaption = async () => {
-    const ok = await copyToClipboard(caption);
-    if (ok) toast.success("Caption copied");
-    else toast.error("Could not copy");
+    try {
+      await navigator.clipboard.writeText(caption);
+      toast.success("Caption copied");
+    } catch {
+      toast.error("Could not copy");
+    }
   };
 
   // Open the native app via deep links. These open the upload/camera view where
   // available; the user picks the photo from their camera roll (we copy the
   // caption first so they can paste it).
   const openApp = async (app: "instagram" | "tiktok" | "youtube") => {
-    const copied = await copyToClipboard(caption);
-    toast(
-      copied
-        ? `Caption copied — paste it into ${app[0].toUpperCase() + app.slice(1)}`
-        : `Open ${app[0].toUpperCase() + app.slice(1)} and paste your caption`,
-    );
+    try {
+      await navigator.clipboard.writeText(caption);
+    } catch {
+      /* clipboard may fail silently */
+    }
+    toast(`Caption copied — paste it into ${app[0].toUpperCase() + app.slice(1)}`);
 
     const links: Record<typeof app, { app: string; web: string }> = {
       instagram: { app: "instagram://library?AssetPath=", web: "https://www.instagram.com/" },

@@ -125,10 +125,16 @@ const MoodboardBoard = () => {
   const handleShare = async () => {
     if (!board) return;
     const url = `${window.location.origin}/journal/moodboards/${board.id}`;
-    const { shareOrCopyLink } = await import("@/lib/clipboard");
-    const result = await shareOrCopyLink({ title: board.name, url });
-    if (result === "copied") toast.success("Board link copied");
-    else if (result === "failed") toast.error("Could not copy link");
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: board.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Board link copied");
+      }
+    } catch {
+      /* user cancelled */
+    }
   };
 
   if (boardLoading) {
