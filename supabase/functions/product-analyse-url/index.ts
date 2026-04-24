@@ -1,7 +1,8 @@
-// Fetches a product page from a pasted URL, strips it to readable text, and
-// asks Gemini to return the same structured product analysis the
-// product-analyse function returns from an image. Personalisation comes from
-// the user-context payload, identical to product-analyse.
+// Fetches a product page from a pasted URL using Firecrawl (handles JS-rendered
+// pages and anti-bot protection that plain fetch() can't), then asks Gemini to
+// return the same structured product analysis the product-analyse function
+// returns from an image. Personalisation comes from the user-context payload,
+// identical to product-analyse.
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 interface Body {
@@ -53,7 +54,11 @@ SCHEMA
   "tips": string[]
 }`;
 
-/** Strip <script>, <style>, <noscript>, comments, then collapse tags + whitespace. */
+const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
+
+/** Plain-text fallback used only if Firecrawl is unavailable. Many modern
+ *  retailer sites are JS-rendered, so this fallback returns very little, but
+ *  it keeps the function working for simple sites. */
 function htmlToText(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -71,9 +76,84 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-function extractTitle(html: string): string {
-  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return m ? m[1].trim() : "";
+interface ScrapeResult {
+  title: string;
+  text: string; // markdown preferred, falls back to plain text
+  source: "firecrawl" | "fetch";
+}
+
+async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeResult | null> {
+  try {
+    const resp = await fetch(`${FIRECRAWL_V2}/scrape`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        formats: ["markdown"],
+        onlyMainContent: true,
+        // Wait a bit for client-rendered ingredient panels (Sephora, Boots, etc.)
+        waitFor: 1500,
+      }),
+      // Firecrawl can take a while for JS-rendered pages.
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      console.error("Firecrawl scrape failed", resp.status, errBody);
+      return null;
+    }
+    const j = await resp.json();
+    // v2 returns { success, data: { markdown, metadata } } per docs; some
+    // gateway shapes flatten the payload, so try both.
+    const data = (j?.data ?? j) as Record<string, unknown> | undefined;
+    const markdown =
+      (data?.markdown as string | undefined) ??
+      ((data?.data as { markdown?: string } | undefined)?.markdown);
+    const metadata =
+      (data?.metadata as { title?: string } | undefined) ??
+      ((data?.data as { metadata?: { title?: string } } | undefined)?.metadata);
+    if (!markdown) {
+      console.error("Firecrawl returned no markdown", JSON.stringify(j).slice(0, 500));
+      return null;
+    }
+    return {
+      title: metadata?.title ?? "",
+      text: markdown,
+      source: "firecrawl",
+    };
+  } catch (e) {
+    console.error("Firecrawl error", e);
+    return null;
+  }
+}
+
+async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
+  try {
+    const pageResp = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-GB,en;q=0.9",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!pageResp.ok) return null;
+    const html = await pageResp.text();
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    return {
+      title: titleMatch ? titleMatch[1].trim() : "",
+      text: htmlToText(html),
+      source: "fetch",
+    };
+  } catch (e) {
+    console.error("plain fetch failed", e);
+    return null;
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -99,52 +179,46 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) {
+    const aiApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!aiApiKey) {
       return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch the page HTML. Set a desktop UA so we get the rich product page
-    // rather than a stripped mobile/bot variant.
-    let html = "";
-    try {
-      const pageResp = await fetch(parsed.toString(), {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml",
-          "Accept-Language": "en-GB,en;q=0.9",
-        },
-        redirect: "follow",
-      });
-      if (!pageResp.ok) {
-        return new Response(JSON.stringify({ error: `Couldn't load that page (HTTP ${pageResp.status}).` }), {
-          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      html = await pageResp.text();
-    } catch (e) {
-      console.error("page fetch failed", e);
-      return new Response(JSON.stringify({ error: "Couldn't reach that page. Check the link and try again." }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+
+    // Prefer Firecrawl (handles JS-rendered pages and anti-bot blocks). Fall
+    // back to plain fetch only if Firecrawl is unavailable or errors out.
+    let scraped: ScrapeResult | null = null;
+    if (firecrawlKey) {
+      scraped = await scrapeWithFirecrawl(parsed.toString(), firecrawlKey);
+    }
+    if (!scraped) {
+      scraped = await scrapeWithFetch(parsed.toString());
+    }
+    if (!scraped) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Couldn't reach that page. The retailer may be blocking automated access — try a different link or upload a screenshot of the ingredients label instead.",
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const title = extractTitle(html);
-    const text = htmlToText(html);
-    // Cap to keep token cost predictable. Most product pages have title +
-    // description + ingredients in the first ~12k chars.
-    const TRIM = 14000;
-    const trimmed = text.length > TRIM ? text.slice(0, TRIM) : text;
+    // Cap the page text to keep token cost predictable. Firecrawl markdown is
+    // already main-content only, so 18k chars is plenty for product pages.
+    const TRIM = 18_000;
+    const trimmed = scraped.text.length > TRIM ? scraped.text.slice(0, TRIM) : scraped.text;
 
     const userMsg = `Analyse this product page and return strict JSON matching the schema.
 
 URL: ${parsed.toString()}
-Page <title>: ${title}
+Page title: ${scraped.title}
+Scrape source: ${scraped.source}
 
-Page text (truncated):
+Page content (markdown / text, truncated):
 """
 ${trimmed}
 """
@@ -154,7 +228,7 @@ ${JSON.stringify(context ?? {}, null, 2)}`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${aiApiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
@@ -163,6 +237,7 @@ ${JSON.stringify(context ?? {}, null, 2)}`;
         ],
         response_format: { type: "json_object" },
       }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!aiResp.ok) {
