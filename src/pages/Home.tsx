@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
+import { useGoals } from "@/hooks/useGoals";
+import { Ruler } from "lucide-react";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight" aria-label={`${n} stars`}>
@@ -45,6 +47,7 @@ const Home = () => {
   const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
   const { last: lastWash, daysSinceLast } = useWashDays();
+  const { lengthGoal } = useGoals();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(readStyle());
 
@@ -191,7 +194,82 @@ const Home = () => {
           )}
         </SurfaceCard>
 
-        {/* alerts */}
+        {/* length goal — populated from the user's primary length-retention
+            goal so the home screen reflects what they actually committed to.
+            Falls back to a CTA when no goal exists yet. */}
+        <SurfaceCard>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Length goal
+            </p>
+            <button
+              onClick={() => navigate("/profile")}
+              className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+            >
+              {lengthGoal ? "Edit" : "Set"}
+            </button>
+          </div>
+          {lengthGoal ? (
+            (() => {
+              const unit = lengthGoal.unit || "inches";
+              const current = lengthGoal.current_value ?? 0;
+              const target = lengthGoal.target_value;
+              const start = lengthGoal.start_value ?? 0;
+              const pct = target && target > start
+                ? Math.min(100, Math.max(0, ((current - start) / (target - start)) * 100))
+                : null;
+              const targetDate = lengthGoal.target_date
+                ? new Date(lengthGoal.target_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+                : null;
+              return (
+                <button
+                  onClick={() => navigate("/profile")}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
+                      <Ruler className="size-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display text-base font-semibold leading-tight truncate">
+                        {current} {unit}
+                        {target != null && (
+                          <span className="text-muted-foreground font-normal">
+                            {" "}/ {target} {unit}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {lengthGoal.target_text
+                          ? lengthGoal.target_text
+                          : targetDate
+                            ? `Target: ${targetDate}`
+                            : lengthGoal.title}
+                      </p>
+                    </div>
+                  </div>
+                  {pct != null && (
+                    <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                </button>
+              );
+            })()
+          ) : (
+            <button
+              onClick={() => navigate("/profile")}
+              className="text-left w-full"
+            >
+              <p className="text-sm text-muted-foreground">
+                No length goal set. Tap to add your starting length and target.
+              </p>
+            </button>
+          )}
+        </SurfaceCard>
         <SurfaceCard tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
