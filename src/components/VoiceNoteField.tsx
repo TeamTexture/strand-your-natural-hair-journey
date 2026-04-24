@@ -299,6 +299,13 @@ const VoiceNoteField = ({
           <div className="flex flex-wrap gap-2 items-center">
             <button
               type="button"
+              onClick={() => toast.success("Kept as voice note — playback stays available")}
+              className="text-[11px] uppercase tracking-[0.15em] text-foreground border border-border bg-card rounded-full px-3 py-1.5 hover:border-primary/60"
+            >
+              Keep as voice note
+            </button>
+            <button
+              type="button"
               onClick={transcribe}
               disabled={transcribing}
               className="text-[11px] uppercase tracking-[0.15em] text-primary border border-primary/40 bg-primary/5 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
@@ -310,8 +317,8 @@ const VoiceNoteField = ({
               )}
               {transcribing ? "Transcribing…" : "Also transcribe to text"}
             </button>
-            <span className="text-[10px] text-muted-foreground font-body">
-              Voice note stays saved either way
+            <span className="text-[10px] text-muted-foreground font-body w-full">
+              Voice note stays saved either way — tap ▶ to play it back any time.
             </span>
           </div>
         </div>
