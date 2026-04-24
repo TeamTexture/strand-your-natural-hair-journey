@@ -182,7 +182,7 @@ const WashStep4 = () => {
       localStorage.removeItem("strand_wash_step3");
 
       toast("💧 Wash day saved!");
-      navigate("/home");
+      navigate("/wash-day");
     } catch (e) {
       console.error("wash_days insert failed", e);
       toast.error(e instanceof Error ? e.message : "Could not save wash day");
