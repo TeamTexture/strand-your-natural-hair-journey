@@ -294,7 +294,9 @@ const WashStep1 = () => {
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
             ...conditionProducts,
-            ...(heatChoice === "yes" ? ["Heat treatment"] : []),
+            ...(heatChoice === "yes"
+              ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
+              : []),
             ...(heatChoice === "no" ? ["No heat"] : []),
           ]}
           editor={
