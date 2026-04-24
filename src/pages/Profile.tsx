@@ -354,7 +354,7 @@ const Profile = () => {
 
       {/* Edit picker: jump straight to any section */}
       <Dialog open={editPickerOpen} onOpenChange={setEditPickerOpen}>
-        <DialogContent className="max-w-md rounded-[20px] p-5 gap-3">
+        <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] sm:max-w-md rounded-[20px] p-5 gap-3 overflow-hidden max-h-[80vh] overflow-y-auto">
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="font-display text-lg">What would you like to edit?</DialogTitle>
             <DialogDescription className="text-[12px]">

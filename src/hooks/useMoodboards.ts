@@ -54,9 +54,24 @@ export const useMoodboards = () => {
       return;
     }
 
-    // Image counts + cover (most recent image)
+    // Image counts + cover (most recent image).
+    // The Favourites board is special: it does NOT own its own images. Instead it shows
+    // every image the user has favourited from any of their other boards. So for the
+    // Favourites tile we count and pick a cover from `is_favourite = true` rows scoped
+    // to the user, not by board_id.
     const enriched: Moodboard[] = await Promise.all(
       (rows ?? []).map(async (b) => {
+        if (b.is_favourites) {
+          const { data: favs } = await supabase
+            .from("moodboard_images")
+            .select("storage_path, created_at")
+            .eq("user_id", user.id)
+            .eq("is_favourite", true)
+            .order("created_at", { ascending: false });
+          const cover = favs?.[0]?.storage_path ?? null;
+          const coverUrl = cover ? await signUrl(cover) : null;
+          return { ...b, imageCount: favs?.length ?? 0, coverPath: cover, coverUrl };
+        }
         const { data: imgs } = await supabase
           .from("moodboard_images")
           .select("storage_path, created_at")
@@ -115,10 +130,14 @@ export const useMoodboards = () => {
   return { boards, loading, reload: load, createBoard, deleteBoard };
 };
 
-export const useMoodboardImages = (boardId: string | undefined) => {
+export const useMoodboardImages = (
+  boardId: string | undefined,
+  options: { isFavouritesBoard?: boolean } = {},
+) => {
   const { user } = useAuth();
   const [images, setImages] = useState<MoodboardImage[]>([]);
   const [loading, setLoading] = useState(true);
+  const isFavouritesBoard = options.isFavouritesBoard ?? false;
 
   const load = useCallback(async () => {
     if (!user || !boardId) {
@@ -127,11 +146,15 @@ export const useMoodboardImages = (boardId: string | undefined) => {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase
+    // On the Favourites board, show every favourited image across all the user's boards.
+    // Everywhere else, show the images that physically belong to this board.
+    const query = supabase
       .from("moodboard_images")
       .select("id, board_id, storage_path, caption, is_favourite, created_at")
-      .eq("board_id", boardId)
       .order("created_at", { ascending: false });
+    const { data, error } = isFavouritesBoard
+      ? await query.eq("user_id", user.id).eq("is_favourite", true)
+      : await query.eq("board_id", boardId);
     if (error) {
       console.error("Load images failed:", error);
       setLoading(false);
@@ -142,7 +165,7 @@ export const useMoodboardImages = (boardId: string | undefined) => {
     );
     setImages(withUrls);
     setLoading(false);
-  }, [user, boardId]);
+  }, [user, boardId, isFavouritesBoard]);
 
   useEffect(() => {
     load();
@@ -162,6 +185,8 @@ export const useMoodboardImages = (boardId: string | undefined) => {
         board_id: boardId,
         storage_path: path,
         caption: caption ?? null,
+        // Auto-favourite uploads on the Favourites board so they show up there.
+        is_favourite: isFavouritesBoard,
       });
       if (insErr) {
         await supabase.storage.from(BUCKET).remove([path]);
@@ -169,24 +194,36 @@ export const useMoodboardImages = (boardId: string | undefined) => {
       }
       await load();
     },
-    [user, boardId, load],
+    [user, boardId, load, isFavouritesBoard],
   );
 
   const toggleFavourite = useCallback(
     async (img: MoodboardImage) => {
       const next = !img.is_favourite;
-      // optimistic
-      setImages((prev) => prev.map((i) => (i.id === img.id ? { ...i, is_favourite: next } : i)));
+      // Optimistic: on the Favourites board, removing the heart removes the tile entirely.
+      setImages((prev) =>
+        isFavouritesBoard && !next
+          ? prev.filter((i) => i.id !== img.id)
+          : prev.map((i) => (i.id === img.id ? { ...i, is_favourite: next } : i)),
+      );
       const { error } = await supabase
         .from("moodboard_images")
         .update({ is_favourite: next })
         .eq("id", img.id);
       if (error) {
-        setImages((prev) => prev.map((i) => (i.id === img.id ? { ...i, is_favourite: !next } : i)));
+        // Rollback
+        setImages((prev) => {
+          if (isFavouritesBoard && !next) {
+            // We removed it optimistically; re-insert (sorted by created_at desc).
+            const restored = [{ ...img, is_favourite: true }, ...prev];
+            return restored.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+          }
+          return prev.map((i) => (i.id === img.id ? { ...i, is_favourite: !next } : i));
+        });
         throw error;
       }
     },
-    [],
+    [isFavouritesBoard],
   );
 
   const deleteImage = useCallback(

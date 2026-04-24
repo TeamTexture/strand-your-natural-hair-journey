@@ -69,7 +69,10 @@ const MoodboardBoard = () => {
     };
   }, [id, user, navigate]);
 
-  const { images, loading, uploadImage, toggleFavourite, deleteImage } = useMoodboardImages(board?.id);
+  const { images, loading, uploadImage, toggleFavourite, deleteImage } = useMoodboardImages(
+    board?.id,
+    { isFavouritesBoard: !!board?.is_favourites },
+  );
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -194,7 +197,10 @@ const MoodboardBoard = () => {
       />
 
       <p className="text-[11px] text-muted-foreground text-center pb-3 px-5">
-        {images.length} {images.length === 1 ? "image" : "images"} · Tap ♡ to add to Favourites
+        {images.length} {images.length === 1 ? "image" : "images"}
+        {board.is_favourites
+          ? " · Tap ♥ to remove from Favourites"
+          : " · Tap ♡ to add to Favourites"}
       </p>
 
       {/* Image grid */}
@@ -207,10 +213,18 @@ const MoodboardBoard = () => {
         ) : images.length === 0 ? (
           <div className="col-span-2 py-10 text-center">
             <p className="text-3xl mb-2">{board.emoji}</p>
-            <p className="text-sm text-muted-foreground">No images yet</p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Add one below to start your board.
-            </p>
+            {board.is_favourites ? (
+              <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+                No favourites yet. Tap ♡ on any image in your mood boards to save it here.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">No images yet</p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Add one below to start your board.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           images.map((img) => (
