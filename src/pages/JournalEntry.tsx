@@ -57,6 +57,12 @@ interface ReflectionState {
   how: string;
   liked: string;
   next: string;
+  /** Optional voicenote storage paths backing each reflection field. The
+   *  text in `how` / `liked` / `next` is the source of truth — the audio is
+   *  kept alongside it so the user can re-listen later. */
+  howAudio?: string | null;
+  likedAudio?: string | null;
+  nextAudio?: string | null;
   /** Selected product IDs (uuid) from user_products */
   productIds: string[];
   /** Legacy: product keys from the old hardcoded catalog (kept for migration) */
@@ -67,6 +73,9 @@ const emptyReflection = (): ReflectionState => ({
   how: "",
   liked: "",
   next: "",
+  howAudio: null,
+  likedAudio: null,
+  nextAudio: null,
   productIds: [],
 });
 
