@@ -158,6 +158,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_lists: {
+        Row: {
+          id: string
+          ingredient: string
+          list_kind: string
+          product_count: number
+          reason: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ingredient: string
+          list_kind: string
+          product_count?: number
+          reason: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ingredient?: string
+          list_kind?: string
+          product_count?: number
+          reason?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       moodboard_images: {
         Row: {
           board_id: string
@@ -224,6 +254,42 @@ export type Database = {
           id?: string
           is_favourites?: boolean
           name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      product_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          ingredients: string[]
+          product_brand: string | null
+          product_key: string
+          product_name: string | null
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredients?: string[]
+          product_brand?: string | null
+          product_key: string
+          product_name?: string | null
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredients?: string[]
+          product_brand?: string | null
+          product_key?: string
+          product_name?: string | null
+          rating?: number
           updated_at?: string
           user_id?: string
         }

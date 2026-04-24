@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { supabase } from "@/integrations/supabase/client";
+import { saveProductRating } from "@/hooks/useIngredientLists";
 import { cn } from "@/lib/utils";
 
 interface Ingredient { tone: "good" | "warn" | "bad"; name: string; body: string }
@@ -39,6 +40,53 @@ const IngredientDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Load any previously-saved rating so the stars reflect the user's choice.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) return;
+      const { data } = await supabase
+        .from("product_ratings")
+        .select("rating")
+        .eq("user_id", user.id)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      if (!cancelled && data?.rating) setRating(data.rating);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [productKey]);
+
+  const handleSaveRating = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await saveProductRating({
+        productKey,
+        productName,
+        productBrand,
+        rating,
+        ingredients: (analysis?.ingredients ?? []).map((i) => i.name),
+      });
+      if (rating <= 2) {
+        toast("Rating saved — avoid list updated");
+      } else if (rating >= 4) {
+        toast("Rating saved — favourites updated");
+      } else {
+        toast("Rating saved");
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Could not save rating";
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const runAnalysis = useCallback(
     async (force = false) => {
@@ -207,8 +255,13 @@ const IngredientDetail = () => {
           </div>
         </div>
 
-        <Button variant="gold" size="pill" onClick={() => toast("Rating saved — ingredient map updated")}>
-          Save Rating
+        <Button
+          variant="gold"
+          size="pill"
+          onClick={handleSaveRating}
+          disabled={saving || loading || !analysis}
+        >
+          {saving ? "Saving…" : "Save Rating"}
         </Button>
       </div>
     </ScreenLayout>
