@@ -155,6 +155,9 @@ const JournalEntry = () => {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  // Separate input wired to the device camera so "Take a photo" reliably
+  // launches the rear camera on iOS / Android (capture="environment").
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const coverUrl = photoPaths[0] ? photoUrls[photoPaths[0]] ?? null : null;
 
