@@ -807,42 +807,46 @@ const JournalEntry = () => {
         onToggle={toggleProduct}
       />
 
-      {/* Reflection prompts */}
+      {/* Reflection prompts — each one supports a voicenote that can be
+       *  transcribed straight into the text box below it. */}
       <SectionLabel>Reflection</SectionLabel>
+      <p className="px-5 -mt-1 mb-2 text-[11px] text-muted-foreground">
+        Tap the mic to record — then "Transcribe to text" drops your words into the box.
+      </p>
       <div className="px-5 pb-4 space-y-3">
         <SurfaceCard>
-          <label className="block text-xs font-semibold mb-1.5">
-            How did you do this style?
-          </label>
-          <Textarea
-            value={state.how}
-            onChange={(e) => persist({ ...state, how: e.target.value })}
+          <VoiceNoteField
+            label="How did you do this style?"
             placeholder="Steps, technique, sections, drying method…"
-            className="min-h-[88px] font-body text-sm"
+            value={state.how}
+            onChange={(v) => persist({ ...state, how: v })}
+            audioPath={state.howAudio ?? null}
+            onAudioPathChange={(p) => persist({ ...state, howAudio: p })}
+            folder={`journal/${entry.id}/how`}
           />
         </SurfaceCard>
 
         <SurfaceCard>
-          <label className="block text-xs font-semibold mb-1.5">
-            What did you like about it?
-          </label>
-          <Textarea
-            value={state.liked}
-            onChange={(e) => persist({ ...state, liked: e.target.value })}
+          <VoiceNoteField
+            label="What did you like about it?"
             placeholder="Definition, shine, longevity, how it felt…"
-            className="min-h-[88px] font-body text-sm"
+            value={state.liked}
+            onChange={(v) => persist({ ...state, liked: v })}
+            audioPath={state.likedAudio ?? null}
+            onAudioPathChange={(p) => persist({ ...state, likedAudio: p })}
+            folder={`journal/${entry.id}/liked`}
           />
         </SurfaceCard>
 
         <SurfaceCard>
-          <label className="block text-xs font-semibold mb-1.5">
-            What do you want to do differently next time?
-          </label>
-          <Textarea
-            value={state.next}
-            onChange={(e) => persist({ ...state, next: e.target.value })}
+          <VoiceNoteField
+            label="What do you want to do differently next time?"
             placeholder="Less product, different parting, sealant…"
-            className="min-h-[88px] font-body text-sm"
+            value={state.next}
+            onChange={(v) => persist({ ...state, next: v })}
+            audioPath={state.nextAudio ?? null}
+            onAudioPathChange={(p) => persist({ ...state, nextAudio: p })}
+            folder={`journal/${entry.id}/next`}
           />
         </SurfaceCard>
       </div>
