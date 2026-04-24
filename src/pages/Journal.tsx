@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Pencil, Plus, Target } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -9,6 +10,8 @@ import { journalEntries } from "@/data/journalEntries";
 import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoals, type UserGoal } from "@/hooks/useGoals";
+import GoalEditorSheet from "@/components/GoalEditorSheet";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -22,7 +25,21 @@ const Journal = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { signals, banner, loading } = useJournalEncouragement();
+  const { goals, lengthGoal, loading: goalsLoading } = useGoals();
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<UserGoal | null>(null);
+
+  // Other (non-length) goals are listed beneath the primary card.
+  const otherGoals = useMemo(
+    () => goals.filter((g) => g.id !== lengthGoal?.id),
+    [goals, lengthGoal],
+  );
+
+  const openEditor = (goal: UserGoal | null) => {
+    setEditing(goal);
+    setEditorOpen(true);
+  };
 
   // Pull through any photos uploaded on individual entries.
   // Photo paths are stored per-entry under `strand_journal_photo_<id>` by JournalEntry.tsx.
