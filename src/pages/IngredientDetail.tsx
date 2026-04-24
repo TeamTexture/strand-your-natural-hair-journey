@@ -3,9 +3,11 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import ProductVoicenotes from "@/components/ProductVoicenotes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface Ing { tone: "good" | "warn" | "bad"; name: string; body: string }
