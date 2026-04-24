@@ -145,6 +145,41 @@ const ProDetails = () => {
 
   const showIot = type === "Trichologist";
 
+  // Validate consultation date: must exist and be within 90 days.
+  const { dateError, isWithinWindow, isExpired } = useMemo(() => {
+    if (!date.trim()) {
+      return {
+        dateError: "Please enter the date of your consultation.",
+        isWithinWindow: false,
+        isExpired: false,
+      };
+    }
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) {
+      return {
+        dateError: "Please enter a valid date.",
+        isWithinWindow: false,
+        isExpired: false,
+      };
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const consult = new Date(parsed);
+    consult.setHours(0, 0, 0, 0);
+    const daysAgo = Math.floor((today.getTime() - consult.getTime()) / 86_400_000);
+    if (daysAgo < 0) {
+      return {
+        dateError: "Consultation date cannot be in the future.",
+        isWithinWindow: false,
+        isExpired: false,
+      };
+    }
+    if (daysAgo > 90) {
+      return { dateError: "", isWithinWindow: false, isExpired: true };
+    }
+    return { dateError: "", isWithinWindow: true, isExpired: false };
+  }, [date]);
+
   const matches = useMemo(() => {
     const q = query.trim();
     if (q.length < 2 || pickedFrom) return [];
