@@ -16,6 +16,12 @@ interface RequestBody {
   hairProfile?: Record<string, unknown>;
   healthProfile?: Record<string, unknown>;
   heritage?: string[];
+  /** User's active hair goals (length retention, scalp health, frizz, etc.) */
+  goals?: Array<Record<string, unknown>>;
+  /** Current hairstyle + days in style (twists, locs, wash & go, etc.) */
+  currentStyle?: Record<string, unknown> | null;
+  /** Free-text challenges captured during onboarding / journal */
+  challenges?: string[];
   force?: boolean;
   /** Live AI context — see src/lib/aiContext.ts. */
   context?: Record<string, unknown>;
@@ -60,6 +66,9 @@ Deno.serve(async (req) => {
       hairProfile,
       healthProfile,
       heritage,
+      goals,
+      currentStyle,
+      challenges,
       force,
     } = body;
 
@@ -88,15 +97,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Pull blood markers + meds server-side so client doesn't need to assemble them
-    const { data: bloodRows } = await supabase
-      .from("blood_results")
-      .select("marker, value, unit, status, category")
-      .eq("user_id", user.id);
-    const { data: medRows } = await supabase
-      .from("user_medications")
-      .select("name, category")
-      .eq("user_id", user.id);
+    // Pull blood markers + meds + goals + current style server-side so client
+    // doesn't need to assemble the personalisation payload.
+    const [bloodRowsRes, medRowsRes, goalRowsRes] = await Promise.all([
+      supabase
+        .from("blood_results")
+        .select("marker, value, unit, status, category")
+        .eq("user_id", user.id),
+      supabase
+        .from("user_medications")
+        .select("name, category")
+        .eq("user_id", user.id),
+      supabase
+        .from("user_goals")
+        .select("kind, title, target_text, target_value, unit, current_value, target_date, challenge, notes, status")
+        .eq("user_id", user.id)
+        .neq("status", "complete"),
+    ]);
+    const bloodRows = bloodRowsRes.data;
+    const medRows = medRowsRes.data;
+    const dbGoals = goalRowsRes.data ?? [];
 
     const userPayload = {
       product: { key: productKey, name: productName, brand: productBrand },
@@ -106,16 +126,31 @@ Deno.serve(async (req) => {
       heritage: heritage ?? [],
       bloodResults: bloodRows ?? [],
       medications: medRows ?? [],
+      goals: goals && goals.length ? goals : dbGoals,
+      currentStyle: currentStyle ?? null,
+      challenges: challenges ?? [],
       context: body.context ?? null,
     };
 
+    const ingredientCount = ingredients?.length ?? 0;
     const systemPrompt = `You are a cosmetic chemist + trichologist specialising in Afro and textured hair.
-Analyse a hair product's ingredients against this specific user's profile and return JSON only via the tool.
-- Score the product 0-100 (match) based on porosity, scalp condition, diagnosed conditions, deficiencies, and meds.
-- Flag every ingredient as "good" (beneficial for this user), "warn" (caution / patch test) or "bad" (avoid).
-- Body of each flag must be ONE sentence, plain English, referencing THIS user's data when relevant
-  (e.g. "Excellent for your high porosity hair" or "Conflicts with your dry scalp diagnosis").
+Analyse a hair product's ingredients against this specific user's WHOLE profile and return JSON only via the tool.
+
+USER PROFILE INPUTS to weigh (all in the user JSON):
+- hairProfile: porosity, density, type, scalp condition, length
+- healthProfile: diagnosed conditions, allergies, sensitivities, medications, blood markers
+- heritage: cultural / ethnic context for hair texture
+- goals: active hair goals (length retention, scalp health, less breakage, frizz control, growth, hydration, definition, etc.)
+- challenges: free-text problems the user is currently facing
+- currentStyle: current_hairstyle + days_in_style + planned_next_style — protective styles vs wash-and-go vs heat-styled change which ingredients matter
+
+RULES:
+- Score the product 0-100 (match) based on the FULL profile above (porosity + scalp + diagnoses + deficiencies + meds + goals + current style).
+- Flag EVERY ingredient supplied (do not skip any, even fragrance/colour/preservative). If ${ingredientCount} ingredients were provided, return ${ingredientCount} ingredient entries.
+- tone: "good" (clearly beneficial for THIS user, supports their goals or hair type) | "warn" (use with caution / patch-test / situationally OK) | "bad" (avoid for this user).
+- body: ONE plain-English sentence that references THIS user's data when relevant (e.g. "Helps your length-retention goal by sealing high-porosity ends" or "Conflicts with your dry scalp diagnosis" or "Drying for your wash-and-go style").
 - If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}" and analyse that.
+- summary: 1-2 sentences, what this product means for THIS user given their goals + current style.
 - Hair-health guidance only. No medical advice.`;
 
     const aiResp = await fetch(
@@ -149,7 +184,7 @@ Analyse a hair product's ingredients against this specific user's profile and re
                     summary: { type: "string" },
                     ingredients: {
                       type: "array",
-                      minItems: 3,
+                      minItems: 1,
                       items: {
                         type: "object",
                         properties: {

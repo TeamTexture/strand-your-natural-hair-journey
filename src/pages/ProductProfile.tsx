@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -20,10 +20,19 @@ import {
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
+import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { buildAiContext } from "@/lib/aiContext";
+
+/** Per-ingredient flag returned by the ingredient-analysis edge function. */
+interface IngredientFlag {
+  name: string;
+  tone: "good" | "warn" | "bad";
+  body: string;
+}
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
@@ -53,13 +62,27 @@ const ProductProfile = () => {
   const { allProducts, loading, setShelf, setWishlist, remove, reload } = useUserProducts("all");
   const { washDays } = useWashDays();
   const { avoid, favourites } = useIngredientLists();
+  const { goals } = useGoals();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
+
+  // Per-ingredient AI flags (good/warn/bad + body) for THIS product, scored
+  // against the user's full profile (hair, health, goals, current style).
+  const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const product = useMemo(() => allProducts.find(p => p.id === id) ?? null, [allProducts, id]);
 
   const avoidNames = useMemo(() => new Set(avoid.map(i => i.ingredient.toLowerCase())), [avoid]);
   const favNames = useMemo(() => new Set(favourites.map(i => i.ingredient.toLowerCase())), [favourites]);
+
+  // Map of lower-cased ingredient name -> AI flag, for O(1) lookup in the list.
+  const aiFlagByName = useMemo(() => {
+    const map = new Map<string, IngredientFlag>();
+    aiFlags.forEach((f) => map.set(f.name.toLowerCase().trim(), f));
+    return map;
+  }, [aiFlags]);
 
   const appearances = useMemo(() => {
     if (!product) return [] as Array<{ id: string; date: string; stepName?: string }>;
@@ -72,6 +95,68 @@ const ProductProfile = () => {
   }, [washDays, product]);
 
   const lastUse = appearances[0] ?? null;
+
+  // Fetch personalised per-ingredient flags from the ingredient-analysis edge
+  // function. Cached server-side in ai_summaries (per user, per product), so
+  // repeat visits are instant. We pass the user's full profile (hair, health,
+  // goals, current style, challenges) so flags reflect THIS user's context.
+  useEffect(() => {
+    if (!product || !user) return;
+    if (!product.ingredients || product.ingredients.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      setAiLoading(true);
+      setAiError(null);
+      try {
+        const context = await buildAiContext();
+        const styleLocal = (() => {
+          try { return JSON.parse(localStorage.getItem("strand_current_style") || "null"); }
+          catch { return null; }
+        })();
+        const challenges = goals
+          .map((g) => g.challenge)
+          .filter((c): c is string => Boolean(c && c.trim()));
+        const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
+          body: {
+            productKey: product.product_key,
+            productName: product.name,
+            productBrand: product.brand,
+            ingredients: product.ingredients,
+            hairProfile: context.hairProfile ?? {},
+            healthProfile: context.healthProfile ?? {},
+            heritage: [],
+            goals: goals.map((g) => ({
+              kind: g.kind,
+              title: g.title,
+              target_text: g.target_text,
+              target_value: g.target_value,
+              unit: g.unit,
+              current_value: g.current_value,
+              target_date: g.target_date,
+              challenge: g.challenge,
+              status: g.status,
+            })),
+            currentStyle: styleLocal,
+            challenges,
+            context,
+          },
+        });
+        if (cancelled) return;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        const flags = (data?.analysis?.ingredients ?? []) as IngredientFlag[];
+        setAiFlags(flags);
+      } catch (e) {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : "Could not analyse ingredients";
+        setAiError(msg);
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, user?.id, (product?.ingredients ?? []).join("|")]);
 
   if (loading) {
     return (
@@ -229,19 +314,74 @@ const ProductProfile = () => {
 
         {ingredients.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">
-              Ingredients ({ingredients.length})
-            </p>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Ingredients ({ingredients.length})
+              </p>
+              {aiLoading && (
+                <p className="text-[10px] text-muted-foreground italic">Personalising flags…</p>
+              )}
+              {aiError && !aiLoading && (
+                <p className="text-[10px] text-destructive">AI flags unavailable</p>
+              )}
+            </div>
+
+            {/* Legend so users can decode the dot colours at a glance */}
+            <div className="flex items-center gap-3 mb-2 px-1 text-[10px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-good" /> Good for you
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-warn" /> Caution
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-destructive" /> Avoid
+              </span>
+            </div>
+
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {ingredients.map((name, i) => {
-                const lower = name.toLowerCase();
+                const lower = name.toLowerCase().trim();
+                const aiFlag = aiFlagByName.get(lower);
                 const isAvoid = avoidNames.has(lower);
                 const isFav = favNames.has(lower);
-                const tone = isAvoid ? "bg-destructive" : isFav ? "bg-good" : "bg-muted";
+
+                // Resolve final tone: explicit avoid/favourite list wins over AI,
+                // then AI verdict, then neutral grey.
+                const tone: "good" | "warn" | "bad" | "neutral" = isAvoid
+                  ? "bad"
+                  : isFav
+                  ? "good"
+                  : aiFlag?.tone ?? "neutral";
+
+                const dotClass =
+                  tone === "good"
+                    ? "bg-good"
+                    : tone === "warn"
+                    ? "bg-warn"
+                    : tone === "bad"
+                    ? "bg-destructive"
+                    : "bg-muted-foreground/40";
+
+                // Reason text shown under the ingredient name. Personal lists take
+                // precedence so the user sees their own history first.
+                const reason = isAvoid
+                  ? "On your avoid list — flagged from your hair history."
+                  : isFav
+                  ? "On your favourites — has worked well for you."
+                  : aiFlag?.body ?? null;
+
                 return (
-                  <div key={i} className="p-3 flex items-center gap-3">
-                    <span className={cn("size-2.5 rounded-full shrink-0", tone)} />
-                    <span className="text-sm">{name}</span>
+                  <div key={i} className="p-3 flex items-start gap-3">
+                    <span className={cn("size-2.5 rounded-full shrink-0 mt-1.5", dotClass)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">{name}</p>
+                      {reason && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                          {reason}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
