@@ -48,7 +48,15 @@ const WashStep3 = () => {
           </p>
         </SurfaceCard>
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/wash/step-4")}>
+        <Button
+          variant="gold"
+          size="pill"
+          className="mt-4"
+          onClick={() => {
+            localStorage.setItem("strand_wash_step3", JSON.stringify({ note: text }));
+            navigate("/wash/step-4");
+          }}
+        >
           Next — Review & Save →
         </Button>
       </div>

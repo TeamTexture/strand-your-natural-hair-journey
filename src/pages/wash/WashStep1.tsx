@@ -120,7 +120,24 @@ const WashStep1 = () => {
           done={style} setDone={setStyle}
         />
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/wash/step-2")}>
+        <Button
+          variant="gold"
+          size="pill"
+          className="mt-4"
+          onClick={() => {
+            const products: string[] = [];
+            if (cleanse) products.push("Moisture Retention Shampoo — Camille Rose");
+            if (condition) products.push("Honey & Turmeric Deep Cond — TGIN");
+            if (style) products.push("Flaxseed Styling Gel — Camille Rose");
+            localStorage.setItem(
+              "strand_wash_step1",
+              JSON.stringify({
+                prePoo, cleanse, condition, treatment, style, treatmentType, products,
+              }),
+            );
+            navigate("/wash/step-2");
+          }}
+        >
           Next — Scalp & Results →
         </Button>
       </div>
