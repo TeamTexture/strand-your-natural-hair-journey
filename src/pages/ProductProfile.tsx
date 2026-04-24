@@ -96,6 +96,68 @@ const ProductProfile = () => {
 
   const lastUse = appearances[0] ?? null;
 
+  // Fetch personalised per-ingredient flags from the ingredient-analysis edge
+  // function. Cached server-side in ai_summaries (per user, per product), so
+  // repeat visits are instant. We pass the user's full profile (hair, health,
+  // goals, current style, challenges) so flags reflect THIS user's context.
+  useEffect(() => {
+    if (!product || !user) return;
+    if (!product.ingredients || product.ingredients.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      setAiLoading(true);
+      setAiError(null);
+      try {
+        const context = await buildAiContext();
+        const styleLocal = (() => {
+          try { return JSON.parse(localStorage.getItem("strand_current_style") || "null"); }
+          catch { return null; }
+        })();
+        const challenges = goals
+          .map((g) => g.challenge)
+          .filter((c): c is string => Boolean(c && c.trim()));
+        const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
+          body: {
+            productKey: product.product_key,
+            productName: product.name,
+            productBrand: product.brand,
+            ingredients: product.ingredients,
+            hairProfile: context.hairProfile ?? {},
+            healthProfile: context.healthProfile ?? {},
+            heritage: [],
+            goals: goals.map((g) => ({
+              kind: g.kind,
+              title: g.title,
+              target_text: g.target_text,
+              target_value: g.target_value,
+              unit: g.unit,
+              current_value: g.current_value,
+              target_date: g.target_date,
+              challenge: g.challenge,
+              status: g.status,
+            })),
+            currentStyle: styleLocal,
+            challenges,
+            context,
+          },
+        });
+        if (cancelled) return;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        const flags = (data?.analysis?.ingredients ?? []) as IngredientFlag[];
+        setAiFlags(flags);
+      } catch (e) {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : "Could not analyse ingredients";
+        setAiError(msg);
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, user?.id, (product?.ingredients ?? []).join("|")]);
+
   if (loading) {
     return (
       <ScreenLayout bottomNav={false}>
