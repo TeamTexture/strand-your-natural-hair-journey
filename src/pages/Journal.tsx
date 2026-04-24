@@ -93,17 +93,43 @@ const Journal = () => {
         </div>
       </div>
 
-      <div className="px-5 pb-4">
-        <SurfaceCard>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium">Length Retention</p>
-            <span className="text-[11px] uppercase tracking-[0.15em] text-primary">In Progress</span>
-          </div>
-          <div className="h-2 bg-border rounded-full overflow-hidden">
-            <div className="h-full w-[60%] bg-primary rounded-full" />
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-2">Goal: 2 inches by September · Current: 1.2 inches</p>
-        </SurfaceCard>
+      <div className="px-5 pb-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <SectionLabel className="!mb-0 !px-0">Goals & Challenges</SectionLabel>
+          {goals.length > 0 && (
+            <button
+              onClick={() => openEditor(null)}
+              className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[36px]"
+              aria-label="Add a new goal"
+            >
+              <Plus className="size-3.5" /> Add
+            </button>
+          )}
+        </div>
+
+        {goalsLoading ? (
+          <SurfaceCard>
+            <div className="h-4 w-2/3 bg-border/60 rounded animate-pulse" />
+            <div className="h-2 w-full bg-border/60 rounded mt-3 animate-pulse" />
+          </SurfaceCard>
+        ) : lengthGoal ? (
+          <GoalCard goal={lengthGoal} onEdit={() => openEditor(lengthGoal)} />
+        ) : (
+          <SurfaceCard className="text-center">
+            <Target className="size-6 text-primary mx-auto mb-2" />
+            <p className="text-sm font-medium">Set your first goal</p>
+            <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+              Track length retention or any hair challenge you're working on.
+            </p>
+            <Button variant="gold" size="pill" onClick={() => openEditor(null)}>
+              + Add a goal
+            </Button>
+          </SurfaceCard>
+        )}
+
+        {otherGoals.map((g) => (
+          <GoalCard key={g.id} goal={g} onEdit={() => openEditor(g)} />
+        ))}
       </div>
 
       <SectionLabel>Photo Journal</SectionLabel>
