@@ -231,6 +231,9 @@ const WashStep1 = () => {
   const [heatDialogOpen, setHeatDialogOpen] = useState(false);
   const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
   const [heatLoading, setHeatLoading] = useState(false);
+  // How long the user kept heat on for. Captured only when heatChoice === "yes"
+  // so the summary chip + saved record can show e.g. "Heat treatment · 25 min".
+  const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
 
   // Fetch a personalised "why heat could help YOU" explanation grounded in the
   // user's hair profile, goals, challenges and recent wash history. Cached for
