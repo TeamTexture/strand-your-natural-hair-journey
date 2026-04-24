@@ -42,7 +42,7 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import ShareSheet from "@/components/ShareSheet";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
