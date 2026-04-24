@@ -529,6 +529,135 @@ export type Database = {
         }
         Relationships: []
       }
+      user_products: {
+        Row: {
+          added_to_shelf_at: string | null
+          ai_summary: string | null
+          brand: string | null
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          ingredients: string[]
+          key_ingredients: Json
+          last_used_at: string | null
+          match_score: number | null
+          name: string
+          on_shelf: boolean
+          on_wishlist: boolean
+          previously_on_shelf: boolean
+          product_key: string
+          rating: number | null
+          storage_path: string | null
+          updated_at: string
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          added_to_shelf_at?: string | null
+          ai_summary?: string | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          key_ingredients?: Json
+          last_used_at?: string | null
+          match_score?: number | null
+          name: string
+          on_shelf?: boolean
+          on_wishlist?: boolean
+          previously_on_shelf?: boolean
+          product_key: string
+          rating?: number | null
+          storage_path?: string | null
+          updated_at?: string
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          added_to_shelf_at?: string | null
+          ai_summary?: string | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          key_ingredients?: Json
+          last_used_at?: string | null
+          match_score?: number | null
+          name?: string
+          on_shelf?: boolean
+          on_wishlist?: boolean
+          previously_on_shelf?: boolean
+          product_key?: string
+          rating?: number | null
+          storage_path?: string | null
+          updated_at?: string
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wash_days: {
+        Row: {
+          ai_insight: string | null
+          breakage: string | null
+          created_at: string
+          duration_min: number | null
+          hair_feel_note: string | null
+          hair_feel_voice_url: string | null
+          heat_treatment: Json | null
+          id: string
+          product_ids: string[]
+          scalp_feel: string | null
+          steps: Json
+          stress_level: number | null
+          style_after: string | null
+          updated_at: string
+          user_id: string
+          wash_date: string
+        }
+        Insert: {
+          ai_insight?: string | null
+          breakage?: string | null
+          created_at?: string
+          duration_min?: number | null
+          hair_feel_note?: string | null
+          hair_feel_voice_url?: string | null
+          heat_treatment?: Json | null
+          id?: string
+          product_ids?: string[]
+          scalp_feel?: string | null
+          steps?: Json
+          stress_level?: number | null
+          style_after?: string | null
+          updated_at?: string
+          user_id: string
+          wash_date?: string
+        }
+        Update: {
+          ai_insight?: string | null
+          breakage?: string | null
+          created_at?: string
+          duration_min?: number | null
+          hair_feel_note?: string | null
+          hair_feel_voice_url?: string | null
+          heat_treatment?: Json | null
+          id?: string
+          product_ids?: string[]
+          scalp_feel?: string | null
+          steps?: Json
+          stress_level?: number | null
+          style_after?: string | null
+          updated_at?: string
+          user_id?: string
+          wash_date?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
