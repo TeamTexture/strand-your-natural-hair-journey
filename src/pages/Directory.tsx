@@ -170,6 +170,17 @@ const Directory = () => {
           ))
         )}
       </div>
+
+      {showTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Back to top"
+          className="fixed bottom-6 right-6 z-30 size-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        >
+          <ArrowUp className="size-5" />
+        </button>
+      )}
     </ScreenLayout>
   );
 };
