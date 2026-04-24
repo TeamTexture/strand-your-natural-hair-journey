@@ -79,6 +79,30 @@ const Journal = () => {
     coverUrl?: string;
   }
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteSaved = async () => {
+    if (!pendingDelete || !user) return;
+    setDeleting(true);
+    // Best-effort: remove any uploaded photos from storage too.
+    if (pendingDelete.photo_paths?.length) {
+      await supabase.storage.from(PHOTO_BUCKET).remove(pendingDelete.photo_paths).catch(() => {});
+    }
+    const { error } = await supabase
+      .from("journal_entries")
+      .delete()
+      .eq("id", pendingDelete.id)
+      .eq("user_id", user.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Could not delete entry");
+      return;
+    }
+    setSavedEntries((rows) => rows.filter((r) => r.id !== pendingDelete.id));
+    setPendingDelete(null);
+    toast.success("Journal entry deleted.");
+  };
 
   useEffect(() => {
     if (!user) { setSavedEntries([]); return; }
