@@ -152,11 +152,16 @@ const Products = () => {
 
       <div className="px-5 pb-6 space-y-3">
         <FilePickerButton variant="gold" size="pill" preferCamera disabled={busy} onPick={(f) => startScan(f, "shelf")}>
-          + Scan a New Product
+          {busy ? "Preparing photo…" : "+ Scan a New Product"}
         </FilePickerButton>
         <FilePickerButton variant="goldOutline" size="pill" disabled={busy} onPick={(f) => startScan(f, "shelf")}>
           + Upload Screenshot
         </FilePickerButton>
+        <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
+          Tip: capture the front of the bottle with the brand and product name
+          clearly visible. Good lighting helps the AI flag ingredients against
+          your hair profile.
+        </p>
       </div>
     </ScreenLayout>
   );

@@ -17,6 +17,8 @@ interface Analysis {
   key_ingredients?: KeyIngredient[];
   match_score?: number;
   ai_summary?: string;
+  use_cases?: string[];
+  tips?: string[];
 }
 
 interface NavState {
@@ -149,6 +151,31 @@ const ProductDetailNew = () => {
               })}
             </SurfaceCard>
           </div>
+        )}
+
+        {(a.use_cases?.length ?? 0) > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">How to use it</p>
+            <SurfaceCard padded={false} className="divide-y divide-border/60">
+              {a.use_cases!.map((u, i) => (
+                <div key={i} className="p-3 flex items-start gap-2">
+                  <span className="text-primary text-xs mt-0.5">•</span>
+                  <p className="text-xs leading-snug flex-1">{u}</p>
+                </div>
+              ))}
+            </SurfaceCard>
+          </div>
+        )}
+
+        {(a.tips?.length ?? 0) > 0 && (
+          <SurfaceCard tone="gold">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">Tips for you</p>
+            <ul className="space-y-1.5">
+              {a.tips!.map((t, i) => (
+                <li key={i} className="text-xs leading-snug">— {t}</li>
+              ))}
+            </ul>
+          </SurfaceCard>
         )}
 
         {similar.length > 0 && (

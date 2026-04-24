@@ -10,6 +10,9 @@ import { toast } from "sonner";
 interface NavState {
   storage_path: string;
   preview_url: string;
+  /** base64 JPEG produced client-side. Sent straight to the AI so the model
+   * never has to fetch a HEIC URL. */
+  image_data_url?: string;
   intent?: "shelf" | "wishlist";
 }
 
@@ -31,18 +34,24 @@ const ProductScanning = () => {
     }
     void (async () => {
       try {
-        // Sign URL for the AI to fetch
-        const { data: signed } = await supabase.storage
-          .from("product-photos")
-          .createSignedUrl(state.storage_path, 3600);
-        if (!signed?.signedUrl) throw new Error("Could not sign image URL");
+        // Prefer the client-prepared JPEG data URL. Fall back to a fresh
+        // signed URL if (somehow) we don't have one — older flows.
+        let aiImageUrl = state.image_data_url ?? "";
+        if (!aiImageUrl) {
+          const { data: signed } = await supabase.storage
+            .from("product-photos")
+            .createSignedUrl(state.storage_path, 3600);
+          if (!signed?.signedUrl) throw new Error("Could not sign image URL");
+          aiImageUrl = signed.signedUrl;
+        }
 
         const context = await buildAiContext();
 
         const { data, error: invErr } = await supabase.functions.invoke("product-analyse", {
-          body: { image_url: signed.signedUrl, context },
+          body: { image_url: aiImageUrl, context },
         });
         if (invErr) throw invErr;
+        if (data?.error) throw new Error(data.error);
 
         const product_key = `scan-${Date.now()}`;
         navigate("/products/detail-new", {
@@ -85,13 +94,20 @@ const ProductScanning = () => {
             </div>
             <p className="font-display text-lg mt-4">Analysing your product…</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
-              Reading ingredients and matching them to your hair profile.
+              Reading the label, matching ingredients to your hair profile, and
+              flagging anything from your avoid list.
             </p>
           </>
         ) : (
           <>
             <p className="font-display text-lg mt-6 text-destructive">Couldn't analyse</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">{error}</p>
+            <div className="mt-5 max-w-xs text-left bg-card border border-border rounded-[12px] p-3 space-y-1">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">For best results</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• Hold the bottle steady, brand and title clearly visible</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• Good lighting, no glare on the label</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• If you can, capture the ingredient list too</p>
+            </div>
             <button
               onClick={() => navigate("/products")}
               className="mt-6 text-xs uppercase tracking-[0.15em] text-primary"
