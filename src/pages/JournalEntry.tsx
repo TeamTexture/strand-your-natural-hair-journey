@@ -635,6 +635,18 @@ const JournalEntry = () => {
   }, [entry, state.liked, selectedProducts]);
 
   if (!entry) {
+    // While fetching a DB-backed entry, show a soft loader rather than the
+    // "not found" fallback (which used to flash for a frame or two).
+    if (isDbEntry && dbLoading && !dbMissing) {
+      return (
+        <ScreenLayout bottomNav>
+          <TitleBar title="Journal Entry" back />
+          <div className="px-5 py-16 flex items-center justify-center text-muted-foreground">
+            <Loader2 className="size-5 animate-spin" />
+          </div>
+        </ScreenLayout>
+      );
+    }
     return (
       <ScreenLayout bottomNav>
         <TitleBar title="Journal Entry" />
