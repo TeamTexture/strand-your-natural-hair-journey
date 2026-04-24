@@ -170,31 +170,8 @@ const NutritionPlan = () => {
             </SurfaceCard>
           </TabsContent>
 
-          <TabsContent value="diet" className="space-y-3 mt-4">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-medium">Foods to prioritise</p>
-
-            {isVeg && (
-              <FoodCard emoji="🫘" name="Lentils and legumes" body="Plant-based iron and protein." />
-            )}
-            <FoodCard emoji="🥬" name="Dark leafy greens" body="Rich in iron, folate and vitamin C. Essential for users with low ferritin — vitamin C in greens helps iron absorb." />
-            <FoodCard emoji="🥚" name="Eggs" body="Complete protein containing biotin, B12 and zinc." hide={isVegan} />
-            <FoodCard emoji="🐟" name="Oily fish" body="Omega-3, vitamin D and protein. Important for scalp health — especially relevant in the UK." hide={isVeg} />
-            <FoodCard emoji="🌰" name="Pumpkin & sunflower seeds" body="Zinc, magnesium and vitamin E in one handful." />
-            <FoodCard emoji="🫐" name="Berries" body="Vitamin C supports iron absorption alongside iron-rich foods." />
-            {!isVeg && (
-              <FoodCard emoji="🫘" name="Lentils and legumes" body="Plant-based iron and protein." />
-            )}
-            <FoodCard emoji="🥑" name="Avocado" body="Vitamin E, healthy fats and biotin support hair structure and scalp health." />
-
-            <SurfaceCard tone="gold">
-              <p className="text-xs font-body leading-relaxed">
-                For maximum iron absorption, eat iron-rich foods with vitamin C and avoid tea, coffee
-                or calcium within 1 hour of iron-rich meals.
-              </p>
-            </SurfaceCard>
-            <SourceNote>
-              Dietary guidance based on <em>How To Love Your Afro</em> by Paige Lewin (Bloomsbury Publishing)
-            </SourceNote>
+          <TabsContent value="diet" className="space-y-4 mt-4">
+            <DietContent isVegan={isVegan} isVeg={isVeg} flagged={f} />
           </TabsContent>
 
           <TabsContent value="avoid" className="space-y-3 mt-4">
