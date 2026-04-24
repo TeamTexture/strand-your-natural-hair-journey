@@ -15,6 +15,22 @@ import GoalEditorSheet from "@/components/GoalEditorSheet";
 
 const PHOTO_BUCKET = "journal-photos";
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/**
+ * Format a journal entry date string (e.g. "14 Apr 2026" or an ISO date) as
+ * "14 Apr" if it falls in the current calendar year, otherwise "14 Apr 2026".
+ * Falls back to the input string if it can't be parsed.
+ */
+const formatEntryDate = (raw: string): string => {
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  const day = d.getDate();
+  const month = MONTHS[d.getMonth()];
+  const year = d.getFullYear();
+  return year === new Date().getFullYear() ? `${day} ${month}` : `${day} ${month} ${year}`;
+};
+
 const moodTiles = [
   { gradient: "from-[#C8B89A] to-[#D4B96A]", emoji: "🌀" },
   { gradient: "from-[#D4AA52] to-[#C49A3C]", emoji: "🌿" },
