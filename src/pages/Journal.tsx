@@ -53,18 +53,7 @@ const Journal = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar
-        title="Hair Journal"
-        back={false}
-        right={
-          <button
-            onClick={() => navigate(`/journal/${journalEntries[0]?.id}`)}
-            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium"
-          >
-            + Photo
-          </button>
-        }
-      />
+      <TitleBar title="Hair Journal" back={false} />
 
       <div className="px-5 pb-4">
         <div className="rounded-[14px] p-4 bg-gradient-to-r from-primary to-[#8B6914] text-primary-foreground">
