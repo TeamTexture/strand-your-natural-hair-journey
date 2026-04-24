@@ -41,7 +41,7 @@ const Home = () => {
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
   const [firstName, setFirstName] = useState<string>("");
-  const { visibleAlerts, loading: alertsLoading, dismissAll } = useHomeAlerts();
+  const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
   const { last: lastWash, daysSinceLast } = useWashDays();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
@@ -205,16 +205,31 @@ const Home = () => {
               </div>
             ) : (
               visibleAlerts.map((a) => (
-                <button
+                <div
                   key={a.id}
-                  onClick={() => navigate(a.to)}
-                  className="w-full text-left p-3 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
+                  className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
                 >
-                  <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
-                    {a.emoji} {a.title}
-                  </p>
-                  <p className="text-[11px] text-alert-dark-foreground/70 mt-1">{a.body}</p>
-                </button>
+                  <button
+                    onClick={() => navigate(a.to)}
+                    className="w-full text-left"
+                  >
+                    <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
+                      {a.emoji} {a.title}
+                    </p>
+                    <p className="text-[11px] text-alert-dark-foreground/70 mt-1">{a.body}</p>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismiss(a.id);
+                      toast("Alert cleared");
+                    }}
+                    aria-label="Dismiss alert"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center text-alert-dark-foreground/50 hover:text-alert-dark-foreground transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
               ))
             )}
           </div>
