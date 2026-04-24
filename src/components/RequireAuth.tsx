@@ -14,7 +14,7 @@ const RequireAuth = ({ children }: Props) => {
   if (loading) return <LoadingDot />;
   if (!user) {
     const next = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/auth?next=${next}`} replace />;
+    return <Navigate to={`/?next=${next}`} replace />;
   }
   return <>{children}</>;
 };
