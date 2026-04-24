@@ -83,8 +83,10 @@ const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
 
       const { error: dbErr } = await supabase
         .from("profiles")
-        .update({ avatar_url: newPath })
-        .eq("user_id", user.id);
+        .upsert(
+          { user_id: user.id, avatar_url: newPath },
+          { onConflict: "user_id" },
+        );
       if (dbErr) throw dbErr;
 
       const { data: sig } = await supabase.storage.from(BUCKET).createSignedUrl(newPath, 3600);
