@@ -1,0 +1,304 @@
+import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Trash2 } from "lucide-react";
+import ScreenLayout from "@/components/ScreenLayout";
+import TitleBar from "@/components/TitleBar";
+import SurfaceCard from "@/components/SurfaceCard";
+import LoadingDot from "@/components/LoadingDot";
+import EmptyState from "@/components/EmptyState";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useUserProducts } from "@/hooks/useUserProducts";
+import { useWashDays } from "@/hooks/useWashDays";
+import { useIngredientLists } from "@/hooks/useIngredientLists";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+};
+
+const StarPicker = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
+  <div className="flex gap-1.5">
+    {[1, 2, 3, 4, 5].map(n => (
+      <button
+        key={n}
+        type="button"
+        onClick={() => onChange(n)}
+        aria-label={`Rate ${n} stars`}
+        className="text-2xl leading-none p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+      >
+        <span className={n <= value ? "text-primary" : "text-border"}>★</span>
+      </button>
+    ))}
+  </div>
+);
+
+const ProductProfile = () => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const { allProducts, loading, setShelf, setWishlist, remove, reload } = useUserProducts("all");
+  const { washDays } = useWashDays();
+  const { avoid, favourites } = useIngredientLists();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [savingRating, setSavingRating] = useState(false);
+
+  const product = useMemo(() => allProducts.find(p => p.id === id) ?? null, [allProducts, id]);
+
+  const avoidNames = useMemo(() => new Set(avoid.map(i => i.ingredient.toLowerCase())), [avoid]);
+  const favNames = useMemo(() => new Set(favourites.map(i => i.ingredient.toLowerCase())), [favourites]);
+
+  const appearances = useMemo(() => {
+    if (!product) return [] as Array<{ id: string; date: string; stepName?: string }>;
+    return washDays
+      .filter(wd => wd.product_ids?.includes(product.id))
+      .map(wd => {
+        const step = (wd.steps ?? []).find(s => s.product_id === product.id);
+        return { id: wd.id, date: wd.wash_date, stepName: step?.name };
+      });
+  }, [washDays, product]);
+
+  const lastUse = appearances[0] ?? null;
+
+  if (loading) {
+    return (
+      <ScreenLayout bottomNav={false}>
+        <TitleBar title="Product" back />
+        <div className="px-5"><LoadingDot label="Loading product…" /></div>
+      </ScreenLayout>
+    );
+  }
+
+  if (!product) {
+    return (
+      <ScreenLayout bottomNav={false}>
+        <TitleBar title="Product" back />
+        <div className="px-5">
+          <EmptyState message="Product not found" hint="It may have been removed." />
+        </div>
+      </ScreenLayout>
+    );
+  }
+
+  const ingredients = product.ingredients ?? [];
+  const redFlags = ingredients.filter(i => avoidNames.has(i.toLowerCase()));
+  const greenLights = ingredients.filter(i => favNames.has(i.toLowerCase()));
+  const score = product.match_score ?? 0;
+
+  const updateRating = async (n: number) => {
+    if (!user) return;
+    setSavingRating(true);
+    const { error } = await supabase
+      .from("user_products")
+      .update({ rating: n })
+      .eq("id", product.id);
+    if (error) {
+      toast.error("Could not save rating");
+    } else {
+      // Mirror to product_ratings so ingredient list logic continues to work
+      await supabase
+        .from("product_ratings")
+        .upsert({
+          user_id: user.id,
+          product_key: product.product_key,
+          product_name: product.name,
+          product_brand: product.brand,
+          ingredients: product.ingredients,
+          rating: n,
+        }, { onConflict: "user_id,product_key" });
+      toast.success("Rating saved");
+      await reload();
+    }
+    setSavingRating(false);
+  };
+
+  const handleDelete = async () => {
+    await remove(product.id);
+    setConfirmDelete(false);
+    navigate(-1);
+  };
+
+  return (
+    <ScreenLayout bottomNav={false}>
+      <TitleBar title="Product" back />
+      <div className="px-5 pb-8 space-y-4">
+        <div className="w-full aspect-square rounded-[18px] border border-border overflow-hidden bg-secondary">
+          {product.image_url ? (
+            <img src={product.image_url} alt={product.name} className="size-full object-cover" />
+          ) : (
+            <div className="size-full flex items-center justify-center text-6xl bg-primary/10">🧴</div>
+          )}
+        </div>
+
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display text-xl font-bold leading-tight">{product.name}</h1>
+            {product.brand && <p className="text-sm text-muted-foreground">{product.brand}</p>}
+            {product.category && (
+              <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">{product.category}</p>
+            )}
+          </div>
+          <div className="size-16 rounded-full border-[3px] border-primary text-primary flex items-center justify-center text-base font-bold shrink-0">
+            {score}
+          </div>
+        </div>
+
+        {redFlags.length > 0 && (
+          <SurfaceCard className="border-2 border-destructive/60 bg-destructive/5">
+            <p className="text-xs font-semibold text-destructive mb-1">⚠ Red flag</p>
+            <p className="text-xs text-foreground/80 leading-snug">
+              Contains <strong>{redFlags.join(", ")}</strong> — on your avoid list based on your hair history.
+            </p>
+          </SurfaceCard>
+        )}
+
+        {greenLights.length > 0 && (
+          <SurfaceCard className="border-2 border-good/60 bg-good/5">
+            <p className="text-xs font-semibold text-good mb-1">✓ Green light</p>
+            <p className="text-xs text-foreground/80 leading-snug">
+              Contains <strong>{greenLights.join(", ")}</strong> — has worked well for your hair.
+            </p>
+          </SurfaceCard>
+        )}
+
+        {product.ai_summary && (
+          <SurfaceCard tone="gold">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">AI Summary</p>
+            <p className="text-sm leading-snug">{product.ai_summary}</p>
+          </SurfaceCard>
+        )}
+
+        <SurfaceCard padded={false} className="divide-y divide-border/60">
+          <div className="p-3.5 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Last used</span>
+            <span className="text-sm font-medium">
+              {lastUse ? (
+                <>
+                  {formatDate(lastUse.date)}
+                  {lastUse.stepName && <span className="text-muted-foreground"> · {lastUse.stepName}</span>}
+                </>
+              ) : "Never"}
+            </span>
+          </div>
+          <div className="p-3.5 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Times used</span>
+            <span className="text-sm font-medium">{appearances.length}</span>
+          </div>
+        </SurfaceCard>
+
+        {appearances.length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Wash days</p>
+            <SurfaceCard padded={false} className="divide-y divide-border/60">
+              {appearances.map(a => (
+                <button
+                  key={a.id}
+                  onClick={() => navigate(`/wash-day/${a.id}`)}
+                  className="w-full p-3.5 flex items-center justify-between text-left hover:bg-primary/5"
+                >
+                  <span className="text-sm font-medium">{formatDate(a.date)}</span>
+                  {a.stepName && <span className="text-[11px] text-muted-foreground">{a.stepName}</span>}
+                </button>
+              ))}
+            </SurfaceCard>
+          </div>
+        )}
+
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Your rating</p>
+          <SurfaceCard>
+            <StarPicker
+              value={product.rating ?? 0}
+              onChange={(n) => { if (!savingRating) void updateRating(n); }}
+            />
+          </SurfaceCard>
+        </div>
+
+        {ingredients.length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">
+              Ingredients ({ingredients.length})
+            </p>
+            <SurfaceCard padded={false} className="divide-y divide-border/60">
+              {ingredients.map((name, i) => {
+                const lower = name.toLowerCase();
+                const isAvoid = avoidNames.has(lower);
+                const isFav = favNames.has(lower);
+                const tone = isAvoid ? "bg-destructive" : isFav ? "bg-good" : "bg-muted";
+                return (
+                  <div key={i} className="p-3 flex items-center gap-3">
+                    <span className={cn("size-2.5 rounded-full shrink-0", tone)} />
+                    <span className="text-sm">{name}</span>
+                  </div>
+                );
+              })}
+            </SurfaceCard>
+          </div>
+        )}
+
+        <div className="space-y-2 pt-2">
+          {product.on_shelf ? (
+            <Button variant="goldOutline" size="pill" onClick={() => setShelf(product.id, false)}>
+              Move to Wishlist
+            </Button>
+          ) : (
+            <Button variant="gold" size="pill" onClick={() => setShelf(product.id, true)}>
+              Move to Shelf
+            </Button>
+          )}
+
+          {product.on_wishlist && (
+            <Button variant="ghost" size="pill" onClick={() => setWishlist(product.id, false)}>
+              Remove from Wishlist
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="pill"
+            onClick={() => setConfirmDelete(true)}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="size-4 mr-2" />
+            Remove from app
+          </Button>
+        </div>
+      </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{product.name}</strong> and all its history from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </ScreenLayout>
+  );
+};
+
+export default ProductProfile;
