@@ -32,30 +32,44 @@ const BloodAiSummary = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Build a stable fingerprint of the inputs so we can detect when the user
+  // has updated their blood values / profile and force the AI to regenerate.
+  const buildFingerprint = () => {
+    const bloodResults = Object.entries(values)
+      .filter(([, v]) => v !== null && v !== undefined && !Number.isNaN(v))
+      .map(([marker, value]) => ({
+        marker,
+        value: value as number,
+        unit: BLOOD_RANGES[marker]?.unit ?? "",
+        status: evaluate(marker, value as number),
+        category: BLOOD_RANGES[marker]?.category ?? "other",
+      }))
+      .sort((a, b) => a.marker.localeCompare(b.marker));
+    const hairProfile = JSON.parse(localStorage.getItem("strand_hair_profile") || "{}");
+    const healthProfile = JSON.parse(localStorage.getItem("strand_health_profile") || "{}");
+    const heritage = JSON.parse(localStorage.getItem("strand_heritage") || "[]");
+    return {
+      payload: { bloodResults, hairProfile, healthProfile, heritage },
+      fingerprint: JSON.stringify({ bloodResults, hairProfile, healthProfile, heritage }),
+    };
+  };
+
   const generate = async (force = false) => {
     setLoading(true);
     setError(null);
     try {
-      const bloodResults = Object.entries(values)
-        .filter(([, v]) => v !== null && v !== undefined && !Number.isNaN(v))
-        .map(([marker, value]) => ({
-          marker,
-          value: value as number,
-          unit: BLOOD_RANGES[marker]?.unit ?? "",
-          status: evaluate(marker, value as number),
-          category: BLOOD_RANGES[marker]?.category ?? "other",
-        }));
-
-      const hairProfile = JSON.parse(localStorage.getItem("strand_hair_profile") || "{}");
-      const healthProfile = JSON.parse(localStorage.getItem("strand_health_profile") || "{}");
-      const heritage = JSON.parse(localStorage.getItem("strand_heritage") || "[]");
+      const { payload, fingerprint } = buildFingerprint();
+      const lastFingerprint = localStorage.getItem("strand_blood_summary_fp");
+      const inputsChanged = lastFingerprint !== fingerprint;
+      const shouldForce = force || inputsChanged;
 
       const { data, error: fnError } = await supabase.functions.invoke("blood-ai-summary", {
-        body: { bloodResults, hairProfile, healthProfile, heritage, force },
+        body: { ...payload, force: shouldForce },
       });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
       setSummary(data.summary as Summary);
+      localStorage.setItem("strand_blood_summary_fp", fingerprint);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Could not generate your summary.";
       setError(msg);
@@ -68,7 +82,7 @@ const BloodAiSummary = () => {
   useEffect(() => {
     generate(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [values]);
 
   if (loading) {
     return (
