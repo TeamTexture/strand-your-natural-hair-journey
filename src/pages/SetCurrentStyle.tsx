@@ -72,6 +72,9 @@ const SetCurrentStyle = () => {
         howLong,
       }),
     );
+    // Notify same-tab listeners (Home banner). The native `storage` event only
+    // fires in OTHER tabs, so we dispatch a custom event here too.
+    window.dispatchEvent(new Event("strand:style-updated"));
     toast.success("Style updated");
     navigate("/home");
   };

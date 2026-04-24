@@ -163,6 +163,9 @@ const ProfileStep4Colour = () => {
                 chemHist,
               }),
             );
+            // Same-tab listeners (Home banner) need a custom event because the
+            // browser `storage` event only fires in OTHER tabs.
+            window.dispatchEvent(new Event("strand:style-updated"));
             navigate("/onboarding/blood-timing");
           }}
         >
