@@ -43,11 +43,20 @@ const emptyReflection = (): ReflectionState => ({
 const JournalEntry = () => {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const entry = getJournalEntry(id);
 
   const storageKey = `strand_journal_entry_${id}`;
+  const photoPathKey = `strand_journal_photo_${id}`;
   const [state, setState] = useState<ReflectionState>(emptyReflection);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Hero photo
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Load any saved reflection / product selections
   useEffect(() => {
