@@ -449,13 +449,16 @@ const WashStep1 = () => {
           </SurfaceCard>
         )}
         <StepCard
-          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: conditionProducts }}
+          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner" }}
           state={condition}
           setState={setCondition}
-          // Once Done, surface the conditioner(s) the user owns + the heat-treatment answer
+          selectedProducts={conditionSelected}
+          onRemoveProduct={removeFrom(setConditionIds, conditionIds)}
+          onOpenPicker={() => openPicker("condition")}
+          // Once Done, surface the conditioner(s) the user picked + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
-            ...conditionProducts,
+            ...conditionSelected.map(formatProduct),
             ...(heatChoice === "yes"
               ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
               : []),
