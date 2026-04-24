@@ -91,6 +91,8 @@ const ProfileStep1 = () => {
       heritage,
     };
     sessionStorage.setItem("strand_profile_step1", JSON.stringify(payload));
+    // Also persist to localStorage so the Profile page can derive identity & water hardness.
+    localStorage.setItem("strand_profile_basic", JSON.stringify(payload));
     // Persist heritage for AI summary / nutrition context
     localStorage.setItem("strand_heritage", JSON.stringify(heritage ? [heritage] : []));
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-2");
