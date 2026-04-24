@@ -108,24 +108,22 @@ export async function prepareImageForAi(file: File): Promise<PreparedImage> {
 
     const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
     const blob = await (await fetch(dataUrl)).blob();
-    const jpegFile = new File([blob], `${stripExt(file.name)}.jpg`, {
+    const jpegFile = new File([blob], `${stripExt(working.name)}.jpg`, {
       type: "image/jpeg",
       lastModified: Date.now(),
     });
     return { uploadFile: jpegFile, dataUrl, width: w, height: h };
   } catch (e) {
     console.warn("prepareImageForAi: re-encode failed, using original", e);
-    // Last-resort fallback. If the original is a format the AI definitely
-    // can't read (HEIC), we still need *something*. We surface the original
-    // so the upload + AI call can still proceed and fail with a clear
-    // server-side message.
-    if (!SUPPORTED_DIRECT.has(file.type)) {
+    // Last-resort fallback. If the working file is still a format the AI
+    // definitely can't read, surface a clear error.
+    if (!SUPPORTED_DIRECT.has(working.type)) {
       throw new Error(
-        "We couldn't read this image. iPhone users: in Settings → Camera → Formats, switch to 'Most Compatible' and try again, or pick a JPEG/PNG screenshot.",
+        "We couldn't read this image. Try a JPEG or PNG screenshot.",
       );
     }
     return {
-      uploadFile: file,
+      uploadFile: working,
       dataUrl: originalDataUrl,
       width: 0,
       height: 0,
