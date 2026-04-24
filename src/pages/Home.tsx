@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { HelpCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -48,13 +49,22 @@ const Home = () => {
           <p className="font-body text-sm text-muted-foreground">Good morning,</p>
           <h1 className="font-display text-[24px] font-bold leading-tight">Paige</h1>
         </div>
-        <button
-          onClick={() => navigate("/profile")}
-          aria-label="Profile"
-          className="size-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg shadow-sm"
-        >
-          ✨
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/help")}
+            aria-label="Help & Support"
+            className="size-11 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors"
+          >
+            <HelpCircle className="size-5" />
+          </button>
+          <button
+            onClick={() => navigate("/profile")}
+            aria-label="Profile"
+            className="size-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg shadow-sm"
+          >
+            ✨
+          </button>
+        </div>
       </header>
 
       <div className="px-5 space-y-4 pb-6">
