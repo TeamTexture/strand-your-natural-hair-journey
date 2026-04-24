@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArrowUp, Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -14,14 +15,20 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
 const Directory = () => {
-  const [tab, setTab] = useState<(typeof tabs)[number]>("All");
+  const [params] = useSearchParams();
+  // `?bloodOnly=1` is set by the onboarding Blood-Test screen when the user
+  // needs to book a doctor for blood work. We lock the directory to
+  // Dermatologists and hide the type tabs to keep the flow focused.
+  const bloodOnly = params.get("bloodOnly") === "1";
+
+  const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
   const [showTop, setShowTop] = useState(false);
 
   const results = useMemo(
-    () => searchProfessionalsIn(pros, query, tab),
-    [pros, query, tab],
+    () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
+    [pros, query, tab, bloodOnly],
   );
 
   // The scrollable surface is the <main> element inside ScreenLayout. We listen
