@@ -60,9 +60,9 @@ const WashStep4 = () => {
   const stepsSummary = useMemo(() => {
     const parts: string[] = [];
     const labels: Record<string, string> = {
-      prePoo: "Pre-poo", cleanse: "Cleanse", condition: "Condition", treatment: "Treatment",
+      prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
     };
-    (["prePoo", "cleanse", "condition", "treatment"] as const).forEach((key) => {
+    (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const).forEach((key) => {
       const state = step1[key];
       if (state === "done") parts.push(`${labels[key]} ✓`);
       else if (state === "skipped") parts.push(`${labels[key]} skipped`);
