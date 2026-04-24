@@ -158,6 +158,41 @@ export type Database = {
         }
         Relationships: []
       }
+      goal_updates: {
+        Row: {
+          created_at: string
+          goal_id: string
+          id: string
+          note: string | null
+          user_id: string
+          voice_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          goal_id: string
+          id?: string
+          note?: string | null
+          user_id: string
+          voice_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          goal_id?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+          voice_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_updates_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "user_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_lists: {
         Row: {
           id: string
