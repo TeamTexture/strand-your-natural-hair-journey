@@ -128,7 +128,41 @@ const ProfileStep4Colour = () => {
           placeholder="Select your usual styles…"
         />
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/blood-timing")}>
+        <Button
+          variant="gold"
+          size="pill"
+          className="mt-4"
+          onClick={() => {
+            // Parse "How Long in This Style" — accept "9 days", "3 weeks", "5", etc.
+            const match = howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
+            const num = match ? parseInt(match[1], 10) : NaN;
+            const unit = (match?.[2] ?? "day").toLowerCase();
+            const days = Number.isFinite(num)
+              ? unit.startsWith("week")
+                ? num * 7
+                : unit.startsWith("month")
+                ? num * 30
+                : num
+              : 0;
+            const styleStartDate = new Date(
+              Date.now() - days * 24 * 60 * 60 * 1000,
+            ).toISOString();
+            localStorage.setItem(
+              "strand_current_style",
+              JSON.stringify({
+                style,
+                howLong,
+                styleStartDate,
+                plans,
+                changingTo,
+                defaultStyle,
+                colour,
+                chemHist,
+              }),
+            );
+            navigate("/onboarding/blood-timing");
+          }}
+        >
           Continue to Blood Test →
         </Button>
       </div>

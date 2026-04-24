@@ -7,18 +7,7 @@ import SectionLabel from "@/components/SectionLabel";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Alert {
-  emoji: string;
-  title: string;
-  body: string;
-  to: string;
-}
-const alerts: Alert[] = [
-  { emoji: "💧", title: "Wash day overdue — Day 9 in braids", body: "Product build-up begins now. Log a cleanse.", to: "/wash-day" },
-  { emoji: "🧪", title: "Blood retest due in 72 days", body: "Order your Daye kit — code STRAND20", to: "/onboarding/blood-iron-vitamins" },
-  { emoji: "📅", title: "Appointment in 21 days", body: "Dr. Adaeze Okafor · 15 May", to: "/appointments" },
-];
+import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 
 interface QA { emoji: string; title: string; sub: string; to: string }
 const quickActions: QA[] = [
@@ -55,6 +44,9 @@ const Home = () => {
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
   const [firstName, setFirstName] = useState<string>("");
+  const { alerts, loading: alertsLoading } = useHomeAlerts();
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const visibleAlerts = alerts.filter((a) => !dismissed.has(a.id));
 
   // Resolve the display name from the profiles table first (source of truth),
   // falling back to user_metadata or the email local-part so the greeting
@@ -135,28 +127,43 @@ const Home = () => {
         <SurfaceCard tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
-              🔔 Alerts
+              🔔 Alerts {visibleAlerts.length > 0 && `(${visibleAlerts.length})`}
             </span>
-            <button
-              onClick={() => toast("All alerts cleared")}
-              className="text-[11px] uppercase tracking-[0.15em] text-primary"
-            >
-              Clear all
-            </button>
+            {visibleAlerts.length > 0 && (
+              <button
+                onClick={() => {
+                  setDismissed(new Set(alerts.map((a) => a.id)));
+                  toast("All alerts cleared");
+                }}
+                className="text-[11px] uppercase tracking-[0.15em] text-primary"
+              >
+                Clear all
+              </button>
+            )}
           </div>
           <div className="px-3 pb-3 space-y-2">
-            {alerts.map((a) => (
-              <button
-                key={a.title}
-                onClick={() => navigate(a.to)}
-                className="w-full text-left p-3 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
-              >
-                <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
-                  {a.emoji} {a.title}
-                </p>
-                <p className="text-[11px] text-alert-dark-foreground/70 mt-1">{a.body}</p>
-              </button>
-            ))}
+            {alertsLoading ? (
+              <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/60">
+                Checking your data…
+              </p>
+            ) : visibleAlerts.length === 0 ? (
+              <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/70">
+                ✨ All caught up — nothing needs your attention right now.
+              </p>
+            ) : (
+              visibleAlerts.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => navigate(a.to)}
+                  className="w-full text-left p-3 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
+                >
+                  <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
+                    {a.emoji} {a.title}
+                  </p>
+                  <p className="text-[11px] text-alert-dark-foreground/70 mt-1">{a.body}</p>
+                </button>
+              ))
+            )}
           </div>
         </SurfaceCard>
       </div>
