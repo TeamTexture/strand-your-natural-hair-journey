@@ -115,15 +115,22 @@ const ProfileStep4Colour = () => {
           value={plans} onChange={setPlans}
         />
 
-        <FormField
-          label="Changing To"
-          value={changingTo}
-          onChange={(e) => setChangingTo(e.target.value)}
-        />
-        <FormField
+        {isChanging && (
+          <MultiSelectDropdown
+            label="Changing To"
+            options={HAIRSTYLE_OPTIONS}
+            value={changingTo}
+            onChange={setChangingTo}
+            placeholder="Select your next style…"
+          />
+        )}
+
+        <MultiSelectDropdown
           label="Default / Normal Style"
+          options={HAIRSTYLE_OPTIONS}
           value={defaultStyle}
-          onChange={(e) => setDefaultStyle(e.target.value)}
+          onChange={setDefaultStyle}
+          placeholder="Select your usual styles…"
         />
 
         <Button variant="gold" size="pill" className="mt-4" onClick={() => navigate("/onboarding/blood-timing")}>
