@@ -31,12 +31,21 @@ const Stars = ({ n }: { n: number }) => (
 const Products = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [linkSheetOpen, setLinkSheetOpen] = useState(false);
+  const [linkValue, setLinkValue] = useState("");
   const { products, loading } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
+  const { startUrlScan, busy: urlBusy } = useProductUrlScan();
 
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
+
+  const handleLinkSubmit = async () => {
+    await startUrlScan(linkValue, "shelf");
+    setLinkSheetOpen(false);
+    setLinkValue("");
+  };
 
   return (
     <ScreenLayout bottomNav>
