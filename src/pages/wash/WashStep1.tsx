@@ -186,7 +186,7 @@ const WashStep1 = () => {
   const [cleanse, setCleanse] = useState<StepState>("done");
   const [condition, setCondition] = useState<StepState>("done");
   const [treatment, setTreatment] = useState<StepState>("todo");
-  const [style, setStyle] = useState<StepState>("done");
+  
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
 
   // Heat-treatment state lives at the page level so we can persist it and so
@@ -332,11 +332,7 @@ const WashStep1 = () => {
             </div>
           }
         />
-        <StepCard
-          step={{ id: "5", emoji: "✨", name: "Style & Finish", sub: "Styling products applied", defaultDone: true, products: ["Flaxseed Styling Gel — Camille Rose"] }}
-          state={style}
-          setState={setStyle}
-        />
+
 
         <Button
           variant="gold"
@@ -347,13 +343,12 @@ const WashStep1 = () => {
             const products: string[] = [];
             if (cleanse === "done") products.push("Moisture Retention Shampoo — Camille Rose");
             if (condition === "done") products.push("Honey & Turmeric Deep Cond — TGIN");
-            if (style === "done") products.push("Flaxseed Styling Gel — Camille Rose");
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
                 // Persist explicit done/skipped state so the rest of the flow
                 // and the saved wash record can reflect what was skipped.
-                prePoo, cleanse, condition, treatment, style,
+                prePoo, cleanse, condition, treatment,
                 treatmentType,
                 products,
                 heatTreatment: heatChoice,
@@ -362,7 +357,6 @@ const WashStep1 = () => {
                   cleanse: cleanse === "skipped",
                   condition: condition === "skipped",
                   treatment: treatment === "skipped",
-                  style: style === "skipped",
                 },
               }),
             );
