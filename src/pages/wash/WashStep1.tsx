@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Check, X, Flame, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Check, X, Flame, Loader2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -22,29 +22,30 @@ import { buildAiContext } from "@/lib/aiContext";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import WashGuidanceCard from "@/components/WashGuidanceCard";
+import ProductPickerSheet from "@/components/ProductPickerSheet";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
   p.brand ? `${p.name} — ${p.brand}` : p.name;
 
+type StepKind = "prepoo" | "cleanse" | "condition" | "treatment";
+
 /**
- * Pick products from the user's shelf that look like they belong to a wash-day step.
- * We match on the product `category` (set during scan/AI analysis) plus a few
- * common keyword hints in the product name so we don't miss obvious matches when
- * category data is missing.
+ * Pick product IDs from the user's shelf that look like they belong to a wash-day step.
+ * Used only as a starter suggestion — the user can add or remove inline.
  */
-const pickStepProducts = (shelf: UserProduct[], kind: "cleanse" | "condition" | "treatment" | "prepoo"): string[] => {
-  const matches = shelf.filter((p) => {
-    const cat = (p.category ?? "").toLowerCase();
-    const name = (p.name ?? "").toLowerCase();
-    if (kind === "cleanse") return /shampoo|cleans|co-?wash/.test(cat) || /shampoo|cleans|co-?wash/.test(name);
-    if (kind === "condition") return /condition/.test(cat) || /condition/.test(name);
-    if (kind === "prepoo") return /pre-?poo|oil/.test(cat) || /pre-?poo|hot oil/.test(name);
-    if (kind === "treatment") return /treatment|mask|protein|bond/.test(cat) || /treatment|mask|protein|bond/.test(name);
-    return false;
-  });
-  return matches.map(formatProduct);
-};
+const suggestStepProductIds = (shelf: UserProduct[], kind: StepKind): string[] =>
+  shelf
+    .filter((p) => {
+      const cat = (p.category ?? "").toLowerCase();
+      const name = (p.name ?? "").toLowerCase();
+      if (kind === "cleanse") return /shampoo|cleans|co-?wash/.test(cat) || /shampoo|cleans|co-?wash/.test(name);
+      if (kind === "condition") return /condition/.test(cat) || /condition/.test(name);
+      if (kind === "prepoo") return /pre-?poo|oil/.test(cat) || /pre-?poo|hot oil/.test(name);
+      if (kind === "treatment") return /treatment|mask|protein|bond/.test(cat) || /treatment|mask|protein|bond/.test(name);
+      return false;
+    })
+    .map((p) => p.id);
 
 
 interface Step {
@@ -52,8 +53,6 @@ interface Step {
   emoji: string;
   name: string;
   sub: string;
-  defaultDone: boolean;
-  products: string[];
 }
 
 /**
@@ -69,26 +68,34 @@ const StepCard = ({
   step,
   state,
   setState,
+  /** Resolved products the user has selected for this step (from their shelf). */
+  selectedProducts,
+  /** Remove a product from this step's selection. */
+  onRemoveProduct,
+  /** Open the inline picker sheet (lets the user pick existing or add new). */
+  onOpenPicker,
   /** What to render inside the inline editor (only visible while state === "editing"). */
   editor,
   /**
    * Optional collapsed summary chips shown under the header once the step is "done".
-   * If omitted we just show the default product list captured for this step.
+   * If omitted we just show the products captured for this step.
    */
   summaryChips,
 }: {
   step: Step;
   state: StepState;
   setState: (s: StepState) => void;
+  selectedProducts: UserProduct[];
+  onRemoveProduct: (id: string) => void;
+  onOpenPicker: () => void;
   editor?: React.ReactNode;
   summaryChips?: string[];
 }) => {
   const isEditing = state === "editing";
   const isDone = state === "done";
   const isSkipped = state === "skipped";
-  // Use caller-provided chips when given; otherwise fall back to the step's
-  // default product list so a "done" step is never visually empty.
-  const chips = summaryChips ?? step.products;
+  const productLabels = selectedProducts.map(formatProduct);
+  const chips = summaryChips ?? productLabels;
   return (
     <SurfaceCard className={cn(isSkipped && "opacity-70")}>
       <div className="flex items-center gap-3">
@@ -116,7 +123,6 @@ const StepCard = ({
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => {
-              // Toggle: todo → editing, editing → todo (cancel), done → editing (re-open to edit)
               if (isEditing) setState("todo");
               else if (isDone) setState("editing");
               else setState("editing");
@@ -169,17 +175,35 @@ const StepCard = ({
         </p>
       )}
 
-      {/* EDITING: inline editor with the per-step UI + a Done button to commit */}
+      {/* EDITING: inline editor — shows currently picked products with remove
+          buttons, plus a real "Add a product" CTA that opens the picker
+          (which itself supports photo / upload / link with auto-save to shelf). */}
       {isEditing && (
         <div className="mt-3 space-y-2">
-          {step.products.map((p) => (
-            <div key={p} className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/30 rounded-[10px]">
+          {selectedProducts.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/30 rounded-[10px]"
+            >
               <Check className="size-4 text-good shrink-0" />
-              <span className="text-xs flex-1 truncate">{p}</span>
+              <span className="text-xs flex-1 truncate">{formatProduct(p)}</span>
+              <button
+                type="button"
+                onClick={() => onRemoveProduct(p.id)}
+                aria-label={`Remove ${p.name}`}
+                className="size-6 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
             </div>
           ))}
-          <button className="w-full text-left px-3 py-2 border border-dashed border-border rounded-[10px] text-xs text-muted-foreground">
-            + Add product used
+          <button
+            type="button"
+            onClick={onOpenPicker}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-dashed border-primary/50 rounded-[10px] text-xs font-medium text-primary hover:bg-primary/5 transition-colors min-h-[40px]"
+          >
+            <Plus className="size-4" />
+            Add a product
           </button>
           {editor}
           <Button
@@ -209,6 +233,7 @@ interface HeatRationale {
 
 const WashStep1 = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
@@ -220,13 +245,144 @@ const WashStep1 = () => {
 
   const [treatmentType, setTreatmentType] = useState<string[]>([]);
 
-  // Pull the user's actual on-shelf products so each step's product chips
-  // reflect what they own, not a hardcoded brand (e.g. "Camille Rose").
+  // Pull the user's full shelf so we can both auto-suggest products per step
+  // and resolve any IDs the user has manually picked or just added via the
+  // inline picker (auto_save lands them straight on the shelf and we return
+  // here with the new product available).
   const { products: shelfProducts } = useUserProducts("shelf");
-  const prePooProducts = useMemo(() => pickStepProducts(shelfProducts, "prepoo"), [shelfProducts]);
-  const cleanseProducts = useMemo(() => pickStepProducts(shelfProducts, "cleanse"), [shelfProducts]);
-  const conditionProducts = useMemo(() => pickStepProducts(shelfProducts, "condition"), [shelfProducts]);
-  const treatmentProducts = useMemo(() => pickStepProducts(shelfProducts, "treatment"), [shelfProducts]);
+
+  // Per-step selections — arrays of user_product IDs. We seed them from the
+  // shelf the first time it loads and on each step from a category match,
+  // then preserve any draft the user is mid-way through (so adding a brand
+  // new product doesn't wipe the others they already picked).
+  const [prePooIds, setPrePooIds] = useState<string[]>([]);
+  const [cleanseIds, setCleanseIds] = useState<string[]>([]);
+  const [coWashIds, setCoWashIds] = useState<string[]>([]);
+  const [conditionIds, setConditionIds] = useState<string[]>([]);
+  const [treatmentIds, setTreatmentIds] = useState<string[]>([]);
+
+  // Restore any in-progress draft (e.g. user came back from the scan flow
+  // after adding a new product). Run once shelfProducts is available so we
+  // can also auto-merge any newly-shelved products into the right step.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (hydrated) return;
+    let draft: Record<string, unknown> = {};
+    try {
+      const raw = localStorage.getItem("strand_wash_step1_draft");
+      if (raw) draft = JSON.parse(raw) as Record<string, unknown>;
+    } catch { /* ignore */ }
+    const arr = (k: string) => (Array.isArray(draft[k]) ? (draft[k] as string[]) : []);
+    setPrePooIds(arr("prePooIds").length ? arr("prePooIds") : suggestStepProductIds(shelfProducts, "prepoo"));
+    setCleanseIds(arr("cleanseIds").length ? arr("cleanseIds") : suggestStepProductIds(shelfProducts, "cleanse"));
+    setCoWashIds(arr("coWashIds"));
+    setConditionIds(arr("conditionIds").length ? arr("conditionIds") : suggestStepProductIds(shelfProducts, "condition"));
+    setTreatmentIds(arr("treatmentIds").length ? arr("treatmentIds") : suggestStepProductIds(shelfProducts, "treatment"));
+    if (typeof draft.prePoo === "string") setPrePoo(draft.prePoo as StepState);
+    if (typeof draft.cleanse === "string") setCleanse(draft.cleanse as StepState);
+    if (typeof draft.coWash === "string") setCoWash(draft.coWash as StepState);
+    if (typeof draft.condition === "string") setCondition(draft.condition as StepState);
+    if (typeof draft.treatment === "string") setTreatment(draft.treatment as StepState);
+    if (Array.isArray(draft.treatmentType)) setTreatmentType(draft.treatmentType as string[]);
+    if (typeof draft.heatChoice === "string") setHeatChoice(draft.heatChoice as HeatChoice);
+    if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
+    setHydrated(true);
+  }, [shelfProducts, hydrated]);
+
+  // Persist the draft on every change so a trip through the scan flow
+  // (which navigates away and back) doesn't lose the user's progress.
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(
+      "strand_wash_step1_draft",
+      JSON.stringify({
+        prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
+        prePoo, cleanse, coWash, condition, treatment,
+        treatmentType,
+      }),
+    );
+  }, [hydrated, prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
+      prePoo, cleanse, coWash, condition, treatment, treatmentType]);
+
+  // Resolve IDs → full product objects for display.
+  const resolve = (ids: string[]) =>
+    ids.map((id) => shelfProducts.find((p) => p.id === id)).filter((p): p is UserProduct => !!p);
+  const prePooSelected = useMemo(() => resolve(prePooIds), [prePooIds, shelfProducts]);
+  const cleanseSelected = useMemo(() => resolve(cleanseIds), [cleanseIds, shelfProducts]);
+  const coWashSelected = useMemo(() => resolve(coWashIds), [coWashIds, shelfProducts]);
+  const conditionSelected = useMemo(() => resolve(conditionIds), [conditionIds, shelfProducts]);
+  const treatmentSelected = useMemo(() => resolve(treatmentIds), [treatmentIds, shelfProducts]);
+
+  // Picker sheet — one global sheet, opened with a target step so toggling
+  // selects/deselects from that step's IDs. We also pass the target through
+  // the picker's returnTo URL so any product added via auto_save lands back
+  // on this step automatically (see hydration effect above).
+  type PickerTarget = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment" | null;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
+  const openPicker = (target: Exclude<PickerTarget, null>) => {
+    setPickerTarget(target);
+    // Encode the target in the URL so when the picker fires off the scan
+    // flow (which navigates away and uses the current URL as returnTo),
+    // we know which step the freshly-shelved product belongs to.
+    const next = new URLSearchParams(searchParams);
+    next.set("picker", target);
+    setSearchParams(next, { replace: true });
+    setPickerOpen(true);
+  };
+  const targetIds: Record<Exclude<PickerTarget, null>, string[]> = {
+    prepoo: prePooIds,
+    cleanse: cleanseIds,
+    cowash: coWashIds,
+    condition: conditionIds,
+    treatment: treatmentIds,
+  };
+  const targetSetters: Record<Exclude<PickerTarget, null>, (v: string[]) => void> = {
+    prepoo: setPrePooIds,
+    cleanse: setCleanseIds,
+    cowash: setCoWashIds,
+    condition: setConditionIds,
+    treatment: setTreatmentIds,
+  };
+  const handleTogglePicked = (productId: string) => {
+    if (!pickerTarget) return;
+    const current = targetIds[pickerTarget];
+    targetSetters[pickerTarget](
+      current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
+    );
+  };
+
+  // When the user adds a brand new product via the picker (auto_save) they
+  // get bounced through the scan/detail flow and back to this URL. We watch
+  // for the most-recently-added shelf product and auto-merge it into the
+  // step we encoded in `?picker=...`, so the new product shows up in the
+  // right step without the user having to re-pick it. We track which IDs
+  // we've already auto-added to avoid double-adding on subsequent renders.
+  const [autoAdded, setAutoAdded] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!hydrated) return;
+    const target = searchParams.get("picker") as Exclude<PickerTarget, null> | null;
+    if (!target) return;
+    const cutoff = Date.now() - 2 * 60 * 1000;
+    const fresh = shelfProducts.filter((p) => {
+      if (autoAdded.has(p.id)) return false;
+      const ts = p.added_to_shelf_at ?? p.created_at;
+      return ts ? new Date(ts).getTime() > cutoff : false;
+    });
+    if (!fresh.length) return;
+    const current = targetIds[target];
+    const additions = fresh.map((p) => p.id).filter((id) => !current.includes(id));
+    if (additions.length) {
+      targetSetters[target]([...current, ...additions]);
+      setAutoAdded((prev) => {
+        const next = new Set(prev);
+        for (const id of additions) next.add(id);
+        return next;
+      });
+      setPickerTarget(target);
+      setPickerOpen(true);
+    }
+  }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters]);
 
   // Heat-treatment state lives at the page level so we can persist it and so
   // the "why" dialog can read/write the choice.
@@ -270,6 +426,9 @@ const WashStep1 = () => {
     }
   };
 
+  const removeFrom = (setter: (v: string[]) => void, ids: string[]) => (id: string) =>
+    setter(ids.filter((x) => x !== id));
+
   return (
     <ScreenLayout>
       <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={() => navigate("/wash-day")} />
@@ -282,19 +441,28 @@ const WashStep1 = () => {
 
       <div className="px-5 space-y-3 pb-8">
         <StepCard
-          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment", defaultDone: true, products: prePooProducts }}
+          step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment" }}
           state={prePoo}
           setState={setPrePoo}
+          selectedProducts={prePooSelected}
+          onRemoveProduct={removeFrom(setPrePooIds, prePooIds)}
+          onOpenPicker={() => openPicker("prepoo")}
         />
         <StepCard
-          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo — clarifying or gentle", defaultDone: true, products: cleanseProducts }}
+          step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo — clarifying or gentle" }}
           state={cleanse}
           setState={setCleanse}
+          selectedProducts={cleanseSelected}
+          onRemoveProduct={removeFrom(setCleanseIds, cleanseIds)}
+          onOpenPicker={() => openPicker("cleanse")}
         />
         <StepCard
-          step={{ id: "2b", emoji: "🧴", name: "Co-wash", sub: "Conditioning wash (between shampoos)", defaultDone: false, products: cleanseProducts }}
+          step={{ id: "2b", emoji: "🧴", name: "Co-wash", sub: "Conditioning wash (between shampoos)" }}
           state={coWash}
           setState={setCoWash}
+          selectedProducts={coWashSelected}
+          onRemoveProduct={removeFrom(setCoWashIds, coWashIds)}
+          onOpenPicker={() => openPicker("cowash")}
         />
         {/* Science-grounded caution: cationic surfactants in co-washes (e.g.
             behentrimonium methosulfate / cetrimonium chloride) condition and
@@ -322,13 +490,16 @@ const WashStep1 = () => {
           </SurfaceCard>
         )}
         <StepCard
-          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner", defaultDone: true, products: conditionProducts }}
+          step={{ id: "3", emoji: "🫧", name: "Condition", sub: "Rinse-out or deep conditioner" }}
           state={condition}
           setState={setCondition}
-          // Once Done, surface the conditioner(s) the user owns + the heat-treatment answer
+          selectedProducts={conditionSelected}
+          onRemoveProduct={removeFrom(setConditionIds, conditionIds)}
+          onOpenPicker={() => openPicker("condition")}
+          // Once Done, surface the conditioner(s) the user picked + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
-            ...conditionProducts,
+            ...conditionSelected.map(formatProduct),
             ...(heatChoice === "yes"
               ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
               : []),
@@ -422,12 +593,15 @@ const WashStep1 = () => {
           }
         />
         <StepCard
-          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed", defaultDone: false, products: treatmentProducts }}
+          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed" }}
           state={treatment}
           setState={setTreatment}
-          // Show the treatment type tags the user picked, plus any matching shelf
-          // products so the collapsed card reflects what they actually captured.
-          summaryChips={[...treatmentType, ...treatmentProducts]}
+          selectedProducts={treatmentSelected}
+          onRemoveProduct={removeFrom(setTreatmentIds, treatmentIds)}
+          onOpenPicker={() => openPicker("treatment")}
+          // Show the treatment type tags the user picked, plus the products they selected
+          // so the collapsed card reflects what they actually captured.
+          summaryChips={[...treatmentType, ...treatmentSelected.map(formatProduct)]}
           editor={
             <div className="flex flex-wrap gap-2">
               {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
@@ -459,13 +633,21 @@ const WashStep1 = () => {
               toast.error("Add or skip at least one step before continuing");
               return;
             }
-            // Only save products from steps that were actually completed —
-            // pulled from the user's real shelf, not hardcoded brands.
-            const products: string[] = [];
-            if (prePoo === "done") products.push(...prePooProducts);
-            if (cleanse === "done" || coWash === "done") products.push(...cleanseProducts);
-            if (condition === "done") products.push(...conditionProducts);
-            if (treatment === "done") products.push(...treatmentProducts);
+            // Only save products from steps that were actually completed.
+            // We persist the user_product IDs (used by Step3 to attach
+            // products to the saved wash record) and a human-readable list
+            // for any UI that wants to show them inline.
+            const productIds: string[] = [];
+            const productLabels: string[] = [];
+            const collect = (ids: string[]) => {
+              productIds.push(...ids);
+              productLabels.push(...resolve(ids).map(formatProduct));
+            };
+            if (prePoo === "done") collect(prePooIds);
+            if (cleanse === "done") collect(cleanseIds);
+            if (coWash === "done") collect(coWashIds);
+            if (condition === "done") collect(conditionIds);
+            if (treatment === "done") collect(treatmentIds);
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
@@ -473,7 +655,8 @@ const WashStep1 = () => {
                 // and the saved wash record can reflect what was skipped.
                 prePoo, cleanse, coWash, condition, treatment,
                 treatmentType,
-                products,
+                products: productLabels,
+                productIds,
                 heatTreatment: heatChoice,
                 heatMinutes: heatChoice === "yes" ? heatMinutes : null,
                 skipped: {
@@ -485,6 +668,8 @@ const WashStep1 = () => {
                 },
               }),
             );
+            // Draft is no longer needed once we've moved on to step 2.
+            localStorage.removeItem("strand_wash_step1_draft");
             navigate("/wash/step-2");
           }}
         >
@@ -567,6 +752,30 @@ const WashStep1 = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inline product picker — shared across all steps. Lets the user pick
+          existing shelf/wishlist products OR add a brand new one (photo /
+          upload / link). New products are saved straight to the shelf via
+          auto_save and the user is returned here, where the new product
+          shows up in the shelf list and can be toggled into the step. */}
+      <ProductPickerSheet
+        open={pickerOpen}
+        onOpenChange={(o) => {
+          setPickerOpen(o);
+          if (!o) {
+            setPickerTarget(null);
+            // Drop the picker target from the URL once the sheet closes so
+            // the auto-merge effect doesn't fire again on subsequent visits.
+            const next = new URLSearchParams(searchParams);
+            if (next.has("picker")) {
+              next.delete("picker");
+              setSearchParams(next, { replace: true });
+            }
+          }
+        }}
+        selectedIds={pickerTarget ? targetIds[pickerTarget] : []}
+        onToggle={handleTogglePicked}
+      />
     </ScreenLayout>
   );
 };
