@@ -15,6 +15,8 @@ export const TOOL_CATEGORIES = [
   "Hair dryer",
   "Diffuser",
   "Steamer",
+  "Deep conditioning cap / heat hat",
+  "Hair steamer cap",
   "Hot tools (curler / wand)",
   "Microfibre / T-shirt towel",
   "Bonnet / silk scarf",
