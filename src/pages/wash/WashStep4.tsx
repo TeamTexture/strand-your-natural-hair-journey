@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
+import { useAuth } from "@/hooks/useAuth";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>
