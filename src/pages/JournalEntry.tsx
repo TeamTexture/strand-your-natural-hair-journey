@@ -44,6 +44,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { getJournalEntry } from "@/data/journalEntries";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -375,13 +376,22 @@ const JournalEntry = () => {
     setPhotoBusy(true);
     try {
       const uploaded: { path: string; url: string }[] = [];
-      for (const file of toUpload) {
-        if (!file.type.startsWith("image/")) {
-          toast.error(`${file.name}: not an image`);
+      for (const rawFile of toUpload) {
+        const isHeicFile = /\.(heic|heif)$/i.test(rawFile.name) || /heic|heif/i.test(rawFile.type);
+        if (!rawFile.type.startsWith("image/") && !isHeicFile) {
+          toast.error(`${rawFile.name}: not an image`);
           continue;
         }
-        if (file.size > 8 * 1024 * 1024) {
-          toast.error(`${file.name}: too large (max 8MB)`);
+        if (rawFile.size > 8 * 1024 * 1024) {
+          toast.error(`${rawFile.name}: too large (max 8MB)`);
+          continue;
+        }
+        let file: File;
+        try {
+          file = await convertHeicToJpeg(rawFile);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : `${rawFile.name}: couldn't read photo`;
+          toast.error(msg);
           continue;
         }
         const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -518,7 +528,7 @@ const JournalEntry = () => {
       <input
         ref={photoInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -533,7 +543,7 @@ const JournalEntry = () => {
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         capture="environment"
         className="hidden"
         onChange={(e) => {
