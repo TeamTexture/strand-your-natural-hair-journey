@@ -227,10 +227,6 @@ const IngredientDetail = () => {
           </>
         )}
 
-        {/* "Re-run analysis" intentionally removed — analysis runs once on
-         * load (and on retry after error). */}
-        {false && null}
-
         <SectionLabel>Your voicenotes</SectionLabel>
         <SurfaceCard>
           <ProductVoicenotes
