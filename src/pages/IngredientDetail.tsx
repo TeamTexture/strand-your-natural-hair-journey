@@ -48,7 +48,13 @@ const IngredientDetail = () => {
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="flex items-center gap-3">
-          <div className="size-14 rounded-[12px] bg-primary/15 flex items-center justify-center text-2xl">🧴</div>
+          <ProductPhotoTile
+            imageUrl={photoUrl}
+            fallbackEmoji="🧴"
+            size="size-14"
+            onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
+            onRemove={() => removePhoto(productKey)}
+          />
           <div className="flex-1 min-w-0">
             <p className="font-display text-base font-semibold leading-tight">{productName}</p>
             <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>
