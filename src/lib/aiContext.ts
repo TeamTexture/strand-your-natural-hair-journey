@@ -37,6 +37,7 @@ export interface AiContext {
     avoid_ingredients: string[];
     favourite_ingredients: string[];
   };
+  shelf: Array<Record<string, unknown>>;
 }
 
 const safeParse = <T,>(key: string, fallback: T): T => {
@@ -78,12 +79,14 @@ export async function buildAiContext(): Promise<AiContext> {
   let bloodResults: Array<Record<string, unknown>> = [];
   let avoidIngredients: string[] = [];
   let favouriteIngredients: string[] = [];
+  let recentWashes: Array<Record<string, unknown>> = [];
+  let shelf: Array<Record<string, unknown>> = [];
 
   try {
     const { data: u } = await supabase.auth.getUser();
     const userId = u?.user?.id;
     if (userId) {
-      const [blood, ingLists, meds] = await Promise.all([
+      const [blood, ingLists, meds, washes, shelfRows] = await Promise.all([
         supabase
           .from("blood_results")
           .select("marker, value, unit, status, category")
@@ -96,6 +99,17 @@ export async function buildAiContext(): Promise<AiContext> {
           .from("user_medications")
           .select("name, category")
           .eq("user_id", userId),
+        supabase
+          .from("wash_days")
+          .select("wash_date, steps, scalp_feel, breakage, hair_feel_note, style_after")
+          .eq("user_id", userId)
+          .order("wash_date", { ascending: false })
+          .limit(3),
+        supabase
+          .from("user_products")
+          .select("name, brand, category, ingredients, key_ingredients, match_score, rating")
+          .eq("user_id", userId)
+          .eq("on_shelf", true),
       ]);
       bloodResults = (blood.data ?? []) as Array<Record<string, unknown>>;
       const lists = ingLists.data ?? [];
@@ -105,6 +119,8 @@ export async function buildAiContext(): Promise<AiContext> {
       favouriteIngredients = lists
         .filter((r) => r.list_kind === "favourite")
         .map((r) => r.ingredient);
+      recentWashes = (washes.data ?? []) as Array<Record<string, unknown>>;
+      shelf = (shelfRows.data ?? []) as Array<Record<string, unknown>>;
       // Merge meds back into healthProfile so prompts always see them.
       if (healthProfileLocal && meds.data) {
         healthProfileLocal.medications = meds.data.map((m) => m.name);
@@ -133,9 +149,11 @@ export async function buildAiContext(): Promise<AiContext> {
       }
     : null;
 
-  const last3 = [...localWashHistory]
+  const last3Local = [...localWashHistory]
     .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))
     .slice(0, 3);
+  // Prefer real wash_days rows when present, fall back to local cache
+  const last3 = recentWashes.length > 0 ? recentWashes : last3Local;
   if (last3.length === 0 && lastWashIso) {
     last3.push({ date: lastWashIso });
   }
@@ -155,5 +173,6 @@ export async function buildAiContext(): Promise<AiContext> {
       avoid_ingredients: avoidIngredients,
       favourite_ingredients: favouriteIngredients,
     },
+    shelf,
   };
 }
