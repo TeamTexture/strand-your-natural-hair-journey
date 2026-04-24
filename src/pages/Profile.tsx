@@ -406,12 +406,17 @@ const Profile = () => {
           </div>
         </>
       ) : Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v)) ? (
-        <div className="px-5 pb-4">
-          <div className="p-4 rounded-[14px] bg-good/10 border border-good/30 flex items-center gap-3">
-            <Sparkles className="size-5 text-good shrink-0" />
-            <p className="text-sm">All blood markers in normal range</p>
+        <>
+          <EditableSectionLabel onEdit={() => navigate("/onboarding/blood-iron-vitamins")} editLabel="Update">
+            Blood Results
+          </EditableSectionLabel>
+          <div className="px-5 pb-4">
+            <div className="p-4 rounded-[14px] bg-good/10 border border-good/30 flex items-center gap-3">
+              <Sparkles className="size-5 text-good shrink-0" />
+              <p className="text-sm">All blood markers in normal range</p>
+            </div>
           </div>
-        </div>
+        </>
       ) : null}
 
       {/* Medications — only if user added any */}
