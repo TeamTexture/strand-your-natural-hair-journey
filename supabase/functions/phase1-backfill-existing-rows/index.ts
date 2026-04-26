@@ -132,12 +132,8 @@ Deno.serve(async (req) => {
         // ignore — fall through to other gates
       }
     }
-    console.log("phase1-backfill auth debug:", {
-      has_header: Boolean(authHeader),
-      bearer_len: bearerToken?.length ?? 0,
-      service_role_len: SERVICE_ROLE.length,
-      bearer_eq_service_role: bearerToken === SERVICE_ROLE,
-    });
+    // (gate diagnostics intentionally not logged in steady state — auth
+    // success/failure is captured by the response status alone.)
 
     // (b) authenticated user email match
     if (!gateAuthed && authHeader && adminEmail) {
