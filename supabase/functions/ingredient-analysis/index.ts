@@ -27,7 +27,7 @@ import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v4-hardwater-book-aligned";
+const MODEL_VERSION = "claude-sonnet-4-6@v5-product-focused-guidance";
 
 interface IngredientCard {
   name: string;
@@ -94,14 +94,14 @@ function buildToolSchema(ingredientCount: number) {
       },
       personalised_guidance: {
         type: "array",
-        minItems: 3,
-        maxItems: 3,
-        description: "Three concrete, personalised tips for how THIS user should use this product, given their hair profile, current style, challenges and goals.",
+        minItems: 1,
+        maxItems: 2,
+        description: "1 or 2 concrete tips on how to get the most out of THIS product, anchored in the manufacturer's intended use, the actual ingredients, and the user's hair type / characteristics / challenges / goals. No medical, diagnosis, scalp-condition, or styling-tension advice.",
         items: {
           type: "object",
           properties: {
-            title: { type: "string", description: "Short label, max 6 words (e.g. 'Apply on damp hair', 'Pair with leave-in')." },
-            body: { type: "string", description: "1-2 sentences, max 35 words. Reference a specific piece of the user's profile (porosity, current style, named goal, scalp condition, etc.) and how to use the product in light of it." },
+            title: { type: "string", description: "Short label, max 6 words (e.g. 'Apply on damp hair', 'Layer under your leave-in')." },
+            body: { type: "string", description: "1-2 sentences, max 35 words. Reference the product's intended purpose and at least one of the user's hair traits (porosity, density, type, length, surface texture, hair challenge, hair goal). Cite the active/key ingredient mechanism where it helps." },
           },
           required: ["title", "body"],
         },
@@ -136,19 +136,17 @@ RULES — STRICT:
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
 5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. If the verdict is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line on a new line at the end of the summary.
-6. personalised_guidance: EXACTLY 3 tips on how THIS specific user should USE this product. Each tip MUST reference at least one concrete data point from the user's profile (porosity, density, scalp condition, diagnosed condition, current hairstyle, planned next style, a named goal, a logged challenge, blood marker, hard-water area, heritage). NEVER write generic advice like "use as directed". Lead with action. If the product is a poor fit (match_score < 55), guidance can include patch-test, dilution, frequency caps, or "skip if X" warnings — still tied to the user's data.
+6. personalised_guidance: 1 OR 2 tips on how this user can get the MOST out of this specific product. Strict scope:
+   - ONLY draw on: hair type, hair characteristics (porosity, density, diameter, surface texture, elasticity, length), hair challenges, hair goals, the product's actual key/active ingredients, and the manufacturer's intended use of the product (what kind of product it is — pre-shampoo, shampoo, conditioner, leave-in, mask, oil, styler, etc. — and how the brand directs it to be used).
+   - Anchor each tip in (a) the manufacturer's intent for the product, (b) the science of one of its key ingredients (humectant / emollient / occlusive / cationic conditioner / protein / surfactant class / etc.), and (c) at least one of the user's hair traits, challenges, or goals.
+   - Where How To Love Your Afro covers the relevant technique (e.g. pre-poo on dry hair before washing, sectioning for detangling, applying leave-in to soaking-wet hair for low porosity), use the book's guidance and append the "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" reference line at the end of that tip's body.
+   - DO NOT mention: traction alopecia, alopecia of any kind, diagnosed scalp conditions, medical conditions, medications, blood markers, hormones, life stage, or any health diagnosis. Those belong elsewhere in the app, not in product usage tips.
+   - DO NOT prescribe styling-tension behaviour (braids too tight, take-down schedules driven by alopecia risk, etc.). Style references are only allowed as neutral context (e.g. "good for refreshing day-3 twist-outs") not as a medical warning.
+   - DO NOT layer in hard-water chelation advice unless this product itself is a shampoo, clarifier or deep treatment. For leave-ins, oils, creams, masks-on-top, or pre-poos in a hard-water area, focus on what hard water means for THIS product (e.g. mineral film blocking absorption) — never tell the user to chelate before applying it. Never mention the user's postcode; refer only to the fact they live in a hard-water area.
 
-   HARD-WATER RULES — these override anything else, because they come straight from How To Love Your Afro, Chapter 13, pp.158–159:
-   - NEVER mention the user's postcode. Refer only to the fact that they are in a hard-water area.
-   - NEVER recommend chelating before a pre-shampoo / pre-poo treatment. The book's sequence is: chelating shampoo → deep condition. Chelation is a strong cleanse that unlocks deep conditioner, not something layered before an oil pre-poo.
-   - NEVER recommend chelating every wash. The book is explicit: too-frequent chelation can seriously damage curls. Roughly every 4–5 washes, or when hair feels heavy/greasy/product-resistant, is the cadence Tootilab's Gaia Tonanzi gives in the book.
-   - When you do recommend chelation, frame it as occasional, suggest the user seek professional advice on whether they need it, and only deploy it for shampoos / clarifiers / deep treatments — not for leave-ins, oils, masks-on-top, or pre-poos.
-   - For non-cleansing products in a hard-water area (leave-ins, creams, oils, masks, pre-poos), the personalised tip should focus on what the hard water means for THIS product specifically (e.g. mineral film blocking absorption of a moisturiser, build-up making a styler feel tacky), not on chelating before applying it.
-
-   Examples (do not copy verbatim — adapt to the user's actual data and the product type):
-   - title: "Use sparingly on low-porosity hair", body: "Your low-porosity strands struggle to absorb heavy butters — apply a 10p coin to damp ends only, twice a week, to avoid build-up."
-   - title: "Pair with your protective styling goal", body: "Since you're working towards 6-month length retention in braids, work this leave-in through sections on take-down day to ease detangling without breakage."
-   - title: "Mind your hard-water build-up", body: "Because you're in a hard-water area, mineral film can stop this mask absorbing — every 4–5 washes, do a chelating shampoo first (not before a pre-poo), then deep condition with this so it actually penetrates."
+   Examples (adapt — never copy verbatim):
+   - title: "Pre-poo on dry hair", body: "As a pre-shampoo, work this through dry, sectioned strands 20-30 min before washing — the oils coat your high-porosity cuticle so shampoo doesn't strip it further, supporting your length-retention goal. Read more — How To Love Your Afro, Chapter 13: Building Your Wash Day Routine, p.155."
+   - title: "Seal damp ends only", body: "Use a 10p coin on soaking-wet ends after your leave-in — your low-porosity strands need water trapped in, and this product's heavy butters work as the final occlusive layer the manufacturer designed it for."
 7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
 8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
 }
@@ -369,7 +367,7 @@ Deno.serve(async (req) => {
         const cached = existing.payload as AnalysisPayload;
         // Only honour cache if it includes the separate personalised guidance
         // section. Older rows predate this field and must be regenerated.
-        const hasGuidance = Array.isArray(cached.personalised_guidance) && cached.personalised_guidance.length >= 3;
+        const hasGuidance = Array.isArray(cached.personalised_guidance) && cached.personalised_guidance.length >= 1;
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
           : true;
