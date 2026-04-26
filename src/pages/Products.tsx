@@ -267,6 +267,40 @@ const Products = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {offShelfTarget && (
+        <OffShelfReasonSheet
+          open={!!offShelfTarget}
+          onOpenChange={(o) => !o && setOffShelfTarget(null)}
+          productId={offShelfTarget.id}
+          productKey={offShelfTarget.key}
+          productName={offShelfTarget.name}
+          onComplete={async () => {
+            setOffShelfTarget(null);
+            await reload();
+          }}
+        />
+      )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes <strong>{deleteTarget?.name}</strong> and all its history from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
