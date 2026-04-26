@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { recomputeIngredientFlags } from "@/hooks/useIngredientLists";
 import { toast } from "sonner";
 
 export interface KeyIngredient {
