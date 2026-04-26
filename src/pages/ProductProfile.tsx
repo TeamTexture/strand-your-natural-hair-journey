@@ -368,9 +368,19 @@ const ProductProfile = () => {
 
         <div className="space-y-2 pt-2">
           {product.on_shelf ? (
-            <Button variant="goldOutline" size="pill" onClick={() => setShelf(product.id, false)}>
-              Move to Wishlist
-            </Button>
+            <>
+              <Button
+                variant="goldOutline"
+                size="pill"
+                onClick={() => setOffShelfOpen(true)}
+              >
+                <ArrowDownToLine className="size-4 mr-2" />
+                Take off the shelf
+              </Button>
+              <Button variant="ghost" size="pill" onClick={() => setWishlist(product.id, true)}>
+                Move to Wishlist
+              </Button>
+            </>
           ) : (
             <Button variant="gold" size="pill" onClick={() => setShelf(product.id, true)}>
               Move to Shelf
@@ -394,6 +404,15 @@ const ProductProfile = () => {
           </Button>
         </div>
       </div>
+
+      <OffShelfReasonSheet
+        open={offShelfOpen}
+        onOpenChange={setOffShelfOpen}
+        productId={product.id}
+        productKey={product.product_key}
+        productName={product.name}
+        onComplete={reload}
+      />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
