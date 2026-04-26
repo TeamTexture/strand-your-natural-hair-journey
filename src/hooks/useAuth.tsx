@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
@@ -15,6 +15,14 @@ const Ctx = createContext<AuthCtx>({ session: null, user: null, loading: true, s
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const previousSessionRef = useRef<Session | null>(null);
+
+  useEffect(() => {
+    if (previousSessionRef.current && !session) {
+      purgeStrandUserScopedKeys("session-null-effect");
+    }
+    previousSessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     // 1. Subscribe BEFORE getSession (per Supabase guidance).
@@ -24,7 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (event === "SIGNED_OUT") {
-        purgeStrandUserScopedKeys();
+        purgeStrandUserScopedKeys("SIGNED_OUT-event");
       }
     });
     // 2. Then load existing session
@@ -39,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Purge BEFORE the supabase call so even if the network signOut fails,
     // the next user on this device still gets a clean cache. The
     // SIGNED_OUT event handler above will run too, but is idempotent.
-    purgeStrandUserScopedKeys();
+    purgeStrandUserScopedKeys("signOut-handler");
     await supabase.auth.signOut();
   };
 
