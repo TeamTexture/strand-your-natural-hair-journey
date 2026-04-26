@@ -235,17 +235,6 @@ const IngredientDetail = () => {
             <p className="font-display text-base font-semibold leading-tight">{productName}</p>
             <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>
           </div>
-          <div className="text-center">
-            <div
-              className={cn(
-                "size-12 rounded-full border-2 flex items-center justify-center font-bold",
-                scoreTone,
-              )}
-            >
-              {loading ? "…" : matchScore ?? "—"}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Match</p>
-          </div>
         </SurfaceCard>
 
         {loading && (

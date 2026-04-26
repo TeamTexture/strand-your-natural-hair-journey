@@ -244,9 +244,6 @@ const ProductProfile = () => {
               <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">{product.category}</p>
             )}
           </div>
-          <div className="size-16 rounded-full border-[3px] border-primary text-primary flex items-center justify-center text-base font-bold shrink-0">
-            {score}
-          </div>
         </div>
 
         {/* Personalised "red flag / green light" cards removed: we present

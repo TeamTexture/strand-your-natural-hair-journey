@@ -229,9 +229,6 @@ const ProductDetailNew = () => {
             <p className="text-sm text-muted-foreground">{a.brand ?? ""}</p>
             {a.category && <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">{a.category}</p>}
           </div>
-          <div className="size-16 rounded-full border-[3px] border-primary text-primary flex items-center justify-center text-base font-bold shrink-0">
-            {score}
-          </div>
         </div>
 
         {a.ai_summary && (
