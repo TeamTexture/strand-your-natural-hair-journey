@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
-import { useUserProducts } from "@/hooks/useUserProducts";
+import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
@@ -30,6 +30,30 @@ const tabs = [
   { id: "off-shelf",  label: "Off" },
   { id: "intel",      label: "Ingr." },
 ];
+
+// Display order for shelf categories — mirrors the product flow described in
+// "How To Love Your Afro" (pre-shampoo → cleanse → condition → leave-in →
+// style → seal → refresh → treat). Anything that doesn't match falls into
+// "Other" and renders last.
+const CATEGORY_ORDER: { key: string; label: string; matchers: RegExp[] }[] = [
+  { key: "pre",        label: "Pre-Shampoo",       matchers: [/pre[\s-]?shampoo/i, /pre[\s-]?poo/i, /co[\s-]?wash/i] },
+  { key: "cleanser",   label: "Cleanser",          matchers: [/shampoo/i, /cleanser/i, /clarif/i] },
+  { key: "conditioner",label: "Conditioner",       matchers: [/deep\s?condition/i, /hair\s?mask/i, /^conditioner/i, /rinse[\s-]?out/i] },
+  { key: "leavein",    label: "Leave-In",          matchers: [/leave[\s-]?in/i, /detangler/i, /milk/i] },
+  { key: "styler",     label: "Styler",            matchers: [/curl\s?cream/i, /twisting/i, /styling/i, /styler/i, /custard/i, /pudding/i, /gel/i, /mousse/i, /foam/i, /jelly/i, /butter/i] },
+  { key: "oil",        label: "Oil & Sealant",     matchers: [/^oil/i, /serum/i, /sealant/i] },
+  { key: "refresh",    label: "Refresh & Finish",  matchers: [/refresh/i, /spray/i, /mist/i, /hairspray/i, /shine/i] },
+  { key: "scalp",      label: "Scalp & Treatment", matchers: [/scalp/i, /treatment/i, /tonic/i, /protein/i] },
+];
+
+const categoryBucket = (raw: string | null | undefined) => {
+  const c = (raw ?? "").trim();
+  if (!c) return { key: "other", label: "Other" };
+  for (const b of CATEGORY_ORDER) {
+    if (b.matchers.some((rx) => rx.test(c))) return { key: b.key, label: b.label };
+  }
+  return { key: "other", label: "Other" };
+};
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
@@ -48,6 +72,25 @@ const Products = () => {
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
+
+  // Group shelf products by category for the new wash-day-style layout.
+  const groups = useMemo(() => {
+    const buckets = new Map<string, { label: string; items: UserProduct[] }>();
+    for (const p of products) {
+      const { key, label } = categoryBucket(p.category);
+      if (!buckets.has(key)) buckets.set(key, { label, items: [] });
+      buckets.get(key)!.items.push(p);
+    }
+    const ordered: { key: string; label: string; items: UserProduct[] }[] = [];
+    for (const b of CATEGORY_ORDER) {
+      const bucket = buckets.get(b.key);
+      if (bucket) ordered.push({ key: b.key, label: bucket.label, items: bucket.items });
+    }
+    const other = buckets.get("other");
+    if (other) ordered.push({ key: "other", label: other.label, items: other.items });
+    return ordered;
+  }, [products]);
+
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -111,91 +154,100 @@ const Products = () => {
             hint="Scan or upload a product to get started."
           />
         ) : (
-          products.map((p) => {
-            const isOpen = expanded === p.product_key;
-            const noteCount = counts[p.product_key] ?? 0;
-            const stars = p.rating ?? 0;
-            return (
-              <div
-                key={p.id}
-                className="bg-card border border-border rounded-[14px] overflow-hidden"
-              >
-                <div className="p-3.5 flex items-center gap-3">
-                  <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt="" className="size-full object-cover" />
-                    ) : (
-                      <div className="size-full flex items-center justify-center text-2xl bg-primary/15">🧴</div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() =>
-                      navigate(
-                        `/products/ingredient?key=${encodeURIComponent(p.product_key)}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(p.brand ?? "")}`,
-                      )
-                    }
-                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+          groups.map((group) => (
+            <div key={group.key} className="space-y-2">
+              <div className="flex items-center gap-2 px-1 pt-1">
+                <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                  {group.label}
+                </h2>
+                <span className="text-[10px] text-muted-foreground/70">
+                  ({group.items.length})
+                </span>
+                <div className="flex-1 h-px bg-border/60" />
+              </div>
+              {group.items.map((p) => {
+                const isOpen = expanded === p.product_key;
+                const noteCount = counts[p.product_key] ?? 0;
+                const stars = p.rating ?? 0;
+                return (
+                  <div
+                    key={p.id}
+                    className="bg-card border border-border rounded-[14px] overflow-hidden"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Stars n={stars} />
-                        {noteCount > 0 && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
-                            <Mic className="size-3" /> {noteCount}
-                          </span>
+                    <div className="p-3.5 flex items-center gap-3">
+                      <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0">
+                        {p.image_url ? (
+                          <img src={p.image_url} alt="" className="size-full object-cover" />
+                        ) : (
+                          <div className="size-full flex items-center justify-center text-2xl bg-primary/15">🧴</div>
                         )}
                       </div>
+                      <button
+                        onClick={() => navigate(`/products/profile/${p.id}`)}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Stars n={stars} />
+                            {noteCount > 0 && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
+                                <Mic className="size-3" /> {noteCount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setExpanded(isOpen ? null : p.product_key)}
+                        className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                        aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
+                        aria-expanded={isOpen}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "size-4 text-muted-foreground transition-transform",
+                            isOpen && "rotate-180",
+                          )}
+                        />
+                      </button>
                     </div>
-                  </button>
-                  <button
-                    onClick={() => setExpanded(isOpen ? null : p.product_key)}
-                    className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                    aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
-                    aria-expanded={isOpen}
-                  >
-                    <ChevronDown
-                      className={cn(
-                        "size-4 text-muted-foreground transition-transform",
-                        isOpen && "rotate-180",
-                      )}
-                    />
-                  </button>
-                </div>
 
-                {isOpen && (
-                  <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
-                    <ProductVoicenotes
-                      productKey={p.product_key}
-                      productName={p.name}
-                      productBrand={p.brand ?? ""}
-                    />
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        variant="goldOutline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setOffShelfTarget({ id: p.id, key: p.product_key, name: p.name })}
-                      >
-                        <ArrowDownToLine className="size-3.5 mr-1" />
-                        Take off shelf
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
-                        aria-label="Remove from app"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
+                    {isOpen && (
+                      <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
+                        <ProductVoicenotes
+                          productKey={p.product_key}
+                          productName={p.name}
+                          productBrand={p.brand ?? ""}
+                        />
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            variant="goldOutline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setOffShelfTarget({ id: p.id, key: p.product_key, name: p.name })}
+                          >
+                            <ArrowDownToLine className="size-3.5 mr-1" />
+                            Take off shelf
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
+                            aria-label="Remove from app"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })
+                );
+              })}
+            </div>
+          ))
         )}
       </div>
 

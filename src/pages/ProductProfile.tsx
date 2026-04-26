@@ -294,9 +294,16 @@ const ProductProfile = () => {
     navigate(-1);
   };
 
+  // Title-case the saved category for the page title; fall back to "Product".
+  const titleCategory = (product.category ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+
   return (
     <ScreenLayout bottomNav={false}>
-      <TitleBar title="Product" back />
+      <TitleBar title={titleCategory || "Product"} back />
       <div className="px-5 pb-8 space-y-4">
         <div className="w-full aspect-square rounded-[18px] border border-border overflow-hidden bg-secondary">
           {product.image_url ? (
@@ -310,9 +317,6 @@ const ProductProfile = () => {
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-xl font-bold leading-tight">{product.name}</h1>
             {product.brand && <p className="text-sm text-muted-foreground">{product.brand}</p>}
-            {product.category && (
-              <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">{product.category}</p>
-            )}
           </div>
         </div>
 
