@@ -317,9 +317,6 @@ const ProductProfile = () => {
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-xl font-bold leading-tight">{product.name}</h1>
             {product.brand && <p className="text-sm text-muted-foreground">{product.brand}</p>}
-            {product.category && (
-              <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">{product.category}</p>
-            )}
           </div>
         </div>
 
