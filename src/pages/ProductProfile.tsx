@@ -503,20 +503,80 @@ const ProductProfile = () => {
                   tone === "bad"  ? "bg-destructive" :
                   tone === "warn" ? "bg-amber-500" :
                   "bg-border";
+                // Only good/bad ("green/red flag") ingredients are clickable.
+                // We surface every other product on the user's shelf or
+                // wishlist that also lists this ingredient, so they can jump
+                // straight to that product profile.
+                const isClickable = tone === "good" || tone === "bad";
+                const isExpanded = isClickable && expandedIngredient === lower;
+                const matches = isClickable
+                  ? allProducts.filter(p =>
+                      p.id !== product.id &&
+                      (p.ingredients ?? []).some(ing => ing.toLowerCase().trim() === lower),
+                    )
+                  : [];
+                const RowEl = isClickable ? "button" : "div";
                 return (
-                  <div key={i} className="p-3 flex items-start gap-2.5">
-                    <span
-                      className={cn("size-2 rounded-full shrink-0 mt-1.5", dotClass)}
-                      aria-label={tone ?? "neutral"}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight">{name}</p>
-                      {aiFlag?.body && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                          {aiFlag.body}
-                        </p>
+                  <div key={i}>
+                    <RowEl
+                      type={isClickable ? "button" : undefined}
+                      onClick={
+                        isClickable
+                          ? () => setExpandedIngredient(isExpanded ? null : lower)
+                          : undefined
+                      }
+                      className={cn(
+                        "w-full p-3 flex items-start gap-2.5 text-left",
+                        isClickable && "hover:bg-primary/5 transition-colors",
                       )}
-                    </div>
+                      aria-expanded={isClickable ? isExpanded : undefined}
+                    >
+                      <span
+                        className={cn("size-2 rounded-full shrink-0 mt-1.5", dotClass)}
+                        aria-label={tone ?? "neutral"}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-tight">{name}</p>
+                        {aiFlag?.body && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                            {aiFlag.body}
+                          </p>
+                        )}
+                        {isClickable && (
+                          <p className="text-[10px] text-primary/70 uppercase tracking-[0.15em] mt-1">
+                            {matches.length === 0
+                              ? "No other products with this"
+                              : isExpanded
+                                ? "Hide products"
+                                : `Used in ${matches.length} other product${matches.length === 1 ? "" : "s"} ›`}
+                          </p>
+                        )}
+                      </div>
+                    </RowEl>
+                    {isExpanded && matches.length > 0 && (
+                      <div className="bg-secondary/40 divide-y divide-border/40">
+                        {matches.map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => navigate(`/products/${m.id}`)}
+                            className="w-full pl-9 pr-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-primary/5"
+                          >
+                            <div className="size-7 rounded-md overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center text-sm">
+                              {m.image_url ? (
+                                <img src={m.image_url} alt={m.name} className="size-full object-cover" />
+                              ) : "🧴"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-medium leading-tight truncate">{m.name}</p>
+                              {m.brand && (
+                                <p className="text-[11px] text-muted-foreground truncate">{m.brand}</p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
