@@ -17,18 +17,10 @@
 // the esm.sh URL. Production Deno resolves the dynamic import the same
 // way as a static one.
 
-// --- Type shims so the frontend tsc (which scans this file even though
-// it's a Deno edge function) doesn't error on Deno globals or esm.sh
-// URL imports. At runtime under Deno these are real; under tsc they're
-// just declarations.
+// --- Type shim so the frontend tsc (which scans this file even though
+// it's a Deno edge function) doesn't error on the Deno global. At
+// runtime under Deno this is real; under tsc it's just a declaration.
 declare const Deno: { env: { get(key: string): string | undefined } };
-declare module "https://esm.sh/@supabase/supabase-js@2.95.0" {
-  export function createClient(url: string, key: string, opts?: unknown): {
-    from(table: string): {
-      select(cols: string): { limit(n: number): Promise<{ data: unknown; error: { message: string } | null }> };
-    };
-  };
-}
 
 export interface Passage {
   body: string;
