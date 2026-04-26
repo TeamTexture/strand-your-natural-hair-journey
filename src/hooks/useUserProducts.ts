@@ -78,6 +78,7 @@ export function useUserProducts(filter: Filter = "all") {
       case "shelf":     return products.filter(p => p.on_shelf);
       case "wishlist":  return products.filter(p => p.on_wishlist);
       case "off-shelf": return products.filter(p => !p.on_shelf && p.previously_on_shelf);
+      case "favourite": return products.filter(p => p.on_favourite);
       default:          return products;
     }
   })();
@@ -118,11 +119,22 @@ export function useUserProducts(filter: Filter = "all") {
     await load();
   };
 
+  const setFavourite = async (id: string, on: boolean) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updates: any = { on_favourite: on };
+    const { error } = await supabase.from("user_products").update(updates).eq("id", id);
+    if (error) { toast.error("Could not update favourite"); return; }
+    await load();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+    }
+  };
+
   const remove = async (id: string) => {
     const { error } = await supabase.from("user_products").delete().eq("id", id);
     if (error) { toast.error("Could not delete product"); return; }
     await load();
   };
 
-  return { products: filtered, allProducts: products, loading, upsert, setShelf, setWishlist, remove, reload: load };
+  return { products: filtered, allProducts: products, loading, upsert, setShelf, setWishlist, setFavourite, remove, reload: load };
 }
