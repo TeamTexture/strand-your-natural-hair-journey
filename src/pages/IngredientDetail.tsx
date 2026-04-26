@@ -18,10 +18,12 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
 
 interface Ingredient { tone: "good" | "warn" | "bad"; name: string; body: string }
+interface GuidanceTip { title: string; body: string }
 interface Analysis {
   match_score: number;
   summary: string;
   ingredients: Ingredient[];
+  personalised_guidance?: GuidanceTip[];
 }
 
 const dotClass: Record<Ingredient["tone"], string> = {
