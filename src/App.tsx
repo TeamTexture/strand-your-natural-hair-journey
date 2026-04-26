@@ -108,7 +108,7 @@ const App = () => (
               <Route path="/products/ingredient" element={<Protected><IngredientDetail /></Protected>} />
               <Route path="/products/wishlist" element={<Protected><Wishlist /></Protected>} />
               <Route path="/products/favourites" element={<Protected><Favourites /></Protected>} />
-              <Route path="/products/off-shelf" element={<Protected><OffShelf /></Protected>} />)
+              <Route path="/products/off-shelf" element={<Protected><OffShelf /></Protected>} />
               <Route path="/products/avoidlist" element={<Protected><Avoidlist /></Protected>} />
               <Route path="/products/scanning" element={<Protected><ProductScanning /></Protected>} />
               <Route path="/products/detail-new" element={<Protected><ProductDetailNew /></Protected>} />
