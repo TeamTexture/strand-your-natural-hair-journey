@@ -35,7 +35,6 @@ interface BackfillStats {
   error_samples?: string[];
 }
 
-const DEFAULT_FOUNDER_EMAIL = "info@texturetalks.co.uk";
 const CONFIRM_PHRASE = "i-have-set-the-master-key";
 
 let cachedKey: Uint8Array | null = null;
