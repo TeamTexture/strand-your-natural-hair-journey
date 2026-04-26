@@ -1,139 +1,271 @@
 // Analyses a product's ingredients against a user's hair + health profile.
-// Uses Lovable AI Gateway with tool calling for structured JSON output.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Phase 2 Step 2: dual-path — Lovable+Gemini (legacy) and Claude Sonnet 4.6
+// (new), gated by STRAND_AI_PROVIDER_INGREDIENT.
+//
+// Architecture (audit PHASE_2_AUDIT.md §5 Step 2):
+//   - Tool schema `return_analysis` ports verbatim from the legacy function,
+//     except minItems/maxItems on `ingredients` are set DYNAMICALLY to
+//     ingredients.length per request — replaces the brittle "EXACTLY ${n}"
+//     prose flagged in AUDIT.md §1.
+//   - Curated KB topics: porosity, scalp-conditions, diagnosed-conditions,
+//     hard-water (force_topic_ids). selectTopicsForContext layers in extras
+//     up to the cap of 4.
+//   - Conditional RAG via shouldTriggerRag(ingredients, userAvoidList).
+//   - ai_summaries cache keyed by `ingredient_analysis:<productKey>`.
+//     Cached payload carries `_model_version`; mismatched versions are
+//     regenerated rather than served stale.
+//   - Logging: usage tokens only, never the analysis body.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { requireAuthedUser } from "../_shared/auth.ts";
+import { aiErrorResponse } from "../_shared/errors.ts";
+import { readAiProvider } from "../_shared/flags.ts";
+import { buildClaudeRequest } from "../_shared/build-prompt.ts";
+import { callClaude } from "../_shared/anthropic-client.ts";
+import { shouldTriggerRag, matchTriggerIngredient } from "../_shared/rag-triggers.ts";
+import type { SelectorContext } from "../_shared/knowledge/index.ts";
+
+declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
+
+const MODEL_VERSION = "claude-sonnet-4-6@v1";
+
+interface IngredientCard {
+  name: string;
+  tone: "good" | "warn" | "bad";
+  body: string;
+}
+interface AnalysisPayload {
+  match_score: number;
+  summary: string;
+  ingredients: IngredientCard[];
+  _model_version?: string;
+  _generated_at?: string;
+  _provider?: "claude" | "lovable";
+}
 
 interface RequestBody {
   productKey: string;
   productName: string;
   productBrand: string;
-  ingredients?: string[]; // optional — if absent, AI will use typical formulation for the product type
+  ingredients?: string[];
   hairProfile?: Record<string, unknown>;
   healthProfile?: Record<string, unknown>;
   heritage?: string[];
-  /** User's active hair goals (length retention, scalp health, frizz, etc.) */
   goals?: Array<Record<string, unknown>>;
-  /** Current hairstyle + days in style (twists, locs, wash & go, etc.) */
   currentStyle?: Record<string, unknown> | null;
-  /** Free-text challenges captured during onboarding / journal */
   challenges?: string[];
   force?: boolean;
-  /** Live AI context — see src/lib/aiContext.ts. */
-  context?: Record<string, unknown>;
+  context?: Record<string, unknown> & {
+    avoid_ingredients?: string[];
+    location?: { is_hard_water_area?: boolean | null };
+  };
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+// ── Tool schema (shared between providers) ──────────────────────────────
+function buildToolSchema(ingredientCount: number) {
+  // Dynamic minItems/maxItems is the explicit fix for AUDIT.md §1's
+  // "EXACTLY ${ingredientCount}" prose brittleness. When count is 0 we
+  // fall back to a permissive shape so the model can infer.
+  const itemsConstraint = ingredientCount > 0
+    ? { minItems: ingredientCount, maxItems: ingredientCount }
+    : { minItems: 1 };
+  return {
+    type: "object",
+    properties: {
+      match_score: { type: "integer", minimum: 0, maximum: 100 },
+      summary: { type: "string" },
+      ingredients: {
+        type: "array",
+        ...itemsConstraint,
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            tone: { type: "string", enum: ["good", "warn", "bad"] },
+            body: { type: "string" },
+          },
+          required: ["name", "tone", "body"],
+        },
+      },
+    },
+    required: ["match_score", "summary", "ingredients"],
+  } as Record<string, unknown>;
+}
+
+// ── Task instructions (shared text — minus the brittle EXACTLY prose) ──
+function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number): string {
+  return `You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
+
+USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, currentStyle, bloodResults, medications.
+
+RULES — STRICT:
+1. Flag EVERY ingredient supplied — do NOT skip any (including water, fragrance, colourants, preservatives). The tool schema enforces the count (${ingredientCount > 0 ? ingredientCount : "as supplied"}); preserve the input order.
+2. tone:
+   - "good" = ingredient has a documented mechanism that benefits THIS user's measurable traits (e.g. humectant for low-porosity hair in humid climate, emollient for high-porosity ends, anti-fungal for seborrheic dermatitis).
+   - "bad" = ingredient has a documented mechanism that conflicts with THIS user's traits (e.g. SLS sulphate on a flagged dry/sensitive scalp, drying short-chain alcohol on high-porosity hair, mineral oil sealing low-porosity hair, allergen the user has flagged).
+   - "warn" = neutral / context-dependent / patch-test recommended.
+3. body: ONE concise sentence (max 22 words). Lead with the SCIENTIFIC mechanism (what the molecule does chemically), THEN tie to the user's specific data point if relevant. No generic care tips, no usage instructions, no "consider", no "may help your routine".
+   GOOD example: "Anionic surfactant — strips sebum and lipids; harsh given your dry scalp diagnosis."
+   BAD example: "This is great for your hair! Try using it weekly to keep things hydrated."
+4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment.
+5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. If the verdict is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line on a new line at the end of the summary.
+6. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
+7. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
+}
+
+// ── Selector context for KB topic matching ──────────────────────────────
+function buildSelectorContext(body: RequestBody): SelectorContext {
+  const hp = (body.hairProfile ?? {}) as Record<string, unknown>;
+  const hl = (body.healthProfile ?? {}) as Record<string, unknown>;
+  const ctx = body.context ?? {};
+  const arr = (v: unknown): string[] | undefined =>
+    Array.isArray(v) ? v.map(String) : typeof v === "string" && v ? [v] : undefined;
+  return {
+    hair: {
+      porosity: arr(hp.porosity),
+      density: arr(hp.density),
+      scalp: arr(hp.scalp_condition),
+      diagnosed: arr(hp.diagnosed_conditions),
+    },
+    health: {
+      lifeStage: arr(hl.life_stage),
+      contraception: arr(hl.contraception),
+      conditions: arr(hl.medical_conditions),
+    },
+    bloodResults: [],
+    location: ctx.location ?? {},
+  };
+}
+
+// ── RAG query construction ──────────────────────────────────────────────
+function buildRagQuery(
+  productName: string,
+  ingredients: string[],
+  hairProfile: Record<string, unknown>,
+): string {
+  const triggers: string[] = [];
+  for (const ing of ingredients) {
+    const m = matchTriggerIngredient(ing);
+    if (m && !triggers.includes(m)) triggers.push(m);
+  }
+  const hp = hairProfile;
+  const hairBits = [
+    hp.porosity ? `${hp.porosity} porosity` : null,
+    hp.density ? `${hp.density} density` : null,
+    hp.scalp_condition ? `${hp.scalp_condition} scalp` : null,
+  ].filter(Boolean).join(", ");
+  return `ingredient analysis for ${productName} with ${triggers.join(", ") || "actives"}, user has ${hairBits || "natural hair"}`;
+}
+
+// ── Provider: Claude (new path) ─────────────────────────────────────────
+async function runClaude(args: {
+  productName: string;
+  productBrand: string;
+  ingredients: string[];
+  hairProfile: Record<string, unknown>;
+  userPayload: Record<string, unknown>;
+  selectorContext: SelectorContext;
+  avoidList: string[];
+}): Promise<AnalysisPayload> {
+  const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList } = args;
+  const ingredientCount = ingredients.length;
+
+  const ragOn = shouldTriggerRag(ingredients, avoidList);
+  const ragQuery = ragOn ? buildRagQuery(productName, ingredients, hairProfile) : undefined;
+
+  const req = await buildClaudeRequest({
+    function_kind: "ingredient-analysis",
+    task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount),
+    user_payload: userPayload,
+    selector_context: selectorContext,
+    force_topic_ids: ["porosity", "scalp-conditions", "diagnosed-conditions", "hard-water"],
+    rag_query: ragQuery,
+    rag_k: 4,
+    tool: {
+      name: "return_analysis",
+      description: "Return the structured ingredient analysis.",
+      input_schema: buildToolSchema(ingredientCount),
+    },
+    toolChoice: { type: "tool", name: "return_analysis" },
+    max_tokens: 4096,
+  });
+
+  const result = await callClaude<AnalysisPayload>(req);
+
+  // Usage logging — never log the analysis body.
+  console.log(JSON.stringify({
+    function: "ingredient-analysis",
+    provider: "claude",
+    rag: ragOn,
+    input_tokens: result.usage.input_tokens,
+    cache_read_input_tokens: result.usage.cache_read_input_tokens,
+    cache_creation_input_tokens: result.usage.cache_creation_input_tokens,
+    output_tokens: result.usage.output_tokens,
+  }));
+
+  if (!result.toolInput) {
+    throw new Error("Claude returned no tool_use block");
+  }
+  return result.toolInput;
+}
+
+// ── Provider: Lovable+Gemini (legacy path, preserved verbatim) ─────────
+async function runLovable(args: {
+  systemPrompt: string;
+  userPayload: Record<string, unknown>;
+  ingredientCount: number;
+}): Promise<AnalysisPayload> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const aiResp = await fetch(
+    "https://ai.gateway.lovable.dev/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: args.systemPrompt },
+          { role: "user", content: JSON.stringify(args.userPayload) },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "return_analysis",
+              description: "Return the structured ingredient analysis.",
+              parameters: buildToolSchema(args.ingredientCount),
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "return_analysis" } },
+      }),
+    },
+  );
+
+  if (!aiResp.ok) {
+    const status = aiResp.status;
+    const t = await aiResp.text();
+    console.error(`[ingredient-analysis] lovable gateway ${status}: ${t.slice(0, 120)}`);
+    const err: Error & { status?: number } = new Error(t.slice(0, 200));
+    err.status = status;
+    throw err;
   }
 
-  try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+  const aiJson = await aiResp.json();
+  const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall?.function?.arguments) {
+    throw new Error("Lovable returned no tool call");
+  }
+  return JSON.parse(toolCall.function.arguments) as AnalysisPayload;
+}
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing auth" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const body: RequestBody = await req.json();
-    const {
-      productKey,
-      productName,
-      productBrand,
-      ingredients,
-      hairProfile,
-      healthProfile,
-      heritage,
-      goals,
-      currentStyle,
-      challenges,
-      force,
-    } = body;
-
-    if (!productKey || !productName) {
-      return new Response(JSON.stringify({ error: "Missing product info" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const cacheKind = `ingredient_analysis:${productKey}`;
-
-    // Cache (per user, per product)
-    if (!force) {
-      const { data: existing } = await supabase
-        .from("ai_summaries")
-        .select("payload, updated_at")
-        .eq("user_id", user.id)
-        .eq("kind", cacheKind)
-        .maybeSingle();
-      if (existing?.payload) {
-        return new Response(
-          JSON.stringify({ cached: true, analysis: existing.payload }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    }
-
-    // Pull blood markers + meds + goals + current style server-side so client
-    // doesn't need to assemble the personalisation payload.
-    const [bloodRowsRes, medRowsRes, goalRowsRes] = await Promise.all([
-      supabase
-        .from("blood_results")
-        .select("marker, value, unit, status, category")
-        .eq("user_id", user.id),
-      supabase
-        .from("user_medications")
-        .select("name, category")
-        .eq("user_id", user.id),
-      supabase
-        .from("user_goals")
-        .select("kind, title, target_text, target_value, unit, current_value, target_date, challenge, notes, status")
-        .eq("user_id", user.id)
-        .neq("status", "complete"),
-    ]);
-    const bloodRows = bloodRowsRes.data;
-    const medRows = medRowsRes.data;
-    const dbGoals = goalRowsRes.data ?? [];
-
-    const userPayload = {
-      product: { key: productKey, name: productName, brand: productBrand },
-      ingredients: ingredients ?? [],
-      hairProfile: hairProfile ?? {},
-      healthProfile: healthProfile ?? {},
-      heritage: heritage ?? [],
-      bloodResults: bloodRows ?? [],
-      medications: medRows ?? [],
-      goals: goals && goals.length ? goals : dbGoals,
-      currentStyle: currentStyle ?? null,
-      challenges: challenges ?? [],
-      context: body.context ?? null,
-    };
-
-    const ingredientCount = ingredients?.length ?? 0;
-    const STRAND_PERSONA = `IDENTITY
+// Kept inline for the lovable path — persona must travel verbatim.
+const STRAND_PERSONA_INLINE = `IDENTITY
 You are the STRAND hair intelligence assistant. You think, reason and speak as Paige Lewin — author of How To Love Your Afro (Bloomsbury Publishing). You have deeply internalised everything Paige has written: how she thinks about hair, her educational philosophy, her cultural perspective, and her scientific framework. You do not just repeat the book — you think like its author. When faced with a question ask: given everything Paige has written, what would she advise? Then give that answer in her voice.
 
 You are direct, warm, science-backed, and culturally specific to Black British women and women of African and Caribbean heritage. Never generic. Never condescending. Every response is personalised to the specific user.
@@ -163,154 +295,120 @@ BOUNDARIES
 - For anything requiring a GP or dermatologist, recommend they seek that support alongside the guidance you give — do not refuse to advise, just flag when professional input is also needed
 - Never contradict anything written in How To Love Your Afro`;
 
-    const systemPrompt = `${STRAND_PERSONA}
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return preflight();
+
+  try {
+    const auth = await requireAuthedUser(req);
+    if (auth instanceof Response) return auth;
+    const { user, supabase } = auth;
+
+    const body: RequestBody = await req.json();
+    const {
+      productKey, productName, productBrand,
+      ingredients, hairProfile, healthProfile, heritage,
+      goals, currentStyle, challenges, force,
+    } = body;
+
+    if (!productKey || !productName) {
+      return json(400, { error: "Missing product info" });
+    }
+
+    const cacheKind = `ingredient_analysis:${productKey}`;
+    const provider = readAiProvider("STRAND_AI_PROVIDER_INGREDIENT");
+
+    // ── Cache check (model_version-aware) ─────────────────────────────
+    if (!force) {
+      const { data: existing } = await supabase
+        .from("ai_summaries")
+        .select("payload, updated_at")
+        .eq("user_id", user.id)
+        .eq("kind", cacheKind)
+        .maybeSingle();
+      if (existing?.payload) {
+        const cached = existing.payload as AnalysisPayload;
+        // For Claude path: only honour cache if model_version matches.
+        // For Lovable path: honour any cache (back-compat with pre-Phase-2 rows).
+        const versionOk = provider === "claude"
+          ? cached._model_version === MODEL_VERSION
+          : true;
+        if (versionOk) {
+          return json(200, { cached: true, analysis: cached });
+        }
+      }
+    }
+
+    // ── Pull personalisation server-side ─────────────────────────────
+    const [bloodRowsRes, medRowsRes, goalRowsRes] = await Promise.all([
+      supabase.from("blood_results").select("marker, value, unit, status, category").eq("user_id", user.id),
+      supabase.from("user_medications").select("name, category").eq("user_id", user.id),
+      supabase.from("user_goals")
+        .select("kind, title, target_text, target_value, unit, current_value, target_date, challenge, notes, status")
+        .eq("user_id", user.id).neq("status", "complete"),
+    ]);
+    const bloodRows = bloodRowsRes.data ?? [];
+    const medRows = medRowsRes.data ?? [];
+    const dbGoals = goalRowsRes.data ?? [];
+
+    const userPayload: Record<string, unknown> = {
+      product: { key: productKey, name: productName, brand: productBrand },
+      ingredients: ingredients ?? [],
+      hairProfile: hairProfile ?? {},
+      healthProfile: healthProfile ?? {},
+      heritage: heritage ?? [],
+      bloodResults: bloodRows,
+      medications: medRows,
+      goals: goals && goals.length ? goals : dbGoals,
+      currentStyle: currentStyle ?? null,
+      challenges: challenges ?? [],
+      context: body.context ?? null,
+    };
+
+    const ingredientCount = (ingredients ?? []).length;
+    const avoidList = Array.isArray(body.context?.avoid_ingredients)
+      ? body.context!.avoid_ingredients as string[]
+      : [];
+
+    let analysis: AnalysisPayload;
+    if (provider === "claude") {
+      analysis = await runClaude({
+        productName,
+        productBrand,
+        ingredients: ingredients ?? [],
+        hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
+        userPayload,
+        selectorContext: buildSelectorContext(body),
+        avoidList,
+      });
+      // Stamp provenance — required for cache_version invalidation.
+      analysis._model_version = MODEL_VERSION;
+      analysis._generated_at = new Date().toISOString();
+      analysis._provider = "claude";
+    } else {
+      const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the tool, speaking as Paige.
-
-USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, currentStyle.
-
-RULES — STRICT:
-1. Flag EVERY ingredient supplied — do NOT skip any (including water, fragrance, colourants, preservatives). If ${ingredientCount} ingredients were provided, return EXACTLY ${ingredientCount} entries in the same order.
-2. tone:
-   - "good" = ingredient has a documented mechanism that benefits THIS user's measurable traits (e.g. humectant for low-porosity hair in humid climate, emollient for high-porosity ends, anti-fungal for seborrheic dermatitis).
-   - "bad" = ingredient has a documented mechanism that conflicts with THIS user's traits (e.g. SLS sulphate on a flagged dry/sensitive scalp, drying short-chain alcohol on high-porosity hair, mineral oil sealing low-porosity hair, allergen the user has flagged).
-   - "warn" = neutral / context-dependent / patch-test recommended.
-3. body: ONE concise sentence (max 22 words). Lead with the SCIENTIFIC mechanism (what the molecule does chemically), THEN tie to the user's specific data point if relevant. No generic care tips, no usage instructions, no "consider", no "may help your routine".
-   GOOD example: "Anionic surfactant — strips sebum and lipids; harsh given your dry scalp diagnosis."
-   BAD example: "This is great for your hair! Try using it weekly to keep things hydrated."
-4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment.
-5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. If the verdict is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line on a new line at the end of the summary.
-6. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
-7. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
-
-    const aiResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: JSON.stringify(userPayload) },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "return_analysis",
-                description: "Return the structured ingredient analysis.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    match_score: {
-                      type: "integer",
-                      minimum: 0,
-                      maximum: 100,
-                    },
-                    summary: { type: "string" },
-                    ingredients: {
-                      type: "array",
-                      minItems: 1,
-                      items: {
-                        type: "object",
-                        properties: {
-                          name: { type: "string" },
-                          tone: {
-                            type: "string",
-                            enum: ["good", "warn", "bad"],
-                          },
-                          body: { type: "string" },
-                        },
-                        required: ["name", "tone", "body"],
-                      },
-                    },
-                  },
-                  required: ["match_score", "summary", "ingredients"],
-                },
-              },
-            },
-          ],
-          tool_choice: {
-            type: "function",
-            function: { name: "return_analysis" },
-          },
-        }),
-      },
-    );
-
-    if (!aiResp.ok) {
-      if (aiResp.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (aiResp.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "AI credits exhausted. Add credits to continue.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      const t = await aiResp.text();
-      console.error("AI gateway error", aiResp.status, t);
-      return new Response(JSON.stringify({ error: "AI generation failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
+      analysis = await runLovable({
+        systemPrompt,
+        userPayload,
+        ingredientCount,
       });
+      analysis._provider = "lovable";
+      analysis._generated_at = new Date().toISOString();
+      // Note: no _model_version stamp on Lovable path — back-compat.
     }
 
-    const aiJson = await aiResp.json();
-    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error(
-        "No tool call in AI response",
-        JSON.stringify(aiJson).slice(0, 500),
-      );
-      return new Response(JSON.stringify({ error: "Malformed AI output" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let analysis: unknown;
-    try {
-      analysis = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      console.error("Bad JSON from tool call", e);
-      return new Response(JSON.stringify({ error: "Bad AI JSON" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Upsert into ai_summaries
+    // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
       .from("ai_summaries")
       .select("id")
       .eq("user_id", user.id)
       .eq("kind", cacheKind)
       .maybeSingle();
-
     if (prior?.id) {
-      await supabase
-        .from("ai_summaries")
-        .update({
-          payload: analysis as object,
-          updated_at: new Date().toISOString(),
-        })
+      await supabase.from("ai_summaries")
+        .update({ payload: analysis as object, updated_at: new Date().toISOString() })
         .eq("id", prior.id);
     } else {
       await supabase.from("ai_summaries").insert({
@@ -320,20 +418,8 @@ RULES — STRICT:
       });
     }
 
-    return new Response(
-      JSON.stringify({ cached: false, analysis }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json(200, { cached: false, analysis });
   } catch (e) {
-    console.error("ingredient-analysis error", e);
-    return new Response(
-      JSON.stringify({
-        error: e instanceof Error ? e.message : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return aiErrorResponse(e, "ingredient-analysis");
   }
 });
