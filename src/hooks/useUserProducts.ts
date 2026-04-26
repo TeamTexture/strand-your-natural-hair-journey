@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { recomputeIngredientFlags } from "@/hooks/useIngredientLists";
 import { toast } from "sonner";
 
 export interface KeyIngredient {
@@ -24,6 +25,7 @@ export interface UserProduct {
   rating: number | null;
   on_shelf: boolean;
   on_wishlist: boolean;
+  on_favourite: boolean;
   previously_on_shelf: boolean;
   added_to_shelf_at: string | null;
   last_used_at: string | null;
@@ -32,7 +34,7 @@ export interface UserProduct {
   updated_at: string;
 }
 
-type Filter = "shelf" | "wishlist" | "off-shelf" | "all";
+type Filter = "shelf" | "wishlist" | "off-shelf" | "favourite" | "all";
 
 /** Loads the current user's products. Filter is applied client-side. */
 export function useUserProducts(filter: Filter = "all") {
@@ -77,6 +79,7 @@ export function useUserProducts(filter: Filter = "all") {
       case "shelf":     return products.filter(p => p.on_shelf);
       case "wishlist":  return products.filter(p => p.on_wishlist);
       case "off-shelf": return products.filter(p => !p.on_shelf && p.previously_on_shelf);
+      case "favourite": return products.filter(p => p.on_favourite);
       default:          return products;
     }
   })();
@@ -106,6 +109,8 @@ export function useUserProducts(filter: Filter = "all") {
     const { error } = await supabase.from("user_products").update(updates).eq("id", id);
     if (error) { toast.error("Could not update product"); return; }
     await load();
+    // Off-shelf membership feeds the Red Flag list — recompute.
+    await recomputeIngredientFlags();
   };
 
   const setWishlist = async (id: string, on: boolean) => {
@@ -117,11 +122,26 @@ export function useUserProducts(filter: Filter = "all") {
     await load();
   };
 
+  const setFavourite = async (id: string, on: boolean) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updates: any = { on_favourite: on };
+    const { error } = await supabase.from("user_products").update(updates).eq("id", id);
+    if (error) { toast.error("Could not update favourite"); return; }
+    await load();
+    // Favourite membership feeds the Green Flag list — recompute.
+    await recomputeIngredientFlags();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+    }
+  };
+
   const remove = async (id: string) => {
     const { error } = await supabase.from("user_products").delete().eq("id", id);
     if (error) { toast.error("Could not delete product"); return; }
     await load();
+    // Removed product may have been driving a flag — recompute both.
+    await recomputeIngredientFlags();
   };
 
-  return { products: filtered, allProducts: products, loading, upsert, setShelf, setWishlist, remove, reload: load };
+  return { products: filtered, allProducts: products, loading, upsert, setShelf, setWishlist, setFavourite, remove, reload: load };
 }

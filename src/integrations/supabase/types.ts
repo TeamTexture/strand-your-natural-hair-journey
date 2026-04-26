@@ -790,6 +790,7 @@ export type Database = {
           name: string
           off_shelf_reason: string | null
           off_shelf_voice_url: string | null
+          on_favourite: boolean
           on_shelf: boolean
           on_wishlist: boolean
           previously_on_shelf: boolean
@@ -815,6 +816,7 @@ export type Database = {
           name: string
           off_shelf_reason?: string | null
           off_shelf_voice_url?: string | null
+          on_favourite?: boolean
           on_shelf?: boolean
           on_wishlist?: boolean
           previously_on_shelf?: boolean
@@ -840,6 +842,7 @@ export type Database = {
           name?: string
           off_shelf_reason?: string | null
           off_shelf_voice_url?: string | null
+          on_favourite?: boolean
           on_shelf?: boolean
           on_wishlist?: boolean
           previously_on_shelf?: boolean

@@ -41,6 +41,7 @@ import WashStep4 from "./pages/wash/WashStep4";
 import Products from "./pages/Products";
 import IngredientDetail from "./pages/IngredientDetail";
 import Wishlist from "./pages/Wishlist";
+import Favourites from "./pages/Favourites";
 import OffShelf from "./pages/OffShelf";
 import Avoidlist from "./pages/Avoidlist";
 import ProductScanning from "./pages/ProductScanning";
@@ -106,6 +107,7 @@ const App = () => (
               <Route path="/products" element={<Protected><Products /></Protected>} />
               <Route path="/products/ingredient" element={<Protected><IngredientDetail /></Protected>} />
               <Route path="/products/wishlist" element={<Protected><Wishlist /></Protected>} />
+              <Route path="/products/favourites" element={<Protected><Favourites /></Protected>} />
               <Route path="/products/off-shelf" element={<Protected><OffShelf /></Protected>} />
               <Route path="/products/avoidlist" element={<Protected><Avoidlist /></Protected>} />
               <Route path="/products/scanning" element={<Protected><ProductScanning /></Protected>} />

@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { supabase } from "@/integrations/supabase/client";
-import { saveProductRating } from "@/hooks/useIngredientLists";
+import { saveProductRating, recomputeIngredientFlags } from "@/hooks/useIngredientLists";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,8 @@ const IngredientDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isFavourited, setIsFavourited] = useState(false);
+  const [favSaving, setFavSaving] = useState(false);
 
   // Fallback: if no separate photo upload exists, use the image stored on
   // the user's product (uploaded during scan or pulled from the product URL).
@@ -78,20 +80,30 @@ const IngredientDetail = () => {
     };
   }, [productKey]);
 
-  // Load any previously-saved rating so the stars reflect the user's choice.
+  // Load any previously-saved rating so the stars reflect the user's choice,
+  // and the favourite flag so the heart starts in the right state.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData?.user;
       if (!user) return;
-      const { data } = await supabase
+      const { data: ratingRow } = await supabase
         .from("product_ratings")
         .select("rating")
         .eq("user_id", user.id)
         .eq("product_key", productKey)
         .maybeSingle();
-      if (!cancelled && data?.rating) setRating(data.rating);
+      if (!cancelled && ratingRow?.rating) setRating(ratingRow.rating);
+      const { data: favRow } = await supabase
+        .from("user_products")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .select("on_favourite" as any)
+        .eq("user_id", user.id)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!cancelled && (favRow as any)?.on_favourite) setIsFavourited(true);
     })();
     return () => {
       cancelled = true;
@@ -178,33 +190,48 @@ const IngredientDetail = () => {
       ? "text-warn border-warn"
       : "text-destructive border-destructive";
 
-  const isFavourited = rating >= 4;
   const handleToggleFavourite = async () => {
-    if (saving) return;
+    if (favSaving) return;
     if (!productKey) {
       toast.error("Missing product — open from your shelf or scan results");
       return;
     }
-    const previousRating = rating;
-    // Rating must be 1-5 (DB CHECK constraint). Use 3 (neutral) to "unfavourite".
-    const nextRating = isFavourited ? 3 : 5;
-    setRating(nextRating);
-    setSaving(true);
+    const next = !isFavourited;
+    setIsFavourited(next); // optimistic
+    setFavSaving(true);
     try {
-      await saveProductRating({
-        productKey,
-        productName,
-        productBrand,
-        rating: nextRating,
-        ingredients: (analysis?.ingredients ?? []).map((i) => i.name),
-      });
-      toast(isFavourited ? "Removed from favourites" : "❤️ Added to favourites");
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) throw new Error("Not signed in");
+
+      // Make sure the product exists in user_products so the favourite flag
+      // has somewhere to live. Use upsert keyed on (user_id, product_key).
+      const ingredientNames = (analysis?.ingredients ?? []).map((i) => i.name);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
+        user_id: user.id,
+        product_key: productKey,
+        name: productName || "Untitled product",
+        brand: productBrand || null,
+        on_favourite: next,
+      };
+      if (ingredientNames.length > 0) payload.ingredients = ingredientNames;
+
+      const { error: upErr } = await supabase
+        .from("user_products")
+        .upsert(payload, { onConflict: "user_id,product_key" });
+      if (upErr) throw upErr;
+
+      // Recompute Green Flag list now that membership changed.
+      await recomputeIngredientFlags();
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+      toast(next ? "❤️ Added to favourites" : "Removed from favourites");
     } catch (e: unknown) {
+      setIsFavourited(!next); // rollback
       const msg = e instanceof Error ? e.message : "Could not update favourite";
       toast.error(msg);
-      setRating(previousRating); // rollback
     } finally {
-      setSaving(false);
+      setFavSaving(false);
     }
   };
 
@@ -217,7 +244,7 @@ const IngredientDetail = () => {
             onClick={handleToggleFavourite}
             aria-label={isFavourited ? "Remove from favourites" : "Add to favourites"}
             aria-pressed={isFavourited}
-            disabled={saving}
+            disabled={favSaving}
             className={cn(
               "min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors",
               isFavourited ? "text-destructive" : "text-muted-foreground hover:text-destructive",
