@@ -178,17 +178,46 @@ const IngredientDetail = () => {
       ? "text-warn border-warn"
       : "text-destructive border-destructive";
 
+  const isFavourited = rating >= 4;
+  const handleToggleFavourite = async () => {
+    if (saving) return;
+    const nextRating = isFavourited ? 0 : 5;
+    setRating(nextRating);
+    setSaving(true);
+    try {
+      await saveProductRating({
+        productKey,
+        productName,
+        productBrand,
+        rating: nextRating,
+        ingredients: (analysis?.ingredients ?? []).map((i) => i.name),
+      });
+      toast(isFavourited ? "Removed from favourites" : "❤️ Added to favourites");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Could not update favourite";
+      toast.error(msg);
+      setRating(rating); // rollback
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <ScreenLayout>
       <TitleBar
         title="Ingredient Analysis"
         right={
           <button
-            onClick={() => toast("Added to favourites")}
-            aria-label="Favourite"
-            className="text-primary"
+            onClick={handleToggleFavourite}
+            aria-label={isFavourited ? "Remove from favourites" : "Add to favourites"}
+            aria-pressed={isFavourited}
+            disabled={saving}
+            className={cn(
+              "min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors",
+              isFavourited ? "text-destructive" : "text-muted-foreground hover:text-destructive",
+            )}
           >
-            <Heart className="size-5" />
+            <Heart className={cn("size-5", isFavourited && "fill-current")} />
           </button>
         }
       />
