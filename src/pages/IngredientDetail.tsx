@@ -244,7 +244,7 @@ const IngredientDetail = () => {
             onClick={handleToggleFavourite}
             aria-label={isFavourited ? "Remove from favourites" : "Add to favourites"}
             aria-pressed={isFavourited}
-            disabled={saving}
+            disabled={favSaving}
             className={cn(
               "min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors",
               isFavourited ? "text-destructive" : "text-muted-foreground hover:text-destructive",
