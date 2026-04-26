@@ -110,11 +110,33 @@ const ProductProfile = () => {
     if (!product || !user) return;
     if (!product.ingredients || product.ingredients.length === 0) return;
 
-    // Hydrate from the saved row whenever we have one — no network call.
-    if (product.ai_summary || product.match_score != null) {
+    // Hydrate from the saved row whenever we have any persisted analysis —
+    // no network call. We treat the presence of ai_summary, match_score, OR
+    // any saved key_ingredients with a flag as a complete cached analysis.
+    const hasSavedFlags = (product.key_ingredients ?? []).some(
+      (k) => k.flag || (k.benefit && k.benefit.trim().length > 0),
+    );
+    if (product.ai_summary || product.match_score != null || hasSavedFlags) {
       setAiSummary(product.ai_summary ?? null);
       setAiMatchScore(product.match_score ?? null);
-      setAiFlags([]); // per-ingredient flags aren't persisted; list renders neutral
+      // Rehydrate per-ingredient flags from key_ingredients so the saved
+      // good/warn/bad guidance shows immediately without re-calling the AI.
+      const severityToTone = (
+        s: "good" | "warn" | "avoid" | undefined,
+      ): "good" | "warn" | "bad" | null => {
+        if (s === "good") return "good";
+        if (s === "warn") return "warn";
+        if (s === "avoid") return "bad";
+        return null;
+      };
+      const rehydrated: IngredientFlag[] = (product.key_ingredients ?? [])
+        .map((k) => {
+          const tone = severityToTone(k.flag);
+          if (!tone) return null;
+          return { name: k.name, tone, body: k.benefit ?? "" } satisfies IngredientFlag;
+        })
+        .filter((f): f is IngredientFlag => f !== null);
+      setAiFlags(rehydrated);
       setAiLoading(false);
       setAiError(null);
       return;
@@ -169,13 +191,34 @@ const ProductProfile = () => {
         setAiMatchScore(score);
 
         // Persist to user_products so the next visit hydrates instantly and
-        // never re-triggers the AI call.
-        if (summary || score != null) {
+        // never re-triggers the AI call. We save both the summary/score AND
+        // the per-ingredient flags merged into key_ingredients.
+        const flagToneToSeverity = (t: "good" | "warn" | "bad"): "good" | "warn" | "avoid" =>
+          t === "bad" ? "avoid" : t;
+        const existingByName = new Map(
+          (product.key_ingredients ?? []).map((k) => [k.name.toLowerCase().trim(), k]),
+        );
+        const flagsByName = new Map(flags.map((f) => [f.name.toLowerCase().trim(), f]));
+        const mergedNames = new Set([
+          ...existingByName.keys(),
+          ...flagsByName.keys(),
+        ]);
+        const mergedKeyIngredients = Array.from(mergedNames).map((lname) => {
+          const base = existingByName.get(lname);
+          const flag = flagsByName.get(lname);
+          return {
+            name: base?.name ?? flag?.name ?? lname,
+            benefit: flag?.body ?? base?.benefit,
+            flag: flag ? flagToneToSeverity(flag.tone) : base?.flag,
+          };
+        });
+        if (summary || score != null || mergedKeyIngredients.length > 0) {
           await supabase
             .from("user_products")
             .update({
               ai_summary: summary,
               match_score: score,
+              key_ingredients: mergedKeyIngredients,
             })
             .eq("id", product.id);
         }
@@ -325,10 +368,31 @@ const ProductProfile = () => {
                     setAiSummary(summary);
                     const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
                     setAiMatchScore(score);
-                    if (summary || score != null) {
+                    // Persist refreshed analysis (summary, score AND merged
+                    // per-ingredient flags) so the cache stays consistent.
+                    const flagToneToSeverity = (t: "good" | "warn" | "bad"): "good" | "warn" | "avoid" =>
+                      t === "bad" ? "avoid" : t;
+                    const existingByName = new Map(
+                      (product.key_ingredients ?? []).map((k) => [k.name.toLowerCase().trim(), k]),
+                    );
+                    const flagsByName = new Map(flags.map((f) => [f.name.toLowerCase().trim(), f]));
+                    const mergedNames = new Set([...existingByName.keys(), ...flagsByName.keys()]);
+                    const mergedKeyIngredients = Array.from(mergedNames).map((lname) => {
+                      const base = existingByName.get(lname);
+                      const flag = flagsByName.get(lname);
+                      return {
+                        name: base?.name ?? flag?.name ?? lname,
+                        benefit: flag?.body ?? base?.benefit,
+                        flag: flag ? flagToneToSeverity(flag.tone) : base?.flag,
+                      };
+                    });
+                    if (summary || score != null || mergedKeyIngredients.length > 0) {
                       await supabase.from("user_products").update({
-                        ai_summary: summary, match_score: score,
+                        ai_summary: summary,
+                        match_score: score,
+                        key_ingredients: mergedKeyIngredients,
                       }).eq("id", product.id);
+                      reload();
                     }
                     toast.success("Guidance refreshed");
                   } catch (e) {

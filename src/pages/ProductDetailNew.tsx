@@ -216,6 +216,30 @@ const ProductDetailNew = () => {
       return;
     }
     setSaving(true);
+    // Merge the per-ingredient AI flags (good/warn/bad + body) into
+    // key_ingredients so that everything personalised at scan/upload time is
+    // saved with the product. ProductProfile will rehydrate from this and
+    // never re-call the AI on future visits — the cache is only invalidated
+    // when the user's hair/health profile changes (Phase 2.5 trigger).
+    const flagToneToSeverity = (t: "good" | "warn" | "bad"): "good" | "warn" | "avoid" =>
+      t === "bad" ? "avoid" : t;
+    const existingByName = new Map(
+      (a.key_ingredients ?? []).map((k) => [k.name.toLowerCase().trim(), k]),
+    );
+    const aiFlagsByName = new Map(aiFlags.map((f) => [f.name.toLowerCase().trim(), f]));
+    const mergedNames = new Set([
+      ...existingByName.keys(),
+      ...aiFlagsByName.keys(),
+    ]);
+    const mergedKeyIngredients: KeyIngredient[] = Array.from(mergedNames).map((lname) => {
+      const base = existingByName.get(lname);
+      const flag = aiFlagsByName.get(lname);
+      return {
+        name: base?.name ?? flag?.name ?? lname,
+        benefit: flag?.body ?? base?.benefit,
+        flag: flag ? flagToneToSeverity(flag.tone) : base?.flag,
+      };
+    });
     const ok = await upsert({
       product_key: state.product_key,
       name: a.product_name,
@@ -224,7 +248,7 @@ const ProductDetailNew = () => {
       image_url: state.preview_url,
       storage_path: state.storage_path,
       ingredients: ingredients,
-      key_ingredients: a.key_ingredients ?? [],
+      key_ingredients: mergedKeyIngredients,
       ai_summary: a.ai_summary ?? null,
       match_score: score,
       on_shelf: target === "shelf",
