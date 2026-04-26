@@ -41,6 +41,7 @@ import WashStep4 from "./pages/wash/WashStep4";
 import Products from "./pages/Products";
 import IngredientDetail from "./pages/IngredientDetail";
 import Wishlist from "./pages/Wishlist";
+import Favourites from "./pages/Favourites";
 import OffShelf from "./pages/OffShelf";
 import Avoidlist from "./pages/Avoidlist";
 import ProductScanning from "./pages/ProductScanning";
