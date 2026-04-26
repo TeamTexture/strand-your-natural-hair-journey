@@ -73,10 +73,65 @@ const Products = () => {
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
 
-  // Group shelf products by category for the new wash-day-style layout.
+  // Search + filter state
+  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null); // minimum stars
+
+  // Distinct brands + categories for filter chips
+  const brandOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) if (p.brand) set.add(p.brand);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Map<string, string>();
+    for (const p of products) {
+      const { key, label } = categoryBucket(p.category);
+      set.set(key, label);
+    }
+    const ordered: { key: string; label: string }[] = [];
+    for (const b of CATEGORY_ORDER) if (set.has(b.key)) ordered.push({ key: b.key, label: set.get(b.key)! });
+    if (set.has("other")) ordered.push({ key: "other", label: "Other" });
+    return ordered;
+  }, [products]);
+
+  // Apply search + filters before grouping
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (categoryFilter && categoryBucket(p.category).key !== categoryFilter) return false;
+      if (brandFilter && (p.brand ?? "") !== brandFilter) return false;
+      if (ratingFilter && (p.rating ?? 0) < ratingFilter) return false;
+      if (q) {
+        const hay = [
+          p.name,
+          p.brand ?? "",
+          p.category ?? "",
+          ...(p.ingredients ?? []),
+        ].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [products, search, categoryFilter, brandFilter, ratingFilter]);
+
+  const activeFilterCount =
+    (categoryFilter ? 1 : 0) + (brandFilter ? 1 : 0) + (ratingFilter ? 1 : 0);
+
+  const clearFilters = () => {
+    setCategoryFilter(null);
+    setBrandFilter(null);
+    setRatingFilter(null);
+  };
+
+  // Group filtered shelf products by category for the wash-day-style layout.
   const groups = useMemo(() => {
     const buckets = new Map<string, { label: string; items: UserProduct[] }>();
-    for (const p of products) {
+    for (const p of filteredProducts) {
       const { key, label } = categoryBucket(p.category);
       if (!buckets.has(key)) buckets.set(key, { label, items: [] });
       buckets.get(key)!.items.push(p);
@@ -89,7 +144,8 @@ const Products = () => {
     const other = buckets.get("other");
     if (other) ordered.push({ key: "other", label: other.label, items: other.items });
     return ordered;
-  }, [products]);
+  }, [filteredProducts]);
+
 
 
   const handleDelete = async () => {
