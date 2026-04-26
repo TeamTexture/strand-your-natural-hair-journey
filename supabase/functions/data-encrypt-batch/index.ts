@@ -119,10 +119,16 @@ Deno.serve(async (req) => {
       if (typeof item?.id !== "string" || typeof item?.plaintext !== "string") {
         throw new Error("each item must have { id: string, plaintext: string }");
       }
-      return {
-        id: item.id,
-        ciphertext_b64: encrypt(sodium, key, item.plaintext),
-      };
+      const { ciphertext_b64, ciphertext_pg_hex } = encrypt(
+        sodium,
+        key,
+        item.plaintext,
+      );
+      // Both formats are returned. Callers writing to a Postgres bytea via
+      // PostgREST MUST use ciphertext_pg_hex (it's the `\x...` literal that
+      // PostgREST decodes server-side). Callers using the value as an opaque
+      // string can use ciphertext_b64.
+      return { id: item.id, ciphertext_b64, ciphertext_pg_hex };
     });
 
     return json(200, { items: out });
