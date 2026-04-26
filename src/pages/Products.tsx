@@ -43,7 +43,7 @@ const CATEGORY_ORDER: { key: string; label: string; matchers: RegExp[] }[] = [
   { key: "styler",     label: "Styler",            matchers: [/curl\s?cream/i, /twisting/i, /styling/i, /styler/i, /custard/i, /pudding/i, /gel/i, /mousse/i, /foam/i, /jelly/i, /butter/i] },
   { key: "oil",        label: "Oil & Sealant",     matchers: [/^oil/i, /serum/i, /sealant/i] },
   { key: "refresh",    label: "Refresh & Finish",  matchers: [/refresh/i, /spray/i, /mist/i, /hairspray/i, /shine/i] },
-  { key: "treatments", label: "Treatments",        matchers: [/treatment/i, /bond/i, /keratin/i, /protein/i] },
+  { key: "treatments", label: "Pre-Shampoo",        matchers: [/treatment/i, /bond/i, /keratin/i, /protein/i] },
   { key: "scalp",      label: "Scalp",             matchers: [/scalp/i, /tonic/i] },
 ];
 
