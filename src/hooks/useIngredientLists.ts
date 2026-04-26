@@ -179,6 +179,11 @@ export async function saveProductRating(args: SaveRatingArgs) {
     recomputeList(user.id, "avoid"),
     recomputeList(user.id, "favourite"),
   ]);
+
+  // Notify any mounted product lists to refresh their stars.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("user-products-updated"));
+  }
 }
 
 export function useIngredientLists() {
