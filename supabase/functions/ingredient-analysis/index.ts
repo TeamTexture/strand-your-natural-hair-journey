@@ -27,7 +27,7 @@ import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v2-guidance";
+const MODEL_VERSION = "claude-sonnet-4-6@v3-hardwater-no-postcode";
 
 interface IngredientCard {
   name: string;
@@ -139,7 +139,7 @@ RULES — STRICT:
 6. personalised_guidance: EXACTLY 3 tips on how THIS specific user should USE this product. Each tip MUST reference at least one concrete data point from the user's profile (porosity, density, scalp condition, diagnosed condition, current hairstyle, planned next style, a named goal, a logged challenge, blood marker, hard-water area, heritage). NEVER write generic advice like "use as directed". Lead with action. If the product is a poor fit (match_score < 55), guidance can include patch-test, dilution, frequency caps, or "skip if X" warnings — still tied to the user's data. Examples:
    - title: "Use sparingly on low-porosity hair", body: "Your low-porosity strands struggle to absorb heavy butters — apply a 10p coin to damp ends only, twice a week, to avoid build-up."
    - title: "Pair with your protective styling goal", body: "Since you're working towards 6-month length retention in braids, work this leave-in through sections on take-down day to ease detangling without breakage."
-   - title: "Soft water only", body: "Your SE15 postcode is hard-water — clarify with a chelating shampoo before this mask, otherwise the cationic conditioners bind to mineral deposits and feel waxy."
+   - title: "Counter your hard water", body: "Because you live in a hard-water area, clarify with a chelating shampoo before this mask — otherwise the cationic conditioners bind to mineral deposits and feel waxy. NEVER mention the user's postcode; refer only to the fact that they are in a hard-water area."
 7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
 8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
 }
