@@ -294,10 +294,9 @@ const IngredientDetail = () => {
               </div>
               <Button
                 variant="gold"
-                size="pill"
                 onClick={handleSaveRating}
                 disabled={saving}
-                className="shrink-0"
+                className="shrink-0 !min-h-0 h-9 px-5 rounded-pill text-xs"
               >
                 {saving ? "Saving…" : "Save"}
               </Button>
