@@ -127,7 +127,15 @@ Deno.serve(async (req) => {
       gateAuthed = true;
     }
     if (!gateAuthed) {
-      return json(403, { error: "admin gate failed" });
+      return json(403, {
+        error: "admin gate failed",
+        debug: {
+          admin_email_set: Boolean(adminEmail),
+          admin_email_len: adminEmail?.length ?? 0,
+          admin_token_set: Boolean(adminToken),
+          auth_header_present: Boolean(authHeader),
+        },
+      });
     }
 
     await _sodium.ready;
