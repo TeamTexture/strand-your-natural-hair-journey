@@ -108,6 +108,9 @@ export function useUserProducts(filter: Filter = "all") {
     const { error } = await supabase.from("user_products").update(updates).eq("id", id);
     if (error) { toast.error("Could not update product"); return; }
     await load();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+    }
   };
 
   const setWishlist = async (id: string, on: boolean) => {
@@ -134,6 +137,9 @@ export function useUserProducts(filter: Filter = "all") {
     const { error } = await supabase.from("user_products").delete().eq("id", id);
     if (error) { toast.error("Could not delete product"); return; }
     await load();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+    }
   };
 
   return { products: filtered, allProducts: products, loading, upsert, setShelf, setWishlist, setFavourite, remove, reload: load };
