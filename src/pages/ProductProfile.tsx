@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowDownToLine } from "lucide-react";
+import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -64,6 +65,7 @@ const ProductProfile = () => {
   const { avoid, favourites } = useIngredientLists();
   const { goals } = useGoals();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
 
   // Per-ingredient AI flags (good/warn/bad + body) for THIS product, scored
