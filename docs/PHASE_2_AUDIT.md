@@ -763,3 +763,26 @@ Everything else (the 9 edge functions including `_shared/`, the `manuscript_chun
 ---
 
 **Approved 2026-04-26 with the decisions above and the §5 splits. Awaiting the canonical `STRAND_PERSONA` text and the manuscript PDF location before Hand-off #1. After Hand-off #1 I begin Step 0 (foundation) — no per-function migrations until Hand-off #2.**
+
+---
+
+## Audit revisions
+
+### 2026-04-26 — Step 3 gains autonomous web research (Paige's request)
+
+Stage-2 Claude smoke testing of `ingredient-analysis` passed cleanly. While reviewing the upcoming Step 3 spec ahead of implementation, Paige decided that **`product-analyse` should not stay vision-only**. The user goal — "take a photo of a product and get the same depth of analysis you'd get if you'd handed me the URL" — cannot be met from a single photo when the ingredient list is folded, partially printed, or hidden behind brand text. Step 3 must therefore close the gap to Step 4a's URL flow by **searching the web itself** for canonical product details whenever the visible label is insufficient.
+
+**What changed in §5 Step 3:**
+1. **Tool list:** vision content block + new **`web_search` tool** (Anthropic native, Sonnet 4.6 supports it) + existing `return_product_analysis` tool_use. `max_uses: 4` per call — enough to identify the product, optionally cross-check INCI, optionally pull brand/formulation context, optionally check a retailer fact. Tight upper bound, autonomous within it.
+2. **Token cost:** revised from ~$0.014/call to **~$0.03–0.05/call** to account for ~2–3 `web_search` invocations at ~$0.01/search plus additional output tokens from synthesised research. Vision+research is now the most expensive Phase 2 per-call op; §6 cost model needs to absorb this when projections are recomputed pre-launch.
+3. **Schema:** **unchanged.** `return_product_analysis` is identical. What changes is *how* Claude fills it (vision-only → vision+research). Existing client rendering in `useProductScan.ts` and `ProductDetailNew.tsx` is untouched.
+4. **Persona:** the formal `Read more — How To Love Your Afro, Chapter X: [Title], p.[page]` footer remains **reserved for book-derived guidance**. Web-derived product facts (brand site, retailer page, INCI database) are referenced inline in `ai_summary` / `tips` in natural prose. New explicit instruction added to `task_instructions`: *"When citing facts, distinguish book-derived guidance from web-derived product facts. Web sources can be referenced inline naturally in prose; book citations get the formal 'Read more — …' line on its own line at the end."*
+5. **New verification step (§8 Step 11b):** before declaring Step 3 green, Paige photographs a TT product whose ingredient list is on a foldable insert / hidden side panel and confirms `ingredients[]` returns the **full** INCI via web_search (not just OCR of the visible fragment), with persona footers and inline web citations behaving per the rule above.
+6. **Rollout flag:** unchanged — `STRAND_AI_PROVIDER_PRODUCT_PHOTO=claude`, per-function only, no global flag.
+
+**What did NOT change:**
+- **Step 4a (`product-analyse-url`)** scope is unchanged. URL flow continues to start from a known URL, scrape via Firecrawl/fallback, and call `return_product_analysis`. The schema unification with Step 3 is preserved (`_shared/schemas.ts`).
+- **The boundary between Steps 3 and 4a** is now: Step 3 starts from a **photo with partial info** and resolves to canonical via autonomous web search; Step 4a starts from a **URL the user provides** and scrapes that page directly. Both produce the same payload.
+- **Steps 4b, 5a, 5b** structure and per-function flags are untouched.
+- **Per-function `STRAND_AI_PROVIDER_<FN>` flags** remain strictly per-function. No global flag introduced.
+
