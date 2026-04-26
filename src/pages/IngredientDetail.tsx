@@ -18,12 +18,10 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
 
 interface Ingredient { tone: "good" | "warn" | "bad"; name: string; body: string }
-interface GuidanceTip { title: string; body: string }
 interface Analysis {
   match_score: number;
   summary: string;
   ingredients: Ingredient[];
-  personalised_guidance?: GuidanceTip[];
 }
 
 const dotClass: Record<Ingredient["tone"], string> = {
@@ -272,36 +270,26 @@ const IngredientDetail = () => {
               <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>
             </div>
           </div>
-
-          <div className="pt-3 border-t border-border/60">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your Rating</p>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setRating(n)}
-                    className={cn(
-                      "text-2xl transition-transform",
-                      n <= rating ? "text-primary" : "text-border",
-                      "hover:scale-110",
-                    )}
-                    aria-label={`${n} stars`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-              <Button
-                variant="gold"
-                size="pill"
-                onClick={handleSaveRating}
-                disabled={saving}
-                className="shrink-0"
-              >
-                {saving ? "Saving…" : "Save"}
-              </Button>
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/60">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setRating(n)}
+                  className={cn("text-2xl leading-none transition-transform", n <= rating ? "text-primary" : "text-border", "hover:scale-110")}
+                  aria-label={`${n} stars`}
+                >
+                  ★
+                </button>
+              ))}
             </div>
+            <button
+              onClick={handleSaveRating}
+              disabled={saving || loading || !analysis}
+              className="text-[11px] uppercase tracking-[0.18em] font-semibold text-primary disabled:text-muted-foreground disabled:cursor-not-allowed px-2 py-1 min-h-[32px]"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
           </div>
         </SurfaceCard>
 
@@ -324,27 +312,8 @@ const IngredientDetail = () => {
           <>
             <SurfaceCard tone="gold">
               <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">{analysis.summary}</p>
+              <p className="text-sm leading-snug text-foreground/85">{analysis.summary}</p>
             </SurfaceCard>
-
-            {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
-              <>
-                <SectionLabel>How to use this for your hair</SectionLabel>
-                <SurfaceCard className="space-y-3">
-                  {analysis.personalised_guidance.map((tip, idx) => (
-                    <div key={`${tip.title}-${idx}`} className="flex items-start gap-3">
-                      <span className="size-6 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-tight">{tip.title}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{tip.body}</p>
-                      </div>
-                    </div>
-                  ))}
-                </SurfaceCard>
-              </>
-            )}
 
             <SectionLabel>Ingredient breakdown</SectionLabel>
             <SurfaceCard className="divide-y divide-border/60 !py-1">
