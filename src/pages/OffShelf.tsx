@@ -17,10 +17,11 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 
 const tabs = [
-  { id: "shelf",     label: "Shelf",     path: "/products" },
-  { id: "wishlist",  label: "Wishlist",  path: "/products/wishlist" },
-  { id: "off-shelf", label: "Off Shelf", path: "/products/off-shelf" },
-  { id: "intel",     label: "Ingredients", path: "/products/avoidlist" },
+  { id: "shelf",      label: "Shelf",      path: "/products" },
+  { id: "favourites", label: "Faves",      path: "/products/favourites" },
+  { id: "wishlist",   label: "Wish",       path: "/products/wishlist" },
+  { id: "off-shelf",  label: "Off",        path: "/products/off-shelf" },
+  { id: "intel",      label: "Ingr.",      path: "/products/avoidlist" },
 ];
 
 const Stars = ({ n }: { n: number }) => (
