@@ -90,12 +90,24 @@ const daysSince = (iso: string | null): number | null => {
 };
 
 export async function buildAiContext(): Promise<AiContext> {
-  // Clinical slices (DB + decrypt with localStorage fallback). Kicks off the
-  // decrypt edge function early so the supabase reads below can proceed in
-  // parallel.
-  const clinicalPromise = loadClinicalContext();
+  // Resolve the user first — every localStorage fallback below must be gated
+  // on `localStorageIsForUser(userId)` so we never serve a previous account's
+  // cached strand_* payload to a freshly-signed-in user on the same browser.
+  let userId: string | null = null;
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    userId = u?.user?.id ?? null;
+  } catch {
+    userId = null;
+  }
+  const localOk = localStorageIsForUser(userId);
+
+  // Clinical slices (DB + decrypt with localStorage fallback). Pass through
+  // whether legacy localStorage is safe to read for THIS user.
+  const clinicalPromise = loadClinicalContext({ allowLocalFallback: localOk });
 
   const lastWashIso = (() => {
+    if (!localOk) return null;
     if (typeof window === "undefined") return null;
     try {
       return localStorage.getItem("strand_last_wash_date");
@@ -103,10 +115,9 @@ export async function buildAiContext(): Promise<AiContext> {
       return null;
     }
   })();
-  const localWashHistory = safeParse<Array<Record<string, unknown>>>(
-    "strand_wash_history",
-    [],
-  );
+  const localWashHistory = localOk
+    ? safeParse<Array<Record<string, unknown>>>("strand_wash_history", [])
+    : [];
 
   let bloodResults: Array<Record<string, unknown>> = [];
   let avoidIngredients: string[] = [];
@@ -118,8 +129,6 @@ export async function buildAiContext(): Promise<AiContext> {
   let goals: AiContext["goals"] = [];
 
   try {
-    const { data: u } = await supabase.auth.getUser();
-    const userId = u?.user?.id;
     if (userId) {
       const [blood, ingLists, washes, shelfRows, ratings, goalRows] = await Promise.all([
         supabase
