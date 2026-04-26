@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -16,14 +16,48 @@ import { useAuth } from "@/hooks/useAuth";
 import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
 
+// Session-scoped key for restoring tab + expanded ingredient when the user
+// navigates into a product profile and then back via the browser back button.
+const STATE_KEY = "strand:avoidlist:state";
+
+const readSavedState = (): { tab: "avoid" | "fav"; expanded: string | null } => {
+  if (typeof window === "undefined") return { tab: "avoid", expanded: null };
+  try {
+    const raw = window.sessionStorage.getItem(STATE_KEY);
+    if (!raw) return { tab: "avoid", expanded: null };
+    const parsed = JSON.parse(raw);
+    return {
+      tab: parsed?.tab === "fav" ? "fav" : "avoid",
+      expanded: typeof parsed?.expanded === "string" ? parsed.expanded : null,
+    };
+  } catch {
+    return { tab: "avoid", expanded: null };
+  }
+};
+
 const Avoidlist = () => {
-  const [tab, setTab] = useState<"avoid" | "fav">("avoid");
+  const initial = readSavedState();
+  const [tab, setTab] = useState<"avoid" | "fav">(initial.tab);
   const [exporting, setExporting] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(initial.expanded);
   const { avoid, favourites, loading } = useIngredientLists();
   const { allProducts } = useUserProducts("all");
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Persist tab + expanded row so a back-navigation from a product profile
+  // restores the exact dropdown the user left from.
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(
+        STATE_KEY,
+        JSON.stringify({ tab, expanded }),
+      );
+    } catch {
+      /* ignore quota / privacy-mode errors */
+    }
+  }, [tab, expanded]);
+
 
   const handleExport = async () => {
     if (exporting) return;
