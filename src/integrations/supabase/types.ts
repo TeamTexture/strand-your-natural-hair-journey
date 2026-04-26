@@ -96,9 +96,11 @@ export type Database = {
           marker: string
           status: string | null
           unit: string | null
+          unit_enc: string | null
           updated_at: string
           user_id: string
           value: number | null
+          value_enc: string | null
         }
         Insert: {
           category?: string | null
@@ -106,9 +108,11 @@ export type Database = {
           marker: string
           status?: string | null
           unit?: string | null
+          unit_enc?: string | null
           updated_at?: string
           user_id: string
           value?: number | null
+          value_enc?: string | null
         }
         Update: {
           category?: string | null
@@ -116,9 +120,11 @@ export type Database = {
           marker?: string
           status?: string | null
           unit?: string | null
+          unit_enc?: string | null
           updated_at?: string
           user_id?: string
           value?: number | null
+          value_enc?: string | null
         }
         Relationships: []
       }
@@ -474,25 +480,37 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          birth_year: number | null
+          country: string
           created_at: string
           display_name: string | null
+          heritage: string[]
           id: string
+          postcode: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          birth_year?: number | null
+          country?: string
           created_at?: string
           display_name?: string | null
+          heritage?: string[]
           id?: string
+          postcode?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          birth_year?: number | null
+          country?: string
           created_at?: string
           display_name?: string | null
+          heritage?: string[]
           id?: string
+          postcode?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -558,26 +576,128 @@ export type Database = {
         }
         Relationships: []
       }
+      user_hair_profile: {
+        Row: {
+          areas_of_concern: string[]
+          created_at: string
+          density: string | null
+          diagnosed_conditions_enc: string | null
+          diameter: string | null
+          elasticity: string | null
+          id: string
+          porosity: string | null
+          scalp_condition_enc: string | null
+          surface_texture: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          areas_of_concern?: string[]
+          created_at?: string
+          density?: string | null
+          diagnosed_conditions_enc?: string | null
+          diameter?: string | null
+          elasticity?: string | null
+          id?: string
+          porosity?: string | null
+          scalp_condition_enc?: string | null
+          surface_texture?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          areas_of_concern?: string[]
+          created_at?: string
+          density?: string | null
+          diagnosed_conditions_enc?: string | null
+          diameter?: string | null
+          elasticity?: string | null
+          id?: string
+          porosity?: string | null
+          scalp_condition_enc?: string | null
+          surface_texture?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_health_profile: {
+        Row: {
+          alcohol: string | null
+          contraception_enc: string | null
+          created_at: string
+          daily_water: string | null
+          diet: string | null
+          diet_balance: string | null
+          exercise: string | null
+          id: string
+          life_stage_enc: string | null
+          medical_conditions_enc: string | null
+          sleep_quality: string | null
+          smoke: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alcohol?: string | null
+          contraception_enc?: string | null
+          created_at?: string
+          daily_water?: string | null
+          diet?: string | null
+          diet_balance?: string | null
+          exercise?: string | null
+          id?: string
+          life_stage_enc?: string | null
+          medical_conditions_enc?: string | null
+          sleep_quality?: string | null
+          smoke?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alcohol?: string | null
+          contraception_enc?: string | null
+          created_at?: string
+          daily_water?: string | null
+          diet?: string | null
+          diet_balance?: string | null
+          exercise?: string | null
+          id?: string
+          life_stage_enc?: string | null
+          medical_conditions_enc?: string | null
+          sleep_quality?: string | null
+          smoke?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_medications: {
         Row: {
           category: string | null
+          category_enc: string | null
           created_at: string
           id: string
           name: string
+          name_enc: string | null
           user_id: string
         }
         Insert: {
           category?: string | null
+          category_enc?: string | null
           created_at?: string
           id?: string
           name: string
+          name_enc?: string | null
           user_id: string
         }
         Update: {
           category?: string | null
+          category_enc?: string | null
           created_at?: string
           id?: string
           name?: string
+          name_enc?: string | null
           user_id?: string
         }
         Relationships: []
@@ -683,6 +803,116 @@ export type Database = {
           storage_path?: string | null
           updated_at?: string
           use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_professionals: {
+        Row: {
+          booking_url: string | null
+          clinic: string | null
+          consultation_date: string | null
+          created_at: string
+          directory_id: string | null
+          gmc_number_enc: string | null
+          id: string
+          instagram_handle: string | null
+          iot_number_enc: string | null
+          name: string | null
+          notes_audio_path: string | null
+          notes_enc: string | null
+          picked_from_directory: boolean
+          professional_type: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          booking_url?: string | null
+          clinic?: string | null
+          consultation_date?: string | null
+          created_at?: string
+          directory_id?: string | null
+          gmc_number_enc?: string | null
+          id?: string
+          instagram_handle?: string | null
+          iot_number_enc?: string | null
+          name?: string | null
+          notes_audio_path?: string | null
+          notes_enc?: string | null
+          picked_from_directory?: boolean
+          professional_type?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          booking_url?: string | null
+          clinic?: string | null
+          consultation_date?: string | null
+          created_at?: string
+          directory_id?: string | null
+          gmc_number_enc?: string | null
+          id?: string
+          instagram_handle?: string | null
+          iot_number_enc?: string | null
+          name?: string | null
+          notes_audio_path?: string | null
+          notes_enc?: string | null
+          picked_from_directory?: boolean
+          professional_type?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_professionals_directory_id_fkey"
+            columns: ["directory_id"]
+            isOneToOne: false
+            referencedRelation: "professionals_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_style_profile: {
+        Row: {
+          chemical_history: string[]
+          created_at: string
+          current_colour_status: string | null
+          current_hairstyle: string | null
+          default_styles: string[]
+          id: string
+          planned_change_date: string | null
+          planned_next_style: string | null
+          style_set_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chemical_history?: string[]
+          created_at?: string
+          current_colour_status?: string | null
+          current_hairstyle?: string | null
+          default_styles?: string[]
+          id?: string
+          planned_change_date?: string | null
+          planned_next_style?: string | null
+          style_set_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chemical_history?: string[]
+          created_at?: string
+          current_colour_status?: string | null
+          current_hairstyle?: string | null
+          default_styles?: string[]
+          id?: string
+          planned_change_date?: string | null
+          planned_next_style?: string | null
+          style_set_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
