@@ -77,7 +77,14 @@ const Wishlist = () => {
                       <div className="size-full flex items-center justify-center text-2xl bg-primary/15">🧴</div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/products/ingredient?key=${encodeURIComponent(p.product_key)}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(p.brand ?? "")}`,
+                      )
+                    }
+                    className="flex-1 min-w-0 text-left"
+                  >
                     <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
                     {noteCount > 0 && (
@@ -85,7 +92,7 @@ const Wishlist = () => {
                         <Mic className="size-3" /> {noteCount} note{noteCount === 1 ? "" : "s"}
                       </span>
                     )}
-                  </div>
+                  </button>
                   <button
                     onClick={() => setExpanded(isOpen ? null : p.product_key)}
                     className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
