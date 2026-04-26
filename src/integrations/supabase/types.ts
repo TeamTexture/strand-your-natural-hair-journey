@@ -268,6 +268,45 @@ export type Database = {
         }
         Relationships: []
       }
+      manuscript_chunks: {
+        Row: {
+          body: string
+          chapter: number
+          chapter_title: string
+          created_at: string
+          embedding: string
+          id: string
+          page_end: number | null
+          page_start: number | null
+          section_heading: string | null
+          token_count: number | null
+        }
+        Insert: {
+          body: string
+          chapter: number
+          chapter_title: string
+          created_at?: string
+          embedding: string
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          section_heading?: string | null
+          token_count?: number | null
+        }
+        Update: {
+          body?: string
+          chapter?: number
+          chapter_title?: string
+          created_at?: string
+          embedding?: string
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          section_heading?: string | null
+          token_count?: number | null
+        }
+        Relationships: []
+      }
       moodboard_images: {
         Row: {
           board_id: string
