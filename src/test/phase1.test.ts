@@ -24,7 +24,28 @@ interface QBState {
   countResult: number | null;
 }
 
-function makeQueryBuilder(state: QBState) {
+// Builders are cached per-table so a test can grab the same instance across
+// multiple `from(t)` calls and assert which write method was used. Each
+// chainable / terminal method's return value reads `tableStates` dynamically
+// so a test can call `setTable(...)` after the builder was created and have
+// the new state take effect.
+const tableStates = new Map<string, QBState>();
+const builderCache = new Map<string, ReturnType<typeof makeQueryBuilder>>();
+
+function defaultState(table: string): QBState {
+  return { table, data: null, error: null, countResult: null };
+}
+
+function getState(table: string): QBState {
+  let s = tableStates.get(table);
+  if (!s) {
+    s = defaultState(table);
+    tableStates.set(table, s);
+  }
+  return s;
+}
+
+function makeQueryBuilder(table: string) {
   const q: Record<string, unknown> = {};
   q.select = vi.fn().mockReturnValue(q);
   q.eq = vi.fn().mockReturnValue(q);
@@ -35,25 +56,32 @@ function makeQueryBuilder(state: QBState) {
   q.is = vi.fn().mockReturnValue(q);
   q.not = vi.fn().mockReturnValue(q);
   q.delete = vi.fn().mockReturnValue(q);
-  q.insert = vi.fn(async () => ({ data: null, error: state.error }));
+  q.insert = vi.fn(async () => ({ data: null, error: getState(table).error }));
   q.update = vi.fn().mockReturnValue(q);
-  q.upsert = vi.fn(async () => ({ data: null, error: state.error }));
-  q.maybeSingle = vi.fn(async () => ({ data: state.data, error: state.error }));
-  q.then = (resolve: (v: { data: unknown; error: unknown; count?: number | null }) => unknown) =>
-    resolve({ data: Array.isArray(state.data) ? state.data : [], error: state.error, count: state.countResult });
+  q.upsert = vi.fn(async () => ({ data: null, error: getState(table).error }));
+  q.maybeSingle = vi.fn(async () => {
+    const s = getState(table);
+    return { data: s.data, error: s.error };
+  });
+  q.then = (resolve: (v: { data: unknown; error: unknown; count?: number | null }) => unknown) => {
+    const s = getState(table);
+    resolve({ data: Array.isArray(s.data) ? s.data : [], error: s.error, count: s.countResult });
+  };
   return q;
 }
 
-const tableStates = new Map<string, QBState>();
+function getBuilder(table: string) {
+  if (!builderCache.has(table)) {
+    builderCache.set(table, makeQueryBuilder(table));
+  }
+  return builderCache.get(table)!;
+}
 
 function setTable(table: string, state: Partial<QBState>) {
-  tableStates.set(table, {
-    table,
-    data: null,
-    error: null,
-    countResult: null,
-    ...state,
-  });
+  // Mutate (don't replace) so cached builders see the new state through their
+  // dynamic `getState(table)` lookups.
+  const existing = getState(table);
+  Object.assign(existing, state);
 }
 
 const mockGetUser = vi.fn();
@@ -62,16 +90,14 @@ const mockInvoke = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: () => mockGetUser() },
-    from: (table: string) => {
-      if (!tableStates.has(table)) tableStates.set(table, { table, data: null, error: null, countResult: null });
-      return makeQueryBuilder(tableStates.get(table)!);
-    },
+    from: (table: string) => getBuilder(table),
     functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
   },
 }));
 
 beforeEach(() => {
   tableStates.clear();
+  builderCache.clear();
   mockGetUser.mockReset();
   mockInvoke.mockReset();
   if (typeof window !== "undefined") {
@@ -253,5 +279,69 @@ describe("migration hook no-op", () => {
       const state = tableStates.get(tbl);
       expect(state?.data).toBeTruthy();
     }
+  });
+});
+
+// ─────────────── Hotfix regression: insert → upsert for clinical tables ───────────────
+//
+// 933c905 used `.insert(...)` on the four clinical tables, which threw a
+// duplicate-key error when a `user_professionals` row already existed (e.g.
+// from the dual-write onboarding path or a parallel device login). The
+// existing-row SELECT can race with a parallel write, so the only safe
+// pattern is `.upsert(..., { onConflict: "user_id" })`. This test pins that
+// contract: if a future refactor switches back to `.insert`, this test fails.
+
+describe("hotfix: clinical migrations use upsert (not insert)", () => {
+  it("user_professionals is written via upsert with onConflict=user_id", async () => {
+    const { runMigrationV1 } = await import("@/hooks/useLocalStorageMigration");
+
+    localStorage.setItem(
+      "strand_professional",
+      JSON.stringify({
+        name: "Dr X",
+        type: "Dermatologist",
+        gmc: "1234567",
+        iot: "",
+        clinic: "Clinic A",
+        date: "2026-04-01",
+        notes: "Some notes",
+      }),
+    );
+
+    // SELECT returns null so the existing-row early-return doesn't bail —
+    // this simulates the race / RLS-scoping edge case where the SELECT
+    // can't see a row that the write would otherwise collide with.
+    setTable("user_professionals", { data: null });
+    setTable("profiles", {
+      data: { postcode: null, country: null, heritage: [], birth_year: null },
+    });
+
+    mockInvoke.mockResolvedValueOnce({
+      data: {
+        items: [
+          { id: "gmc", ciphertext_pg_hex: "\\x01", ciphertext_b64: "" },
+          { id: "iot", ciphertext_pg_hex: "\\x02", ciphertext_b64: "" },
+          { id: "notes", ciphertext_pg_hex: "\\x03", ciphertext_b64: "" },
+        ],
+      },
+      error: null,
+    });
+
+    await runMigrationV1("user-x");
+
+    const proBuilder = getBuilder("user_professionals") as unknown as {
+      insert: ReturnType<typeof vi.fn>;
+      upsert: ReturnType<typeof vi.fn>;
+    };
+    expect(proBuilder.insert).not.toHaveBeenCalled();
+    expect(proBuilder.upsert).toHaveBeenCalledTimes(1);
+    expect(proBuilder.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: "user-x",
+        name: "Dr X",
+        professional_type: "Dermatologist",
+      }),
+      { onConflict: "user_id" },
+    );
   });
 });

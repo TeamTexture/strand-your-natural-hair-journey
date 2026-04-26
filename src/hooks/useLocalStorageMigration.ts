@@ -186,18 +186,29 @@ async function migrateHairProfile(userId: string): Promise<void> {
     { id: "diagnosed", plaintext: JSON.stringify(diagnosedArr) },
   ]);
 
-  const { error } = await supabase.from("user_hair_profile").insert({
-    user_id: userId,
-    diameter: (local.diameter ?? [])[0] ?? null,
-    surface_texture: (local.texture ?? [])[0] ?? null,
-    density: (local.density ?? [])[0] ?? null,
-    porosity: (local.porosity ?? [])[0] ?? null,
-    elasticity: (local.elasticity ?? [])[0] ?? null,
-    scalp_condition_enc: enc.scalp,
-    diagnosed_conditions_enc: enc.diagnosed,
-    areas_of_concern: local.areas ?? [],
-  });
-  if (error) throw new Error(`user_hair_profile insert: ${error.message}`);
+  // Upsert (not insert) so an existing row from the dual-write onboarding
+  // path or a parallel device login can't trigger a unique-constraint
+  // duplicate-key error. The early-return above is the primary guard against
+  // overwriting fresher remote data; this is the safety net for races and
+  // the rare cases where the SELECT can't see a row that the INSERT would
+  // otherwise collide with.
+  const { error } = await supabase
+    .from("user_hair_profile")
+    .upsert(
+      {
+        user_id: userId,
+        diameter: (local.diameter ?? [])[0] ?? null,
+        surface_texture: (local.texture ?? [])[0] ?? null,
+        density: (local.density ?? [])[0] ?? null,
+        porosity: (local.porosity ?? [])[0] ?? null,
+        elasticity: (local.elasticity ?? [])[0] ?? null,
+        scalp_condition_enc: enc.scalp,
+        diagnosed_conditions_enc: enc.diagnosed,
+        areas_of_concern: local.areas ?? [],
+      },
+      { onConflict: "user_id" },
+    );
+  if (error) throw new Error(`user_hair_profile upsert: ${error.message}`);
 }
 
 async function migrateHealthProfile(userId: string): Promise<void> {
@@ -217,20 +228,25 @@ async function migrateHealthProfile(userId: string): Promise<void> {
     { id: "medical_conditions", plaintext: JSON.stringify(local.conditions ?? []) },
   ]);
 
-  const { error } = await supabase.from("user_health_profile").insert({
-    user_id: userId,
-    life_stage_enc: enc.life_stage,
-    contraception_enc: enc.contraception,
-    medical_conditions_enc: enc.medical_conditions,
-    diet: local.diet ?? null,
-    diet_balance: (local.dietBalance ?? [])[0] ?? null,
-    smoke: (local.smoke ?? [])[0] ?? null,
-    alcohol: local.alcohol ?? null,
-    daily_water: (local.water ?? [])[0] ?? null,
-    exercise: (local.exercise ?? [])[0] ?? null,
-    sleep_quality: (local.sleep ?? [])[0] ?? null,
-  });
-  if (error) throw new Error(`user_health_profile insert: ${error.message}`);
+  const { error } = await supabase
+    .from("user_health_profile")
+    .upsert(
+      {
+        user_id: userId,
+        life_stage_enc: enc.life_stage,
+        contraception_enc: enc.contraception,
+        medical_conditions_enc: enc.medical_conditions,
+        diet: local.diet ?? null,
+        diet_balance: (local.dietBalance ?? [])[0] ?? null,
+        smoke: (local.smoke ?? [])[0] ?? null,
+        alcohol: local.alcohol ?? null,
+        daily_water: (local.water ?? [])[0] ?? null,
+        exercise: (local.exercise ?? [])[0] ?? null,
+        sleep_quality: (local.sleep ?? [])[0] ?? null,
+      },
+      { onConflict: "user_id" },
+    );
+  if (error) throw new Error(`user_health_profile upsert: ${error.message}`);
 }
 
 async function migrateStyleProfile(userId: string): Promise<void> {
@@ -244,17 +260,22 @@ async function migrateStyleProfile(userId: string): Promise<void> {
     .maybeSingle();
   if (existing) return;
 
-  const { error } = await supabase.from("user_style_profile").insert({
-    user_id: userId,
-    current_colour_status: (local.colour ?? [])[0] ?? null,
-    chemical_history: local.chemHist ?? [],
-    current_hairstyle: local.current_hairstyle ?? null,
-    style_set_at: local.style_set_at ?? null,
-    planned_next_style: local.planned_next_style ?? null,
-    planned_change_date: null,
-    default_styles: local.defaultStyle ?? [],
-  });
-  if (error) throw new Error(`user_style_profile insert: ${error.message}`);
+  const { error } = await supabase
+    .from("user_style_profile")
+    .upsert(
+      {
+        user_id: userId,
+        current_colour_status: (local.colour ?? [])[0] ?? null,
+        chemical_history: local.chemHist ?? [],
+        current_hairstyle: local.current_hairstyle ?? null,
+        style_set_at: local.style_set_at ?? null,
+        planned_next_style: local.planned_next_style ?? null,
+        planned_change_date: null,
+        default_styles: local.defaultStyle ?? [],
+      },
+      { onConflict: "user_id" },
+    );
+  if (error) throw new Error(`user_style_profile upsert: ${error.message}`);
 }
 
 async function migrateProfessional(userId: string): Promise<void> {
@@ -274,22 +295,27 @@ async function migrateProfessional(userId: string): Promise<void> {
     { id: "notes", plaintext: local.notes ?? "" },
   ]);
 
-  const { error } = await supabase.from("user_professionals").insert({
-    user_id: userId,
-    name: local.name ?? null,
-    professional_type: local.type ?? null,
-    clinic: local.clinic ?? null,
-    consultation_date: local.date ? local.date : null,
-    gmc_number_enc: enc.gmc,
-    iot_number_enc: enc.iot,
-    notes_enc: enc.notes,
-    notes_audio_path: local.notesAudioPath ?? null,
-    instagram_handle: local.instagram ?? null,
-    website_url: local.website ?? null,
-    booking_url: local.bookingUrl ?? null,
-    picked_from_directory: !!local.pickedFromDirectory,
-  });
-  if (error) throw new Error(`user_professionals insert: ${error.message}`);
+  const { error } = await supabase
+    .from("user_professionals")
+    .upsert(
+      {
+        user_id: userId,
+        name: local.name ?? null,
+        professional_type: local.type ?? null,
+        clinic: local.clinic ?? null,
+        consultation_date: local.date ? local.date : null,
+        gmc_number_enc: enc.gmc,
+        iot_number_enc: enc.iot,
+        notes_enc: enc.notes,
+        notes_audio_path: local.notesAudioPath ?? null,
+        instagram_handle: local.instagram ?? null,
+        website_url: local.website ?? null,
+        booking_url: local.bookingUrl ?? null,
+        picked_from_directory: !!local.pickedFromDirectory,
+      },
+      { onConflict: "user_id" },
+    );
+  if (error) throw new Error(`user_professionals upsert: ${error.message}`);
 }
 
 /** Run all five domain migrations in parallel. Resolves only when every
