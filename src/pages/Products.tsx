@@ -36,14 +36,15 @@ const tabs = [
 // style → seal → refresh → treat). Anything that doesn't match falls into
 // "Other" and renders last.
 const CATEGORY_ORDER: { key: string; label: string; matchers: RegExp[] }[] = [
-  { key: "pre",        label: "Pre-Shampoo",       matchers: [/pre[\s-]?shampoo/i, /pre[\s-]?poo/i, /co[\s-]?wash/i] },
-  { key: "cleanser",   label: "Cleanser",          matchers: [/shampoo/i, /cleanser/i, /clarif/i] },
+  { key: "pre",        label: "Pre-Shampoo",       matchers: [/pre[\s-]?shampoo/i, /pre[\s-]?poo/i] },
+  { key: "cleanser",   label: "Cleanser",          matchers: [/shampoo/i, /cleanser/i, /clarif/i, /co[\s-]?wash/i] },
   { key: "conditioner",label: "Conditioner",       matchers: [/deep\s?condition/i, /hair\s?mask/i, /^conditioner/i, /rinse[\s-]?out/i] },
   { key: "leavein",    label: "Leave-In",          matchers: [/leave[\s-]?in/i, /detangler/i, /milk/i] },
   { key: "styler",     label: "Styler",            matchers: [/curl\s?cream/i, /twisting/i, /styling/i, /styler/i, /custard/i, /pudding/i, /gel/i, /mousse/i, /foam/i, /jelly/i, /butter/i] },
   { key: "oil",        label: "Oil & Sealant",     matchers: [/^oil/i, /serum/i, /sealant/i] },
   { key: "refresh",    label: "Refresh & Finish",  matchers: [/refresh/i, /spray/i, /mist/i, /hairspray/i, /shine/i] },
-  { key: "scalp",      label: "Scalp & Treatment", matchers: [/scalp/i, /treatment/i, /tonic/i, /protein/i] },
+  { key: "treatments", label: "Treatments",        matchers: [/treatment/i, /bond/i, /keratin/i, /protein/i] },
+  { key: "scalp",      label: "Scalp",             matchers: [/scalp/i, /tonic/i] },
 ];
 
 const categoryBucket = (raw: string | null | undefined) => {
