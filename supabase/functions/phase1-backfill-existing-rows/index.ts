@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
 
     let gateAuthed = false;
     const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
+    if (authHeader && adminEmail) {
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
