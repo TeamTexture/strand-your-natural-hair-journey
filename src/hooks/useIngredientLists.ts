@@ -223,5 +223,13 @@ export function useIngredientLists() {
     refresh();
   }, [refresh]);
 
+  // Re-fetch whenever a rating is saved elsewhere in the app so the
+  // favourites / avoid lists update without a manual reload.
+  useEffect(() => {
+    const handler = () => { void refresh(); };
+    window.addEventListener("user-products-updated", handler);
+    return () => window.removeEventListener("user-products-updated", handler);
+  }, [refresh]);
+
   return { avoid, favourites, loading, error, refresh };
 }
