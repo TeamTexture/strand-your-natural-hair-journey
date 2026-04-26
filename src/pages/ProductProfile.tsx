@@ -100,13 +100,26 @@ const ProductProfile = () => {
 
   const lastUse = appearances[0] ?? null;
 
-  // Fetch personalised per-ingredient flags from the ingredient-analysis edge
-  // function. Cached server-side in ai_summaries (per user, per product), so
-  // repeat visits are instant. We pass the user's full profile (hair, health,
-  // goals, current style, challenges) so flags reflect THIS user's context.
+  // Personalised analysis is "sticky": once a product has been analysed for
+  // this user we keep showing that result and DO NOT re-call the AI on every
+  // visit. The cached row lives on user_products (ai_summary / match_score /
+  // key_ingredients) and is invalidated server-side when the user's profile
+  // changes (Phase 2.5 trigger). If no cached analysis exists yet (legacy
+  // products), we run it once and persist back to user_products.
   useEffect(() => {
     if (!product || !user) return;
     if (!product.ingredients || product.ingredients.length === 0) return;
+
+    // Hydrate from the saved row whenever we have one — no network call.
+    if (product.ai_summary || product.match_score != null) {
+      setAiSummary(product.ai_summary ?? null);
+      setAiMatchScore(product.match_score ?? null);
+      setAiFlags([]); // per-ingredient flags aren't persisted; list renders neutral
+      setAiLoading(false);
+      setAiError(null);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       setAiLoading(true);
@@ -154,6 +167,18 @@ const ProductProfile = () => {
         setAiSummary(summary);
         const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
         setAiMatchScore(score);
+
+        // Persist to user_products so the next visit hydrates instantly and
+        // never re-triggers the AI call.
+        if (summary || score != null) {
+          await supabase
+            .from("user_products")
+            .update({
+              ai_summary: summary,
+              match_score: score,
+            })
+            .eq("id", product.id);
+        }
       } catch (e) {
         if (cancelled) return;
         const msg = e instanceof Error ? e.message : "Could not analyse ingredients";
@@ -164,7 +189,7 @@ const ProductProfile = () => {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, user?.id, (product?.ingredients ?? []).join("|")]);
+  }, [product?.id, user?.id]);
 
   if (loading) {
     return (
