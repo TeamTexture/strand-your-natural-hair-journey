@@ -46,6 +46,8 @@ const IngredientDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isFavourited, setIsFavourited] = useState(false);
+  const [favSaving, setFavSaving] = useState(false);
 
   // Fallback: if no separate photo upload exists, use the image stored on
   // the user's product (uploaded during scan or pulled from the product URL).
