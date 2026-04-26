@@ -171,11 +171,44 @@ const ProductDetailNew = () => {
 
   const score = Math.max(0, Math.min(100, Math.round(a.match_score ?? 0)));
 
-  // Find similar products on the user's shelf (share at least one key ingredient)
+  // Find similar products on the user's shelf — must be in the same product
+  // family as defined in *How To Love Your Afro* (e.g. shampoo ≈ cleanser,
+  // curl cream ≈ twisting cream, leave-in conditioner ≈ leave-in spray,
+  // deep conditioner ≈ hair mask ≈ rinse-out conditioner, pre-poo ≈ co-wash).
+  // Within a family we then rank by shared ingredients to surface the closest match.
+  const productFamily = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const c = raw.toLowerCase();
+    // Cleansing
+    if (/(shampoo|cleanser|clarifying|chelating)/.test(c) && !/(co-?wash|pre)/.test(c)) return "cleanse";
+    // Pre-wash treatments (pre-poo, co-wash, hot oil treatment used before shampoo)
+    if (/(pre-?poo|pre-?shampoo|co-?wash|hot oil)/.test(c)) return "pre-wash";
+    // Deep treatments (deep conditioner, hair mask, protein treatment, rinse-out conditioner)
+    if (/(deep condition|hair mask|protein treat|rinse|conditioner)(?!.*leave)/.test(c) && !/leave/.test(c)) return "deep-treat";
+    // Leave-in moisturisers (leave-in conditioner, leave-in spray, moisturiser, milk, lotion)
+    if (/(leave-?in|moisturis|milk|lotion|spray|refresher)/.test(c)) return "leave-in";
+    // Stylers (curl cream, twisting cream, custard, gel, mousse, foam, edge control, butter)
+    if (/(curl cream|twist|custard|gel|mousse|foam|edge|butter|pudding|definer|styler)/.test(c)) return "styler";
+    // Sealants (oils, serums used to seal)
+    if (/(oil|serum|sealant)/.test(c)) return "sealant";
+    // Scalp care
+    if (/(scalp|tonic|growth)/.test(c)) return "scalp";
+    return null;
+  };
+
+  const myFamily = productFamily(a.category);
   const ingredientSet = new Set(ingredients.map(i => i.toLowerCase()));
-  const similar = allProducts.filter(
-    p => p.on_shelf && p.ingredients.some(i => ingredientSet.has(i.toLowerCase())),
-  ).slice(0, 3);
+  const similar = myFamily
+    ? allProducts
+        .filter(p => p.on_shelf && p.product_key !== state.product_key && productFamily(p.category) === myFamily)
+        .map(p => ({
+          p,
+          shared: p.ingredients.filter(i => ingredientSet.has(i.toLowerCase())).length,
+        }))
+        .sort((a, b) => b.shared - a.shared)
+        .slice(0, 3)
+        .map(x => x.p)
+    : [];
 
   const save = async (target: "shelf" | "wishlist") => {
     if (!a.product_name) {
