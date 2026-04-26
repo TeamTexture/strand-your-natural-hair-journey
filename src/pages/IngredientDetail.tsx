@@ -180,33 +180,48 @@ const IngredientDetail = () => {
       ? "text-warn border-warn"
       : "text-destructive border-destructive";
 
-  const isFavourited = rating >= 4;
   const handleToggleFavourite = async () => {
-    if (saving) return;
+    if (favSaving) return;
     if (!productKey) {
       toast.error("Missing product — open from your shelf or scan results");
       return;
     }
-    const previousRating = rating;
-    // Rating must be 1-5 (DB CHECK constraint). Use 3 (neutral) to "unfavourite".
-    const nextRating = isFavourited ? 3 : 5;
-    setRating(nextRating);
-    setSaving(true);
+    const next = !isFavourited;
+    setIsFavourited(next); // optimistic
+    setFavSaving(true);
     try {
-      await saveProductRating({
-        productKey,
-        productName,
-        productBrand,
-        rating: nextRating,
-        ingredients: (analysis?.ingredients ?? []).map((i) => i.name),
-      });
-      toast(isFavourited ? "Removed from favourites" : "❤️ Added to favourites");
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) throw new Error("Not signed in");
+
+      // Make sure the product exists in user_products so the favourite flag
+      // has somewhere to live. Use upsert keyed on (user_id, product_key).
+      const ingredientNames = (analysis?.ingredients ?? []).map((i) => i.name);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
+        user_id: user.id,
+        product_key: productKey,
+        name: productName || "Untitled product",
+        brand: productBrand || null,
+        on_favourite: next,
+      };
+      if (ingredientNames.length > 0) payload.ingredients = ingredientNames;
+
+      const { error: upErr } = await supabase
+        .from("user_products")
+        .upsert(payload, { onConflict: "user_id,product_key" });
+      if (upErr) throw upErr;
+
+      // Recompute Green Flag list now that membership changed.
+      await recomputeIngredientFlags();
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+      toast(next ? "❤️ Added to favourites" : "Removed from favourites");
     } catch (e: unknown) {
+      setIsFavourited(!next); // rollback
       const msg = e instanceof Error ? e.message : "Could not update favourite";
       toast.error(msg);
-      setRating(previousRating); // rollback
     } finally {
-      setSaving(false);
+      setFavSaving(false);
     }
   };
 
