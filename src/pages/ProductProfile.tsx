@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowDownToLine } from "lucide-react";
+import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -64,11 +65,14 @@ const ProductProfile = () => {
   const { avoid, favourites } = useIngredientLists();
   const { goals } = useGoals();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
 
   // Per-ingredient AI flags (good/warn/bad + body) for THIS product, scored
   // against the user's full profile (hair, health, goals, current style).
   const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiMatchScore, setAiMatchScore] = useState<number | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -146,6 +150,10 @@ const ProductProfile = () => {
         if (data?.error) throw new Error(data.error);
         const flags = (data?.analysis?.ingredients ?? []) as IngredientFlag[];
         setAiFlags(flags);
+        const summary = typeof data?.analysis?.summary === "string" ? data.analysis.summary : null;
+        setAiSummary(summary);
+        const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
+        setAiMatchScore(score);
       } catch (e) {
         if (cancelled) return;
         const msg = e instanceof Error ? e.message : "Could not analyse ingredients";
@@ -181,7 +189,7 @@ const ProductProfile = () => {
   const ingredients = product.ingredients ?? [];
   const redFlags = ingredients.filter(i => avoidNames.has(i.toLowerCase()));
   const greenLights = ingredients.filter(i => favNames.has(i.toLowerCase()));
-  const score = product.match_score ?? 0;
+  const score = aiMatchScore ?? product.match_score ?? 0;
 
   const updateRating = async (n: number) => {
     if (!user) return;
@@ -244,10 +252,19 @@ const ProductProfile = () => {
         {/* Personalised "red flag / green light" cards removed: we present
             neutral information only and leave decisions to the user. */}
 
-        {product.ai_summary && (
+        {(aiSummary || product.ai_summary) && (
           <SurfaceCard tone="gold">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">AI Summary</p>
-            <p className="text-sm leading-snug">{product.ai_summary}</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
+              Personalised guidance
+            </p>
+            <p className="text-sm leading-snug whitespace-pre-line">
+              {aiSummary ?? product.ai_summary}
+            </p>
+            {aiLoading && !aiSummary && (
+              <p className="text-[10px] text-muted-foreground italic mt-2">
+                Refreshing for your latest profile…
+              </p>
+            )}
           </SurfaceCard>
         )}
 
@@ -351,9 +368,19 @@ const ProductProfile = () => {
 
         <div className="space-y-2 pt-2">
           {product.on_shelf ? (
-            <Button variant="goldOutline" size="pill" onClick={() => setShelf(product.id, false)}>
-              Move to Wishlist
-            </Button>
+            <>
+              <Button
+                variant="goldOutline"
+                size="pill"
+                onClick={() => setOffShelfOpen(true)}
+              >
+                <ArrowDownToLine className="size-4 mr-2" />
+                Take off the shelf
+              </Button>
+              <Button variant="ghost" size="pill" onClick={() => setWishlist(product.id, true)}>
+                Move to Wishlist
+              </Button>
+            </>
           ) : (
             <Button variant="gold" size="pill" onClick={() => setShelf(product.id, true)}>
               Move to Shelf
@@ -377,6 +404,15 @@ const ProductProfile = () => {
           </Button>
         </div>
       </div>
+
+      <OffShelfReasonSheet
+        open={offShelfOpen}
+        onOpenChange={setOffShelfOpen}
+        productId={product.id}
+        productKey={product.product_key}
+        productName={product.name}
+        onComplete={reload}
+      />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>

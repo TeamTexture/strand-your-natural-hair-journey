@@ -96,18 +96,26 @@ function buildToolSchema(ingredientCount: number) {
 function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number): string {
   return `You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
 
-USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, currentStyle, bloodResults, medications.
+USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, currentStyle, bloodResults, medications, context.avoid_ingredients (auto-derived from this user's own low-rated products).
+
+PHILOSOPHY — READ THIS BEFORE FLAGGING ANYTHING:
+We are NOT a Yuka-style scaremonger app. Cosmetic preservatives (phenoxyethanol, parabens at legal limits, sodium benzoate, potassium sorbate, methylisothiazolinone, etc.), fragrance/parfum, colourants, and standard pH adjusters are used in legally-permitted small quantities and are NOT inherently harmful for the general user. Do NOT mark them "bad" purely because they exist in the formula. Real-world cosmetic safety is regulated; our job is personalised fit, not fear.
 
 RULES — STRICT:
 1. Flag EVERY ingredient supplied — do NOT skip any (including water, fragrance, colourants, preservatives). The tool schema enforces the count (${ingredientCount > 0 ? ingredientCount : "as supplied"}); preserve the input order.
-2. tone:
-   - "good" = ingredient has a documented mechanism that benefits THIS user's measurable traits (e.g. humectant for low-porosity hair in humid climate, emollient for high-porosity ends, anti-fungal for seborrheic dermatitis).
-   - "bad" = ingredient has a documented mechanism that conflicts with THIS user's traits (e.g. SLS sulphate on a flagged dry/sensitive scalp, drying short-chain alcohol on high-porosity hair, mineral oil sealing low-porosity hair, allergen the user has flagged).
-   - "warn" = neutral / context-dependent / patch-test recommended.
-3. body: ONE concise sentence (max 22 words). Lead with the SCIENTIFIC mechanism (what the molecule does chemically), THEN tie to the user's specific data point if relevant. No generic care tips, no usage instructions, no "consider", no "may help your routine".
-   GOOD example: "Anionic surfactant — strips sebum and lipids; harsh given your dry scalp diagnosis."
-   BAD example: "This is great for your hair! Try using it weekly to keep things hydrated."
-4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment.
+2. tone — apply this exact decision tree:
+   - "bad" ONLY if AT LEAST ONE of the following is true:
+     a) the ingredient (or its INCI alias) appears in context.avoid_ingredients (the user's own data has flagged it across multiple low-rated products), OR
+     b) the user has a documented allergy / sensitivity / diagnosis in healthProfile that this molecule directly aggravates (e.g. SLS sulphate when scalp_condition flags seborrheic dermatitis or eczema; isopropyl/SD alcohol on a documented "high porosity + breakage" combo; a named allergen the user listed), OR
+     c) the molecule directly conflicts with a measurable hair trait the user holds (e.g. heavy mineral oil sealing low-porosity hair the user is trying to moisturise — and even then, only if the formula puts it high in the list).
+     NEVER mark a standard preservative, fragrance, colourant, or pH adjuster "bad" without (a), (b) or (c). Existence ≠ harm.
+   - "good" = the ingredient has a documented mechanism that benefits THIS user's measurable traits (humectant for low-porosity in humid climate, emollient for high-porosity ends, anti-fungal for diagnosed scalp condition, etc.).
+   - "warn" = neutral / context-dependent / patch-test recommended / "fine for most people but watch how your scalp reacts". Use "warn" — NOT "bad" — for routine preservatives and fragrance when the user has no flagged sensitivity.
+3. body: ONE concise sentence (max 22 words). Lead with the SCIENTIFIC mechanism (what the molecule does chemically), THEN tie to the user's specific data point if relevant. No generic care tips, no usage instructions, no "consider", no "may help your routine". Never imply legal-limit cosmetic ingredients are dangerous.
+   GOOD example (bad): "Anionic surfactant — strips sebum and lipids; harsh given your dry scalp diagnosis."
+   GOOD example (warn): "Broad-spectrum preservative used at <1% — safe at this level; flag only if your scalp has reacted to it before."
+   BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
+4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
 5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. If the verdict is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line on a new line at the end of the summary.
 6. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
 7. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
