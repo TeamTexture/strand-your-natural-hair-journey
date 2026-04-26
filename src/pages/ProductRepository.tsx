@@ -104,7 +104,6 @@ const ProductRepository = () => {
           />
         ) : (
           filtered.map(p => {
-            const score = p.match_score ?? 0;
             const stars = p.rating ?? 0;
             const lastUsed = formatDate(lastUsedByProductId.get(p.id) ?? p.last_used_at);
             return (
@@ -129,9 +128,6 @@ const ProductRepository = () => {
                       <span className="text-[10px] text-muted-foreground">· last used {lastUsed}</span>
                     )}
                   </div>
-                </div>
-                <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                  {score}
                 </div>
               </button>
             );

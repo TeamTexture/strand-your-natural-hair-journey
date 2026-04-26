@@ -105,7 +105,6 @@ const OffShelf = () => {
           products.map((p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
-            const score = p.match_score ?? 0;
             const stars = p.rating ?? 0;
             return (
               <div
@@ -142,9 +141,6 @@ const OffShelf = () => {
                           Off shelf
                         </span>
                       </div>
-                    </div>
-                    <div className="size-10 rounded-full border-2 border-muted-foreground text-muted-foreground flex items-center justify-center text-xs font-bold shrink-0">
-                      {score}
                     </div>
                   </button>
                   <button

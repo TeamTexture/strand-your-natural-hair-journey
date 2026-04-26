@@ -97,7 +97,6 @@ const Products = () => {
           products.map((p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
-            const score = p.match_score ?? 0;
             const stars = p.rating ?? 0;
             return (
               <div
@@ -131,9 +130,6 @@ const Products = () => {
                           </span>
                         )}
                       </div>
-                    </div>
-                    <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                      {score}
                     </div>
                   </button>
                   <button
