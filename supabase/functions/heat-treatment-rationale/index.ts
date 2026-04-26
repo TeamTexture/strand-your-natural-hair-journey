@@ -2,7 +2,7 @@
 // heat treatment during conditioning. Pulls from the AiContext built on the
 // client (hair profile, goals, challenges, recent wash signals) and returns a
 // short, plain-English rationale + 2-3 specific bullets. No generic advice.
-import { corsHeaders } from "@supabase/supabase-js/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 
 interface Body {
   context?: Record<string, unknown> | null;
