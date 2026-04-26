@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2 } from "lucide-react";
+import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2, Search, SlidersHorizontal, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
@@ -73,10 +73,65 @@ const Products = () => {
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
 
-  // Group shelf products by category for the new wash-day-style layout.
+  // Search + filter state
+  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null); // minimum stars
+
+  // Distinct brands + categories for filter chips
+  const brandOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) if (p.brand) set.add(p.brand);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Map<string, string>();
+    for (const p of products) {
+      const { key, label } = categoryBucket(p.category);
+      set.set(key, label);
+    }
+    const ordered: { key: string; label: string }[] = [];
+    for (const b of CATEGORY_ORDER) if (set.has(b.key)) ordered.push({ key: b.key, label: set.get(b.key)! });
+    if (set.has("other")) ordered.push({ key: "other", label: "Other" });
+    return ordered;
+  }, [products]);
+
+  // Apply search + filters before grouping
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (categoryFilter && categoryBucket(p.category).key !== categoryFilter) return false;
+      if (brandFilter && (p.brand ?? "") !== brandFilter) return false;
+      if (ratingFilter && (p.rating ?? 0) < ratingFilter) return false;
+      if (q) {
+        const hay = [
+          p.name,
+          p.brand ?? "",
+          p.category ?? "",
+          ...(p.ingredients ?? []),
+        ].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [products, search, categoryFilter, brandFilter, ratingFilter]);
+
+  const activeFilterCount =
+    (categoryFilter ? 1 : 0) + (brandFilter ? 1 : 0) + (ratingFilter ? 1 : 0);
+
+  const clearFilters = () => {
+    setCategoryFilter(null);
+    setBrandFilter(null);
+    setRatingFilter(null);
+  };
+
+  // Group filtered shelf products by category for the wash-day-style layout.
   const groups = useMemo(() => {
     const buckets = new Map<string, { label: string; items: UserProduct[] }>();
-    for (const p of products) {
+    for (const p of filteredProducts) {
       const { key, label } = categoryBucket(p.category);
       if (!buckets.has(key)) buckets.set(key, { label, items: [] });
       buckets.get(key)!.items.push(p);
@@ -89,7 +144,8 @@ const Products = () => {
     const other = buckets.get("other");
     if (other) ordered.push({ key: "other", label: other.label, items: other.items });
     return ordered;
-  }, [products]);
+  }, [filteredProducts]);
+
 
 
   const handleDelete = async () => {
@@ -145,6 +201,132 @@ const Products = () => {
         </div>
       </div>
 
+      <div className="px-5 pb-3 space-y-2">
+        <div className="relative">
+          <Search className="size-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, brand or ingredient…"
+            className="h-10 pl-9 pr-9 text-sm"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 size-7 rounded-full hover:bg-muted flex items-center justify-center"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFiltersOpen((o) => !o)}
+            className={cn(
+              "inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-[11px] font-medium transition-colors",
+              filtersOpen || activeFilterCount > 0
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card border-border text-muted-foreground",
+            )}
+          >
+            <SlidersHorizontal className="size-3.5" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-0.5 inline-flex items-center justify-center size-4 rounded-full bg-background/20 text-[9px]">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Clear
+            </button>
+          )}
+          <span className="ml-auto text-[11px] text-muted-foreground">
+            {filteredProducts.length} of {products.length}
+          </span>
+        </div>
+
+        {filtersOpen && (
+          <div className="rounded-[12px] border border-border bg-card p-3 space-y-3">
+            {categoryOptions.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">Category</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {categoryOptions.map((c) => {
+                    const active = categoryFilter === c.key;
+                    return (
+                      <button
+                        key={c.key}
+                        onClick={() => setCategoryFilter(active ? null : c.key)}
+                        className={cn(
+                          "h-7 px-2.5 rounded-full border text-[11px] transition-colors",
+                          active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border text-muted-foreground",
+                        )}
+                      >
+                        {c.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {brandOptions.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">Brand</p>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                  {brandOptions.map((b) => {
+                    const active = brandFilter === b;
+                    return (
+                      <button
+                        key={b}
+                        onClick={() => setBrandFilter(active ? null : b)}
+                        className={cn(
+                          "h-7 px-2.5 rounded-full border text-[11px] transition-colors",
+                          active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border text-muted-foreground",
+                        )}
+                      >
+                        {b}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">Min rating</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[5, 4, 3, 2, 1].map((n) => {
+                  const active = ratingFilter === n;
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => setRatingFilter(active ? null : n)}
+                      className={cn(
+                        "h-7 px-2.5 rounded-full border text-[11px] transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border text-muted-foreground",
+                      )}
+                    >
+                      {n}★+
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="px-5 space-y-3 pb-4">
         {loading ? (
           <LoadingDot label="Loading your shelf…" />
@@ -152,6 +334,11 @@ const Products = () => {
           <EmptyState
             message="Your shelf is empty"
             hint="Scan or upload a product to get started."
+          />
+        ) : filteredProducts.length === 0 ? (
+          <EmptyState
+            message="No matches"
+            hint="Try a different search or clear your filters."
           />
         ) : (
           groups.map((group) => (
