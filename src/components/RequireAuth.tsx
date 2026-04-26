@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocalStorageMigration } from "@/hooks/useLocalStorageMigration";
+import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
 import LoadingDot from "./LoadingDot";
 
 interface Props {
@@ -17,6 +18,7 @@ const RequireAuth = ({ children }: Props) => {
   useLocalStorageMigration();
   if (loading) return <LoadingDot />;
   if (!user) {
+    purgeStrandUserScopedKeys("RequireAuth-null-user");
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/?next=${next}`} replace />;
   }
