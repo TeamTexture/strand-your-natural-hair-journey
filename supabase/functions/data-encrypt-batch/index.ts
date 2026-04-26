@@ -20,6 +20,24 @@ interface RequestBody {
   items: Array<{ id: string; plaintext: string }>;
 }
 
+// PostgREST treats a Uint8Array sent in an update payload as JSON and stores
+// the literal `{"0":n,...}` text into the bytea column. The right wire format
+// is Postgres's hex bytea literal, `"\\xDEADBEEF..."`, which decodes to the
+// raw bytes server-side. We return both base64 (for non-DB use cases) and
+// pg_hex (for direct PostgREST writes) so callers can never get this wrong.
+//
+// Phase 1 audit 2026-04-26: the first backfill silently corrupted 14
+// `blood_results.value_enc` rows by sending Uint8Array directly. Returning
+// pg_hex here is the structural fix for the client-side hook (see
+// `useLocalStorageMigration` in Phase 1 client work).
+function bytesToPgHex(bytes: Uint8Array): string {
+  let hex = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    hex += bytes[i].toString(16).padStart(2, "0");
+  }
+  return `\\x${hex}`;
+}
+
 const MAX_ITEMS_PER_BATCH = 200;
 
 // Cached across warm invocations; freshly loaded per cold start.
