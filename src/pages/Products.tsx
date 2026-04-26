@@ -41,10 +41,19 @@ const Products = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
-  const { products, loading } = useUserProducts("shelf");
+  const [offShelfTarget, setOffShelfTarget] = useState<{ id: string; key: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const { products, loading, remove, reload } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await remove(deleteTarget.id);
+    setDeleteTarget(null);
+    toast.success("Removed from your records");
+  };
 
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
