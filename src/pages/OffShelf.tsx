@@ -68,7 +68,7 @@ const OffShelf = () => {
       />
 
       <div className="px-5 pb-4">
-        <div className="grid grid-cols-4 gap-1 p-1 bg-card border border-border rounded-[10px]">
+        <div className="grid grid-cols-5 gap-1 p-1 bg-card border border-border rounded-[10px]">
           {tabs.map((t) => {
             const active = t.id === "off-shelf";
             return (
@@ -76,7 +76,7 @@ const OffShelf = () => {
                 key={t.id}
                 onClick={() => { if (!active) navigate(t.path); }}
                 className={cn(
-                  "py-2 text-[11px] rounded-md font-medium transition-colors min-h-[40px] truncate px-1",
+                  "py-2 text-[10px] rounded-md font-medium transition-colors min-h-[40px] truncate px-0.5",
                   active ? "bg-primary text-primary-foreground" : "text-muted-foreground",
                 )}
               >
