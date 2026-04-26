@@ -181,7 +181,13 @@ const IngredientDetail = () => {
   const isFavourited = rating >= 4;
   const handleToggleFavourite = async () => {
     if (saving) return;
-    const nextRating = isFavourited ? 0 : 5;
+    if (!productKey) {
+      toast.error("Missing product — open from your shelf or scan results");
+      return;
+    }
+    const previousRating = rating;
+    // Rating must be 1-5 (DB CHECK constraint). Use 3 (neutral) to "unfavourite".
+    const nextRating = isFavourited ? 3 : 5;
     setRating(nextRating);
     setSaving(true);
     try {
@@ -196,7 +202,7 @@ const IngredientDetail = () => {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Could not update favourite";
       toast.error(msg);
-      setRating(rating); // rollback
+      setRating(previousRating); // rollback
     } finally {
       setSaving(false);
     }
