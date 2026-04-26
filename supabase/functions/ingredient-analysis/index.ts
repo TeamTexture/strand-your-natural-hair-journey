@@ -92,8 +92,22 @@ function buildToolSchema(ingredientCount: number) {
           required: ["name", "tone", "body"],
         },
       },
+      personalised_guidance: {
+        type: "array",
+        minItems: 3,
+        maxItems: 3,
+        description: "Three concrete, personalised tips for how THIS user should use this product, given their hair profile, current style, challenges and goals.",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Short label, max 6 words (e.g. 'Apply on damp hair', 'Pair with leave-in')." },
+            body: { type: "string", description: "1-2 sentences, max 35 words. Reference a specific piece of the user's profile (porosity, current style, named goal, scalp condition, etc.) and how to use the product in light of it." },
+          },
+          required: ["title", "body"],
+        },
+      },
     },
-    required: ["match_score", "summary", "ingredients"],
+    required: ["match_score", "summary", "ingredients", "personalised_guidance"],
   } as Record<string, unknown>;
 }
 
