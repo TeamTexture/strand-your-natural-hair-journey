@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
+import { supabase } from "@/integrations/supabase/client";
+import { encryptForStorage } from "@/lib/clinicalContext";
+import { toast } from "sonner";
 
 const types = ["Trichologist", "Dermatologist", "Curl Specialist", "GP"];
 
@@ -383,7 +386,7 @@ const ProDetails = () => {
             size="pill"
             className="mt-4"
             disabled={!canContinue}
-            onClick={() => {
+            onClick={async () => {
               try {
                 localStorage.setItem(
                   "strand_professional",
@@ -395,6 +398,42 @@ const ProDetails = () => {
                 );
               } catch {
                 /* ignore */
+              }
+              // Dual-write to user_professionals. PHASE_1_PLAN.md §15.
+              try {
+                const { data: u } = await supabase.auth.getUser();
+                if (u?.user) {
+                  const enc = await encryptForStorage([
+                    { id: "gmc", plaintext: gmc },
+                    { id: "iot", plaintext: iot },
+                    { id: "notes", plaintext: notes },
+                  ]);
+                  const { error } = await supabase
+                    .from("user_professionals")
+                    .upsert(
+                      {
+                        user_id: u.user.id,
+                        name,
+                        professional_type: type,
+                        clinic: clinic || null,
+                        consultation_date: date || null,
+                        gmc_number_enc: enc.gmc,
+                        iot_number_enc: enc.iot,
+                        notes_enc: enc.notes,
+                        notes_audio_path: notesAudioPath,
+                        instagram_handle: bgInsta || null,
+                        website_url: bgWebsite || null,
+                        booking_url: bgBookingUrl || null,
+                        picked_from_directory: !!pickedFrom,
+                      },
+                      { onConflict: "user_id" },
+                    );
+                  if (error) throw error;
+                }
+              } catch (err) {
+                console.error("[strand] user_professionals upsert failed", err);
+                toast.error("Could not save your professional. Check your connection.");
+                return;
               }
               navigate("/onboarding/profile-step-3-hair");
             }}

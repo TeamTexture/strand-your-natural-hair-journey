@@ -179,13 +179,15 @@ const ProfileStep1 = () => {
   };
   const canContinue = Object.values(errors).every((e) => e === "");
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     setSubmitted(true);
     if (!canContinue) return;
+    const trimmedPostcode = postcode.trim().toUpperCase();
+    const heritageArr = heritage ? [heritage] : [];
     const payload = {
       name: name.trim(),
       age,
-      postcode: postcode.trim().toUpperCase(),
+      postcode: trimmedPostcode,
       country,
       heritage,
     };
@@ -193,8 +195,41 @@ const ProfileStep1 = () => {
     // Also persist to localStorage so the Profile page can derive identity & water hardness.
     localStorage.setItem("strand_profile_basic", JSON.stringify(payload));
     // Persist heritage for AI summary / nutrition context
-    localStorage.setItem("strand_heritage", JSON.stringify(heritage ? [heritage] : []));
+    localStorage.setItem("strand_heritage", JSON.stringify(heritageArr));
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-2");
+
+    // Dual-write to profiles. PHASE_1_PLAN.md §15.
+    if (user) {
+      const ageNum = age === "" ? null : parseInt(String(age), 10);
+      const birth_year =
+        ageNum != null && Number.isFinite(ageNum) && ageNum >= 1 && ageNum <= 120
+          ? new Date().getFullYear() - ageNum
+          : null;
+      const update: {
+        display_name: string;
+        heritage: string[];
+        postcode: string;
+        country: string;
+        birth_year?: number;
+      } = {
+        display_name: name.trim(),
+        heritage: heritageArr,
+        postcode: trimmedPostcode,
+        country,
+      };
+      if (birth_year !== null) update.birth_year = birth_year;
+      try {
+        await supabase
+          .from("profiles")
+          .upsert(
+            { user_id: user.id, ...update },
+            { onConflict: "user_id" },
+          );
+      } catch (err) {
+        console.warn("[strand] profiles upsert (step 1) failed", err);
+      }
+    }
+
     navigate("/onboarding/profile-step-2");
   };
 
@@ -228,7 +263,7 @@ const ProfileStep1 = () => {
         onClick={dismissKeyboard}
         onSubmit={(e) => {
           e.preventDefault();
-          handleContinue();
+          void handleContinue();
         }}
         noValidate
       >

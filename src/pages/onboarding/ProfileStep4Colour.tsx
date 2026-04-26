@@ -7,6 +7,8 @@ import Tag from "@/components/Tag";
 import FormField from "@/components/FormField";
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const HAIRSTYLE_OPTIONS = [
   "Loose natural",
@@ -132,7 +134,7 @@ const ProfileStep4Colour = () => {
           variant="gold"
           size="pill"
           className="mt-4"
-          onClick={() => {
+          onClick={async () => {
             // Parse "How Long in This Style" — accept "9 days", "3 weeks", "5", etc.
             const match = howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
             const num = match ? parseInt(match[1], 10) : NaN;
@@ -163,6 +165,32 @@ const ProfileStep4Colour = () => {
                 chemHist,
               }),
             );
+            // Dual-write to user_style_profile. PHASE_1_PLAN.md §15.
+            try {
+              const { data: u } = await supabase.auth.getUser();
+              if (u?.user) {
+                const { error } = await supabase
+                  .from("user_style_profile")
+                  .upsert(
+                    {
+                      user_id: u.user.id,
+                      current_colour_status: colour[0] ?? null,
+                      chemical_history: chemHist,
+                      current_hairstyle: style[0] ?? null,
+                      style_set_at,
+                      planned_next_style: changingTo[0] ?? null,
+                      planned_change_date: null,
+                      default_styles: defaultStyle,
+                    },
+                    { onConflict: "user_id" },
+                  );
+                if (error) throw error;
+              }
+            } catch (err) {
+              console.error("[strand] user_style_profile upsert failed", err);
+              toast.error("Could not save your style profile. Check your connection.");
+              return;
+            }
             // Same-tab listeners (Home banner) need a custom event because the
             // browser `storage` event only fires in OTHER tabs.
             window.dispatchEvent(new Event("strand:style-updated"));

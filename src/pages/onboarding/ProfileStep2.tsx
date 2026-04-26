@@ -9,6 +9,7 @@ import MedicationPicker from "@/components/MedicationPicker";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { encryptForStorage } from "@/lib/clinicalContext";
 
 interface TagGroupProps {
   label: string;
@@ -109,21 +110,64 @@ const ProfileStep2 = () => {
             smoke, alcohol: alcoholCanon, water, exercise, sleep,
             medications: meds.map((m) => m.name),
           }));
-          // Persist meds to DB (replace existing for this user)
+          // Persist to DB. PHASE_1_PLAN.md §15.
           try {
             const { data: u } = await supabase.auth.getUser();
             if (u?.user) {
-              await supabase.from("user_medications").delete().eq("user_id", u.user.id);
-              if (meds.length > 0) {
-                await supabase.from("user_medications").insert(
-                  meds.slice(0, 20).map((m) => ({
-                    user_id: u.user.id, name: m.name, category: m.category,
-                  })),
+              const userId = u.user.id;
+
+              // ── user_health_profile (encrypt life_stage / contraception / conditions) ──
+              const enc = await encryptForStorage([
+                { id: "life_stage", plaintext: JSON.stringify(lifeStage) },
+                { id: "contraception", plaintext: JSON.stringify(contraception) },
+                { id: "medical_conditions", plaintext: JSON.stringify(conditions) },
+              ]);
+              const { error: healthErr } = await supabase
+                .from("user_health_profile")
+                .upsert(
+                  {
+                    user_id: userId,
+                    life_stage_enc: enc.life_stage,
+                    contraception_enc: enc.contraception,
+                    medical_conditions_enc: enc.medical_conditions,
+                    diet: dietCanon,
+                    diet_balance: dietBalance[0] ?? null,
+                    smoke: smoke[0] ?? null,
+                    alcohol: alcoholCanon,
+                    daily_water: water[0] ?? null,
+                    exercise: exercise[0] ?? null,
+                    sleep_quality: sleep[0] ?? null,
+                  },
+                  { onConflict: "user_id" },
                 );
+              if (healthErr) throw healthErr;
+
+              // ── user_medications (replace + dual-write encrypted name/category) ──
+              await supabase.from("user_medications").delete().eq("user_id", userId);
+              if (meds.length > 0) {
+                const capped = meds.slice(0, 20);
+                const items = capped.flatMap((m, i) => [
+                  { id: `${i}_name`, plaintext: m.name },
+                  { id: `${i}_category`, plaintext: m.category ?? "" },
+                ]);
+                const medsEnc = await encryptForStorage(items);
+                const { error: medsErr } = await supabase
+                  .from("user_medications")
+                  .insert(
+                    capped.map((m, i) => ({
+                      user_id: userId,
+                      name: m.name,
+                      category: m.category,
+                      name_enc: medsEnc[`${i}_name`],
+                      category_enc: medsEnc[`${i}_category`],
+                    })),
+                  );
+                if (medsErr) throw medsErr;
               }
             }
           } catch (e) {
-            toast.error("Could not save medications. Check your connection.");
+            console.error("[strand] health profile / meds save failed", e);
+            toast.error("Could not save your health profile. Check your connection.");
             return;
           }
           localStorage.setItem("strand_onboarding_step", "/onboarding/pro-gate");

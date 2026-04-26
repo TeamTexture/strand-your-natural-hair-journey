@@ -6,6 +6,9 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { encryptForStorage } from "@/lib/clinicalContext";
+import { toast } from "sonner";
 
 interface TGProps {
   label: string;
@@ -75,10 +78,41 @@ const ProfileStep3Hair = () => {
           value={areas} onChange={setAreas}
         />
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={() => {
+        <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           localStorage.setItem("strand_hair_profile", JSON.stringify({
             diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas,
           }));
+          // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
+          try {
+            const { data: u } = await supabase.auth.getUser();
+            if (u?.user) {
+              const enc = await encryptForStorage([
+                { id: "scalp", plaintext: scalp[0] ?? "" },
+                { id: "diagnosed", plaintext: JSON.stringify(diagnosed) },
+              ]);
+              const { error } = await supabase
+                .from("user_hair_profile")
+                .upsert(
+                  {
+                    user_id: u.user.id,
+                    diameter: diameter[0] ?? null,
+                    surface_texture: texture[0] ?? null,
+                    density: density[0] ?? null,
+                    porosity: porosity[0] ?? null,
+                    elasticity: elasticity[0] ?? null,
+                    scalp_condition_enc: enc.scalp,
+                    diagnosed_conditions_enc: enc.diagnosed,
+                    areas_of_concern: areas,
+                  },
+                  { onConflict: "user_id" },
+                );
+              if (error) throw error;
+            }
+          } catch (err) {
+            console.error("[strand] user_hair_profile upsert failed", err);
+            toast.error("Could not save your hair profile. Check your connection.");
+            return;
+          }
           localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
           navigate("/onboarding/profile-step-4-colour");
         }}>

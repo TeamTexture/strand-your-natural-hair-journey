@@ -14,6 +14,7 @@ import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating } from "@/hooks/useIngredientLists";
 import { buildAiContext } from "@/lib/aiContext";
+import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
 
 interface Ingredient { tone: "good" | "warn" | "bad"; name: string; body: string }
@@ -128,15 +129,10 @@ const IngredientDetail = () => {
       setLoading(true);
       setError(null);
       try {
-        const hairProfile = JSON.parse(
-          localStorage.getItem("strand_hair_profile") || "{}",
-        );
-        const healthProfile = JSON.parse(
-          localStorage.getItem("strand_health_profile") || "{}",
-        );
-        const heritage = JSON.parse(
-          localStorage.getItem("strand_heritage") || "[]",
-        );
+        const clinical = await loadClinicalContext();
+        const hairProfile = clinical.hair ?? {};
+        const healthProfile = clinical.health ?? {};
+        const heritage = clinical.basic?.heritage ?? [];
 
         const context = await buildAiContext();
         const { data, error: fnError } = await supabase.functions.invoke(

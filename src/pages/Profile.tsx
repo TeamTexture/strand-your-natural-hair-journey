@@ -23,6 +23,7 @@ import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
 import { getWaterHardness } from "@/data/hardWaterPostcodes";
 import { generateProfilePdf } from "@/lib/profilePdf";
+import { loadClinicalContext } from "@/lib/clinicalContext";
 
 // ---------- Types ----------
 interface BasicProfile {
@@ -54,10 +55,6 @@ interface Appt {
   status: string;
 }
 
-const safeJson = <T,>(raw: string | null): T | null => {
-  if (!raw) return null;
-  try { return JSON.parse(raw) as T; } catch { return null; }
-};
 
 const formatShortDate = (iso: string): string => {
   try {
@@ -147,6 +144,9 @@ const Profile = () => {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [editPickerOpen, setEditPickerOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [basic, setBasic] = useState<BasicProfile>({});
+  const [hair, setHair] = useState<HairProfile>({});
+  const [health, setHealth] = useState<HealthProfile>({});
 
   // Quick-jump destinations for the edit picker.
   const editTargets = useMemo(
@@ -170,11 +170,42 @@ const Profile = () => {
     navigate(route);
   };
 
-  // Load profile fragments from local storage (only what the user actually entered).
-  const basic = safeJson<BasicProfile>(localStorage.getItem("strand_profile_basic")) ?? {};
-  const hair = safeJson<HairProfile>(localStorage.getItem("strand_hair_profile")) ?? {};
-  const health = safeJson<HealthProfile>(localStorage.getItem("strand_health_profile")) ?? {};
-  const lastWashRaw = localStorage.getItem("strand_last_wash_date");
+  // Load clinical fragments from the new Postgres tables (with localStorage
+  // fallback during the rollout window — see PHASE_1_PLAN.md §5).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ctx = await loadClinicalContext();
+      if (cancelled) return;
+      setBasic({
+        name: ctx.basic?.name ?? undefined,
+        age: ctx.basic?.age ?? undefined,
+        postcode: ctx.basic?.postcode ?? undefined,
+      });
+      setHair({
+        diameter: ctx.hair?.diameter,
+        texture: ctx.hair?.texture,
+        density: ctx.hair?.density,
+        porosity: ctx.hair?.porosity,
+        scalp: ctx.hair?.scalp,
+        diagnosed: ctx.hair?.diagnosed,
+      });
+      setHealth({
+        conditions: ctx.health?.conditions,
+        medications: ctx.health?.medications,
+        diet: ctx.health?.diet,
+        smoke: ctx.health?.smoke?.[0],
+        alcohol: ctx.health?.alcohol,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+  const lastWashRaw =
+    typeof window !== "undefined"
+      ? localStorage.getItem("strand_last_wash_date")
+      : null;
 
   // Load the saved display_name from the profile row (set on signup from the
   // name the user entered, falling back to the email prefix only as a last resort).

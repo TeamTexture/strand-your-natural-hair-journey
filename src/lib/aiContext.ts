@@ -3,16 +3,21 @@
 // current user. When a slice is missing or fails, we keep the rest and return
 // `null` for that slice — callers and prompts handle gracefully.
 //
+// Phase 1: clinical slices come from the new Postgres tables via
+// loadClinicalContext() (see src/lib/clinicalContext.ts), which transparently
+// falls back to legacy localStorage during the rollout window. The exported
+// AiContext shape and buildAiContext() signature are unchanged so that no AI
+// edge function needs editing in this PR.
+//
 // Usage:
 //   const context = await buildAiContext();
 //   await supabase.functions.invoke("blood-ai-summary", {
 //     body: { ...payload, context },
 //   });
-//
-// See PROMPT 5 in the project brief for the full schema.
 
 import { supabase } from "@/integrations/supabase/client";
 import { isHardWaterPostcode } from "@/data/hardWaterPostcodes";
+import { loadClinicalContext } from "@/lib/clinicalContext";
 
 export interface AiContext {
   hairProfile: Record<string, unknown> | null;
@@ -53,6 +58,7 @@ export interface AiContext {
 }
 
 const safeParse = <T,>(key: string, fallback: T): T => {
+  if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
@@ -69,24 +75,23 @@ const daysSince = (iso: string | null): number | null => {
 };
 
 export async function buildAiContext(): Promise<AiContext> {
-  const hairProfile = safeParse<Record<string, unknown> | null>("strand_hair_profile", null);
-  const healthProfileLocal = safeParse<Record<string, unknown> | null>("strand_health_profile", null);
-  const profileStep1 = safeParse<Record<string, unknown> | null>("strand_profile_step1", null);
-  const styleLocal = safeParse<Record<string, unknown> | null>("strand_current_style", null);
-  const proLocal = safeParse<Record<string, unknown> | null>("strand_professional", null);
+  // Clinical slices (DB + decrypt with localStorage fallback). Kicks off the
+  // decrypt edge function early so the supabase reads below can proceed in
+  // parallel.
+  const clinicalPromise = loadClinicalContext();
+
   const lastWashIso = (() => {
+    if (typeof window === "undefined") return null;
     try {
       return localStorage.getItem("strand_last_wash_date");
     } catch {
       return null;
     }
   })();
-  const localWashHistory = safeParse<Array<Record<string, unknown>>>("strand_wash_history", []);
-
-  const postcode =
-    (profileStep1?.postcode as string | undefined) ??
-    (hairProfile?.postcode as string | undefined) ??
-    null;
+  const localWashHistory = safeParse<Array<Record<string, unknown>>>(
+    "strand_wash_history",
+    [],
+  );
 
   let bloodResults: Array<Record<string, unknown>> = [];
   let avoidIngredients: string[] = [];
@@ -101,7 +106,7 @@ export async function buildAiContext(): Promise<AiContext> {
     const { data: u } = await supabase.auth.getUser();
     const userId = u?.user?.id;
     if (userId) {
-      const [blood, ingLists, meds, washes, shelfRows, ratings, goalRows] = await Promise.all([
+      const [blood, ingLists, washes, shelfRows, ratings, goalRows] = await Promise.all([
         supabase
           .from("blood_results")
           .select("marker, value, unit, status, category")
@@ -109,10 +114,6 @@ export async function buildAiContext(): Promise<AiContext> {
         supabase
           .from("ingredient_lists")
           .select("ingredient, list_kind, reason, product_count")
-          .eq("user_id", userId),
-        supabase
-          .from("user_medications")
-          .select("name, category")
           .eq("user_id", userId),
         supabase
           .from("wash_days")
@@ -148,38 +149,67 @@ export async function buildAiContext(): Promise<AiContext> {
       lowRated = allRatings.filter((r) => Number(r.rating) <= 2);
       highRated = allRatings.filter((r) => Number(r.rating) >= 4);
       goals = (goalRows.data ?? []) as AiContext["goals"];
-      // Merge meds back into healthProfile so prompts always see them.
-      if (healthProfileLocal && meds.data) {
-        healthProfileLocal.medications = meds.data.map((m) => m.name);
-      }
     }
   } catch (e) {
     console.warn("buildAiContext: backend fetch failed", e);
   }
 
-  const currentStyle = styleLocal
+  const clinical = await clinicalPromise;
+
+  // Build the AiContext-shaped slices from the loaded clinical context.
+  const hairProfile: Record<string, unknown> | null = clinical.hair
     ? {
-        current_hairstyle: (styleLocal.current_hairstyle as string) ?? null,
-        style_set_on: (styleLocal.style_set_on as string) ?? null,
-        days_in_style: daysSince(((styleLocal.style_set_on as string) ?? null)),
-        planned_next_style: (styleLocal.planned_next_style as string) ?? null,
-        planned_change_date: (styleLocal.planned_change_date as string) ?? null,
-        default_style: (styleLocal.default_style as string) ?? null,
+        diameter: clinical.hair.diameter,
+        texture: clinical.hair.texture,
+        density: clinical.hair.density,
+        porosity: clinical.hair.porosity,
+        elasticity: clinical.hair.elasticity,
+        scalp: clinical.hair.scalp,
+        diagnosed: clinical.hair.diagnosed,
+        areas: clinical.hair.areas,
       }
     : null;
 
-  const professional = proLocal
+  const healthProfile: Record<string, unknown> | null = clinical.health
     ? {
-        professional_type: (proLocal.type as string) ?? null,
-        last_consultation_date: (proLocal.date as string) ?? null,
-        professional_notes: (proLocal.notes as string) ?? null,
+        lifeStage: clinical.health.lifeStage,
+        contraception: clinical.health.contraception,
+        conditions: clinical.health.conditions,
+        diet: clinical.health.diet,
+        dietBalance: clinical.health.dietBalance,
+        smoke: clinical.health.smoke,
+        alcohol: clinical.health.alcohol,
+        water: clinical.health.water,
+        exercise: clinical.health.exercise,
+        sleep: clinical.health.sleep,
+        medications: clinical.health.medications,
       }
     : null;
+
+  const currentStyle = clinical.style
+    ? {
+        current_hairstyle: clinical.style.current_hairstyle,
+        style_set_on: clinical.style.style_set_at,
+        days_in_style: daysSince(clinical.style.style_set_at),
+        planned_next_style: clinical.style.planned_next_style,
+        planned_change_date: clinical.style.planned_change_date,
+        default_style: clinical.style.default_styles[0] ?? null,
+      }
+    : null;
+
+  const professional = clinical.professional
+    ? {
+        professional_type: clinical.professional.professional_type,
+        last_consultation_date: clinical.professional.consultation_date,
+        professional_notes: clinical.professional.notes,
+      }
+    : null;
+
+  const postcode = clinical.basic?.postcode ?? null;
 
   const last3Local = [...localWashHistory]
     .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))
     .slice(0, 3);
-  // Prefer real wash_days rows when present, fall back to local cache
   const last3 = recentWashes.length > 0 ? recentWashes : last3Local;
   if (last3.length === 0 && lastWashIso) {
     last3.push({ date: lastWashIso });
@@ -188,7 +218,7 @@ export async function buildAiContext(): Promise<AiContext> {
   return {
     hairProfile,
     currentStyle,
-    healthProfile: healthProfileLocal,
+    healthProfile,
     bloodResults,
     professional,
     location: {

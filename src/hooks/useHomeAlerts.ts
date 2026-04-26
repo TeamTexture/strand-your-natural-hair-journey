@@ -37,6 +37,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { isHardWaterPostcode } from "@/data/hardWaterPostcodes";
+import { loadClinicalContext } from "@/lib/clinicalContext";
 
 export interface HomeAlert {
   id: string;
@@ -151,37 +152,19 @@ export function useHomeAlerts() {
       const next: HomeAlert[] = [];
 
       // ---------------------------------------------------------------
-      // Local profile data
+      // Clinical context — DB first, localStorage fallback during rollout.
       // ---------------------------------------------------------------
-      const styleLocal = safeParse<{
-        style?: string[];
-        styleStartDate?: string;
-        current_hairstyle?: string;
-        style_set_on?: string;
-        planned_next_style?: string;
-        planned_change_date?: string;
-      } | null>("strand_current_style", null);
+      const clinical = await loadClinicalContext();
 
-      const currentStyles: string[] = Array.isArray(styleLocal?.style)
-        ? (styleLocal!.style as string[])
-        : styleLocal?.current_hairstyle
-          ? [styleLocal.current_hairstyle]
-          : [];
-      const styleStartDate =
-        styleLocal?.styleStartDate ?? styleLocal?.style_set_on ?? null;
-      const plannedNext = styleLocal?.planned_next_style ?? null;
-      const plannedChangeDate = styleLocal?.planned_change_date ?? null;
+      const currentStyles: string[] = clinical.style?.current_hairstyle
+        ? [clinical.style.current_hairstyle]
+        : clinical.style?.style ?? [];
+      const styleStartDate = clinical.style?.style_set_at ?? null;
+      const plannedNext = clinical.style?.planned_next_style ?? null;
+      const plannedChangeDate = clinical.style?.planned_change_date ?? null;
       const inTakedownStyle = currentStyles.some(isTakedownStyle);
 
-      const profileStep1 = safeParse<{ postcode?: string } | null>(
-        "strand_profile_step1",
-        null,
-      );
-      const hairProfile = safeParse<{ postcode?: string } | null>(
-        "strand_hair_profile",
-        null,
-      );
-      const postcode = profileStep1?.postcode ?? hairProfile?.postcode ?? null;
+      const postcode = clinical.basic?.postcode ?? null;
       const hardWater = postcode ? isHardWaterPostcode(postcode) : false;
 
       const lastWashIso = (() => {

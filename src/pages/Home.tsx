@@ -12,6 +12,10 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { Ruler } from "lucide-react";
+import {
+  loadClinicalContext,
+  invalidateClinicalContextCache,
+} from "@/lib/clinicalContext";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight" aria-label={`${n} stars`}>
@@ -33,10 +37,6 @@ interface ProfileStyle {
   style_set_at?: string;
   planned_next_style?: string;
 }
-const readStyle = (): ProfileStyle => {
-  try { return JSON.parse(localStorage.getItem("strand_current_style") ?? "{}"); }
-  catch { return {}; }
-};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -49,30 +49,39 @@ const Home = () => {
   const { last: lastWash, daysSinceLast } = useWashDays();
   const { lengthGoal } = useGoals();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
-  const [style, setStyle] = useState<ProfileStyle>(readStyle());
+  const [style, setStyle] = useState<ProfileStyle>({});
 
-  // Re-read localStorage whenever the user lands on Home, regains focus, the
-  // tab becomes visible again, OR an in-tab "strand:style-updated" event fires
-  // (dispatched by onboarding Step 4 and the SetCurrentStyle screen the moment
-  // they save). The native `storage` event does not fire in the same tab that
-  // wrote the value, which is why the custom event is essential.
+  // Re-fetch style from DB (with localStorage fallback) whenever the user
+  // lands on Home, regains focus, the tab becomes visible again, OR an
+  // in-tab "strand:style-updated" event fires (dispatched by onboarding
+  // Step 4 and SetCurrentStyle the moment they save). The custom event
+  // matters because the native `storage` event only fires in OTHER tabs.
   useEffect(() => {
-    setStyle(readStyle());
-  }, [location.key]);
-
-  useEffect(() => {
-    const refresh = () => setStyle(readStyle());
-    window.addEventListener("focus", refresh);
-    window.addEventListener("storage", refresh);
-    window.addEventListener("strand:style-updated", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("strand:style-updated", refresh);
-      document.removeEventListener("visibilitychange", refresh);
+    let cancelled = false;
+    const refresh = async () => {
+      invalidateClinicalContextCache();
+      const ctx = await loadClinicalContext();
+      if (cancelled) return;
+      setStyle({
+        current_hairstyle: ctx.style?.current_hairstyle ?? undefined,
+        style_set_at: ctx.style?.style_set_at ?? undefined,
+        planned_next_style: ctx.style?.planned_next_style ?? undefined,
+      });
     };
-  }, []);
+    void refresh();
+    const onEvt = () => void refresh();
+    window.addEventListener("focus", onEvt);
+    window.addEventListener("storage", onEvt);
+    window.addEventListener("strand:style-updated", onEvt);
+    document.addEventListener("visibilitychange", onEvt);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onEvt);
+      window.removeEventListener("storage", onEvt);
+      window.removeEventListener("strand:style-updated", onEvt);
+      document.removeEventListener("visibilitychange", onEvt);
+    };
+  }, [location.key]);
 
   // Resolve the display name from the profiles table first
   useEffect(() => {

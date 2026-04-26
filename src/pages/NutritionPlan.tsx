@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { evaluate } from "@/data/bloodRanges";
 import { buildAiContext } from "@/lib/aiContext";
+import { loadClinicalContext } from "@/lib/clinicalContext";
 import { toast } from "sonner";
 
 type Diet = "omnivore" | "vegetarian" | "vegan" | "unknown";
@@ -119,9 +120,9 @@ const NutritionPlan = () => {
             if (status === "low") flagged.add(row.marker);
           });
         }
-        const health = JSON.parse(localStorage.getItem("strand_health_profile") || "{}");
-        const diet = (health.diet as Diet) || "unknown";
-        const alcohol = (health.alcohol as Alcohol) || "unknown";
+        const clinical = await loadClinicalContext();
+        const diet = ((clinical.health?.diet ?? "") as Diet) || "unknown";
+        const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
         const next = { diet, alcohol, flagged };
         setProfile(next);
         // Kick off AI plan generation (cached after first run)

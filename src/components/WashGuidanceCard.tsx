@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
+import { loadClinicalContext } from "@/lib/clinicalContext";
 
 interface HairProfile {
   porosity?: string[];
@@ -8,15 +9,6 @@ interface HairProfile {
   texture?: string[];
   scalp?: string[];
 }
-
-const safeRead = (key: string): HairProfile | null => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as HairProfile) : null;
-  } catch {
-    return null;
-  }
-};
 
 /**
  * Build 2–3 short, science-grounded guidance bullets tailored to the user's
@@ -71,7 +63,27 @@ const buildTips = (p: HairProfile | null): string[] => {
 };
 
 const WashGuidanceCard = () => {
-  const profile = useMemo(() => safeRead("strand_hair_profile"), []);
+  const [profile, setProfile] = useState<HairProfile | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ctx = await loadClinicalContext();
+      if (cancelled) return;
+      setProfile(
+        ctx.hair
+          ? {
+              porosity: ctx.hair.porosity,
+              density: ctx.hair.density,
+              texture: ctx.hair.texture,
+              scalp: ctx.hair.scalp,
+            }
+          : null,
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const tips = useMemo(() => buildTips(profile), [profile]);
   if (tips.length === 0) return null;
 

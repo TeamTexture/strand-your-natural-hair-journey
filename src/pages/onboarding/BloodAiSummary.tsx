@@ -12,6 +12,7 @@ import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
+import { loadClinicalContext } from "@/lib/clinicalContext";
 
 interface Deficiency {
   marker: string;
@@ -35,7 +36,11 @@ const BloodAiSummary = () => {
 
   // Build a stable fingerprint of the inputs so we can detect when the user
   // has updated their blood values / profile and force the AI to regenerate.
-  const buildFingerprint = () => {
+  const buildFingerprint = (
+    hairProfile: Record<string, unknown>,
+    healthProfile: Record<string, unknown>,
+    heritage: string[],
+  ) => {
     const bloodResults = Object.entries(values)
       .filter(([, v]) => v !== null && v !== undefined && !Number.isNaN(v))
       .map(([marker, value]) => ({
@@ -46,9 +51,6 @@ const BloodAiSummary = () => {
         category: BLOOD_RANGES[marker]?.category ?? "other",
       }))
       .sort((a, b) => a.marker.localeCompare(b.marker));
-    const hairProfile = JSON.parse(localStorage.getItem("strand_hair_profile") || "{}");
-    const healthProfile = JSON.parse(localStorage.getItem("strand_health_profile") || "{}");
-    const heritage = JSON.parse(localStorage.getItem("strand_heritage") || "[]");
     // Bump promptVersion when the server-side prompt changes to bust the cache.
     const promptVersion = "v2-full-coverage";
     return {
@@ -61,7 +63,11 @@ const BloodAiSummary = () => {
     setLoading(true);
     setError(null);
     try {
-      const { payload, fingerprint } = buildFingerprint();
+      const clinical = await loadClinicalContext();
+      const hairProfile = (clinical.hair ?? {}) as Record<string, unknown>;
+      const healthProfile = (clinical.health ?? {}) as Record<string, unknown>;
+      const heritage = clinical.basic?.heritage ?? [];
+      const { payload, fingerprint } = buildFingerprint(hairProfile, healthProfile, heritage);
       const lastFingerprint = localStorage.getItem("strand_blood_summary_fp");
       const inputsChanged = lastFingerprint !== fingerprint;
       const shouldForce = force || inputsChanged;
