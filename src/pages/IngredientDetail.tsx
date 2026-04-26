@@ -80,20 +80,30 @@ const IngredientDetail = () => {
     };
   }, [productKey]);
 
-  // Load any previously-saved rating so the stars reflect the user's choice.
+  // Load any previously-saved rating so the stars reflect the user's choice,
+  // and the favourite flag so the heart starts in the right state.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData?.user;
       if (!user) return;
-      const { data } = await supabase
+      const { data: ratingRow } = await supabase
         .from("product_ratings")
         .select("rating")
         .eq("user_id", user.id)
         .eq("product_key", productKey)
         .maybeSingle();
-      if (!cancelled && data?.rating) setRating(data.rating);
+      if (!cancelled && ratingRow?.rating) setRating(ratingRow.rating);
+      const { data: favRow } = await supabase
+        .from("user_products")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .select("on_favourite" as any)
+        .eq("user_id", user.id)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!cancelled && (favRow as any)?.on_favourite) setIsFavourited(true);
     })();
     return () => {
       cancelled = true;
