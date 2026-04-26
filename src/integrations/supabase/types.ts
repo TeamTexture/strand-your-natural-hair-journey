@@ -788,6 +788,8 @@ export type Database = {
           last_used_at: string | null
           match_score: number | null
           name: string
+          off_shelf_reason: string | null
+          off_shelf_voice_url: string | null
           on_shelf: boolean
           on_wishlist: boolean
           previously_on_shelf: boolean
@@ -811,6 +813,8 @@ export type Database = {
           last_used_at?: string | null
           match_score?: number | null
           name: string
+          off_shelf_reason?: string | null
+          off_shelf_voice_url?: string | null
           on_shelf?: boolean
           on_wishlist?: boolean
           previously_on_shelf?: boolean
@@ -834,6 +838,8 @@ export type Database = {
           last_used_at?: string | null
           match_score?: number | null
           name?: string
+          off_shelf_reason?: string | null
+          off_shelf_voice_url?: string | null
           on_shelf?: boolean
           on_wishlist?: boolean
           previously_on_shelf?: boolean
