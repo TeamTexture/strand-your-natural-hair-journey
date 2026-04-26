@@ -21,6 +21,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { invalidateClinicalContextCache } from "@/lib/clinicalContext";
 
 const FLAG_KEY = "strand_migration_v1_done";
+// Companion key: which user_id the flag was written for. The aiContext
+// localStorage fallback gate consults this to refuse to read legacy
+// strand_* data on shared-device sign-in switches (different uid → ignore
+// localStorage entirely, rely only on DB reads).
+const FLAG_USER_KEY = "strand_migration_v1_user_id";
 
 interface LegacyBasic {
   name?: string;
@@ -348,6 +353,7 @@ export function useLocalStorageMigration(): void {
         if (cancelled) return;
         try {
           localStorage.setItem(FLAG_KEY, new Date().toISOString());
+          localStorage.setItem(FLAG_USER_KEY, user.id);
         } catch {
           /* private-mode browsers will throw; ignore */
         }
