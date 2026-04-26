@@ -27,7 +27,7 @@ import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v5-product-focused-guidance";
+const MODEL_VERSION = "claude-sonnet-4-6@v6-moisture-language-locked";
 
 interface IngredientCard {
   name: string;
