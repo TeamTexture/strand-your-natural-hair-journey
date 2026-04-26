@@ -486,28 +486,16 @@ const ProductProfile = () => {
               )}
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center gap-3 mb-2 px-1 text-[10px] text-muted-foreground flex-wrap">
-              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-500" /> Good for you</span>
-              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-amber-500" /> Caution</span>
-              <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-destructive" /> Avoid</span>
-            </div>
-
             <SurfaceCard padded={false} className="divide-y divide-border/60">
               {ingredients.map((name, i) => {
                 const lower = name.toLowerCase().trim();
                 const aiFlag = aiFlagByName.get(lower);
-                const tone = aiFlag?.tone;
-                const dotClass =
-                  tone === "good" ? "bg-emerald-500" :
-                  tone === "bad"  ? "bg-destructive" :
-                  tone === "warn" ? "bg-amber-500" :
-                  "bg-border";
-                // Only good/bad ("green/red flag") ingredients are clickable.
-                // We surface every other product on the user's shelf or
-                // wishlist that also lists this ingredient, so they can jump
-                // straight to that product profile.
-                const isClickable = tone === "good" || tone === "bad";
+                // Flag status is now driven solely by the user's Green/Red
+                // Flag lists (3+ favourited or off-shelf products sharing
+                // this ingredient). The AI tone no longer paints rows.
+                const isRedFlag = avoidNames.has(lower);
+                const isGreenFlag = favNames.has(lower);
+                const isClickable = isRedFlag || isGreenFlag;
                 const isExpanded = isClickable && expandedIngredient === lower;
                 const matches = isClickable
                   ? allProducts.filter(p =>
@@ -532,9 +520,11 @@ const ProductProfile = () => {
                       aria-expanded={isClickable ? isExpanded : undefined}
                     >
                       <span
-                        className={cn("size-2 rounded-full shrink-0 mt-1.5", dotClass)}
-                        aria-label={tone ?? "neutral"}
-                      />
+                        className="text-sm leading-none shrink-0 mt-0.5 w-4 text-center"
+                        aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
+                      >
+                        {isRedFlag ? "🚩" : isGreenFlag ? "💚" : ""}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium leading-tight">{name}</p>
                         {aiFlag?.body && (

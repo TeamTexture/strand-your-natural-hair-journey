@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { supabase } from "@/integrations/supabase/client";
-import { saveProductRating, recomputeIngredientFlags } from "@/hooks/useIngredientLists";
+import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
@@ -25,12 +25,6 @@ interface Analysis {
   ingredients: Ingredient[];
   personalised_guidance?: GuidanceTip[];
 }
-
-const dotClass: Record<Ingredient["tone"], string> = {
-  good: "bg-good",
-  warn: "bg-warn",
-  bad: "bg-destructive",
-};
 
 const IngredientDetail = () => {
   const [rating, setRating] = useState(5);
@@ -50,6 +44,9 @@ const IngredientDetail = () => {
   const [saving, setSaving] = useState(false);
   const [isFavourited, setIsFavourited] = useState(false);
   const [favSaving, setFavSaving] = useState(false);
+  const { avoid, favourites } = useIngredientLists();
+  const avoidNames = new Set(avoid.map((r) => r.ingredient.toLowerCase()));
+  const favNames = new Set(favourites.map((r) => r.ingredient.toLowerCase()));
 
   // Fallback: if no separate photo upload exists, use the image stored on
   // the user's product (uploaded during scan or pulled from the product URL).
@@ -347,15 +344,25 @@ const IngredientDetail = () => {
 
             <SectionLabel>Ingredient breakdown</SectionLabel>
             <SurfaceCard className="divide-y divide-border/60 !py-1">
-              {(analysis.ingredients ?? []).map((i, idx) => (
-                <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
-                  <span className={cn("size-2.5 rounded-full mt-1.5 shrink-0", dotClass[i.tone])} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{i.body}</p>
+              {(analysis.ingredients ?? []).map((i, idx) => {
+                const lower = i.name.toLowerCase().trim();
+                const isRedFlag = avoidNames.has(lower);
+                const isGreenFlag = favNames.has(lower);
+                return (
+                  <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
+                    <span
+                      className="text-sm leading-none mt-0.5 shrink-0 w-4 text-center"
+                      aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
+                    >
+                      {isRedFlag ? "🚩" : isGreenFlag ? "💚" : ""}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{i.body}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </SurfaceCard>
 
           </>
