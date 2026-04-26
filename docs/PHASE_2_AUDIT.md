@@ -644,6 +644,9 @@ Same shape as `PHASE_1_PLAN.md` §13. Numbered, actor-tagged, `*Verify:*` per st
 **Step 11. [Paige]** — Smoke test `product-analyse` on 3 photos covering: a clear English label, an iPhone HEIC, and a partially-obscured ingredient panel. Validate against the four sample report PDFs at repo root.
 *Verify:* product name and brand read correctly; ingredient list transcribed completely (no padding); match score and flags coherent.
 
+**Step 11b. [Paige]** — *(Added 2026-04-26 with the vision+web_search revision.)* Partial-label web-search smoke. Photograph a TT product whose ingredient list is on a foldable insert / hidden side panel — i.e. the visible label shows brand + product name but only a fragment of the INCI.
+*Verify:* `ingredients[]` returns the **full** INCI list (resolved via `web_search`, not just OCR of the visible fragment); `ai_summary` and `tips` may reference brand/formulation facts inline; the formal "Read more — How To Love Your Afro, Chapter X: …, p.[page]" footer still appears whenever guidance is rooted in the book; web-derived facts do NOT appear under the "Read more" line. **No Publish click — server-only.**
+
 **Step 12. [Claude Code]** — Step 4a: migrate `product-analyse-url` (server-only). Extract `_shared/scrape.ts`. Surface Firecrawl-missing failures as real errors. Trim page text to 10 KB. PR + golden test.
 *Verify:* `npm run build` + `npm run test` green; `STRAND_AI_PROVIDER_PRODUCT_URL=claude` in Lovable Cloud Secrets.
 
