@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
@@ -8,14 +8,20 @@ import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import FilePickerButton from "@/components/FilePickerButton";
 import MyToolsSection from "@/components/MyToolsSection";
+import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
+import { toast } from "sonner";
 
 const tabs = [
   { id: "shelf",     label: "Shelf" },
@@ -35,10 +41,19 @@ const Products = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
-  const { products, loading } = useUserProducts("shelf");
+  const [offShelfTarget, setOffShelfTarget] = useState<{ id: string; key: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const { products, loading, remove, reload } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await remove(deleteTarget.id);
+    setDeleteTarget(null);
+    toast.success("Removed from your records");
+  };
 
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
@@ -148,12 +163,32 @@ const Products = () => {
                 </div>
 
                 {isOpen && (
-                  <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60">
+                  <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
                     <ProductVoicenotes
                       productKey={p.product_key}
                       productName={p.name}
                       productBrand={p.brand ?? ""}
                     />
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        variant="goldOutline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setOffShelfTarget({ id: p.id, key: p.product_key, name: p.name })}
+                      >
+                        <ArrowDownToLine className="size-3.5 mr-1" />
+                        Take off shelf
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
+                        aria-label="Remove from app"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -232,6 +267,40 @@ const Products = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {offShelfTarget && (
+        <OffShelfReasonSheet
+          open={!!offShelfTarget}
+          onOpenChange={(o) => !o && setOffShelfTarget(null)}
+          productId={offShelfTarget.id}
+          productKey={offShelfTarget.key}
+          productName={offShelfTarget.name}
+          onComplete={async () => {
+            setOffShelfTarget(null);
+            await reload();
+          }}
+        />
+      )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes <strong>{deleteTarget?.name}</strong> and all its history from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
