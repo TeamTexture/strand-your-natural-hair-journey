@@ -61,7 +61,7 @@ function encrypt(
   sodium: typeof _sodium,
   key: Uint8Array,
   plaintext: string,
-): string {
+): { ciphertext_b64: string; ciphertext_pg_hex: string } {
   const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
   const ct = sodium.crypto_secretbox_easy(
     sodium.from_string(plaintext),
@@ -71,7 +71,10 @@ function encrypt(
   const sealed = new Uint8Array(nonce.length + ct.length);
   sealed.set(nonce, 0);
   sealed.set(ct, nonce.length);
-  return sodium.to_base64(sealed, sodium.base64_variants.ORIGINAL);
+  return {
+    ciphertext_b64: sodium.to_base64(sealed, sodium.base64_variants.ORIGINAL),
+    ciphertext_pg_hex: bytesToPgHex(sealed),
+  };
 }
 
 const json = (status: number, body: unknown) =>
