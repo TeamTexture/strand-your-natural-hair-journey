@@ -94,14 +94,14 @@ function buildToolSchema(ingredientCount: number) {
       },
       personalised_guidance: {
         type: "array",
-        minItems: 3,
-        maxItems: 3,
-        description: "Three concrete, personalised tips for how THIS user should use this product, given their hair profile, current style, challenges and goals.",
+        minItems: 1,
+        maxItems: 2,
+        description: "1 or 2 concrete tips on how to get the most out of THIS product, anchored in the manufacturer's intended use, the actual ingredients, and the user's hair type / characteristics / challenges / goals. No medical, diagnosis, scalp-condition, or styling-tension advice.",
         items: {
           type: "object",
           properties: {
-            title: { type: "string", description: "Short label, max 6 words (e.g. 'Apply on damp hair', 'Pair with leave-in')." },
-            body: { type: "string", description: "1-2 sentences, max 35 words. Reference a specific piece of the user's profile (porosity, current style, named goal, scalp condition, etc.) and how to use the product in light of it." },
+            title: { type: "string", description: "Short label, max 6 words (e.g. 'Apply on damp hair', 'Layer under your leave-in')." },
+            body: { type: "string", description: "1-2 sentences, max 35 words. Reference the product's intended purpose and at least one of the user's hair traits (porosity, density, type, length, surface texture, hair challenge, hair goal). Cite the active/key ingredient mechanism where it helps." },
           },
           required: ["title", "body"],
         },
