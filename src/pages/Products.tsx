@@ -24,10 +24,11 @@ import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
 
 const tabs = [
-  { id: "shelf",     label: "Shelf" },
-  { id: "wishlist",  label: "Wishlist" },
-  { id: "off-shelf", label: "Off Shelf" },
-  { id: "intel",     label: "Ingredients" },
+  { id: "shelf",      label: "Shelf" },
+  { id: "favourites", label: "Faves" },
+  { id: "wishlist",   label: "Wish" },
+  { id: "off-shelf",  label: "Off" },
+  { id: "intel",      label: "Ingr." },
 ];
 
 const Stars = ({ n }: { n: number }) => (
