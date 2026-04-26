@@ -116,7 +116,7 @@ const Avoidlist = () => {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => navigate(`/products/profile/${p.id}`)}
+                  onClick={() => navigate(`/products/ingredient?key=${encodeURIComponent(p.product_key)}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(p.brand ?? "")}`)}
                   className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-background text-left transition-colors"
                 >
                   {p.image_url ? (
