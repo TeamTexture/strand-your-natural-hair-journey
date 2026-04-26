@@ -50,6 +50,9 @@ const IngredientDetail = () => {
   const [saving, setSaving] = useState(false);
   const [isFavourited, setIsFavourited] = useState(false);
   const [favSaving, setFavSaving] = useState(false);
+  const { avoid, favourites } = useIngredientLists();
+  const avoidNames = new Set(avoid.map((r) => r.ingredient.toLowerCase()));
+  const favNames = new Set(favourites.map((r) => r.ingredient.toLowerCase()));
 
   // Fallback: if no separate photo upload exists, use the image stored on
   // the user's product (uploaded during scan or pulled from the product URL).
