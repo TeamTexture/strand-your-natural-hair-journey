@@ -1,13 +1,14 @@
-// Hooks for product ratings + auto-derived avoid / favourite ingredient lists.
+// Hooks for the auto-derived Green Flag / Red Flag ingredient lists.
 //
-// Rules:
-//  - When a user saves a 1-2★ rating: any ingredient that appears in ≥2 of their
-//    ≤2★ products is added to the "avoid" list with a reason like
-//    "Found in 3 of your lowest rated products".
-//  - When a user saves a 4-5★ rating or taps the heart icon: ingredients from
-//    that product are added to the "favourite" list immediately.
-//  - Ingredients that no longer satisfy the threshold are removed from the
-//    relevant list, so the lists always reflect current ratings.
+// Rules (driven by product membership, NOT star ratings):
+//  - GREEN FLAG: an ingredient that appears in ≥3 of the user's *favourited*
+//    products (user_products.on_favourite = true).
+//  - RED FLAG:   an ingredient that appears in ≥3 of the user's *off-shelf*
+//    products (user_products with previously_on_shelf = true and on_shelf = false).
+//
+// Star ratings are no longer used to drive these lists. The heart icon on a
+// product page (and the Favourites tab) is the single source of truth for
+// what counts as a favourite.
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,10 +22,10 @@ export interface IngredientListRow {
   list_kind: ListKind;
 }
 
-const MIN_PRODUCTS_FOR_AVOID_LIST = 2;
-const MIN_PRODUCTS_FOR_FAVOURITES = 1;
-// Ingredients that are too generic / vehicle-only to be meaningful — skip when
-// aggregating so we don't surface "Water" as either avoid or favourite.
+const MIN_PRODUCTS_FOR_FLAG = 3;
+
+// Ingredients that are too generic / vehicle-only to be meaningful — skip
+// when aggregating so we don't surface "Water" as either flag.
 const GENERIC_INGREDIENTS = new Set(
   [
     "water",
@@ -35,37 +36,36 @@ const GENERIC_INGREDIENTS = new Set(
   ].map((s) => s.toLowerCase()),
 );
 
-const normaliseIngredient = (raw: string) =>
-  raw.replace(/\s+/g, " ").trim();
-
+const normaliseIngredient = (raw: string) => raw.replace(/\s+/g, " ").trim();
 const keyOf = (raw: string) => normaliseIngredient(raw).toLowerCase();
 
 /**
- * Recompute the avoid OR favourite list for the current user from their
- * product_ratings. Replaces the existing rows for that list_kind so removed
- * matches drop out cleanly.
+ * Recompute the Red Flag (avoid) OR Green Flag (favourite) list for the
+ * current user from their user_products membership. Replaces existing rows
+ * for that list_kind so removed matches drop out cleanly.
  */
 async function recomputeList(userId: string, kind: ListKind) {
-  const ratingFilter =
-    kind === "avoid"
-      ? { gte: 1, lte: 2 }
-      : { gte: 4, lte: 5 };
-  const minProducts = kind === "avoid" ? MIN_PRODUCTS_FOR_AVOID_LIST : MIN_PRODUCTS_FOR_FAVOURITES;
+  // Pick the source set of products for this list_kind.
+  let query = supabase
+    .from("user_products")
+    .select("ingredients, on_favourite, on_shelf, previously_on_shelf")
+    .eq("user_id", userId);
 
-  const { data: ratings, error } = await supabase
-    .from("product_ratings")
-    .select("ingredients, rating")
-    .eq("user_id", userId)
-    .gte("rating", ratingFilter.gte)
-    .lte("rating", ratingFilter.lte);
+  if (kind === "favourite") {
+    query = query.eq("on_favourite", true);
+  } else {
+    // Off-shelf = was on shelf, then removed.
+    query = query.eq("on_shelf", false).eq("previously_on_shelf", true);
+  }
 
+  const { data: rows, error } = await query;
   if (error) throw error;
 
   // Tally how many qualifying products contain each ingredient.
   const tally = new Map<string, { display: string; count: number }>();
-  for (const row of ratings ?? []) {
+  for (const row of rows ?? []) {
     const seen = new Set<string>();
-    for (const raw of row.ingredients ?? []) {
+    for (const raw of (row.ingredients ?? []) as string[]) {
       const k = keyOf(raw);
       if (!k || GENERIC_INGREDIENTS.has(k) || seen.has(k)) continue;
       seen.add(k);
@@ -79,20 +79,18 @@ async function recomputeList(userId: string, kind: ListKind) {
   }
 
   const qualifying = Array.from(tally.entries())
-    .filter(([, v]) => v.count >= minProducts)
+    .filter(([, v]) => v.count >= MIN_PRODUCTS_FOR_FLAG)
     .map(([, v]) => ({
       ingredient: v.display,
       product_count: v.count,
       reason:
         kind === "avoid"
-          ? `Found in ${v.count} of your lowest rated products`
-          : v.count === 1
-            ? "Found in a product you favourited"
-            : `Found in ${v.count} of your favourited products`,
+          ? `Found in ${v.count} of your off-shelf products`
+          : `Found in ${v.count} of your favourited products`,
       list_kind: kind,
     }));
 
-  // Replace the user's rows for this list kind. Simplest correct approach.
+  // Replace this user's rows for this list kind.
   const { error: delErr } = await supabase
     .from("ingredient_lists")
     .delete()
@@ -114,6 +112,20 @@ async function recomputeList(userId: string, kind: ListKind) {
   if (insErr) throw insErr;
 }
 
+/** Recompute both lists for the current user. Call after favourite/off-shelf changes. */
+export async function recomputeIngredientFlags() {
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) return;
+  await Promise.all([
+    recomputeList(user.id, "favourite"),
+    recomputeList(user.id, "avoid"),
+  ]);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("ingredient-lists-updated"));
+  }
+}
+
 export interface SaveRatingArgs {
   productKey: string;
   productName: string;
@@ -123,8 +135,10 @@ export interface SaveRatingArgs {
 }
 
 /**
- * Persists a star rating for a product and recomputes the appropriate list
- * (avoid for 1-2★, favourite for 4-5★, neither for 3★).
+ * Persists a star rating for a product. Star ratings are kept (they show on
+ * cards + power the existing PDF report) but they NO LONGER drive the
+ * Green/Red flag ingredient lists — that's now driven by favourites and
+ * off-shelf membership, recomputed via {@link recomputeIngredientFlags}.
  */
 export async function saveProductRating(args: SaveRatingArgs) {
   const { data: userData } = await supabase.auth.getUser();
@@ -172,14 +186,6 @@ export async function saveProductRating(args: SaveRatingArgs) {
     if (productError) throw productError;
   }
 
-  // Recompute lists that this rating affects. We always recompute *both*
-  // because changing a rating from e.g. 5★ → 2★ should remove the ingredient
-  // from favourites and potentially add it to avoid.
-  await Promise.all([
-    recomputeList(user.id, "avoid"),
-    recomputeList(user.id, "favourite"),
-  ]);
-
   // Notify any mounted product lists to refresh their stars.
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("user-products-updated"));
@@ -223,12 +229,16 @@ export function useIngredientLists() {
     refresh();
   }, [refresh]);
 
-  // Re-fetch whenever a rating is saved elsewhere in the app so the
-  // favourites / avoid lists update without a manual reload.
+  // Re-fetch whenever favourites / off-shelf status changes elsewhere in the
+  // app so the Green / Red flag lists update without a manual reload.
   useEffect(() => {
     const handler = () => { void refresh(); };
     window.addEventListener("user-products-updated", handler);
-    return () => window.removeEventListener("user-products-updated", handler);
+    window.addEventListener("ingredient-lists-updated", handler);
+    return () => {
+      window.removeEventListener("user-products-updated", handler);
+      window.removeEventListener("ingredient-lists-updated", handler);
+    };
   }, [refresh]);
 
   return { avoid, favourites, loading, error, refresh };
