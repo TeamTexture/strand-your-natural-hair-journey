@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -24,39 +25,35 @@ export interface UserGoal {
 
 export type GoalDraft = Partial<Omit<UserGoal, "id" | "user_id">>;
 
+/**
+ * Single shared React Query cache for goals so every consumer (Home,
+ * Journal, editor sheet) sees the same list and updates instantly when
+ * any one of them saves. Previously each hook instance held its own
+ * useState, which meant the editor's optimistic insert never reached
+ * Home/Journal until they remounted.
+ */
 export const useGoals = () => {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<UserGoal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const queryKey = ["user_goals", user?.id ?? "anon"];
 
-  const refresh = useCallback(async (showSpinner = false) => {
-    if (!user) {
-      setGoals([]);
-      setLoading(false);
-      return;
-    }
-    if (showSpinner) setLoading(true);
-    const { data } = await supabase
-      .from("user_goals")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    setGoals((data ?? []) as unknown as UserGoal[]);
-    setLoading(false);
-  }, [user]);
+  const { data: goals = [], isLoading: loading } = useQuery({
+    queryKey,
+    enabled: !!user,
+    queryFn: async () => {
+      if (!user) return [] as UserGoal[];
+      const { data } = await supabase
+        .from("user_goals")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      return (data ?? []) as unknown as UserGoal[];
+    },
+  });
 
-  // Initial load shows spinner; later refreshes are silent so the UI doesn't
-  // flash while we re-fetch after a save.
-  const initialLoad = useCallback(() => refresh(true), [refresh]);
-
-  useEffect(() => {
-    initialLoad();
-  }, [initialLoad]);
-
-  const upsertGoal = useCallback(
-    async (draft: GoalDraft, id?: string) => {
+  const upsertMutation = useMutation({
+    mutationFn: async ({ draft, id }: { draft: GoalDraft; id?: string }) => {
       if (!user) return null;
-      // The DB still has NOT NULL on title; provide a sensible default when blank.
       const safeDraft = {
         ...draft,
         title: draft.title?.trim() || draft.challenge?.slice(0, 60) || "Hair goal",
@@ -69,15 +66,7 @@ export const useGoals = () => {
           .eq("user_id", user.id)
           .select()
           .single();
-        // Optimistic local merge so the card updates instantly.
-        if (data) {
-          setGoals((prev) =>
-            prev.map((g) => (g.id === id ? ({ ...g, ...(data as unknown as UserGoal) }) : g)),
-          );
-        }
-        // Background refresh keeps timestamps / server-side fields in sync.
-        void refresh();
-        return data;
+        return data as unknown as UserGoal | null;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const insertPayload: any = { ...safeDraft, user_id: user.id };
@@ -86,28 +75,49 @@ export const useGoals = () => {
         .insert(insertPayload)
         .select()
         .single();
-      // Optimistic insert: prepend so it appears immediately at the top.
-      if (data) {
-        setGoals((prev) => [data as unknown as UserGoal, ...prev]);
-      }
-      void refresh();
-      return data;
+      return data as unknown as UserGoal | null;
     },
-    [user, refresh],
-  );
+    onSuccess: (saved, vars) => {
+      if (!saved) return;
+      // Optimistic merge into the shared cache so all consumers update
+      // immediately — no remount or refetch needed.
+      qc.setQueryData<UserGoal[]>(queryKey, (prev = []) => {
+        if (vars.id) {
+          return prev.map((g) => (g.id === vars.id ? { ...g, ...saved } : g));
+        }
+        return [saved, ...prev];
+      });
+      // Background refetch keeps server-side timestamps in sync.
+      void qc.invalidateQueries({ queryKey });
+    },
+  });
 
-  const deleteGoal = useCallback(
-    async (id: string) => {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       if (!user) return;
-      // Optimistic removal first, then persist.
-      setGoals((prev) => prev.filter((g) => g.id !== id));
       await supabase.from("user_goals").delete().eq("id", id).eq("user_id", user.id);
-      void refresh();
     },
-    [user, refresh],
-  );
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<UserGoal[]>(queryKey) ?? [];
+      qc.setQueryData<UserGoal[]>(queryKey, prev.filter((g) => g.id !== id));
+      return { prev };
+    },
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey });
+    },
+  });
 
-  // Convenience: the primary length retention goal (first match by kind).
+  const upsertGoal = useCallback(
+    (draft: GoalDraft, id?: string) => upsertMutation.mutateAsync({ draft, id }),
+    [upsertMutation],
+  );
+  const deleteGoal = useCallback((id: string) => deleteMutation.mutateAsync(id), [deleteMutation]);
+  const refresh = useCallback(() => qc.invalidateQueries({ queryKey }), [qc, queryKey]);
+
   const lengthGoal = goals.find((g) => g.kind === "length_retention") ?? null;
 
   return { goals, lengthGoal, loading, upsertGoal, deleteGoal, refresh };
