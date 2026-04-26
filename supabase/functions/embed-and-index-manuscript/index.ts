@@ -366,11 +366,11 @@ Deno.serve(async (req: Request) => {
     }
 
     // Truncate the table for an idempotent re-run.
-    const { error: trErr } = await admin.rpc("execute_sql", {
-      sql: "truncate table public.manuscript_chunks",
-    }).catch(() => ({ error: null }));
-    // The execute_sql RPC may not exist; fall back to a delete-all.
-    if (trErr || trErr === null) {
+    // We deliberately skip a `truncate` RPC (not registered in this project)
+    // and use a delete-all instead. supabase-js builders are thenable but
+    // not full Promises, so always `await` and destructure rather than
+    // chaining `.catch()` on them.
+    {
       const { error: delErr } = await admin
         .from("manuscript_chunks")
         .delete()
