@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { supabase } from "@/integrations/supabase/client";
-import { saveProductRating, recomputeIngredientFlags } from "@/hooks/useIngredientLists";
+import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
