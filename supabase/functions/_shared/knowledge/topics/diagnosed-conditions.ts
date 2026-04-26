@@ -43,13 +43,13 @@ What the AI does when one of these is in the user's profile:
 — For traction-style risks, lean into the book's low-tension / low-manipulation guidance.
 
 If you find a dermatologist with an educational background in Afro and curly hair, even better — a specialist trained in textured hair has a deeper understanding of the structures, the conditions Black women are more prone to, and how porosity, density and elasticity influence scalp and hair health.`,
+  // Matching strategy: this topic surfaces via `health.conditions` only.
+  // Although diagnosed conditions are physically stored on
+  // `user_hair_profile.diagnosed_conditions`, the AI context layer
+  // (selector_context.health.conditions in the prompt builder) folds those
+  // entries into the health.conditions array. Single source of truth at
+  // selection time — the selector then matches against this declared list.
   applies_to: {
-    hair: {
-      // Match diagnosed_conditions array entries from the user_hair_profile
-      // schema. The selector matches if any of the user's diagnosed entries
-      // is in this list.
-      // (Selector matches by intersection on hair-profile arrays.)
-    },
     health: {
       conditions: [
         "Traction alopecia",
