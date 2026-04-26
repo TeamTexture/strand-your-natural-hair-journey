@@ -340,30 +340,6 @@ const IngredientDetail = () => {
           />
         </SurfaceCard>
 
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your Rating</p>
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setRating(n)}
-                className={cn("text-3xl transition-transform", n <= rating ? "text-primary" : "text-border", "hover:scale-110")}
-                aria-label={`${n} stars`}
-              >
-                ★
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          variant="gold"
-          size="pill"
-          onClick={handleSaveRating}
-          disabled={saving || loading || !analysis}
-        >
-          {saving ? "Saving…" : "Save Rating"}
-        </Button>
       </div>
     </ScreenLayout>
   );
