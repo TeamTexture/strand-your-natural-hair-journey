@@ -17,6 +17,11 @@
 // the esm.sh URL. Production Deno resolves the dynamic import the same
 // way as a static one.
 
+// --- Type shim so the frontend tsc (which scans this file even though
+// it's a Deno edge function) doesn't error on the Deno global. At
+// runtime under Deno this is real; under tsc it's just a declaration.
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 export interface Passage {
   body: string;
   chapter: number;
@@ -103,6 +108,7 @@ export async function retrievePassages(
   // Dynamic import — see file-header note. Production Deno resolves this
   // the same as a static import; tests that throw before reaching this
   // line (e.g. on missing OPENAI_API_KEY) never need the supabase client.
+  // @ts-ignore — esm.sh URL import is Deno-native; frontend tsc can't resolve it.
   const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },
