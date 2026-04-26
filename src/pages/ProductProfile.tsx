@@ -187,7 +187,7 @@ const ProductProfile = () => {
   const ingredients = product.ingredients ?? [];
   const redFlags = ingredients.filter(i => avoidNames.has(i.toLowerCase()));
   const greenLights = ingredients.filter(i => favNames.has(i.toLowerCase()));
-  const score = product.match_score ?? 0;
+  const score = aiMatchScore ?? product.match_score ?? 0;
 
   const updateRating = async (n: number) => {
     if (!user) return;
@@ -250,10 +250,19 @@ const ProductProfile = () => {
         {/* Personalised "red flag / green light" cards removed: we present
             neutral information only and leave decisions to the user. */}
 
-        {product.ai_summary && (
+        {(aiSummary || product.ai_summary) && (
           <SurfaceCard tone="gold">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">AI Summary</p>
-            <p className="text-sm leading-snug">{product.ai_summary}</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
+              Personalised guidance
+            </p>
+            <p className="text-sm leading-snug whitespace-pre-line">
+              {aiSummary ?? product.ai_summary}
+            </p>
+            {aiLoading && !aiSummary && (
+              <p className="text-[10px] text-muted-foreground italic mt-2">
+                Refreshing for your latest profile…
+              </p>
+            )}
           </SurfaceCard>
         )}
 
