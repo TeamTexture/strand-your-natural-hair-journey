@@ -18,6 +18,13 @@
 //   [3] task instructions         no cache (per-call)
 
 import { STRAND_PERSONA } from "./strand-persona.ts";
+import {
+  renderTopicBlock,
+  selectTopicsForContext,
+  type SelectorContext,
+} from "./knowledge/index.ts";
+import type { TopicId } from "./knowledge/types.ts";
+import { renderPassageBlock, retrievePassages } from "./rag.ts";
 import type {
   ClaudeCallInput,
   ClaudeModel,
@@ -60,9 +67,20 @@ export interface BuildPromptInput {
   task_instructions: string;
   user_context?: Record<string, unknown> | null;
   user_payload: Record<string, unknown>;
-  /** KB topic bodies — Step 1 populates this; Step 0 callers pass [] or omit. */
+  /** Selector context for the KB. Pulled from buildAiContext()'s shape;
+   *  see knowledge/index.ts SelectorContext for the exact subset used. */
+  selector_context?: SelectorContext;
+  /** Explicit KB topic ids to force-include regardless of context match.
+   *  Useful e.g. for wash-day-observation always wanting wash-day-mechanics. */
+  force_topic_ids?: TopicId[];
+  /** Pre-rendered KB blocks. Bypasses the selector — for callers that
+   *  want full control. If provided, selector is skipped. */
   knowledge_blocks?: string[];
-  /** RAG passages — Step 1 populates this; Step 0 callers pass [] or omit. */
+  /** RAG query string. When set, retrievePassages(rag_query, rag_k ?? 4)
+   *  is called and the passages are rendered into systemBlocks[2]. */
+  rag_query?: string;
+  rag_k?: number;
+  /** Pre-rendered RAG blocks. Bypasses retrieval. */
   rag_blocks?: string[];
   /** Tool definition for structured-output (tool_use). When set, also pass toolChoice. */
   tool?: Tool;
@@ -73,8 +91,14 @@ export interface BuildPromptInput {
 }
 
 /** Build a fully-formed ClaudeCallInput. The caller passes the result to
- *  callClaude() from anthropic-client.ts. */
-export function buildClaudeRequest(input: BuildPromptInput): ClaudeCallInput {
+ *  callClaude() from anthropic-client.ts.
+ *
+ *  This is async because RAG retrieval (when rag_query is set) embeds the
+ *  query and queries the vector index. KB-selector + persona-only paths
+ *  remain effectively synchronous — no network calls. */
+export async function buildClaudeRequest(
+  input: BuildPromptInput,
+): Promise<ClaudeCallInput> {
   const systemBlocks: SystemBlock[] = [
     {
       type: "text",
@@ -83,27 +107,41 @@ export function buildClaudeRequest(input: BuildPromptInput): ClaudeCallInput {
     },
   ];
 
-  const kb = (input.knowledge_blocks ?? []).filter(
-    (s) => typeof s === "string" && s.length > 0,
-  );
-  if (kb.length > 0) {
+  // ── Knowledge base ────────────────────────────────────────────────
+  let kbBlocks: string[] = [];
+  if (input.knowledge_blocks && input.knowledge_blocks.length > 0) {
+    kbBlocks = input.knowledge_blocks.filter((s) => typeof s === "string" && s.length > 0);
+  } else if (input.selector_context || input.force_topic_ids) {
+    const topics = selectTopicsForContext(input.selector_context ?? {}, {
+      function_kind: input.function_kind === "claude-smoke" ? "ingredient-analysis" : input.function_kind,
+      force: input.force_topic_ids,
+    });
+    kbBlocks = topics.map(renderTopicBlock);
+  }
+  if (kbBlocks.length > 0) {
     systemBlocks.push({
       type: "text",
-      text: `KNOWLEDGE BASE\n\n${kb.join("\n\n---\n\n")}`,
+      text: `KNOWLEDGE BASE\n\n${kbBlocks.join("\n\n---\n\n")}`,
       cache_control: { type: "ephemeral" },
     });
   }
 
-  const rag = (input.rag_blocks ?? []).filter(
-    (s) => typeof s === "string" && s.length > 0,
-  );
-  if (rag.length > 0) {
+  // ── RAG passages ──────────────────────────────────────────────────
+  let ragBlocks: string[] = [];
+  if (input.rag_blocks && input.rag_blocks.length > 0) {
+    ragBlocks = input.rag_blocks.filter((s) => typeof s === "string" && s.length > 0);
+  } else if (input.rag_query && input.rag_query.trim().length > 0) {
+    const passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
+    ragBlocks = passages.map(renderPassageBlock);
+  }
+  if (ragBlocks.length > 0) {
     systemBlocks.push({
       type: "text",
-      text: `RETRIEVED PASSAGES\n\n${rag.join("\n\n---\n\n")}`,
+      text: `RETRIEVED PASSAGES\n\n${ragBlocks.join("\n\n---\n\n")}`,
     });
   }
 
+  // ── Task instructions ────────────────────────────────────────────
   systemBlocks.push({
     type: "text",
     text: `TASK\n\n${input.task_instructions}`,
