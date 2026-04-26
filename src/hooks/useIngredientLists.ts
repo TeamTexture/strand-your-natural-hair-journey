@@ -4,8 +4,8 @@
 //  - When a user saves a 1-2★ rating: any ingredient that appears in ≥2 of their
 //    ≤2★ products is added to the "avoid" list with a reason like
 //    "Found in 3 of your lowest rated products".
-//  - When a user saves a 4-5★ rating: same logic against ≥4★ products
-//    populates the "favourite" list.
+//  - When a user saves a 4-5★ rating or taps the heart icon: ingredients from
+//    that product are added to the "favourite" list immediately.
 //  - Ingredients that no longer satisfy the threshold are removed from the
 //    relevant list, so the lists always reflect current ratings.
 import { useCallback, useEffect, useState } from "react";
@@ -21,7 +21,8 @@ export interface IngredientListRow {
   list_kind: ListKind;
 }
 
-const MIN_PRODUCTS_FOR_LIST = 2;
+const MIN_PRODUCTS_FOR_AVOID_LIST = 2;
+const MIN_PRODUCTS_FOR_FAVOURITES = 1;
 // Ingredients that are too generic / vehicle-only to be meaningful — skip when
 // aggregating so we don't surface "Water" as either avoid or favourite.
 const GENERIC_INGREDIENTS = new Set(
@@ -49,6 +50,7 @@ async function recomputeList(userId: string, kind: ListKind) {
     kind === "avoid"
       ? { gte: 1, lte: 2 }
       : { gte: 4, lte: 5 };
+  const minProducts = kind === "avoid" ? MIN_PRODUCTS_FOR_AVOID_LIST : MIN_PRODUCTS_FOR_FAVOURITES;
 
   const { data: ratings, error } = await supabase
     .from("product_ratings")
@@ -77,14 +79,16 @@ async function recomputeList(userId: string, kind: ListKind) {
   }
 
   const qualifying = Array.from(tally.entries())
-    .filter(([, v]) => v.count >= MIN_PRODUCTS_FOR_LIST)
+    .filter(([, v]) => v.count >= minProducts)
     .map(([, v]) => ({
       ingredient: v.display,
       product_count: v.count,
       reason:
         kind === "avoid"
           ? `Found in ${v.count} of your lowest rated products`
-          : `Found in ${v.count} of your highest rated products`,
+          : v.count === 1
+            ? "Found in a product you favourited"
+            : `Found in ${v.count} of your favourited products`,
       list_kind: kind,
     }));
 
@@ -127,9 +131,20 @@ export async function saveProductRating(args: SaveRatingArgs) {
   const user = userData?.user;
   if (!user) throw new Error("Not signed in");
 
+  const { data: savedProduct } = await supabase
+    .from("user_products")
+    .select("id, ingredients")
+    .eq("user_id", user.id)
+    .eq("product_key", args.productKey)
+    .maybeSingle();
+
+  const sourceIngredients = args.ingredients.length > 0
+    ? args.ingredients
+    : ((savedProduct?.ingredients ?? []) as string[]);
+
   const cleanIngredients = Array.from(
     new Set(
-      (args.ingredients ?? [])
+      (sourceIngredients ?? [])
         .map((i) => normaliseIngredient(i))
         .filter((i) => i.length > 0 && i.length < 120),
     ),
@@ -147,6 +162,15 @@ export async function saveProductRating(args: SaveRatingArgs) {
     { onConflict: "user_id,product_key" },
   );
   if (error) throw error;
+
+  if (savedProduct?.id) {
+    const { error: productError } = await supabase
+      .from("user_products")
+      .update({ rating: args.rating })
+      .eq("id", savedProduct.id)
+      .eq("user_id", user.id);
+    if (productError) throw productError;
+  }
 
   // Recompute lists that this rating affects. We always recompute *both*
   // because changing a rating from e.g. 5★ → 2★ should remove the ingredient
