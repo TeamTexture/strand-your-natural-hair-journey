@@ -358,12 +358,13 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (existing?.payload) {
         const cached = existing.payload as AnalysisPayload;
-        // For Claude path: only honour cache if model_version matches.
-        // For Lovable path: honour any cache (back-compat with pre-Phase-2 rows).
+        // Only honour cache if it includes the separate personalised guidance
+        // section. Older rows predate this field and must be regenerated.
+        const hasGuidance = Array.isArray(cached.personalised_guidance) && cached.personalised_guidance.length >= 3;
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
           : true;
-        if (versionOk) {
+        if (versionOk && hasGuidance) {
           return json(200, { cached: true, analysis: cached });
         }
       }
