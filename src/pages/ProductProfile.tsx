@@ -238,6 +238,7 @@ const ProductProfile = () => {
           rating: n,
         }, { onConflict: "user_id,product_key" });
       toast.success("Rating saved");
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
       await reload();
     }
     setSavingRating(false);
