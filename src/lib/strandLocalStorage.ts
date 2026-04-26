@@ -13,24 +13,18 @@
 //     localStorage → Postgres migration. Re-running it on every sign-in would
 //     be wasteful and noisy in the logs.
 //
-// We also preserve `strand_migration_v1_user_id` (the companion key written by
-// the migration hook) so the user-scoped fallback gate in
-// `loadClinicalContext()` keeps working across sign-out / sign-in cycles. It
-// only ever describes which user the migration ran for; it never contains
-// clinical data itself.
-
 export const STRAND_PREFIX = "strand_";
 
 export const STRAND_PRESERVED_KEYS: ReadonlySet<string> = new Set([
   "strand_walkthrough_complete",
   "strand_migration_v1_done",
-  "strand_migration_v1_user_id",
 ]);
 
 /** Remove every `strand_*` key from localStorage except the device-level UI
  *  state and migration-history flags. Safe to call in SSR / non-browser
  *  contexts (no-op). */
-export function purgeStrandUserScopedKeys(): void {
+export function purgeStrandUserScopedKeys(source = "unknown"): void {
+  console.log("[strand] purge called from", source);
   if (typeof window === "undefined") return;
   try {
     const toRemove: string[] = [];
