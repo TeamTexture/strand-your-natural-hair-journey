@@ -24,6 +24,7 @@ export interface UserProduct {
   rating: number | null;
   on_shelf: boolean;
   on_wishlist: boolean;
+  on_favourite: boolean;
   previously_on_shelf: boolean;
   added_to_shelf_at: string | null;
   last_used_at: string | null;
@@ -32,7 +33,7 @@ export interface UserProduct {
   updated_at: string;
 }
 
-type Filter = "shelf" | "wishlist" | "off-shelf" | "all";
+type Filter = "shelf" | "wishlist" | "off-shelf" | "favourite" | "all";
 
 /** Loads the current user's products. Filter is applied client-side. */
 export function useUserProducts(filter: Filter = "all") {
