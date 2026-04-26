@@ -549,7 +549,7 @@ const ProductProfile = () => {
                           <button
                             key={m.id}
                             type="button"
-                            onClick={() => navigate(`/products/${m.id}`)}
+                            onClick={() => navigate(`/products/profile/${m.id}`)}
                             className="w-full pl-9 pr-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-primary/5"
                           >
                             <div className="size-7 rounded-md overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center text-sm">
