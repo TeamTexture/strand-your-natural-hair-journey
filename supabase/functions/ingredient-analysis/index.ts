@@ -367,7 +367,7 @@ Deno.serve(async (req) => {
         const cached = existing.payload as AnalysisPayload;
         // Only honour cache if it includes the separate personalised guidance
         // section. Older rows predate this field and must be regenerated.
-        const hasGuidance = Array.isArray(cached.personalised_guidance) && cached.personalised_guidance.length >= 3;
+        const hasGuidance = Array.isArray(cached.personalised_guidance) && cached.personalised_guidance.length >= 1;
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
           : true;
