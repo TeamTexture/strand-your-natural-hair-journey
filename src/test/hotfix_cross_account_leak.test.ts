@@ -113,6 +113,7 @@ describe("hotfix: signOut purges strand_* localStorage keys", () => {
     expect(localStorage.getItem("strand_blood_results")).toBeNull();
     expect(localStorage.getItem("strand_last_wash_date")).toBeNull();
     expect(localStorage.getItem("strand_wash_history")).toBeNull();
+    expect(localStorage.getItem("strand_migration_v1_user_id")).toBeNull();
 
     // Preserved keys survived.
     for (const key of STRAND_PRESERVED_KEYS) {
