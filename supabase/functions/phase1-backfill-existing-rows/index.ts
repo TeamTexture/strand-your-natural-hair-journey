@@ -6,9 +6,10 @@
 //
 // Auth gates (BOTH must pass):
 //   1) body.confirm === "i-have-set-the-master-key"   (literal hand-typed string)
-//   2) caller is the founder, EITHER (a) authenticated email matches
-//      PHASE1_ADMIN_EMAIL env secret (no default — must be configured), OR
-//      (b) body.adminToken matches BACKFILL_ADMIN_TOKEN env secret.
+//   2) caller authorisation, ANY of:
+//      (a) Authorization bearer == SUPABASE_SERVICE_ROLE_KEY (server-to-server),
+//      (b) authenticated email matches PHASE1_ADMIN_EMAIL env secret, or
+//      (c) body.adminToken matches BACKFILL_ADMIN_TOKEN env secret.
 //
 // Deleted in Phase 1.5 — no purpose after the one invocation.
 //
