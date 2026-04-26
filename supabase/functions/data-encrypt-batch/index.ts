@@ -20,6 +20,24 @@ interface RequestBody {
   items: Array<{ id: string; plaintext: string }>;
 }
 
+// PostgREST treats a Uint8Array sent in an update payload as JSON and stores
+// the literal `{"0":n,...}` text into the bytea column. The right wire format
+// is Postgres's hex bytea literal, `"\\xDEADBEEF..."`, which decodes to the
+// raw bytes server-side. We return both base64 (for non-DB use cases) and
+// pg_hex (for direct PostgREST writes) so callers can never get this wrong.
+//
+// Phase 1 audit 2026-04-26: the first backfill silently corrupted 14
+// `blood_results.value_enc` rows by sending Uint8Array directly. Returning
+// pg_hex here is the structural fix for the client-side hook (see
+// `useLocalStorageMigration` in Phase 1 client work).
+function bytesToPgHex(bytes: Uint8Array): string {
+  let hex = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    hex += bytes[i].toString(16).padStart(2, "0");
+  }
+  return `\\x${hex}`;
+}
+
 const MAX_ITEMS_PER_BATCH = 200;
 
 // Cached across warm invocations; freshly loaded per cold start.
@@ -43,7 +61,7 @@ function encrypt(
   sodium: typeof _sodium,
   key: Uint8Array,
   plaintext: string,
-): string {
+): { ciphertext_b64: string; ciphertext_pg_hex: string } {
   const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
   const ct = sodium.crypto_secretbox_easy(
     sodium.from_string(plaintext),
@@ -53,7 +71,10 @@ function encrypt(
   const sealed = new Uint8Array(nonce.length + ct.length);
   sealed.set(nonce, 0);
   sealed.set(ct, nonce.length);
-  return sodium.to_base64(sealed, sodium.base64_variants.ORIGINAL);
+  return {
+    ciphertext_b64: sodium.to_base64(sealed, sodium.base64_variants.ORIGINAL),
+    ciphertext_pg_hex: bytesToPgHex(sealed),
+  };
 }
 
 const json = (status: number, body: unknown) =>
@@ -98,10 +119,16 @@ Deno.serve(async (req) => {
       if (typeof item?.id !== "string" || typeof item?.plaintext !== "string") {
         throw new Error("each item must have { id: string, plaintext: string }");
       }
-      return {
-        id: item.id,
-        ciphertext_b64: encrypt(sodium, key, item.plaintext),
-      };
+      const { ciphertext_b64, ciphertext_pg_hex } = encrypt(
+        sodium,
+        key,
+        item.plaintext,
+      );
+      // Both formats are returned. Callers writing to a Postgres bytea via
+      // PostgREST MUST use ciphertext_pg_hex (it's the `\x...` literal that
+      // PostgREST decodes server-side). Callers using the value as an opaque
+      // string can use ciphertext_b64.
+      return { id: item.id, ciphertext_b64, ciphertext_pg_hex };
     });
 
     return json(200, { items: out });

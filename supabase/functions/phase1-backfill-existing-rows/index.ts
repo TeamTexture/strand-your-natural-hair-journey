@@ -71,6 +71,23 @@ function encryptToBytes(
   return sealed;
 }
 
+// PostgREST can't transport a Uint8Array as a bytea write — it JSON-serialises
+// it to `{"0":n,"1":n,...}` which Postgres then stores as the literal ASCII
+// text of that object. The right wire format is Postgres's hex bytea literal,
+// `"\\xDEADBEEF..."`. We build that string here and pass it as a normal string
+// in the update payload.
+//
+// This bug class is what broke the first backfill run (see Phase 1 audit
+// notes 2026-04-26): all 14 rows were "encrypted" successfully but every
+// stored bytea was JSON garbage instead of nonce||ct.
+export function bytesToPgHex(bytes: Uint8Array): string {
+  let hex = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    hex += bytes[i].toString(16).padStart(2, "0");
+  }
+  return `\\x${hex}`;
+}
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -189,8 +206,8 @@ Deno.serve(async (req) => {
             const { error: upErr } = await admin
               .from("blood_results")
               .update({
-                value_enc: valueSealed,
-                unit_enc: unitSealed,
+                value_enc: bytesToPgHex(valueSealed),
+                unit_enc: bytesToPgHex(unitSealed),
               })
               .eq("id", row.id);
             if (upErr) {
@@ -245,8 +262,8 @@ Deno.serve(async (req) => {
             const { error: upErr } = await admin
               .from("user_medications")
               .update({
-                name_enc: nameSealed,
-                category_enc: categorySealed,
+                name_enc: bytesToPgHex(nameSealed),
+                category_enc: bytesToPgHex(categorySealed),
               })
               .eq("id", row.id);
             if (upErr) {
