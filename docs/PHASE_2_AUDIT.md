@@ -489,13 +489,19 @@ Sequenced by user-impact-on-failure × risk × what each step teaches. Step 0 is
 - **Caching pattern:** keep `ai_summaries` row by `kind = "ingredient_analysis:<key>"`. Add a `model_version` field to the cached payload so a future persona/KB bump auto-invalidates without manual cache nuke.
 - **Risk:** low. Existing schema, existing call sites, existing cache.
 
-### Step 3 — `product-analyse` *(vision, "wow moment")*
-- **Model:** `claude-sonnet-4-6` (vision-capable).
-- **Vision content blocks:** Anthropic shape — `{ type: "image", source: { type: "base64", media_type, data } }` for data URLs; `{ type: "image", source: { type: "url", url } }` for signed URLs.
-- **JSON-mode:** tool_use (`return_product_analysis`), schema in `_shared/schemas.ts`. **Shared with step 4 below** so the URL flow uses the same tool.
-- **No RAG.** KB topics: 1, 3, 4.
-- **Token cost (estimate):** image ~1500 tokens + ~2.2K text input + ~800 output → ~$0.014 per call. Vision is the most expensive Phase 2 op per call.
-- **Verification:** match outputs against the four sample reports at the repo root before flipping the call site (`STRAND-ingredient-report-Maya.pdf`, etc.).
+### Step 3 — `product-analyse` *(vision + web research, "wow moment")*
+- **Model:** `claude-sonnet-4-6` (vision-capable, native web_search support).
+- **Tools provided to Claude:**
+  1. **Vision content block** — Anthropic shape: `{ type: "image", source: { type: "base64", media_type, data } }` for data URLs; `{ type: "image", source: { type: "url", url } }` for signed URLs.
+  2. **`web_search` tool** — Anthropic's native web search tool definition with `max_uses: 4` (one to identify brand+product from partial label, optional cross-check for full INCI when label is folded/obscured, optional brand/formulation context, optional retailer fact). Tight upper bound; Claude decides per call whether to invoke.
+  3. **`return_product_analysis` tool_use** — schema in `_shared/schemas.ts`. **Shared with Step 4a** so photo and URL flows produce identical client-side payloads.
+- **Autonomous reasoning loop:** single API call. Claude looks at the photo, identifies brand+product from the most prominent text, decides whether to search the web (typically when the visible ingredient panel is partial, the label is folded, or marketing claims need verification), runs the search itself, then composes the analysis. No client-side orchestration; Anthropic returns the final `tool_use` once Claude has enough context.
+- **No RAG.** KB topics: 1, 3, 4. (RAG remains a separate retrieval channel — book corpus only. Web search is product-fact retrieval only, never used to substitute for the book.)
+- **Token cost (revised estimate):** image ~1500 tokens + ~2.2K text input + ~800 output base + ~2–3 web_search invocations at Anthropic's per-search price (~$0.01/search, late-2025 pricing) + additional output tokens from synthesised research → **~$0.03–0.05 per call** (was ~$0.014 vision-only). Vision+research is now the most expensive Phase 2 per-call op; budget accordingly in §6 cost projections.
+- **Persona impact:** the persona's "Read more — How To Love Your Afro, Chapter X: [Title], p.[page]" footer continues to render whenever guidance is rooted in a specific chapter. Web-derived product facts (e.g. "the brand's site states the formulation uses cold-process saponification") are referenced inline naturally in `ai_summary` / `tips` — they do NOT use the formal "Read more" line, which is reserved for book citations only. **Add to `task_instructions` in the system prompt:** *"When citing facts, distinguish book-derived guidance from web-derived product facts. Web sources can be referenced inline naturally in prose; book citations get the formal 'Read more — How To Love Your Afro, Chapter X: [Title], p.[page]' line on its own line at the end."*
+- **Schema unchanged.** The `return_product_analysis` tool definition is identical to the vision-only spec — what changes is how Claude *fills* the schema (vision-only vs. vision+research). Existing client-side rendering in `useProductScan.ts` and `ProductDetailNew.tsx` continues to work without modification.
+- **Verification:** match outputs against the four sample reports at the repo root before flipping the call site (`STRAND-ingredient-report-Maya.pdf`, etc.). **Plus** the new partial-label smoke test in §8 (a TT product whose ingredient list is on a foldable insert / obscured side panel must produce a full INCI list via web search, not just OCR).
+- **Rollout flag:** `STRAND_AI_PROVIDER_PRODUCT_PHOTO=claude`.
 
 ### Step 4a — `product-analyse-url` *(server-only, no client change)*
 - **Model:** `claude-sonnet-4-6`. Shares the `return_product_analysis` tool with step 3 — schema lives in `_shared/schemas.ts`.
@@ -638,6 +644,9 @@ Same shape as `PHASE_1_PLAN.md` §13. Numbered, actor-tagged, `*Verify:*` per st
 **Step 11. [Paige]** — Smoke test `product-analyse` on 3 photos covering: a clear English label, an iPhone HEIC, and a partially-obscured ingredient panel. Validate against the four sample report PDFs at repo root.
 *Verify:* product name and brand read correctly; ingredient list transcribed completely (no padding); match score and flags coherent.
 
+**Step 11b. [Paige]** — *(Added 2026-04-26 with the vision+web_search revision.)* Partial-label web-search smoke. Photograph a TT product whose ingredient list is on a foldable insert / hidden side panel — i.e. the visible label shows brand + product name but only a fragment of the INCI.
+*Verify:* `ingredients[]` returns the **full** INCI list (resolved via `web_search`, not just OCR of the visible fragment); `ai_summary` and `tips` may reference brand/formulation facts inline; the formal "Read more — How To Love Your Afro, Chapter X: …, p.[page]" footer still appears whenever guidance is rooted in the book; web-derived facts do NOT appear under the "Read more" line. **No Publish click — server-only.**
+
 **Step 12. [Claude Code]** — Step 4a: migrate `product-analyse-url` (server-only). Extract `_shared/scrape.ts`. Surface Firecrawl-missing failures as real errors. Trim page text to 10 KB. PR + golden test.
 *Verify:* `npm run build` + `npm run test` green; `STRAND_AI_PROVIDER_PRODUCT_URL=claude` in Lovable Cloud Secrets.
 
@@ -754,3 +763,26 @@ Everything else (the 9 edge functions including `_shared/`, the `manuscript_chun
 ---
 
 **Approved 2026-04-26 with the decisions above and the §5 splits. Awaiting the canonical `STRAND_PERSONA` text and the manuscript PDF location before Hand-off #1. After Hand-off #1 I begin Step 0 (foundation) — no per-function migrations until Hand-off #2.**
+
+---
+
+## Audit revisions
+
+### 2026-04-26 — Step 3 gains autonomous web research (Paige's request)
+
+Stage-2 Claude smoke testing of `ingredient-analysis` passed cleanly. While reviewing the upcoming Step 3 spec ahead of implementation, Paige decided that **`product-analyse` should not stay vision-only**. The user goal — "take a photo of a product and get the same depth of analysis you'd get if you'd handed me the URL" — cannot be met from a single photo when the ingredient list is folded, partially printed, or hidden behind brand text. Step 3 must therefore close the gap to Step 4a's URL flow by **searching the web itself** for canonical product details whenever the visible label is insufficient.
+
+**What changed in §5 Step 3:**
+1. **Tool list:** vision content block + new **`web_search` tool** (Anthropic native, Sonnet 4.6 supports it) + existing `return_product_analysis` tool_use. `max_uses: 4` per call — enough to identify the product, optionally cross-check INCI, optionally pull brand/formulation context, optionally check a retailer fact. Tight upper bound, autonomous within it.
+2. **Token cost:** revised from ~$0.014/call to **~$0.03–0.05/call** to account for ~2–3 `web_search` invocations at ~$0.01/search plus additional output tokens from synthesised research. Vision+research is now the most expensive Phase 2 per-call op; §6 cost model needs to absorb this when projections are recomputed pre-launch.
+3. **Schema:** **unchanged.** `return_product_analysis` is identical. What changes is *how* Claude fills it (vision-only → vision+research). Existing client rendering in `useProductScan.ts` and `ProductDetailNew.tsx` is untouched.
+4. **Persona:** the formal `Read more — How To Love Your Afro, Chapter X: [Title], p.[page]` footer remains **reserved for book-derived guidance**. Web-derived product facts (brand site, retailer page, INCI database) are referenced inline in `ai_summary` / `tips` in natural prose. New explicit instruction added to `task_instructions`: *"When citing facts, distinguish book-derived guidance from web-derived product facts. Web sources can be referenced inline naturally in prose; book citations get the formal 'Read more — …' line on its own line at the end."*
+5. **New verification step (§8 Step 11b):** before declaring Step 3 green, Paige photographs a TT product whose ingredient list is on a foldable insert / hidden side panel and confirms `ingredients[]` returns the **full** INCI via web_search (not just OCR of the visible fragment), with persona footers and inline web citations behaving per the rule above.
+6. **Rollout flag:** unchanged — `STRAND_AI_PROVIDER_PRODUCT_PHOTO=claude`, per-function only, no global flag.
+
+**What did NOT change:**
+- **Step 4a (`product-analyse-url`)** scope is unchanged. URL flow continues to start from a known URL, scrape via Firecrawl/fallback, and call `return_product_analysis`. The schema unification with Step 3 is preserved (`_shared/schemas.ts`).
+- **The boundary between Steps 3 and 4a** is now: Step 3 starts from a **photo with partial info** and resolves to canonical via autonomous web search; Step 4a starts from a **URL the user provides** and scrapes that page directly. Both produce the same payload.
+- **Steps 4b, 5a, 5b** structure and per-function flags are untouched.
+- **Per-function `STRAND_AI_PROVIDER_<FN>` flags** remain strictly per-function. No global flag introduced.
+
