@@ -40,9 +40,6 @@ const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onCl
       <p className="text-sm font-medium truncate">{p.name}</p>
       <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
     </div>
-    {p.match_score != null && (
-      <span className="text-[10px] font-bold text-primary shrink-0">{p.match_score}</span>
-    )}
     {selected && (
       <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
         <Check className="size-3" />

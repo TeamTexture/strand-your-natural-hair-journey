@@ -86,9 +86,6 @@ const Wishlist = () => {
                       </span>
                     )}
                   </div>
-                  {p.match_score != null && (
-                    <span className="bg-primary text-primary-foreground text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0">{p.match_score}%</span>
-                  )}
                   <button
                     onClick={() => setExpanded(isOpen ? null : p.product_key)}
                     className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"

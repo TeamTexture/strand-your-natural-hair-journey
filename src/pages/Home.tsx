@@ -403,11 +403,6 @@ const Home = () => {
                   <p className="text-[11px] text-muted-foreground">{s.brand}</p>
                   <Stars n={s.rating ?? 0} />
                 </div>
-                {s.match_score != null && (
-                  <div className="size-10 rounded-full border-2 border-primary text-primary flex items-center justify-center text-xs font-bold">
-                    {s.match_score}
-                  </div>
-                )}
               </button>
             ))
           )}
