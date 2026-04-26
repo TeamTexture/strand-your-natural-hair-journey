@@ -206,8 +206,8 @@ Deno.serve(async (req) => {
             const { error: upErr } = await admin
               .from("blood_results")
               .update({
-                value_enc: valueSealed,
-                unit_enc: unitSealed,
+                value_enc: bytesToPgHex(valueSealed),
+                unit_enc: bytesToPgHex(unitSealed),
               })
               .eq("id", row.id);
             if (upErr) {
