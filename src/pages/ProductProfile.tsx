@@ -274,21 +274,94 @@ const ProductProfile = () => {
         {/* Personalised "red flag / green light" cards removed: we present
             neutral information only and leave decisions to the user. */}
 
-        {(aiSummary || product.ai_summary) && (
-          <SurfaceCard tone="gold">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
+        <SurfaceCard tone="gold">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
               Personalised guidance
             </p>
+            {!aiLoading && (aiSummary || product.ai_summary) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!product || !user || aiLoading) return;
+                  setAiLoading(true);
+                  setAiError(null);
+                  try {
+                    const context = await buildAiContext();
+                    const styleLocal = (() => {
+                      try { return JSON.parse(localStorage.getItem("strand_current_style") || "null"); }
+                      catch { return null; }
+                    })();
+                    const challenges = goals
+                      .map((g) => g.challenge)
+                      .filter((c): c is string => Boolean(c && c.trim()));
+                    const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
+                      body: {
+                        productKey: product.product_key,
+                        productName: product.name,
+                        productBrand: product.brand,
+                        ingredients: product.ingredients,
+                        hairProfile: context.hairProfile ?? {},
+                        healthProfile: context.healthProfile ?? {},
+                        heritage: [],
+                        goals: goals.map((g) => ({
+                          kind: g.kind, title: g.title, target_text: g.target_text,
+                          target_value: g.target_value, unit: g.unit,
+                          current_value: g.current_value, target_date: g.target_date,
+                          challenge: g.challenge, status: g.status,
+                        })),
+                        currentStyle: styleLocal,
+                        challenges,
+                        context,
+                        force: true,
+                      },
+                    });
+                    if (error) throw error;
+                    if (data?.error) throw new Error(data.error);
+                    const flags = (data?.analysis?.ingredients ?? []) as IngredientFlag[];
+                    setAiFlags(flags);
+                    const summary = typeof data?.analysis?.summary === "string" ? data.analysis.summary : null;
+                    setAiSummary(summary);
+                    const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
+                    setAiMatchScore(score);
+                    if (summary || score != null) {
+                      await supabase.from("user_products").update({
+                        ai_summary: summary, match_score: score,
+                      }).eq("id", product.id);
+                    }
+                    toast.success("Guidance refreshed");
+                  } catch (e) {
+                    setAiError(e instanceof Error ? e.message : "Could not refresh");
+                  } finally {
+                    setAiLoading(false);
+                  }
+                }}
+                className="text-[10px] uppercase tracking-[0.15em] text-primary/70 hover:text-primary"
+              >
+                Refresh
+              </button>
+            )}
+          </div>
+          {aiLoading ? (
+            <LoadingDot label="Personalising guidance for your profile…" />
+          ) : (aiSummary || product.ai_summary) ? (
             <p className="text-sm leading-snug whitespace-pre-line">
               {aiSummary ?? product.ai_summary}
             </p>
-            {aiLoading && !aiSummary && (
-              <p className="text-[10px] text-muted-foreground italic mt-2">
-                Refreshing for your latest profile…
-              </p>
-            )}
-          </SurfaceCard>
-        )}
+          ) : aiError ? (
+            <p className="text-sm leading-snug text-muted-foreground">
+              Could not load guidance. {aiError}
+            </p>
+          ) : ingredients.length === 0 ? (
+            <p className="text-sm leading-snug text-muted-foreground">
+              Add ingredients to this product to get personalised guidance.
+            </p>
+          ) : (
+            <p className="text-sm leading-snug text-muted-foreground">
+              No guidance saved yet for this product.
+            </p>
+          )}
+        </SurfaceCard>
 
         <SurfaceCard padded={false} className="divide-y divide-border/60">
           <div className="p-3.5 flex items-center justify-between">
