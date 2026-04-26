@@ -325,11 +325,13 @@ Deno.serve(async (req: Request) => {
         }
       } catch { /* ignore */ }
     }
+    let gateUserEmail: string | null = null;
     if (!gateAuthed && authHeader && adminEmail) {
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: u } = await userClient.auth.getUser();
+      gateUserEmail = u?.user?.email ?? null;
       if (u?.user?.email && u.user.email.toLowerCase() === adminEmail.toLowerCase()) {
         gateAuthed = true;
       }
@@ -337,7 +339,18 @@ Deno.serve(async (req: Request) => {
     if (!gateAuthed && adminToken && body?.adminToken === adminToken) {
       gateAuthed = true;
     }
-    if (!gateAuthed) return json(403, { error: "admin gate failed" });
+    if (!gateAuthed) {
+      console.log("[admin-gate] env=" + JSON.stringify({
+        PHASE2_ADMIN_EMAIL_present: !!Deno.env.get("PHASE2_ADMIN_EMAIL"),
+        PHASE2_ADMIN_EMAIL_len: (Deno.env.get("PHASE2_ADMIN_EMAIL") ?? "").length,
+        PHASE1_ADMIN_EMAIL_present: !!Deno.env.get("PHASE1_ADMIN_EMAIL"),
+        PHASE1_ADMIN_EMAIL_len: (Deno.env.get("PHASE1_ADMIN_EMAIL") ?? "").length,
+        authHeader_present: !!req.headers.get("Authorization"),
+        user_email_received: gateUserEmail,
+        user_email_len: (gateUserEmail ?? "").length,
+      }));
+      return json(403, { error: "admin gate failed" });
+    }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
