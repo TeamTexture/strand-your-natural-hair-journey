@@ -136,8 +136,12 @@ RULES — STRICT:
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
 5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. If the verdict is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line on a new line at the end of the summary.
-6. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
-7. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
+6. personalised_guidance: EXACTLY 3 tips on how THIS specific user should USE this product. Each tip MUST reference at least one concrete data point from the user's profile (porosity, density, scalp condition, diagnosed condition, current hairstyle, planned next style, a named goal, a logged challenge, blood marker, hard-water area, heritage). NEVER write generic advice like "use as directed". Lead with action. If the product is a poor fit (match_score < 55), guidance can include patch-test, dilution, frequency caps, or "skip if X" warnings — still tied to the user's data. Examples:
+   - title: "Use sparingly on low-porosity hair", body: "Your low-porosity strands struggle to absorb heavy butters — apply a 10p coin to damp ends only, twice a week, to avoid build-up."
+   - title: "Pair with your protective styling goal", body: "Since you're working towards 6-month length retention in braids, work this leave-in through sections on take-down day to ease detangling without breakage."
+   - title: "Soft water only", body: "Your SE15 postcode is hard-water — clarify with a chelating shampoo before this mask, otherwise the cationic conditioners bind to mineral deposits and feel waxy."
+7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
+8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
 }
 
 // ── Selector context for KB topic matching ──────────────────────────────
