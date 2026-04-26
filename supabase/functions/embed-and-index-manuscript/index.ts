@@ -339,6 +339,14 @@ Deno.serve(async (req: Request) => {
     if (!gateAuthed && adminToken && body?.adminToken === adminToken) {
       gateAuthed = true;
     }
+    console.log("[admin-gate]", JSON.stringify({
+      authHeader_present: !!authHeader,
+      bearerToken_len: bearerToken?.length ?? 0,
+      bearer_is_service_role: bearerToken === SERVICE_ROLE,
+      gateUserEmail,
+      adminEmail_configured: adminEmail,
+      gateAuthed,
+    }));
     if (!gateAuthed) {
       return json(403, { error: "admin gate failed" });
     }
