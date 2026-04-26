@@ -110,12 +110,14 @@ Deno.serve(async (req) => {
     }
 
     let gateAuthed = false;
+    let debugCallerEmail: string | null = null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader && adminEmail) {
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: u } = await userClient.auth.getUser();
+      debugCallerEmail = u?.user?.email ?? null;
       if (
         u?.user?.email &&
         u.user.email.toLowerCase() === adminEmail.toLowerCase()
@@ -134,6 +136,7 @@ Deno.serve(async (req) => {
           admin_email_len: adminEmail?.length ?? 0,
           admin_token_set: Boolean(adminToken),
           auth_header_present: Boolean(authHeader),
+          caller_email: debugCallerEmail,
         },
       });
     }
