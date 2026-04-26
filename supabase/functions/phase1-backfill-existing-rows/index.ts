@@ -106,11 +106,38 @@ Deno.serve(async (req) => {
 
     let gateAuthed = false;
     const authHeader = req.headers.get("Authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : null;
 
-    // (a) service-role bearer == direct admin invocation
-    if (authHeader === `Bearer ${SERVICE_ROLE}`) {
+    // (a) service-role bearer == direct admin invocation. Compare the raw
+    // token (gateway sometimes rewrites/whitespaces the full header), and
+    // also accept a JWT whose `role` claim is "service_role".
+    if (bearerToken && bearerToken === SERVICE_ROLE) {
       gateAuthed = true;
     }
+    if (!gateAuthed && bearerToken) {
+      try {
+        const parts = bearerToken.split(".");
+        if (parts.length === 3) {
+          const payloadJson = atob(
+            parts[1].replace(/-/g, "+").replace(/_/g, "/"),
+          );
+          const claims = JSON.parse(payloadJson) as { role?: string };
+          if (claims.role === "service_role") {
+            gateAuthed = true;
+          }
+        }
+      } catch {
+        // ignore — fall through to other gates
+      }
+    }
+    console.log("phase1-backfill auth debug:", {
+      has_header: Boolean(authHeader),
+      bearer_len: bearerToken?.length ?? 0,
+      service_role_len: SERVICE_ROLE.length,
+      bearer_eq_service_role: bearerToken === SERVICE_ROLE,
+    });
 
     // (b) authenticated user email match
     if (!gateAuthed && authHeader && adminEmail) {
