@@ -73,6 +73,25 @@ const Products = () => {
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
 
+  // Group shelf products by category for the new wash-day-style layout.
+  const groups = useMemo(() => {
+    const buckets = new Map<string, { label: string; items: UserProduct[] }>();
+    for (const p of products) {
+      const { key, label } = categoryBucket(p.category);
+      if (!buckets.has(key)) buckets.set(key, { label, items: [] });
+      buckets.get(key)!.items.push(p);
+    }
+    const ordered: { key: string; label: string; items: UserProduct[] }[] = [];
+    for (const b of CATEGORY_ORDER) {
+      const bucket = buckets.get(b.key);
+      if (bucket) ordered.push({ key: b.key, label: bucket.label, items: bucket.items });
+    }
+    const other = buckets.get("other");
+    if (other) ordered.push({ key: "other", label: other.label, items: other.items });
+    return ordered;
+  }, [products]);
+
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     await remove(deleteTarget.id);
