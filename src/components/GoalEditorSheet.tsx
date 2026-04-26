@@ -1,9 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
+
+/**
+ * Track the iOS visual-viewport so the sheet can shrink/translate above
+ * the on-screen keyboard. Without this, the input sits beneath the
+ * keyboard and the user can't see what they're typing.
+ */
+const useKeyboardOffset = () => {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      // Difference between layout viewport and visual viewport ≈ keyboard height
+      const diff = window.innerHeight - vv.height - vv.offsetTop;
+      setOffset(diff > 40 ? diff : 0);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return offset;
+};
 
 interface Props {
   open: boolean;
@@ -29,6 +55,18 @@ const GoalEditorSheet = ({
   const [challengeVoice, setChallengeVoice] = useState<string | null>(null);
   const [targetVoice, setTargetVoice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const keyboardOffset = useKeyboardOffset();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // When an input gains focus inside the sheet, scroll it into view above
+  // the keyboard. iOS Safari doesn't do this for fixed-position elements.
+  const handleFocusCapture = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName !== "TEXTAREA" && target.tagName !== "INPUT") return;
+    window.setTimeout(() => {
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 250);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +111,16 @@ const GoalEditorSheet = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-[20px] max-h-[92vh] overflow-y-auto">
+      <SheetContent
+        side="bottom"
+        ref={scrollRef}
+        onFocusCapture={handleFocusCapture}
+        style={{
+          maxHeight: `calc(92vh - ${keyboardOffset}px)`,
+          paddingBottom: keyboardOffset ? `${keyboardOffset + 16}px` : undefined,
+        }}
+        className="rounded-t-[20px] overflow-y-auto"
+      >
         <SheetHeader>
           <SheetTitle className="font-display">
             {goal ? "Edit goal" : "Set a new goal"}
