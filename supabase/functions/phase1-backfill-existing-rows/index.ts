@@ -99,26 +99,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Founder-email gate (a) OR admin-token gate (b). Either passes; both
-    // failing = 403.
+    // Service-role bypass (a) OR founder-email gate (b) OR admin-token gate (c).
+    // Any one passing is sufficient; all failing = 403.
     const adminEmail = Deno.env.get("PHASE1_ADMIN_EMAIL");
     const adminToken = Deno.env.get("BACKFILL_ADMIN_TOKEN");
-    if (!adminEmail && !adminToken) {
-      return json(500, {
-        error:
-          "neither PHASE1_ADMIN_EMAIL nor BACKFILL_ADMIN_TOKEN is configured",
-      });
-    }
 
     let gateAuthed = false;
-    let debugCallerEmail: string | null = null;
     const authHeader = req.headers.get("Authorization");
-    if (authHeader && adminEmail) {
+
+    // (a) service-role bearer == direct admin invocation
+    if (authHeader === `Bearer ${SERVICE_ROLE}`) {
+      gateAuthed = true;
+    }
+
+    // (b) authenticated user email match
+    if (!gateAuthed && authHeader && adminEmail) {
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: u } = await userClient.auth.getUser();
-      debugCallerEmail = u?.user?.email ?? null;
       if (
         u?.user?.email &&
         u.user.email.toLowerCase() === adminEmail.toLowerCase()
@@ -126,20 +125,14 @@ Deno.serve(async (req) => {
         gateAuthed = true;
       }
     }
+
+    // (c) admin token in body
     if (!gateAuthed && adminToken && body?.adminToken === adminToken) {
       gateAuthed = true;
     }
+
     if (!gateAuthed) {
-      return json(403, {
-        error: "admin gate failed",
-        debug: {
-          admin_email_set: Boolean(adminEmail),
-          admin_email_len: adminEmail?.length ?? 0,
-          admin_token_set: Boolean(adminToken),
-          auth_header_present: Boolean(authHeader),
-          caller_email: debugCallerEmail,
-        },
-      });
+      return json(403, { error: "admin gate failed" });
     }
 
     await _sodium.ready;
