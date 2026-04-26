@@ -100,9 +100,14 @@ Deno.serve(async (req) => {
 
     // Founder-email gate (a) OR admin-token gate (b). Either passes; both
     // failing = 403.
-    const adminEmail =
-      Deno.env.get("PHASE1_ADMIN_EMAIL") ?? DEFAULT_FOUNDER_EMAIL;
+    const adminEmail = Deno.env.get("PHASE1_ADMIN_EMAIL");
     const adminToken = Deno.env.get("BACKFILL_ADMIN_TOKEN");
+    if (!adminEmail && !adminToken) {
+      return json(500, {
+        error:
+          "neither PHASE1_ADMIN_EMAIL nor BACKFILL_ADMIN_TOKEN is configured",
+      });
+    }
 
     let gateAuthed = false;
     const authHeader = req.headers.get("Authorization");
