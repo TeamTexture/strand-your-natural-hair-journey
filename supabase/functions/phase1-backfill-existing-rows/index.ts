@@ -7,7 +7,7 @@
 // Auth gates (BOTH must pass):
 //   1) body.confirm === "i-have-set-the-master-key"   (literal hand-typed string)
 //   2) caller is the founder, EITHER (a) authenticated email matches
-//      PHASE1_ADMIN_EMAIL (defaults to info@texturetalks.co.uk), OR
+//      PHASE1_ADMIN_EMAIL env secret (no default — must be configured), OR
 //      (b) body.adminToken matches BACKFILL_ADMIN_TOKEN env secret.
 //
 // Deleted in Phase 1.5 — no purpose after the one invocation.
