@@ -7,7 +7,7 @@
 // Auth gates (BOTH must pass):
 //   1) body.confirm === "i-have-set-the-master-key"   (literal hand-typed string)
 //   2) caller is the founder, EITHER (a) authenticated email matches
-//      PHASE1_ADMIN_EMAIL (defaults to info@texturetalks.co.uk), OR
+//      PHASE1_ADMIN_EMAIL env secret (no default — must be configured), OR
 //      (b) body.adminToken matches BACKFILL_ADMIN_TOKEN env secret.
 //
 // Deleted in Phase 1.5 — no purpose after the one invocation.
@@ -35,7 +35,6 @@ interface BackfillStats {
   error_samples?: string[];
 }
 
-const DEFAULT_FOUNDER_EMAIL = "info@texturetalks.co.uk";
 const CONFIRM_PHRASE = "i-have-set-the-master-key";
 
 let cachedKey: Uint8Array | null = null;
@@ -101,13 +100,18 @@ Deno.serve(async (req) => {
 
     // Founder-email gate (a) OR admin-token gate (b). Either passes; both
     // failing = 403.
-    const adminEmail =
-      Deno.env.get("PHASE1_ADMIN_EMAIL") ?? DEFAULT_FOUNDER_EMAIL;
+    const adminEmail = Deno.env.get("PHASE1_ADMIN_EMAIL");
     const adminToken = Deno.env.get("BACKFILL_ADMIN_TOKEN");
+    if (!adminEmail && !adminToken) {
+      return json(500, {
+        error:
+          "neither PHASE1_ADMIN_EMAIL nor BACKFILL_ADMIN_TOKEN is configured",
+      });
+    }
 
     let gateAuthed = false;
     const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
+    if (authHeader && adminEmail) {
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
