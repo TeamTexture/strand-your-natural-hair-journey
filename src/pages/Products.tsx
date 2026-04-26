@@ -163,12 +163,32 @@ const Products = () => {
                 </div>
 
                 {isOpen && (
-                  <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60">
+                  <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
                     <ProductVoicenotes
                       productKey={p.product_key}
                       productName={p.name}
                       productBrand={p.brand ?? ""}
                     />
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        variant="goldOutline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setOffShelfTarget({ id: p.id, key: p.product_key, name: p.name })}
+                      >
+                        <ArrowDownToLine className="size-3.5 mr-1" />
+                        Take off shelf
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
+                        aria-label="Remove from app"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
