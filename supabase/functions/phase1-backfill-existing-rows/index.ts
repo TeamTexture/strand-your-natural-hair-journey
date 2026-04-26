@@ -6,9 +6,10 @@
 //
 // Auth gates (BOTH must pass):
 //   1) body.confirm === "i-have-set-the-master-key"   (literal hand-typed string)
-//   2) caller is the founder, EITHER (a) authenticated email matches
-//      PHASE1_ADMIN_EMAIL env secret (no default — must be configured), OR
-//      (b) body.adminToken matches BACKFILL_ADMIN_TOKEN env secret.
+//   2) caller authorisation, ANY of:
+//      (a) Authorization bearer == SUPABASE_SERVICE_ROLE_KEY (server-to-server),
+//      (b) authenticated email matches PHASE1_ADMIN_EMAIL env secret, or
+//      (c) body.adminToken matches BACKFILL_ADMIN_TOKEN env secret.
 //
 // Deleted in Phase 1.5 — no purpose after the one invocation.
 //
@@ -98,26 +99,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Founder-email gate (a) OR admin-token gate (b). Either passes; both
-    // failing = 403.
+    // Service-role bypass (a) OR founder-email gate (b) OR admin-token gate (c).
+    // Any one passing is sufficient; all failing = 403.
     const adminEmail = Deno.env.get("PHASE1_ADMIN_EMAIL");
     const adminToken = Deno.env.get("BACKFILL_ADMIN_TOKEN");
-    if (!adminEmail && !adminToken) {
-      return json(500, {
-        error:
-          "neither PHASE1_ADMIN_EMAIL nor BACKFILL_ADMIN_TOKEN is configured",
-      });
-    }
 
     let gateAuthed = false;
-    let debugCallerEmail: string | null = null;
     const authHeader = req.headers.get("Authorization");
-    if (authHeader && adminEmail) {
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : null;
+
+    // (a) service-role bearer == direct admin invocation. Compare the raw
+    // token (gateway sometimes rewrites/whitespaces the full header), and
+    // also accept a JWT whose `role` claim is "service_role".
+    if (bearerToken && bearerToken === SERVICE_ROLE) {
+      gateAuthed = true;
+    }
+    if (!gateAuthed && bearerToken) {
+      try {
+        const parts = bearerToken.split(".");
+        if (parts.length === 3) {
+          const payloadJson = atob(
+            parts[1].replace(/-/g, "+").replace(/_/g, "/"),
+          );
+          const claims = JSON.parse(payloadJson) as { role?: string };
+          if (claims.role === "service_role") {
+            gateAuthed = true;
+          }
+        }
+      } catch {
+        // ignore — fall through to other gates
+      }
+    }
+    // (gate diagnostics intentionally not logged in steady state — auth
+    // success/failure is captured by the response status alone.)
+
+    // (b) authenticated user email match
+    if (!gateAuthed && authHeader && adminEmail) {
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: u } = await userClient.auth.getUser();
-      debugCallerEmail = u?.user?.email ?? null;
       if (
         u?.user?.email &&
         u.user.email.toLowerCase() === adminEmail.toLowerCase()
@@ -125,20 +148,14 @@ Deno.serve(async (req) => {
         gateAuthed = true;
       }
     }
+
+    // (c) admin token in body
     if (!gateAuthed && adminToken && body?.adminToken === adminToken) {
       gateAuthed = true;
     }
+
     if (!gateAuthed) {
-      return json(403, {
-        error: "admin gate failed",
-        debug: {
-          admin_email_set: Boolean(adminEmail),
-          admin_email_len: adminEmail?.length ?? 0,
-          admin_token_set: Boolean(adminToken),
-          auth_header_present: Boolean(authHeader),
-          caller_email: debugCallerEmail,
-        },
-      });
+      return json(403, { error: "admin gate failed" });
     }
 
     await _sodium.ready;
