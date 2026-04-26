@@ -262,8 +262,8 @@ Deno.serve(async (req) => {
             const { error: upErr } = await admin
               .from("user_medications")
               .update({
-                name_enc: nameSealed,
-                category_enc: categorySealed,
+                name_enc: bytesToPgHex(nameSealed),
+                category_enc: bytesToPgHex(categorySealed),
               })
               .eq("id", row.id);
             if (upErr) {
