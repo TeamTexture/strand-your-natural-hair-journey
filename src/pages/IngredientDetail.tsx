@@ -324,8 +324,27 @@ const IngredientDetail = () => {
           <>
             <SurfaceCard tone="gold">
               <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              <p className="text-sm leading-snug text-foreground/85">{analysis.summary}</p>
+              <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">{analysis.summary}</p>
             </SurfaceCard>
+
+            {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
+              <>
+                <SectionLabel>How to use this for your hair</SectionLabel>
+                <SurfaceCard className="space-y-3">
+                  {analysis.personalised_guidance.map((tip, idx) => (
+                    <div key={`${tip.title}-${idx}`} className="flex items-start gap-3">
+                      <span className="size-6 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-tight">{tip.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{tip.body}</p>
+                      </div>
+                    </div>
+                  ))}
+                </SurfaceCard>
+              </>
+            )}
 
             <SectionLabel>Ingredient breakdown</SectionLabel>
             <SurfaceCard className="divide-y divide-border/60 !py-1">
