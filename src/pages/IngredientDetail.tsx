@@ -347,7 +347,7 @@ const IngredientDetail = () => {
 
             <SectionLabel>Ingredient breakdown</SectionLabel>
             <SurfaceCard className="divide-y divide-border/60 !py-1">
-              {analysis.ingredients.map((i, idx) => (
+              {(analysis.ingredients ?? []).map((i, idx) => (
                 <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
                   <span className={cn("size-2.5 rounded-full mt-1.5 shrink-0", dotClass[i.tone])} />
                   <div className="flex-1 min-w-0">
