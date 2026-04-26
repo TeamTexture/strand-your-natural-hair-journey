@@ -26,12 +26,6 @@ interface Analysis {
   personalised_guidance?: GuidanceTip[];
 }
 
-const dotClass: Record<Ingredient["tone"], string> = {
-  good: "bg-good",
-  warn: "bg-warn",
-  bad: "bg-destructive",
-};
-
 const IngredientDetail = () => {
   const [rating, setRating] = useState(5);
   const [searchParams] = useSearchParams();
