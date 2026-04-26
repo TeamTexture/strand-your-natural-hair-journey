@@ -69,6 +69,8 @@ const ProductProfile = () => {
   // Per-ingredient AI flags (good/warn/bad + body) for THIS product, scored
   // against the user's full profile (hair, health, goals, current style).
   const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiMatchScore, setAiMatchScore] = useState<number | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -146,6 +148,10 @@ const ProductProfile = () => {
         if (data?.error) throw new Error(data.error);
         const flags = (data?.analysis?.ingredients ?? []) as IngredientFlag[];
         setAiFlags(flags);
+        const summary = typeof data?.analysis?.summary === "string" ? data.analysis.summary : null;
+        setAiSummary(summary);
+        const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
+        setAiMatchScore(score);
       } catch (e) {
         if (cancelled) return;
         const msg = e instanceof Error ? e.message : "Could not analyse ingredients";
