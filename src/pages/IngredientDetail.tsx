@@ -350,15 +350,25 @@ const IngredientDetail = () => {
 
             <SectionLabel>Ingredient breakdown</SectionLabel>
             <SurfaceCard className="divide-y divide-border/60 !py-1">
-              {(analysis.ingredients ?? []).map((i, idx) => (
-                <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
-                  <span className={cn("size-2.5 rounded-full mt-1.5 shrink-0", dotClass[i.tone])} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{i.body}</p>
+              {(analysis.ingredients ?? []).map((i, idx) => {
+                const lower = i.name.toLowerCase().trim();
+                const isRedFlag = avoidNames.has(lower);
+                const isGreenFlag = favNames.has(lower);
+                return (
+                  <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
+                    <span
+                      className="text-sm leading-none mt-0.5 shrink-0 w-4 text-center"
+                      aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
+                    >
+                      {isRedFlag ? "🚩" : isGreenFlag ? "💚" : ""}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{i.body}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </SurfaceCard>
 
           </>
