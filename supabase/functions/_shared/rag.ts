@@ -108,6 +108,7 @@ export async function retrievePassages(
   // Dynamic import — see file-header note. Production Deno resolves this
   // the same as a static import; tests that throw before reaching this
   // line (e.g. on missing OPENAI_API_KEY) never need the supabase client.
+  // @ts-ignore — esm.sh URL import is Deno-native; frontend tsc can't resolve it.
   const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },
