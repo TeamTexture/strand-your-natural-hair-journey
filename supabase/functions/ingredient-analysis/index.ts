@@ -27,17 +27,22 @@ import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v1";
+const MODEL_VERSION = "claude-sonnet-4-6@v2-guidance";
 
 interface IngredientCard {
   name: string;
   tone: "good" | "warn" | "bad";
   body: string;
 }
+interface GuidanceTip {
+  title: string;
+  body: string;
+}
 interface AnalysisPayload {
   match_score: number;
   summary: string;
   ingredients: IngredientCard[];
+  personalised_guidance?: GuidanceTip[];
   _model_version?: string;
   _generated_at?: string;
   _provider?: "claude" | "lovable";
