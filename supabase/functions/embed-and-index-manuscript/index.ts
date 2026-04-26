@@ -340,15 +340,6 @@ Deno.serve(async (req: Request) => {
       gateAuthed = true;
     }
     if (!gateAuthed) {
-      console.log("[admin-gate] env=" + JSON.stringify({
-        PHASE2_ADMIN_EMAIL_present: !!Deno.env.get("PHASE2_ADMIN_EMAIL"),
-        PHASE2_ADMIN_EMAIL_len: (Deno.env.get("PHASE2_ADMIN_EMAIL") ?? "").length,
-        PHASE1_ADMIN_EMAIL_present: !!Deno.env.get("PHASE1_ADMIN_EMAIL"),
-        PHASE1_ADMIN_EMAIL_len: (Deno.env.get("PHASE1_ADMIN_EMAIL") ?? "").length,
-        authHeader_present: !!req.headers.get("Authorization"),
-        user_email_received: gateUserEmail,
-        user_email_len: (gateUserEmail ?? "").length,
-      }));
       return json(403, { error: "admin gate failed" });
     }
 
