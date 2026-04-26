@@ -368,10 +368,31 @@ const ProductProfile = () => {
                     setAiSummary(summary);
                     const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
                     setAiMatchScore(score);
-                    if (summary || score != null) {
+                    // Persist refreshed analysis (summary, score AND merged
+                    // per-ingredient flags) so the cache stays consistent.
+                    const flagToneToSeverity = (t: "good" | "warn" | "bad"): "good" | "warn" | "avoid" =>
+                      t === "bad" ? "avoid" : t;
+                    const existingByName = new Map(
+                      (product.key_ingredients ?? []).map((k) => [k.name.toLowerCase().trim(), k]),
+                    );
+                    const flagsByName = new Map(flags.map((f) => [f.name.toLowerCase().trim(), f]));
+                    const mergedNames = new Set([...existingByName.keys(), ...flagsByName.keys()]);
+                    const mergedKeyIngredients = Array.from(mergedNames).map((lname) => {
+                      const base = existingByName.get(lname);
+                      const flag = flagsByName.get(lname);
+                      return {
+                        name: base?.name ?? flag?.name ?? lname,
+                        benefit: flag?.body ?? base?.benefit,
+                        flag: flag ? flagToneToSeverity(flag.tone) : base?.flag,
+                      };
+                    });
+                    if (summary || score != null || mergedKeyIngredients.length > 0) {
                       await supabase.from("user_products").update({
-                        ai_summary: summary, match_score: score,
+                        ai_summary: summary,
+                        match_score: score,
+                        key_ingredients: mergedKeyIngredients,
                       }).eq("id", product.id);
+                      reload();
                     }
                     toast.success("Guidance refreshed");
                   } catch (e) {
