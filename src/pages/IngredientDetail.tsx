@@ -256,17 +256,50 @@ const IngredientDetail = () => {
       />
 
       <div className="px-5 pb-8 space-y-4">
-        <SurfaceCard className="flex items-center gap-3">
-          <ProductPhotoTile
-            imageUrl={photoUrl}
-            fallbackEmoji="🧴"
-            size="size-14"
-            onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
-            onRemove={() => removePhoto(productKey)}
-          />
-          <div className="flex-1 min-w-0">
-            <p className="font-display text-base font-semibold leading-tight">{productName}</p>
-            <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>
+        <SurfaceCard className="space-y-3">
+          <div className="flex items-center gap-3">
+            <ProductPhotoTile
+              imageUrl={photoUrl}
+              fallbackEmoji="🧴"
+              size="size-14"
+              onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
+              onRemove={() => removePhoto(productKey)}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-base font-semibold leading-tight">{productName}</p>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-border/60">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your Rating</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setRating(n)}
+                    className={cn(
+                      "text-2xl transition-transform",
+                      n <= rating ? "text-primary" : "text-border",
+                      "hover:scale-110",
+                    )}
+                    aria-label={`${n} stars`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="gold"
+                size="pill"
+                onClick={handleSaveRating}
+                disabled={saving}
+                className="shrink-0"
+              >
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            </div>
           </div>
         </SurfaceCard>
 
@@ -317,30 +350,6 @@ const IngredientDetail = () => {
           />
         </SurfaceCard>
 
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your Rating</p>
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setRating(n)}
-                className={cn("text-3xl transition-transform", n <= rating ? "text-primary" : "text-border", "hover:scale-110")}
-                aria-label={`${n} stars`}
-              >
-                ★
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          variant="gold"
-          size="pill"
-          onClick={handleSaveRating}
-          disabled={saving || loading || !analysis}
-        >
-          {saving ? "Saving…" : "Save Rating"}
-        </Button>
       </div>
     </ScreenLayout>
   );
