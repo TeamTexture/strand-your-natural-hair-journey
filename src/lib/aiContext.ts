@@ -67,6 +67,21 @@ const safeParse = <T,>(key: string, fallback: T): T => {
   }
 };
 
+/** True iff the legacy `strand_*` localStorage payload on this device was
+ *  written for the currently-signed-in user. When false, the caller MUST NOT
+ *  read user-scoped strand_* keys — they belong to a different account that
+ *  previously signed in here (cross-account leak guard, see hotfix on top of
+ *  1c97c85). */
+const localStorageIsForUser = (userId: string | null): boolean => {
+  if (!userId) return false;
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem("strand_migration_v1_user_id") === userId;
+  } catch {
+    return false;
+  }
+};
+
 const daysSince = (iso: string | null): number | null => {
   if (!iso) return null;
   const d = new Date(iso);
