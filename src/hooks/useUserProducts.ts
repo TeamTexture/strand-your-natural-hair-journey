@@ -63,6 +63,15 @@ export function useUserProducts(filter: Filter = "all") {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Refresh whenever another part of the app signals that the user's product
+  // data has changed (e.g. a rating was saved on IngredientDetail). Without
+  // this, returning to a still-mounted list shows stale stars.
+  useEffect(() => {
+    const handler = () => { void load(); };
+    window.addEventListener("user-products-updated", handler);
+    return () => window.removeEventListener("user-products-updated", handler);
+  }, [load]);
+
   const filtered = (() => {
     switch (filter) {
       case "shelf":     return products.filter(p => p.on_shelf);
