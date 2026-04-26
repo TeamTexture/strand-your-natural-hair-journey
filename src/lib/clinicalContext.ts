@@ -373,16 +373,28 @@ export async function encryptForStorage(
  *
  * Returns nullable slices: `null` means we have no data on either side and the
  * caller should render its empty state.
+ *
+ * @param opts.allowLocalFallback when false, the legacy `strand_*`
+ *   localStorage payload on this device is ignored entirely. Used by callers
+ *   (notably `buildAiContext`) to prevent cross-account leaks on shared
+ *   browsers where a previous user wrote `strand_*` keys that the current
+ *   `auth.uid()` did not. Defaults to `true` for backwards compatibility with
+ *   any caller that doesn't yet know the current uid.
  */
-export async function loadClinicalContext(): Promise<ClinicalContext> {
+export async function loadClinicalContext(
+  opts: { allowLocalFallback?: boolean } = {},
+): Promise<ClinicalContext> {
+  const allowLocalFallback = opts.allowLocalFallback !== false;
+
   // Always start with the localStorage fallback so unauthenticated/SSR paths
-  // still return something coherent.
+  // still return something coherent — UNLESS the caller has told us the
+  // local payload doesn't belong to the current user.
   const ctx: ClinicalContext = {
-    hair: hairFromLocal(),
-    health: healthFromLocal(),
-    style: styleFromLocal(),
-    professional: professionalFromLocal(),
-    basic: basicFromLocal(),
+    hair: allowLocalFallback ? hairFromLocal() : null,
+    health: allowLocalFallback ? healthFromLocal() : null,
+    style: allowLocalFallback ? styleFromLocal() : null,
+    professional: allowLocalFallback ? professionalFromLocal() : null,
+    basic: allowLocalFallback ? basicFromLocal() : null,
   };
 
   let userId: string | null = null;

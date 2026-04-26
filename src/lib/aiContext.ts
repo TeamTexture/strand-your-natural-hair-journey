@@ -67,6 +67,21 @@ const safeParse = <T,>(key: string, fallback: T): T => {
   }
 };
 
+/** True iff the legacy `strand_*` localStorage payload on this device was
+ *  written for the currently-signed-in user. When false, the caller MUST NOT
+ *  read user-scoped strand_* keys — they belong to a different account that
+ *  previously signed in here (cross-account leak guard, see hotfix on top of
+ *  1c97c85). */
+const localStorageIsForUser = (userId: string | null): boolean => {
+  if (!userId) return false;
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem("strand_migration_v1_user_id") === userId;
+  } catch {
+    return false;
+  }
+};
+
 const daysSince = (iso: string | null): number | null => {
   if (!iso) return null;
   const d = new Date(iso);
@@ -75,12 +90,24 @@ const daysSince = (iso: string | null): number | null => {
 };
 
 export async function buildAiContext(): Promise<AiContext> {
-  // Clinical slices (DB + decrypt with localStorage fallback). Kicks off the
-  // decrypt edge function early so the supabase reads below can proceed in
-  // parallel.
-  const clinicalPromise = loadClinicalContext();
+  // Resolve the user first — every localStorage fallback below must be gated
+  // on `localStorageIsForUser(userId)` so we never serve a previous account's
+  // cached strand_* payload to a freshly-signed-in user on the same browser.
+  let userId: string | null = null;
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    userId = u?.user?.id ?? null;
+  } catch {
+    userId = null;
+  }
+  const localOk = localStorageIsForUser(userId);
+
+  // Clinical slices (DB + decrypt with localStorage fallback). Pass through
+  // whether legacy localStorage is safe to read for THIS user.
+  const clinicalPromise = loadClinicalContext({ allowLocalFallback: localOk });
 
   const lastWashIso = (() => {
+    if (!localOk) return null;
     if (typeof window === "undefined") return null;
     try {
       return localStorage.getItem("strand_last_wash_date");
@@ -88,10 +115,9 @@ export async function buildAiContext(): Promise<AiContext> {
       return null;
     }
   })();
-  const localWashHistory = safeParse<Array<Record<string, unknown>>>(
-    "strand_wash_history",
-    [],
-  );
+  const localWashHistory = localOk
+    ? safeParse<Array<Record<string, unknown>>>("strand_wash_history", [])
+    : [];
 
   let bloodResults: Array<Record<string, unknown>> = [];
   let avoidIngredients: string[] = [];
@@ -103,8 +129,6 @@ export async function buildAiContext(): Promise<AiContext> {
   let goals: AiContext["goals"] = [];
 
   try {
-    const { data: u } = await supabase.auth.getUser();
-    const userId = u?.user?.id;
     if (userId) {
       const [blood, ingLists, washes, shelfRows, ratings, goalRows] = await Promise.all([
         supabase
