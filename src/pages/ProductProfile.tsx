@@ -67,6 +67,7 @@ const ProductProfile = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
+  const [expandedIngredient, setExpandedIngredient] = useState<string | null>(null);
 
   // Per-ingredient AI flags (good/warn/bad + body) for THIS product, scored
   // against the user's full profile (hair, health, goals, current style).
