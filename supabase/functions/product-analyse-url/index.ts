@@ -339,6 +339,10 @@ ${JSON.stringify(context ?? {}, null, 2)}`;
       out.image_url = scraped.imageUrl;
     }
 
+    // Strip any chapter/page citations the model emitted — citations are
+    // appended server-side from real RAG rows only.
+    out = stripModelCitationsDeep(out);
+
     return new Response(JSON.stringify(out), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
