@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2, Search, SlidersHorizontal, X, Heart } from "lucide-react";
+import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
@@ -9,6 +9,12 @@ import ProductVoicenotes from "@/components/ProductVoicenotes";
 import FilePickerButton from "@/components/FilePickerButton";
 import MyToolsSection from "@/components/MyToolsSection";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
+import ProductsHeader, {
+  CATEGORY_ORDER,
+  applyProductFilters,
+  categoryBucket,
+  useProductsFilterState,
+} from "@/components/ProductsHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -22,39 +28,6 @@ import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
-
-const tabs = [
-  { id: "shelf",      label: "Shelf" },
-  { id: "favourites", label: "Faves" },
-  { id: "wishlist",   label: "Wish" },
-  { id: "off-shelf",  label: "Off" },
-  { id: "intel",      label: "Ingr." },
-];
-
-// Display order for shelf categories — mirrors the product flow described in
-// "How To Love Your Afro" (pre-shampoo → cleanse → condition → leave-in →
-// style → seal → refresh → treat). Anything that doesn't match falls into
-// "Other" and renders last.
-const CATEGORY_ORDER: { key: string; label: string; matchers: RegExp[] }[] = [
-  { key: "pre",        label: "Pre-Shampoo",       matchers: [/pre[\s-]?shampoo/i, /pre[\s-]?poo/i] },
-  { key: "cleanser",   label: "Cleanser",          matchers: [/shampoo/i, /cleanser/i, /clarif/i, /co[\s-]?wash/i] },
-  { key: "conditioner",label: "Conditioner",       matchers: [/deep\s?condition/i, /hair\s?mask/i, /^conditioner/i, /rinse[\s-]?out/i] },
-  { key: "leavein",    label: "Leave-In",          matchers: [/leave[\s-]?in/i, /detangler/i, /milk/i] },
-  { key: "styler",     label: "Styler",            matchers: [/curl\s?cream/i, /twisting/i, /styling/i, /styler/i, /custard/i, /pudding/i, /gel/i, /mousse/i, /foam/i, /jelly/i, /butter/i] },
-  { key: "oil",        label: "Oil & Sealant",     matchers: [/^oil/i, /serum/i, /sealant/i] },
-  { key: "refresh",    label: "Refresh & Finish",  matchers: [/refresh/i, /spray/i, /mist/i, /hairspray/i, /shine/i] },
-  { key: "treatments", label: "Pre-Shampoo",        matchers: [/treatment/i, /bond/i, /keratin/i, /protein/i] },
-  { key: "scalp",      label: "Scalp",             matchers: [/scalp/i, /tonic/i] },
-];
-
-const categoryBucket = (raw: string | null | undefined) => {
-  const c = (raw ?? "").trim();
-  if (!c) return { key: "other", label: "Other" };
-  for (const b of CATEGORY_ORDER) {
-    if (b.matchers.some((rx) => rx.test(c))) return { key: b.key, label: b.label };
-  }
-  return { key: "other", label: "Other" };
-};
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
