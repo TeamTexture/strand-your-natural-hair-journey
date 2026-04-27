@@ -25,10 +25,8 @@ export interface IngredientListRow {
 }
 
 // An ingredient must show up in this many qualifying products (on shelf AND
-// favourited) before it earns a flag. Two is the sweet spot: it surfaces
-// genuine cross-product patterns without requiring the user to own three
-// fully-scanned favourites before *anything* shows up.
-const MIN_PRODUCTS_FOR_FLAG = 2;
+// favourited) before it earns a flag.
+const MIN_PRODUCTS_FOR_FLAG = 3;
 
 // Ingredients that are too generic / vehicle-only to be meaningful — skip
 // when aggregating so we don't surface "Water" as a flagged ingredient.
@@ -226,7 +224,7 @@ export function useIngredientLists() {
   // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session_v4_min2";
+    const KEY = "strand_flags_recomputed_session_v5_min3";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();

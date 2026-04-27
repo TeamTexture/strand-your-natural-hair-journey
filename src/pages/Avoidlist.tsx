@@ -94,7 +94,7 @@ const Avoidlist = () => {
         Built automatically from the products you've put on your shelf and
         favourited. An ingredient earns a{" "}
         <span className="text-primary font-medium">flag</span> when it shows up
-        in 2 or more of those products. Tap any flag to learn what the
+        in 3 or more of those products. Tap any flag to learn what the
         ingredient is, what it does, and which of your products contain it —
         purely educational, no good or bad.
       </ItalicSub>
@@ -110,7 +110,7 @@ const Avoidlist = () => {
           {flags.length === 0 ? (
             <EmptyState
               message="No flagged ingredients yet"
-              hint="Favourite 2 or more products on your shelf that share an ingredient — they'll appear here automatically."
+              hint="Favourite 3 or more products on your shelf that share an ingredient — they'll appear here automatically."
             />
           ) : filteredFlags.length === 0 ? (
             <EmptyState
