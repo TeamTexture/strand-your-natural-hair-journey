@@ -1,14 +1,14 @@
 import type { Topic } from "../types.ts";
 
-// Sourced from How To Love Your Afro, Chapter 12: Scalp Health First,
+// Sourced from the STRAND manuscript,,
 // pp 149–153 (scalp layers, sebum, the three common scalp problems —
 // tension, oiling, seborrheic dermatitis). Paige's book is unusually
 // direct on scalp oiling as a cultural ritual that may need pausing.
 
 export const SCALP_CONDITIONS: Topic = {
-  id: "scalp-conditions",
-  title: "Scalp Conditions — Dry, Oily, Sensitive, Combination",
-  body: `Your scalp is the foundation for healthy hair. Just as a healthy garden needs fertile soil, your scalp is what nourishes your follicles. The scalp is still skin — treat it the way you'd treat the skin on your face.
+ id: "scalp-conditions",
+ title: "Scalp Conditions — Dry, Oily, Sensitive, Combination",
+ body: `Your scalp is the foundation for healthy hair. Just as a healthy garden needs fertile soil, your scalp is what nourishes your follicles. The scalp is still skin — treat it the way you'd treat the skin on your face.
 
 Three common scalp situations to watch for, in Paige's framing:
 
@@ -20,49 +20,49 @@ Sensitive scalp. Often felt as soreness, tenderness, or reactivity to fragrance,
 
 Combination scalp. Different zones do different things — oilier crown, drier nape — usually because of how heat, sweat, and product distribute across the head. Tailor accordingly: a lighter touch where it's oily, a richer leave-in where it's dry.
 
-Across all of these, two non-negotiables from the book:
+Across all of these, two non-negotiables from the manuscript:
 
 — Cleanse the scalp regularly. Sebum, sweat and product residue need to come off so blockages don't make it harder for the body to push hair out.
 
 — Don't self-diagnose persistent symptoms. If something is itchy, sore or worsening over weeks, see a trichologist or dermatologist for an assessment. STRAND offers hair-health guidance, not medical diagnosis.`,
-  applies_to: {
-    hair: {
-      scalp: [
-        "Dry",
-        "Oily",
-        "Normal",
-        "Sensitive",
-        "Combination",
-        "dry",
-        "oily",
-        "normal",
-        "sensitive",
-        "combination",
-      ],
-    },
-    function_kinds: [
-      "ingredient-analysis",
-      "product-analyse",
-      "product-analyse-url",
-      "wash-day-observation",
-      "blood-ai-summary",
-    ],
-  },
-  book_refs: [
-    {
-      chapter: 12,
-      chapter_title: "Scalp Health First",
-      page_start: 149,
-      page_end: 153,
-    },
-  ],
-  tags: [
-    "scalp",
-    "dry-scalp",
-    "oily-scalp",
-    "sensitive-scalp",
-    "scalp-oiling",
-    "sebum",
-    "microbiome",
-  ],
+ applies_to: {
+ hair: {
+ scalp: [
+ "Dry",
+ "Oily",
+ "Normal",
+ "Sensitive",
+ "Combination",
+ "dry",
+ "oily",
+ "normal",
+ "sensitive",
+ "combination",
+ ],
+ },
+ function_kinds: [
+ "ingredient-analysis",
+ "product-analyse",
+ "product-analyse-url",
+ "wash-day-observation",
+ "blood-ai-summary",
+ ],
+ },
+ book_refs: [
+ {
+ chapter: 12,
+ chapter_title: "Scalp Health First",
+ page_start: 149,
+ page_end: 153,
+ },
+ ],
+ tags: [
+ "scalp",
+ "dry-scalp",
+ "oily-scalp",
+ "sensitive-scalp",
+ "scalp-oiling",
+ "sebum",
+ "microbiome",
+ ],
 };
