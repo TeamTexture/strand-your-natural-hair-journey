@@ -32,6 +32,7 @@ import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
+import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,36 @@ const IngredientDetail = () => {
   const flaggedNames = useMemo(
     () => new Set(flags.map((r) => r.ingredient.toLowerCase())),
     [flags],
+  );
+
+  // Other ingredients in the same formulation, used to give the AI
+  // context for the "what this means for your hair type" guidance.
+  const formulationNames = useMemo(
+    () => (analysis?.ingredients ?? []).map((i) => i.name),
+    [analysis],
+  );
+  const otherFormulationNames = useMemo(
+    () =>
+      formulationNames.filter(
+        (n) => n.toLowerCase().trim() !== (selectedIngredient?.name ?? "").toLowerCase().trim(),
+      ),
+    [formulationNames, selectedIngredient],
+  );
+
+  const reasonForFlag = selectedIngredient && flaggedNames.has(selectedIngredient.name.toLowerCase().trim())
+    ? "Appears in 3 or more of the user's products"
+    : undefined;
+
+  const ingredientProfile = useIngredientProfile(
+    selectedIngredient?.name ?? null,
+    reasonForFlag,
+    !!selectedIngredient,
+    {
+      productKey,
+      productName,
+      productBrand,
+      formulationIngredients: otherFormulationNames,
+    },
   );
 
   // For "Used in N other products" lookup: index user's products by lowercased
@@ -569,28 +600,9 @@ const IngredientDetail = () => {
             const ing = selectedIngredient;
             const lower = ing.name.toLowerCase().trim();
             const isFlagged = flaggedNames.has(lower);
-            const cat = (ing.category ?? "").toLowerCase().trim();
-            // Friendly "what this category does in a formulation" copy.
-            const ROLE_COPY: Record<string, string> = {
-              "active": "A functional active — included for a specific performance benefit on hair or scalp.",
-              "humectant": "Pulls water from the air into the hair shaft to boost hydration.",
-              "emollient": "Softens and smooths the cuticle, improving slip and feel.",
-              "occlusive": "Forms a film over the strand to seal moisture in and reduce water loss.",
-              "surfactant": "Cleansing or foaming agent that lifts oil, sweat and product residue.",
-              "conditioning agent": "Coats the strand to detangle, reduce friction and improve manageability.",
-              "protein": "Temporarily fills gaps in the cuticle to strengthen and reduce breakage.",
-              "antioxidant": "Protects the formula and the hair from oxidative damage.",
-              "botanical extract": "Plant-derived ingredient added for soothing, scalp or marketing benefits.",
-              "preservative": "Keeps the formula safe from bacteria, mould and yeast.",
-              "solvent": "Carries the other ingredients and gives the product its texture.",
-              "fragrance": "Added for scent. Can be a sensitiser for some scalps.",
-              "colourant": "Adds colour to the product itself (not the hair).",
-              "ph adjuster": "Brings the formula to the right pH so the cuticle behaves predictably.",
-              "chelator": "Binds hard-water minerals so they don't deposit on the strand.",
-              "emulsifier": "Holds oil and water phases together so the product stays stable.",
-              "thickener": "Builds the texture and viscosity of the product.",
-            };
-            const roleCopy = ROLE_COPY[cat] ?? "Part of this product's overall formulation.";
+            const meansForYou = ingredientProfile.data?.what_it_means_for_you;
+            const profileLoading = ingredientProfile.isLoading || ingredientProfile.isFetching;
+            const profileError = ingredientProfile.isError;
             return (
               <>
                 <DialogHeader>
@@ -621,11 +633,23 @@ const IngredientDetail = () => {
                   </div>
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">
-                      How it's used in this product
+                      What this means for your hair type
                     </p>
-                    <p className="text-sm leading-relaxed text-foreground/85">
-                      {roleCopy}
-                    </p>
+                    {profileLoading && !meansForYou && (
+                      <p className="text-sm leading-relaxed text-muted-foreground italic">
+                        Tailoring this to your hair…
+                      </p>
+                    )}
+                    {!profileLoading && meansForYou && (
+                      <p className="text-sm leading-relaxed text-foreground/85">
+                        {meansForYou}
+                      </p>
+                    )}
+                    {!profileLoading && !meansForYou && profileError && (
+                      <p className="text-sm leading-relaxed text-muted-foreground italic">
+                        Personalised guidance unavailable right now.
+                      </p>
+                    )}
                   </div>
                   {isFlagged && (
                     <div className="rounded-lg bg-primary/10 border border-primary/30 p-3">
