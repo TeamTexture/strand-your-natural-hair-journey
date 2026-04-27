@@ -69,7 +69,7 @@ const Products = () => {
   const [linkValue, setLinkValue] = useState("");
   const [offShelfTarget, setOffShelfTarget] = useState<{ id: string; key: string; name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const { products, loading, remove, reload } = useUserProducts("shelf");
+  const { products, loading, remove, reload, setFavourite } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
