@@ -41,7 +41,44 @@ const GENERIC_INGREDIENTS = new Set(
 );
 
 const normaliseIngredient = (raw: string) => raw.replace(/\s+/g, " ").trim();
-const keyOf = (raw: string) => normaliseIngredient(raw).toLowerCase();
+
+// Build a set of comparison keys from a single ingredient string. This lets
+// us match across naming variants (e.g. "Macadamia Oil" vs
+// "Macadamia Ternifolia Seed Oil", "Shea Butter" vs
+// "Butyrospermum Parkii (Shea) Butter") without needing a curated synonym
+// table. We strip parentheses, INCI Latin scaffolding, common suffixes
+// like "extract / oil / butter / seed / leaf / juice", and trailing
+// asterisks, then yield BOTH the full normalised form and individual
+// significant tokens so a partial overlap counts as a match.
+const STOPWORDS = new Set([
+  "oil", "butter", "extract", "seed", "leaf", "juice", "root", "fruit",
+  "kernel", "powder", "water", "aqua", "eau", "the", "and",
+]);
+
+const baseKey = (raw: string) =>
+  normaliseIngredient(raw)
+    .toLowerCase()
+    .replace(/\*+$/g, "")
+    .replace(/\([^)]*\)/g, " ") // drop parenthetical Latin / common names
+    .replace(/\//g, " ")
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const keysOf = (raw: string): { display: string; keys: string[] } => {
+  const display = normaliseIngredient(raw).replace(/\*+$/g, "").trim();
+  const base = baseKey(raw);
+  if (!base) return { display, keys: [] };
+  const keys = new Set<string>();
+  keys.add(base);
+  // Tokens — keep multi-word "anchors" by also adding each non-stopword
+  // token. This is what lets "macadamia oil" match
+  // "macadamia ternifolia seed oil" (both yield the token "macadamia").
+  for (const tok of base.split(" ")) {
+    if (tok.length >= 4 && !STOPWORDS.has(tok)) keys.add(tok);
+  }
+  return { display, keys: Array.from(keys) };
+};
 
 /**
  * Recompute the unified "flag" list for the current user from the products
@@ -62,32 +99,61 @@ async function recomputeFlagList(userId: string) {
     .eq("on_favourite", true);
   if (error) throw error;
 
+  // Per-key tally: count = number of qualifying products this key appeared
+  // in. We also remember the longest/most descriptive display string we've
+  // seen so the UI shows a readable name (e.g. prefer
+  // "Macadamia Ternifolia Seed Oil" over the bare token "macadamia").
   const tally = new Map<string, { display: string; count: number }>();
   for (const row of rows ?? []) {
-    const seen = new Set<string>();
+    // Always merge BOTH the full INCI list and the simplified
+    // key_ingredients names. Older scans / URL imports often only have
+    // key_ingredients populated, and we want those to count toward — and
+    // match against — the full INCI of newer scans.
     const fullIngredients = (row.ingredients ?? []) as string[];
-    const fallbackIngredients = Array.isArray(row.key_ingredients)
+    const keyIngredients = Array.isArray(row.key_ingredients)
       ? row.key_ingredients
           .map((item) => (item && typeof item === "object" && "name" in item ? String(item.name ?? "") : ""))
           .filter(Boolean)
       : [];
-    const sourceIngredients = fullIngredients.length > 0 ? fullIngredients : fallbackIngredients;
+    const sourceIngredients = [...fullIngredients, ...keyIngredients];
+
+    // De-dup keys WITHIN this product so a single product can't double-count
+    // (e.g. listing both "Shea Butter" in key_ingredients and
+    // "Butyrospermum Parkii (Shea) Butter" in the full INCI).
+    const seenForProduct = new Set<string>();
     for (const raw of sourceIngredients) {
-      const k = keyOf(raw);
-      if (!k || GENERIC_INGREDIENTS.has(k) || seen.has(k)) continue;
-      seen.add(k);
-      const existing = tally.get(k);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        tally.set(k, { display: normaliseIngredient(raw), count: 1 });
+      const { display, keys } = keysOf(raw);
+      if (keys.length === 0) continue;
+      // Skip if any of the keys map to a generic "vehicle" ingredient.
+      if (keys.some((k) => GENERIC_INGREDIENTS.has(k))) continue;
+      for (const k of keys) {
+        if (seenForProduct.has(k)) continue;
+        seenForProduct.add(k);
+        const existing = tally.get(k);
+        if (existing) {
+          existing.count += 1;
+          if (display.length > existing.display.length) existing.display = display;
+        } else {
+          tally.set(k, { display, count: 1 });
+        }
       }
     }
   }
 
-  const qualifying = Array.from(tally.entries())
-    .filter(([, v]) => v.count >= MIN_PRODUCTS_FOR_FLAG)
-    .map(([, v]) => ({
+  // Collapse duplicates by display name — multiple keys (full INCI string +
+  // its anchor token) often resolve to the same human-readable ingredient.
+  // Take the highest count seen across all keys for that display name.
+  const byDisplay = new Map<string, { display: string; count: number }>();
+  for (const v of tally.values()) {
+    if (v.count < MIN_PRODUCTS_FOR_FLAG) continue;
+    const dKey = v.display.toLowerCase();
+    const prev = byDisplay.get(dKey);
+    if (!prev || v.count > prev.count) byDisplay.set(dKey, v);
+  }
+
+  const qualifying = Array.from(byDisplay.values())
+    .sort((a, b) => b.count - a.count)
+    .map((v) => ({
       ingredient: v.display,
       product_count: v.count,
       reason: `Appears in ${v.count} of your favourite shelf products`,
@@ -231,7 +297,7 @@ export function useIngredientLists() {
   // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session_v6_shelf_fave_key_fallback";
+    const KEY = "strand_flags_recomputed_session_v7_token_match";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();
