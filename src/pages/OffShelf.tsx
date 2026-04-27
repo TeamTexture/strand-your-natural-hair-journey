@@ -121,11 +121,7 @@ const OffShelf = () => {
                     )}
                   </div>
                   <button
-                    onClick={() =>
-                      navigate(
-                        `/products/ingredient?key=${encodeURIComponent(p.product_key)}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(p.brand ?? "")}`,
-                      )
-                    }
+                    onClick={() => navigate(`/products/profile/${p.id}`)}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
                     <div className="flex-1 min-w-0">
