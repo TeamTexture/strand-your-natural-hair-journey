@@ -46,7 +46,7 @@ Rules:
 - Be concrete. Reference their actual hair type/porosity/density, current style, goals, challenges, recent wash notes, or low blood markers when relevant.
 - Never invent data. If a field is missing, don't mention it.
 - 1 short headline (max 9 words) and 2-3 bullets (max ~16 words each).
-- If the rationale comes directly from a chapter of How To Love Your Afro, append the "Read more — …" reference line as the last item of "reasons".
+- DO NOT include any chapter number, chapter title, page number, or "Read more —" citation. The system handles citations.
 - Output ONLY JSON: { "headline": string, "reasons": string[] }`;
 
 Deno.serve(async (req: Request) => {
