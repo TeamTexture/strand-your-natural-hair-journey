@@ -212,7 +212,7 @@ Given a single wash day log + the user's profile, write ONE personalised observa
     }
 
     return new Response(
-      JSON.stringify({ observation: parsed.observation ?? "" }),
+      JSON.stringify({ observation: stripModelCitations(parsed.observation ?? "") }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
