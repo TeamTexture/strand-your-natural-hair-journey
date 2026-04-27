@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (existing?.payload) {
         return new Response(
-          JSON.stringify({ cached: true, summary: existing.payload }),
+          JSON.stringify({ cached: true, summary: sanitiseChapterCitationsDeep(existing.payload) }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }

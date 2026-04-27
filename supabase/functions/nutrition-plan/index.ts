@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
       const existingSig = (existing?.payload as { _sig?: string } | undefined)?._sig;
       if (existing?.payload && existingSig === sig) {
         return new Response(
-          JSON.stringify({ cached: true, plan: existing.payload }),
+          JSON.stringify({ cached: true, plan: sanitiseChapterCitationsDeep(existing.payload) }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
