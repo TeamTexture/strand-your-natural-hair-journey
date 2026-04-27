@@ -318,9 +318,20 @@ const IngredientDetail = () => {
     await recomputeIngredientFlags();
   };
 
+  const handleBack = () => {
+    // If we got here via a redirect (replace: true) or a page reload, the
+    // history stack may not have a sensible previous entry — fall back to
+    // the products list so the back button always does something visible.
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate("/products");
+    }
+  };
+
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Product" />
+      <TitleBar title="Product" onBack={handleBack} />
 
       <div className="px-5 pb-8 space-y-4">
         {/* ── HERO: image + title + brand link ─────────────────────────── */}
