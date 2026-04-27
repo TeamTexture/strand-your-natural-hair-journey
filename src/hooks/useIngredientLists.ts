@@ -217,13 +217,12 @@ export function useIngredientLists() {
   // Recompute the flag list at most once per browser session — every page
   // that uses the hook used to recompute on mount, which fired DELETE +
   // INSERT against `ingredient_lists` on every navigation, causing visible
-  // re-render churn and a perceived "loop" on screens that re-mount this
-  // hook (IngredientDetail, ProductDetail, ProductProfile, Avoidlist).
-  // Mutations elsewhere (add/remove/setShelf) still trigger an explicit
-  // recompute via `recomputeIngredientFlags()` so the data stays fresh.
+  // re-render churn. Mutations elsewhere (add/remove/setShelf/setFavourite)
+  // still trigger an explicit recompute so the data stays fresh. The key
+  // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session";
+    const KEY = "strand_flags_recomputed_session_v2_shelf_fave";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();
