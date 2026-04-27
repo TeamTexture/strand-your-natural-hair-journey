@@ -4,6 +4,7 @@
 // returns from an image. Personalisation comes from the user-context payload,
 // identical to product-analyse.
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
 
 interface Body {
   url?: string;
