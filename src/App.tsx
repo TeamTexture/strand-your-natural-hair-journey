@@ -46,9 +46,10 @@ import Favourites from "./pages/Favourites";
 import OffShelf from "./pages/OffShelf";
 import Avoidlist from "./pages/Avoidlist";
 import ProductScanning from "./pages/ProductScanning";
-import ProductDetailNew from "./pages/ProductDetailNew";
+import ProductProfileRedirect from "./pages/ProductProfileRedirect";
 import ProductRepository from "./pages/ProductRepository";
-import ProductProfile from "./pages/ProductProfile";
+import BrandProducts from "./pages/BrandProducts";
+import ProductsByIngredient from "./pages/ProductsByIngredient";
 import Journal from "./pages/Journal";
 import JournalEntry from "./pages/JournalEntry";
 import MoodboardList from "./pages/MoodboardList";
@@ -120,9 +121,11 @@ const App = () => (
               <Route path="/products/off-shelf" element={<Protected><OffShelf /></Protected>} />
               <Route path="/products/avoidlist" element={<Protected><Avoidlist /></Protected>} />
               <Route path="/products/scanning" element={<Protected><ProductScanning /></Protected>} />
-              <Route path="/products/detail-new" element={<Protected><ProductDetailNew /></Protected>} />
+              <Route path="/products/detail-new" element={<Protected><ProductProfileRedirect /></Protected>} />
               <Route path="/products/repository" element={<Protected><ProductRepository /></Protected>} />
-              <Route path="/products/profile/:id" element={<Protected><ProductProfile /></Protected>} />
+              <Route path="/products/profile/:id" element={<Protected><ProductProfileRedirect /></Protected>} />
+              <Route path="/products/brand/:brand" element={<Protected><BrandProducts /></Protected>} />
+              <Route path="/products/by-ingredient" element={<Protected><ProductsByIngredient /></Protected>} />
               <Route path="/journal" element={<Protected><Journal /></Protected>} />
               <Route path="/journal/entry/:id" element={<Protected><JournalEntry /></Protected>} />
               <Route path="/journal/moodboards" element={<Protected><MoodboardList /></Protected>} />

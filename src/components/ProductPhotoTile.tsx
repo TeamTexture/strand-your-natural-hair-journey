@@ -69,12 +69,15 @@ const ProductPhotoTile = ({
         className={cn(
           "size-full rounded-[10px] overflow-hidden flex items-center justify-center transition-all",
           imageUrl
-            ? "bg-secondary"
+            ? "bg-transparent"
             : "bg-primary/15 hover:bg-primary/25 border border-dashed border-primary/40",
         )}
       >
         {imageUrl ? (
-          <img src={imageUrl} alt="" className="size-full object-cover" />
+          // object-contain so the bottle/jar shows fully without crop, and
+          // mix-blend-multiply hides flat white studio backgrounds against
+          // the cream app surface for a clean float-on-cream look.
+          <img src={imageUrl} alt="" className="size-full object-contain mix-blend-multiply" />
         ) : (
           <span className="text-2xl leading-none">{fallbackEmoji}</span>
         )}
