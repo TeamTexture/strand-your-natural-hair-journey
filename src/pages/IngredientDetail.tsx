@@ -319,7 +319,7 @@ const IngredientDetail = () => {
   };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout bottomNav>
       <TitleBar title="Product" />
 
       <div className="px-5 pb-8 space-y-4">
