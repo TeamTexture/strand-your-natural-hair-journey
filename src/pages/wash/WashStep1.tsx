@@ -288,6 +288,7 @@ const WashStep1 = () => {
     if (Array.isArray(draft.treatmentType)) setTreatmentType(draft.treatmentType as string[]);
     if (typeof draft.heatChoice === "string") setHeatChoice(draft.heatChoice as HeatChoice);
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
+    if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
     setHydrated(true);
   }, [shelfProducts, hydrated]);
 
