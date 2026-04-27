@@ -84,14 +84,11 @@ const IngredientDetail = () => {
   const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [shelfBusy, setShelfBusy] = useState(false);
 
-  const { avoid, favourites } = useIngredientLists();
-  const avoidNames = useMemo(
-    () => new Set(avoid.map((r) => r.ingredient.toLowerCase())),
-    [avoid],
-  );
-  const favNames = useMemo(
-    () => new Set(favourites.map((r) => r.ingredient.toLowerCase())),
-    [favourites],
+  const { flags } = useIngredientLists();
+  // Single unified "flagged" set — appears in 3+ of the user's products.
+  const flaggedNames = useMemo(
+    () => new Set(flags.map((r) => r.ingredient.toLowerCase())),
+    [flags],
   );
 
   // For "Used in N other products" lookup: index user's products by lowercased
@@ -441,9 +438,9 @@ const IngredientDetail = () => {
                 ]);
                 const visible = (analysis.ingredients ?? []).filter((i) => {
                   const lower = i.name.toLowerCase().trim();
-                  // Always keep flagged ingredients — green/red flags must
-                  // surface regardless of category.
-                  if (avoidNames.has(lower) || favNames.has(lower)) return true;
+                  // Always keep flagged ingredients — they should surface
+                  // regardless of category.
+                  if (flaggedNames.has(lower)) return true;
                   const cat = (i.category ?? "").toLowerCase().trim();
                   return ACTIVE_CATEGORIES.has(cat);
                 });
@@ -456,23 +453,18 @@ const IngredientDetail = () => {
                 }
                 return visible.map((i, idx) => {
                   const lower = i.name.toLowerCase().trim();
-                  // Flags are driven solely by qualified lists (ingredient must
-                  // appear in 3+ of the user's favourited or off-shelf products).
-                  // AI tone no longer paints flags — that would surface unverified
-                  // greens/reds on ingredients that haven't earned the badge.
-                  const isRedFlag = avoidNames.has(lower);
-                  const isGreenFlag = !isRedFlag && favNames.has(lower);
+                  // Single unified gold flag — populated when an ingredient
+                  // appears in 3+ of the user's products. Educational only.
+                  const isFlagged = flaggedNames.has(lower);
                   const otherProducts = productsByIngredient.get(lower) ?? [];
                   return (
                     <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
                       <span
                         className="mt-0.5 shrink-0 w-5 flex items-center justify-center"
-                        aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
+                        aria-label={isFlagged ? "flagged ingredient" : "ingredient"}
                       >
-                        {isRedFlag ? (
-                          <Flag className="size-4 text-destructive fill-destructive" />
-                        ) : isGreenFlag ? (
-                          <Flag className="size-4 text-good fill-good" />
+                        {isFlagged ? (
+                          <Flag className="size-4 text-primary fill-primary" />
                         ) : null}
                       </span>
                       <div className="flex-1 min-w-0">
