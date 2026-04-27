@@ -1,27 +1,27 @@
-// CANONICAL CHAPTER LIST — How To Love Your Afro by Paige Lewin.
+// Citation/book-name fail-safe.
 //
-// This is the ONLY allow-list of chapters that may ever appear in a
-// "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]"
-// citation rendered to the user.
+// History:
+// On 2026-04-27 Paige flagged that an AI-generated heat-hat description cited
+// "Chapter 4: The Truth About Deep Conditioners" — a chapter that does NOT
+// exist in her book. The model invented it because the persona prompt asked
+// for chapter citations.
 //
-// Why this exists:
-// On 2026-04-27 Paige flagged that an AI-generated heat-hat tool description
-// cited "Chapter 4: The Truth About Deep Conditioners" — a chapter that does
-// NOT exist in her book. The model invented it because the persona prompt
-// asks for chapter citations but had never been told which chapters actually
-// exist. From now on, citations work on a strict whitelist + server-side
-// sanitiser. If a chapter number or title is not in this map, the entire
-// citation line is stripped from the response before it ever reaches the
-// user.
+// Resolution (2026-04-27, Paige): remove book references from the AI surface
+// entirely. The manuscript stays the only source of truth (delivered via RAG)
+// but the assistant must NEVER name "How To Love Your Afro" and must NEVER
+// emit a "Read more — …" citation line in user-facing output. The chapter
+// list remains here for internal RAG metadata only — it is not surfaced.
 //
-// To add a new chapter, add it here AND only here. Do not add chapters in
-// individual edge functions or knowledge files.
+// All AI output is passed through `sanitiseChapterCitations` (and its deep
+// variant) which strips any book name or citation line that slips through.
 
 export interface BookChapter {
   number: number;
   title: string;
 }
 
+// Internal-only chapter list. Used by RAG retrieval for metadata. Never
+// rendered to the user.
 export const BOOK_CHAPTERS: BookChapter[] = [
   { number: 2, title: "Learning to Love Your Natural Hair" },
   { number: 8, title: "Your Hair – The Basics" },
@@ -33,55 +33,66 @@ export const BOOK_CHAPTERS: BookChapter[] = [
   { number: 14, title: "Moisture Retention" },
 ];
 
-const CHAPTER_BY_NUMBER = new Map(BOOK_CHAPTERS.map((c) => [c.number, c]));
+// Authoritative appendix bolted onto the persona. The model is forbidden from
+// naming the source manuscript or emitting "Read more — …" lines.
+export const CITATION_BAN_PROMPT = `CITATION RULES — non-negotiable
+You must NEVER name the source manuscript, its author, its publisher, or any chapter/page/section of it in your output. Specifically:
+- Do NOT write "How To Love Your Afro" anywhere in your response.
+- Do NOT write "Paige Lewin", "Bloomsbury", or any other authorship/publisher attribution.
+- Do NOT emit a "Read more — …" line, a chapter number, a page number, or any "see Chapter X" / "as the book says" style reference.
+- Do NOT preface advice with "according to the manuscript" or similar — speak the guidance directly, in your own voice, as the science-backed personalised advice it is.
 
-// Normalise a title for comparison: lower-case, collapse whitespace,
-// normalise dash variants (em-dash, en-dash, hyphen) and strip trailing
-// punctuation. The book uses an en-dash in "Your Hair – The Basics" so we
-// must accept the model returning a plain hyphen.
-function normaliseTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[\u2010-\u2015]/g, "-") // any unicode dash → ascii hyphen
-    .replace(/[.,;:!?'"`]+$/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+The manuscript is your private source of truth. The user must experience the advice as STRAND's personalised, science-backed guidance grounded in their profile and the wider trichology literature. Any leaked book reference is a critical failure and will be stripped from your output.`;
 
-// Authoritative appendix to bolt onto the persona prompt. Lists the only
-// allowed chapters and the EXACT format. Persona body itself is locked
-// verbatim (see _shared/strand-persona.ts) so this lives separately.
-export const CHAPTER_WHITELIST_PROMPT = `AUTHORITATIVE CHAPTER LIST — How To Love Your Afro
-The book has a fixed table of contents. You may ONLY cite a chapter from this list. If the guidance does not map to one of these chapters, omit the "Read more — …" line entirely. Never invent a chapter number or title. Never paraphrase a title.
+// Backwards-compat alias — older imports may still reference this name.
+export const CHAPTER_WHITELIST_PROMPT = CITATION_BAN_PROMPT;
 
-${BOOK_CHAPTERS.map((c) => `Chapter ${c.number}: ${c.title}`).join("\n")}
+// Strip any "Read more — …" line. Accepts em-dash, en-dash, or hyphen.
+// Matches both the canonical format and common minor variants.
+const CITATION_LINE = /^[ \t]*Read\s+more\s*[\u2010-\u2015\-:]\s*[^\n]*$/gim;
 
-Format reminder (must be exact, on its own line, at the end of the user-facing copy):
-Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]
+// Strip any inline mention of the book name or its author/publisher. We
+// remove the phrase and tidy surrounding punctuation/whitespace so the
+// sentence stays readable. Handles common variants ("the book", combined
+// "from How To Love Your Afro by Paige Lewin", etc.).
+const BOOK_NAME = /\bHow\s+To\s+Love\s+Your\s+Afro\b/gi;
+const AUTHOR_NAME = /\bPaige\s+Lewin\b/gi;
+const PUBLISHER_NAME = /\bBloomsbury(?:\s+Publishing)?\b/gi;
 
-Citing a chapter that is not on the list above is a critical failure. When in doubt, omit the citation.`;
+// "as written in the book", "according to the book", "the book covers …" —
+// strip the leading framing phrase so the advice still reads naturally.
+const BOOK_FRAMING = /\b(?:as\s+(?:written|covered|noted|explained)\s+in\s+the\s+book|according\s+to\s+the\s+book|the\s+book\s+(?:says|covers|recommends|explains|notes))\b[,]?\s*/gi;
 
-// Strip any "Read more — …" citation that does not match the whitelist.
-// Accepts em-dash, en-dash, or hyphen between "Read more" and the rest.
-// Matches both the canonical format and common minor variants the model
-// might emit (extra spaces, lowercase "chapter", missing page, etc.).
-//
-// If the chapter number exists in the whitelist AND the title matches
-// (case-insensitively, dash-insensitively), the line is kept. Otherwise the
-// entire line is removed and surrounding blank lines are tidied up.
-const CITATION_LINE = /^[ \t]*Read\s+more\s*[\u2010-\u2015\-]\s*How\s+To\s+Love\s+Your\s+Afro\s*,\s*Chapter\s+(\d+)\s*:\s*([^,\n]+?)\s*(?:,\s*p\.?\s*\d+[a-z]?)?\s*\.?\s*$/gim;
+// "(see Chapter 13, p.155)" / "Chapter 13, p.155." — strip parenthetical or
+// trailing chapter/page references that aren't on a "Read more" line.
+const CHAPTER_INLINE = /\s*[\(\[]?\s*(?:see\s+)?Chapter\s+\d+\s*(?::\s*[^,\)\]\.\n]+)?(?:\s*,\s*p\.?\s*\d+[a-z]?)?\s*[\)\]]?\s*\.?/gi;
 
 export function sanitiseChapterCitations(text: string | null | undefined): string {
   if (!text) return "";
-  const cleaned = text.replace(CITATION_LINE, (match, numStr: string, titleStr: string) => {
-    const num = Number(numStr);
-    const chapter = CHAPTER_BY_NUMBER.get(num);
-    if (!chapter) return ""; // unknown chapter number → drop
-    if (normaliseTitle(chapter.title) !== normaliseTitle(titleStr)) return ""; // wrong title → drop
-    return match; // valid citation → keep as-is
-  });
-  // Tidy up: collapse 3+ newlines left behind by removed lines.
-  return cleaned.replace(/\n{3,}/g, "\n\n").replace(/[ \t]+\n/g, "\n").trimEnd();
+  let cleaned = text;
+
+  // 1. Remove full "Read more — …" lines outright.
+  cleaned = cleaned.replace(CITATION_LINE, "");
+
+  // 2. Strip authorship/publisher/title mentions.
+  cleaned = cleaned.replace(BOOK_FRAMING, "");
+  cleaned = cleaned.replace(BOOK_NAME, "");
+  cleaned = cleaned.replace(AUTHOR_NAME, "");
+  cleaned = cleaned.replace(PUBLISHER_NAME, "");
+
+  // 3. Strip inline "Chapter X, p.Y" references.
+  cleaned = cleaned.replace(CHAPTER_INLINE, "");
+
+  // 4. Tidy up: collapse leftover spaces/punctuation and blank lines.
+  cleaned = cleaned
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/\(\s*\)/g, "")
+    .replace(/\[\s*\]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n");
+
+  return cleaned.trimEnd();
 }
 
 // Convenience: walk an arbitrary value and sanitise every string leaf in
