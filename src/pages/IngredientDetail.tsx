@@ -360,9 +360,30 @@ const IngredientDetail = () => {
             onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
             onRemove={() => removePhoto(productKey)}
           />
-          <h1 className="font-display text-xl font-semibold leading-tight max-w-[280px]">
-            {productName || "Untitled product"}
-          </h1>
+          <div className="flex items-center gap-2 max-w-[300px]">
+            <h1 className="font-display text-xl font-semibold leading-tight">
+              {productName || "Untitled product"}
+            </h1>
+            {productRow && (
+              <button
+                type="button"
+                onClick={handleToggleFavourite}
+                disabled={shelfBusy}
+                aria-label={productRow.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                aria-pressed={productRow.on_favourite}
+                className="shrink-0 p-1 -m-1 transition active:scale-90 disabled:opacity-50"
+              >
+                <Heart
+                  className={cn(
+                    "size-6 transition-colors",
+                    productRow.on_favourite
+                      ? "fill-primary text-primary"
+                      : "text-muted-foreground hover:text-primary",
+                  )}
+                />
+              </button>
+            )}
+          </div>
           {productBrand && (
             <button
               type="button"
