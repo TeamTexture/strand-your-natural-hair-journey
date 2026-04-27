@@ -394,6 +394,19 @@ const Products = () => {
                         </div>
                       </button>
                       <button
+                        onClick={() => handleToggleFavourite(p)}
+                        className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                        aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                        aria-pressed={p.on_favourite}
+                      >
+                        <Heart
+                          className={cn(
+                            "size-4 transition-colors",
+                            p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
+                          )}
+                        />
+                      </button>
+                      <button
                         onClick={() => setExpanded(isOpen ? null : p.product_key)}
                         className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
                         aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
