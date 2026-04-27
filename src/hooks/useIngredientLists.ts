@@ -216,12 +216,18 @@ export function useIngredientLists() {
     }
   }, []);
 
-  // On first mount, recompute the flag list from the user's current
-  // library so the screen is always in sync — even if the user hasn't
-  // added/removed a product since the last threshold change. After
-  // recomputing, the recompute itself dispatches an event that triggers
-  // refresh() via the listener below.
+  // Recompute the flag list at most once per browser session — every page
+  // that uses the hook used to recompute on mount, which fired DELETE +
+  // INSERT against `ingredient_lists` on every navigation, causing visible
+  // re-render churn and a perceived "loop" on screens that re-mount this
+  // hook (IngredientDetail, ProductDetail, ProductProfile, Avoidlist).
+  // Mutations elsewhere (add/remove/setShelf) still trigger an explicit
+  // recompute via `recomputeIngredientFlags()` so the data stays fresh.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const KEY = "strand_flags_recomputed_session";
+    if (window.sessionStorage.getItem(KEY)) return;
+    window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();
   }, []);
 
