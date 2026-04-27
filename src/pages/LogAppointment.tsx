@@ -102,7 +102,7 @@ const LogAppointment = () => {
   };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout bottomNav>
       <TitleBar title="Log Appointment" onBack={() => navigate("/appointments")} />
 
       <div className="px-5 pb-8 space-y-4">

@@ -70,7 +70,7 @@ const Appointments = () => {
   const goLog = () => navigate("/appointments/log");
 
   return (
-    <ScreenLayout>
+    <ScreenLayout bottomNav>
       <TitleBar
         title="Appointments"
         right={

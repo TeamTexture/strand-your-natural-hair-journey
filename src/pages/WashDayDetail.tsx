@@ -154,7 +154,7 @@ const WashDayDetail = () => {
 
   if (loading) {
     return (
-      <ScreenLayout>
+      <ScreenLayout bottomNav>
         <TitleBar title="Wash Day" back />
         <div className="px-5 py-8 text-sm text-muted-foreground">Loading…</div>
       </ScreenLayout>
@@ -162,7 +162,7 @@ const WashDayDetail = () => {
   }
   if (!wd) {
     return (
-      <ScreenLayout>
+      <ScreenLayout bottomNav>
         <TitleBar title="Wash Day" back />
         <div className="px-5 py-8 text-center">
           <p className="text-sm text-muted-foreground mb-4">Wash day not found.</p>
@@ -175,7 +175,7 @@ const WashDayDetail = () => {
   }
 
   return (
-    <ScreenLayout>
+    <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back />
       <div className="px-5 pb-8 space-y-4">
         <div className="flex items-start justify-between gap-3">
