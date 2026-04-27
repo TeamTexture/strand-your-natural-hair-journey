@@ -225,7 +225,7 @@ export function useIngredientLists() {
   // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session_v2_shelf_fave";
+    const KEY = "strand_flags_recomputed_session_v3_shelf_fave_inuse";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();
