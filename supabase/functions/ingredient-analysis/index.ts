@@ -24,6 +24,7 @@ import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
 import { shouldTriggerRag, matchTriggerIngredient } from "../_shared/rag-triggers.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
