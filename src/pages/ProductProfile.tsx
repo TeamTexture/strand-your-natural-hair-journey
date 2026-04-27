@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Trash2, ArrowDownToLine } from "lucide-react";
+import { Trash2, ArrowDownToLine, Flag } from "lucide-react";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
