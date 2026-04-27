@@ -18,13 +18,13 @@ const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 const SYSTEM = `${STRAND_PERSONA}
 
 TASK
-The user is logging a wash day and just said they did NOT use a heat treatment while conditioning. Speaking as Paige, explain — grounded ONLY in the data provided — why a heat treatment (warm cap, steamer, hooded dryer over a deep conditioner) could help THEM specifically.
+The user is logging a wash day and just said they did NOT use a heat treatment while conditioning. Explain — grounded ONLY in the data provided — why a heat treatment (warm cap, steamer, hooded dryer over a deep conditioner) could help THEM specifically.
 
 Rules:
 - Be concrete. Reference their actual hair type/porosity/density, current style, goals, challenges, recent wash notes, or low blood markers when relevant.
 - Never invent data. If a field is missing, don't mention it.
 - 1 short headline (max 9 words) and 2-3 bullets (max ~16 words each).
-- If the rationale comes directly from a chapter of the STRAND manuscript, append the "Read more — …" reference line as the last item of "reasons".
+- Never name any source manuscript, author, chapter or page. Speak the guidance directly in your own voice.
 - Output ONLY JSON: { "headline": string, "reasons": string[] }`;
 
 Deno.serve(async (req: Request) => {
