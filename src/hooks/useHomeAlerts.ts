@@ -467,44 +467,10 @@ export function useHomeAlerts() {
         });
       }
 
-      // 10. Flagged ingredient currently on the shelf — purely informational
-      // (an ingredient that already appears in 3+ of the user's products).
-      const ingLists = (ingListsRes.data ?? []) as Array<{
-        ingredient: string;
-        list_kind: string;
-      }>;
-      const avoidSet = new Set(
-        ingLists
-          .filter((r) => r.list_kind === "flag")
-          .map((r) => r.ingredient.toLowerCase()),
-      );
-      const shelfRows = (shelfRes.data ?? []) as Array<{
-        name: string;
-        brand: string | null;
-        ingredients: string[];
-        rating: number | null;
-      }>;
-      if (avoidSet.size > 0 && shelfRows.length > 0) {
-        const offenders = shelfRows.filter((p) =>
-          (p.ingredients ?? []).some((ing) => avoidSet.has(ing.toLowerCase())),
-        );
-        if (offenders.length > 0) {
-          const first = offenders[0];
-          const more = offenders.length > 1 ? ` +${offenders.length - 1} more` : "";
-          next.push({
-            id: "avoid-on-shelf",
-            emoji: "🚫",
-            title: "Avoid-list ingredient on your shelf",
-            body: `${first.brand ? `${first.brand} ` : ""}${first.name}${more}. Tap to review.`,
-            to: "/products",
-            tone: "warning",
-            signature: `avoidShelf:${offenders
-              .map((o) => `${o.brand}|${o.name}`)
-              .sort()
-              .join("/")}`,
-          });
-        }
-      }
+      // 10. (Removed) The old "avoid-list ingredient on your shelf" alert no
+      // longer applies — flagged ingredients are now neutral / educational
+      // and by definition already appear in the user's products, so the
+      // alert would always fire and add no signal.
 
       // 11. Low-rated product still on shelf
       const lowRatedShelf = shelfRows.filter(
