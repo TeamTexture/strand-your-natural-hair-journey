@@ -32,7 +32,7 @@ import {
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v7-categories-and-goals";
+const MODEL_VERSION = "claude-sonnet-4-6@v8-single-tip";
 
 interface IngredientCard {
   name: string;
@@ -113,8 +113,8 @@ function buildToolSchema(ingredientCount: number) {
       personalised_guidance: {
         type: "array",
         minItems: 1,
-        maxItems: 2,
-        description: "1 or 2 concrete tips on how to get the most out of THIS product, anchored in the manufacturer's intended use, the actual ingredients, and the user's hair type / characteristics / challenges / goals. No medical, diagnosis, scalp-condition, or styling-tension advice.",
+        maxItems: 1,
+        description: "Exactly ONE concrete tip — the single highest-impact, science-rooted way this user can get the most out of THIS product, drawing on the manufacturer's intended use, the actual key ingredients, the STRAND manuscript guidance, and the user's hair data. Pick the one that delivers the clearest benefit; do not pad with a second tip.",
         items: {
           type: "object",
           properties: {
@@ -157,10 +157,10 @@ RULES — STRICT:
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
-5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: 1 OR 2 tips on how this user can get the MOST out of this specific product. Strict scope:
+5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ONE tip — the single highest-impact, science-rooted piece of guidance for how this user can get the most out of THIS specific product. Do NOT return two tips. To choose it, weigh: (a) the manufacturer's intended use, (b) the mechanism of the product's most important key/active ingredient, (c) the STRAND manuscript guidance that applies, and (d) the user's most relevant hair data point (porosity, density, type, current style, key goal, or hair challenge). Pick the angle that produces the clearest, most defensible benefit for this user; discard weaker or generic tips. Strict scope:
    - ONLY draw on: hair type, hair characteristics (porosity, density, diameter, surface texture, elasticity, length), the user's CURRENT HAIRSTYLE, how long that style has been in (if known from currentStyle.style_set_at), the user's KEY GOALS (e.g. length retention, definition, less breakage, edge regrowth, moisture retention) and HAIR CHALLENGES from goals/challenges, the product's actual key/active ingredients, and the manufacturer's intended use of the product (pre-shampoo, shampoo, conditioner, leave-in, mask, oil, styler, etc.).
-   - EVERY tip MUST explicitly reference at least one of: a named goal/challenge from the user's data, OR the user's current hairstyle (and length of time in that style if relevant), OR a measurable hair trait (porosity, density, etc.). Do not write a tip that is generic to all users.
-   - Anchor each tip in (a) the manufacturer's intent for the product, (b) the science of one of its key ingredients (humectant / emollient / occlusive / cationic conditioner / protein / surfactant class / etc.), and (c) at least one of the user's hair traits, challenges, goals, OR current style.
+   - The tip MUST explicitly reference at least one of: a named goal/challenge from the user's data, OR the user's current hairstyle (and length of time in that style if relevant), OR a measurable hair trait (porosity, density, etc.). Do not write a tip that is generic to all users.
+   - Anchor the tip in (a) the manufacturer's intent for the product, (b) the science of one of its key ingredients (humectant / emollient / occlusive / cationic conditioner / protein / surfactant class / etc.), and (c) at least one of the user's hair traits, challenges, goals, OR current style.
    - Where the STRAND manuscript covers the relevant technique (e.g. pre-poo on dry hair before washing, sectioning for detangling, applying leave-in to soaking-wet hair for low porosity, refresh routines for braids/twists), use that guidance directly in your own voice — never name the source, the author, a chapter or a page.
    - DO NOT mention: traction alopecia, alopecia of any kind, diagnosed scalp conditions, medical conditions, medications, blood markers, hormones, life stage, or any health diagnosis. Those belong elsewhere in the app, not in product usage tips.
    - DO NOT prescribe styling-tension behaviour (braids too tight, take-down schedules driven by alopecia risk, etc.). Style references are only allowed as neutral context (e.g. "good for refreshing day-3 twist-outs") not as a medical warning.
