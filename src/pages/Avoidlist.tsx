@@ -26,6 +26,17 @@ const Avoidlist = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const filterState = useProductsFilterState();
+  const filteredFlags = useMemo(() => {
+    const q = filterState.search.trim().toLowerCase();
+    if (!q) return flags;
+    return flags.filter(
+      (f) =>
+        f.ingredient.toLowerCase().includes(q) ||
+        f.reason.toLowerCase().includes(q),
+    );
+  }, [flags, filterState.search]);
+
   const handleExport = async () => {
     if (exporting) return;
     setExporting(true);
