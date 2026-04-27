@@ -470,7 +470,15 @@ export function useHomeAlerts() {
       // 10. (Removed) The old "avoid-list ingredient on your shelf" alert no
       // longer applies — flagged ingredients are now neutral / educational
       // and by definition already appear in the user's products, so the
-      // alert would always fire and add no signal.
+      // alert would always fire and add no signal. ingListsRes is still
+      // fetched in case future alerts need it.
+      void ingListsRes;
+      const shelfRows = (shelfRes.data ?? []) as Array<{
+        name: string;
+        brand: string | null;
+        ingredients: string[];
+        rating: number | null;
+      }>;
 
       // 11. Low-rated product still on shelf
       const lowRatedShelf = shelfRows.filter(
