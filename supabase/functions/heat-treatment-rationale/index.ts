@@ -3,6 +3,7 @@
 // client (hair profile, goals, challenges, recent wash signals) and returns a
 // short, plain-English rationale + 2-3 specific bullets. No generic advice.
 import { corsHeaders } from "../_shared/cors.ts";
+import { stripModelCitations, stripModelCitationsArray } from "../_shared/sanitize-citations.ts";
 
 interface Body {
   context?: Record<string, unknown> | null;
