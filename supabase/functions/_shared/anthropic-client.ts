@@ -192,6 +192,18 @@ export async function callClaude<T = unknown>(
     }
   }
 
+  // Count Anthropic-managed server-tool invocations (e.g. native web_search).
+  // These come back as `server_tool_use` content blocks before the final
+  // assistant tool_use / text. Useful for cost logging and `_used_web_search`
+  // provenance on cached payloads (audit §5 Step 3).
+  const serverToolBlocks = resp.content.filter((b) => b.type === "server_tool_use");
+  const serverToolQueries: string[] = serverToolBlocks
+    .map((b) => {
+      const inp = b.input as { query?: unknown } | undefined;
+      return typeof inp?.query === "string" ? inp.query : "";
+    })
+    .filter((q) => q.length > 0);
+
   const result: ClaudeCallResult<T> = {
     usage: {
       input_tokens: resp.usage?.input_tokens ?? 0,
@@ -200,10 +212,20 @@ export async function callClaude<T = unknown>(
       output_tokens: resp.usage?.output_tokens ?? 0,
     },
     stop_reason: resp.stop_reason,
+    server_tool_use_count: serverToolBlocks.length,
+    server_tool_use_queries: serverToolQueries,
   };
 
-  // Tool use block (preferred when toolChoice provided)
-  const toolBlock = resp.content.find((b) => b.type === "tool_use");
+  // Tool use block (preferred when toolChoice provided). Prefer the named
+  // tool when toolChoice is set so we don't accidentally pick up a
+  // `server_tool_use` from `web_search` (those are filtered above by type
+  // discriminator, but we double-check by name).
+  const wantedName = input.toolChoice?.name;
+  const toolBlock =
+    (wantedName
+      ? resp.content.find((b) => b.type === "tool_use" && b.name === wantedName)
+      : undefined) ??
+    resp.content.find((b) => b.type === "tool_use");
   if (toolBlock?.input !== undefined) {
     result.toolInput = toolBlock.input as T;
     return result;
