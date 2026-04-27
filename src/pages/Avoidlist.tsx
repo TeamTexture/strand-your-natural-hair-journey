@@ -90,7 +90,7 @@ const Avoidlist = () => {
           {flags.length === 0 ? (
             <EmptyState
               message="No flagged ingredients yet"
-              hint="Save 3 or more products that share an ingredient and it will appear here."
+              hint="Favourite 3 or more products on your shelf that share an ingredient and it will appear here."
             />
           ) : (
             flags.map((r) => {
