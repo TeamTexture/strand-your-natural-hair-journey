@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Flag } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -52,7 +53,7 @@ const ProductDetailNew = () => {
   const location = useLocation();
   const state = (location.state as NavState | null) ?? null;
   const { upsert, allProducts } = useUserProducts("all");
-  const { avoid, favourites } = useIngredientLists();
+  const { flags } = useIngredientLists();
   const { goals } = useGoals();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -163,11 +164,9 @@ const ProductDetailNew = () => {
   const aiFlagByName = new Map<string, IngredientFlag>();
   aiFlags.forEach((f) => aiFlagByName.set(f.name.toLowerCase().trim(), f));
 
-  const avoidNames = new Set(avoid.map(i => i.ingredient.toLowerCase()));
-  const favNames = new Set(favourites.map(i => i.ingredient.toLowerCase()));
-
-  const redFlags = ingredients.filter(i => avoidNames.has(i.toLowerCase()));
-  const greenLights = ingredients.filter(i => favNames.has(i.toLowerCase()));
+  // Single unified "flagged" set — an ingredient that appears in 3+ of the
+  // user's products. Educational only, no good/bad framing.
+  const flaggedNames = new Set(flags.map(i => i.ingredient.toLowerCase()));
 
   const score = Math.max(0, Math.min(100, Math.round(a.match_score ?? 0)));
 
@@ -390,18 +389,19 @@ const ProductDetailNew = () => {
               {ingredients.map((name, i) => {
                 const lower = name.toLowerCase().trim();
                 const aiFlag = aiFlagByName.get(lower);
-                // Flag status is driven by the user's Green/Red Flag lists
-                // (3+ favourited or off-shelf products sharing this
-                // ingredient), not by the AI tone.
-                const isRedFlag = avoidNames.has(lower);
-                const isGreenFlag = favNames.has(lower);
+                // The flag is now a single unified marker — gold flag if the
+                // ingredient appears in 3+ of the user's products. Purely
+                // educational, no good/bad bias.
+                const isFlagged = flaggedNames.has(lower);
                 return (
                   <div key={i} className="p-3 flex items-start gap-2.5">
                     <span
-                      className="text-sm leading-none shrink-0 mt-0.5 w-4 text-center"
-                      aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
+                      className="shrink-0 mt-0.5 w-4 flex items-center justify-center"
+                      aria-label={isFlagged ? "flagged ingredient" : "ingredient"}
                     >
-                      {isRedFlag ? "🚩" : isGreenFlag ? "💚" : ""}
+                      {isFlagged ? (
+                        <Flag className="size-3.5 text-primary fill-primary" />
+                      ) : null}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium leading-tight">{name}</p>
