@@ -71,11 +71,12 @@ const Avoidlist = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="Ingredient Analysis" />
       <ItalicSub>
-        Built automatically from your products. An ingredient earns a{" "}
+        Built automatically from the products you've put on your shelf AND
+        favourited. An ingredient earns a{" "}
         <span className="text-primary font-medium">flag</span> when it shows up
-        in 3 or more of your saved products. Tap any flag to learn what the
-        ingredient is, what it does, and which of your products contain it —
-        purely educational, no good or bad.
+        in 3 or more of those favourite shelf products. Tap any flag to learn
+        what the ingredient is, what it does, and which of your products
+        contain it — purely educational, no good or bad.
       </ItalicSub>
 
       {loading ? (
