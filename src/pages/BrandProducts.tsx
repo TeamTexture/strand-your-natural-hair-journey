@@ -64,9 +64,9 @@ const BrandProducts = () => {
           </SurfaceCard>
         ) : products.length === 0 ? (
           <EmptyState
-            emoji="🧴"
-            title="Nothing from this brand yet"
-            body={`You haven't saved any other ${decodedBrand} products yet. Add them from the scanner or product URL.`}
+            icon="🧴"
+            message="Nothing from this brand yet"
+            hint={`You haven't saved any other ${decodedBrand} products yet. Add them from the scanner or product URL.`}
           />
         ) : (
           products.map((p) => {
