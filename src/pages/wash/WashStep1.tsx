@@ -23,6 +23,8 @@ import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import WashGuidanceCard from "@/components/WashGuidanceCard";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
+import HeatToolPicker from "@/components/HeatToolPicker";
+import { useUserTools } from "@/hooks/useUserTools";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
