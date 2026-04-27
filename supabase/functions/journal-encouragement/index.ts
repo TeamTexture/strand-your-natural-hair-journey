@@ -45,7 +45,7 @@ You will receive a JSON object with REAL live signals about this specific user. 
 
 Output:
 - "headline": max 7 words. May start with ONE relevant emoji. At most one exclamation mark.
-- "subline": max 16 words. No emoji. No exclamation marks. Do NOT include the chapter reference line in the banner — banners are too short for it.
+- "subline": max 16 words. No emoji. No exclamation marks. Never name any source manuscript, author, chapter or page.
 
 Voice rules:
 - Confident, modern, Black-British-friendly. No clichés ("queen", "slay", "journey", "you got this", "growth journey").
