@@ -156,6 +156,8 @@ const WashStep4 = () => {
         ? {
             used: step1.heatTreatment === "yes",
             ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
+            ...(step1.heatTreatment === "yes" && step1.heatToolIds?.length ? { tool_ids: step1.heatToolIds } : {}),
+            ...(step1.heatTreatment === "yes" && step1.heatToolNames?.length ? { tools: step1.heatToolNames } : {}),
           }
         : null;
 
