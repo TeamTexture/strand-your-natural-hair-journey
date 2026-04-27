@@ -36,7 +36,7 @@ const ProductsByIngredient = () => {
   }, [allProducts, ingredient, excludeKey]);
 
   return (
-    <ScreenLayout>
+    <ScreenLayout bottomNav>
       <TitleBar title="Other products" />
       <div className="px-5 pb-8 space-y-3">
         <p className="text-xs text-muted-foreground -mt-1">

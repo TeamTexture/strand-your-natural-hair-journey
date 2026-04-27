@@ -57,7 +57,7 @@ const Directory = () => {
   };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout bottomNav>
       <TitleBar title={bloodOnly ? "Book a Doctor" : "Professionals"} />
 
       {bloodOnly && (

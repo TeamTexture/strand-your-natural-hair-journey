@@ -143,7 +143,7 @@ const SetCurrentStyle = () => {
   };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout bottomNav>
       <TitleBar title="Current Hairstyle" back />
 
       <div className="px-5 pb-8 space-y-5">
