@@ -3,6 +3,10 @@
 // client (hair profile, goals, challenges, recent wash signals) and returns a
 // short, plain-English rationale + 2-3 specific bullets. No generic advice.
 import { corsHeaders } from "../_shared/cors.ts";
+import {
+  CHAPTER_WHITELIST_PROMPT,
+  sanitiseChapterCitationsDeep,
+} from "../_shared/book-chapters.ts";
 
 interface Body {
   context?: Record<string, unknown> | null;
@@ -40,6 +44,8 @@ BOUNDARIES
 
 const SYSTEM = `${STRAND_PERSONA}
 
+${CHAPTER_WHITELIST_PROMPT}
+
 TASK
 The user is logging a wash day and just said they did NOT use a heat treatment while conditioning. Speaking as Paige, explain — grounded ONLY in the data provided — why a heat treatment (warm cap, steamer, hooded dryer over a deep conditioner) could help THEM specifically.
 
@@ -47,7 +53,7 @@ Rules:
 - Be concrete. Reference their actual hair type/porosity/density, current style, goals, challenges, recent wash notes, or low blood markers when relevant.
 - Never invent data. If a field is missing, don't mention it.
 - 1 short headline (max 9 words) and 2-3 bullets (max ~16 words each).
-- If the rationale comes directly from a chapter of How To Love Your Afro, append the "Read more — …" reference line as the last item of "reasons".
+- If the rationale comes directly from a chapter of How To Love Your Afro, append the "Read more — …" reference line as the last item of "reasons". Use ONLY chapters from the authoritative list above. If the rationale does not map to a listed chapter, omit the reference line entirely.
 - Output ONLY JSON: { "headline": string, "reasons": string[] }`;
 
 Deno.serve(async (req: Request) => {
@@ -105,10 +111,12 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({
-        headline: parsed.headline ?? "Heat treatments can help your hair drink in moisture",
-        reasons: Array.isArray(parsed.reasons) ? parsed.reasons.slice(0, 3) : [],
-      }),
+      JSON.stringify(
+        sanitiseChapterCitationsDeep({
+          headline: parsed.headline ?? "Heat treatments can help your hair drink in moisture",
+          reasons: Array.isArray(parsed.reasons) ? parsed.reasons.slice(0, 3) : [],
+        }),
+      ),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
