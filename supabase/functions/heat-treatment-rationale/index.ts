@@ -103,10 +103,13 @@ Deno.serve(async (req: Request) => {
       parsed = { headline: "Heat treatments can help", reasons: [] };
     }
 
+    const safeHeadline = stripModelCitations(parsed.headline) || "Heat treatments can help your hair drink in moisture";
+    const safeReasons = stripModelCitationsArray(parsed.reasons).slice(0, 3);
+
     return new Response(
       JSON.stringify({
-        headline: parsed.headline ?? "Heat treatments can help your hair drink in moisture",
-        reasons: Array.isArray(parsed.reasons) ? parsed.reasons.slice(0, 3) : [],
+        headline: safeHeadline,
+        reasons: safeReasons,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
