@@ -348,6 +348,10 @@ ${trimmed}
     // on the tool tile / detail page without re-fetching the page.
     if (scraped.image_url && !out.image_url) out.image_url = scraped.image_url;
 
+    // Strip any chapter/page citations the model emitted — citations are
+    // appended server-side from real RAG rows only.
+    out = stripModelCitationsDeep(out);
+
     return new Response(JSON.stringify(out), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
