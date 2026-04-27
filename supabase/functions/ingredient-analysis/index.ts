@@ -32,7 +32,7 @@ import {
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v7-categories-and-goals";
+const MODEL_VERSION = "claude-sonnet-4-6@v8-single-tip";
 
 interface IngredientCard {
   name: string;
