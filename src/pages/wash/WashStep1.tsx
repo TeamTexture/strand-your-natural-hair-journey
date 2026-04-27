@@ -263,6 +263,18 @@ const WashStep1 = () => {
   const [conditionIds, setConditionIds] = useState<string[]>([]);
   const [treatmentIds, setTreatmentIds] = useState<string[]>([]);
 
+  // Heat-treatment state lives at the page level so we can persist it and so
+  // the "why" dialog can read/write the choice.
+  const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
+  const [heatDialogOpen, setHeatDialogOpen] = useState(false);
+  const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
+  const [heatLoading, setHeatLoading] = useState(false);
+  // How long the user kept heat on for. Captured only when heatChoice === "yes".
+  const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
+  // Tools attached to today's heat treatment (e.g. heat hat, steamer cap).
+  const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
+  const { tools: allTools } = useUserTools();
+
   // Restore any in-progress draft (e.g. user came back from the scan flow
   // after adding a new product). Run once shelfProducts is available so we
   // can also auto-merge any newly-shelved products into the right step.
