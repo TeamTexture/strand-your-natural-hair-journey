@@ -292,7 +292,7 @@ const IngredientDetail = () => {
           <ProductPhotoTile
             imageUrl={photoUrl}
             fallbackEmoji="🧴"
-            size="size-28"
+            size="size-56"
             className="mb-3"
             onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
             onRemove={() => removePhoto(productKey)}
