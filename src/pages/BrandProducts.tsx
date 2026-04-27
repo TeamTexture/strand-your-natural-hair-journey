@@ -84,12 +84,12 @@ const BrandProducts = () => {
               >
                 <SurfaceCard className="!py-3">
                   <div className="flex items-center gap-3">
-                    <div className="size-12 rounded-[10px] bg-muted/40 overflow-hidden shrink-0 flex items-center justify-center">
+                    <div className="size-12 rounded-[10px] bg-transparent overflow-hidden shrink-0 flex items-center justify-center">
                       {p.image_url ? (
                         <img
                           src={p.image_url}
                           alt=""
-                          className="size-full object-contain"
+                          className="size-full object-contain mix-blend-multiply"
                           loading="lazy"
                         />
                       ) : (
