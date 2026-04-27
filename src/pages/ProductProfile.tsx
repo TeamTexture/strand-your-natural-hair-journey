@@ -62,7 +62,7 @@ const ProductProfile = () => {
   const { user } = useAuth();
   const { allProducts, loading, setShelf, setWishlist, remove, reload } = useUserProducts("all");
   const { washDays } = useWashDays();
-  const { avoid, favourites } = useIngredientLists();
+  const { flags } = useIngredientLists();
   const { goals } = useGoals();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [offShelfOpen, setOffShelfOpen] = useState(false);
@@ -79,8 +79,8 @@ const ProductProfile = () => {
 
   const product = useMemo(() => allProducts.find(p => p.id === id) ?? null, [allProducts, id]);
 
-  const avoidNames = useMemo(() => new Set(avoid.map(i => i.ingredient.toLowerCase())), [avoid]);
-  const favNames = useMemo(() => new Set(favourites.map(i => i.ingredient.toLowerCase())), [favourites]);
+  // Single unified "flagged" set — appears in 3+ of the user's products.
+  const flaggedNames = useMemo(() => new Set(flags.map(i => i.ingredient.toLowerCase())), [flags]);
 
   // Map of lower-cased ingredient name -> AI flag, for O(1) lookup in the list.
   const aiFlagByName = useMemo(() => {
@@ -256,8 +256,6 @@ const ProductProfile = () => {
   }
 
   const ingredients = product.ingredients ?? [];
-  const redFlags = ingredients.filter(i => avoidNames.has(i.toLowerCase()));
-  const greenLights = ingredients.filter(i => favNames.has(i.toLowerCase()));
   const score = aiMatchScore ?? product.match_score ?? 0;
 
   const updateRating = async (n: number) => {
@@ -411,12 +409,10 @@ const ProductProfile = () => {
               {ingredients.map((name, i) => {
                 const lower = name.toLowerCase().trim();
                 const aiFlag = aiFlagByName.get(lower);
-                // Flag status is now driven solely by the user's Green/Red
-                // Flag lists (3+ favourited or off-shelf products sharing
-                // this ingredient). The AI tone no longer paints rows.
-                const isRedFlag = avoidNames.has(lower);
-                const isGreenFlag = favNames.has(lower);
-                const isClickable = isRedFlag || isGreenFlag;
+                // Single unified flag — appears in 3+ of the user's products.
+                // Educational: tap to see other products that contain it.
+                const isFlagged = flaggedNames.has(lower);
+                const isClickable = isFlagged;
                 const isExpanded = isClickable && expandedIngredient === lower;
                 const matches = isClickable
                   ? allProducts.filter(p =>
@@ -442,12 +438,10 @@ const ProductProfile = () => {
                     >
                       <span
                         className="shrink-0 mt-0.5 w-4 flex items-center justify-center"
-                        aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
+                        aria-label={isFlagged ? "flagged ingredient" : "ingredient"}
                       >
-                        {isRedFlag ? (
-                          <Flag className="size-3.5 text-destructive fill-destructive" />
-                        ) : isGreenFlag ? (
-                          <Flag className="size-3.5 text-good fill-good" />
+                        {isFlagged ? (
+                          <Flag className="size-3.5 text-primary fill-primary" />
                         ) : null}
                       </span>
                       <div className="flex-1 min-w-0">
