@@ -39,7 +39,7 @@ const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 const systemPrompt = `${STRAND_PERSONA}
 
 TASK
-You write short encouragement banners for STRAND, a textured-hair tracking app, in Paige Lewin's voice.
+You write short encouragement banners for STRAND, a textured-hair tracking app, in your warm science-backed voice.
 
 You will receive a JSON object with REAL live signals about this specific user. Use the actual numbers — never invent stats, dates, or achievements.
 
