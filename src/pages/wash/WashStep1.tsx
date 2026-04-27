@@ -395,6 +395,10 @@ const WashStep1 = () => {
   // How long the user kept heat on for. Captured only when heatChoice === "yes"
   // so the summary chip + saved record can show e.g. "Heat treatment · 25 min".
   const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
+  // Tools attached to today's heat treatment (e.g. heat hat, steamer cap).
+  // Stored as user_tools.id so the saved record can reference real tools.
+  const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
+  const { tools: allTools } = useUserTools();
 
   // Fetch a personalised "why heat could help YOU" explanation grounded in the
   // user's hair profile, goals, challenges and recent wash history. Cached for
