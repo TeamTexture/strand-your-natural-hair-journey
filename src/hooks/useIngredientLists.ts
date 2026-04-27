@@ -25,8 +25,10 @@ export interface IngredientListRow {
 }
 
 // An ingredient must show up in this many qualifying products (on shelf AND
-// favourited) before it earns a flag.
-const MIN_PRODUCTS_FOR_FLAG = 3;
+// favourited) before it earns a flag. Two is the sweet spot: it surfaces
+// genuine cross-product patterns without requiring the user to own three
+// fully-scanned favourites before *anything* shows up.
+const MIN_PRODUCTS_FOR_FLAG = 2;
 
 // Ingredients that are too generic / vehicle-only to be meaningful — skip
 // when aggregating so we don't surface "Water" as a flagged ingredient.
