@@ -305,7 +305,7 @@ Return strict JSON matching the schema in your system prompt.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: LOVABLE_SYSTEM },
+          { role: "system", content: `${LOVABLE_SYSTEM}\n\n${CHAPTER_WHITELIST_PROMPT}` },
           {
             role: "user",
             content: [
@@ -415,7 +415,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return json(200, analysis);
+    return json(200, sanitiseChapterCitationsDeep(analysis));
   } catch (e) {
     return aiErrorResponse(e, "product-analyse");
   }
