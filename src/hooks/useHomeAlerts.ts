@@ -467,14 +467,15 @@ export function useHomeAlerts() {
         });
       }
 
-      // 10. Avoid-list ingredient currently on the shelf
+      // 10. Flagged ingredient currently on the shelf — purely informational
+      // (an ingredient that already appears in 3+ of the user's products).
       const ingLists = (ingListsRes.data ?? []) as Array<{
         ingredient: string;
         list_kind: string;
       }>;
       const avoidSet = new Set(
         ingLists
-          .filter((r) => r.list_kind === "avoid")
+          .filter((r) => r.list_kind === "flag")
           .map((r) => r.ingredient.toLowerCase()),
       );
       const shelfRows = (shelfRes.data ?? []) as Array<{
