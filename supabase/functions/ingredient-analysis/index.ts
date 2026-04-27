@@ -113,8 +113,8 @@ function buildToolSchema(ingredientCount: number) {
       personalised_guidance: {
         type: "array",
         minItems: 1,
-        maxItems: 2,
-        description: "1 or 2 concrete tips on how to get the most out of THIS product, anchored in the manufacturer's intended use, the actual ingredients, and the user's hair type / characteristics / challenges / goals. No medical, diagnosis, scalp-condition, or styling-tension advice.",
+        maxItems: 1,
+        description: "Exactly ONE concrete tip — the single highest-impact, science-rooted way this user can get the most out of THIS product, drawing on the manufacturer's intended use, the actual key ingredients, the STRAND manuscript guidance, and the user's hair data. Pick the one that delivers the clearest benefit; do not pad with a second tip.",
         items: {
           type: "object",
           properties: {
