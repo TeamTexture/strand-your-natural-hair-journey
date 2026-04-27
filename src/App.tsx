@@ -66,6 +66,13 @@ const queryClient = new QueryClient();
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
 
+// Mounts global side-effects (e.g. keyboard-aware input scrolling) inside the
+// React tree so they're active for every screen in the app.
+const GlobalEffects = () => {
+  useKeyboardAwareInputs();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
