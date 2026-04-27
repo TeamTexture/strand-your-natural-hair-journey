@@ -8,6 +8,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -123,6 +124,19 @@ const Appointments = () => {
                       <span className="bg-primary/15 text-primary text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded shrink-0">
                         Soon
                       </span>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <AddToCalendarButton
+                        event={{
+                          title: `${a.professional_type ?? "Appointment"} — ${a.professional_name}`,
+                          date: a.appointment_date,
+                          time: a.appointment_time,
+                          durationMinutes: 60,
+                          location: a.clinic_name,
+                          description: [a.reason, a.notes].filter(Boolean).join("\n\n") || undefined,
+                          uid: `appt-${a.id}@strand.app`,
+                        }}
+                      />
                     </div>
                   </SurfaceCard>
                 ))}
