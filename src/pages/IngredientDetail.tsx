@@ -419,8 +419,12 @@ const IngredientDetail = () => {
             <SurfaceCard className="divide-y divide-border/60 !py-1">
               {(analysis.ingredients ?? []).map((i, idx) => {
                 const lower = i.name.toLowerCase().trim();
-                const isRedFlag = avoidNames.has(lower) || i.tone === "bad";
-                const isGreenFlag = !isRedFlag && (favNames.has(lower) || i.tone === "good");
+                // Flags are driven solely by qualified lists (ingredient must
+                // appear in 3+ of the user's favourited or off-shelf products).
+                // AI tone no longer paints flags — that would surface unverified
+                // greens/reds on ingredients that haven't earned the badge.
+                const isRedFlag = avoidNames.has(lower);
+                const isGreenFlag = !isRedFlag && favNames.has(lower);
                 const otherProducts = productsByIngredient.get(lower) ?? [];
                 return (
                   <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
