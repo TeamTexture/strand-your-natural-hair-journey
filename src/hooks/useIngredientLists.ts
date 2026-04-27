@@ -216,6 +216,15 @@ export function useIngredientLists() {
     }
   }, []);
 
+  // On first mount, recompute the flag list from the user's current
+  // library so the screen is always in sync — even if the user hasn't
+  // added/removed a product since the last threshold change. After
+  // recomputing, the recompute itself dispatches an event that triggers
+  // refresh() via the listener below.
+  useEffect(() => {
+    void recomputeIngredientFlags();
+  }, []);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
