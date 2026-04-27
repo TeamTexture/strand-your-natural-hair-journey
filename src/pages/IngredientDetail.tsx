@@ -115,7 +115,7 @@ const IngredientDetail = () => {
   );
 
   const reasonForFlag = selectedIngredient && flaggedNames.has(selectedIngredient.name.toLowerCase().trim())
-    ? "Appears in 3 or more of the user's products"
+    ? "Appears in 3 or more of the user's favourite shelf products"
     : undefined;
 
   const ingredientProfile = useIngredientProfile(
