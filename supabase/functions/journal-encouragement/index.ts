@@ -10,8 +10,6 @@
 // - No medical or growth claims.
 // - Two lines, tight word counts, modern voice.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
 import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
 
 const corsHeaders = {
