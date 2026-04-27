@@ -140,9 +140,20 @@ async function recomputeFlagList(userId: string) {
     }
   }
 
-  const qualifying = Array.from(tally.entries())
-    .filter(([, v]) => v.count >= MIN_PRODUCTS_FOR_FLAG)
-    .map(([, v]) => ({
+  // Collapse duplicates by display name — multiple keys (full INCI string +
+  // its anchor token) often resolve to the same human-readable ingredient.
+  // Take the highest count seen across all keys for that display name.
+  const byDisplay = new Map<string, { display: string; count: number }>();
+  for (const v of tally.values()) {
+    if (v.count < MIN_PRODUCTS_FOR_FLAG) continue;
+    const dKey = v.display.toLowerCase();
+    const prev = byDisplay.get(dKey);
+    if (!prev || v.count > prev.count) byDisplay.set(dKey, v);
+  }
+
+  const qualifying = Array.from(byDisplay.values())
+    .sort((a, b) => b.count - a.count)
+    .map((v) => ({
       ingredient: v.display,
       product_count: v.count,
       reason: `Appears in ${v.count} of your favourite shelf products`,
