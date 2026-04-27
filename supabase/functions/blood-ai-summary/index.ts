@@ -1,6 +1,7 @@
 // Generates a hair-health AI summary from blood results.
 // Uses Lovable AI Gateway (google/gemini-2.5-pro) with tool calling for JSON.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
