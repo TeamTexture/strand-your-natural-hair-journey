@@ -41,6 +41,7 @@ import {
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
