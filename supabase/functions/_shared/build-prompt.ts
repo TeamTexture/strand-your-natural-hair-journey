@@ -158,7 +158,7 @@ export async function buildClaudeRequest(
     text: `TASK\n\n${input.task_instructions}`,
   });
 
-  const userMessageJson = JSON.stringify(
+  const defaultUserMessageJson = JSON.stringify(
     {
       payload: input.user_payload,
       context: input.user_context ?? null,
@@ -168,14 +168,25 @@ export async function buildClaudeRequest(
   );
 
   const messages: Message[] = [
-    { role: "user", content: userMessageJson },
+    {
+      role: "user",
+      content: input.user_content ?? defaultUserMessageJson,
+    },
   ];
+
+  // Combine the structured-output tool with any Anthropic-managed server
+  // tools (e.g. native web_search for the photo flow).
+  const tools: Array<Tool | ServerTool> = [];
+  if (input.tool) tools.push(input.tool);
+  if (input.server_tools && input.server_tools.length > 0) {
+    tools.push(...input.server_tools);
+  }
 
   return {
     model: input.model ?? FUNCTION_MODEL_MAP[input.function_kind],
     systemBlocks,
     messages,
-    tools: input.tool ? [input.tool] : undefined,
+    tools: tools.length > 0 ? tools : undefined,
     toolChoice: input.toolChoice,
     max_tokens: input.max_tokens,
   };
