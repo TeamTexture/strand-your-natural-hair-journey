@@ -23,6 +23,8 @@ import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import WashGuidanceCard from "@/components/WashGuidanceCard";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
+import HeatToolPicker from "@/components/HeatToolPicker";
+import { useUserTools } from "@/hooks/useUserTools";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
@@ -261,6 +263,18 @@ const WashStep1 = () => {
   const [conditionIds, setConditionIds] = useState<string[]>([]);
   const [treatmentIds, setTreatmentIds] = useState<string[]>([]);
 
+  // Heat-treatment state lives at the page level so we can persist it and so
+  // the "why" dialog can read/write the choice.
+  const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
+  const [heatDialogOpen, setHeatDialogOpen] = useState(false);
+  const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
+  const [heatLoading, setHeatLoading] = useState(false);
+  // How long the user kept heat on for. Captured only when heatChoice === "yes".
+  const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
+  // Tools attached to today's heat treatment (e.g. heat hat, steamer cap).
+  const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
+  const { tools: allTools } = useUserTools();
+
   // Restore any in-progress draft (e.g. user came back from the scan flow
   // after adding a new product). Run once shelfProducts is available so we
   // can also auto-merge any newly-shelved products into the right step.
@@ -286,6 +300,7 @@ const WashStep1 = () => {
     if (Array.isArray(draft.treatmentType)) setTreatmentType(draft.treatmentType as string[]);
     if (typeof draft.heatChoice === "string") setHeatChoice(draft.heatChoice as HeatChoice);
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
+    if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
     setHydrated(true);
   }, [shelfProducts, hydrated]);
 
@@ -299,10 +314,12 @@ const WashStep1 = () => {
         prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
         prePoo, cleanse, coWash, condition, treatment,
         treatmentType,
+        heatChoice, heatMinutes, heatToolIds,
       }),
     );
   }, [hydrated, prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
-      prePoo, cleanse, coWash, condition, treatment, treatmentType]);
+      prePoo, cleanse, coWash, condition, treatment, treatmentType,
+      heatChoice, heatMinutes, heatToolIds]);
 
   // Resolve IDs → full product objects for display.
   const resolve = (ids: string[]) =>
@@ -384,15 +401,7 @@ const WashStep1 = () => {
     }
   }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters]);
 
-  // Heat-treatment state lives at the page level so we can persist it and so
-  // the "why" dialog can read/write the choice.
-  const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
-  const [heatDialogOpen, setHeatDialogOpen] = useState(false);
-  const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
-  const [heatLoading, setHeatLoading] = useState(false);
-  // How long the user kept heat on for. Captured only when heatChoice === "yes"
-  // so the summary chip + saved record can show e.g. "Heat treatment · 25 min".
-  const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
+  // (heat-treatment state hoisted above the persist effect, see top of component)
 
   // Fetch a personalised "why heat could help YOU" explanation grounded in the
   // user's hair profile, goals, challenges and recent wash history. Cached for
@@ -503,6 +512,12 @@ const WashStep1 = () => {
             ...(heatChoice === "yes"
               ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
               : []),
+            ...(heatChoice === "yes"
+              ? heatToolIds
+                  .map((id) => allTools.find((t) => t.id === id))
+                  .filter((t): t is NonNullable<typeof t> => !!t)
+                  .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
+              : []),
             ...(heatChoice === "no" ? ["No heat"] : []),
           ]}
           editor={
@@ -578,6 +593,14 @@ const WashStep1 = () => {
                       ✓ Logged: {heatMinutes} minutes. Tap <strong>Done</strong> on the Condition step to save.
                     </p>
                   )}
+                  <HeatToolPicker
+                    selectedIds={heatToolIds}
+                    onToggle={(id) =>
+                      setHeatToolIds((prev) =>
+                        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                      )
+                    }
+                  />
                 </div>
               )}
               {heatChoice === "no" && !heatDialogOpen && (
@@ -659,6 +682,13 @@ const WashStep1 = () => {
                 productIds,
                 heatTreatment: heatChoice,
                 heatMinutes: heatChoice === "yes" ? heatMinutes : null,
+                heatToolIds: heatChoice === "yes" ? heatToolIds : [],
+                heatToolNames: heatChoice === "yes"
+                  ? heatToolIds
+                      .map((id) => allTools.find((t) => t.id === id))
+                      .filter((t): t is NonNullable<typeof t> => !!t)
+                      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
+                  : [],
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",

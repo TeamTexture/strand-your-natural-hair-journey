@@ -36,6 +36,8 @@ interface Step1Saved {
   products?: string[];
   heatTreatment?: "yes" | "no" | null;
   heatMinutes?: number | null;
+  heatToolIds?: string[];
+  heatToolNames?: string[];
 }
 interface Step2Saved {
   scalp?: string[]; breakage?: string[]; style?: string[]; duration?: string[]; stress?: string[];
@@ -69,6 +71,9 @@ const WashStep4 = () => {
     });
     if (step1.heatTreatment === "yes") {
       parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
+      if (step1.heatToolNames?.length) {
+        parts.push(`Heat tool: ${step1.heatToolNames.join(", ")}`);
+      }
     }
     if (step1.heatTreatment === "no") parts.push("No heat");
     if (step1.products?.length) {
@@ -151,6 +156,8 @@ const WashStep4 = () => {
         ? {
             used: step1.heatTreatment === "yes",
             ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
+            ...(step1.heatTreatment === "yes" && step1.heatToolIds?.length ? { tool_ids: step1.heatToolIds } : {}),
+            ...(step1.heatTreatment === "yes" && step1.heatToolNames?.length ? { tools: step1.heatToolNames } : {}),
           }
         : null;
 
