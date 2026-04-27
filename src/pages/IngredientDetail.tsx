@@ -18,6 +18,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -83,6 +90,7 @@ const IngredientDetail = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [shelfBusy, setShelfBusy] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
 
   const { flags } = useIngredientLists();
   // Single unified "flagged" set — appears in 3+ of the user's products.
@@ -412,98 +420,50 @@ const IngredientDetail = () => {
               </>
             )}
 
-            <SectionLabel>Active ingredients</SectionLabel>
+            <SectionLabel>Ingredients</SectionLabel>
             <p className="px-1 -mt-1 mb-2 text-[11px] text-muted-foreground italic leading-snug">
-              Showing the functional ingredients that actually do something for
-              your hair (actives, humectants, proteins, conditioning agents,
-              etc.). Fillers, preservatives, fragrance and pH adjusters are
-              hidden to keep this list useful.
+              Every ingredient in this formulation. Tap a bubble to learn what
+              it is, what category it falls under, and how it's used in this
+              product. A small flag marks ingredients that appear in 3+ of your
+              products.
             </p>
-            <SurfaceCard className="divide-y divide-border/60 !py-1">
+            <div className="rounded-2xl bg-white border border-border/60 p-4">
               {(() => {
-                // Categories that meaningfully act on hair — everything else
-                // (preservative, solvent, fragrance, colourant, pH adjuster,
-                // chelator, emulsifier, thickener) is filler from the user's
-                // perspective and is hidden to reduce overwhelm.
-                const ACTIVE_CATEGORIES = new Set([
-                  "active",
-                  "humectant",
-                  "emollient",
-                  "occlusive",
-                  "surfactant",
-                  "conditioning agent",
-                  "protein",
-                  "antioxidant",
-                  "botanical extract",
-                ]);
-                const visible = (analysis.ingredients ?? []).filter((i) => {
-                  const lower = i.name.toLowerCase().trim();
-                  // Always keep flagged ingredients — they should surface
-                  // regardless of category.
-                  if (flaggedNames.has(lower)) return true;
-                  const cat = (i.category ?? "").toLowerCase().trim();
-                  return ACTIVE_CATEGORIES.has(cat);
-                });
-                if (visible.length === 0) {
+                const all = analysis.ingredients ?? [];
+                if (all.length === 0) {
                   return (
-                    <p className="text-[11px] text-muted-foreground py-3 text-center">
-                      No active ingredients identified for this product.
+                    <p className="text-[11px] text-muted-foreground py-2 text-center">
+                      No ingredients listed for this product.
                     </p>
                   );
                 }
-                return visible.map((i, idx) => {
-                  const lower = i.name.toLowerCase().trim();
-                  // Single unified gold flag — populated when an ingredient
-                  // appears in 3+ of the user's products. Educational only.
-                  const isFlagged = flaggedNames.has(lower);
-                  const otherProducts = productsByIngredient.get(lower) ?? [];
-                  return (
-                    <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
-                      <span
-                        className="mt-0.5 shrink-0 w-5 flex items-center justify-center"
-                        aria-label={isFlagged ? "flagged ingredient" : "ingredient"}
-                      >
-                        {isFlagged ? (
-                          <Flag className="size-4 text-primary fill-primary" />
-                        ) : null}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        {i.category && (
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
-                            {i.category}
-                          </p>
-                        )}
-                        <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                          {i.body}
-                        </p>
-                        {otherProducts.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              // Always go through the canonical /products/profile/:id
-                              // redirect so every entry-point lands on the unified
-                              // product page in the exact same way.
-                              if (otherProducts.length === 1) {
-                                const o = otherProducts[0];
-                                navigate(`/products/profile/${o.id}`);
-                              } else {
-                                navigate(
-                                  `/products/by-ingredient?ingredient=${encodeURIComponent(i.name)}`,
-                                );
-                              }
-                            }}
-                            className="mt-1.5 text-[11px] text-primary underline-offset-4 hover:underline"
-                          >
-                            Used in {otherProducts.length} other {otherProducts.length === 1 ? "product" : "products"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                });
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {all.map((i, idx) => {
+                      const lower = i.name.toLowerCase().trim();
+                      const isFlagged = flaggedNames.has(lower);
+                      return (
+                        <button
+                          key={`${i.name}-${idx}`}
+                          type="button"
+                          onClick={() => setSelectedIngredient(i)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
+                        >
+                          {isFlagged && (
+                            <Flag
+                              className="size-3 shrink-0 fill-current"
+                              style={{ color: "hsl(40 65% 32%)" }}
+                              aria-label="flagged ingredient"
+                            />
+                          )}
+                          <span className="truncate max-w-[180px]">{i.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
               })()}
-            </SurfaceCard>
+            </div>
           </>
         )}
 
@@ -599,6 +559,93 @@ const IngredientDetail = () => {
           </AlertDialog>
         </>
       )}
+
+      <Dialog
+        open={!!selectedIngredient}
+        onOpenChange={(o) => !o && setSelectedIngredient(null)}
+      >
+        <DialogContent className="max-w-[340px] rounded-2xl">
+          {selectedIngredient && (() => {
+            const ing = selectedIngredient;
+            const lower = ing.name.toLowerCase().trim();
+            const isFlagged = flaggedNames.has(lower);
+            const cat = (ing.category ?? "").toLowerCase().trim();
+            // Friendly "what this category does in a formulation" copy.
+            const ROLE_COPY: Record<string, string> = {
+              "active": "A functional active — included for a specific performance benefit on hair or scalp.",
+              "humectant": "Pulls water from the air into the hair shaft to boost hydration.",
+              "emollient": "Softens and smooths the cuticle, improving slip and feel.",
+              "occlusive": "Forms a film over the strand to seal moisture in and reduce water loss.",
+              "surfactant": "Cleansing or foaming agent that lifts oil, sweat and product residue.",
+              "conditioning agent": "Coats the strand to detangle, reduce friction and improve manageability.",
+              "protein": "Temporarily fills gaps in the cuticle to strengthen and reduce breakage.",
+              "antioxidant": "Protects the formula and the hair from oxidative damage.",
+              "botanical extract": "Plant-derived ingredient added for soothing, scalp or marketing benefits.",
+              "preservative": "Keeps the formula safe from bacteria, mould and yeast.",
+              "solvent": "Carries the other ingredients and gives the product its texture.",
+              "fragrance": "Added for scent. Can be a sensitiser for some scalps.",
+              "colourant": "Adds colour to the product itself (not the hair).",
+              "ph adjuster": "Brings the formula to the right pH so the cuticle behaves predictably.",
+              "chelator": "Binds hard-water minerals so they don't deposit on the strand.",
+              "emulsifier": "Holds oil and water phases together so the product stays stable.",
+              "thickener": "Builds the texture and viscosity of the product.",
+            };
+            const roleCopy = ROLE_COPY[cat] ?? "Part of this product's overall formulation.";
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="font-display text-lg leading-tight flex items-start gap-2">
+                    {isFlagged && (
+                      <Flag
+                        className="size-4 mt-1 shrink-0 fill-current"
+                        style={{ color: "hsl(40 65% 32%)" }}
+                        aria-label="flagged ingredient"
+                      />
+                    )}
+                    <span className="flex-1">{ing.name}</span>
+                  </DialogTitle>
+                  {ing.category && (
+                    <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary mt-0.5">
+                      {ing.category}
+                    </DialogDescription>
+                  )}
+                </DialogHeader>
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">
+                      What it is
+                    </p>
+                    <p className="text-sm leading-relaxed text-foreground/85">
+                      {ing.body}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">
+                      How it's used in this product
+                    </p>
+                    <p className="text-sm leading-relaxed text-foreground/85">
+                      {roleCopy}
+                    </p>
+                  </div>
+                  {isFlagged && (
+                    <div className="rounded-lg bg-primary/10 border border-primary/30 p-3">
+                      <p className="text-[11px] leading-relaxed text-foreground/85">
+                        <Flag
+                          className="inline size-3 mr-1 fill-current align-[-1px]"
+                          style={{ color: "hsl(40 65% 32%)" }}
+                        />
+                        This ingredient appears in 3 or more of your products —
+                        it's a recurring part of your routine, worth knowing
+                        well.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 };
