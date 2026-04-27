@@ -420,98 +420,50 @@ const IngredientDetail = () => {
               </>
             )}
 
-            <SectionLabel>Active ingredients</SectionLabel>
+            <SectionLabel>Ingredients</SectionLabel>
             <p className="px-1 -mt-1 mb-2 text-[11px] text-muted-foreground italic leading-snug">
-              Showing the functional ingredients that actually do something for
-              your hair (actives, humectants, proteins, conditioning agents,
-              etc.). Fillers, preservatives, fragrance and pH adjusters are
-              hidden to keep this list useful.
+              Every ingredient in this formulation. Tap a bubble to learn what
+              it is, what category it falls under, and how it's used in this
+              product. A small flag marks ingredients that appear in 3+ of your
+              products.
             </p>
-            <SurfaceCard className="divide-y divide-border/60 !py-1">
+            <div className="rounded-2xl bg-white border border-border/60 p-4">
               {(() => {
-                // Categories that meaningfully act on hair — everything else
-                // (preservative, solvent, fragrance, colourant, pH adjuster,
-                // chelator, emulsifier, thickener) is filler from the user's
-                // perspective and is hidden to reduce overwhelm.
-                const ACTIVE_CATEGORIES = new Set([
-                  "active",
-                  "humectant",
-                  "emollient",
-                  "occlusive",
-                  "surfactant",
-                  "conditioning agent",
-                  "protein",
-                  "antioxidant",
-                  "botanical extract",
-                ]);
-                const visible = (analysis.ingredients ?? []).filter((i) => {
-                  const lower = i.name.toLowerCase().trim();
-                  // Always keep flagged ingredients — they should surface
-                  // regardless of category.
-                  if (flaggedNames.has(lower)) return true;
-                  const cat = (i.category ?? "").toLowerCase().trim();
-                  return ACTIVE_CATEGORIES.has(cat);
-                });
-                if (visible.length === 0) {
+                const all = analysis.ingredients ?? [];
+                if (all.length === 0) {
                   return (
-                    <p className="text-[11px] text-muted-foreground py-3 text-center">
-                      No active ingredients identified for this product.
+                    <p className="text-[11px] text-muted-foreground py-2 text-center">
+                      No ingredients listed for this product.
                     </p>
                   );
                 }
-                return visible.map((i, idx) => {
-                  const lower = i.name.toLowerCase().trim();
-                  // Single unified gold flag — populated when an ingredient
-                  // appears in 3+ of the user's products. Educational only.
-                  const isFlagged = flaggedNames.has(lower);
-                  const otherProducts = productsByIngredient.get(lower) ?? [];
-                  return (
-                    <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
-                      <span
-                        className="mt-0.5 shrink-0 w-5 flex items-center justify-center"
-                        aria-label={isFlagged ? "flagged ingredient" : "ingredient"}
-                      >
-                        {isFlagged ? (
-                          <Flag className="size-4 text-primary fill-primary" />
-                        ) : null}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        {i.category && (
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
-                            {i.category}
-                          </p>
-                        )}
-                        <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                          {i.body}
-                        </p>
-                        {otherProducts.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              // Always go through the canonical /products/profile/:id
-                              // redirect so every entry-point lands on the unified
-                              // product page in the exact same way.
-                              if (otherProducts.length === 1) {
-                                const o = otherProducts[0];
-                                navigate(`/products/profile/${o.id}`);
-                              } else {
-                                navigate(
-                                  `/products/by-ingredient?ingredient=${encodeURIComponent(i.name)}`,
-                                );
-                              }
-                            }}
-                            className="mt-1.5 text-[11px] text-primary underline-offset-4 hover:underline"
-                          >
-                            Used in {otherProducts.length} other {otherProducts.length === 1 ? "product" : "products"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                });
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {all.map((i, idx) => {
+                      const lower = i.name.toLowerCase().trim();
+                      const isFlagged = flaggedNames.has(lower);
+                      return (
+                        <button
+                          key={`${i.name}-${idx}`}
+                          type="button"
+                          onClick={() => setSelectedIngredient(i)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
+                        >
+                          {isFlagged && (
+                            <Flag
+                              className="size-3 shrink-0 fill-current"
+                              style={{ color: "hsl(40 65% 32%)" }}
+                              aria-label="flagged ingredient"
+                            />
+                          )}
+                          <span className="truncate max-w-[180px]">{i.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
               })()}
-            </SurfaceCard>
+            </div>
           </>
         )}
 
