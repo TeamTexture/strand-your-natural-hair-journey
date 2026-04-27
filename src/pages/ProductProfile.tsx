@@ -324,93 +324,10 @@ const ProductProfile = () => {
             neutral information only and leave decisions to the user. */}
 
         <SurfaceCard tone="gold">
-          <div className="flex items-center justify-between mb-1">
+          <div className="mb-1">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
               Personalised guidance
             </p>
-            {!aiLoading && (aiSummary || product.ai_summary) && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!product || !user || aiLoading) return;
-                  setAiLoading(true);
-                  setAiError(null);
-                  try {
-                    const context = await buildAiContext();
-                    const styleLocal = (() => {
-                      try { return JSON.parse(localStorage.getItem("strand_current_style") || "null"); }
-                      catch { return null; }
-                    })();
-                    const challenges = goals
-                      .map((g) => g.challenge)
-                      .filter((c): c is string => Boolean(c && c.trim()));
-                    const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
-                      body: {
-                        productKey: product.product_key,
-                        productName: product.name,
-                        productBrand: product.brand,
-                        ingredients: product.ingredients,
-                        hairProfile: context.hairProfile ?? {},
-                        healthProfile: context.healthProfile ?? {},
-                        heritage: [],
-                        goals: goals.map((g) => ({
-                          kind: g.kind, title: g.title, target_text: g.target_text,
-                          target_value: g.target_value, unit: g.unit,
-                          current_value: g.current_value, target_date: g.target_date,
-                          challenge: g.challenge, status: g.status,
-                        })),
-                        currentStyle: styleLocal,
-                        challenges,
-                        context,
-                        force: true,
-                      },
-                    });
-                    if (error) throw error;
-                    if (data?.error) throw new Error(data.error);
-                    const flags = (data?.analysis?.ingredients ?? []) as IngredientFlag[];
-                    setAiFlags(flags);
-                    const summary = typeof data?.analysis?.summary === "string" ? data.analysis.summary : null;
-                    setAiSummary(summary);
-                    const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
-                    setAiMatchScore(score);
-                    // Persist refreshed analysis (summary, score AND merged
-                    // per-ingredient flags) so the cache stays consistent.
-                    const flagToneToSeverity = (t: "good" | "warn" | "bad"): "good" | "warn" | "avoid" =>
-                      t === "bad" ? "avoid" : t;
-                    const existingByName = new Map(
-                      (product.key_ingredients ?? []).map((k) => [k.name.toLowerCase().trim(), k]),
-                    );
-                    const flagsByName = new Map(flags.map((f) => [f.name.toLowerCase().trim(), f]));
-                    const mergedNames = new Set([...existingByName.keys(), ...flagsByName.keys()]);
-                    const mergedKeyIngredients = Array.from(mergedNames).map((lname) => {
-                      const base = existingByName.get(lname);
-                      const flag = flagsByName.get(lname);
-                      return {
-                        name: base?.name ?? flag?.name ?? lname,
-                        benefit: flag?.body ?? base?.benefit,
-                        flag: flag ? flagToneToSeverity(flag.tone) : base?.flag,
-                      };
-                    });
-                    if (summary || score != null || mergedKeyIngredients.length > 0) {
-                      await supabase.from("user_products").update({
-                        ai_summary: summary,
-                        match_score: score,
-                        key_ingredients: mergedKeyIngredients,
-                      }).eq("id", product.id);
-                      reload();
-                    }
-                    toast.success("Guidance refreshed");
-                  } catch (e) {
-                    setAiError(e instanceof Error ? e.message : "Could not refresh");
-                  } finally {
-                    setAiLoading(false);
-                  }
-                }}
-                className="text-[10px] uppercase tracking-[0.15em] text-primary/70 hover:text-primary"
-              >
-                Refresh
-              </button>
-            )}
           </div>
           {aiLoading ? (
             <LoadingDot label="Personalising guidance for your profile…" />

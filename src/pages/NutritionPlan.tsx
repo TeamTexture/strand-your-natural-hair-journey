@@ -7,7 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+
 import { evaluate } from "@/data/bloodRanges";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
@@ -192,7 +192,7 @@ const NutritionPlan = () => {
       return (
         <SurfaceCard tone="gold">
           <p className="text-xs font-body leading-relaxed">
-            We couldn't generate your personalised guidance just now. Tap refresh to try again.
+            Your personalised guidance will appear here once your profile is complete.
           </p>
         </SurfaceCard>
       );
@@ -240,18 +240,6 @@ const NutritionPlan = () => {
 
           <TabsContent value="diet" className="space-y-3 mt-4">
             {renderAiSection(plan?.diet, "diet")}
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fetchPlan(true)}
-                disabled={aiLoading}
-                className="gap-1.5 text-xs"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
-                Refresh personalisation
-              </Button>
-            </div>
             <SourceNote>
               Personalised by STRAND AI from your full profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
             </SourceNote>
@@ -259,18 +247,6 @@ const NutritionPlan = () => {
 
           <TabsContent value="avoid" className="space-y-3 mt-4">
             {renderAiSection(plan?.avoid, "avoid")}
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fetchPlan(true)}
-                disabled={aiLoading}
-                className="gap-1.5 text-xs"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
-                Refresh personalisation
-              </Button>
-            </div>
             <SourceNote>
               Personalised by STRAND AI from your full profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
             </SourceNote>
