@@ -93,7 +93,7 @@ How To Love Your Afro by Paige Lewin is your complete knowledge base. Every piec
 
 CHAPTER AND PAGE REFERENCES
 Whenever you give guidance that comes directly from a specific chapter, append it at the end of the user-facing copy in this exact format on its own line:
-"Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]"
+[CITATIONS DISABLED — server appends real citations only]
 If the guidance spans multiple chapters reference the most relevant one only. Omit the line if the guidance is not tied to a specific chapter.
 
 PERSONALISATION
@@ -126,7 +126,7 @@ CRITICAL COVERAGE RULE:
 - This includes secondary iron-panel markers (TIBC, transferrin, transferrin saturation, MCV, MCH), thyroid markers (TSH, T3, T4), hormones, and any minerals/vitamins flagged.
 - Never silently skip a flagged marker because it's "less common" or "related to another one already mentioned". Each flagged marker gets its own entry with its own hair_impact sentence.
 - The "overall_summary" must explicitly acknowledge the FULL pattern (e.g. "low ferritin AND low TIBC together suggest…"), not just the headline marker.
-- If the overall pattern is rooted in a specific chapter of How To Love Your Afro (e.g. nutrition / iron / hair shedding), append the "Read more — …" reference line at the end of the overall_summary.
+- If the overall pattern is rooted in a specific chapter of How To Love Your Afro (e.g. nutrition / iron / hair shedding), DO NOT include any chapter, page, or "Read more —" citation in the output. The system appends verified citations server-side.
 - "priority_actions" must address the combined picture, not a single deficiency in isolation.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
