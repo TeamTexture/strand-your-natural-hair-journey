@@ -273,6 +273,9 @@ Deno.serve(async (req) => {
     }
     parsed = {
       what_it_is: String(args.what_it_is).trim(),
+      deep_dive: Array.isArray(args.deep_dive)
+        ? args.deep_dive.map((s: unknown) => String(s).trim()).filter(Boolean)
+        : [],
       benefits: args.benefits.map((s: unknown) => String(s).trim()).filter(Boolean),
       personal_notes: args.personal_notes
         .map((s: unknown) => String(s).trim())
