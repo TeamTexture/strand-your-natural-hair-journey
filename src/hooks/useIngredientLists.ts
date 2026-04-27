@@ -2,8 +2,8 @@
 //
 // Rule:
 //   FLAG: an ingredient that appears in 3 OR MORE of the user's products
-//   that are ALL of: on the shelf, marked as a favourite, AND actively
-//   in use (use_count > 0). The flag is purely educational — it tells
+//   that are BOTH on the shelf and marked as a favourite. The flag is purely
+//   educational — it tells
 //   the user "this ingredient keeps showing up in the products you
 //   actually love and use, here's what it is and which of your products
 //   contain it." No good/bad framing.
@@ -50,13 +50,13 @@ const keyOf = (raw: string) => normaliseIngredient(raw).toLowerCase();
  * legacy "avoid" / "favourite" rows.
  */
 async function recomputeFlagList(userId: string) {
-  // "On shelf" = the user is actively using it (off-shelf products are
-  // retired). Combined with `on_favourite`, this is the set of products
-  // the user actually loves and uses — the only ones that count for
-  // spotting recurring ingredients.
+  // "On shelf" + `on_favourite` is the set of products the user actually
+  // loves and keeps in rotation — the only ones that count for spotting
+  // recurring ingredients. Prefer the full INCI list, but fall back to saved
+  // key ingredients when an older scan/link produced no full ingredient list.
   const { data: rows, error } = await supabase
     .from("user_products")
-    .select("ingredients")
+    .select("ingredients, key_ingredients")
     .eq("user_id", userId)
     .eq("on_shelf", true)
     .eq("on_favourite", true);
@@ -65,7 +65,14 @@ async function recomputeFlagList(userId: string) {
   const tally = new Map<string, { display: string; count: number }>();
   for (const row of rows ?? []) {
     const seen = new Set<string>();
-    for (const raw of (row.ingredients ?? []) as string[]) {
+    const fullIngredients = (row.ingredients ?? []) as string[];
+    const fallbackIngredients = Array.isArray(row.key_ingredients)
+      ? row.key_ingredients
+          .map((item) => (item && typeof item === "object" && "name" in item ? String(item.name ?? "") : ""))
+          .filter(Boolean)
+      : [];
+    const sourceIngredients = fullIngredients.length > 0 ? fullIngredients : fallbackIngredients;
+    for (const raw of sourceIngredients) {
       const k = keyOf(raw);
       if (!k || GENERIC_INGREDIENTS.has(k) || seen.has(k)) continue;
       seen.add(k);
@@ -83,7 +90,7 @@ async function recomputeFlagList(userId: string) {
     .map(([, v]) => ({
       ingredient: v.display,
       product_count: v.count,
-      reason: `Appears in ${v.count} of your favourite shelf products in use`,
+      reason: `Appears in ${v.count} of your favourite shelf products`,
       list_kind: "flag" as const,
     }));
 
@@ -224,7 +231,7 @@ export function useIngredientLists() {
   // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session_v3_shelf_fave_inuse";
+    const KEY = "strand_flags_recomputed_session_v6_shelf_fave_key_fallback";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();
