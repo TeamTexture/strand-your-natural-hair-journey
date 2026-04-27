@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Mic, RotateCcw, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -6,6 +6,10 @@ import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
+import ProductsHeader, {
+  applyProductFilters,
+  useProductsFilterState,
+} from "@/components/ProductsHeader";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -15,14 +19,6 @@ import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
-
-const tabs = [
-  { id: "shelf",      label: "Shelf",      path: "/products" },
-  { id: "favourites", label: "Faves",      path: "/products/favourites" },
-  { id: "wishlist",   label: "Wish",       path: "/products/wishlist" },
-  { id: "off-shelf",  label: "Off",        path: "/products/off-shelf" },
-  { id: "intel",      label: "Ingr.",      path: "/products/avoidlist" },
-];
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
@@ -37,6 +33,12 @@ const OffShelf = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { products, loading, setShelf, remove } = useUserProducts("off-shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
+
+  const filterState = useProductsFilterState();
+  const filteredProducts = useMemo(
+    () => applyProductFilters(products, filterState),
+    [products, filterState.search, filterState.categoryFilter, filterState.brandFilter, filterState.ratingFilter],
+  );
 
   const handleRestore = async () => {
     if (!restoreId) return;
