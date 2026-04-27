@@ -271,6 +271,20 @@ const LogAppointment = () => {
         >
           {saving ? "Saving…" : "Save Appointment"}
         </Button>
+
+        {date && proName.trim().length > 0 && (
+          <AddToCalendarButton
+            variant="full"
+            event={{
+              title: `${proType} — ${proName.trim()}`,
+              date,
+              time: time || null,
+              durationMinutes: 60,
+              location: clinic.trim() || null,
+              description: [reason, notes].filter(Boolean).join("\n\n") || undefined,
+            }}
+          />
+        )}
       </div>
     </ScreenLayout>
   );
