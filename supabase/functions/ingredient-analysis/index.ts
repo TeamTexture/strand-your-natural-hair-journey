@@ -24,6 +24,10 @@ import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
 import { shouldTriggerRag, matchTriggerIngredient } from "../_shared/rag-triggers.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import {
+  CHAPTER_WHITELIST_PROMPT,
+  sanitiseChapterCitationsDeep,
+} from "../_shared/book-chapters.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -445,6 +449,8 @@ Deno.serve(async (req) => {
     } else {
       const systemPrompt = `${STRAND_PERSONA_INLINE}
 
+${CHAPTER_WHITELIST_PROMPT}
+
 TASK
 ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
       analysis = await runLovable({
@@ -476,7 +482,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
       });
     }
 
-    return json(200, { cached: false, analysis });
+    return json(200, { cached: false, analysis: sanitiseChapterCitationsDeep(analysis) });
   } catch (e) {
     return aiErrorResponse(e, "ingredient-analysis");
   }
