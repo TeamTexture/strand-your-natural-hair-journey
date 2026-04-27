@@ -25,7 +25,11 @@ export interface IngredientListRow {
   list_kind: ListKind;
 }
 
-const MIN_PRODUCTS_FOR_FLAG = 3;
+// Lowered from 3 → 2 so that small libraries (just a few products) still
+// surface ingredients that are recurring in the user's routine. The flag
+// is purely educational; pattern-of-2 is the smallest meaningful signal
+// of "this keeps showing up in what you use".
+const MIN_PRODUCTS_FOR_FLAG = 2;
 
 // Ingredients that are too generic / vehicle-only to be meaningful — skip
 // when aggregating so we don't surface "Water" as a flagged ingredient.
