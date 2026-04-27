@@ -301,6 +301,22 @@ const IngredientDetail = () => {
     }
   };
 
+  const handleToggleFavourite = async () => {
+    if (!productRow) return;
+    const next = !productRow.on_favourite;
+    if (next && !productRow.on_shelf) {
+      toast.error("Add this product to your shelf before favouriting it");
+      return;
+    }
+    setShelfBusy(true);
+    try {
+      await setFavourite(productRow.id, next);
+      toast.success(next ? "Added to favourites" : "Removed from favourites");
+    } finally {
+      setShelfBusy(false);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!productRow) return;
     setShelfBusy(true);
