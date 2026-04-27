@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
     return json(400, { error: "ingredient required" });
   }
 
-  const kind = cacheKindFor(body.ingredient);
+  const kind = cacheKindFor(body.ingredient, body.productKey);
 
   // 1) Try cache (unless force).
   if (!body.force) {
