@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic } from "lucide-react";
+import { ChevronDown, Mic, Link as LinkIcon, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -8,17 +8,30 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import FilePickerButton from "@/components/FilePickerButton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
+import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 
 const Wishlist = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [linkSheetOpen, setLinkSheetOpen] = useState(false);
+  const [linkValue, setLinkValue] = useState("");
   const { products, loading } = useUserProducts("wishlist");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
+  const { startUrlScan, busy: urlBusy } = useProductUrlScan();
+
+  const handleLinkSubmit = async () => {
+    await startUrlScan(linkValue, "wishlist");
+    setLinkSheetOpen(false);
+    setLinkValue("");
+  };
 
   return (
     <ScreenLayout bottomNav>
@@ -31,28 +44,39 @@ const Wishlist = () => {
         }
       />
 
-      <div className="px-5 pb-4 grid grid-cols-2 gap-3">
+      <div className="px-5 pb-5 space-y-3">
         <FilePickerButton
-          variant="goldGhost"
+          variant="gold"
+          size="pill"
           preferCamera
-          disabled={busy}
+          disabled={busy || urlBusy}
           onPick={(f) => startScan(f, "wishlist")}
-          className="!h-auto !p-4 !rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center flex-col"
         >
-          <div className="text-3xl mb-2">📷</div>
-          <p className="text-xs font-medium">Take a Photo</p>
-          <p className="text-[10px] text-muted-foreground">Use your camera</p>
+          {busy ? "Preparing photo…" : "+ Scan a New Product"}
         </FilePickerButton>
         <FilePickerButton
-          variant="goldGhost"
-          disabled={busy}
+          variant="goldOutline"
+          size="pill"
+          disabled={busy || urlBusy}
           onPick={(f) => startScan(f, "wishlist")}
-          className="!h-auto !p-4 !rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center flex-col"
         >
-          <div className="text-3xl mb-2">🖼️</div>
-          <p className="text-xs font-medium">Upload a Photo</p>
-          <p className="text-[10px] text-muted-foreground">From your camera roll</p>
+          + Upload Screenshot
         </FilePickerButton>
+        <Button
+          variant="goldOutline"
+          size="pill"
+          disabled={busy || urlBusy}
+          onClick={() => setLinkSheetOpen(true)}
+          className="w-full"
+        >
+          <LinkIcon className="size-4 mr-1.5" />
+          {urlBusy ? "Reading link…" : "Paste Web Link"}
+        </Button>
+        <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
+          Tip: snap the bottle, upload a screenshot, or paste a product page
+          link — the AI reads the label and matches ingredients to your hair
+          profile.
+        </p>
       </div>
 
       <div className="px-5 space-y-3 pb-4">
@@ -61,7 +85,7 @@ const Wishlist = () => {
         ) : products.length === 0 ? (
           <EmptyState
             message="Your wishlist is empty"
-            hint="Scan or upload a product to add it to your wishlist."
+            hint="Scan, upload, or paste a link above to add a product to your wishlist."
           />
         ) : (
           products.map((p) => {
@@ -118,6 +142,51 @@ const Wishlist = () => {
           })
         )}
       </div>
+
+      <Sheet open={linkSheetOpen} onOpenChange={(o) => !urlBusy && setLinkSheetOpen(o)}>
+        <SheetContent side="bottom" className="rounded-t-[24px] pb-8">
+          <SheetHeader className="text-left">
+            <SheetTitle className="font-display">Add product from a link</SheetTitle>
+            <SheetDescription className="text-xs">
+              Paste a product page URL from any retailer or brand site. The AI
+              will read the page and pull the ingredients into your wishlist.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-3">
+            <Input
+              type="url"
+              inputMode="url"
+              autoFocus
+              placeholder="https://brand.com/products/curl-cream"
+              value={linkValue}
+              onChange={(e) => setLinkValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && linkValue.trim() && !urlBusy) handleLinkSubmit();
+              }}
+              disabled={urlBusy}
+              className="h-12 text-sm"
+            />
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={handleLinkSubmit}
+              disabled={!linkValue.trim() || urlBusy}
+              className="w-full"
+            >
+              {urlBusy ? (
+                <><Loader2 className="size-4 mr-2 animate-spin" /> Reading page…</>
+              ) : (
+                "Analyse this link"
+              )}
+            </Button>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Works best with direct product pages (not search results or home
+              pages). If a page hides ingredients behind a tab, the AI may
+              return only what's visible.
+            </p>
+          </div>
+        </SheetContent>
+      </Sheet>
     </ScreenLayout>
   );
 };
