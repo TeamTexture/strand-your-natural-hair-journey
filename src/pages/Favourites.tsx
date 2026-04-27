@@ -85,6 +85,13 @@ const Favourites = () => {
                     )}
                   </button>
                   <button
+                    onClick={() => handleUnfavourite(p.id, p.name)}
+                    className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                    aria-label="Remove from favourites"
+                  >
+                    <Heart className="size-5 fill-current text-destructive" />
+                  </button>
+                  <button
                     onClick={() => setExpanded(isOpen ? null : p.product_key)}
                     className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
                     aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2, Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2, Search, SlidersHorizontal, X, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
@@ -69,7 +69,7 @@ const Products = () => {
   const [linkValue, setLinkValue] = useState("");
   const [offShelfTarget, setOffShelfTarget] = useState<{ id: string; key: string; name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const { products, loading, remove, reload } = useUserProducts("shelf");
+  const { products, loading, remove, reload, setFavourite } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
@@ -154,6 +154,12 @@ const Products = () => {
     await remove(deleteTarget.id);
     setDeleteTarget(null);
     toast.success("Removed from your records");
+  };
+
+  const handleToggleFavourite = async (p: UserProduct) => {
+    const next = !p.on_favourite;
+    await setFavourite(p.id, next);
+    toast.success(next ? `${p.name} added to favourites` : `${p.name} removed from favourites`);
   };
 
   const goWishlist = () => navigate("/products/wishlist");
@@ -386,6 +392,19 @@ const Products = () => {
                             )}
                           </div>
                         </div>
+                      </button>
+                      <button
+                        onClick={() => handleToggleFavourite(p)}
+                        className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                        aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                        aria-pressed={p.on_favourite}
+                      >
+                        <Heart
+                          className={cn(
+                            "size-4 transition-colors",
+                            p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
+                          )}
+                        />
                       </button>
                       <button
                         onClick={() => setExpanded(isOpen ? null : p.product_key)}
