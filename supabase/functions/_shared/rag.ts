@@ -2,9 +2,10 @@
 //
 // Embeds a query string with OpenAI text-embedding-3-small (1536 dims),
 // queries `manuscript_chunks` via the service-role client using cosine
-// similarity, returns the top-K passages with metadata so the caller
-// can render the "Read more — How To Love Your Afro, Chapter X..."
-// citation tail.
+// similarity, returns the top-K passages with metadata. The metadata is
+// kept for internal logging only — the rendered prompt block contains
+// just the passage body (no book/chapter citation), per the 2026-04-27
+// citation-ban rule.
 //
 // IMPORTANT: throws a clear error if OPENAI_API_KEY is missing rather
 // than falling back silently. The wash-day-fallback bug pattern from
