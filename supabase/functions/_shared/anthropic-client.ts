@@ -52,11 +52,26 @@ export interface Tool {
   input_schema: Record<string, unknown>;
 }
 
+/** Anthropic-managed server-side tool (e.g. native web_search). The model
+ *  invokes it autonomously inside a single API call; results come back as
+ *  `server_tool_use` + `web_search_tool_result` content blocks before the
+ *  final assistant response. We pass these straight through to the API.
+ *  Audit PHASE_2_AUDIT.md §5 Step 3 — tight max_uses cap to bound cost. */
+export type ServerTool = {
+  type: "web_search_20250305";
+  name: "web_search";
+  max_uses?: number;
+};
+
 export interface ClaudeCallInput {
   model: ClaudeModel;
   systemBlocks: SystemBlock[];
   messages: Message[];
-  tools?: Tool[];
+  /** Caller-defined tools (`tool_use`) AND Anthropic server tools mixed
+   *  together in one array — Anthropic's API takes them in the same
+   *  `tools` field, distinguished by the presence of a `type` discriminator
+   *  on server tools. */
+  tools?: Array<Tool | ServerTool>;
   toolChoice?: { type: "tool"; name: string };
   max_tokens?: number;
 }
@@ -75,6 +90,14 @@ export interface ClaudeCallResult<T = unknown> {
   text?: string;
   usage: ClaudeUsage;
   stop_reason: string;
+  /** Count of `server_tool_use` blocks Anthropic executed on Claude's behalf
+   *  (e.g. native web_search invocations). Useful for cost logging and
+   *  surfacing `_used_web_search` provenance in cached payloads. */
+  server_tool_use_count?: number;
+  /** Search query strings the model issued, in order. Safe to log — they
+   *  contain only product names / brand context, no user PII. Empty when
+   *  no server tools fired. */
+  server_tool_use_queries?: string[];
 }
 
 /** Error class carrying the upstream HTTP status so aiErrorResponse() can map it. */
@@ -90,7 +113,11 @@ export class ClaudeError extends Error {
 }
 
 interface ClaudeApiContentBlock {
-  type: "text" | "tool_use";
+  type:
+    | "text"
+    | "tool_use"
+    | "server_tool_use"
+    | "web_search_tool_result";
   text?: string;
   id?: string;
   name?: string;
@@ -165,6 +192,18 @@ export async function callClaude<T = unknown>(
     }
   }
 
+  // Count Anthropic-managed server-tool invocations (e.g. native web_search).
+  // These come back as `server_tool_use` content blocks before the final
+  // assistant tool_use / text. Useful for cost logging and `_used_web_search`
+  // provenance on cached payloads (audit §5 Step 3).
+  const serverToolBlocks = resp.content.filter((b) => b.type === "server_tool_use");
+  const serverToolQueries: string[] = serverToolBlocks
+    .map((b) => {
+      const inp = b.input as { query?: unknown } | undefined;
+      return typeof inp?.query === "string" ? inp.query : "";
+    })
+    .filter((q) => q.length > 0);
+
   const result: ClaudeCallResult<T> = {
     usage: {
       input_tokens: resp.usage?.input_tokens ?? 0,
@@ -173,10 +212,20 @@ export async function callClaude<T = unknown>(
       output_tokens: resp.usage?.output_tokens ?? 0,
     },
     stop_reason: resp.stop_reason,
+    server_tool_use_count: serverToolBlocks.length,
+    server_tool_use_queries: serverToolQueries,
   };
 
-  // Tool use block (preferred when toolChoice provided)
-  const toolBlock = resp.content.find((b) => b.type === "tool_use");
+  // Tool use block (preferred when toolChoice provided). Prefer the named
+  // tool when toolChoice is set so we don't accidentally pick up a
+  // `server_tool_use` from `web_search` (those are filtered above by type
+  // discriminator, but we double-check by name).
+  const wantedName = input.toolChoice?.name;
+  const toolBlock =
+    (wantedName
+      ? resp.content.find((b) => b.type === "tool_use" && b.name === wantedName)
+      : undefined) ??
+    resp.content.find((b) => b.type === "tool_use");
   if (toolBlock?.input !== undefined) {
     result.toolInput = toolBlock.input as T;
     return result;

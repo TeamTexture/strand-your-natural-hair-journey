@@ -28,7 +28,9 @@ import { renderPassageBlock, retrievePassages } from "./rag.ts";
 import type {
   ClaudeCallInput,
   ClaudeModel,
+  ContentBlockInput,
   Message,
+  ServerTool,
   SystemBlock,
   Tool,
 } from "./anthropic-client.ts";
@@ -84,10 +86,19 @@ export interface BuildPromptInput {
   rag_blocks?: string[];
   /** Tool definition for structured-output (tool_use). When set, also pass toolChoice. */
   tool?: Tool;
+  /** Additional Anthropic-managed server tools (e.g. native web_search).
+   *  Combined with `tool` into the request `tools` array. Audit §5 Step 3
+   *  uses this for `product-analyse`'s web_search support. */
+  server_tools?: ServerTool[];
   toolChoice?: { type: "tool"; name: string };
   max_tokens?: number;
   /** Override the default model for this function. */
   model?: ClaudeModel;
+  /** Override the user message content. When set, replaces the default
+   *  JSON-stringified `{ payload, context }` body — used by vision flows
+   *  that need to interleave image + text content blocks. The composer
+   *  still owns the system blocks (persona, KB, RAG, task instructions). */
+  user_content?: string | ContentBlockInput[];
 }
 
 /** Build a fully-formed ClaudeCallInput. The caller passes the result to
@@ -147,7 +158,7 @@ export async function buildClaudeRequest(
     text: `TASK\n\n${input.task_instructions}`,
   });
 
-  const userMessageJson = JSON.stringify(
+  const defaultUserMessageJson = JSON.stringify(
     {
       payload: input.user_payload,
       context: input.user_context ?? null,
@@ -157,14 +168,25 @@ export async function buildClaudeRequest(
   );
 
   const messages: Message[] = [
-    { role: "user", content: userMessageJson },
+    {
+      role: "user",
+      content: input.user_content ?? defaultUserMessageJson,
+    },
   ];
+
+  // Combine the structured-output tool with any Anthropic-managed server
+  // tools (e.g. native web_search for the photo flow).
+  const tools: Array<Tool | ServerTool> = [];
+  if (input.tool) tools.push(input.tool);
+  if (input.server_tools && input.server_tools.length > 0) {
+    tools.push(...input.server_tools);
+  }
 
   return {
     model: input.model ?? FUNCTION_MODEL_MAP[input.function_kind],
     systemBlocks,
     messages,
-    tools: input.tool ? [input.tool] : undefined,
+    tools: tools.length > 0 ? tools : undefined,
     toolChoice: input.toolChoice,
     max_tokens: input.max_tokens,
   };
