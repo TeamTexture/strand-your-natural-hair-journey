@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Mic, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -7,6 +7,10 @@ import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
+import ProductsHeader, {
+  applyProductFilters,
+  useProductsFilterState,
+} from "@/components/ProductsHeader";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
@@ -19,6 +23,12 @@ const Favourites = () => {
   const { products, loading, setFavourite } = useUserProducts("favourite");
   const { counts } = useVoicenoteCounts(products.map((p) => p.product_key));
 
+  const filterState = useProductsFilterState();
+  const filteredProducts = useMemo(
+    () => applyProductFilters(products, filterState),
+    [products, filterState.search, filterState.categoryFilter, filterState.brandFilter, filterState.ratingFilter],
+  );
+
   const handleUnfavourite = async (id: string, name: string) => {
     await setFavourite(id, false);
     toast(`Removed ${name} from favourites`);
@@ -26,16 +36,13 @@ const Favourites = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar
-        title="Favourites"
-        right={
-          <button
-            onClick={() => navigate("/products/avoidlist")}
-            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium"
-          >
-            Ingredients
-          </button>
-        }
+      <TitleBar title="Favourites" />
+
+      <ProductsHeader
+        active="favourites"
+        products={products}
+        filteredCount={filteredProducts.length}
+        state={filterState}
       />
 
       <div className="px-5 pb-3">
@@ -56,8 +63,13 @@ const Favourites = () => {
             message="No favourites yet"
             hint="Open any product and tap the heart to add it to your favourites."
           />
+        ) : filteredProducts.length === 0 ? (
+          <EmptyState
+            message="No matches"
+            hint="Try a different search or clear your filters."
+          />
         ) : (
-          products.map((p) => {
+          filteredProducts.map((p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
             return (

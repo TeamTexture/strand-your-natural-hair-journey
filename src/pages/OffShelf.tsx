@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Mic, RotateCcw, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -6,6 +6,10 @@ import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
+import ProductsHeader, {
+  applyProductFilters,
+  useProductsFilterState,
+} from "@/components/ProductsHeader";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -15,14 +19,6 @@ import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
-
-const tabs = [
-  { id: "shelf",      label: "Shelf",      path: "/products" },
-  { id: "favourites", label: "Faves",      path: "/products/favourites" },
-  { id: "wishlist",   label: "Wish",       path: "/products/wishlist" },
-  { id: "off-shelf",  label: "Off",        path: "/products/off-shelf" },
-  { id: "intel",      label: "Ingr.",      path: "/products/avoidlist" },
-];
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
@@ -37,6 +33,12 @@ const OffShelf = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { products, loading, setShelf, remove } = useUserProducts("off-shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
+
+  const filterState = useProductsFilterState();
+  const filteredProducts = useMemo(
+    () => applyProductFilters(products, filterState),
+    [products, filterState.search, filterState.categoryFilter, filterState.brandFilter, filterState.ratingFilter],
+  );
 
   const handleRestore = async () => {
     if (!restoreId) return;
@@ -54,38 +56,14 @@ const OffShelf = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar
-        title="Off The Shelf"
-        back
-        right={
-          <button
-            onClick={() => navigate("/products/repository")}
-            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
-          >
-            All Products
-          </button>
-        }
-      />
+      <TitleBar title="Off The Shelf" back />
 
-      <div className="px-5 pb-4">
-        <div className="grid grid-cols-5 gap-1 p-1 bg-card border border-border rounded-[10px]">
-          {tabs.map((t) => {
-            const active = t.id === "off-shelf";
-            return (
-              <button
-                key={t.id}
-                onClick={() => { if (!active) navigate(t.path); }}
-                className={cn(
-                  "py-2 text-[10px] rounded-md font-medium transition-colors min-h-[40px] truncate px-0.5",
-                  active ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-                )}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <ProductsHeader
+        active="off-shelf"
+        products={products}
+        filteredCount={filteredProducts.length}
+        state={filterState}
+      />
 
       <div className="px-5 pb-3">
         <p className="text-[11px] text-muted-foreground leading-snug">
@@ -102,8 +80,13 @@ const OffShelf = () => {
             message="Nothing off the shelf yet"
             hint="When you remove a product from your shelf it'll show up here."
           />
+        ) : filteredProducts.length === 0 ? (
+          <EmptyState
+            message="No matches"
+            hint="Try a different search or clear your filters."
+          />
         ) : (
-          products.map((p) => {
+          filteredProducts.map((p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
             const stars = p.rating ?? 0;

@@ -7,6 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import ItalicSub from "@/components/ItalicSub";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ProductsHeader, { useProductsFilterState } from "@/components/ProductsHeader";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,17 @@ const Avoidlist = () => {
   const { allProducts } = useUserProducts("all");
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const filterState = useProductsFilterState();
+  const filteredFlags = useMemo(() => {
+    const q = filterState.search.trim().toLowerCase();
+    if (!q) return flags;
+    return flags.filter(
+      (f) =>
+        f.ingredient.toLowerCase().includes(q) ||
+        f.reason.toLowerCase().includes(q),
+    );
+  }, [flags, filterState.search]);
 
   const handleExport = async () => {
     if (exporting) return;
@@ -70,6 +82,14 @@ const Avoidlist = () => {
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Ingredient Analysis" />
+
+      <ProductsHeader
+        active="intel"
+        state={filterState}
+        searchOnly
+        searchPlaceholder="Search flagged ingredients…"
+      />
+
       <ItalicSub>
         Built automatically from the products you've put on your shelf,
         favourited, AND actively used. An ingredient earns a{" "}
@@ -92,8 +112,13 @@ const Avoidlist = () => {
               message="No flagged ingredients yet"
               hint="Favourite 3 or more products on your shelf that share an ingredient — once you've used them at least once, they'll appear here."
             />
+          ) : filteredFlags.length === 0 ? (
+            <EmptyState
+              message="No matches"
+              hint="Try a different search term."
+            />
           ) : (
-            flags.map((r) => {
+            filteredFlags.map((r) => {
               const isOpen = expanded === r.id;
               const matches = isOpen ? productsForIngredient(r.ingredient) : [];
               return (

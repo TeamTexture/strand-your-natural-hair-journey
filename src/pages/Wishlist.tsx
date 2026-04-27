@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Mic, Link as LinkIcon, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -8,6 +8,10 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import FilePickerButton from "@/components/FilePickerButton";
+import ProductsHeader, {
+  applyProductFilters,
+  useProductsFilterState,
+} from "@/components/ProductsHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -27,6 +31,12 @@ const Wishlist = () => {
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
 
+  const filterState = useProductsFilterState();
+  const filteredProducts = useMemo(
+    () => applyProductFilters(products, filterState),
+    [products, filterState.search, filterState.categoryFilter, filterState.brandFilter, filterState.ratingFilter],
+  );
+
   const handleLinkSubmit = async () => {
     await startUrlScan(linkValue, "wishlist");
     setLinkSheetOpen(false);
@@ -35,13 +45,13 @@ const Wishlist = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar
-        title="Wishlist"
-        right={
-          <button onClick={() => navigate("/products/avoidlist")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
-            Ingredients
-          </button>
-        }
+      <TitleBar title="Wishlist" />
+
+      <ProductsHeader
+        active="wishlist"
+        products={products}
+        filteredCount={filteredProducts.length}
+        state={filterState}
       />
 
       <div className="px-5 pb-5 space-y-3">
@@ -87,8 +97,13 @@ const Wishlist = () => {
             message="Your wishlist is empty"
             hint="Scan, upload, or paste a link above to add a product to your wishlist."
           />
+        ) : filteredProducts.length === 0 ? (
+          <EmptyState
+            message="No matches"
+            hint="Try a different search or clear your filters."
+          />
         ) : (
-          products.map((p) => {
+          filteredProducts.map((p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
             return (
