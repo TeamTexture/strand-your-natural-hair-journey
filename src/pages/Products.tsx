@@ -156,6 +156,12 @@ const Products = () => {
     toast.success("Removed from your records");
   };
 
+  const handleToggleFavourite = async (p: UserProduct) => {
+    const next = !p.on_favourite;
+    await setFavourite(p.id, next);
+    toast.success(next ? `${p.name} added to favourites` : `${p.name} removed from favourites`);
+  };
+
   const goWishlist = () => navigate("/products/wishlist");
   const goIntel = () => navigate("/products/avoidlist");
 
