@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
 import RequireAuth from "@/components/RequireAuth";
+import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -65,6 +66,13 @@ const queryClient = new QueryClient();
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
 
+// Mounts global side-effects (e.g. keyboard-aware input scrolling) inside the
+// React tree so they're active for every screen in the app.
+const GlobalEffects = () => {
+  useKeyboardAwareInputs();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -72,6 +80,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <GlobalEffects />
           <PhoneShell>
             <Routes>
               <Route path="/" element={<Index />} />
