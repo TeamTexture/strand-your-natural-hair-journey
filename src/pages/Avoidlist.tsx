@@ -7,6 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import ItalicSub from "@/components/ItalicSub";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ProductsHeader, { useProductsFilterState } from "@/components/ProductsHeader";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
