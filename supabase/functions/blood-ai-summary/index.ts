@@ -103,7 +103,7 @@ CRITICAL COVERAGE RULE:
 - This includes secondary iron-panel markers (TIBC, transferrin, transferrin saturation, MCV, MCH), thyroid markers (TSH, T3, T4), hormones, and any minerals/vitamins flagged.
 - Never silently skip a flagged marker because it's "less common" or "related to another one already mentioned". Each flagged marker gets its own entry with its own hair_impact sentence.
 - The "overall_summary" must explicitly acknowledge the FULL pattern (e.g. "low ferritin AND low TIBC together suggest…"), not just the headline marker.
-- If the overall pattern is rooted in a specific chapter of the STRAND manuscript (e.g. nutrition / iron / hair shedding), append the "Read more — …" reference line at the end of the overall_summary. Use ONLY chapters from the authoritative list above; if none fit, omit the reference entirely.
+- Speak the overall_summary directly in your own science-backed voice. Never name any source manuscript, author, chapter or page.
 - "priority_actions" must address the combined picture, not a single deficiency in isolation.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
