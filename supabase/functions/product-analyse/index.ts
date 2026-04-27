@@ -412,7 +412,10 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return json(200, analysis);
+    // Strip any chapter/page citations the model emitted before returning.
+    // Citations are appended server-side from real RAG rows only.
+    const safeAnalysis = stripModelCitationsDeep(analysis);
+    return json(200, safeAnalysis);
   } catch (e) {
     return aiErrorResponse(e, "product-analyse");
   }
