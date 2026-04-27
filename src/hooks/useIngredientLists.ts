@@ -3,7 +3,7 @@
 // New unified rule (replaces the old Green Flag / Red Flag split, which was
 // confusing because the same ingredient often qualified for both):
 //
-//   FLAG: an ingredient that appears in ≥3 of the user's saved products
+//   FLAG: an ingredient that appears in ≥2 of the user's saved products
 //   (anything in their library — on shelf, off shelf, or wishlist). The flag
 //   is purely educational — it tells the user "this ingredient keeps showing
 //   up in your products, here's what it is and which of your products contain
