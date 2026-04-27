@@ -682,6 +682,13 @@ const WashStep1 = () => {
                 productIds,
                 heatTreatment: heatChoice,
                 heatMinutes: heatChoice === "yes" ? heatMinutes : null,
+                heatToolIds: heatChoice === "yes" ? heatToolIds : [],
+                heatToolNames: heatChoice === "yes"
+                  ? heatToolIds
+                      .map((id) => allTools.find((t) => t.id === id))
+                      .filter((t): t is NonNullable<typeof t> => !!t)
+                      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
+                  : [],
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",
