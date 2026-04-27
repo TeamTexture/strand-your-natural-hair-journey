@@ -25,7 +25,7 @@ declare const Deno: {
 };
 
 const MODEL = "google/gemini-2.5-flash";
-const MODEL_VERSION = "ingredient-profile@v2-unified-flag";
+const MODEL_VERSION = "ingredient-profile@v3-what-it-means";
 
 interface RequestBody {
   ingredient: string;
@@ -33,6 +33,15 @@ interface RequestBody {
   reason?: string;
   /** The full AI context payload built by buildAiContext() on the client. */
   context?: Record<string, unknown>;
+  /** Optional: the product this ingredient sits inside, so the model can
+   * weigh the rest of the formulation when explaining what it means
+   * for the user's hair. */
+  productName?: string;
+  productBrand?: string;
+  /** Other ingredient names in the same formulation (the full INCI list
+   * minus this ingredient). Used so the model can consider co-formulants
+   * — e.g. a humectant balanced by an occlusive — before guiding. */
+  formulationIngredients?: string[];
   /** Bypass cache and regenerate. */
   force?: boolean;
 }
@@ -41,6 +50,10 @@ interface ProfilePayload {
   what_it_is: string;
   benefits: string[];
   personal_notes: string[];
+  /** 1–2 sentence personalised guidance shown under
+   * "What this means for your hair type" on the ingredient dialog.
+   * Considers the rest of the formulation and the user's profile. */
+  what_it_means_for_you?: string;
   _model_version?: string;
   _generated_at?: string;
 }
