@@ -173,15 +173,16 @@ export function selectTopicsForContext(
   return out;
 }
 
-/** Render a topic as a system-prompt block with a citation tail line. */
+/**
+ * Render a topic as a system-prompt block.
+ *
+ * NB: book/chapter refs are intentionally NOT included (Paige, 2026-04-27).
+ * The model is forbidden from naming the source manuscript in user-facing
+ * output, so we keep the topic body only. The chapter/page metadata stays
+ * internal — still on `topic.book_refs` for logging/debugging.
+ */
 export function renderTopicBlock(topic: Topic): string {
-  const refs = topic.book_refs
-    .map((r) => {
-      const range = r.page_end ? `p.${r.page_start}–${r.page_end}` : `p.${r.page_start}`;
-      return `Read more — How To Love Your Afro, Chapter ${r.chapter}: ${r.chapter_title}, ${range}`;
-    })
-    .join("\n");
-  return `## ${topic.title}\n\n${topic.body}\n\n${refs}`;
+  return `## ${topic.title}\n\n${topic.body}`;
 }
 
 /** Direct-access registry, for tests. */

@@ -2,9 +2,10 @@
 //
 // Embeds a query string with OpenAI text-embedding-3-small (1536 dims),
 // queries `manuscript_chunks` via the service-role client using cosine
-// similarity, returns the top-K passages with metadata so the caller
-// can render the "Read more — How To Love Your Afro, Chapter X..."
-// citation tail.
+// similarity, returns the top-K passages with metadata. The metadata is
+// kept for internal logging only — the rendered prompt block contains
+// just the passage body (no book/chapter citation), per the 2026-04-27
+// citation-ban rule.
 //
 // IMPORTANT: throws a clear error if OPENAI_API_KEY is missing rather
 // than falling back silently. The wash-day-fallback bug pattern from
@@ -193,10 +194,16 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-/** Render a passage as a system-prompt block with its citation. */
+/**
+ * Render a passage as a system-prompt block.
+ *
+ * NB: we deliberately do NOT include a "Read more — …" book/chapter citation
+ * here any more (Paige, 2026-04-27). The model is forbidden from naming the
+ * source manuscript in user-facing output, so we keep the body + heading only.
+ * The chapter/page metadata stays internal — it's still in `Passage` for
+ * logging and debugging, just never injected into the prompt.
+ */
 export function renderPassageBlock(p: Passage): string {
-  const range = p.page_end ? `p.${p.page_start}–${p.page_end}` : `p.${p.page_start ?? "n/a"}`;
-  const cite = `Read more — How To Love Your Afro, Chapter ${p.chapter}: ${p.chapter_title}, ${range}`;
   const heading = p.section_heading ? `### ${p.section_heading}\n` : "";
-  return `${heading}${p.body}\n\n${cite}`;
+  return `${heading}${p.body}`;
 }

@@ -1,15 +1,15 @@
 import type { Topic } from "../types.ts";
 
-// Sourced from How To Love Your Afro, Chapter 13: Building Your Wash Day
+// Sourced from the STRAND manuscript, 
 // Routine, pp 155–167. Detangling, shampoo strength selection, the
 // shampoo→conditioner sequence, why conditioner is non-negotiable,
 // agitating the scalp with fingertip pads. The book is opinionated on
 // these — the wash day is the heart of the regime.
 
 export const WASH_DAY_MECHANICS: Topic = {
-  id: "wash-day-mechanics",
-  title: "Wash Day — The Mechanics That Actually Matter",
-  body: `A well-executed wash day is at the heart of every healthy hair-care regime. The book's framing: get this right, and most other things stop being a problem.
+ id: "wash-day-mechanics",
+ title: "Wash Day — The Mechanics That Actually Matter",
+ body: `A well-executed wash day is at the heart of every healthy hair-care regime. The book's framing: get this right, and most other things stop being a problem.
 
 Cadence: start with a baseline of once a week. That's the expert-led guideline for most curls and coils. Every ten days to two weeks at the latest if life can't accommodate weekly. If you sweat heavily, exercise or swim often, live in a hot humid climate, or use a large volume of styling products, you may need a deeper cleanse to remove dirt and build-up successfully.
 
@@ -40,31 +40,31 @@ Paige's actual habits, named:
 — Emulsify conditioner in your hands first before applying — even distribution, slight warming, better absorption.
 — Keep adding water as you work conditioner through; create a lather that gives slip for detangling.
 — Apply low, gentle heat when conditioning if hair is thick or low-porosity — a cap or warm towel helps the product penetrate. (See heat-and-moisture for the mechanics.)`,
-  applies_to: {
-    function_kinds: [
-      "wash-day-observation",
-      "heat-treatment-rationale",
-      "ingredient-analysis",
-      "product-analyse",
-      "product-analyse-url",
-    ],
-  },
-  book_refs: [
-    {
-      chapter: 13,
-      chapter_title: "Building Your Wash Day Routine",
-      page_start: 155,
-      page_end: 167,
-    },
-  ],
-  tags: [
-    "wash-day",
-    "detangling",
-    "shampoo",
-    "conditioner",
-    "clarifying",
-    "cadence",
-    "scalp-agitation",
-    "shedding",
-  ],
+ applies_to: {
+ function_kinds: [
+ "wash-day-observation",
+ "heat-treatment-rationale",
+ "ingredient-analysis",
+ "product-analyse",
+ "product-analyse-url",
+ ],
+ },
+ book_refs: [
+ {
+ chapter: 13,
+ chapter_title: "Building Your Wash Day Routine",
+ page_start: 155,
+ page_end: 167,
+ },
+ ],
+ tags: [
+ "wash-day",
+ "detangling",
+ "shampoo",
+ "conditioner",
+ "clarifying",
+ "cadence",
+ "scalp-agitation",
+ "shedding",
+ ],
 };
