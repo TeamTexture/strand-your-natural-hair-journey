@@ -116,7 +116,13 @@ const Avoidlist = () => {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => navigate(`/products/ingredient?key=${encodeURIComponent(p.product_key)}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(p.brand ?? "")}`)}
+                  // Use the SAME canonical product route as the My Products list
+                  // (Products.tsx → /products/profile/:id), which redirects to
+                  // /products/ingredient. Going through the redirect guarantees
+                  // every entry-point lands on the unified product page in the
+                  // exact same way — no risk of a key/name/brand mismatch
+                  // making the page render in a half-loaded state.
+                  onClick={() => navigate(`/products/profile/${p.id}`)}
                   className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-background text-left transition-colors"
                 >
                   {p.image_url ? (
