@@ -458,6 +458,11 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
       // Note: no _model_version stamp on Lovable path — back-compat.
     }
 
+    // Strip any chapter/page citations the model emitted before caching or
+    // returning. Citations are appended server-side from real RAG rows only —
+    // the model is forbidden from writing them (see strand-persona.ts).
+    analysis = stripModelCitationsDeep(analysis);
+
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
       .from("ai_summaries")
