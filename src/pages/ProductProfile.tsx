@@ -441,7 +441,11 @@ const ProductProfile = () => {
                         aria-label={isFlagged ? "flagged ingredient" : "ingredient"}
                       >
                         {isFlagged ? (
-                          <Flag className="size-3.5 text-primary fill-primary" />
+                          <Flag
+                            className="size-3.5 fill-current"
+                            style={{ color: "hsl(40 65% 32%)" }}
+                            aria-label="flagged ingredient"
+                          />
                         ) : null}
                       </span>
                       <div className="flex-1 min-w-0">
