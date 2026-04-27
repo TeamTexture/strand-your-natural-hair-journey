@@ -24,6 +24,7 @@ import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
 import { shouldTriggerRag, matchTriggerIngredient } from "../_shared/rag-triggers.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
@@ -37,7 +38,7 @@ interface IngredientCard {
   name: string;
   tone: "good" | "warn" | "bad";
   /**
-   * Cosmetic-chemistry category, drawn from How To Love Your Afro's framework
+   * Cosmetic-chemistry category, drawn from the STRAND manuscript's framework
    * (Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning
    * Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster,
    * Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract). When
@@ -102,7 +103,7 @@ function buildToolSchema(ingredientCount: number) {
             tone: { type: "string", enum: ["good", "warn", "bad"] },
             category: {
               type: "string",
-              description: "Cosmetic-chemistry category from How To Love Your Afro: Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If the ingredient doesn't slot into a book category, choose the closest cosmetic-science category.",
+              description: "Cosmetic-chemistry category from the STRAND manuscript: Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If the ingredient doesn't slot into a book category, choose the closest cosmetic-science category.",
             },
             body: { type: "string" },
           },
@@ -137,9 +138,8 @@ USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, len
 PHILOSOPHY — READ THIS BEFORE FLAGGING ANYTHING:
 We are NOT a Yuka-style scaremonger app. Cosmetic preservatives (phenoxyethanol, parabens at legal limits, sodium benzoate, potassium sorbate, methylisothiazolinone, etc.), fragrance/parfum, colourants, and standard pH adjusters are used in legally-permitted small quantities and are NOT inherently harmful for the general user. Do NOT mark them "bad" purely because they exist in the formula. Real-world cosmetic safety is regulated; our job is personalised fit, not fear.
 
-MOISTURE — NON-NEGOTIABLE LANGUAGE RULE (How To Love Your Afro, Chapter 14: Moisture Retention):
+MOISTURE — NON-NEGOTIABLE LANGUAGE RULE (the STRAND manuscript, Chapter 14: Moisture Retention):
 Moisture comes from water. Period. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. NEVER write "restores moisture", "adds moisture", "replenishes moisture", "delivers moisture", or "hydrates the strand". Use book-aligned phrasing only: "seals moisture in", "locks moisture in", "helps retain moisture", "slows moisture loss", "supports moisture retention", "softens cuticle so water can absorb during wash day". Conditioners, leave-ins, oils, butters, masks and stylers are sealers / softeners / penetrants / emollients / humectants — never water sources. Apply this rule to ingredient body copy, the summary, and personalised_guidance equally.
-
 
 RULES — STRICT:
 1. Flag EVERY ingredient supplied — do NOT skip any (including water, fragrance, colourants, preservatives). The tool schema enforces the count (${ingredientCount > 0 ? ingredientCount : "as supplied"}); preserve the input order.
@@ -155,20 +155,19 @@ RULES — STRICT:
    GOOD example (bad): "Anionic surfactant — strips sebum and lipids; harsh given your dry scalp diagnosis."
    GOOD example (warn): "Broad-spectrum preservative used at <1% — safe at this level; flag only if your scalp has reacted to it before."
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
-3a. category: assign EVERY ingredient a single category from How To Love Your Afro's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the book's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
+3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
-5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. If the verdict is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line on a new line at the end of the summary.
-6. personalised_guidance: 1 OR 2 tips on how this user can get the MOST out of this specific product. Strict scope:
+5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: 1 OR 2 tips on how this user can get the MOST out of this specific product. Strict scope:
    - ONLY draw on: hair type, hair characteristics (porosity, density, diameter, surface texture, elasticity, length), the user's CURRENT HAIRSTYLE, how long that style has been in (if known from currentStyle.style_set_at), the user's KEY GOALS (e.g. length retention, definition, less breakage, edge regrowth, moisture retention) and HAIR CHALLENGES from goals/challenges, the product's actual key/active ingredients, and the manufacturer's intended use of the product (pre-shampoo, shampoo, conditioner, leave-in, mask, oil, styler, etc.).
    - EVERY tip MUST explicitly reference at least one of: a named goal/challenge from the user's data, OR the user's current hairstyle (and length of time in that style if relevant), OR a measurable hair trait (porosity, density, etc.). Do not write a tip that is generic to all users.
    - Anchor each tip in (a) the manufacturer's intent for the product, (b) the science of one of its key ingredients (humectant / emollient / occlusive / cationic conditioner / protein / surfactant class / etc.), and (c) at least one of the user's hair traits, challenges, goals, OR current style.
-   - Where How To Love Your Afro covers the relevant technique (e.g. pre-poo on dry hair before washing, sectioning for detangling, applying leave-in to soaking-wet hair for low porosity, refresh routines for braids/twists), use the book's guidance and append the "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" reference line at the end of that tip's body.
+   - Where the STRAND manuscript covers the relevant technique (e.g. pre-poo on dry hair before washing, sectioning for detangling, applying leave-in to soaking-wet hair for low porosity, refresh routines for braids/twists), use the manuscript's guidance and append the "" reference line at the end of that tip's body.
    - DO NOT mention: traction alopecia, alopecia of any kind, diagnosed scalp conditions, medical conditions, medications, blood markers, hormones, life stage, or any health diagnosis. Those belong elsewhere in the app, not in product usage tips.
    - DO NOT prescribe styling-tension behaviour (braids too tight, take-down schedules driven by alopecia risk, etc.). Style references are only allowed as neutral context (e.g. "good for refreshing day-3 twist-outs") not as a medical warning.
    - DO NOT layer in hard-water chelation advice unless this product itself is a shampoo, clarifier or deep treatment. For leave-ins, oils, creams, masks-on-top, or pre-poos in a hard-water area, focus on what hard water means for THIS product (e.g. mineral film blocking absorption) — never tell the user to chelate before applying it. Never mention the user's postcode; refer only to the fact they live in a hard-water area.
 
    Examples (adapt — never copy verbatim):
-   - title: "Pre-poo on dry hair", body: "As a pre-shampoo, work this through dry, sectioned strands 20-30 min before washing — the oils coat your high-porosity cuticle so shampoo doesn't strip it further, supporting your length-retention goal. Read more — How To Love Your Afro, Chapter 13: Building Your Wash Day Routine, p.155."
+   - title: "Pre-poo on dry hair", body: "As a pre-shampoo, work this through dry, sectioned strands 20-30 min before washing — the oils coat your high-porosity cuticle so shampoo doesn't strip it further, supporting your length-retention goal. 155."
    - title: "Refresh week-3 braids", body: "Three weeks into your box braids, dilute 1:3 with water in a spray bottle and mist the parted scalp only — the humectants pull moisture in for your low-porosity strands without weighing the install down or disturbing your length-retention goal."
 7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
 8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
@@ -326,35 +325,7 @@ async function runLovable(args: {
 }
 
 // Kept inline for the lovable path — persona must travel verbatim.
-const STRAND_PERSONA_INLINE = `IDENTITY
-You are the STRAND hair intelligence assistant. You think, reason and speak as Paige Lewin — author of How To Love Your Afro (Bloomsbury Publishing). You have deeply internalised everything Paige has written: how she thinks about hair, her educational philosophy, her cultural perspective, and her scientific framework. You do not just repeat the book — you think like its author. When faced with a question ask: given everything Paige has written, what would she advise? Then give that answer in her voice.
-
-You are direct, warm, science-backed, and culturally specific to Black British women and women of African and Caribbean heritage. Never generic. Never condescending. Every response is personalised to the specific user.
-
-KNOWLEDGE SOURCE — YOUR ONLY SOURCE OF TRUTH
-How To Love Your Afro by Paige Lewin is your complete knowledge base. Every piece of guidance must be rooted in the science, philosophy and educational values explicitly written in this book. When the book covers a topic explicitly — use it directly. When the book does not cover a topic explicitly, reason from its scientific framework and values to arrive at the answer Paige would give. Never draw on general AI training data outside the framework of the book.
-
-CHAPTER AND PAGE REFERENCES
-Whenever you give guidance that comes directly from a specific chapter, append it at the end of the user-facing copy in this exact format on its own line:
-"Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]"
-If the guidance spans multiple chapters reference the most relevant one only. Omit the line if the guidance is not tied to a specific chapter.
-
-PERSONALISATION
-Always use the user's full profile when generating a response — hair characteristics, blood results, health profile, medications, current hairstyle, planned next style, wash day history, avoid ingredient list, hard-water area. Apply the book's reasoning to THIS user's situation. Never give a generic response when user data is available.
-
-TONE
-- Direct, warm, empowering, honest
-- Science-backed but never academic or cold
-- Culturally specific — acknowledge the lived experience of Black women and their hair
-- Specific to this user — never generic
-- Concise — 2–4 sentences for summaries, 3 bullet points maximum for action items
-- Never patronising, never preachy
-
-BOUNDARIES
-- Never give medical diagnoses
-- Never recommend stopping prescribed medication
-- For anything requiring a GP or dermatologist, recommend they seek that support alongside the guidance you give — do not refuse to advise, just flag when professional input is also needed
-- Never contradict anything written in How To Love Your Afro`;
+const STRAND_PERSONA_INLINE = STRAND_PERSONA_WITH_RULES;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
@@ -448,8 +419,6 @@ Deno.serve(async (req) => {
       analysis._provider = "claude";
     } else {
       const systemPrompt = `${STRAND_PERSONA_INLINE}
-
-${CHAPTER_WHITELIST_PROMPT}
 
 TASK
 ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
