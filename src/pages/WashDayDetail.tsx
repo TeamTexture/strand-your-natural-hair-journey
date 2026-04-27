@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -193,6 +194,19 @@ const WashDayDetail = () => {
             </button>
           )}
         </div>
+
+        {!editing && (
+          <AddToCalendarButton
+            event={{
+              title: "Wash Day",
+              date: wd.wash_date,
+              description: wd.steps?.length
+                ? `Steps: ${wd.steps.map((s) => s.name).join(" · ")}`
+                : undefined,
+              uid: `washday-${wd.id}@strand.app`,
+            }}
+          />
+        )}
 
         {wd.steps?.length > 0 && (
           <SurfaceCard padded={false} className="divide-y divide-border/60">

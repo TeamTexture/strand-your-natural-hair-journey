@@ -13,6 +13,7 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { toast } from "sonner";
 import VoiceNoteField from "@/components/VoiceNoteField";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 
@@ -270,6 +271,20 @@ const LogAppointment = () => {
         >
           {saving ? "Saving…" : "Save Appointment"}
         </Button>
+
+        {date && proName.trim().length > 0 && (
+          <AddToCalendarButton
+            variant="full"
+            event={{
+              title: `${proType} — ${proName.trim()}`,
+              date,
+              time: time || null,
+              durationMinutes: 60,
+              location: clinic.trim() || null,
+              description: [reason, notes].filter(Boolean).join("\n\n") || undefined,
+            }}
+          />
+        )}
       </div>
     </ScreenLayout>
   );
