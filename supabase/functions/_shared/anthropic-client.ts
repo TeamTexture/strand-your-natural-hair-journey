@@ -52,11 +52,26 @@ export interface Tool {
   input_schema: Record<string, unknown>;
 }
 
+/** Anthropic-managed server-side tool (e.g. native web_search). The model
+ *  invokes it autonomously inside a single API call; results come back as
+ *  `server_tool_use` + `web_search_tool_result` content blocks before the
+ *  final assistant response. We pass these straight through to the API.
+ *  Audit PHASE_2_AUDIT.md §5 Step 3 — tight max_uses cap to bound cost. */
+export type ServerTool = {
+  type: "web_search_20250305";
+  name: "web_search";
+  max_uses?: number;
+};
+
 export interface ClaudeCallInput {
   model: ClaudeModel;
   systemBlocks: SystemBlock[];
   messages: Message[];
-  tools?: Tool[];
+  /** Caller-defined tools (`tool_use`) AND Anthropic server tools mixed
+   *  together in one array — Anthropic's API takes them in the same
+   *  `tools` field, distinguished by the presence of a `type` discriminator
+   *  on server tools. */
+  tools?: Array<Tool | ServerTool>;
   toolChoice?: { type: "tool"; name: string };
   max_tokens?: number;
 }
@@ -75,6 +90,14 @@ export interface ClaudeCallResult<T = unknown> {
   text?: string;
   usage: ClaudeUsage;
   stop_reason: string;
+  /** Count of `server_tool_use` blocks Anthropic executed on Claude's behalf
+   *  (e.g. native web_search invocations). Useful for cost logging and
+   *  surfacing `_used_web_search` provenance in cached payloads. */
+  server_tool_use_count?: number;
+  /** Search query strings the model issued, in order. Safe to log — they
+   *  contain only product names / brand context, no user PII. Empty when
+   *  no server tools fired. */
+  server_tool_use_queries?: string[];
 }
 
 /** Error class carrying the upstream HTTP status so aiErrorResponse() can map it. */
@@ -90,7 +113,11 @@ export class ClaudeError extends Error {
 }
 
 interface ClaudeApiContentBlock {
-  type: "text" | "tool_use";
+  type:
+    | "text"
+    | "tool_use"
+    | "server_tool_use"
+    | "web_search_tool_result";
   text?: string;
   id?: string;
   name?: string;
