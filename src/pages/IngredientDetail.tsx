@@ -658,9 +658,11 @@ const IngredientDetail = () => {
                           className="inline size-3 mr-1 fill-current align-[-1px]"
                           style={{ color: "hsl(40 65% 32%)" }}
                         />
-                        This ingredient appears in 3 or more of your products —
-                        it's a recurring part of your routine, worth knowing
+                        This ingredient appears in 3 or more of the products
+                        you've put on your shelf and favourited — a recurring
+                        part of the routine you actually use, worth knowing
                         well.
+                      </p>
                       </p>
                     </div>
                   )}
