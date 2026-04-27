@@ -2,6 +2,10 @@
 // STRAND persona (Paige Lewin) and the user's complete profile + AI context.
 // Cached in ai_summaries (kind = "nutrition_plan"). Force-refresh supported.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  CHAPTER_WHITELIST_PROMPT,
+  sanitiseChapterCitationsDeep,
+} from "../_shared/book-chapters.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,7 +137,7 @@ Deno.serve(async (req) => {
       const existingSig = (existing?.payload as { _sig?: string } | undefined)?._sig;
       if (existing?.payload && existingSig === sig) {
         return new Response(
-          JSON.stringify({ cached: true, plan: existing.payload }),
+          JSON.stringify({ cached: true, plan: sanitiseChapterCitationsDeep(existing.payload) }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -162,7 +166,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: `${STRAND_PERSONA}\n\n${TASK_PROMPT}` },
+              { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT}` },
               { role: "user", content: JSON.stringify(userPayload) },
             ],
             tools: [
@@ -292,7 +296,7 @@ Deno.serve(async (req) => {
         .insert({ user_id: user.id, kind: "nutrition_plan", payload: plan });
     }
 
-    return new Response(JSON.stringify({ cached: false, plan }), {
+    return new Response(JSON.stringify({ cached: false, plan: sanitiseChapterCitationsDeep(plan) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -10,7 +10,7 @@
 // - No medical or growth claims.
 // - Two lines, tight word counts, modern voice.
 
-import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
+import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +43,7 @@ How To Love Your Afro by Paige Lewin is your complete knowledge base. Every piec
 
 CHAPTER AND PAGE REFERENCES
 Whenever you give guidance that comes directly from a specific chapter, append it at the end of the user-facing copy in this exact format on its own line:
-[CITATIONS DISABLED — server appends real citations only]
+"Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]"
 If the guidance spans multiple chapters reference the most relevant one only. Omit the line if the guidance is not tied to a specific chapter.
 
 PERSONALISATION
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ banner: stripModelCitationsDeep(banner) }), {
+    return new Response(JSON.stringify({ banner: sanitiseChapterCitationsDeep(banner) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

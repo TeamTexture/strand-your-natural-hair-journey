@@ -18,6 +18,7 @@
 //   [3] task instructions         no cache (per-call)
 
 import { STRAND_PERSONA } from "./strand-persona.ts";
+import { CHAPTER_WHITELIST_PROMPT } from "./book-chapters.ts";
 import {
   renderTopicBlock,
   selectTopicsForContext,
@@ -114,6 +115,15 @@ export async function buildClaudeRequest(
     {
       type: "text",
       text: STRAND_PERSONA,
+      cache_control: { type: "ephemeral" },
+    },
+    {
+      // Authoritative chapter whitelist — added 2026-04-27 after a
+      // hallucinated "Chapter 4: The Truth About Deep Conditioners"
+      // citation. Server-side sanitiser strips any non-whitelisted
+      // citation as a final safety net (see book-chapters.ts).
+      type: "text",
+      text: CHAPTER_WHITELIST_PROMPT,
       cache_control: { type: "ephemeral" },
     },
   ];

@@ -1,7 +1,10 @@
 // Generates a 2-3 sentence personalised observation about the user's wash day.
 // Uses Lovable AI Gateway with tool calling for structured output.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { stripModelCitations } from "../_shared/sanitize-citations.ts";
+import {
+  CHAPTER_WHITELIST_PROMPT,
+  sanitiseChapterCitationsDeep,
+} from "../_shared/book-chapters.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,7 +95,7 @@ How To Love Your Afro by Paige Lewin is your complete knowledge base. Every piec
 
 CHAPTER AND PAGE REFERENCES
 Whenever you give guidance that comes directly from a specific chapter, append it at the end of the user-facing copy in this exact format on its own line:
-[CITATIONS DISABLED — server appends real citations only]
+"Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]"
 If the guidance spans multiple chapters reference the most relevant one only. Omit the line if the guidance is not tied to a specific chapter.
 
 PERSONALISATION
@@ -114,12 +117,14 @@ BOUNDARIES
 
     const systemPrompt = `${STRAND_PERSONA}
 
+${CHAPTER_WHITELIST_PROMPT}
+
 TASK
 Given a single wash day log + the user's profile, write ONE personalised observation as Paige (2-3 sentences max).
 - Reference SPECIFIC choices the user made (a product, scalp feel, breakage level, hair feel note) — not generic advice.
 - Tie at least one observation back to the user's hair profile (porosity, scalp condition, diagnosed conditions) or a flagged blood marker / medication when relevant.
 - Encouraging, never preachy. Plain English. No medical advice.
-- DO NOT include any chapter, page, or "Read more —" citation. The system appends verified citations server-side. The system appends verified citations server-side.
+- If the observation is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line at the end of the observation. Use ONLY chapters from the authoritative list above. If it doesn't map to a listed chapter, omit the reference entirely.
 - Return JSON only via the provided tool.`;
 
     const aiResp = await fetch(
@@ -212,7 +217,7 @@ Given a single wash day log + the user's profile, write ONE personalised observa
     }
 
     return new Response(
-      JSON.stringify({ observation: stripModelCitations(parsed.observation ?? "") }),
+      JSON.stringify(sanitiseChapterCitationsDeep({ observation: parsed.observation ?? "" })),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
