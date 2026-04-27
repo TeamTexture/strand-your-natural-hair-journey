@@ -401,19 +401,7 @@ const WashStep1 = () => {
     }
   }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters]);
 
-  // Heat-treatment state lives at the page level so we can persist it and so
-  // the "why" dialog can read/write the choice.
-  const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
-  const [heatDialogOpen, setHeatDialogOpen] = useState(false);
-  const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
-  const [heatLoading, setHeatLoading] = useState(false);
-  // How long the user kept heat on for. Captured only when heatChoice === "yes"
-  // so the summary chip + saved record can show e.g. "Heat treatment · 25 min".
-  const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
-  // Tools attached to today's heat treatment (e.g. heat hat, steamer cap).
-  // Stored as user_tools.id so the saved record can reference real tools.
-  const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
-  const { tools: allTools } = useUserTools();
+  // (heat-treatment state hoisted above the persist effect, see top of component)
 
   // Fetch a personalised "why heat could help YOU" explanation grounded in the
   // user's hair profile, goals, challenges and recent wash history. Cached for
