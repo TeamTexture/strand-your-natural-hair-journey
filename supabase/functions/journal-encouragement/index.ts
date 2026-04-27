@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ banner }), {
+    return new Response(JSON.stringify({ banner: stripModelCitationsDeep(banner) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
