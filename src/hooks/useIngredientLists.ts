@@ -45,20 +45,22 @@ const keyOf = (raw: string) => normaliseIngredient(raw).toLowerCase();
 
 /**
  * Recompute the unified "flag" list for the current user from the products
- * that are BOTH on their shelf AND marked as favourites. Replaces existing
- * rows so removed matches drop out cleanly, and also wipes any leftover
- * legacy "avoid" / "favourite" rows.
+ * that are on shelf, favourited, AND actively in use (use_count > 0).
+ * Replaces existing rows so removed matches drop out cleanly, and also
+ * wipes any leftover legacy "avoid" / "favourite" rows.
  */
 async function recomputeFlagList(userId: string) {
-  // Only count products the user has actively kept on their shelf AND
-  // marked as favourites — those are the products that matter for spotting
-  // recurring ingredients in the routine they actually love.
+  // Only count products the user has actively kept on their shelf, marked
+  // as favourites, AND actually used at least once — those are the
+  // products that matter for spotting recurring ingredients in the
+  // routine they actually love and use.
   const { data: rows, error } = await supabase
     .from("user_products")
     .select("ingredients")
     .eq("user_id", userId)
     .eq("on_shelf", true)
-    .eq("on_favourite", true);
+    .eq("on_favourite", true)
+    .gt("use_count", 0);
   if (error) throw error;
 
   const tally = new Map<string, { display: string; count: number }>();
@@ -82,7 +84,7 @@ async function recomputeFlagList(userId: string) {
     .map(([, v]) => ({
       ingredient: v.display,
       product_count: v.count,
-      reason: `Appears in ${v.count} of your favourite shelf products`,
+      reason: `Appears in ${v.count} of your favourite shelf products in use`,
       list_kind: "flag" as const,
     }));
 
