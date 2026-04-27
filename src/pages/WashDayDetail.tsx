@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
