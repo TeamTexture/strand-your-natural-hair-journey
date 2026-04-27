@@ -110,7 +110,7 @@ const Avoidlist = () => {
           {flags.length === 0 ? (
             <EmptyState
               message="No flagged ingredients yet"
-              hint="Favourite 3 or more products on your shelf that share an ingredient — they'll appear here automatically."
+              hint="Favourite 3 or more products on your shelf that share an ingredient — once the ingredient is saved on all 3 products, it will appear here."
             />
           ) : filteredFlags.length === 0 ? (
             <EmptyState
