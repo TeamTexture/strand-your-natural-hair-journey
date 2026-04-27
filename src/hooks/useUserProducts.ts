@@ -105,12 +105,17 @@ export function useUserProducts(filter: Filter = "all") {
   const setShelf = async (id: string, on: boolean) => {
     const updates = on
       ? { on_shelf: true, on_wishlist: false, added_to_shelf_at: new Date().toISOString() }
-      : { on_shelf: false, previously_on_shelf: true };
+      // Taking a product off the shelf also drops it from favourites — a
+      // favourite is by definition something the user is actively using.
+      : { on_shelf: false, previously_on_shelf: true, on_favourite: false };
     const { error } = await supabase.from("user_products").update(updates).eq("id", id);
     if (error) { toast.error("Could not update product"); return; }
     await load();
-    // Off-shelf membership feeds the Red Flag list — recompute.
+    // Off-shelf + favourite membership both feed the flag list — recompute.
     await recomputeIngredientFlags();
+    if (!on && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+    }
   };
 
   const setWishlist = async (id: string, on: boolean) => {
