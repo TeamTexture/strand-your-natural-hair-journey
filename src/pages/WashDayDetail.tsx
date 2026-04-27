@@ -195,6 +195,19 @@ const WashDayDetail = () => {
           )}
         </div>
 
+        {!editing && (
+          <AddToCalendarButton
+            event={{
+              title: "Wash Day",
+              date: wd.wash_date,
+              description: wd.steps?.length
+                ? `Steps: ${wd.steps.map((s) => s.name).join(" · ")}`
+                : undefined,
+              uid: `washday-${wd.id}@strand.app`,
+            }}
+          />
+        )}
+
         {wd.steps?.length > 0 && (
           <SurfaceCard padded={false} className="divide-y divide-border/60">
             <div className="p-3.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
