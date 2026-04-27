@@ -1,4 +1,4 @@
-import { Flag, RefreshCw, Trash2, Bookmark, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Flag, RefreshCw, Trash2, Bookmark, ArrowDownToLine, ArrowUpFromLine, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -78,7 +78,7 @@ const IngredientDetail = () => {
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
   const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;
 
-  const { allProducts, setShelf, setWishlist, remove, reload } = useUserProducts("all");
+  const { allProducts, setShelf, setWishlist, setFavourite, remove, reload } = useUserProducts("all");
   const productRow = useMemo(
     () => allProducts.find((p) => p.product_key === productKey) ?? null,
     [allProducts, productKey],
