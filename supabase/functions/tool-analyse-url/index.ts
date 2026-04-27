@@ -3,6 +3,7 @@
 // identifying fields. Tools have NO ingredients, so the schema is intentionally
 // much smaller than product-analyse-url.
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
 
 interface Body {
   url?: string;
@@ -35,7 +36,7 @@ How To Love Your Afro by Paige Lewin is your complete knowledge base. Every piec
 
 CHAPTER AND PAGE REFERENCES
 Whenever you give guidance that comes directly from a specific chapter, append it at the end of the user-facing copy in this exact format on its own line:
-"Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]"
+[CITATIONS DISABLED — server appends real citations only]
 If the guidance spans multiple chapters reference the most relevant one only. Omit the line if the guidance is not tied to a specific chapter.
 
 PERSONALISATION
@@ -83,7 +84,7 @@ ABSOLUTE RULES
      • "Steamer" — large standalone hooded steamer.
    Use "Other" only if none clearly apply.
 4. summary: 1–2 short sentences describing what this tool does and who it's
-   good for, in Paige's voice. Plain English, second person. If the why-it-matters reasoning is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line at the end of summary.
+   good for, in Paige's voice. Plain English, second person. DO NOT include any chapter, page, or "Read more —" citation. The system appends verified citations server-side. The system appends verified citations server-side.
 5. Output STRICT JSON only. No prose, no code fences.
 
 SCHEMA
@@ -346,6 +347,10 @@ ${trimmed}
     // Always pass the scraped product image back so the client can show it
     // on the tool tile / detail page without re-fetching the page.
     if (scraped.image_url && !out.image_url) out.image_url = scraped.image_url;
+
+    // Strip any chapter/page citations the model emitted — citations are
+    // appended server-side from real RAG rows only.
+    out = stripModelCitationsDeep(out);
 
     return new Response(JSON.stringify(out), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

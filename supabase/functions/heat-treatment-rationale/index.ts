@@ -3,6 +3,7 @@
 // client (hair profile, goals, challenges, recent wash signals) and returns a
 // short, plain-English rationale + 2-3 specific bullets. No generic advice.
 import { corsHeaders } from "../_shared/cors.ts";
+import { stripModelCitations, stripModelCitationsArray } from "../_shared/sanitize-citations.ts";
 
 interface Body {
   context?: Record<string, unknown> | null;
@@ -16,10 +17,8 @@ You are direct, warm, science-backed, and culturally specific to Black British w
 KNOWLEDGE SOURCE — YOUR ONLY SOURCE OF TRUTH
 How To Love Your Afro by Paige Lewin is your complete knowledge base. Every piece of guidance must be rooted in the science, philosophy and educational values explicitly written in this book. When the book covers a topic explicitly — use it directly. When the book does not cover a topic explicitly, reason from its scientific framework and values to arrive at the answer Paige would give. Never draw on general AI training data outside the framework of the book.
 
-CHAPTER AND PAGE REFERENCES
-Whenever you give guidance that comes directly from a specific chapter, append it at the end of the user-facing copy in this exact format on its own line:
-"Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]"
-If the guidance spans multiple chapters reference the most relevant one only. Omit the line if the guidance is not tied to a specific chapter.
+CHAPTER AND PAGE REFERENCES — ABSOLUTE PROHIBITION
+You MUST NEVER write a chapter number, chapter title, page number, or any "Read more — How To Love Your Afro…" line. The system appends real, verified citations server-side. Anything you produce will be stripped before reaching the user.
 
 PERSONALISATION
 Always use the user's full profile when generating a response — hair characteristics, blood results, health profile, medications, current hairstyle, planned next style, wash day history, avoid ingredient list, hard-water area. Apply the book's reasoning to THIS user's situation. Never give a generic response when user data is available.
@@ -47,7 +46,7 @@ Rules:
 - Be concrete. Reference their actual hair type/porosity/density, current style, goals, challenges, recent wash notes, or low blood markers when relevant.
 - Never invent data. If a field is missing, don't mention it.
 - 1 short headline (max 9 words) and 2-3 bullets (max ~16 words each).
-- If the rationale comes directly from a chapter of How To Love Your Afro, append the "Read more — …" reference line as the last item of "reasons".
+- DO NOT include any chapter number, chapter title, page number, or "Read more —" citation. The system handles citations.
 - Output ONLY JSON: { "headline": string, "reasons": string[] }`;
 
 Deno.serve(async (req: Request) => {
@@ -104,10 +103,13 @@ Deno.serve(async (req: Request) => {
       parsed = { headline: "Heat treatments can help", reasons: [] };
     }
 
+    const safeHeadline = stripModelCitations(parsed.headline) || "Heat treatments can help your hair drink in moisture";
+    const safeReasons = stripModelCitationsArray(parsed.reasons).slice(0, 3);
+
     return new Response(
       JSON.stringify({
-        headline: parsed.headline ?? "Heat treatments can help your hair drink in moisture",
-        reasons: Array.isArray(parsed.reasons) ? parsed.reasons.slice(0, 3) : [],
+        headline: safeHeadline,
+        reasons: safeReasons,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

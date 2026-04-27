@@ -1,6 +1,7 @@
 // Generates a 2-3 sentence personalised observation about the user's wash day.
 // Uses Lovable AI Gateway with tool calling for structured output.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { stripModelCitations } from "../_shared/sanitize-citations.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,7 +92,7 @@ How To Love Your Afro by Paige Lewin is your complete knowledge base. Every piec
 
 CHAPTER AND PAGE REFERENCES
 Whenever you give guidance that comes directly from a specific chapter, append it at the end of the user-facing copy in this exact format on its own line:
-"Read more — How To Love Your Afro, Chapter [X]: [Chapter Title], p.[page]"
+[CITATIONS DISABLED — server appends real citations only]
 If the guidance spans multiple chapters reference the most relevant one only. Omit the line if the guidance is not tied to a specific chapter.
 
 PERSONALISATION
@@ -118,7 +119,7 @@ Given a single wash day log + the user's profile, write ONE personalised observa
 - Reference SPECIFIC choices the user made (a product, scalp feel, breakage level, hair feel note) — not generic advice.
 - Tie at least one observation back to the user's hair profile (porosity, scalp condition, diagnosed conditions) or a flagged blood marker / medication when relevant.
 - Encouraging, never preachy. Plain English. No medical advice.
-- If the observation is rooted in a specific chapter of How To Love Your Afro, append the "Read more — …" reference line at the end of the observation.
+- DO NOT include any chapter, page, or "Read more —" citation. The system appends verified citations server-side. The system appends verified citations server-side.
 - Return JSON only via the provided tool.`;
 
     const aiResp = await fetch(
@@ -211,7 +212,7 @@ Given a single wash day log + the user's profile, write ONE personalised observa
     }
 
     return new Response(
-      JSON.stringify({ observation: parsed.observation ?? "" }),
+      JSON.stringify({ observation: stripModelCitations(parsed.observation ?? "") }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
