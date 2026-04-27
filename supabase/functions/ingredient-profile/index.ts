@@ -24,8 +24,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL = "google/gemini-2.5-flash";
-const MODEL_VERSION = "ingredient-profile@v3-what-it-means";
+const MODEL = "google/gemini-2.5-pro";
+const MODEL_VERSION = "ingredient-profile@v4-deep-dive";
 
 interface RequestBody {
   ingredient: string;
