@@ -173,4 +173,161 @@ const Avoidlist = () => {
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────
+// IngredientRow — single row inside the Green/Red flag list. Owns its own
+// AI profile fetch so the request only fires when the user expands the row.
+// React Query caches the profile per (user, flag, ingredient) and the edge
+// function caches in ai_summaries, so re-opening the same row is instant.
+// ─────────────────────────────────────────────────────────────────────────
+interface IngredientRowProps {
+  row: { id: string; ingredient: string; reason: string };
+  kind: "avoid" | "fav";
+  isOpen: boolean;
+  matches: UserProduct[];
+  onToggle: () => void;
+  onProductClick: (productId: string) => void;
+}
+
+const IngredientRow = ({
+  row,
+  kind,
+  isOpen,
+  matches,
+  onToggle,
+  onProductClick,
+}: IngredientRowProps) => {
+  const dotClass = kind === "fav" ? "bg-good" : "bg-destructive";
+  const emoji = kind === "fav" ? "💚" : "🚩";
+
+  // Only fetch when the row is open. The hook itself respects this via
+  // `enabled` so a closed row makes zero network calls.
+  const profileQuery = useIngredientProfile(
+    row.ingredient,
+    kind,
+    row.reason,
+    isOpen,
+  );
+
+  return (
+    <SurfaceCard className="p-0 overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 p-3 text-left"
+      >
+        <span className={cn("size-2.5 rounded-full shrink-0", dotClass)} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium leading-tight">{row.ingredient}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{row.reason}</p>
+        </div>
+        <ChevronDown
+          className={cn(
+            "size-4 text-muted-foreground transition-transform",
+            isOpen && "rotate-180",
+          )}
+        />
+        <span className="text-xl">{emoji}</span>
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-border bg-muted/30 px-3 py-3 space-y-3">
+          {/* AI profile — what it is, benefits, personalised notes */}
+          <div className="space-y-2">
+            {profileQuery.isLoading && (
+              <p className="text-[11px] text-muted-foreground italic">
+                Building your personalised ingredient profile…
+              </p>
+            )}
+            {profileQuery.isError && (
+              <p className="text-[11px] text-destructive">
+                Couldn't load profile — pull down to refresh and try again.
+              </p>
+            )}
+            {profileQuery.data && (
+              <div className="space-y-2.5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
+                    What it is
+                  </p>
+                  <p className="text-xs leading-snug">
+                    {profileQuery.data.what_it_is}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
+                    Benefits
+                  </p>
+                  <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
+                    {profileQuery.data.benefits.map((b, i) => (
+                      <li key={i}>{b}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
+                    {kind === "fav"
+                      ? "Why it likely works for you"
+                      : "Possible reasons it's flagged for you"}
+                  </p>
+                  <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
+                    {profileQuery.data.personal_notes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Matching products from the user's library */}
+          <div className="space-y-1.5 pt-2 border-t border-border/60">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+              {kind === "fav"
+                ? "In your favourited products"
+                : "In products you removed"}
+            </p>
+            {matches.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground py-1">
+                No matching products found.
+              </p>
+            ) : (
+              matches.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  // Use the SAME canonical product route as the My Products list
+                  // (Products.tsx → /products/profile/:id), which redirects to
+                  // /products/ingredient. Going through the redirect guarantees
+                  // every entry-point lands on the unified product page.
+                  onClick={() => onProductClick(p.id)}
+                  className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-background text-left transition-colors"
+                >
+                  {p.image_url ? (
+                    <img
+                      src={p.image_url}
+                      alt=""
+                      className="size-8 rounded object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="size-8 rounded bg-muted shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{p.name}</p>
+                    {p.brand && (
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {p.brand}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-muted-foreground text-xs">›</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </SurfaceCard>
+  );
+};
+
 export default Avoidlist;
