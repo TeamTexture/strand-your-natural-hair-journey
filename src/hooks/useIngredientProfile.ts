@@ -15,9 +15,12 @@ import { buildAiContext } from "@/lib/aiContext";
 
 export interface IngredientProfile {
   what_it_is: string;
+  /** Consumer-facing science deep dive — surprising facts a shopper would
+   * never read on a label or in marketing copy. */
+  deep_dive?: string[];
   benefits: string[];
   personal_notes: string[];
-  /** 1–2 sentence personalised guidance for the user's hair type,
+  /** Multi-sentence personalised guidance for the user's hair type,
    * weighing this ingredient + the rest of the formulation. */
   what_it_means_for_you?: string;
 }

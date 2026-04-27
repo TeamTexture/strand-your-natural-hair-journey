@@ -600,7 +600,11 @@ const IngredientDetail = () => {
             const ing = selectedIngredient;
             const lower = ing.name.toLowerCase().trim();
             const isFlagged = flaggedNames.has(lower);
-            const meansForYou = ingredientProfile.data?.what_it_means_for_you;
+            const profile = ingredientProfile.data;
+            const meansForYou = profile?.what_it_means_for_you;
+            const whatItIs = profile?.what_it_is;
+            const deepDive = profile?.deep_dive ?? [];
+            const benefits = profile?.benefits ?? [];
             const profileLoading = ingredientProfile.isLoading || ingredientProfile.isFetching;
             const profileError = ingredientProfile.isError;
             return (
@@ -622,17 +626,56 @@ const IngredientDetail = () => {
                     </DialogDescription>
                   )}
                 </DialogHeader>
-                <div className="space-y-3 pt-1">
+                <div className="space-y-4 pt-1 max-h-[70vh] overflow-y-auto pr-1">
+                  {profileLoading && !profile && (
+                    <p className="text-sm leading-relaxed text-muted-foreground italic">
+                      Pulling the science together for your hair…
+                    </p>
+                  )}
+
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">
-                      What it is
+                      What it actually is
                     </p>
                     <p className="text-sm leading-relaxed text-foreground/85">
-                      {ing.body}
+                      {whatItIs || ing.body}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">
+
+                  {deepDive.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                        What most people don't know
+                      </p>
+                      <ul className="space-y-1.5">
+                        {deepDive.map((d, i) => (
+                          <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
+                            <span className="text-primary shrink-0 mt-0.5">•</span>
+                            <span>{d}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {benefits.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                        What it does in this formula
+                      </p>
+                      <ul className="space-y-1.5">
+                        {benefits.map((b, i) => (
+                          <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
+                            <span className="text-primary shrink-0 mt-0.5">•</span>
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="rounded-lg bg-primary/8 border border-primary/25 p-3">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold mb-1.5">
                       What this means for your hair type
                     </p>
                     {profileLoading && !meansForYou && (
@@ -640,8 +683,8 @@ const IngredientDetail = () => {
                         Tailoring this to your hair…
                       </p>
                     )}
-                    {!profileLoading && meansForYou && (
-                      <p className="text-sm leading-relaxed text-foreground/85">
+                    {meansForYou && (
+                      <p className="text-sm leading-relaxed text-foreground/90">
                         {meansForYou}
                       </p>
                     )}
@@ -651,8 +694,9 @@ const IngredientDetail = () => {
                       </p>
                     )}
                   </div>
+
                   {isFlagged && (
-                    <div className="rounded-lg bg-primary/10 border border-primary/30 p-3">
+                    <div className="rounded-lg bg-muted/40 border border-border/60 p-3">
                       <p className="text-[11px] leading-relaxed text-foreground/85">
                         <Flag
                           className="inline size-3 mr-1 fill-current align-[-1px]"

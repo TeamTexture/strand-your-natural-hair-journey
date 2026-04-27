@@ -24,8 +24,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL = "google/gemini-2.5-flash";
-const MODEL_VERSION = "ingredient-profile@v3-what-it-means";
+const MODEL = "google/gemini-2.5-pro";
+const MODEL_VERSION = "ingredient-profile@v4-deep-dive";
 
 interface RequestBody {
   ingredient: string;
@@ -51,9 +51,12 @@ interface RequestBody {
 
 interface ProfilePayload {
   what_it_is: string;
+  /** Rich consumer-facing science deep dive — bullets surfacing things a
+   * shopper would never read on a label or in marketing copy. */
+  deep_dive: string[];
   benefits: string[];
   personal_notes: string[];
-  /** 1–2 sentence personalised guidance shown under
+  /** Multi-sentence personalised guidance shown under
    * "What this means for your hair type" on the ingredient dialog.
    * Considers the rest of the formulation and the user's profile. */
   what_it_means_for_you?: string;
@@ -67,7 +70,15 @@ const TOOL_SCHEMA = {
     what_it_is: {
       type: "string",
       description:
-        "1–2 plain-English sentences (max 40 words total) explaining what the ingredient is and which cosmetic-chemistry family it belongs to (humectant, emollient, occlusive, surfactant, cationic conditioner, protein, preservative, etc.). No marketing language.",
+        "3–5 plain-English sentences (max 110 words) giving a serious science-based explanation of what this ingredient actually IS at a molecular / formulation level. Name the cosmetic-chemistry family (humectant, emollient, occlusive, anionic/non-ionic/amphoteric surfactant, cationic conditioner, hydrolysed protein, silicone class, fatty alcohol, chelator, preservative, pH adjuster, etc.). Explain how it is typically sourced or manufactured if a shopper would find that surprising (e.g. 'derived from coconut despite the harsh-sounding name', 'a synthetic polymer not found in nature', 'a fermentation by-product'). Mention the typical use level in finished products (e.g. '0.1–1%', '5–15%') so the user understands real-world dose. No marketing language, no good/bad framing.",
+    },
+    deep_dive: {
+      type: "array",
+      minItems: 3,
+      maxItems: 5,
+      items: { type: "string" },
+      description:
+        "3–5 short bullets (each ≤30 words) surfacing things a typical consumer would NOT know from the label or marketing. Each bullet must teach something genuinely non-obvious — e.g. how the molecule actually interacts with the hair shaft, why ingredient order on the INCI list matters here, a common myth vs reality, why it sits where it does in the list, what happens at low vs high pH, why two similar-sounding ingredients behave differently, how it interacts with hard water or heat, regulatory context, or how concentration changes its behaviour. Be specific. No filler. No 'it is good for hair'.",
     },
     benefits: {
       type: "array",
@@ -75,7 +86,7 @@ const TOOL_SCHEMA = {
       maxItems: 4,
       items: { type: "string" },
       description:
-        "2–4 short bullet points on what this ingredient does for hair. Each ≤20 words. Lead with the scientific mechanism. Never claim products 'add', 'restore' or 'deliver' moisture — only seal/lock/retain it.",
+        "2–4 short bullets (each ≤22 words) on what this ingredient practically does in a hair formula. Lead with the scientific mechanism (e.g. 'binds water from the air via hydroxyl groups', 'lays down a positively-charged film that smooths the negatively-charged cuticle'). Never claim products 'add', 'restore', 'replenish' or 'deliver' moisture — only seal/lock/retain it.",
     },
     personal_notes: {
       type: "array",
@@ -83,41 +94,50 @@ const TOOL_SCHEMA = {
       maxItems: 4,
       items: { type: "string" },
       description:
-        "2–4 short bullet points (each ≤25 words) explaining how this ingredient is likely to behave for THIS user's hair, anchored in their own data — porosity, density, scalp data, hard-water area, current style, named goals or challenges. Cite the specific data point that drives each note (e.g. 'low porosity', 'hard-water area', 'your length-retention goal'). Educational only — never frame as good or bad, never diagnose.",
+        "2–4 short bullets (each ≤28 words) explaining how this ingredient is likely to behave for THIS user's hair, anchored in their own data — porosity, density, surface texture, scalp data, hard-water area, current style, named goals or challenges. Cite the specific data point that drives each note (e.g. 'low porosity', 'hard-water area', 'your length-retention goal'). Educational only — never frame as good or bad, never diagnose.",
     },
     what_it_means_for_you: {
       type: "string",
       description:
-        "EXACTLY 1–2 sentences (max 45 words) of calm, personalised guidance for THIS user's hair, framed as 'what this means for your hair type'. Weigh (a) this ingredient's typical behaviour, (b) the rest of the formulation it sits in (co-formulants can balance or amplify it), and (c) the user's own data (porosity, density, scalp, hard water, goals). Remember most of these ingredients are used in very small quantities so the impact is usually modest. Never alarmist, never good/bad, never prescribe avoidance, never diagnose.",
+        "3–5 sentences (max 110 words) of calm, deeply personalised guidance for THIS user's hair, framed as 'what this means for your hair type'. Weigh: (a) this ingredient's typical behaviour and concentration norms, (b) the rest of the formulation it sits in (co-formulants can balance or amplify it — name one or two if useful), (c) the user's own data (porosity, density, scalp, hard water, goals, current style, products they've rated low/high). Give a concrete practical takeaway — e.g. when to use the product, how often, what to pair it with, what to look out for in their own hair. Most cosmetic ingredients sit at fractions of a percent so keep impact framing proportionate. Never alarmist, never good/bad, never prescribe avoidance, never diagnose.",
     },
   },
-  required: ["what_it_is", "benefits", "personal_notes", "what_it_means_for_you"],
+  required: ["what_it_is", "deep_dive", "benefits", "personal_notes", "what_it_means_for_you"],
 } as const;
 
 function buildSystemPrompt(): string {
   return `${STRAND_PERSONA}
 
 TASK
-Return a short ingredient profile for ONE ingredient via the return_profile tool. Four fields only: what_it_is, benefits, personal_notes, what_it_means_for_you.
+Return a serious, science-led ingredient profile for ONE ingredient via the return_profile tool. Five fields: what_it_is, deep_dive, benefits, personal_notes, what_it_means_for_you. The audience is a curious consumer who wants to actually UNDERSTAND what's in their products — not be sold to and not be scared. Surface the things a shopper would never learn from the label or brand copy.
+
+VOICE
+- Plain English, but never dumbed down. Use the proper cosmetic-chemistry term once, then explain it in everyday words.
+- Concrete, specific, slightly nerdy. Prefer numbers, percentages, mechanisms and analogies over vague adjectives.
+- Calm and neutral. You are explaining, not warning and not selling.
 
 LANGUAGE RULES — NON-NEGOTIABLE
-- Moisture comes from water. Products NEVER add, restore, replenish, deliver or infuse moisture. They seal it in, lock it in, slow water loss, or help retention. Use this phrasing in benefits, personal_notes and what_it_means_for_you.
+- Moisture comes from water. Products NEVER add, restore, replenish, deliver or infuse moisture. They seal it in, lock it in, slow water loss, or help retention.
 - Never name a book, chapter, page, or author. No "Read more" lines. No source attribution. The voice is STRAND science-backed advice.
-- Never give a medical diagnosis. Never name diagnosed scalp/skin conditions, alopecia types, hormones, blood markers, medications or life stage in personal_notes — phrase around them ("your scalp data", "what you've logged") if they matter.
-- No fear-mongering and no good/bad framing. The flag is purely educational — it just tells the user this ingredient appears in 3+ of their products. Never call an ingredient harmful, bad, problematic, or risky. Never call it ideal, perfect, or "exactly what you need". Stay neutral and explanatory.
+- Never give a medical diagnosis. Never name diagnosed scalp/skin conditions, alopecia types, hormones, blood markers, medications or life stage in personal_notes or what_it_means_for_you — phrase around them ("your scalp data", "what you've logged").
+- No fear-mongering and no good/bad framing. Never call an ingredient harmful, bad, problematic, risky, ideal, perfect, or "exactly what you need". Stay neutral and explanatory.
 - Most cosmetic ingredients sit at fractions of a percent of the formulation — keep impact framing proportionate. Avoid words like "damaging", "stripping", "harsh", "concerning" unless qualifying with concentration context.
+
+DEEP_DIVE RULES
+- Each bullet must teach something a normal shopper would NOT already know. If a bullet would fit on the back of any bottle, rewrite it.
+- Favour mechanism, manufacturing reality, INCI-position logic, pH/temperature behaviour, myth-busting, hard-water interaction, what concentration changes, common confusion with similarly-named ingredients.
+- Be specific to THIS ingredient. No generic hair-care platitudes.
 
 PERSONAL_NOTES RULES
 - EVERY personal_note must reference at least ONE concrete data point from the user's context (porosity, density, surface texture, length, scalp data, hard-water area, current hairstyle, a named goal/challenge, a low/high-rated product pattern).
 - Frame as "for your [data point], this ingredient typically [behaviour]" — explanatory, not prescriptive.
 - Never write a personal_note that would apply to any user generically.
-- Never tell the user to use or avoid the ingredient. Just explain how it interacts with their measurable traits.
 
 WHAT_IT_MEANS_FOR_YOU RULES
-- 1–2 sentences only. Max 45 words. Calm, plain English.
-- Personalise to THIS user (porosity, density, scalp, hard water, goals) AND consider the surrounding formulation when provided — e.g. a humectant beside a strong occlusive behaves very differently than alone, a sulphate buffered by a mild co-surfactant is gentler.
-- Acknowledge concentration: most actives sit at <1–2%, so the practical effect is usually modest.
-- Lead with the practical takeaway for their hair, not a warning.`;
+- 3–5 sentences. Max 110 words. Plain English, real depth.
+- Personalise to THIS user (porosity, density, scalp, hard water, goals, style) AND consider the surrounding formulation when provided — e.g. a humectant beside a strong occlusive behaves very differently than alone, a sulphate buffered by a mild co-surfactant is gentler. Name a co-formulant or two when it sharpens the guidance.
+- Acknowledge concentration honestly: most actives sit at <1–2%, so the practical effect is usually modest.
+- End with a concrete, useable takeaway for their hair (timing, frequency, pairing, what to watch for) — never "avoid this".`;
 }
 
 function buildUserPrompt(body: RequestBody): string {
@@ -253,6 +273,9 @@ Deno.serve(async (req) => {
     }
     parsed = {
       what_it_is: String(args.what_it_is).trim(),
+      deep_dive: Array.isArray(args.deep_dive)
+        ? args.deep_dive.map((s: unknown) => String(s).trim()).filter(Boolean)
+        : [],
       benefits: args.benefits.map((s: unknown) => String(s).trim()).filter(Boolean),
       personal_notes: args.personal_notes
         .map((s: unknown) => String(s).trim())
