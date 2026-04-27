@@ -91,8 +91,8 @@ const Avoidlist = () => {
       />
 
       <ItalicSub>
-        Built automatically from the products you've put on your shelf,
-        favourited, AND actively used. An ingredient earns a{" "}
+        Built automatically from the products you've put on your shelf and
+        favourited. An ingredient earns a{" "}
         <span className="text-primary font-medium">flag</span> when it shows up
         in 3 or more of those products. Tap any flag to learn what the
         ingredient is, what it does, and which of your products contain it —
@@ -110,7 +110,7 @@ const Avoidlist = () => {
           {flags.length === 0 ? (
             <EmptyState
               message="No flagged ingredients yet"
-              hint="Favourite 3 or more products on your shelf that share an ingredient — once you've used them at least once, they'll appear here."
+              hint="Favourite 3 or more products on your shelf that share an ingredient — once the ingredient is saved on all 3 products, it will appear here."
             />
           ) : filteredFlags.length === 0 ? (
             <EmptyState
