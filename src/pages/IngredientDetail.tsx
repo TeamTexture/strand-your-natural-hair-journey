@@ -293,7 +293,7 @@ const IngredientDetail = () => {
                 variant="gold"
                 onClick={handleSaveRating}
                 disabled={saving}
-                className="shrink-0 !min-h-0 h-9 px-5 rounded-pill text-xs"
+                className="shrink-0 !min-h-0 h-7 px-3.5 rounded-pill text-[10px] tracking-[0.12em]"
               >
                 {saving ? "Saving…" : "Save"}
               </Button>
