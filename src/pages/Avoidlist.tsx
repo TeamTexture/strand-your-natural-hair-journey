@@ -84,72 +84,16 @@ const Avoidlist = () => {
   ) => {
     const isOpen = expanded === r.id;
     const matches = isOpen ? productsForIngredient(r.ingredient, kind) : [];
-    const dotClass = kind === "fav" ? "bg-good" : "bg-destructive";
-    const emoji = kind === "fav" ? "💚" : "🚩";
     return (
-      <SurfaceCard key={r.id} className="p-0 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setExpanded(isOpen ? null : r.id)}
-          className="w-full flex items-center gap-3 p-3 text-left"
-        >
-          <span className={cn("size-2.5 rounded-full shrink-0", dotClass)} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium leading-tight">{r.ingredient}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{r.reason}</p>
-          </div>
-          <ChevronDown
-            className={cn(
-              "size-4 text-muted-foreground transition-transform",
-              isOpen && "rotate-180",
-            )}
-          />
-          <span className="text-xl">{emoji}</span>
-        </button>
-        {isOpen && (
-          <div className="border-t border-border bg-muted/30 px-3 py-2 space-y-1.5">
-            {matches.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground py-1">
-                No matching products found.
-              </p>
-            ) : (
-              matches.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  // Use the SAME canonical product route as the My Products list
-                  // (Products.tsx → /products/profile/:id), which redirects to
-                  // /products/ingredient. Going through the redirect guarantees
-                  // every entry-point lands on the unified product page in the
-                  // exact same way — no risk of a key/name/brand mismatch
-                  // making the page render in a half-loaded state.
-                  onClick={() => navigate(`/products/profile/${p.id}`)}
-                  className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-background text-left transition-colors"
-                >
-                  {p.image_url ? (
-                    <img
-                      src={p.image_url}
-                      alt=""
-                      className="size-8 rounded object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="size-8 rounded bg-muted shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{p.name}</p>
-                    {p.brand && (
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {p.brand}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-muted-foreground text-xs">›</span>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </SurfaceCard>
+      <IngredientRow
+        key={r.id}
+        row={r}
+        kind={kind}
+        isOpen={isOpen}
+        matches={matches}
+        onToggle={() => setExpanded(isOpen ? null : r.id)}
+        onProductClick={(id) => navigate(`/products/profile/${id}`)}
+      />
     );
   };
 
