@@ -33,6 +33,9 @@ interface RequestBody {
   reason?: string;
   /** The full AI context payload built by buildAiContext() on the client. */
   context?: Record<string, unknown>;
+  /** Stable key for the product this ingredient lives in — used to scope
+   * the cache because the personalised guidance depends on co-formulants. */
+  productKey?: string;
   /** Optional: the product this ingredient sits inside, so the model can
    * weigh the rest of the formulation when explaining what it means
    * for the user's hair. */
