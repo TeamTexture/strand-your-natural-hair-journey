@@ -13,6 +13,7 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { toast } from "sonner";
 import VoiceNoteField from "@/components/VoiceNoteField";
+import AddToCalendarButton from "@/components/AddToCalendarButton";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 
