@@ -39,7 +39,14 @@ export interface AiContext {
   location: { is_hard_water_area: boolean | null; postcode: string | null };
   history: {
     last_3_wash_days: Array<Record<string, unknown>>;
+    /** Single unified list of ingredients that appear in 3+ of the user's
+     *  saved products. Educational — no good/bad framing. */
+    flagged_ingredients: string[];
+    /** @deprecated kept for backwards-compat with edge-function prompts that
+     *  still reference these names. Mirrors flagged_ingredients. */
     avoid_ingredients: string[];
+    /** @deprecated kept for backwards-compat with edge-function prompts that
+     *  still reference these names. Mirrors flagged_ingredients. */
     favourite_ingredients: string[];
     low_rated_products: Array<Record<string, unknown>>;
     high_rated_products: Array<Record<string, unknown>>;
@@ -120,8 +127,7 @@ export async function buildAiContext(): Promise<AiContext> {
     : [];
 
   let bloodResults: Array<Record<string, unknown>> = [];
-  let avoidIngredients: string[] = [];
-  let favouriteIngredients: string[] = [];
+  let flaggedIngredients: string[] = [];
   let recentWashes: Array<Record<string, unknown>> = [];
   let shelf: Array<Record<string, unknown>> = [];
   let lowRated: Array<Record<string, unknown>> = [];
@@ -161,11 +167,9 @@ export async function buildAiContext(): Promise<AiContext> {
       ]);
       bloodResults = (blood.data ?? []) as Array<Record<string, unknown>>;
       const lists = ingLists.data ?? [];
-      avoidIngredients = lists
-        .filter((r) => r.list_kind === "avoid")
-        .map((r) => r.ingredient);
-      favouriteIngredients = lists
-        .filter((r) => r.list_kind === "favourite")
+      // Single unified flag list — appears in 3+ of the user's products.
+      flaggedIngredients = lists
+        .filter((r) => r.list_kind === "flag")
         .map((r) => r.ingredient);
       recentWashes = (washes.data ?? []) as Array<Record<string, unknown>>;
       shelf = (shelfRows.data ?? []) as Array<Record<string, unknown>>;
@@ -251,8 +255,11 @@ export async function buildAiContext(): Promise<AiContext> {
     },
     history: {
       last_3_wash_days: last3,
-      avoid_ingredients: avoidIngredients,
-      favourite_ingredients: favouriteIngredients,
+      flagged_ingredients: flaggedIngredients,
+      // Mirror to deprecated keys so existing edge-function prompts keep
+      // resolving — they treat both the same neutral way.
+      avoid_ingredients: flaggedIngredients,
+      favourite_ingredients: flaggedIngredients,
       low_rated_products: lowRated,
       high_rated_products: highRated,
     },
