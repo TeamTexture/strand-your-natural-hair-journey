@@ -467,43 +467,18 @@ export function useHomeAlerts() {
         });
       }
 
-      // 10. Avoid-list ingredient currently on the shelf
-      const ingLists = (ingListsRes.data ?? []) as Array<{
-        ingredient: string;
-        list_kind: string;
-      }>;
-      const avoidSet = new Set(
-        ingLists
-          .filter((r) => r.list_kind === "avoid")
-          .map((r) => r.ingredient.toLowerCase()),
-      );
+      // 10. (Removed) The old "avoid-list ingredient on your shelf" alert no
+      // longer applies — flagged ingredients are now neutral / educational
+      // and by definition already appear in the user's products, so the
+      // alert would always fire and add no signal. ingListsRes is still
+      // fetched in case future alerts need it.
+      void ingListsRes;
       const shelfRows = (shelfRes.data ?? []) as Array<{
         name: string;
         brand: string | null;
         ingredients: string[];
         rating: number | null;
       }>;
-      if (avoidSet.size > 0 && shelfRows.length > 0) {
-        const offenders = shelfRows.filter((p) =>
-          (p.ingredients ?? []).some((ing) => avoidSet.has(ing.toLowerCase())),
-        );
-        if (offenders.length > 0) {
-          const first = offenders[0];
-          const more = offenders.length > 1 ? ` +${offenders.length - 1} more` : "";
-          next.push({
-            id: "avoid-on-shelf",
-            emoji: "🚫",
-            title: "Avoid-list ingredient on your shelf",
-            body: `${first.brand ? `${first.brand} ` : ""}${first.name}${more}. Tap to review.`,
-            to: "/products",
-            tone: "warning",
-            signature: `avoidShelf:${offenders
-              .map((o) => `${o.brand}|${o.name}`)
-              .sort()
-              .join("/")}`,
-          });
-        }
-      }
 
       // 11. Low-rated product still on shelf
       const lowRatedShelf = shelfRows.filter(

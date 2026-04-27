@@ -1,6 +1,7 @@
-// Generates a STRAND-branded PDF report of the user's auto-derived ingredient
-// lists (avoid + favourites). Uses jsPDF directly — no DOM rasterization — so
-// the output is sharp, selectable text, and small file size.
+// Generates a STRAND-branded PDF report of the user's auto-derived flagged
+// ingredients (ingredients that appear in 3+ of their saved products). Uses
+// jsPDF directly — no DOM rasterization — so the output is sharp,
+// selectable text, and small file size.
 //
 // Branding cues:
 //   - Warm sand page background (#F2E8D9)
@@ -14,8 +15,7 @@ import type { IngredientListRow } from "@/hooks/useIngredientLists";
 
 interface ReportInput {
   userName: string;
-  avoid: IngredientListRow[];
-  favourites: IngredientListRow[];
+  flags: IngredientListRow[];
 }
 
 // HSL → RGB tuple. STRAND tokens are HSL so we mirror them here for accuracy.
@@ -101,8 +101,7 @@ function ensureSpace(
 function drawIntro(
   doc: jsPDF,
   userName: string,
-  avoidCount: number,
-  favCount: number,
+  flagCount: number,
 ): number {
   let y = 46;
 
@@ -128,57 +127,34 @@ function drawIntro(
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.charcoal);
   const intro =
-    "This report summarises the ingredients automatically flagged from this user's product ratings inside the STRAND app. Use it as a starting point for consultations - these patterns reflect real-world tolerance and preference, not clinical diagnosis.";
+    "This report lists the ingredients that appear in 3 or more of this user's saved products inside the STRAND app. Treat it as an educational starting point for consultations - it shows what this user is consistently exposed to, not a clinical assessment.";
   const introLines = doc.splitTextToSize(intro, CONTENT_W);
   doc.text(introLines, MARGIN, y);
   y += introLines.length * 4.6 + 4;
 
-  // Summary chip row
+  // Single summary chip
   const chipY = y;
   const chipH = 18;
-  const chipW = (CONTENT_W - 6) / 2;
+  const chipW = CONTENT_W;
 
-  // Avoid chip
   doc.setFillColor(...COLORS.card);
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.2);
   doc.roundedRect(MARGIN, chipY, chipW, chipH, 2, 2, "FD");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(...COLORS.warn);
-  doc.text("AVOID", MARGIN + 5, chipY + 6);
+  doc.setTextColor(...COLORS.gold);
+  doc.text("FLAGGED", MARGIN + 5, chipY + 6);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.charcoal);
-  doc.text(String(avoidCount), MARGIN + 5, chipY + 14);
+  doc.text(String(flagCount), MARGIN + 5, chipY + 14);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.muted);
   doc.text(
-    avoidCount === 1 ? "ingredient flagged" : "ingredients flagged",
+    flagCount === 1 ? "ingredient flagged" : "ingredients flagged",
     MARGIN + 16,
-    chipY + 14,
-  );
-
-  // Favourites chip
-  const favX = MARGIN + chipW + 6;
-  doc.setFillColor(...COLORS.card);
-  doc.setDrawColor(...COLORS.border);
-  doc.roundedRect(favX, chipY, chipW, chipH, 2, 2, "FD");
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.good);
-  doc.text("FAVOURITES", favX + 5, chipY + 6);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(20);
-  doc.setTextColor(...COLORS.charcoal);
-  doc.text(String(favCount), favX + 5, chipY + 14);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.muted);
-  doc.text(
-    favCount === 1 ? "ingredient loved" : "ingredients loved",
-    favX + 16,
     chipY + 14,
   );
 
@@ -259,43 +235,26 @@ export function generateIngredientReportPdf(input: ReportInput) {
 
   paintBackground(doc);
   drawHeader(doc);
-  let y = drawIntro(doc, input.userName, input.avoid.length, input.favourites.length);
+  let y = drawIntro(doc, input.userName, input.flags.length);
 
   const continuationY = () => 46;
 
-  // AVOID section
+  // FLAGGED INGREDIENTS section — single unified list. An ingredient is
+  // flagged when it appears in 3+ of the user's saved products. Educational,
+  // no good/bad framing.
   y = ensureSpace(doc, y, 18, continuationY);
-  y = drawSectionHeading(doc, y, "Ingredients to avoid", COLORS.warn);
+  y = drawSectionHeading(doc, y, "Flagged ingredients", COLORS.gold);
 
-  if (input.avoid.length === 0) {
+  if (input.flags.length === 0) {
     y = drawEmptyState(
       doc,
       y,
-      "No ingredients flagged yet - rate two or more products 1-2 stars to populate.",
+      "No flagged ingredients yet - save 3 or more products that share an ingredient to populate.",
     );
   } else {
-    for (const row of input.avoid) {
+    for (const row of input.flags) {
       y = ensureSpace(doc, y, 16, continuationY);
-      y = drawIngredientRow(doc, y, row, COLORS.warn);
-    }
-  }
-
-  y += 4;
-
-  // FAVOURITES section
-  y = ensureSpace(doc, y, 18, continuationY);
-  y = drawSectionHeading(doc, y, "Favourite ingredients", COLORS.good);
-
-  if (input.favourites.length === 0) {
-    y = drawEmptyState(
-      doc,
-      y,
-      "No favourites yet - rate two or more products 4-5 stars to populate.",
-    );
-  } else {
-    for (const row of input.favourites) {
-      y = ensureSpace(doc, y, 16, continuationY);
-      y = drawIngredientRow(doc, y, row, COLORS.good);
+      y = drawIngredientRow(doc, y, row, COLORS.gold);
     }
   }
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Flag } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -18,10 +18,9 @@ import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
 
 const Avoidlist = () => {
-  const [tab, setTab] = useState<"avoid" | "fav">("avoid");
   const [exporting, setExporting] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const { avoid, favourites, loading } = useIngredientLists();
+  const { flags, loading } = useIngredientLists();
   const { allProducts } = useUserProducts("all");
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -42,7 +41,7 @@ const Avoidlist = () => {
           user.email?.split("@")[0] ||
           userName;
       }
-      const { blob, fileName } = generateIngredientReportPdf({ userName, avoid, favourites });
+      const { blob, fileName } = generateIngredientReportPdf({ userName, flags });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -60,40 +59,11 @@ const Avoidlist = () => {
     }
   };
 
-  const totalProducts = useMemo(
-    () => avoid.length + favourites.length,
-    [avoid.length, favourites.length],
-  );
-
-  /** Find products in the user's library that contain a given ingredient,
-   * filtered by which list (favourite vs off-shelf) the row belongs to. */
-  const productsForIngredient = (ingredient: string, kind: "avoid" | "fav") => {
+  /** Find products in the user's library that contain a given ingredient. */
+  const productsForIngredient = (ingredient: string) => {
     const needle = ingredient.trim().toLowerCase();
-    return allProducts.filter((p) => {
-      const inList = kind === "fav"
-        ? p.on_favourite
-        : !p.on_shelf && p.previously_on_shelf;
-      if (!inList) return false;
-      return (p.ingredients ?? []).some((i) => i.toLowerCase().includes(needle));
-    });
-  };
-
-  const renderRow = (
-    r: { id: string; ingredient: string; reason: string },
-    kind: "avoid" | "fav",
-  ) => {
-    const isOpen = expanded === r.id;
-    const matches = isOpen ? productsForIngredient(r.ingredient, kind) : [];
-    return (
-      <IngredientRow
-        key={r.id}
-        row={r}
-        kind={kind}
-        isOpen={isOpen}
-        matches={matches}
-        onToggle={() => setExpanded(isOpen ? null : r.id)}
-        onProductClick={(id) => navigate(`/products/profile/${id}`)}
-      />
+    return allProducts.filter((p) =>
+      (p.ingredients ?? []).some((i) => i.toLowerCase().includes(needle)),
     );
   };
 
@@ -101,63 +71,46 @@ const Avoidlist = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="Ingredient Analysis" />
       <ItalicSub>
-        Built automatically from your products. An ingredient becomes a{" "}
-        <span className="text-good font-medium">Green Flag</span> when it appears in
-        3 or more of your favourited products, and a{" "}
-        <span className="text-destructive font-medium">Red Flag</span> when it
-        appears in 3 or more products you've taken off your shelf.
+        Built automatically from your products. An ingredient earns a{" "}
+        <span className="text-primary font-medium">flag</span> when it shows up
+        in 3 or more of your saved products. Tap any flag to learn what the
+        ingredient is, what it does, and which of your products contain it —
+        purely educational, no good or bad.
       </ItalicSub>
-
-      <div className="px-5 pb-4">
-        <div className="grid grid-cols-2 gap-1 p-1 bg-card border border-border rounded-[10px]">
-          {(["fav", "avoid"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => { setTab(t); setExpanded(null); }}
-              className={cn(
-                "py-2 text-xs rounded-md font-medium transition-colors",
-                tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-              )}
-            >
-              {t === "fav"
-                ? `Green Flag (${favourites.length})`
-                : `Red Flag (${avoid.length})`}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {loading ? (
         <div className="px-5 pb-4">
           <SurfaceCard>
-            <LoadingDot label="Loading your ingredient lists…" />
+            <LoadingDot label="Loading your flagged ingredients…" />
           </SurfaceCard>
         </div>
-      ) : tab === "avoid" ? (
-        <div className="px-5 space-y-3 pb-4">
-          {avoid.length === 0 ? (
-            <EmptyState
-              message="No Red Flags yet"
-              hint="Take 3 or more products off the shelf and any ingredient they share will appear here."
-            />
-          ) : (
-            avoid.map((r) => renderRow(r, "avoid"))
-          )}
-        </div>
       ) : (
-        <div className="px-5 pb-4 space-y-3">
-          {favourites.length === 0 ? (
+        <div className="px-5 space-y-3 pb-4">
+          {flags.length === 0 ? (
             <EmptyState
-              message="No Green Flags yet"
-              hint="Tap the heart on 3 or more products that share an ingredient and it will appear here."
+              message="No flagged ingredients yet"
+              hint="Save 3 or more products that share an ingredient and it will appear here."
             />
           ) : (
-            favourites.map((r) => renderRow(r, "fav"))
+            flags.map((r) => {
+              const isOpen = expanded === r.id;
+              const matches = isOpen ? productsForIngredient(r.ingredient) : [];
+              return (
+                <IngredientRow
+                  key={r.id}
+                  row={r}
+                  isOpen={isOpen}
+                  matches={matches}
+                  onToggle={() => setExpanded(isOpen ? null : r.id)}
+                  onProductClick={(id) => navigate(`/products/profile/${id}`)}
+                />
+              );
+            })
           )}
         </div>
       )}
 
-      {totalProducts > 0 && (
+      {flags.length > 0 && (
         <div className="px-5 pb-6">
           <Button
             variant="gold"
@@ -174,14 +127,13 @@ const Avoidlist = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────
-// IngredientRow — single row inside the Green/Red flag list. Owns its own
-// AI profile fetch so the request only fires when the user expands the row.
-// React Query caches the profile per (user, flag, ingredient) and the edge
-// function caches in ai_summaries, so re-opening the same row is instant.
+// IngredientRow — single row inside the flagged-ingredient list. Owns its
+// own AI profile fetch so the request only fires when the user expands the
+// row. React Query caches per (user, ingredient) and the edge function
+// caches in ai_summaries, so re-opening the same row is instant.
 // ─────────────────────────────────────────────────────────────────────────
 interface IngredientRowProps {
   row: { id: string; ingredient: string; reason: string };
-  kind: "avoid" | "fav";
   isOpen: boolean;
   matches: UserProduct[];
   onToggle: () => void;
@@ -190,23 +142,14 @@ interface IngredientRowProps {
 
 const IngredientRow = ({
   row,
-  kind,
   isOpen,
   matches,
   onToggle,
   onProductClick,
 }: IngredientRowProps) => {
-  const dotClass = kind === "fav" ? "bg-good" : "bg-destructive";
-  const emoji = kind === "fav" ? "💚" : "🚩";
-
-  // Only fetch when the row is open. The hook itself respects this via
-  // `enabled` so a closed row makes zero network calls.
-  const profileQuery = useIngredientProfile(
-    row.ingredient,
-    kind,
-    row.reason,
-    isOpen,
-  );
+  // Only fetch when the row is open. The hook respects this via `enabled`
+  // so a closed row makes zero network calls.
+  const profileQuery = useIngredientProfile(row.ingredient, row.reason, isOpen);
 
   return (
     <SurfaceCard className="p-0 overflow-hidden">
@@ -215,7 +158,7 @@ const IngredientRow = ({
         onClick={onToggle}
         className="w-full flex items-center gap-3 p-3 text-left"
       >
-        <span className={cn("size-2.5 rounded-full shrink-0", dotClass)} />
+        <Flag className="size-4 text-primary fill-primary shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium leading-tight">{row.ingredient}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">{row.reason}</p>
@@ -226,7 +169,6 @@ const IngredientRow = ({
             isOpen && "rotate-180",
           )}
         />
-        <span className="text-xl">{emoji}</span>
       </button>
 
       {isOpen && (
@@ -255,7 +197,7 @@ const IngredientRow = ({
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
-                    Benefits
+                    What it does
                   </p>
                   <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
                     {profileQuery.data.benefits.map((b, i) => (
@@ -265,9 +207,7 @@ const IngredientRow = ({
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
-                    {kind === "fav"
-                      ? "Why it likely works for you"
-                      : "Possible reasons it's flagged for you"}
+                    For your hair specifically
                   </p>
                   <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
                     {profileQuery.data.personal_notes.map((n, i) => (
@@ -282,9 +222,7 @@ const IngredientRow = ({
           {/* Matching products from the user's library */}
           <div className="space-y-1.5 pt-2 border-t border-border/60">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
-              {kind === "fav"
-                ? "In your favourited products"
-                : "In products you removed"}
+              In your products
             </p>
             {matches.length === 0 ? (
               <p className="text-[11px] text-muted-foreground py-1">

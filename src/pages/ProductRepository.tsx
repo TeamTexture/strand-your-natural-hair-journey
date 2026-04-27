@@ -7,7 +7,6 @@ import LoadingDot from "@/components/LoadingDot";
 import { cn } from "@/lib/utils";
 import { useUserProducts, UserProduct } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
-import { useIngredientLists } from "@/hooks/useIngredientLists";
 
 type Tab = "shelf" | "wishlist" | "off-shelf";
 
@@ -34,10 +33,6 @@ const ProductRepository = () => {
   const [tab, setTab] = useState<Tab>("shelf");
   const { allProducts, loading } = useUserProducts("all");
   const { washDays } = useWashDays();
-  const { avoid, favourites } = useIngredientLists();
-
-  const avoidNames = useMemo(() => new Set(avoid.map(i => i.ingredient.toLowerCase())), [avoid]);
-  const favNames = useMemo(() => new Set(favourites.map(i => i.ingredient.toLowerCase())), [favourites]);
 
   // Map product_id -> last-used date from wash_days
   const lastUsedByProductId = useMemo(() => {

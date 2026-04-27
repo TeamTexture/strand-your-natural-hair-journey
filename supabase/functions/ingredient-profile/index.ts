@@ -1,15 +1,16 @@
 // ingredient-profile — short, science-backed profile for a single ingredient,
-// surfaced inside the dropdown row on the Avoidlist (Green Flag / Red Flag)
-// page. Returns three fields:
+// surfaced inside the dropdown row on the Ingredient Analysis page. Returns
+// three fields:
 //   - what_it_is: 1–2 plain-English sentences explaining the ingredient
 //   - benefits: 2–4 bullet points on what it does for hair (with mechanism)
 //   - personal_notes: 2–4 bullet points anchored in THIS user's own data
-//     (porosity, density, scalp condition, hard-water area, low/high-rated
-//     products, goals, challenges, current style) explaining why it likely
-//     ended up on their Green or Red flag list. NEVER medical advice.
+//     (porosity, density, scalp condition, hard-water area, current style,
+//     goals, challenges) explaining how the ingredient is likely to behave
+//     for THEIR hair specifically. Educational, never a diagnosis, never
+//     framed as good/bad.
 //
-// Cached per user in ai_summaries (kind = `ingredient_profile:<flag>:<name>`)
-// so re-opening a row is instant. Cache is invalidated when MODEL_VERSION
+// Cached per user in ai_summaries (kind = `ingredient_profile:<name>`) so
+// re-opening a row is instant. Cache is invalidated when MODEL_VERSION
 // bumps. Personal notes are user-specific so the cache cannot be shared.
 //
 // Lovable AI Gateway, structured output via tool calling.
@@ -24,13 +25,11 @@ declare const Deno: {
 };
 
 const MODEL = "google/gemini-2.5-flash";
-const MODEL_VERSION = "ingredient-profile@v1";
+const MODEL_VERSION = "ingredient-profile@v2-unified-flag";
 
 interface RequestBody {
   ingredient: string;
-  flag: "fav" | "avoid";
-  /** Why the ingredient ended up on the user's list (e.g. "Found in 3 of your
-   *  favourited products"). Used as soft framing context. */
+  /** Why the ingredient was flagged (e.g. "Appears in 3 of your products"). */
   reason?: string;
   /** The full AI context payload built by buildAiContext() on the client. */
   context?: Record<string, unknown>;
@@ -68,7 +67,7 @@ const TOOL_SCHEMA = {
       maxItems: 4,
       items: { type: "string" },
       description:
-        "2–4 short bullet points (each ≤25 words) explaining why this ingredient likely landed on the user's GREEN or RED flag list given THEIR data — porosity, density, scalp condition, hard-water area, goals, challenges, current style, low/high-rated products. Cite the specific data point that drives each note (e.g. 'low porosity', 'hard-water area', 'your length-retention goal'). Never give medical advice or name diagnoses.",
+        "2–4 short bullet points (each ≤25 words) explaining how this ingredient is likely to behave for THIS user's hair, anchored in their own data — porosity, density, scalp data, hard-water area, current style, named goals or challenges. Cite the specific data point that drives each note (e.g. 'low porosity', 'hard-water area', 'your length-retention goal'). Educational only — never frame as good or bad, never diagnose.",
     },
   },
   required: ["what_it_is", "benefits", "personal_notes"],
@@ -84,21 +83,19 @@ LANGUAGE RULES — NON-NEGOTIABLE
 - Moisture comes from water. Products NEVER add, restore, replenish, deliver or infuse moisture. They seal it in, lock it in, slow water loss, or help retention. Use this phrasing in benefits and personal_notes.
 - Never name a book, chapter, page, or author. No "Read more" lines. No source attribution. The voice is STRAND science-backed advice.
 - Never give a medical diagnosis. Never name diagnosed scalp/skin conditions, alopecia types, hormones, blood markers, medications or life stage in personal_notes — phrase around them ("your scalp data", "what you've logged") if they matter.
-- No fear-mongering. Routine cosmetic preservatives, fragrance, colourants and pH adjusters at legal limits are NOT inherently harmful — only flag them as a personal concern if the user's own data (avoid_ingredients, low-rated products, scalp data) warrants it.
+- No fear-mongering and no good/bad framing. The flag is purely educational — it just tells the user this ingredient appears in 3+ of their products. Never call an ingredient harmful, bad, problematic, or risky. Never call it ideal, perfect, or "exactly what you need". Stay neutral and explanatory.
 
 PERSONAL_NOTES RULES
-- EVERY personal_note must reference at least ONE concrete data point from the user's context (porosity, density, surface texture, length, scalp data, hard-water area, current hairstyle, a named goal/challenge, or a low/high-rated product pattern).
-- If the flag is "fav" (Green Flag), explain WHY this ingredient likely keeps showing up in products this user loves — anchor in measurable traits and goals.
-- If the flag is "avoid" (Red Flag), explain WHY this ingredient likely keeps appearing in products this user has taken off the shelf — anchor in measurable traits, hard-water status, or low-rated patterns. Frame as "likely reason" not certainty.
-- Never write a personal_note that would apply to any user generically.`;
+- EVERY personal_note must reference at least ONE concrete data point from the user's context (porosity, density, surface texture, length, scalp data, hard-water area, current hairstyle, a named goal/challenge, a low/high-rated product pattern).
+- Frame as "for your [data point], this ingredient typically [behaviour]" — explanatory, not prescriptive.
+- Never write a personal_note that would apply to any user generically.
+- Never tell the user to use or avoid the ingredient. Just explain how it interacts with their measurable traits.`;
 }
 
 function buildUserPrompt(body: RequestBody): string {
   const ctx = body.context ?? {};
-  const flagLabel = body.flag === "fav" ? "GREEN FLAG (favourited)" : "RED FLAG (off-shelf)";
   return `INGREDIENT: ${body.ingredient}
-LIST: ${flagLabel}
-${body.reason ? `WHY IT'S ON THE LIST: ${body.reason}` : ""}
+${body.reason ? `WHY IT'S FLAGGED: ${body.reason}` : ""}
 
 USER CONTEXT (JSON):
 ${JSON.stringify(ctx, null, 2).slice(0, 12000)}
@@ -106,10 +103,10 @@ ${JSON.stringify(ctx, null, 2).slice(0, 12000)}
 Generate the profile now via the return_profile tool.`;
 }
 
-function cacheKindFor(flag: "fav" | "avoid", ingredient: string): string {
-  // ai_summaries.kind is text, no length constraint in the schema. Lower-case
-  // the ingredient so casing variants share the cache row.
-  return `ingredient_profile:${flag}:${ingredient.toLowerCase().trim()}`;
+function cacheKindFor(ingredient: string): string {
+  // ai_summaries.kind is text. Lower-case the ingredient so casing variants
+  // share the cache row.
+  return `ingredient_profile:${ingredient.toLowerCase().trim()}`;
 }
 
 Deno.serve(async (req) => {
@@ -129,11 +126,8 @@ Deno.serve(async (req) => {
   if (!body?.ingredient || typeof body.ingredient !== "string") {
     return json(400, { error: "ingredient required" });
   }
-  if (body.flag !== "fav" && body.flag !== "avoid") {
-    return json(400, { error: "flag must be 'fav' or 'avoid'" });
-  }
 
-  const kind = cacheKindFor(body.flag, body.ingredient);
+  const kind = cacheKindFor(body.ingredient);
 
   // 1) Try cache (unless force).
   if (!body.force) {
