@@ -415,64 +415,102 @@ const IngredientDetail = () => {
               </>
             )}
 
-            <SectionLabel>Ingredient breakdown</SectionLabel>
+            <SectionLabel>Active ingredients</SectionLabel>
+            <p className="px-1 -mt-1 mb-2 text-[11px] text-muted-foreground italic leading-snug">
+              Showing the functional ingredients that actually do something for
+              your hair (actives, humectants, proteins, conditioning agents,
+              etc.). Fillers, preservatives, fragrance and pH adjusters are
+              hidden to keep this list useful.
+            </p>
             <SurfaceCard className="divide-y divide-border/60 !py-1">
-              {(analysis.ingredients ?? []).map((i, idx) => {
-                const lower = i.name.toLowerCase().trim();
-                // Flags are driven solely by qualified lists (ingredient must
-                // appear in 3+ of the user's favourited or off-shelf products).
-                // AI tone no longer paints flags — that would surface unverified
-                // greens/reds on ingredients that haven't earned the badge.
-                const isRedFlag = avoidNames.has(lower);
-                const isGreenFlag = !isRedFlag && favNames.has(lower);
-                const otherProducts = productsByIngredient.get(lower) ?? [];
-                return (
-                  <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
-                    <span
-                      className="mt-0.5 shrink-0 w-5 flex items-center justify-center"
-                      aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
-                    >
-                      {isRedFlag ? (
-                        <Flag className="size-4 text-destructive fill-destructive" />
-                      ) : isGreenFlag ? (
-                        <Flag className="size-4 text-good fill-good" />
-                      ) : null}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      {i.category && (
-                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
-                          {i.category}
+              {(() => {
+                // Categories that meaningfully act on hair — everything else
+                // (preservative, solvent, fragrance, colourant, pH adjuster,
+                // chelator, emulsifier, thickener) is filler from the user's
+                // perspective and is hidden to reduce overwhelm.
+                const ACTIVE_CATEGORIES = new Set([
+                  "active",
+                  "humectant",
+                  "emollient",
+                  "occlusive",
+                  "surfactant",
+                  "conditioning agent",
+                  "protein",
+                  "antioxidant",
+                  "botanical extract",
+                ]);
+                const visible = (analysis.ingredients ?? []).filter((i) => {
+                  const lower = i.name.toLowerCase().trim();
+                  // Always keep flagged ingredients — green/red flags must
+                  // surface regardless of category.
+                  if (avoidNames.has(lower) || favNames.has(lower)) return true;
+                  const cat = (i.category ?? "").toLowerCase().trim();
+                  return ACTIVE_CATEGORIES.has(cat);
+                });
+                if (visible.length === 0) {
+                  return (
+                    <p className="text-[11px] text-muted-foreground py-3 text-center">
+                      No active ingredients identified for this product.
+                    </p>
+                  );
+                }
+                return visible.map((i, idx) => {
+                  const lower = i.name.toLowerCase().trim();
+                  // Flags are driven solely by qualified lists (ingredient must
+                  // appear in 3+ of the user's favourited or off-shelf products).
+                  // AI tone no longer paints flags — that would surface unverified
+                  // greens/reds on ingredients that haven't earned the badge.
+                  const isRedFlag = avoidNames.has(lower);
+                  const isGreenFlag = !isRedFlag && favNames.has(lower);
+                  const otherProducts = productsByIngredient.get(lower) ?? [];
+                  return (
+                    <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
+                      <span
+                        className="mt-0.5 shrink-0 w-5 flex items-center justify-center"
+                        aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
+                      >
+                        {isRedFlag ? (
+                          <Flag className="size-4 text-destructive fill-destructive" />
+                        ) : isGreenFlag ? (
+                          <Flag className="size-4 text-good fill-good" />
+                        ) : null}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        {i.category && (
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
+                            {i.category}
+                          </p>
+                        )}
+                        <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                          {i.body}
                         </p>
-                      )}
-                      <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                        {i.body}
-                      </p>
-                      {otherProducts.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Always go through the canonical /products/profile/:id
-                            // redirect so every entry-point lands on the unified
-                            // product page in the exact same way.
-                            if (otherProducts.length === 1) {
-                              const o = otherProducts[0];
-                              navigate(`/products/profile/${o.id}`);
-                            } else {
-                              navigate(
-                                `/products/by-ingredient?ingredient=${encodeURIComponent(i.name)}`,
-                              );
-                            }
-                          }}
-                          className="mt-1.5 text-[11px] text-primary underline-offset-4 hover:underline"
-                        >
-                          Used in {otherProducts.length} other {otherProducts.length === 1 ? "product" : "products"}
-                        </button>
-                      )}
+                        {otherProducts.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Always go through the canonical /products/profile/:id
+                              // redirect so every entry-point lands on the unified
+                              // product page in the exact same way.
+                              if (otherProducts.length === 1) {
+                                const o = otherProducts[0];
+                                navigate(`/products/profile/${o.id}`);
+                              } else {
+                                navigate(
+                                  `/products/by-ingredient?ingredient=${encodeURIComponent(i.name)}`,
+                                );
+                              }
+                            }}
+                            className="mt-1.5 text-[11px] text-primary underline-offset-4 hover:underline"
+                          >
+                            Used in {otherProducts.length} other {otherProducts.length === 1 ? "product" : "products"}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </SurfaceCard>
           </>
         )}
