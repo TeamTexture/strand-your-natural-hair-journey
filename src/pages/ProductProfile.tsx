@@ -524,10 +524,14 @@ const ProductProfile = () => {
                       aria-expanded={isClickable ? isExpanded : undefined}
                     >
                       <span
-                        className="text-sm leading-none shrink-0 mt-0.5 w-4 text-center"
+                        className="shrink-0 mt-0.5 w-4 flex items-center justify-center"
                         aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
                       >
-                        {isRedFlag ? "🚩" : isGreenFlag ? "💚" : ""}
+                        {isRedFlag ? (
+                          <Flag className="size-3.5 text-destructive fill-destructive" />
+                        ) : isGreenFlag ? (
+                          <Flag className="size-3.5 text-good fill-good" />
+                        ) : null}
                       </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium leading-tight">{name}</p>
