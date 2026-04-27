@@ -30,6 +30,7 @@ import { requireAuthedUser } from "../_shared/auth.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
+import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
