@@ -1,23 +1,40 @@
-import { Heart, RefreshCw } from "lucide-react";
+import { Flag, RefreshCw, Trash2, Bookmark, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import ProductPhotoTile from "@/components/ProductPhotoTile";
+import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
+import { useUserProducts } from "@/hooks/useUserProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
 
-interface Ingredient { tone: "good" | "warn" | "bad"; name: string; body: string }
+interface Ingredient {
+  tone: "good" | "warn" | "bad";
+  name: string;
+  body: string;
+  category?: string;
+}
 interface GuidanceTip { title: string; body: string }
 interface Analysis {
   match_score: number;
@@ -26,27 +43,72 @@ interface Analysis {
   personalised_guidance?: GuidanceTip[];
 }
 
+const formatRelative = (iso: string | null): string | null => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const now = Date.now();
+  const diffH = (now - d.getTime()) / (1000 * 60 * 60);
+  if (diffH < 24) return "today";
+  if (diffH < 48) return "yesterday";
+  const days = Math.floor(diffH / 24);
+  if (days < 14) return `${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 8) return `${weeks} wks ago`;
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+};
+
 const IngredientDetail = () => {
-  const [rating, setRating] = useState(5);
+  const navigate = useNavigate();
+  const [rating, setRating] = useState(0);
   const [searchParams] = useSearchParams();
-  // No hardcoded brand/product fallbacks — if these are missing the page
-  // simply shows the empty state until a product is provided via the URL.
+
   const productKey = searchParams.get("key") ?? "";
   const productName = searchParams.get("name") ?? "";
   const productBrand = searchParams.get("brand") ?? "";
+
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
   const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;
+
+  const { allProducts, setShelf, setWishlist, remove, reload } = useUserProducts("all");
+  const productRow = useMemo(
+    () => allProducts.find((p) => p.product_key === productKey) ?? null,
+    [allProducts, productKey],
+  );
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [saving, setSaving] = useState(false);
-  const [isFavourited, setIsFavourited] = useState(false);
-  const [favSaving, setFavSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [offShelfOpen, setOffShelfOpen] = useState(false);
+  const [shelfBusy, setShelfBusy] = useState(false);
+
   const { avoid, favourites } = useIngredientLists();
-  const avoidNames = new Set(avoid.map((r) => r.ingredient.toLowerCase()));
-  const favNames = new Set(favourites.map((r) => r.ingredient.toLowerCase()));
+  const avoidNames = useMemo(
+    () => new Set(avoid.map((r) => r.ingredient.toLowerCase())),
+    [avoid],
+  );
+  const favNames = useMemo(
+    () => new Set(favourites.map((r) => r.ingredient.toLowerCase())),
+    [favourites],
+  );
+
+  // For "Used in N other products" lookup: index user's products by lowercased
+  // ingredient name. Excludes the current product.
+  const productsByIngredient = useMemo(() => {
+    const map = new Map<string, Array<{ key: string; name: string; brand: string | null }>>();
+    for (const p of allProducts) {
+      if (p.product_key === productKey) continue;
+      for (const ing of p.ingredients ?? []) {
+        const k = ing.toLowerCase().trim();
+        if (!k) continue;
+        if (!map.has(k)) map.set(k, []);
+        map.get(k)!.push({ key: p.product_key, name: p.name, brand: p.brand });
+      }
+    }
+    return map;
+  }, [allProducts, productKey]);
 
   // Fallback: if no separate photo upload exists, use the image stored on
   // the user's product (uploaded during scan or pulled from the product URL).
@@ -79,9 +141,12 @@ const IngredientDetail = () => {
     };
   }, [productKey]);
 
-  // Load any previously-saved rating so the stars reflect the user's choice,
-  // and the favourite flag so the heart starts in the right state.
+  // Hydrate rating from product row (or product_ratings fallback).
   useEffect(() => {
+    if (productRow?.rating) {
+      setRating(productRow.rating);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
@@ -94,23 +159,14 @@ const IngredientDetail = () => {
         .eq("product_key", productKey)
         .maybeSingle();
       if (!cancelled && ratingRow?.rating) setRating(ratingRow.rating);
-      const { data: favRow } = await supabase
-        .from("user_products")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .select("on_favourite" as any)
-        .eq("user_id", user.id)
-        .eq("product_key", productKey)
-        .maybeSingle();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (!cancelled && (favRow as any)?.on_favourite) setIsFavourited(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [productKey]);
+  }, [productKey, productRow?.rating]);
 
   const handleSaveRating = async () => {
-    if (saving) return;
+    if (saving || rating === 0) return;
     setSaving(true);
     try {
       await saveProductRating({
@@ -176,101 +232,112 @@ const IngredientDetail = () => {
   );
 
   useEffect(() => {
-    runAnalysis(false);
-  }, [runAnalysis]);
+    if (productKey) runAnalysis(false);
+  }, [runAnalysis, productKey]);
 
-  const matchScore = analysis?.match_score ?? null;
-  const scoreTone =
-    matchScore == null
-      ? "text-muted-foreground border-border"
-      : matchScore >= 80
-      ? "text-good border-good"
-      : matchScore >= 55
-      ? "text-warn border-warn"
-      : "text-destructive border-destructive";
+  // ── Shelf state derived flags (drives bottom action button choice) ─────
+  const onShelf = !!productRow?.on_shelf;
+  const onWishlist = !!productRow?.on_wishlist;
+  const previouslyOnShelf = !!productRow?.previously_on_shelf;
+  const status: "shelf" | "wishlist" | "off-shelf" | "unknown" =
+    onShelf ? "shelf" : onWishlist ? "wishlist" : previouslyOnShelf ? "off-shelf" : "unknown";
 
-  const handleToggleFavourite = async () => {
-    if (favSaving) return;
-    if (!productKey) {
-      toast.error("Missing product — open from your shelf or scan results");
-      return;
-    }
-    const next = !isFavourited;
-    setIsFavourited(next); // optimistic
-    setFavSaving(true);
+  // ── Bottom-row actions ─────────────────────────────────────────────────
+  const handleAddToShelf = async () => {
+    if (!productRow) return;
+    setShelfBusy(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-      if (!user) throw new Error("Not signed in");
-
-      // Make sure the product exists in user_products so the favourite flag
-      // has somewhere to live. Use upsert keyed on (user_id, product_key).
-      const ingredientNames = (analysis?.ingredients ?? []).map((i) => i.name);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload: any = {
-        user_id: user.id,
-        product_key: productKey,
-        name: productName || "Untitled product",
-        brand: productBrand || null,
-        on_favourite: next,
-      };
-      if (ingredientNames.length > 0) payload.ingredients = ingredientNames;
-
-      const { error: upErr } = await supabase
-        .from("user_products")
-        .upsert(payload, { onConflict: "user_id,product_key" });
-      if (upErr) throw upErr;
-
-      // Recompute Green Flag list now that membership changed.
-      await recomputeIngredientFlags();
-      window.dispatchEvent(new CustomEvent("user-products-updated"));
-      toast(next ? "❤️ Added to favourites" : "Removed from favourites");
-    } catch (e: unknown) {
-      setIsFavourited(!next); // rollback
-      const msg = e instanceof Error ? e.message : "Could not update favourite";
-      toast.error(msg);
+      await setShelf(productRow.id, true);
+      toast.success(`${productRow.name} added to your shelf`);
     } finally {
-      setFavSaving(false);
+      setShelfBusy(false);
     }
+  };
+
+  const handleAddToWishlist = async () => {
+    if (!productRow) return;
+    setShelfBusy(true);
+    try {
+      await setWishlist(productRow.id, true);
+      toast.success(`${productRow.name} added to your wishlist`);
+    } finally {
+      setShelfBusy(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!productRow) return;
+    setShelfBusy(true);
+    try {
+      await remove(productRow.id);
+      toast.success("Removed from your products");
+      navigate(-1);
+    } finally {
+      setShelfBusy(false);
+    }
+  };
+
+  const onShelfReasonComplete = async () => {
+    await reload();
+    await recomputeIngredientFlags();
   };
 
   return (
     <ScreenLayout>
-      <TitleBar
-        title="Ingredient Analysis"
-        right={
-          <button
-            onClick={handleToggleFavourite}
-            aria-label={isFavourited ? "Remove from favourites" : "Add to favourites"}
-            aria-pressed={isFavourited}
-            disabled={favSaving}
-            className={cn(
-              "min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors",
-              isFavourited ? "text-destructive" : "text-muted-foreground hover:text-destructive",
-            )}
-          >
-            <Heart className={cn("size-5", isFavourited && "fill-current")} />
-          </button>
-        }
-      />
+      <TitleBar title="Product" />
 
       <div className="px-5 pb-8 space-y-4">
-        <SurfaceCard className="space-y-3">
-          <div className="flex items-center gap-3">
-            <ProductPhotoTile
-              imageUrl={photoUrl}
-              fallbackEmoji="🧴"
-              size="size-14"
-              onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
-              onRemove={() => removePhoto(productKey)}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-base font-semibold leading-tight">{productName}</p>
-              <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{productBrand}</p>
-            </div>
-          </div>
+        {/* ── HERO: image + title + brand link ─────────────────────────── */}
+        <div className="flex flex-col items-center text-center pt-1 pb-2">
+          <ProductPhotoTile
+            imageUrl={photoUrl}
+            fallbackEmoji="🧴"
+            size="size-28"
+            className="mb-3"
+            onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
+            onRemove={() => removePhoto(productKey)}
+          />
+          <h1 className="font-display text-xl font-semibold leading-tight max-w-[280px]">
+            {productName || "Untitled product"}
+          </h1>
+          {productBrand && (
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/products/brand/${encodeURIComponent(productBrand)}`)
+              }
+              className="mt-1 text-[11px] uppercase tracking-[0.18em] text-primary underline-offset-4 hover:underline"
+            >
+              {productBrand}
+            </button>
+          )}
+          {status !== "unknown" && (
+            <p className="mt-1.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              {status === "shelf"
+                ? "On your shelf"
+                : status === "wishlist"
+                ? "On your wishlist"
+                : "Off your shelf"}
+            </p>
+          )}
+        </div>
 
-          <div className="pt-3 border-t border-border/60">
+        {/* ── Last used / use count / rating row ───────────────────────── */}
+        <SurfaceCard className="space-y-3">
+          {productRow && (
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/60">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Last used</span>
+                <span className="text-sm font-medium">{formatRelative(productRow.last_used_at) ?? "Never"}</span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Times used</span>
+                <span className="text-sm font-medium">{productRow.use_count ?? 0}</span>
+              </div>
+            </div>
+          )}
+
+          <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your Rating</p>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-1.5">
@@ -292,7 +359,7 @@ const IngredientDetail = () => {
               <Button
                 variant="gold"
                 onClick={handleSaveRating}
-                disabled={saving}
+                disabled={saving || rating === 0}
                 className="shrink-0 !min-h-0 h-7 px-3.5 rounded-pill text-[10px] tracking-[0.12em]"
               >
                 {saving ? "Saving…" : "Save"}
@@ -318,11 +385,15 @@ const IngredientDetail = () => {
 
         {analysis && !loading && (
           <>
+            {/* AI Summary — personalised to hair, health, lifestyle */}
             <SurfaceCard tone="gold">
               <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">{analysis.summary}</p>
+              <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">
+                {analysis.summary}
+              </p>
             </SurfaceCard>
 
+            {/* Personalised "How to use this for your hair" */}
             {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
@@ -334,7 +405,9 @@ const IngredientDetail = () => {
                       </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium leading-tight">{tip.title}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{tip.body}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">
+                          {tip.body}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -346,28 +419,63 @@ const IngredientDetail = () => {
             <SurfaceCard className="divide-y divide-border/60 !py-1">
               {(analysis.ingredients ?? []).map((i, idx) => {
                 const lower = i.name.toLowerCase().trim();
-                const isRedFlag = avoidNames.has(lower);
-                const isGreenFlag = favNames.has(lower);
+                const isRedFlag = avoidNames.has(lower) || i.tone === "bad";
+                const isGreenFlag = !isRedFlag && (favNames.has(lower) || i.tone === "good");
+                const otherProducts = productsByIngredient.get(lower) ?? [];
                 return (
                   <div key={`${i.name}-${idx}`} className="flex items-start gap-3 py-3">
                     <span
-                      className="text-sm leading-none mt-0.5 shrink-0 w-4 text-center"
+                      className="mt-0.5 shrink-0 w-5 flex items-center justify-center"
                       aria-label={isRedFlag ? "red flag" : isGreenFlag ? "green flag" : "neutral"}
                     >
-                      {isRedFlag ? "🚩" : isGreenFlag ? "💚" : ""}
+                      {isRedFlag ? (
+                        <Flag className="size-4 text-destructive fill-destructive" />
+                      ) : isGreenFlag ? (
+                        <Flag className="size-4 text-good fill-good" />
+                      ) : null}
                     </span>
                     <div className="flex-1 min-w-0">
+                      {i.category && (
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
+                          {i.category}
+                        </p>
+                      )}
                       <p className="text-sm font-medium font-body leading-tight">{i.name}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{i.body}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                        {i.body}
+                      </p>
+                      {otherProducts.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // If only 1 sibling, navigate straight to it; else
+                            // open the brand-products list filtered to that
+                            // ingredient via a query param so the user can pick.
+                            if (otherProducts.length === 1) {
+                              const o = otherProducts[0];
+                              navigate(
+                                `/products/ingredient?key=${encodeURIComponent(o.key)}&name=${encodeURIComponent(o.name)}&brand=${encodeURIComponent(o.brand ?? "")}`,
+                              );
+                            } else {
+                              navigate(
+                                `/products/by-ingredient?ingredient=${encodeURIComponent(i.name)}`,
+                              );
+                            }
+                          }}
+                          className="mt-1.5 text-[11px] text-primary underline-offset-4 hover:underline"
+                        >
+                          Used in {otherProducts.length} other {otherProducts.length === 1 ? "product" : "products"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </SurfaceCard>
-
           </>
         )}
 
+        {/* Voicenotes */}
         <SectionLabel>Your voicenotes</SectionLabel>
         <SurfaceCard>
           <ProductVoicenotes
@@ -377,7 +485,88 @@ const IngredientDetail = () => {
           />
         </SurfaceCard>
 
+        {/* ── Bottom shelf actions (context-aware) ────────────────────── */}
+        {productRow && (
+          <div className="space-y-2 pt-2">
+            {status === "shelf" && (
+              <Button
+                variant="goldGhost"
+                size="pill"
+                className="w-full"
+                onClick={() => setOffShelfOpen(true)}
+                disabled={shelfBusy}
+              >
+                <ArrowUpFromLine className="size-4 mr-1.5" /> Take off the shelf
+              </Button>
+            )}
+            {(status === "shelf" || status === "off-shelf") && (
+              <Button
+                variant="ghost"
+                size="pill"
+                className="w-full"
+                onClick={handleAddToWishlist}
+                disabled={shelfBusy}
+              >
+                <Bookmark className="size-4 mr-1.5" /> Add to wishlist
+              </Button>
+            )}
+            {(status === "wishlist" || status === "off-shelf") && (
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full"
+                onClick={handleAddToShelf}
+                disabled={shelfBusy}
+              >
+                <ArrowDownToLine className="size-4 mr-1.5" />{" "}
+                {status === "off-shelf" ? "Put back on shelf" : "Add to shelf"}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="pill"
+              className="w-full text-destructive hover:text-destructive"
+              onClick={() => setConfirmDelete(true)}
+              disabled={shelfBusy}
+            >
+              <Trash2 className="size-4 mr-1.5" /> Remove from app
+            </Button>
+          </div>
+        )}
       </div>
+
+      {productRow && (
+        <>
+          <OffShelfReasonSheet
+            open={offShelfOpen}
+            onOpenChange={setOffShelfOpen}
+            productId={productRow.id}
+            productKey={productRow.product_key}
+            productName={productRow.name}
+            onComplete={onShelfReasonComplete}
+          />
+          <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove this product?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently removes "{productRow.name}" from your products,
+                  ratings, and any flag lists derived from it. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={handleConfirmDelete}
+                >
+                  Remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </ScreenLayout>
   );
 };
