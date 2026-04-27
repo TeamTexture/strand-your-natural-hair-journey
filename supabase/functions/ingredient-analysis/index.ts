@@ -96,9 +96,13 @@ function buildToolSchema(ingredientCount: number) {
           properties: {
             name: { type: "string" },
             tone: { type: "string", enum: ["good", "warn", "bad"] },
+            category: {
+              type: "string",
+              description: "Cosmetic-chemistry category from How To Love Your Afro: Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If the ingredient doesn't slot into a book category, choose the closest cosmetic-science category.",
+            },
             body: { type: "string" },
           },
-          required: ["name", "tone", "body"],
+          required: ["name", "tone", "category", "body"],
         },
       },
       personalised_guidance: {
