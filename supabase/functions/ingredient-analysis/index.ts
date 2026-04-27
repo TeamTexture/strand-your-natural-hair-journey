@@ -27,11 +27,20 @@ import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v6-moisture-language-locked";
+const MODEL_VERSION = "claude-sonnet-4-6@v7-categories-and-goals";
 
 interface IngredientCard {
   name: string;
   tone: "good" | "warn" | "bad";
+  /**
+   * Cosmetic-chemistry category, drawn from How To Love Your Afro's framework
+   * (Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning
+   * Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster,
+   * Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract). When
+   * the ingredient doesn't slot into a book category, infer from cosmetic
+   * science.
+   */
+  category: string;
   body: string;
 }
 interface GuidanceTip {
