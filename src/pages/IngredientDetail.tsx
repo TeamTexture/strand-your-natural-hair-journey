@@ -90,6 +90,7 @@ const IngredientDetail = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [shelfBusy, setShelfBusy] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
 
   const { flags } = useIngredientLists();
   // Single unified "flagged" set — appears in 3+ of the user's products.
