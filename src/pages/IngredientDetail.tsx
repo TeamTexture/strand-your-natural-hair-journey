@@ -100,6 +100,36 @@ const IngredientDetail = () => {
     [flags],
   );
 
+  // Other ingredients in the same formulation, used to give the AI
+  // context for the "what this means for your hair type" guidance.
+  const formulationNames = useMemo(
+    () => (analysis?.ingredients ?? []).map((i) => i.name),
+    [analysis],
+  );
+  const otherFormulationNames = useMemo(
+    () =>
+      formulationNames.filter(
+        (n) => n.toLowerCase().trim() !== (selectedIngredient?.name ?? "").toLowerCase().trim(),
+      ),
+    [formulationNames, selectedIngredient],
+  );
+
+  const reasonForFlag = selectedIngredient && flaggedNames.has(selectedIngredient.name.toLowerCase().trim())
+    ? "Appears in 3 or more of the user's products"
+    : undefined;
+
+  const ingredientProfile = useIngredientProfile(
+    selectedIngredient?.name ?? null,
+    reasonForFlag,
+    !!selectedIngredient,
+    {
+      productKey,
+      productName,
+      productBrand,
+      formulationIngredients: otherFormulationNames,
+    },
+  );
+
   // For "Used in N other products" lookup: index user's products by lowercased
   // ingredient name. Excludes the current product.
   const productsByIngredient = useMemo(() => {
