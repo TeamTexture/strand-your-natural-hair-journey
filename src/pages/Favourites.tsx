@@ -71,15 +71,7 @@ const Favourites = () => {
                     )}
                   </div>
                   <button
-                    onClick={() =>
-                      navigate(
-                        `/products/ingredient?key=${encodeURIComponent(
-                          p.product_key,
-                        )}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(
-                          p.brand ?? "",
-                        )}`,
-                      )
-                    }
+                    onClick={() => navigate(`/products/profile/${p.id}`)}
                     className="flex-1 min-w-0 text-left"
                   >
                     <p className="text-sm font-medium leading-tight truncate">{p.name}</p>

@@ -97,14 +97,14 @@ const IngredientDetail = () => {
   // For "Used in N other products" lookup: index user's products by lowercased
   // ingredient name. Excludes the current product.
   const productsByIngredient = useMemo(() => {
-    const map = new Map<string, Array<{ key: string; name: string; brand: string | null }>>();
+    const map = new Map<string, Array<{ id: string; key: string; name: string; brand: string | null }>>();
     for (const p of allProducts) {
       if (p.product_key === productKey) continue;
       for (const ing of p.ingredients ?? []) {
         const k = ing.toLowerCase().trim();
         if (!k) continue;
         if (!map.has(k)) map.set(k, []);
-        map.get(k)!.push({ key: p.product_key, name: p.name, brand: p.brand });
+        map.get(k)!.push({ id: p.id, key: p.product_key, name: p.name, brand: p.brand });
       }
     }
     return map;
@@ -452,14 +452,12 @@ const IngredientDetail = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            // If only 1 sibling, navigate straight to it; else
-                            // open the brand-products list filtered to that
-                            // ingredient via a query param so the user can pick.
+                            // Always go through the canonical /products/profile/:id
+                            // redirect so every entry-point lands on the unified
+                            // product page in the exact same way.
                             if (otherProducts.length === 1) {
                               const o = otherProducts[0];
-                              navigate(
-                                `/products/ingredient?key=${encodeURIComponent(o.key)}&name=${encodeURIComponent(o.name)}&brand=${encodeURIComponent(o.brand ?? "")}`,
-                              );
+                              navigate(`/products/profile/${o.id}`);
                             } else {
                               navigate(
                                 `/products/by-ingredient?ingredient=${encodeURIComponent(i.name)}`,

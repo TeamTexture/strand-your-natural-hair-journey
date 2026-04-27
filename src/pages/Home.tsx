@@ -392,7 +392,7 @@ const Home = () => {
             shelfProducts.slice(0, 4).map((s) => (
               <button
                 key={s.id}
-                onClick={() => navigate(`/products/ingredient?key=${encodeURIComponent(s.product_key)}&name=${encodeURIComponent(s.name)}&brand=${encodeURIComponent(s.brand ?? "")}`)}
+                onClick={() => navigate(`/products/profile/${s.id}`)}
                 className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px] last:rounded-b-[14px]"
               >
                 <div className="size-11 rounded-[10px] overflow-hidden bg-primary/15 flex items-center justify-center text-xl">
