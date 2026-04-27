@@ -70,7 +70,7 @@ const Wishlist = () => {
             return (
               <SurfaceCard key={p.id} padded={false} className="overflow-hidden">
                 <div className="p-3.5 flex items-center gap-3">
-                  <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0">
+                  <div className="size-12 rounded-[10px] overflow-hidden bg-transparent shrink-0">
                     {p.image_url ? (
                       <img src={p.image_url} alt="" className="size-full object-contain mix-blend-multiply" />
                     ) : (
