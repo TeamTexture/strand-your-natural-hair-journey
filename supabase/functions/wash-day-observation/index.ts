@@ -1,6 +1,7 @@
 // Generates a 2-3 sentence personalised observation about the user's wash day.
 // Uses Lovable AI Gateway with tool calling for structured output.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { stripModelCitations } from "../_shared/sanitize-citations.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
