@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
-import { useUserProducts } from "@/hooks/useUserProducts";
+import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useAuth } from "@/hooks/useAuth";
+import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
 
