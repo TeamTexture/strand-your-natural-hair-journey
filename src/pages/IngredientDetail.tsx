@@ -455,8 +455,8 @@ const IngredientDetail = () => {
             <p className="px-1 -mt-1 mb-2 text-[11px] text-muted-foreground italic leading-snug">
               Every ingredient in this formulation. Tap a bubble to learn what
               it is, what category it falls under, and how it's used in this
-              product. A small flag marks ingredients that appear in 3+ of your
-              products.
+              product. A small flag marks ingredients that appear in 3+ of the
+              products you've put on your shelf and favourited.
             </p>
             <div className="rounded-2xl bg-white border border-border/60 p-4">
               {(() => {
