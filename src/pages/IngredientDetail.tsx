@@ -452,14 +452,12 @@ const IngredientDetail = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            // If only 1 sibling, navigate straight to it; else
-                            // open the brand-products list filtered to that
-                            // ingredient via a query param so the user can pick.
+                            // Always go through the canonical /products/profile/:id
+                            // redirect so every entry-point lands on the unified
+                            // product page in the exact same way.
                             if (otherProducts.length === 1) {
                               const o = otherProducts[0];
-                              navigate(
-                                `/products/ingredient?key=${encodeURIComponent(o.key)}&name=${encodeURIComponent(o.name)}&brand=${encodeURIComponent(o.brand ?? "")}`,
-                              );
+                              navigate(`/products/profile/${o.id}`);
                             } else {
                               navigate(
                                 `/products/by-ingredient?ingredient=${encodeURIComponent(i.name)}`,
