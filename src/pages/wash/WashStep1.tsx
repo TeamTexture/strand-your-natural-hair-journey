@@ -512,6 +512,12 @@ const WashStep1 = () => {
             ...(heatChoice === "yes"
               ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
               : []),
+            ...(heatChoice === "yes"
+              ? heatToolIds
+                  .map((id) => allTools.find((t) => t.id === id))
+                  .filter((t): t is NonNullable<typeof t> => !!t)
+                  .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
+              : []),
             ...(heatChoice === "no" ? ["No heat"] : []),
           ]}
           editor={
