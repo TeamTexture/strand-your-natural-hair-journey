@@ -663,7 +663,6 @@ const IngredientDetail = () => {
                         part of the routine you actually use, worth knowing
                         well.
                       </p>
-                      </p>
                     </div>
                   )}
                 </div>
