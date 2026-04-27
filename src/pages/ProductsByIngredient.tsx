@@ -61,11 +61,7 @@ const ProductsByIngredient = () => {
               <button
                 key={p.id}
                 type="button"
-                onClick={() =>
-                  navigate(
-                    `/products/ingredient?key=${encodeURIComponent(p.product_key)}&name=${encodeURIComponent(p.name)}&brand=${encodeURIComponent(p.brand ?? "")}`,
-                  )
-                }
+                onClick={() => navigate(`/products/profile/${p.id}`)}
                 className="w-full text-left"
               >
                 <SurfaceCard className="!py-3">
