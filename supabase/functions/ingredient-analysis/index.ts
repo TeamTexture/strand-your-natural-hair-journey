@@ -395,7 +395,7 @@ Deno.serve(async (req) => {
           ? cached._model_version === MODEL_VERSION
           : true;
         if (versionOk && hasGuidance) {
-          return json(200, { cached: true, analysis: cached });
+          return json(200, { cached: true, analysis: sanitiseChapterCitationsDeep(cached) });
         }
       }
     }
