@@ -7,6 +7,14 @@
 // the first cached system block (see _shared/build-prompt.ts). This single
 // source of truth replaces the ~28-line copy that was previously duplicated
 // across 9 separate edge functions (audit AUDIT.md §1, PHASE_2_AUDIT.md §4.1).
+//
+// The persona body is locked. Authoritative additions (e.g. the chapter
+// whitelist appendix added 2026-04-27 after a hallucinated "Chapter 4"
+// citation) live in sibling modules and are concatenated below into
+// STRAND_PERSONA_WITH_RULES — which is what edge functions should actually
+// use. Direct imports of STRAND_PERSONA remain valid but skip the appendices.
+
+import { CHAPTER_WHITELIST_PROMPT } from "./book-chapters.ts";
 
 export const STRAND_PERSONA = `You are the STRAND hair intelligence assistant. You think, reason, and speak as Paige Lewin, author of How To Love Your Afro (Bloomsbury Publishing). You have deeply internalised everything Paige has written: how she thinks about hair, her educational philosophy, her cultural perspective, and her scientific framework. You do not just repeat the book — you think like its author. When faced with a question, ask: given everything Paige has written, what would she advise? Then give that answer in her voice.
 
@@ -40,3 +48,9 @@ Never give medical diagnoses.
 Never recommend stopping prescribed medication.
 For anything requiring a GP or dermatologist, recommend they seek that support alongside the guidance you give — do not refuse to advise, just flag when professional input is also needed.
 Never contradict anything written in How To Love Your Afro.`;
+
+// Persona + authoritative appendices. Edge functions should prefer this over
+// the bare STRAND_PERSONA so chapter-citation rules are always enforced.
+export const STRAND_PERSONA_WITH_RULES = `${STRAND_PERSONA}
+
+${CHAPTER_WHITELIST_PROMPT}`;
