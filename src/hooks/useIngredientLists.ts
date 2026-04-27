@@ -41,7 +41,44 @@ const GENERIC_INGREDIENTS = new Set(
 );
 
 const normaliseIngredient = (raw: string) => raw.replace(/\s+/g, " ").trim();
-const keyOf = (raw: string) => normaliseIngredient(raw).toLowerCase();
+
+// Build a set of comparison keys from a single ingredient string. This lets
+// us match across naming variants (e.g. "Macadamia Oil" vs
+// "Macadamia Ternifolia Seed Oil", "Shea Butter" vs
+// "Butyrospermum Parkii (Shea) Butter") without needing a curated synonym
+// table. We strip parentheses, INCI Latin scaffolding, common suffixes
+// like "extract / oil / butter / seed / leaf / juice", and trailing
+// asterisks, then yield BOTH the full normalised form and individual
+// significant tokens so a partial overlap counts as a match.
+const STOPWORDS = new Set([
+  "oil", "butter", "extract", "seed", "leaf", "juice", "root", "fruit",
+  "kernel", "powder", "water", "aqua", "eau", "the", "and",
+]);
+
+const baseKey = (raw: string) =>
+  normaliseIngredient(raw)
+    .toLowerCase()
+    .replace(/\*+$/g, "")
+    .replace(/\([^)]*\)/g, " ") // drop parenthetical Latin / common names
+    .replace(/\//g, " ")
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const keysOf = (raw: string): { display: string; keys: string[] } => {
+  const display = normaliseIngredient(raw).replace(/\*+$/g, "").trim();
+  const base = baseKey(raw);
+  if (!base) return { display, keys: [] };
+  const keys = new Set<string>();
+  keys.add(base);
+  // Tokens — keep multi-word "anchors" by also adding each non-stopword
+  // token. This is what lets "macadamia oil" match
+  // "macadamia ternifolia seed oil" (both yield the token "macadamia").
+  for (const tok of base.split(" ")) {
+    if (tok.length >= 4 && !STOPWORDS.has(tok)) keys.add(tok);
+  }
+  return { display, keys: Array.from(keys) };
+};
 
 /**
  * Recompute the unified "flag" list for the current user from the products
