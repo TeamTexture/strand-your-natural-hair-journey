@@ -3,6 +3,7 @@
 // identifying fields. Tools have NO ingredients, so the schema is intentionally
 // much smaller than product-analyse-url.
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { stripModelCitationsDeep } from "../_shared/sanitize-citations.ts";
 
 interface Body {
   url?: string;
