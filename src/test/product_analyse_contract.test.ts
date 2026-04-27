@@ -237,9 +237,9 @@ describe("schema extraction (audit §5 Step 4a — share schema)", () => {
     const mod = await import(
       "../../supabase/functions/_shared/schemas.ts"
     );
-    const schema = mod.RETURN_PRODUCT_ANALYSIS_SCHEMA as {
+    const schema = mod.RETURN_PRODUCT_ANALYSIS_SCHEMA as unknown as {
       type: string;
-      required: string[];
+      required: readonly string[];
       properties: Record<string, unknown>;
     };
     expect(schema.type).toBe("object");
