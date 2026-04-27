@@ -82,6 +82,14 @@ const Avoidlist = () => {
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Ingredient Analysis" />
+
+      <ProductsHeader
+        active="intel"
+        state={filterState}
+        searchOnly
+        searchPlaceholder="Search flagged ingredients…"
+      />
+
       <ItalicSub>
         Built automatically from the products you've put on your shelf,
         favourited, AND actively used. An ingredient earns a{" "}
@@ -104,8 +112,13 @@ const Avoidlist = () => {
               message="No flagged ingredients yet"
               hint="Favourite 3 or more products on your shelf that share an ingredient — once you've used them at least once, they'll appear here."
             />
+          ) : filteredFlags.length === 0 ? (
+            <EmptyState
+              message="No matches"
+              hint="Try a different search term."
+            />
           ) : (
-            flags.map((r) => {
+            filteredFlags.map((r) => {
               const isOpen = expanded === r.id;
               const matches = isOpen ? productsForIngredient(r.ingredient) : [];
               return (
