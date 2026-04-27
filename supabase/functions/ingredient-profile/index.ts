@@ -119,8 +119,19 @@ WHAT_IT_MEANS_FOR_YOU RULES
 
 function buildUserPrompt(body: RequestBody): string {
   const ctx = body.context ?? {};
+  const formulation = (body.formulationIngredients ?? [])
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+  const productLine = body.productName
+    ? `PRODUCT: ${body.productName}${body.productBrand ? ` — ${body.productBrand}` : ""}`
+    : "";
+  const formulationBlock = formulation.length
+    ? `OTHER INGREDIENTS IN THIS FORMULATION (so you can weigh co-formulants — buffering, balancing, or amplifying effects):\n${formulation.slice(0, 80).join(", ")}`
+    : "";
   return `INGREDIENT: ${body.ingredient}
 ${body.reason ? `WHY IT'S FLAGGED: ${body.reason}` : ""}
+${productLine}
+${formulationBlock}
 
 USER CONTEXT (JSON):
 ${JSON.stringify(ctx, null, 2).slice(0, 12000)}
@@ -128,10 +139,14 @@ ${JSON.stringify(ctx, null, 2).slice(0, 12000)}
 Generate the profile now via the return_profile tool.`;
 }
 
-function cacheKindFor(ingredient: string): string {
+function cacheKindFor(ingredient: string, productKey?: string): string {
   // ai_summaries.kind is text. Lower-case the ingredient so casing variants
-  // share the cache row.
-  return `ingredient_profile:${ingredient.toLowerCase().trim()}`;
+  // share the cache row. Product key is included because the
+  // "what_it_means_for_you" answer depends on the surrounding formulation.
+  const ing = ingredient.toLowerCase().trim();
+  return productKey
+    ? `ingredient_profile:${ing}::${productKey}`
+    : `ingredient_profile:${ing}`;
 }
 
 Deno.serve(async (req) => {
