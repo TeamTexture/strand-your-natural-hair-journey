@@ -10,6 +10,8 @@
 // - No medical or growth claims.
 // - Two lines, tight word counts, modern voice.
 
+import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -187,7 +189,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ banner }), {
+    return new Response(JSON.stringify({ banner: sanitiseChapterCitationsDeep(banner) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

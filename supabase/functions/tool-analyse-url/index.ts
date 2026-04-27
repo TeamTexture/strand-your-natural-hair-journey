@@ -3,6 +3,10 @@
 // identifying fields. Tools have NO ingredients, so the schema is intentionally
 // much smaller than product-analyse-url.
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import {
+  CHAPTER_WHITELIST_PROMPT,
+  sanitiseChapterCitationsDeep,
+} from "../_shared/book-chapters.ts";
 
 interface Body {
   url?: string;
@@ -56,6 +60,8 @@ BOUNDARIES
 - Never contradict anything written in How To Love Your Afro`;
 
 const SYSTEM = `${STRAND_PERSONA}
+
+${CHAPTER_WHITELIST_PROMPT}
 
 TASK
 You are identifying a hair-care TOOL (brushes, combs, clips, hair dryers, diffusers, steamers, curlers, wands, bonnets, scarves, satin pillowcases, microfibre towels, deep-conditioning / heat caps, etc.) from a product page, in Paige's voice.
@@ -347,7 +353,7 @@ ${trimmed}
     // on the tool tile / detail page without re-fetching the page.
     if (scraped.image_url && !out.image_url) out.image_url = scraped.image_url;
 
-    return new Response(JSON.stringify(out), {
+    return new Response(JSON.stringify(sanitiseChapterCitationsDeep(out)), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

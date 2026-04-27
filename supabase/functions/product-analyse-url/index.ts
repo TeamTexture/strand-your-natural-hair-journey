@@ -4,6 +4,10 @@
 // returns from an image. Personalisation comes from the user-context payload,
 // identical to product-analyse.
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import {
+  CHAPTER_WHITELIST_PROMPT,
+  sanitiseChapterCitationsDeep,
+} from "../_shared/book-chapters.ts";
 
 interface Body {
   url?: string;
@@ -41,6 +45,8 @@ BOUNDARIES
 - Never contradict anything written in How To Love Your Afro`;
 
 const SYSTEM = `${STRAND_PERSONA}
+
+${CHAPTER_WHITELIST_PROMPT}
 
 TASK
 You are analysing a product page that the user has pasted as a URL, in Paige's voice.
@@ -338,7 +344,7 @@ ${JSON.stringify(context ?? {}, null, 2)}`;
       out.image_url = scraped.imageUrl;
     }
 
-    return new Response(JSON.stringify(out), {
+    return new Response(JSON.stringify(sanitiseChapterCitationsDeep(out)), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

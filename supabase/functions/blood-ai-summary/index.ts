@@ -1,6 +1,10 @@
 // Generates a hair-health AI summary from blood results.
 // Uses Lovable AI Gateway (google/gemini-2.5-pro) with tool calling for JSON.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  CHAPTER_WHITELIST_PROMPT,
+  sanitiseChapterCitationsDeep,
+} from "../_shared/book-chapters.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,6 +119,8 @@ BOUNDARIES
 
     const systemPrompt = `${STRAND_PERSONA}
 
+${CHAPTER_WHITELIST_PROMPT}
+
 TASK
 Analyse these blood test results and return JSON only via the provided tool. Speak as Paige.
 Hair-health guidance only. Recommend the user also seek GP support for any medical concern — never refuse to advise.
@@ -126,7 +132,7 @@ CRITICAL COVERAGE RULE:
 - This includes secondary iron-panel markers (TIBC, transferrin, transferrin saturation, MCV, MCH), thyroid markers (TSH, T3, T4), hormones, and any minerals/vitamins flagged.
 - Never silently skip a flagged marker because it's "less common" or "related to another one already mentioned". Each flagged marker gets its own entry with its own hair_impact sentence.
 - The "overall_summary" must explicitly acknowledge the FULL pattern (e.g. "low ferritin AND low TIBC together suggest…"), not just the headline marker.
-- If the overall pattern is rooted in a specific chapter of How To Love Your Afro (e.g. nutrition / iron / hair shedding), append the "Read more — …" reference line at the end of the overall_summary.
+- If the overall pattern is rooted in a specific chapter of How To Love Your Afro (e.g. nutrition / iron / hair shedding), append the "Read more — …" reference line at the end of the overall_summary. Use ONLY chapters from the authoritative list above; if none fit, omit the reference entirely.
 - "priority_actions" must address the combined picture, not a single deficiency in isolation.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -242,7 +248,7 @@ CRITICAL COVERAGE RULE:
         .insert({ user_id: user.id, kind: "blood_summary", payload: summary as object });
     }
 
-    return new Response(JSON.stringify({ cached: false, summary }), {
+    return new Response(JSON.stringify({ cached: false, summary: sanitiseChapterCitationsDeep(summary) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
