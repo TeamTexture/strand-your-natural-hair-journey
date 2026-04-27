@@ -99,25 +99,43 @@ async function recomputeFlagList(userId: string) {
     .eq("on_favourite", true);
   if (error) throw error;
 
+  // Per-key tally: count = number of qualifying products this key appeared
+  // in. We also remember the longest/most descriptive display string we've
+  // seen so the UI shows a readable name (e.g. prefer
+  // "Macadamia Ternifolia Seed Oil" over the bare token "macadamia").
   const tally = new Map<string, { display: string; count: number }>();
   for (const row of rows ?? []) {
-    const seen = new Set<string>();
+    // Always merge BOTH the full INCI list and the simplified
+    // key_ingredients names. Older scans / URL imports often only have
+    // key_ingredients populated, and we want those to count toward — and
+    // match against — the full INCI of newer scans.
     const fullIngredients = (row.ingredients ?? []) as string[];
-    const fallbackIngredients = Array.isArray(row.key_ingredients)
+    const keyIngredients = Array.isArray(row.key_ingredients)
       ? row.key_ingredients
           .map((item) => (item && typeof item === "object" && "name" in item ? String(item.name ?? "") : ""))
           .filter(Boolean)
       : [];
-    const sourceIngredients = fullIngredients.length > 0 ? fullIngredients : fallbackIngredients;
+    const sourceIngredients = [...fullIngredients, ...keyIngredients];
+
+    // De-dup keys WITHIN this product so a single product can't double-count
+    // (e.g. listing both "Shea Butter" in key_ingredients and
+    // "Butyrospermum Parkii (Shea) Butter" in the full INCI).
+    const seenForProduct = new Set<string>();
     for (const raw of sourceIngredients) {
-      const k = keyOf(raw);
-      if (!k || GENERIC_INGREDIENTS.has(k) || seen.has(k)) continue;
-      seen.add(k);
-      const existing = tally.get(k);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        tally.set(k, { display: normaliseIngredient(raw), count: 1 });
+      const { display, keys } = keysOf(raw);
+      if (keys.length === 0) continue;
+      // Skip if any of the keys map to a generic "vehicle" ingredient.
+      if (keys.some((k) => GENERIC_INGREDIENTS.has(k))) continue;
+      for (const k of keys) {
+        if (seenForProduct.has(k)) continue;
+        seenForProduct.add(k);
+        const existing = tally.get(k);
+        if (existing) {
+          existing.count += 1;
+          if (display.length > existing.display.length) existing.display = display;
+        } else {
+          tally.set(k, { display, count: 1 });
+        }
       }
     }
   }
