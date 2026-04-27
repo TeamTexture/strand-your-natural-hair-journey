@@ -2,10 +2,11 @@
 //
 // Rule:
 //   FLAG: an ingredient that appears in 3 OR MORE of the user's products
-//   that are BOTH on the shelf AND marked as a favourite. The flag is
-//   purely educational — it tells the user "this ingredient keeps showing
-//   up in the products you actually love and use, here's what it is and
-//   which of your products contain it." No good/bad framing.
+//   that are ALL of: on the shelf, marked as a favourite, AND actively
+//   in use (use_count > 0). The flag is purely educational — it tells
+//   the user "this ingredient keeps showing up in the products you
+//   actually love and use, here's what it is and which of your products
+//   contain it." No good/bad framing.
 //
 // Backed by the existing `ingredient_lists` table using `list_kind = "flag"`.
 // Old `avoid` and `favourite` rows are deleted on each recompute so the
@@ -44,14 +45,15 @@ const keyOf = (raw: string) => normaliseIngredient(raw).toLowerCase();
 
 /**
  * Recompute the unified "flag" list for the current user from the products
- * that are BOTH on their shelf AND marked as favourites. Replaces existing
+ * that are on shelf (i.e. actively in use) AND favourited. Replaces existing
  * rows so removed matches drop out cleanly, and also wipes any leftover
  * legacy "avoid" / "favourite" rows.
  */
 async function recomputeFlagList(userId: string) {
-  // Only count products the user has actively kept on their shelf AND
-  // marked as favourites — those are the products that matter for spotting
-  // recurring ingredients in the routine they actually love.
+  // "On shelf" = the user is actively using it (off-shelf products are
+  // retired). Combined with `on_favourite`, this is the set of products
+  // the user actually loves and uses — the only ones that count for
+  // spotting recurring ingredients.
   const { data: rows, error } = await supabase
     .from("user_products")
     .select("ingredients")
@@ -81,7 +83,7 @@ async function recomputeFlagList(userId: string) {
     .map(([, v]) => ({
       ingredient: v.display,
       product_count: v.count,
-      reason: `Appears in ${v.count} of your favourite shelf products`,
+      reason: `Appears in ${v.count} of your favourite shelf products in use`,
       list_kind: "flag" as const,
     }));
 
@@ -222,7 +224,7 @@ export function useIngredientLists() {
   // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session_v2_shelf_fave";
+    const KEY = "strand_flags_recomputed_session_v3_shelf_fave_inuse";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();

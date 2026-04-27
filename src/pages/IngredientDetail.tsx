@@ -115,7 +115,7 @@ const IngredientDetail = () => {
   );
 
   const reasonForFlag = selectedIngredient && flaggedNames.has(selectedIngredient.name.toLowerCase().trim())
-    ? "Appears in 3 or more of the user's favourite shelf products"
+    ? "Appears in 3 or more of the user's favourite shelf products that are actively in use"
     : undefined;
 
   const ingredientProfile = useIngredientProfile(
@@ -504,7 +504,7 @@ const IngredientDetail = () => {
               Every ingredient in this formulation. Tap a bubble to learn what
               it is, what category it falls under, and how it's used in this
               product. A small flag marks ingredients that appear in 3+ of the
-              products you've put on your shelf and favourited.
+              products you've put on your shelf, favourited, and actually used.
             </p>
             <div className="rounded-2xl bg-white border border-border/60 p-4">
               {(() => {
@@ -751,9 +751,9 @@ const IngredientDetail = () => {
                           style={{ color: "hsl(40 65% 32%)" }}
                         />
                         This ingredient appears in 3 or more of the products
-                        you've put on your shelf and favourited — a recurring
-                        part of the routine you actually use, worth knowing
-                        well.
+                        you've put on your shelf, favourited, and actually
+                        used — a recurring part of the routine you actually
+                        use, worth knowing well.
                       </p>
                     </div>
                   )}
