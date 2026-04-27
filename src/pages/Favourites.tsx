@@ -41,9 +41,9 @@ const Favourites = () => {
       <div className="px-5 pb-3">
         <p className="text-[11px] text-muted-foreground leading-snug">
           Tap the <Heart className="inline size-3 -mt-0.5 fill-current text-destructive" /> on any
-          product to add it here. When the same ingredient appears in 3 or more of your products it
-          earns a <span className="font-medium" style={{ color: "hsl(40 65% 32%)" }}>gold flag</span> on the Ingredients page —
-          purely educational, so you can see what's recurring across your routine.
+          product to add it here. When the same ingredient appears in 3 or more of your favourites that
+          are on your shelf, it earns a <span className="font-medium" style={{ color: "hsl(40 65% 32%)" }}>gold flag</span> on the
+          Ingredients page — purely educational, so you can see what's recurring across the products you actually use and love.
         </p>
       </div>
 

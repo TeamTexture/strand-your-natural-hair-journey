@@ -1,13 +1,11 @@
 // Hooks for the auto-derived "Flagged ingredients" list.
 //
-// New unified rule (replaces the old Green Flag / Red Flag split, which was
-// confusing because the same ingredient often qualified for both):
-//
-//   FLAG: an ingredient that appears in ≥2 of the user's saved products
-//   (anything in their library — on shelf, off shelf, or wishlist). The flag
-//   is purely educational — it tells the user "this ingredient keeps showing
-//   up in your products, here's what it is and which of your products contain
-//   it." No good/bad framing.
+// Rule:
+//   FLAG: an ingredient that appears in 3 OR MORE of the user's products
+//   that are BOTH on the shelf AND marked as a favourite. The flag is
+//   purely educational — it tells the user "this ingredient keeps showing
+//   up in the products you actually love and use, here's what it is and
+//   which of your products contain it." No good/bad framing.
 //
 // Backed by the existing `ingredient_lists` table using `list_kind = "flag"`.
 // Old `avoid` and `favourite` rows are deleted on each recompute so the
@@ -25,11 +23,9 @@ export interface IngredientListRow {
   list_kind: ListKind;
 }
 
-// Lowered from 3 → 2 so that small libraries (just a few products) still
-// surface ingredients that are recurring in the user's routine. The flag
-// is purely educational; pattern-of-2 is the smallest meaningful signal
-// of "this keeps showing up in what you use".
-const MIN_PRODUCTS_FOR_FLAG = 2;
+// An ingredient must show up in this many qualifying products (on shelf AND
+// favourited) before it earns a flag.
+const MIN_PRODUCTS_FOR_FLAG = 3;
 
 // Ingredients that are too generic / vehicle-only to be meaningful — skip
 // when aggregating so we don't surface "Water" as a flagged ingredient.
@@ -47,19 +43,21 @@ const normaliseIngredient = (raw: string) => raw.replace(/\s+/g, " ").trim();
 const keyOf = (raw: string) => normaliseIngredient(raw).toLowerCase();
 
 /**
- * Recompute the unified "flag" list for the current user from their entire
- * product library. Replaces existing rows so removed matches drop out cleanly,
- * and also wipes any leftover legacy "avoid" / "favourite" rows.
+ * Recompute the unified "flag" list for the current user from the products
+ * that are BOTH on their shelf AND marked as favourites. Replaces existing
+ * rows so removed matches drop out cleanly, and also wipes any leftover
+ * legacy "avoid" / "favourite" rows.
  */
 async function recomputeFlagList(userId: string) {
-  // Pull every product the user has saved (shelf, off-shelf, or wishlist).
-  // We aggregate across the whole library so the flag is purely educational
-  // — "this ingredient appears in 3+ of your products" — without any
-  // good/bad bias.
+  // Only count products the user has actively kept on their shelf AND
+  // marked as favourites — those are the products that matter for spotting
+  // recurring ingredients in the routine they actually love.
   const { data: rows, error } = await supabase
     .from("user_products")
     .select("ingredients")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("on_shelf", true)
+    .eq("on_favourite", true);
   if (error) throw error;
 
   const tally = new Map<string, { display: string; count: number }>();
@@ -83,7 +81,7 @@ async function recomputeFlagList(userId: string) {
     .map(([, v]) => ({
       ingredient: v.display,
       product_count: v.count,
-      reason: `Appears in ${v.count} of your products`,
+      reason: `Appears in ${v.count} of your favourite shelf products`,
       list_kind: "flag" as const,
     }));
 
@@ -219,13 +217,12 @@ export function useIngredientLists() {
   // Recompute the flag list at most once per browser session — every page
   // that uses the hook used to recompute on mount, which fired DELETE +
   // INSERT against `ingredient_lists` on every navigation, causing visible
-  // re-render churn and a perceived "loop" on screens that re-mount this
-  // hook (IngredientDetail, ProductDetail, ProductProfile, Avoidlist).
-  // Mutations elsewhere (add/remove/setShelf) still trigger an explicit
-  // recompute via `recomputeIngredientFlags()` so the data stays fresh.
+  // re-render churn. Mutations elsewhere (add/remove/setShelf/setFavourite)
+  // still trigger an explicit recompute so the data stays fresh. The key
+  // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session";
+    const KEY = "strand_flags_recomputed_session_v2_shelf_fave";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();
