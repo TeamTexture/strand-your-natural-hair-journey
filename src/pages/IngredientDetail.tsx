@@ -32,6 +32,7 @@ import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
+import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { cn } from "@/lib/utils";
