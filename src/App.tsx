@@ -80,6 +80,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <GlobalEffects />
           <PhoneShell>
             <Routes>
               <Route path="/" element={<Index />} />
