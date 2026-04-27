@@ -3,7 +3,7 @@
 // New unified rule (replaces the old Green Flag / Red Flag split, which was
 // confusing because the same ingredient often qualified for both):
 //
-//   FLAG: an ingredient that appears in ≥3 of the user's saved products
+//   FLAG: an ingredient that appears in ≥2 of the user's saved products
 //   (anything in their library — on shelf, off shelf, or wishlist). The flag
 //   is purely educational — it tells the user "this ingredient keeps showing
 //   up in your products, here's what it is and which of your products contain
@@ -25,7 +25,11 @@ export interface IngredientListRow {
   list_kind: ListKind;
 }
 
-const MIN_PRODUCTS_FOR_FLAG = 3;
+// Lowered from 3 → 2 so that small libraries (just a few products) still
+// surface ingredients that are recurring in the user's routine. The flag
+// is purely educational; pattern-of-2 is the smallest meaningful signal
+// of "this keeps showing up in what you use".
+const MIN_PRODUCTS_FOR_FLAG = 2;
 
 // Ingredients that are too generic / vehicle-only to be meaningful — skip
 // when aggregating so we don't surface "Water" as a flagged ingredient.
@@ -210,6 +214,15 @@ export function useIngredientLists() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // On first mount, recompute the flag list from the user's current
+  // library so the screen is always in sync — even if the user hasn't
+  // added/removed a product since the last threshold change. After
+  // recomputing, the recompute itself dispatches an event that triggers
+  // refresh() via the listener below.
+  useEffect(() => {
+    void recomputeIngredientFlags();
   }, []);
 
   useEffect(() => {
