@@ -36,6 +36,8 @@ interface Step1Saved {
   products?: string[];
   heatTreatment?: "yes" | "no" | null;
   heatMinutes?: number | null;
+  heatToolIds?: string[];
+  heatToolNames?: string[];
 }
 interface Step2Saved {
   scalp?: string[]; breakage?: string[]; style?: string[]; duration?: string[]; stress?: string[];
