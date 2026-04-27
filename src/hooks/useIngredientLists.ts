@@ -81,7 +81,7 @@ async function recomputeFlagList(userId: string) {
     .map(([, v]) => ({
       ingredient: v.display,
       product_count: v.count,
-      reason: `Appears in ${v.count} of your products`,
+      reason: `Appears in ${v.count} of your favourite shelf products`,
       list_kind: "flag" as const,
     }));
 
