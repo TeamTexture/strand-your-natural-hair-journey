@@ -2,10 +2,11 @@
 //
 // Rule:
 //   FLAG: an ingredient that appears in 3 OR MORE of the user's products
-//   that are BOTH on the shelf AND marked as a favourite. The flag is
-//   purely educational — it tells the user "this ingredient keeps showing
-//   up in the products you actually love and use, here's what it is and
-//   which of your products contain it." No good/bad framing.
+//   that are ALL of: on the shelf, marked as a favourite, AND actively
+//   in use (use_count > 0). The flag is purely educational — it tells
+//   the user "this ingredient keeps showing up in the products you
+//   actually love and use, here's what it is and which of your products
+//   contain it." No good/bad framing.
 //
 // Backed by the existing `ingredient_lists` table using `list_kind = "flag"`.
 // Old `avoid` and `favourite` rows are deleted on each recompute so the
