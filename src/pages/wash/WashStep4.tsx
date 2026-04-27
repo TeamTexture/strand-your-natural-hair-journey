@@ -71,6 +71,9 @@ const WashStep4 = () => {
     });
     if (step1.heatTreatment === "yes") {
       parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
+      if (step1.heatToolNames?.length) {
+        parts.push(`Heat tool: ${step1.heatToolNames.join(", ")}`);
+      }
     }
     if (step1.heatTreatment === "no") parts.push("No heat");
     if (step1.products?.length) {
