@@ -224,6 +224,10 @@ CRITICAL COVERAGE RULE:
       });
     }
 
+    // Strip any chapter/page citations the model emitted — citations come
+    // from server-side RAG only (see _shared/sanitize-citations.ts).
+    summary = stripModelCitationsDeep(summary);
+
     // Upsert into ai_summaries (one per user per kind)
     const { data: prior } = await supabase
       .from("ai_summaries")
