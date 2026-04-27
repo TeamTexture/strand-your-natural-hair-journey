@@ -257,6 +257,10 @@ Deno.serve(async (req) => {
       personal_notes: args.personal_notes
         .map((s: unknown) => String(s).trim())
         .filter(Boolean),
+      what_it_means_for_you:
+        typeof args?.what_it_means_for_you === "string"
+          ? String(args.what_it_means_for_you).trim()
+          : undefined,
       _model_version: MODEL_VERSION,
       _generated_at: new Date().toISOString(),
     };
