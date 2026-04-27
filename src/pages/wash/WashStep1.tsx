@@ -593,6 +593,14 @@ const WashStep1 = () => {
                       ✓ Logged: {heatMinutes} minutes. Tap <strong>Done</strong> on the Condition step to save.
                     </p>
                   )}
+                  <HeatToolPicker
+                    selectedIds={heatToolIds}
+                    onToggle={(id) =>
+                      setHeatToolIds((prev) =>
+                        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                      )
+                    }
+                  />
                 </div>
               )}
               {heatChoice === "no" && !heatDialogOpen && (
