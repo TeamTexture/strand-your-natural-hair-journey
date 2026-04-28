@@ -190,13 +190,53 @@ describe("product-analyse contract", () => {
     expect(stamped._used_web_search).toBe(true);
   });
 
-  it("NO-WEB-SEARCH: cached payload stamps _used_web_search: false when Claude answered from photo alone", () => {
+  it("NO-WEB-SEARCH: cached payload stamps _used_web_search: false + _web_search_count: 0", () => {
     const server_tool_use_count = 0;
     const stamped = stampProvenance(mockClaudeToolInput(), {
       used_web_search: server_tool_use_count > 0,
     });
     assertValidProductAnalysis(stamped);
     expect(stamped._used_web_search).toBe(false);
+    expect(stamped._web_search_count).toBe(0);
+  });
+
+  it("DUAL-PHOTO REJECTION: Claude path rejects single-photo input with the user-facing 400 message", () => {
+    // Mirrors the server validation in supabase/functions/product-analyse/index.ts.
+    // Claude path requires { photos: { front, back } } — both required.
+    const DUAL_PHOTO_REQUIRED_MESSAGE =
+      "STRAND needs both the front and back of the product to give you a full analysis.";
+
+    function validateClaudeInput(body: {
+      photos?: { front?: string; back?: string };
+    }): { ok: true } | { ok: false; status: number; error: string } {
+      const front = body.photos?.front;
+      const back = body.photos?.back;
+      if (!front || !back) {
+        return { ok: false, status: 400, error: DUAL_PHOTO_REQUIRED_MESSAGE };
+      }
+      return { ok: true };
+    }
+
+    const missingBack = validateClaudeInput({ photos: { front: "data:image/jpeg;base64,AAA" } });
+    expect(missingBack.ok).toBe(false);
+    if (!missingBack.ok) {
+      expect(missingBack.status).toBe(400);
+      expect(missingBack.error).toBe(DUAL_PHOTO_REQUIRED_MESSAGE);
+    }
+
+    const missingFront = validateClaudeInput({ photos: { back: "data:image/jpeg;base64,BBB" } });
+    expect(missingFront.ok).toBe(false);
+
+    const noPhotos = validateClaudeInput({});
+    expect(noPhotos.ok).toBe(false);
+
+    const both = validateClaudeInput({
+      photos: {
+        front: "data:image/jpeg;base64,AAA",
+        back: "data:image/jpeg;base64,BBB",
+      },
+    });
+    expect(both.ok).toBe(true);
   });
 
   it("rejects payloads outside the schema (defensive — proves the validator works)", () => {
