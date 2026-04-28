@@ -338,8 +338,83 @@ const IngredientDetail = () => {
   );
 
   useEffect(() => {
+    // Fresh-scan path: analysis is already in state, no need to re-fetch.
+    if (freshAnalysis) return;
     if (productKey) runAnalysis(false);
-  }, [runAnalysis, productKey]);
+  }, [runAnalysis, productKey, freshAnalysis]);
+
+  // Save the freshly-scanned product into user_products. The scanning flow
+  // already attempts this upsert, but we re-run it here to (a) cover the
+  // case where the user lands here without a saved row and (b) honour an
+  // explicit "Save to shelf / wishlist" CTA.
+  const persistFreshScan = useCallback(
+    async (intent: "shelf" | "wishlist") => {
+      if (!freshAnalysis || !productKey) return null;
+      setSavingToShelf(true);
+      try {
+        const saved = await upsert({
+          product_key: productKey,
+          name: freshAnalysis.product_name?.trim() || productName || "Untitled product",
+          brand: freshAnalysis.brand?.trim() || productBrand || null,
+          ingredients: freshAnalysis.ingredients ?? [],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          key_ingredients: (freshAnalysis.key_ingredients ?? []) as any,
+          ai_summary: freshAnalysis.ai_summary ?? null,
+          match_score: typeof freshAnalysis.match_score === "number" ? freshAnalysis.match_score : null,
+          storage_path: navState?.storage_path ?? null,
+          on_shelf: intent === "shelf",
+          on_wishlist: intent === "wishlist",
+          ...(intent === "shelf" ? { added_to_shelf_at: new Date().toISOString() } : {}),
+        });
+        // Cache the analysis so future visits via the saved-products path can
+        // read it back without re-running ingredient-analysis.
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          const uid = userData?.user?.id;
+          if (uid) {
+            await supabase.from("ai_summaries").insert({
+              user_id: uid,
+              kind: `product_analyse:${productKey}`,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              payload: freshAnalysis as any,
+            });
+          }
+        } catch (cacheErr) {
+          // Cache failures are non-fatal — the row is already in user_products.
+          console.warn("ai_summaries cache write failed", cacheErr);
+        }
+        return saved;
+      } finally {
+        setSavingToShelf(false);
+      }
+    },
+    [freshAnalysis, productKey, productName, productBrand, navState?.storage_path, upsert],
+  );
+
+  // Auto-save flow (e.g. journal / wash-day). Persist immediately, then bounce
+  // the user back to where they came from.
+  const autoSaveDoneRef = useState({ done: false })[0];
+  useEffect(() => {
+    if (!freshAnalysis || !autoSave || autoSaveDoneRef.done) return;
+    autoSaveDoneRef.done = true;
+    (async () => {
+      const saved = await persistFreshScan(navIntent);
+      if (saved && returnTo) {
+        navigate(returnTo, { replace: true });
+      }
+    })();
+  }, [freshAnalysis, autoSave, navIntent, returnTo, persistFreshScan, navigate, autoSaveDoneRef]);
+
+  const handleSaveFreshTo = async (intent: "shelf" | "wishlist") => {
+    const saved = await persistFreshScan(intent);
+    if (saved) {
+      toast.success(
+        intent === "shelf"
+          ? `${saved.name} added to your shelf`
+          : `${saved.name} added to your wishlist`,
+      );
+    }
+  };
 
   // ── Shelf state derived flags (drives bottom action button choice) ─────
   const onShelf = !!productRow?.on_shelf;
