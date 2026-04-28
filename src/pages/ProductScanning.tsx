@@ -133,9 +133,23 @@ const ProductScanning = () => {
 
         const name = encodeURIComponent(payload.name);
         const brand = encodeURIComponent(payload.brand ?? "");
+        // Route directly to the unified product page. Analysis is also
+        // stashed in location.state for the first render (URL params are
+        // for refresh / shareability fallback).
         navigate(
           `/products/ingredient?key=${encodeURIComponent(product_key)}&name=${name}&brand=${brand}`,
-          { replace: true },
+          {
+            replace: true,
+            state: {
+              analysis: data,
+              storage_path: state.storage_path,
+              preview_url: state.preview_url,
+              product_key,
+              intent,
+              auto_save: state.auto_save ?? false,
+              returnTo: state.returnTo,
+            },
+          },
         );
       } catch (e) {
         const msg = (e as Error).message ?? "Could not analyse product";
