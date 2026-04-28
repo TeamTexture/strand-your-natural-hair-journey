@@ -7,7 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
-import FilePickerButton from "@/components/FilePickerButton";
+import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import ProductsHeader, {
   applyProductFilters,
   useProductsFilterState,
@@ -26,6 +26,8 @@ const Wishlist = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
+  const [scanSheetOpen, setScanSheetOpen] = useState(false);
+  const [scanPreferCamera, setScanPreferCamera] = useState(true);
   const { products, loading } = useUserProducts("wishlist");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
@@ -55,23 +57,24 @@ const Wishlist = () => {
       />
 
       <div className="px-5 pb-5 space-y-3">
-        <FilePickerButton
+        <Button
           variant="gold"
           size="pill"
-          preferCamera
           disabled={busy || urlBusy}
-          onPick={(f) => startScan(f, "wishlist")}
+          onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
+          className="w-full"
         >
-          {busy ? "Preparing photo…" : "+ Scan a New Product"}
-        </FilePickerButton>
-        <FilePickerButton
+          {busy ? "Preparing photos…" : "+ Scan a New Product"}
+        </Button>
+        <Button
           variant="goldOutline"
           size="pill"
           disabled={busy || urlBusy}
-          onPick={(f) => startScan(f, "wishlist")}
+          onClick={() => { setScanPreferCamera(false); setScanSheetOpen(true); }}
+          className="w-full"
         >
-          + Upload Screenshot
-        </FilePickerButton>
+          + Upload Front + Back Photos
+        </Button>
         <Button
           variant="goldOutline"
           size="pill"
