@@ -7,18 +7,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
 import { toast } from "sonner";
 
+/** Nav state shape produced by useProductScan after the dual-photo upload. */
 interface NavState {
+  // Cover image (front, used by the detail screen).
   storage_path: string;
   preview_url: string;
-  /** base64 JPEG produced client-side. Sent straight to the AI so the model
-   * never has to fetch a HEIC URL. */
-  image_data_url?: string;
+  // Dual-photo payload for the edge function.
+  front_storage_path?: string;
+  back_storage_path?: string;
+  front_preview_url?: string;
+  back_preview_url?: string;
+  front_image_data_url?: string;
+  back_image_data_url?: string;
   intent?: "shelf" | "wishlist";
-  /** When true, the detail screen will save straight to the user's shelf
-   *  without waiting for them to tap a button. Used by the journal/wash-day
-   *  product-picker "add new product" flow. */
   auto_save?: boolean;
-  /** Where to send the user once auto_save completes. */
   returnTo?: string;
 }
 
@@ -40,23 +42,61 @@ const ProductScanning = () => {
     }
     void (async () => {
       try {
-        // Prefer the client-prepared JPEG data URL. Fall back to a fresh
-        // signed URL if (somehow) we don't have one — older flows.
-        let aiImageUrl = state.image_data_url ?? "";
-        if (!aiImageUrl) {
+        // Resolve front + back image URLs. Prefer the client-prepared
+        // base64 JPEG data URLs (model never has to fetch a HEIC URL);
+        // fall back to fresh signed URLs for older nav-state shapes.
+        const resolveSlot = async (
+          dataUrl: string | undefined,
+          path: string | undefined,
+          slotName: "front" | "back",
+        ): Promise<string> => {
+          if (dataUrl) return dataUrl;
+          const storagePath = path ?? state.storage_path;
+          if (!storagePath) {
+            throw new Error(`Missing ${slotName} photo for analysis.`);
+          }
           const { data: signed } = await supabase.storage
             .from("product-photos")
-            .createSignedUrl(state.storage_path, 3600);
-          if (!signed?.signedUrl) throw new Error("Could not sign image URL");
-          aiImageUrl = signed.signedUrl;
-        }
+            .createSignedUrl(storagePath, 3600);
+          if (!signed?.signedUrl) {
+            throw new Error(`Could not sign the ${slotName} image URL.`);
+          }
+          return signed.signedUrl;
+        };
+
+        const front = await resolveSlot(
+          state.front_image_data_url,
+          state.front_storage_path,
+          "front",
+        );
+        const back = await resolveSlot(
+          state.back_image_data_url,
+          state.back_storage_path,
+          "back",
+        );
 
         const context = await buildAiContext();
 
-        const { data, error: invErr } = await supabase.functions.invoke("product-analyse", {
-          body: { image_url: aiImageUrl, context },
-        });
-        if (invErr) throw invErr;
+        const { data, error: invErr } = await supabase.functions.invoke(
+          "product-analyse",
+          {
+            body: {
+              photos: { front, back },
+              context,
+              force: true,
+            },
+          },
+        );
+
+        // The dual-photo Claude path returns 400 with a user-facing error
+        // message when both photos aren't supplied (audit §5 Step 3 strict
+        // contract). `supabase.functions.invoke` surfaces non-2xx as
+        // `invErr.context.json.error` — surface that string to the user
+        // verbatim because Paige wrote it for them.
+        if (invErr) {
+          const userFacing = await extractFunctionErrorMessage(invErr);
+          throw new Error(userFacing);
+        }
         if (data?.error) throw new Error(data.error);
 
         const product_key = `scan-${Date.now()}`;
@@ -86,13 +126,32 @@ const ProductScanning = () => {
     <ScreenLayout bottomNav={false}>
       <TitleBar title="Scanning" back />
       <div className="px-5 pb-8 flex flex-col items-center text-center">
-        {state?.preview_url && (
-          <img
-            src={state.preview_url}
-            alt="Product"
-            className="w-full max-w-[280px] aspect-square object-cover rounded-[18px] border border-border"
-          />
-        )}
+        {/* Show both photo previews side by side so the user can confirm
+         *  what's being analysed. Falls back to the cover preview if only
+         *  one is present (legacy nav-state). */}
+        <div className="flex gap-2 w-full max-w-[280px] justify-center">
+          {state?.front_preview_url && (
+            <img
+              src={state.front_preview_url}
+              alt="Product front"
+              className="flex-1 aspect-square object-cover rounded-[14px] border border-border"
+            />
+          )}
+          {state?.back_preview_url && (
+            <img
+              src={state.back_preview_url}
+              alt="Product back"
+              className="flex-1 aspect-square object-cover rounded-[14px] border border-border"
+            />
+          )}
+          {!state?.front_preview_url && !state?.back_preview_url && state?.preview_url && (
+            <img
+              src={state.preview_url}
+              alt="Product"
+              className="w-full aspect-square object-cover rounded-[18px] border border-border"
+            />
+          )}
+        </div>
         {phase === "analysing" ? (
           <>
             <div className="mt-8 flex items-center gap-2">
@@ -100,10 +159,10 @@ const ProductScanning = () => {
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
             </div>
-            <p className="font-display text-lg mt-4">Analysing your product…</p>
+            <p className="font-display text-lg mt-4">Analysing ingredients for your profile…</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
-              Reading the label, matching ingredients to your hair profile, and
-              flagging anything from your avoid list.
+              Reading both sides of the label, matching ingredients to your
+              hair profile, and flagging anything from your avoid list.
             </p>
           </>
         ) : (
@@ -112,9 +171,9 @@ const ProductScanning = () => {
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">{error}</p>
             <div className="mt-5 max-w-xs text-left bg-card border border-border rounded-[12px] p-3 space-y-1">
               <p className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">For best results</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• Hold the bottle steady, brand and title clearly visible</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• Hold the bottle steady, brand and title clearly visible on the front</p>
               <p className="text-[11px] text-muted-foreground leading-snug">• Good lighting, no glare on the label</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• If you can, capture the ingredient list too</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• On the back, line up the small-print ingredient panel and keep it sharp</p>
             </div>
             <button
               onClick={() => navigate("/products")}
@@ -128,5 +187,39 @@ const ProductScanning = () => {
     </ScreenLayout>
   );
 };
+
+/** supabase.functions.invoke wraps non-2xx errors in a `FunctionsHttpError`
+ *  whose `context.json()` (or `context.text()`) returns the parsed body.
+ *  We pull out the `error` string when present so the user-facing
+ *  dual-photo message reaches the toast verbatim. */
+async function extractFunctionErrorMessage(err: unknown): Promise<string> {
+  const fallback = err instanceof Error ? err.message : "Could not analyse product";
+  const ctx = (err as { context?: unknown })?.context;
+  if (ctx && typeof ctx === "object" && "json" in ctx && typeof (ctx as { json?: unknown }).json === "function") {
+    try {
+      const body = await (ctx as { json: () => Promise<unknown> }).json();
+      if (body && typeof body === "object" && "error" in body) {
+        const errStr = (body as { error?: unknown }).error;
+        if (typeof errStr === "string" && errStr.length > 0) return errStr;
+      }
+    } catch {
+      // fall through
+    }
+  }
+  if (ctx && typeof ctx === "object" && "text" in ctx && typeof (ctx as { text?: unknown }).text === "function") {
+    try {
+      const txt = await (ctx as { text: () => Promise<string> }).text();
+      try {
+        const parsed = JSON.parse(txt);
+        if (parsed && typeof parsed.error === "string") return parsed.error;
+      } catch {
+        if (typeof txt === "string" && txt.length > 0 && txt.length < 300) return txt;
+      }
+    } catch {
+      // fall through
+    }
+  }
+  return fallback;
+}
 
 export default ProductScanning;
