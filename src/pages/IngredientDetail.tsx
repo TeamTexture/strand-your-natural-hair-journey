@@ -651,7 +651,7 @@ const IngredientDetail = () => {
             const profile = ingredientProfile.data;
             const meansForYou = profile?.what_it_means_for_you;
             const whatItIs = profile?.what_it_is;
-            const deepDive = profile?.deep_dive ?? [];
+            // deep_dive removed in v5 — popup is now succinct (what_it_is + benefits + what_it_means_for_you).
             const benefits = profile?.benefits ?? [];
             const profileLoading = ingredientProfile.isLoading || ingredientProfile.isFetching;
             const profileError = ingredientProfile.isError;
@@ -690,21 +690,8 @@ const IngredientDetail = () => {
                     </p>
                   </div>
 
-                  {deepDive.length > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
-                        What most people don't know
-                      </p>
-                      <ul className="space-y-1.5">
-                        {deepDive.map((d, i) => (
-                          <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
-                            <span className="text-primary shrink-0 mt-0.5">•</span>
-                            <span>{d}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+
+
 
                   {benefits.length > 0 && (
                     <div>
