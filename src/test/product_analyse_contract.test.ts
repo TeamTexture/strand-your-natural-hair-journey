@@ -209,15 +209,18 @@ describe("product-analyse contract", () => {
     const DUAL_PHOTO_REQUIRED_MESSAGE =
       "STRAND needs both the front and back of the product to give you a full analysis.";
 
+    type ValidateResult =
+      | { ok: true }
+      | { ok: false; status: number; error: string };
     function validateClaudeInput(body: {
       photos?: { front?: string; back?: string };
-    }): { ok: true } | { ok: false; status: number; error: string } {
+    }): ValidateResult {
       const front = body.photos?.front;
       const back = body.photos?.back;
       if (!front || !back) {
-        return { ok: false as const, status: 400, error: DUAL_PHOTO_REQUIRED_MESSAGE };
+        return { ok: false, status: 400, error: DUAL_PHOTO_REQUIRED_MESSAGE };
       }
-      return { ok: true as const };
+      return { ok: true };
     }
 
     const missingBack = validateClaudeInput({ photos: { front: "data:image/jpeg;base64,AAA" } });
