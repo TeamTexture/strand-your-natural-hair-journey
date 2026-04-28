@@ -107,25 +107,24 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
           {showAdd && (
             <div className="mt-3 space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <FilePickerButton
-                  variant="goldGhost"
-                  preferCamera
+                <button
+                  type="button"
                   disabled={busy}
-                  onPick={handlePhoto}
-                  className="!h-auto !p-3 !rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex-col"
+                  onClick={() => openScan(true)}
+                  className="h-auto p-3 rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex flex-col items-center justify-center disabled:opacity-50"
                 >
                   <Camera className="size-5 mb-1 text-primary" />
-                  <span className="text-[11px] font-medium">Take a photo</span>
-                </FilePickerButton>
-                <FilePickerButton
-                  variant="goldGhost"
+                  <span className="text-[11px] font-medium">Take photos</span>
+                </button>
+                <button
+                  type="button"
                   disabled={busy}
-                  onPick={handlePhoto}
-                  className="!h-auto !p-3 !rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex-col"
+                  onClick={() => openScan(false)}
+                  className="h-auto p-3 rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex flex-col items-center justify-center disabled:opacity-50"
                 >
                   <ImagePlus className="size-5 mb-1 text-primary" />
-                  <span className="text-[11px] font-medium">Upload photo</span>
-                </FilePickerButton>
+                  <span className="text-[11px] font-medium">Upload photos</span>
+                </button>
               </div>
 
               <div className="flex gap-2">
@@ -192,6 +191,19 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
         </div>
       </SheetContent>
     </Sheet>
+
+    <DualPhotoCaptureSheet
+      open={scanSheetOpen}
+      onOpenChange={setScanSheetOpen}
+      preferCamera={scanPreferCamera}
+      busy={scanBusy}
+      onSubmit={async (front, back) => {
+        setScanSheetOpen(false);
+        onOpenChange(false);
+        await startScan(front, back, "shelf", navState);
+      }}
+    />
+    </>
   );
 };
 
