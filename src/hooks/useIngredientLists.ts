@@ -28,12 +28,11 @@ export interface IngredientListRow {
 // favourited) before it earns a flag.
 const MIN_PRODUCTS_FOR_FLAG = 3;
 
-// Ingredients that are too generic / vehicle-only to be meaningful — skip
-// when aggregating so we don't surface "Water" as a flagged ingredient.
+// Ingredients that are too generic / non-actionable to be meaningful — skip
+// when aggregating. Water is intentionally NOT skipped because the flagged
+// list should reflect any ingredient shared by 3+ favourite shelf products.
 const GENERIC_INGREDIENTS = new Set(
   [
-    "water",
-    "aqua",
     "fragrance",
     "parfum",
     "phenoxyethanol",
@@ -41,6 +40,14 @@ const GENERIC_INGREDIENTS = new Set(
 );
 
 const normaliseIngredient = (raw: string) => raw.replace(/\s+/g, " ").trim();
+
+const ingredientNameFromUnknown = (item: unknown): string => {
+  if (typeof item === "string") return item;
+  if (item && typeof item === "object" && "name" in item) {
+    return String((item as { name?: unknown }).name ?? "");
+  }
+  return "";
+};
 
 // Build a set of comparison keys from a single ingredient string. This lets
 // us match across naming variants (e.g. "Macadamia Oil" vs
@@ -71,10 +78,14 @@ const keysOf = (raw: string): { display: string; keys: string[] } => {
   if (!base) return { display, keys: [] };
   const keys = new Set<string>();
   keys.add(base);
+  const tokens = base.split(" ").filter(Boolean);
+  if (tokens.some((tok) => tok === "water" || tok === "aqua" || tok === "eau")) {
+    keys.add("water");
+  }
   // Tokens — keep multi-word "anchors" by also adding each non-stopword
   // token. This is what lets "macadamia oil" match
   // "macadamia ternifolia seed oil" (both yield the token "macadamia").
-  for (const tok of base.split(" ")) {
+  for (const tok of tokens) {
     if (tok.length >= 4 && !STOPWORDS.has(tok)) keys.add(tok);
   }
   return { display, keys: Array.from(keys) };
