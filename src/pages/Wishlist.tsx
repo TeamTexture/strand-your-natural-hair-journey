@@ -205,6 +205,17 @@ const Wishlist = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <DualPhotoCaptureSheet
+        open={scanSheetOpen}
+        onOpenChange={setScanSheetOpen}
+        preferCamera={scanPreferCamera}
+        busy={busy}
+        onSubmit={async (front, back) => {
+          setScanSheetOpen(false);
+          await startScan(front, back, "wishlist");
+        }}
+      />
     </ScreenLayout>
   );
 };
