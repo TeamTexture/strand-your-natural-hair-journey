@@ -240,20 +240,15 @@ Deno.serve(async (req) => {
     const args = JSON.parse(argsStr);
     if (
       typeof args?.what_it_is !== "string" ||
-      !Array.isArray(args?.benefits) ||
-      !Array.isArray(args?.personal_notes)
+      !Array.isArray(args?.benefits)
     ) {
       throw new Error("invalid tool args shape");
     }
     parsed = {
       what_it_is: String(args.what_it_is).trim(),
-      deep_dive: Array.isArray(args.deep_dive)
-        ? args.deep_dive.map((s: unknown) => String(s).trim()).filter(Boolean)
-        : [],
+      deep_dive: [],
       benefits: args.benefits.map((s: unknown) => String(s).trim()).filter(Boolean),
-      personal_notes: args.personal_notes
-        .map((s: unknown) => String(s).trim())
-        .filter(Boolean),
+      personal_notes: [],
       what_it_means_for_you:
         typeof args?.what_it_means_for_you === "string"
           ? String(args.what_it_means_for_you).trim()
