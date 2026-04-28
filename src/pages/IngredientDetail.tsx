@@ -490,6 +490,33 @@ const IngredientDetail = () => {
     }
   };
 
+  // Explicit not-found state. We never silently bounce — that was the
+  // original bug. If the product isn't on the shelf and we don't have a
+  // fresh analysis to show, surface a clear message + a manual back action.
+  const missingProduct =
+    !!productKey && !productsLoading && !productRow && !freshAnalysis;
+
+  if (missingProduct) {
+    return (
+      <ScreenLayout bottomNav>
+        <TitleBar title="Product" onBack={handleBack} />
+        <div className="px-5 pt-6 space-y-4">
+          <SurfaceCard tone="orange" className="space-y-3">
+            <p className="text-sm font-medium">This product isn't in your shelf.</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              We couldn't find a saved analysis for this product, and no fresh
+              scan was passed in. Try scanning it again, or head back to your
+              products list.
+            </p>
+            <Button variant="goldGhost" size="pill" onClick={() => navigate("/products")}>
+              Back to my products
+            </Button>
+          </SurfaceCard>
+        </div>
+      </ScreenLayout>
+    );
+  }
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Product" onBack={handleBack} />
