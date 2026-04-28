@@ -8,7 +8,7 @@ import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import FilePickerButton from "@/components/FilePickerButton";
+import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -52,6 +52,8 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [scanSheetOpen, setScanSheetOpen] = useState(false);
+  const [scanPreferCamera, setScanPreferCamera] = useState(true);
   const { products: shelf, loading: loadingShelf } = useUserProducts("shelf");
   const { products: wishlist, loading: loadingWishlist } = useUserProducts("wishlist");
   const { startScan, busy: scanBusy } = useProductScan();
@@ -67,9 +69,9 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
   const returnTo = location.pathname + location.search;
   const navState = { intent: "shelf" as const, auto_save: true, returnTo };
 
-  const handlePhoto = (file: File) => {
-    onOpenChange(false);
-    void startScan(file, "shelf", navState);
+  const openScan = (preferCamera: boolean) => {
+    setScanPreferCamera(preferCamera);
+    setScanSheetOpen(true);
   };
   const handleUrl = () => {
     if (!linkUrl.trim()) return;
