@@ -225,7 +225,7 @@ describe("product-analyse contract", () => {
 
     const missingBack = validateClaudeInput({ photos: { front: "data:image/jpeg;base64,AAA" } });
     expect(missingBack.ok).toBe(false);
-    if (!missingBack.ok) {
+    if (missingBack.ok === false) {
       expect(missingBack.status).toBe(400);
       expect(missingBack.error).toBe(DUAL_PHOTO_REQUIRED_MESSAGE);
     }
