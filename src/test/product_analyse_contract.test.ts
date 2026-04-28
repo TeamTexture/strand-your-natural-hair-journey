@@ -215,9 +215,9 @@ describe("product-analyse contract", () => {
       const front = body.photos?.front;
       const back = body.photos?.back;
       if (!front || !back) {
-        return { ok: false, status: 400, error: DUAL_PHOTO_REQUIRED_MESSAGE };
+        return { ok: false as const, status: 400, error: DUAL_PHOTO_REQUIRED_MESSAGE };
       }
-      return { ok: true };
+      return { ok: true as const };
     }
 
     const missingBack = validateClaudeInput({ photos: { front: "data:image/jpeg;base64,AAA" } });
