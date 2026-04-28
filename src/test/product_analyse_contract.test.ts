@@ -148,14 +148,16 @@ function mockClaudeToolInput(): ProductAnalysisPayload {
  *  raw tool_use output before caching/returning. */
 function stampProvenance(
   base: ProductAnalysisPayload,
-  opts: { used_web_search: boolean },
+  opts: { used_web_search: boolean; web_search_count?: number },
 ): ProductAnalysisPayload {
+  const count = opts.web_search_count ?? (opts.used_web_search ? 2 : 0);
   return {
     ...base,
     _model_version: "claude-sonnet-4-6@v1",
     _generated_at: new Date().toISOString(),
     _provider: "claude",
     _used_web_search: opts.used_web_search,
+    _web_search_count: count,
   };
 }
 
