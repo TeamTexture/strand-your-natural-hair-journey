@@ -16,6 +16,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ListKind = "flag";
 
+interface ProductIngredientSource {
+  ingredients?: unknown;
+  key_ingredients?: unknown;
+}
+
 export interface IngredientListRow {
   id: string;
   ingredient: string;
@@ -104,11 +109,46 @@ async function recomputeFlagList(userId: string) {
   // key ingredients when an older scan/link produced no full ingredient list.
   const { data: rows, error } = await supabase
     .from("user_products")
-    .select("ingredients, key_ingredients")
+    .select("product_key, name, brand, ingredients, key_ingredients")
     .eq("user_id", userId)
     .eq("on_shelf", true)
     .eq("on_favourite", true);
   if (error) throw error;
+
+  const productKeys = (rows ?? [])
+    .map((row) => row.product_key)
+    .filter((key): key is string => Boolean(key));
+  const productsMissingFullIngredients = (rows ?? [])
+    .filter((row) => ((row.ingredients ?? []) as string[]).length === 0);
+  const { data: ratingRows, error: ratingsError } = productKeys.length > 0
+    ? await supabase
+        .from("product_ratings")
+        .select("product_key, ingredients")
+        .eq("user_id", userId)
+        .in("product_key", productKeys)
+    : { data: [], error: null };
+  if (ratingsError) throw ratingsError;
+  const ratingIngredientsByKey = new Map(
+    ((ratingRows ?? []) as Array<{ product_key: string; ingredients: string[] }>).map((row) => [
+      row.product_key,
+      row.ingredients ?? [],
+    ]),
+  );
+
+  const { data: cachedAnalyses, error: cacheError } = productsMissingFullIngredients.length > 0
+    ? await supabase
+        .from("ai_summaries")
+        .select("kind, payload")
+        .eq("user_id", userId)
+        .in("kind", productsMissingFullIngredients.map((row) => `ingredient_analysis:${row.product_key}`))
+    : { data: [], error: null };
+  if (cacheError) throw cacheError;
+  const cachedIngredientsByKind = new Map(
+    ((cachedAnalyses ?? []) as Array<{ kind: string; payload: { ingredients?: unknown[] } }>).map((row) => [
+      row.kind,
+      (row.payload?.ingredients ?? []).map(ingredientNameFromUnknown).filter(Boolean),
+    ]),
+  );
 
   // Per-key tally: count = number of qualifying products this key appeared
   // in. We also remember the longest/most descriptive display string we've
