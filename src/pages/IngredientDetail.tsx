@@ -768,6 +768,33 @@ const IngredientDetail = () => {
           />
         </SurfaceCard>
 
+        {/* ── Save CTA for fresh scans not yet on the shelf ──────────────
+         *  Hidden when auto_save is on (the effect handles persistence and
+         *  navigates the user back to returnTo automatically). */}
+        {freshAnalysis && !productRow && !autoSave && (
+          <div className="space-y-2 pt-2">
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => handleSaveFreshTo("shelf")}
+              disabled={savingToShelf}
+            >
+              <ArrowDownToLine className="size-4 mr-1.5" />
+              {savingToShelf ? "Saving…" : "Save to my shelf"}
+            </Button>
+            <Button
+              variant="goldGhost"
+              size="pill"
+              className="w-full"
+              onClick={() => handleSaveFreshTo("wishlist")}
+              disabled={savingToShelf}
+            >
+              <Bookmark className="size-4 mr-1.5" /> Save to my wishlist
+            </Button>
+          </div>
+        )}
+
         {/* ── Bottom shelf actions (context-aware) ────────────────────── */}
         {productRow && (
           <div className="space-y-2 pt-2">
