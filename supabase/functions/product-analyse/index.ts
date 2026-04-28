@@ -127,28 +127,26 @@ function toAnthropicImageSource(image_url: string): ImageBlockSource {
 
 // ─── Task instructions for Claude ──────────────────────────────────────
 function buildTaskInstructions(): string {
-  return `You are analysing a single product PHOTO for THIS user, in Paige's voice. Return JSON only via the return_product_analysis tool.
+  return `You're looking at two photos of the same product — front (brand + product name) and back (ingredient panel + usage instructions). Read both photos carefully. Return JSON only via the return_product_analysis tool.
 
-When analyzing this product:
+1. Extract product_name and brand primarily from photo 1 (front). Extract the full INCI ingredients list and any directions primarily from photo 2 (back).
 
-1. Look at the photo carefully. Extract product name, brand, and any visible ingredients.
+2. If either photo is partial, blurry, in a foreign language, or missing critical info: USE web_search to find the canonical product. Search for queries like '[brand] [product name] ingredients' or '[brand] [product name] INCI'. Use web_search up to 4 times — judiciously, only when needed. Do NOT search if the two photos already provide a clear, complete brand + INCI combination.
 
-2. If the visible label is partial, folded, obscured, or only shows marketing text without an ingredient list, USE web_search to find the full canonical ingredient list and brand context. Search for queries like '[brand] [product name] ingredients' or '[brand] [product name] INCI'. Use web_search up to 4 times — judiciously, only when needed. Do NOT search if the photo already shows a clear, complete INCI list.
+3. ingredients[] in your output must be the COMPLETE INCI list. product_name and brand must match what the brand actually calls it (not just descriptor text from the label).
 
-3. Compose the analysis using the user's specific profile data passed in the user message. Reference porosity, density, scalp condition, diagnosed conditions, current hairstyle, blood markers, hard-water status, avoid_ingredients, and goals when they actually move the verdict. Generic responses are forbidden when user data is available.
+4. Compose the analysis using the user's specific profile data passed in the user message. Reference porosity, density, scalp condition, diagnosed conditions, current hairstyle, blood markers, hard-water status, avoid_ingredients, and goals when they actually move the verdict. Generic responses are forbidden when user data is available.
 
-4. Source rules:
-   - Speak guidance directly in your own voice. Do NOT name any source manuscript, author, publisher, chapter, or page in any field — the citation-ban above is absolute.
-   - When facts come from web_search (e.g. "the brand's product page lists this as a low-pH cleanser"), reference them inline naturally in prose without citation lines.
+5. Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. When facts come from web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose — do NOT put web-derived facts under the "Read more" line. Do NOT name any source manuscript, author, publisher, chapter, or page anywhere except the formal "Read more —" line.
 
-5. Field rules — strict:
-   - product_name / brand: read from the photo if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
+6. Field rules — strict:
+   - product_name / brand: read from photo 1 if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
    - category: pick the single best fit from the enum.
-   - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when the photo's list is partial; otherwise transcribe what's visible.
+   - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when photo 2's list is partial; otherwise transcribe what's visible.
    - key_ingredients: pick 4–8 of the most decision-relevant. flag = "avoid" only when the ingredient is in the user's avoid_ingredients OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity, sulphates with hard water + dry scalp, an INCI the user has flagged across low-rated products). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
    - match_score: 0–100, weighted down by avoid flags, up by good flags. Consider category fit, current_hairstyle suitability, blood-marker deficiencies, and goal alignment.
-   - ai_summary: 2 short sentences max, second-person, warm and direct. The first sentence cites a specific reason from THIS user's context (their goal, challenge, current_hairstyle, scalp condition, or porosity). Never name any book or chapter.
-   - usage_instructions: VERBATIM directions from the manufacturer if visible on the label OR resolved via web_search. If neither source provides directions, return "" — never invent.
+   - ai_summary: 2 short sentences max, second-person, warm and direct. The first sentence cites a specific reason from THIS user's context (their goal, challenge, current_hairstyle, scalp condition, or porosity).
+   - usage_instructions: VERBATIM directions from the manufacturer if visible on photo 2 OR resolved via web_search. If neither source provides directions, return "" — never invent.
    - use_cases: 2–4 concrete tips for how THIS user should use the product, anchored in their hair traits, current_hairstyle, or goals. Do NOT repeat manufacturer directions.
    - tips: 2–4 personalised reasoning tips about fit/usage that go beyond use_cases (e.g. "Pair with your weekly clarifier — your area is hard water"). Anchor each in the user's data.
 
@@ -160,11 +158,12 @@ Hair-health guidance only — never medical advice. Recommend the user also seek
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
 async function runClaude(args: {
-  image_url: string;
+  front_image_url: string;
+  back_image_url: string;
   context: Record<string, unknown>;
   selectorContext: SelectorContext;
 }): Promise<{ payload: ProductAnalysisPayload; web_search_invocations: number }> {
-  const userText = `Analyse this product photo for me. Read the brand and product title directly from the label. If the label is partial or obscured, use web_search to resolve the canonical ingredient list and brand context.
+  const userText = `Two photos of the same product follow. Photo 1 is the FRONT of the product (brand + product name + marketing claims). Photo 2 is the BACK of the product (ingredient panel + usage instructions + regulatory text). Read both. Use web_search if anything is missing or unclear.
 
 User context (use to compute key_ingredients flags, match_score, ai_summary, use_cases, and tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}
@@ -172,7 +171,10 @@ ${JSON.stringify(args.context ?? {}, null, 2)}
 Return JSON only via the return_product_analysis tool.`;
 
   const userContent: ContentBlockInput[] = [
-    { type: "image", source: toAnthropicImageSource(args.image_url) },
+    { type: "text", text: "Photo 1 — FRONT of product:" },
+    { type: "image", source: toAnthropicImageSource(args.front_image_url) },
+    { type: "text", text: "Photo 2 — BACK of product (ingredient panel):" },
+    { type: "image", source: toAnthropicImageSource(args.back_image_url) },
     { type: "text", text: userText },
   ];
 
