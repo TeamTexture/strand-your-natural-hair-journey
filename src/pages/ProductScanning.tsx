@@ -159,10 +159,11 @@ const ProductScanning = () => {
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
             </div>
-            <p className="font-display text-lg mt-4">Analysing ingredients for your profile…</p>
+            <p className="font-display text-lg mt-4">Building your product page…</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
               Reading both sides of the label, matching ingredients to your
-              hair profile, and flagging anything from your avoid list.
+              hair profile, and flagging anything that already shows up in
+              3 or more of your favourited shelf products.
             </p>
           </>
         ) : (
