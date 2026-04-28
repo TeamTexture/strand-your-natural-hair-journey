@@ -143,15 +143,20 @@ const IngredientDetail = () => {
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
   const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;
 
-  const { allProducts, setShelf, setWishlist, setFavourite, remove, reload } = useUserProducts("all");
+  const { allProducts, setShelf, setWishlist, setFavourite, remove, reload, upsert } = useUserProducts("all");
   const productRow = useMemo(
     () => allProducts.find((p) => p.product_key === productKey) ?? null,
     [allProducts, productKey],
   );
 
-  const [loading, setLoading] = useState(true);
+  // Initial loading state: only show the spinner when we have no fresh
+  // analysis to render immediately.
+  const [loading, setLoading] = useState(!freshAnalysis);
   const [error, setError] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(
+    freshAnalysis ? freshToAnalysis(freshAnalysis) : null,
+  );
+  const [savingToShelf, setSavingToShelf] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [offShelfOpen, setOffShelfOpen] = useState(false);
