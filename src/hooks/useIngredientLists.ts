@@ -16,11 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ListKind = "flag";
 
-interface ProductIngredientSource {
-  ingredients?: unknown;
-  key_ingredients?: unknown;
-}
-
 export interface IngredientListRow {
   id: string;
   ingredient: string;
@@ -161,12 +156,19 @@ async function recomputeFlagList(userId: string) {
     // key_ingredients populated, and we want those to count toward — and
     // match against — the full INCI of newer scans.
     const fullIngredients = (row.ingredients ?? []) as string[];
+    const ratingIngredients = ratingIngredientsByKey.get(row.product_key) ?? [];
+    const cachedIngredients = cachedIngredientsByKind.get(`ingredient_analysis:${row.product_key}`) ?? [];
     const keyIngredients = Array.isArray(row.key_ingredients)
       ? row.key_ingredients
-          .map((item) => (item && typeof item === "object" && "name" in item ? String(item.name ?? "") : ""))
+          .map(ingredientNameFromUnknown)
           .filter(Boolean)
       : [];
-    const sourceIngredients = [...fullIngredients, ...keyIngredients];
+    const sourceIngredients = [
+      ...fullIngredients,
+      ...ratingIngredients,
+      ...cachedIngredients,
+      ...keyIngredients,
+    ];
 
     // De-dup keys WITHIN this product so a single product can't double-count
     // (e.g. listing both "Shea Butter" in key_ingredients and
