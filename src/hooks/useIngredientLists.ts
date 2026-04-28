@@ -182,12 +182,13 @@ async function recomputeFlagList(userId: string) {
       for (const k of keys) {
         if (seenForProduct.has(k)) continue;
         seenForProduct.add(k);
+        const displayName = k === "water" ? "Water" : display;
         const existing = tally.get(k);
         if (existing) {
           existing.count += 1;
-          if (display.length > existing.display.length) existing.display = display;
+          if (displayName.length > existing.display.length) existing.display = displayName;
         } else {
-          tally.set(k, { display, count: 1 });
+          tally.set(k, { display: displayName, count: 1 });
         }
       }
     }
