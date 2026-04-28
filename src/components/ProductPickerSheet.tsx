@@ -8,7 +8,7 @@ import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import FilePickerButton from "@/components/FilePickerButton";
+import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -52,6 +52,8 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [scanSheetOpen, setScanSheetOpen] = useState(false);
+  const [scanPreferCamera, setScanPreferCamera] = useState(true);
   const { products: shelf, loading: loadingShelf } = useUserProducts("shelf");
   const { products: wishlist, loading: loadingWishlist } = useUserProducts("wishlist");
   const { startScan, busy: scanBusy } = useProductScan();
@@ -67,9 +69,9 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
   const returnTo = location.pathname + location.search;
   const navState = { intent: "shelf" as const, auto_save: true, returnTo };
 
-  const handlePhoto = (file: File) => {
-    onOpenChange(false);
-    void startScan(file, "shelf", navState);
+  const openScan = (preferCamera: boolean) => {
+    setScanPreferCamera(preferCamera);
+    setScanSheetOpen(true);
   };
   const handleUrl = () => {
     if (!linkUrl.trim()) return;
@@ -81,6 +83,7 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
   const busy = scanBusy || urlBusy;
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-[20px] max-h-[85vh] overflow-y-auto">
         <SheetHeader>
@@ -105,25 +108,24 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
           {showAdd && (
             <div className="mt-3 space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <FilePickerButton
-                  variant="goldGhost"
-                  preferCamera
+                <button
+                  type="button"
                   disabled={busy}
-                  onPick={handlePhoto}
-                  className="!h-auto !p-3 !rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex-col"
+                  onClick={() => openScan(true)}
+                  className="h-auto p-3 rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex flex-col items-center justify-center disabled:opacity-50"
                 >
                   <Camera className="size-5 mb-1 text-primary" />
-                  <span className="text-[11px] font-medium">Take a photo</span>
-                </FilePickerButton>
-                <FilePickerButton
-                  variant="goldGhost"
+                  <span className="text-[11px] font-medium">Take photos</span>
+                </button>
+                <button
+                  type="button"
                   disabled={busy}
-                  onPick={handlePhoto}
-                  className="!h-auto !p-3 !rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex-col"
+                  onClick={() => openScan(false)}
+                  className="h-auto p-3 rounded-[10px] border border-dashed border-primary/50 bg-card text-center flex flex-col items-center justify-center disabled:opacity-50"
                 >
                   <ImagePlus className="size-5 mb-1 text-primary" />
-                  <span className="text-[11px] font-medium">Upload photo</span>
-                </FilePickerButton>
+                  <span className="text-[11px] font-medium">Upload photos</span>
+                </button>
               </div>
 
               <div className="flex gap-2">
@@ -190,6 +192,19 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
         </div>
       </SheetContent>
     </Sheet>
+
+    <DualPhotoCaptureSheet
+      open={scanSheetOpen}
+      onOpenChange={setScanSheetOpen}
+      preferCamera={scanPreferCamera}
+      busy={scanBusy}
+      onSubmit={async (front, back) => {
+        setScanSheetOpen(false);
+        onOpenChange(false);
+        await startScan(front, back, "shelf", navState);
+      }}
+    />
+    </>
   );
 };
 
