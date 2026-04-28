@@ -66,15 +66,9 @@ const Wishlist = () => {
         >
           {busy ? "Preparing photos…" : "+ Scan a New Product"}
         </Button>
-        <Button
-          variant="goldOutline"
-          size="pill"
-          disabled={busy || urlBusy}
-          onClick={() => { setScanPreferCamera(false); setScanSheetOpen(true); }}
-          className="w-full"
-        >
-          + Upload Front + Back Photos
-        </Button>
+        {/* The "Scan a New Product" sheet already lets users either take photos
+            or pick from their library, so a separate "Upload" button would be
+            redundant. */}
         <Button
           variant="goldOutline"
           size="pill"
