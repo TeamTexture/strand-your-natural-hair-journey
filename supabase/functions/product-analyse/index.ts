@@ -55,7 +55,15 @@ declare const Deno: {
 const MODEL_VERSION = "claude-sonnet-4-6@v1";
 
 interface RequestBody {
-  image_url?: string; // signed URL OR data URL (data:image/...;base64,...)
+  /** Lovable+Gemini path (back-compat): single photo, signed URL OR data URL. */
+  image_url?: string;
+  /** Claude path (audit §5 Step 3, revised 2026-04-27): dual photo input.
+   *  Both required when STRAND_AI_PROVIDER_PRODUCT_PHOTO=claude. Each value
+   *  is a signed URL OR a data URL (data:image/...;base64,...). */
+  photos?: {
+    front?: string;
+    back?: string;
+  };
   /** Optional product key for cache. When omitted (current photo-scan
    *  flow), cache lookup is skipped. */
   productKey?: string;
@@ -68,6 +76,11 @@ interface RequestBody {
   };
   force?: boolean;
 }
+
+/** User-facing 400 message when the Claude path is invoked without both
+ *  photos (audit §5 Step 3 — strict dual-photo contract, no degradation). */
+const DUAL_PHOTO_REQUIRED_MESSAGE =
+  "STRAND needs both the front and back of the product to give you a full analysis.";
 
 // ─── Selector context for KB topic matching ────────────────────────────
 function buildSelectorContext(body: RequestBody): SelectorContext {
