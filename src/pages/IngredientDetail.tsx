@@ -143,7 +143,7 @@ const IngredientDetail = () => {
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
   const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;
 
-  const { allProducts, setShelf, setWishlist, setFavourite, remove, reload, upsert } = useUserProducts("all");
+  const { allProducts, loading: productsLoading, setShelf, setWishlist, setFavourite, remove, reload, upsert } = useUserProducts("all");
   const productRow = useMemo(
     () => allProducts.find((p) => p.product_key === productKey) ?? null,
     [allProducts, productKey],
