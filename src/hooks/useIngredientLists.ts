@@ -28,12 +28,11 @@ export interface IngredientListRow {
 // favourited) before it earns a flag.
 const MIN_PRODUCTS_FOR_FLAG = 3;
 
-// Ingredients that are too generic / vehicle-only to be meaningful — skip
-// when aggregating so we don't surface "Water" as a flagged ingredient.
+// Ingredients that are too generic / non-actionable to be meaningful — skip
+// when aggregating. Water is intentionally NOT skipped because the flagged
+// list should reflect any ingredient shared by 3+ favourite shelf products.
 const GENERIC_INGREDIENTS = new Set(
   [
-    "water",
-    "aqua",
     "fragrance",
     "parfum",
     "phenoxyethanol",
@@ -41,6 +40,14 @@ const GENERIC_INGREDIENTS = new Set(
 );
 
 const normaliseIngredient = (raw: string) => raw.replace(/\s+/g, " ").trim();
+
+const ingredientNameFromUnknown = (item: unknown): string => {
+  if (typeof item === "string") return item;
+  if (item && typeof item === "object" && "name" in item) {
+    return String((item as { name?: unknown }).name ?? "");
+  }
+  return "";
+};
 
 // Build a set of comparison keys from a single ingredient string. This lets
 // us match across naming variants (e.g. "Macadamia Oil" vs
@@ -71,10 +78,14 @@ const keysOf = (raw: string): { display: string; keys: string[] } => {
   if (!base) return { display, keys: [] };
   const keys = new Set<string>();
   keys.add(base);
+  const tokens = base.split(" ").filter(Boolean);
+  if (tokens.some((tok) => tok === "water" || tok === "aqua" || tok === "eau")) {
+    keys.add("water");
+  }
   // Tokens — keep multi-word "anchors" by also adding each non-stopword
   // token. This is what lets "macadamia oil" match
   // "macadamia ternifolia seed oil" (both yield the token "macadamia").
-  for (const tok of base.split(" ")) {
+  for (const tok of tokens) {
     if (tok.length >= 4 && !STOPWORDS.has(tok)) keys.add(tok);
   }
   return { display, keys: Array.from(keys) };
@@ -93,11 +104,46 @@ async function recomputeFlagList(userId: string) {
   // key ingredients when an older scan/link produced no full ingredient list.
   const { data: rows, error } = await supabase
     .from("user_products")
-    .select("ingredients, key_ingredients")
+    .select("product_key, name, brand, ingredients, key_ingredients")
     .eq("user_id", userId)
     .eq("on_shelf", true)
     .eq("on_favourite", true);
   if (error) throw error;
+
+  const productKeys = (rows ?? [])
+    .map((row) => row.product_key)
+    .filter((key): key is string => Boolean(key));
+  const productsMissingFullIngredients = (rows ?? [])
+    .filter((row) => ((row.ingredients ?? []) as string[]).length === 0);
+  const { data: ratingRows, error: ratingsError } = productKeys.length > 0
+    ? await supabase
+        .from("product_ratings")
+        .select("product_key, ingredients")
+        .eq("user_id", userId)
+        .in("product_key", productKeys)
+    : { data: [], error: null };
+  if (ratingsError) throw ratingsError;
+  const ratingIngredientsByKey = new Map(
+    ((ratingRows ?? []) as Array<{ product_key: string; ingredients: string[] }>).map((row) => [
+      row.product_key,
+      row.ingredients ?? [],
+    ]),
+  );
+
+  const { data: cachedAnalyses, error: cacheError } = productsMissingFullIngredients.length > 0
+    ? await supabase
+        .from("ai_summaries")
+        .select("kind, payload")
+        .eq("user_id", userId)
+        .in("kind", productsMissingFullIngredients.map((row) => `ingredient_analysis:${row.product_key}`))
+    : { data: [], error: null };
+  if (cacheError) throw cacheError;
+  const cachedIngredientsByKind = new Map(
+    ((cachedAnalyses ?? []) as Array<{ kind: string; payload: { ingredients?: unknown[] } }>).map((row) => [
+      row.kind,
+      (row.payload?.ingredients ?? []).map(ingredientNameFromUnknown).filter(Boolean),
+    ]),
+  );
 
   // Per-key tally: count = number of qualifying products this key appeared
   // in. We also remember the longest/most descriptive display string we've
@@ -110,12 +156,19 @@ async function recomputeFlagList(userId: string) {
     // key_ingredients populated, and we want those to count toward — and
     // match against — the full INCI of newer scans.
     const fullIngredients = (row.ingredients ?? []) as string[];
+    const ratingIngredients = ratingIngredientsByKey.get(row.product_key) ?? [];
+    const cachedIngredients = cachedIngredientsByKind.get(`ingredient_analysis:${row.product_key}`) ?? [];
     const keyIngredients = Array.isArray(row.key_ingredients)
       ? row.key_ingredients
-          .map((item) => (item && typeof item === "object" && "name" in item ? String(item.name ?? "") : ""))
+          .map(ingredientNameFromUnknown)
           .filter(Boolean)
       : [];
-    const sourceIngredients = [...fullIngredients, ...keyIngredients];
+    const sourceIngredients = [
+      ...fullIngredients,
+      ...ratingIngredients,
+      ...cachedIngredients,
+      ...keyIngredients,
+    ];
 
     // De-dup keys WITHIN this product so a single product can't double-count
     // (e.g. listing both "Shea Butter" in key_ingredients and
@@ -129,12 +182,13 @@ async function recomputeFlagList(userId: string) {
       for (const k of keys) {
         if (seenForProduct.has(k)) continue;
         seenForProduct.add(k);
+        const displayName = k === "water" ? "Water" : display;
         const existing = tally.get(k);
         if (existing) {
           existing.count += 1;
-          if (display.length > existing.display.length) existing.display = display;
+          if (displayName.length > existing.display.length) existing.display = displayName;
         } else {
-          tally.set(k, { display, count: 1 });
+          tally.set(k, { display: displayName, count: 1 });
         }
       }
     }
@@ -297,7 +351,7 @@ export function useIngredientLists() {
   // is versioned so that changing the flag rule auto-invalidates old gates.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const KEY = "strand_flags_recomputed_session_v7_token_match";
+    const KEY = "strand_flags_recomputed_session_v8_cached_full_ingredients";
     if (window.sessionStorage.getItem(KEY)) return;
     window.sessionStorage.setItem(KEY, "1");
     void recomputeIngredientFlags();
