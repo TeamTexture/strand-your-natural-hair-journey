@@ -24,8 +24,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL = "google/gemini-2.5-pro";
-const MODEL_VERSION = "ingredient-profile@v4-deep-dive";
+// Flash is ~3–5× faster than Pro and plenty for this short, structured payload.
+const MODEL = "google/gemini-2.5-flash";
+const MODEL_VERSION = "ingredient-profile@v5-succinct";
 
 interface RequestBody {
   ingredient: string;
