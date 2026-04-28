@@ -6,7 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
-import FilePickerButton from "@/components/FilePickerButton";
+import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import MyToolsSection from "@/components/MyToolsSection";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import ProductsHeader, {
@@ -40,6 +40,8 @@ const Products = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
+  const [scanSheetOpen, setScanSheetOpen] = useState(false);
+  const [scanPreferCamera, setScanPreferCamera] = useState(true);
   const [offShelfTarget, setOffShelfTarget] = useState<{ id: string; key: string; name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const { products, loading, remove, reload, setFavourite } = useUserProducts("shelf");
@@ -242,12 +244,24 @@ const Products = () => {
       </div>
 
       <div className="px-5 pb-6 space-y-3">
-        <FilePickerButton variant="gold" size="pill" preferCamera disabled={busy || urlBusy} onPick={(f) => startScan(f, "shelf")}>
-          {busy ? "Preparing photo…" : "+ Scan a New Product"}
-        </FilePickerButton>
-        <FilePickerButton variant="goldOutline" size="pill" disabled={busy || urlBusy} onPick={(f) => startScan(f, "shelf")}>
-          + Upload Screenshot
-        </FilePickerButton>
+        <Button
+          variant="gold"
+          size="pill"
+          disabled={busy || urlBusy}
+          onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
+          className="w-full"
+        >
+          {busy ? "Preparing photos…" : "+ Scan a New Product"}
+        </Button>
+        <Button
+          variant="goldOutline"
+          size="pill"
+          disabled={busy || urlBusy}
+          onClick={() => { setScanPreferCamera(false); setScanSheetOpen(true); }}
+          className="w-full"
+        >
+          + Upload Front + Back Photos
+        </Button>
         <Button
           variant="goldOutline"
           size="pill"
