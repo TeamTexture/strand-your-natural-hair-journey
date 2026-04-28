@@ -83,6 +83,7 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
   const busy = scanBusy || urlBusy;
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-[20px] max-h-[85vh] overflow-y-auto">
         <SheetHeader>
