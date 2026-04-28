@@ -99,19 +99,44 @@ const ProductScanning = () => {
         }
         if (data?.error) throw new Error(data.error);
 
+        // Persist the freshly-scanned product so the unified product page
+        // (/products/ingredient) — which loads from user_products by
+        // product_key — has a row to display. Without this insert, the
+        // redirect would land on an empty product page and bounce back.
         const product_key = `scan-${Date.now()}`;
-        navigate("/products/detail-new", {
-          replace: true,
-          state: {
-            analysis: data,
-            storage_path: state.storage_path,
-            preview_url: state.preview_url,
-            product_key,
-            intent: state.intent ?? "shelf",
-            auto_save: state.auto_save ?? false,
-            returnTo: state.returnTo,
-          },
-        });
+        const intent = state.intent ?? "shelf";
+        const payload = {
+          user_id: user.id,
+          product_key,
+          name: typeof data?.product_name === "string" && data.product_name.trim()
+            ? data.product_name.trim()
+            : "Untitled product",
+          brand: typeof data?.brand === "string" ? data.brand.trim() : null,
+          category: typeof data?.category === "string" ? data.category : null,
+          ingredients: Array.isArray(data?.ingredients) ? data.ingredients : [],
+          key_ingredients: Array.isArray(data?.key_ingredients) ? data.key_ingredients : [],
+          ai_summary: typeof data?.ai_summary === "string" ? data.ai_summary : null,
+          match_score: typeof data?.match_score === "number" ? data.match_score : null,
+          storage_path: state.storage_path,
+          on_shelf: intent === "shelf",
+          on_wishlist: intent === "wishlist",
+          ...(intent === "shelf" ? { added_to_shelf_at: new Date().toISOString() } : {}),
+        };
+        const { error: insErr } = await supabase
+          .from("user_products")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .upsert(payload as any, { onConflict: "user_id,product_key" });
+        if (insErr) {
+          console.error("user_products upsert after scan failed", insErr);
+          throw new Error("Couldn't save the scanned product. Please try again.");
+        }
+
+        const name = encodeURIComponent(payload.name);
+        const brand = encodeURIComponent(payload.brand ?? "");
+        navigate(
+          `/products/ingredient?key=${encodeURIComponent(product_key)}&name=${name}&brand=${brand}`,
+          { replace: true },
+        );
       } catch (e) {
         const msg = (e as Error).message ?? "Could not analyse product";
         console.error(e);
