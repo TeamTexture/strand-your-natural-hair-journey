@@ -651,7 +651,7 @@ const IngredientDetail = () => {
             const profile = ingredientProfile.data;
             const meansForYou = profile?.what_it_means_for_you;
             const whatItIs = profile?.what_it_is;
-            const deepDive = profile?.deep_dive ?? [];
+            // deep_dive removed in v5 — popup is now succinct (what_it_is + benefits + what_it_means_for_you).
             const benefits = profile?.benefits ?? [];
             const profileLoading = ingredientProfile.isLoading || ingredientProfile.isFetching;
             const profileError = ingredientProfile.isError;
