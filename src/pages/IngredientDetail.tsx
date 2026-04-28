@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +49,53 @@ interface Analysis {
   summary: string;
   ingredients: Ingredient[];
   personalised_guidance?: GuidanceTip[];
+  // Fresh-scan extras (from product-analyse, optional for cached path):
+  usage_instructions?: string;
+  use_cases?: string[];
+  tips?: string[];
+}
+
+// Shape returned by the product-analyse edge function (passed via route state
+// from ProductScanning). Only the fields we actually consume are typed here.
+interface FreshAnalysisPayload {
+  product_name?: string;
+  brand?: string;
+  ingredients?: string[];
+  key_ingredients?: Array<{ name: string; benefit?: string; flag?: "good" | "warn" | "avoid"; reason?: string }>;
+  match_score?: number;
+  ai_summary?: string;
+  usage_instructions?: string;
+  use_cases?: string[];
+  tips?: string[];
+}
+
+/** Convert a fresh product-analyse payload into the local Analysis shape so
+ *  the existing renderer can display it without going through ingredient-analysis. */
+function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
+  const flagToTone = (f?: string): Ingredient["tone"] =>
+    f === "avoid" ? "bad" : f === "good" ? "good" : "warn";
+  // Build a body lookup from key_ingredients so chip-tap shows the per-ingredient
+  // benefit/reason without another round-trip.
+  const keyMap = new Map<string, { benefit?: string; flag?: string; reason?: string }>();
+  for (const k of fresh.key_ingredients ?? []) {
+    keyMap.set(k.name.toLowerCase().trim(), { benefit: k.benefit, flag: k.flag, reason: k.reason });
+  }
+  const ingredients: Ingredient[] = (fresh.ingredients ?? []).map((name) => {
+    const k = keyMap.get(name.toLowerCase().trim());
+    return {
+      name,
+      tone: flagToTone(k?.flag),
+      body: k?.benefit || k?.reason || "",
+    };
+  });
+  return {
+    match_score: typeof fresh.match_score === "number" ? fresh.match_score : 0,
+    summary: fresh.ai_summary ?? "",
+    ingredients,
+    usage_instructions: fresh.usage_instructions,
+    use_cases: fresh.use_cases,
+    tips: fresh.tips,
+  };
 }
 
 const formatRelative = (iso: string | null): string | null => {
@@ -67,6 +114,7 @@ const formatRelative = (iso: string | null): string | null => {
 
 const IngredientDetail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rating, setRating] = useState(0);
   const [searchParams] = useSearchParams();
 
@@ -74,19 +122,41 @@ const IngredientDetail = () => {
   const productName = searchParams.get("name") ?? "";
   const productBrand = searchParams.get("brand") ?? "";
 
+  // Fresh-scan payload passed from ProductScanning / useProductUrlScan via
+  // route state. When present we render directly from this and skip the
+  // ingredient-analysis round-trip (which is for already-saved products).
+  const navState = location.state as {
+    analysis?: FreshAnalysisPayload;
+    storage_path?: string;
+    preview_url?: string;
+    intent?: "shelf" | "wishlist";
+    auto_save?: boolean;
+    returnTo?: string;
+    product_key?: string;
+  } | null;
+  const freshAnalysis = navState?.analysis ?? null;
+  const navIntent: "shelf" | "wishlist" = navState?.intent ?? "shelf";
+  const autoSave = navState?.auto_save ?? false;
+  const returnTo = navState?.returnTo ?? null;
+
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
   const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;
 
-  const { allProducts, setShelf, setWishlist, setFavourite, remove, reload } = useUserProducts("all");
+  const { allProducts, loading: productsLoading, setShelf, setWishlist, setFavourite, remove, reload, upsert } = useUserProducts("all");
   const productRow = useMemo(
     () => allProducts.find((p) => p.product_key === productKey) ?? null,
     [allProducts, productKey],
   );
 
-  const [loading, setLoading] = useState(true);
+  // Initial loading state: only show the spinner when we have no fresh
+  // analysis to render immediately.
+  const [loading, setLoading] = useState(!freshAnalysis);
   const [error, setError] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(
+    freshAnalysis ? freshToAnalysis(freshAnalysis) : null,
+  );
+  const [savingToShelf, setSavingToShelf] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [offShelfOpen, setOffShelfOpen] = useState(false);
@@ -268,8 +338,83 @@ const IngredientDetail = () => {
   );
 
   useEffect(() => {
+    // Fresh-scan path: analysis is already in state, no need to re-fetch.
+    if (freshAnalysis) return;
     if (productKey) runAnalysis(false);
-  }, [runAnalysis, productKey]);
+  }, [runAnalysis, productKey, freshAnalysis]);
+
+  // Save the freshly-scanned product into user_products. The scanning flow
+  // already attempts this upsert, but we re-run it here to (a) cover the
+  // case where the user lands here without a saved row and (b) honour an
+  // explicit "Save to shelf / wishlist" CTA.
+  const persistFreshScan = useCallback(
+    async (intent: "shelf" | "wishlist") => {
+      if (!freshAnalysis || !productKey) return null;
+      setSavingToShelf(true);
+      try {
+        const saved = await upsert({
+          product_key: productKey,
+          name: freshAnalysis.product_name?.trim() || productName || "Untitled product",
+          brand: freshAnalysis.brand?.trim() || productBrand || null,
+          ingredients: freshAnalysis.ingredients ?? [],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          key_ingredients: (freshAnalysis.key_ingredients ?? []) as any,
+          ai_summary: freshAnalysis.ai_summary ?? null,
+          match_score: typeof freshAnalysis.match_score === "number" ? freshAnalysis.match_score : null,
+          storage_path: navState?.storage_path ?? null,
+          on_shelf: intent === "shelf",
+          on_wishlist: intent === "wishlist",
+          ...(intent === "shelf" ? { added_to_shelf_at: new Date().toISOString() } : {}),
+        });
+        // Cache the analysis so future visits via the saved-products path can
+        // read it back without re-running ingredient-analysis.
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          const uid = userData?.user?.id;
+          if (uid) {
+            await supabase.from("ai_summaries").insert({
+              user_id: uid,
+              kind: `product_analyse:${productKey}`,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              payload: freshAnalysis as any,
+            });
+          }
+        } catch (cacheErr) {
+          // Cache failures are non-fatal — the row is already in user_products.
+          console.warn("ai_summaries cache write failed", cacheErr);
+        }
+        return saved;
+      } finally {
+        setSavingToShelf(false);
+      }
+    },
+    [freshAnalysis, productKey, productName, productBrand, navState?.storage_path, upsert],
+  );
+
+  // Auto-save flow (e.g. journal / wash-day). Persist immediately, then bounce
+  // the user back to where they came from.
+  const autoSaveDoneRef = useState({ done: false })[0];
+  useEffect(() => {
+    if (!freshAnalysis || !autoSave || autoSaveDoneRef.done) return;
+    autoSaveDoneRef.done = true;
+    (async () => {
+      const saved = await persistFreshScan(navIntent);
+      if (saved && returnTo) {
+        navigate(returnTo, { replace: true });
+      }
+    })();
+  }, [freshAnalysis, autoSave, navIntent, returnTo, persistFreshScan, navigate, autoSaveDoneRef]);
+
+  const handleSaveFreshTo = async (intent: "shelf" | "wishlist") => {
+    const saved = await persistFreshScan(intent);
+    if (saved) {
+      toast.success(
+        intent === "shelf"
+          ? `${saved.name} added to your shelf`
+          : `${saved.name} added to your wishlist`,
+      );
+    }
+  };
 
   // ── Shelf state derived flags (drives bottom action button choice) ─────
   const onShelf = !!productRow?.on_shelf;
@@ -344,6 +489,33 @@ const IngredientDetail = () => {
       navigate("/products");
     }
   };
+
+  // Explicit not-found state. We never silently bounce — that was the
+  // original bug. If the product isn't on the shelf and we don't have a
+  // fresh analysis to show, surface a clear message + a manual back action.
+  const missingProduct =
+    !!productKey && !productsLoading && !productRow && !freshAnalysis;
+
+  if (missingProduct) {
+    return (
+      <ScreenLayout bottomNav>
+        <TitleBar title="Product" onBack={handleBack} />
+        <div className="px-5 pt-6 space-y-4">
+          <SurfaceCard tone="orange" className="space-y-3">
+            <p className="text-sm font-medium">This product isn't in your shelf.</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              We couldn't find a saved analysis for this product, and no fresh
+              scan was passed in. Try scanning it again, or head back to your
+              products list.
+            </p>
+            <Button variant="goldGhost" size="pill" onClick={() => navigate("/products")}>
+              Back to my products
+            </Button>
+          </SurfaceCard>
+        </div>
+      </ScreenLayout>
+    );
+  }
 
   return (
     <ScreenLayout bottomNav>
@@ -543,6 +715,46 @@ const IngredientDetail = () => {
                 );
               })()}
             </div>
+
+            {/* Fresh-scan extras: usage_instructions + personalised use_cases + tips. */}
+            {analysis.usage_instructions && analysis.usage_instructions.trim().length > 0 && (
+              <>
+                <SectionLabel>How to use it</SectionLabel>
+                <SurfaceCard>
+                  <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">
+                    {analysis.usage_instructions}
+                  </p>
+                </SurfaceCard>
+              </>
+            )}
+
+            {analysis.use_cases && analysis.use_cases.length > 0 && (
+              <>
+                <SectionLabel>How to use this for your hair</SectionLabel>
+                <SurfaceCard className="space-y-2">
+                  {analysis.use_cases.map((tip, idx) => (
+                    <div key={`uc-${idx}`} className="flex items-start gap-2">
+                      <span className="text-primary shrink-0 mt-1">•</span>
+                      <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
+                    </div>
+                  ))}
+                </SurfaceCard>
+              </>
+            )}
+
+            {analysis.tips && analysis.tips.length > 0 && (
+              <>
+                <SectionLabel>Personalised tips</SectionLabel>
+                <SurfaceCard className="space-y-2">
+                  {analysis.tips.map((tip, idx) => (
+                    <div key={`tip-${idx}`} className="flex items-start gap-2">
+                      <span className="text-primary shrink-0 mt-1">•</span>
+                      <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
+                    </div>
+                  ))}
+                </SurfaceCard>
+              </>
+            )}
           </>
         )}
 
@@ -555,6 +767,33 @@ const IngredientDetail = () => {
             productBrand={productBrand}
           />
         </SurfaceCard>
+
+        {/* ── Save CTA for fresh scans not yet on the shelf ──────────────
+         *  Hidden when auto_save is on (the effect handles persistence and
+         *  navigates the user back to returnTo automatically). */}
+        {freshAnalysis && !productRow && !autoSave && (
+          <div className="space-y-2 pt-2">
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => handleSaveFreshTo("shelf")}
+              disabled={savingToShelf}
+            >
+              <ArrowDownToLine className="size-4 mr-1.5" />
+              {savingToShelf ? "Saving…" : "Save to my shelf"}
+            </Button>
+            <Button
+              variant="goldGhost"
+              size="pill"
+              className="w-full"
+              onClick={() => handleSaveFreshTo("wishlist")}
+              disabled={savingToShelf}
+            >
+              <Bookmark className="size-4 mr-1.5" /> Save to my wishlist
+            </Button>
+          </div>
+        )}
 
         {/* ── Bottom shelf actions (context-aware) ────────────────────── */}
         {productRow && (
