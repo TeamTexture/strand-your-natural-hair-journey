@@ -37,6 +37,7 @@ const ProductScanning = () => {
     if (ranRef.current) return;
     ranRef.current = true;
     if (!state?.storage_path || !user) {
+      console.log("[scan-debug] entry", { hasState: !!state, hasUser: !!user, storage_path: state?.storage_path });
       navigate("/products", { replace: true });
       return;
     }
@@ -77,6 +78,7 @@ const ProductScanning = () => {
 
         const context = await buildAiContext();
 
+        console.log("[scan-debug] about to invoke product-analyse");
         const { data, error: invErr } = await supabase.functions.invoke(
           "product-analyse",
           {
@@ -98,6 +100,7 @@ const ProductScanning = () => {
           throw new Error(userFacing);
         }
         if (data?.error) throw new Error(data.error);
+        console.log("[scan-debug] function returned ok", { hasData: !!data, productName: data?.product_name, brand: data?.brand });
 
         // Persist the freshly-scanned product so the unified product page
         // (/products/ingredient) — which loads from user_products by
@@ -130,6 +133,7 @@ const ProductScanning = () => {
           console.error("user_products upsert after scan failed", insErr);
           throw new Error("Couldn't save the scanned product. Please try again.");
         }
+        console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
 
         const name = encodeURIComponent(payload.name);
         const brand = encodeURIComponent(payload.brand ?? "");
@@ -153,6 +157,7 @@ const ProductScanning = () => {
         );
       } catch (e) {
         const msg = (e as Error).message ?? "Could not analyse product";
+        console.log("[scan-debug] CAUGHT ERROR", { name: (e as Error).name, message: (e as Error).message, stack: (e as Error).stack });
         console.error(e);
         setError(msg);
         setPhase("error");
