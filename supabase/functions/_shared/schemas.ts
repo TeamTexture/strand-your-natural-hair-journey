@@ -104,4 +104,5 @@ export interface ProductAnalysisPayload {
   _generated_at?: string;
   _provider?: "claude" | "lovable";
   _used_web_search?: boolean;
+  _web_search_count?: number;
 }

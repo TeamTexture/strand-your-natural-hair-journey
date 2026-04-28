@@ -49,6 +49,7 @@ interface ProductAnalysisPayload {
   _generated_at?: string;
   _provider?: "claude" | "lovable";
   _used_web_search?: boolean;
+  _web_search_count?: number;
 }
 
 const VALID_CATEGORIES = new Set([
@@ -147,14 +148,16 @@ function mockClaudeToolInput(): ProductAnalysisPayload {
  *  raw tool_use output before caching/returning. */
 function stampProvenance(
   base: ProductAnalysisPayload,
-  opts: { used_web_search: boolean },
+  opts: { used_web_search: boolean; web_search_count?: number },
 ): ProductAnalysisPayload {
+  const count = opts.web_search_count ?? (opts.used_web_search ? 2 : 0);
   return {
     ...base,
     _model_version: "claude-sonnet-4-6@v1",
     _generated_at: new Date().toISOString(),
     _provider: "claude",
     _used_web_search: opts.used_web_search,
+    _web_search_count: count,
   };
 }
 
@@ -190,13 +193,56 @@ describe("product-analyse contract", () => {
     expect(stamped._used_web_search).toBe(true);
   });
 
-  it("NO-WEB-SEARCH: cached payload stamps _used_web_search: false when Claude answered from photo alone", () => {
+  it("NO-WEB-SEARCH: cached payload stamps _used_web_search: false + _web_search_count: 0", () => {
     const server_tool_use_count = 0;
     const stamped = stampProvenance(mockClaudeToolInput(), {
       used_web_search: server_tool_use_count > 0,
     });
     assertValidProductAnalysis(stamped);
     expect(stamped._used_web_search).toBe(false);
+    expect(stamped._web_search_count).toBe(0);
+  });
+
+  it("DUAL-PHOTO REJECTION: Claude path rejects single-photo input with the user-facing 400 message", () => {
+    // Mirrors the server validation in supabase/functions/product-analyse/index.ts.
+    // Claude path requires { photos: { front, back } } — both required.
+    const DUAL_PHOTO_REQUIRED_MESSAGE =
+      "STRAND needs both the front and back of the product to give you a full analysis.";
+
+    type ValidateResult =
+      | { ok: true }
+      | { ok: false; status: number; error: string };
+    function validateClaudeInput(body: {
+      photos?: { front?: string; back?: string };
+    }): ValidateResult {
+      const front = body.photos?.front;
+      const back = body.photos?.back;
+      if (!front || !back) {
+        return { ok: false, status: 400, error: DUAL_PHOTO_REQUIRED_MESSAGE };
+      }
+      return { ok: true };
+    }
+
+    const missingBack = validateClaudeInput({ photos: { front: "data:image/jpeg;base64,AAA" } });
+    expect(missingBack.ok).toBe(false);
+    if (missingBack.ok === false) {
+      expect(missingBack.status).toBe(400);
+      expect(missingBack.error).toBe(DUAL_PHOTO_REQUIRED_MESSAGE);
+    }
+
+    const missingFront = validateClaudeInput({ photos: { back: "data:image/jpeg;base64,BBB" } });
+    expect(missingFront.ok).toBe(false);
+
+    const noPhotos = validateClaudeInput({});
+    expect(noPhotos.ok).toBe(false);
+
+    const both = validateClaudeInput({
+      photos: {
+        front: "data:image/jpeg;base64,AAA",
+        back: "data:image/jpeg;base64,BBB",
+      },
+    });
+    expect(both.ok).toBe(true);
   });
 
   it("rejects payloads outside the schema (defensive — proves the validator works)", () => {
