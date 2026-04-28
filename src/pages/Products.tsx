@@ -281,6 +281,17 @@ const Products = () => {
 
       <MyToolsSection />
 
+      <DualPhotoCaptureSheet
+        open={scanSheetOpen}
+        onOpenChange={setScanSheetOpen}
+        preferCamera={scanPreferCamera}
+        busy={busy}
+        onSubmit={async (front, back) => {
+          setScanSheetOpen(false);
+          await startScan(front, back, "shelf");
+        }}
+      />
+
       <Sheet open={linkSheetOpen} onOpenChange={(o) => !urlBusy && setLinkSheetOpen(o)}>
         <SheetContent side="bottom" className="rounded-t-[24px] pb-8">
           <SheetHeader className="text-left">
