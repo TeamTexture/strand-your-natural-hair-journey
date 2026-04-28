@@ -715,6 +715,46 @@ const IngredientDetail = () => {
                 );
               })()}
             </div>
+
+            {/* Fresh-scan extras: usage_instructions + personalised use_cases + tips. */}
+            {analysis.usage_instructions && analysis.usage_instructions.trim().length > 0 && (
+              <>
+                <SectionLabel>How to use it</SectionLabel>
+                <SurfaceCard>
+                  <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">
+                    {analysis.usage_instructions}
+                  </p>
+                </SurfaceCard>
+              </>
+            )}
+
+            {analysis.use_cases && analysis.use_cases.length > 0 && (
+              <>
+                <SectionLabel>How to use this for your hair</SectionLabel>
+                <SurfaceCard className="space-y-2">
+                  {analysis.use_cases.map((tip, idx) => (
+                    <div key={`uc-${idx}`} className="flex items-start gap-2">
+                      <span className="text-primary shrink-0 mt-1">•</span>
+                      <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
+                    </div>
+                  ))}
+                </SurfaceCard>
+              </>
+            )}
+
+            {analysis.tips && analysis.tips.length > 0 && (
+              <>
+                <SectionLabel>Personalised tips</SectionLabel>
+                <SurfaceCard className="space-y-2">
+                  {analysis.tips.map((tip, idx) => (
+                    <div key={`tip-${idx}`} className="flex items-start gap-2">
+                      <span className="text-primary shrink-0 mt-1">•</span>
+                      <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
+                    </div>
+                  ))}
+                </SurfaceCard>
+              </>
+            )}
           </>
         )}
 
