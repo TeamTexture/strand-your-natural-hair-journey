@@ -114,12 +114,30 @@ const formatRelative = (iso: string | null): string | null => {
 
 const IngredientDetail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rating, setRating] = useState(0);
   const [searchParams] = useSearchParams();
 
   const productKey = searchParams.get("key") ?? "";
   const productName = searchParams.get("name") ?? "";
   const productBrand = searchParams.get("brand") ?? "";
+
+  // Fresh-scan payload passed from ProductScanning / useProductUrlScan via
+  // route state. When present we render directly from this and skip the
+  // ingredient-analysis round-trip (which is for already-saved products).
+  const navState = location.state as {
+    analysis?: FreshAnalysisPayload;
+    storage_path?: string;
+    preview_url?: string;
+    intent?: "shelf" | "wishlist";
+    auto_save?: boolean;
+    returnTo?: string;
+    product_key?: string;
+  } | null;
+  const freshAnalysis = navState?.analysis ?? null;
+  const navIntent: "shelf" | "wishlist" = navState?.intent ?? "shelf";
+  const autoSave = navState?.auto_save ?? false;
+  const returnTo = navState?.returnTo ?? null;
 
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
