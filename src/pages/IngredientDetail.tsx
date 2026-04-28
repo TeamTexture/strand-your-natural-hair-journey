@@ -49,6 +49,53 @@ interface Analysis {
   summary: string;
   ingredients: Ingredient[];
   personalised_guidance?: GuidanceTip[];
+  // Fresh-scan extras (from product-analyse, optional for cached path):
+  usage_instructions?: string;
+  use_cases?: string[];
+  tips?: string[];
+}
+
+// Shape returned by the product-analyse edge function (passed via route state
+// from ProductScanning). Only the fields we actually consume are typed here.
+interface FreshAnalysisPayload {
+  product_name?: string;
+  brand?: string;
+  ingredients?: string[];
+  key_ingredients?: Array<{ name: string; benefit?: string; flag?: "good" | "warn" | "avoid"; reason?: string }>;
+  match_score?: number;
+  ai_summary?: string;
+  usage_instructions?: string;
+  use_cases?: string[];
+  tips?: string[];
+}
+
+/** Convert a fresh product-analyse payload into the local Analysis shape so
+ *  the existing renderer can display it without going through ingredient-analysis. */
+function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
+  const flagToTone = (f?: string): Ingredient["tone"] =>
+    f === "avoid" ? "bad" : f === "good" ? "good" : "warn";
+  // Build a body lookup from key_ingredients so chip-tap shows the per-ingredient
+  // benefit/reason without another round-trip.
+  const keyMap = new Map<string, { benefit?: string; flag?: string; reason?: string }>();
+  for (const k of fresh.key_ingredients ?? []) {
+    keyMap.set(k.name.toLowerCase().trim(), { benefit: k.benefit, flag: k.flag, reason: k.reason });
+  }
+  const ingredients: Ingredient[] = (fresh.ingredients ?? []).map((name) => {
+    const k = keyMap.get(name.toLowerCase().trim());
+    return {
+      name,
+      tone: flagToTone(k?.flag),
+      body: k?.benefit || k?.reason || "",
+    };
+  });
+  return {
+    match_score: typeof fresh.match_score === "number" ? fresh.match_score : 0,
+    summary: fresh.ai_summary ?? "",
+    ingredients,
+    usage_instructions: fresh.usage_instructions,
+    use_cases: fresh.use_cases,
+    tips: fresh.tips,
+  };
 }
 
 const formatRelative = (iso: string | null): string | null => {
