@@ -330,11 +330,27 @@ Deno.serve(async (req: Request) => {
     const { user, supabase } = auth;
 
     const body = (await req.json()) as RequestBody;
-    if (!body.image_url) {
-      return json(400, { error: "image_url required" });
-    }
 
     const provider = readAiProvider("STRAND_AI_PROVIDER_PRODUCT_PHOTO");
+
+    // ── Input validation: provider-specific contracts (audit §5 Step 3) ──
+    // Claude path: dual-photo strict — both front + back required, no
+    // silent degradation, no escape hatch.
+    // Lovable+Gemini path: single-photo back-compat unchanged.
+    let frontPhoto: string | undefined;
+    let backPhoto: string | undefined;
+    if (provider === "claude") {
+      frontPhoto = body.photos?.front;
+      backPhoto = body.photos?.back;
+      if (!frontPhoto || !backPhoto) {
+        return json(400, { error: DUAL_PHOTO_REQUIRED_MESSAGE });
+      }
+    } else {
+      if (!body.image_url) {
+        return json(400, { error: "image_url required" });
+      }
+    }
+
     const cacheKind = body.productKey ? `product_analyse:${body.productKey}` : null;
 
     // ── Cache check (only when caller passed a productKey) ────────────
@@ -361,7 +377,8 @@ Deno.serve(async (req: Request) => {
 
     if (provider === "claude") {
       const { payload, web_search_invocations } = await runClaude({
-        image_url: body.image_url,
+        front_image_url: frontPhoto!,
+        back_image_url: backPhoto!,
         context: ctx,
         selectorContext: buildSelectorContext(body),
       });
@@ -371,9 +388,10 @@ Deno.serve(async (req: Request) => {
         _generated_at: new Date().toISOString(),
         _provider: "claude",
         _used_web_search: web_search_invocations > 0,
+        _web_search_count: web_search_invocations,
       };
     } else {
-      const lovable = await runLovable({ image_url: body.image_url, context: ctx });
+      const lovable = await runLovable({ image_url: body.image_url!, context: ctx });
       analysis = {
         ...lovable,
         _provider: "lovable",
