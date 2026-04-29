@@ -796,7 +796,41 @@ const IngredientDetail = () => {
         )}
 
         {/* ── Bottom shelf actions (context-aware) ────────────────────── */}
-        {productRow && (
+        {productRow && status === "unknown" && (
+          <>
+            <SectionLabel className="!px-0">What would you like to do with this product?</SectionLabel>
+            <div className="space-y-2">
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full"
+                onClick={handleAddToShelf}
+                disabled={shelfBusy}
+              >
+                <ArrowDownToLine className="size-4 mr-1.5" /> Add to my shelf
+              </Button>
+              <Button
+                variant="goldOutline"
+                size="pill"
+                className="w-full"
+                onClick={handleAddToWishlist}
+                disabled={shelfBusy}
+              >
+                <Bookmark className="size-4 mr-1.5" /> Add to my wishlist
+              </Button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                disabled={shelfBusy}
+                className="w-full text-center text-[12px] text-destructive/80 hover:text-destructive underline-offset-4 hover:underline py-2 disabled:opacity-50"
+              >
+                Remove from app
+              </button>
+            </div>
+          </>
+        )}
+
+        {productRow && status !== "unknown" && (
           <div className="space-y-2 pt-2">
             {status === "shelf" && (
               <Button
