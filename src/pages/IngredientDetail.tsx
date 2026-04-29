@@ -467,8 +467,8 @@ const IngredientDetail = () => {
     setShelfBusy(true);
     try {
       await remove(productRow.id);
-      toast.success("Removed from your products");
-      navigate(-1);
+      toast.success("Product removed");
+      navigate("/products");
     } finally {
       setShelfBusy(false);
     }
