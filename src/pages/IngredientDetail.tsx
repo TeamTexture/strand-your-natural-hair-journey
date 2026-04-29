@@ -567,7 +567,7 @@ const IngredientDetail = () => {
               {productBrand}
             </button>
           )}
-          {status !== "unknown" && (
+          {(status === "shelf" || status === "wishlist" || status === "off-shelf") && (
             <p className="mt-1.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
               {status === "shelf"
                 ? "On your shelf"
