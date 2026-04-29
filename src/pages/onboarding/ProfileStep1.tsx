@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, X } from "lucide-react";
@@ -128,7 +129,7 @@ const ProfileStep1 = () => {
       const file = await convertHeicToJpeg(rawFile);
       if (avatarPath) await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const newPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const newPath = `${user.id}/${uuid()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from(AVATAR_BUCKET)
         .upload(newPath, file, { contentType: file.type });

@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,7 +112,7 @@ export const useMoodboards = () => {
         try {
           const file = input.coverFile;
           const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-          const path = `${user.id}/${data.id}/${crypto.randomUUID()}.${ext}`;
+          const path = `${user.id}/${data.id}/${uuid()}.${ext}`;
           const { error: upErr } = await supabase.storage
             .from(BUCKET)
             .upload(path, file, { contentType: file.type, upsert: false });
@@ -202,7 +203,7 @@ export const useMoodboardImages = (
     async (file: File, caption?: string) => {
       if (!user || !boardId) throw new Error("Sign in required");
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${user.id}/${boardId}/${crypto.randomUUID()}.${ext}`;
+      const path = `${user.id}/${boardId}/${uuid()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
         .upload(path, file, { contentType: file.type, upsert: false });

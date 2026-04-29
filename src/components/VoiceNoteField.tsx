@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Play, Pause, Trash2, Loader2, Type } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,7 +155,7 @@ const VoiceNoteField = ({
     setUploading(true);
     try {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const path = `${user.id}/${folder}/${crypto.randomUUID()}.webm`;
+      const path = `${user.id}/${folder}/${uuid()}.webm`;
       const { error } = await supabase.storage
         .from("voicenotes")
         .upload(path, blob, { contentType: "audio/webm", upsert: false });

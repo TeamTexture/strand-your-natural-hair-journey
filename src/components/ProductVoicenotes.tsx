@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Play, Pause, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,7 +139,7 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
     setUploading(true);
     try {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const filename = `${user.id}/${productKey}/${crypto.randomUUID()}.webm`;
+      const filename = `${user.id}/${productKey}/${uuid()}.webm`;
       const { error: upErr } = await supabase.storage
         .from("voicenotes")
         .upload(filename, blob, { contentType: "audio/webm" });

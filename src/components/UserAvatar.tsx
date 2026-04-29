@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,7 +79,7 @@ const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
       if (path) await supabase.storage.from(BUCKET).remove([path]);
 
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const newPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const newPath = `${user.id}/${uuid()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
         .upload(newPath, file, { contentType: file.type });
