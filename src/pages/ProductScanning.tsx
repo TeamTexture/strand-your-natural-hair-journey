@@ -31,7 +31,27 @@ const ProductScanning = () => {
   const state = (location.state as NavState | null) ?? null;
   const [phase, setPhase] = useState<"analysing" | "error">("analysing");
   const [error, setError] = useState("");
+  const [loadingMessage, setLoadingMessage] = useState("Reading the front of the label…");
   const ranRef = useRef(false);
+
+  // Rotate the headline through a sequence of progress signals so the
+  // ~60s wait feels like activity rather than a frozen state. These
+  // delays are NOT tied to real backend events — purely cosmetic UX.
+  useEffect(() => {
+    if (phase !== "analysing") return;
+    const sequence = [
+      { at: 0, msg: "Reading the front of the label…" },
+      { at: 8000, msg: "Reading the back of the label…" },
+      { at: 18000, msg: "Looking up the brand…" },
+      { at: 30000, msg: "Cross-referencing the ingredients…" },
+      { at: 42000, msg: "Matching to your hair profile…" },
+      { at: 54000, msg: "Almost there — writing your summary…" },
+    ];
+    const timeouts = sequence.map(({ at, msg }) =>
+      window.setTimeout(() => setLoadingMessage(msg), at),
+    );
+    return () => timeouts.forEach(window.clearTimeout);
+  }, [phase]);
 
   useEffect(() => {
     if (ranRef.current) return;
