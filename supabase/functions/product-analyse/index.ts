@@ -153,7 +153,20 @@ function buildTaskInstructions(): string {
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE:
 Moisture comes from water. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. Use this phrasing only.
 
-Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition.`;
+Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition.
+
+OUTPUT TIGHTNESS RULES (override the field rules above where they conflict):
+- use_cases: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most actionable ways the user should use THIS product given their profile — not every possible use case.
+- tips: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product. For a scalp exfoliator, scalp condition + diagnosed alopecia + dermatologist context are relevant; lab values, sleep, and unrelated hair traits are NOT relevant unless they directly intersect this product's mechanism.
+- ai_summary: 2–3 sentences MAXIMUM. Lead with the verdict (good fit / mixed fit / poor fit and why) in sentence one. Sentences two and three add the most important nuance. Cut redundancy — if the verdict already says "good for your dry scalp", don't restate dry scalp again in the nuance.
+- key_ingredients: 4–6 items MAXIMUM. Pick the ingredients that most affect the verdict, not every ingredient with a benefit.
+
+PERSONAL SIGNAL SELECTION:
+When deciding which 1–2 signals to surface in tips/summary, ask: would a clinical hair coach prioritise THIS signal for THIS product? Examples:
+- Scalp exfoliator → scalp condition, diagnosed scalp/follicle issues, dermatologist context. NOT ferritin, sleep, water hardness unless they're THE reason this product is or isn't a fit.
+- Deep conditioner → porosity, density, hard water (mineral build-up), heat damage history. NOT scalp conditions or labs.
+- Leave-in / styler → porosity, density, current style stage, climate. NOT scalp conditions or labs.
+- Treatment for hair loss → diagnosed conditions, ferritin, dermatologist context. THESE labs ARE relevant here.`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
