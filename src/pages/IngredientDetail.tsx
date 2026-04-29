@@ -98,6 +98,14 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
   };
 }
 
+/** First-sentence extractor for collapsed AI summary. Falls back to a
+ *  trimmed substring + ellipsis when no terminal punctuation is found. */
+const firstSentence = (text: string): string => {
+  const match = text.match(/^[^.!?]+[.!?]/);
+  if (match) return match[0];
+  return text.length > 120 ? text.substring(0, 120).trim() + "…" : text;
+};
+
 const formatRelative = (iso: string | null): string | null => {
   if (!iso) return null;
   const d = new Date(iso);
@@ -162,6 +170,9 @@ const IngredientDetail = () => {
   const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [shelfBusy, setShelfBusy] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [useCasesExpanded, setUseCasesExpanded] = useState(false);
+  const [tipsExpanded, setTipsExpanded] = useState(false);
 
   const { flags } = useIngredientLists();
   // Single unified "flagged" set — appears in 3+ of the user's products.
@@ -644,9 +655,27 @@ const IngredientDetail = () => {
             {/* AI Summary — personalised to hair, health, lifestyle */}
             <SurfaceCard tone="gold">
               <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">
-                {analysis.summary}
-              </p>
+              {(() => {
+                const full = analysis.summary ?? "";
+                const teaser = firstSentence(full);
+                const hasMore = teaser.length < full.length;
+                return (
+                  <>
+                    <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">
+                      {summaryExpanded || !hasMore ? full : teaser}
+                    </p>
+                    {hasMore && (
+                      <button
+                        type="button"
+                        onClick={() => setSummaryExpanded((v) => !v)}
+                        className="mt-2 text-[10px] uppercase tracking-[0.18em] text-primary"
+                      >
+                        {summaryExpanded ? "Read less" : "Read more"}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </SurfaceCard>
 
             {/* Personalised "How to use this for your hair" */}
@@ -732,12 +761,23 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {analysis.use_cases.map((tip, idx) => (
+                  {(useCasesExpanded ? analysis.use_cases : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
                     <div key={`uc-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
+                  {analysis.use_cases.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setUseCasesExpanded((v) => !v)}
+                      className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1"
+                    >
+                      {useCasesExpanded
+                        ? "Show less"
+                        : `Read ${analysis.use_cases.length - 1} more tip${analysis.use_cases.length - 1 === 1 ? "" : "s"}`}
+                    </button>
+                  )}
                 </SurfaceCard>
               </>
             )}
@@ -746,12 +786,23 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {analysis.tips.map((tip, idx) => (
+                  {(tipsExpanded ? analysis.tips : analysis.tips.slice(0, 1)).map((tip, idx) => (
                     <div key={`tip-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
+                  {analysis.tips.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setTipsExpanded((v) => !v)}
+                      className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1"
+                    >
+                      {tipsExpanded
+                        ? "Show less"
+                        : `Read ${analysis.tips.length - 1} more tip${analysis.tips.length - 1 === 1 ? "" : "s"}`}
+                    </button>
+                  )}
                 </SurfaceCard>
               </>
             )}
