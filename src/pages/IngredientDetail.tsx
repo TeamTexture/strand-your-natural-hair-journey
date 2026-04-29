@@ -655,9 +655,27 @@ const IngredientDetail = () => {
             {/* AI Summary — personalised to hair, health, lifestyle */}
             <SurfaceCard tone="gold">
               <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">
-                {analysis.summary}
-              </p>
+              {(() => {
+                const full = analysis.summary ?? "";
+                const teaser = firstSentence(full);
+                const hasMore = teaser.length < full.length;
+                return (
+                  <>
+                    <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">
+                      {summaryExpanded || !hasMore ? full : teaser}
+                    </p>
+                    {hasMore && (
+                      <button
+                        type="button"
+                        onClick={() => setSummaryExpanded((v) => !v)}
+                        className="mt-2 text-[10px] uppercase tracking-[0.18em] text-primary"
+                      >
+                        {summaryExpanded ? "Read less" : "Read more"}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </SurfaceCard>
 
             {/* Personalised "How to use this for your hair" */}
