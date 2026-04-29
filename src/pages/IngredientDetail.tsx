@@ -98,6 +98,14 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
   };
 }
 
+/** First-sentence extractor for collapsed AI summary. Falls back to a
+ *  trimmed substring + ellipsis when no terminal punctuation is found. */
+const firstSentence = (text: string): string => {
+  const match = text.match(/^[^.!?]+[.!?]/);
+  if (match) return match[0];
+  return text.length > 120 ? text.substring(0, 120).trim() + "…" : text;
+};
+
 const formatRelative = (iso: string | null): string | null => {
   if (!iso) return null;
   const d = new Date(iso);
