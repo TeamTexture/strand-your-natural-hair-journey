@@ -761,12 +761,23 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {analysis.use_cases.map((tip, idx) => (
+                  {(useCasesExpanded ? analysis.use_cases : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
                     <div key={`uc-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
+                  {analysis.use_cases.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setUseCasesExpanded((v) => !v)}
+                      className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1"
+                    >
+                      {useCasesExpanded
+                        ? "Show less"
+                        : `Read ${analysis.use_cases.length - 1} more tip${analysis.use_cases.length - 1 === 1 ? "" : "s"}`}
+                    </button>
+                  )}
                 </SurfaceCard>
               </>
             )}
@@ -775,12 +786,23 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {analysis.tips.map((tip, idx) => (
+                  {(tipsExpanded ? analysis.tips : analysis.tips.slice(0, 1)).map((tip, idx) => (
                     <div key={`tip-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
+                  {analysis.tips.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setTipsExpanded((v) => !v)}
+                      className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1"
+                    >
+                      {tipsExpanded
+                        ? "Show less"
+                        : `Read ${analysis.tips.length - 1} more tip${analysis.tips.length - 1 === 1 ? "" : "s"}`}
+                    </button>
+                  )}
                 </SurfaceCard>
               </>
             )}
