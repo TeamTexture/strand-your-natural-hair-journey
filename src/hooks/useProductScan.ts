@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,8 +52,8 @@ export function useProductScan() {
         prepareImageForAi(back),
       ]);
 
-      const frontPath = `${user.id}/scans/${crypto.randomUUID()}.jpg`;
-      const backPath = `${user.id}/scans/${crypto.randomUUID()}.jpg`;
+      const frontPath = `${user.id}/scans/${uuid()}.jpg`;
+      const backPath = `${user.id}/scans/${uuid()}.jpg`;
 
       const [{ error: upFrontErr }, { error: upBackErr }] = await Promise.all([
         supabase.storage.from("product-photos").upload(frontPath, preparedFront.uploadFile, {

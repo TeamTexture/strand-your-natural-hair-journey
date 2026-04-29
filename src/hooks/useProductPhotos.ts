@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -91,7 +92,7 @@ export function useProductPhotos(productKeys: string[]) {
         await supabase.storage.from(BUCKET).remove([existing.storage_path]);
       }
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const path = `${user.id}/${productKey}/${crypto.randomUUID()}.${ext}`;
+      const path = `${user.id}/${productKey}/${uuid()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
         .upload(path, file, { contentType: file.type, upsert: false });

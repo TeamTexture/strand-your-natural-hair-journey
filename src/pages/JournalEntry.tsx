@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, X, Camera, Share2, Loader2, GripVertical, Star, ImagePlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -562,7 +563,7 @@ const JournalEntry = () => {
           }
         }
         const ext = file.name.split(".").pop()?.toLowerCase() || (isVideoFile ? "mp4" : "jpg");
-        const path = `${user.id}/${id}/${crypto.randomUUID()}.${ext}`;
+        const path = `${user.id}/${id}/${uuid()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from(PHOTO_BUCKET)
           .upload(path, file, { contentType: file.type || (isVideoFile ? "video/mp4" : undefined), upsert: false });

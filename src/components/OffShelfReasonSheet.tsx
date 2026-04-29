@@ -3,6 +3,7 @@
 // `voicenotes` bucket and transcribe via the existing transcribe-audio edge
 // function. Stores the result on user_products.off_shelf_reason /
 // off_shelf_voice_url and then flips on_shelf=false.
+import { uuid } from "@/lib/uuid";
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Loader2, Trash2 } from "lucide-react";
 import {
@@ -167,7 +168,7 @@ const OffShelfReasonSheet = ({
     try {
       let voicePath: string | null = null;
       if (audioBlob) {
-        const filename = `${user.id}/${productKey}/off-shelf-${crypto.randomUUID()}.webm`;
+        const filename = `${user.id}/${productKey}/off-shelf-${uuid()}.webm`;
         const { error: upErr } = await supabase.storage
           .from("voicenotes")
           .upload(filename, audioBlob, { contentType: "audio/webm" });

@@ -1,6 +1,7 @@
 // CRUD hook for the user's hair-care tools.
 // Tools have NO ingredient analysis (combs, brushes, dryers, etc. don't have
 // labels to scan), so the shape is intentionally lighter than `useUserProducts`.
+import { uuid } from "@/lib/uuid";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -120,7 +121,7 @@ export function useUserTools() {
             return null;
           }
           const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-          const path = `${user.id}/tools/${crypto.randomUUID()}.${ext}`;
+          const path = `${user.id}/tools/${uuid()}.${ext}`;
           const { error: upErr } = await supabase.storage
             .from(TOOL_PHOTO_BUCKET)
             .upload(path, file, { contentType: file.type, upsert: false });
