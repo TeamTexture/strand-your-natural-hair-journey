@@ -51,20 +51,30 @@ const ProductScanning = () => {
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
     );
-    // Drive the circular progress ring. Starts immediately on mount so
-    // the user sees the gold bar advancing from frame one. Pacing runs
-    // *slightly ahead* of the real ~60s analysis so users feel pulled
-    // forward: ~35% by 10s, ~70% by 25s, ~90% by 45s, then eases
-    // toward 98% so it never visually completes before the backend
-    // does. We snap to 100% on real success.
+    // Drive the circular progress ring. Two-phase pacing so the bar
+    // is ALWAYS moving (even if only incrementally) and tends to land
+    // near "full" right as the backend returns:
+    //   1) Fast linear sweep to 75% over ~12s — covers the bulk of
+    //      typical analyses (which now finish in ~15–25s).
+    //   2) Slow asymptotic crawl from 75% → 99% over the long tail,
+    //      so the ring never visually freezes if the backend is slow.
+    // On real success we kick `progressPct` to 100 and the
+    // stroke-dashoffset CSS transition snaps the ring closed.
     const start = performance.now();
+    const FAST_MS = 12000; // reach 75% by here
     let raf = 0;
     const tick = (now: number) => {
       const elapsed = now - start;
-      // Ease-out: pct = 98 * (1 - exp(-t/k)). k≈19200 gives ~35/70/90
-      // at 10/25/45s.
-      const pct = 98 * (1 - Math.exp(-elapsed / 19200));
-      setProgressPct(Math.min(98, pct));
+      let pct: number;
+      if (elapsed <= FAST_MS) {
+        pct = (elapsed / FAST_MS) * 75;
+      } else {
+        // Ease 75 → 99 over the next ~30s, asymptotic so it never
+        // sits still: even at t+60s it's still creeping up.
+        const extra = elapsed - FAST_MS;
+        pct = 75 + 24 * (1 - Math.exp(-extra / 18000));
+      }
+      setProgressPct((prev) => Math.max(prev, Math.min(99, pct)));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
