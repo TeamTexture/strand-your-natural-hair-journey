@@ -215,6 +215,11 @@ export async function callClaude<T = unknown>(
       return typeof inp?.query === "string" ? inp.query : "";
     })
     .filter((q) => q.length > 0);
+  const serverToolByName: Record<string, number> = {};
+  for (const b of serverToolBlocks) {
+    const n = typeof b.name === "string" && b.name ? b.name : "unknown";
+    serverToolByName[n] = (serverToolByName[n] ?? 0) + 1;
+  }
 
   const result: ClaudeCallResult<T> = {
     usage: {
@@ -225,6 +230,7 @@ export async function callClaude<T = unknown>(
     },
     stop_reason: resp.stop_reason,
     server_tool_use_count: serverToolBlocks.length,
+    server_tool_use_by_name: serverToolByName,
     server_tool_use_queries: serverToolQueries,
   };
 
