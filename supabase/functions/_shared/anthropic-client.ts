@@ -52,16 +52,23 @@ export interface Tool {
   input_schema: Record<string, unknown>;
 }
 
-/** Anthropic-managed server-side tool (e.g. native web_search). The model
- *  invokes it autonomously inside a single API call; results come back as
- *  `server_tool_use` + `web_search_tool_result` content blocks before the
- *  final assistant response. We pass these straight through to the API.
- *  Audit PHASE_2_AUDIT.md §5 Step 3 — tight max_uses cap to bound cost. */
-export type ServerTool = {
-  type: "web_search_20250305";
-  name: "web_search";
-  max_uses?: number;
-};
+/** Anthropic-managed server-side tool. The model invokes it autonomously
+ *  inside a single API call; results come back as `server_tool_use` plus a
+ *  matching `*_tool_result` content block before the final assistant
+ *  response. We pass these straight through to the API.
+ *  Audit PHASE_2_AUDIT.md §5 Step 3 (web_search) + §5 Step 4a (web_fetch +
+ *  web_search) — tight max_uses cap to bound cost. */
+export type ServerTool =
+  | {
+      type: "web_search_20250305";
+      name: "web_search";
+      max_uses?: number;
+    }
+  | {
+      type: "web_fetch_20250910";
+      name: "web_fetch";
+      max_uses?: number;
+    };
 
 export interface ClaudeCallInput {
   model: ClaudeModel;
