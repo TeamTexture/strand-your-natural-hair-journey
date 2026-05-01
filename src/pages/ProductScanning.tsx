@@ -191,8 +191,10 @@ const ProductScanning = () => {
         }
         console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
         // Snap the ring to a full circle on real success so the user sees
-        // it complete before we navigate away.
+        // it complete before we navigate away. Hold for ~450ms so the
+        // CSS transition has time to draw the final arc.
         setProgressPct(100);
+        await new Promise((r) => setTimeout(r, 450));
 
         const name = encodeURIComponent(payload.name);
         const brand = encodeURIComponent(payload.brand ?? "");
