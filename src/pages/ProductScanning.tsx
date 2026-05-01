@@ -51,24 +51,20 @@ const ProductScanning = () => {
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
     );
-    // Drive the circular progress ring. Fast fill to ~90% over ~22s
-    // (matches the perceived bulk of the analysis work), then ease
-    // asymptotically toward 99% so it never visually "completes"
-    // before the backend does. We snap to 100% on real success.
+    // Drive the circular progress ring. Starts immediately on mount so
+    // the user sees the gold bar advancing from frame one. Pacing runs
+    // *slightly ahead* of the real ~60s analysis so users feel pulled
+    // forward: ~35% by 10s, ~70% by 25s, ~90% by 45s, then eases
+    // toward 98% so it never visually completes before the backend
+    // does. We snap to 100% on real success.
     const start = performance.now();
-    const FAST_MS = 22000; // reach 90% by here
     let raf = 0;
     const tick = (now: number) => {
       const elapsed = now - start;
-      let pct: number;
-      if (elapsed <= FAST_MS) {
-        pct = (elapsed / FAST_MS) * 90;
-      } else {
-        // Ease from 90 → 99 over the next ~30s, asymptotic.
-        const extra = elapsed - FAST_MS;
-        pct = 90 + 9 * (1 - Math.exp(-extra / 12000));
-      }
-      setProgressPct(Math.min(99, pct));
+      // Ease-out: pct = 98 * (1 - exp(-t/k)). k≈19200 gives ~35/70/90
+      // at 10/25/45s.
+      const pct = 98 * (1 - Math.exp(-elapsed / 19200));
+      setProgressPct(Math.min(98, pct));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -251,50 +247,56 @@ const ProductScanning = () => {
         </div>
         {phase === "analysing" ? (
           <>
-            {/* Circular progress ring — purely cosmetic, fills over ~60s */}
+            {/* Circular progress ring — gold bar fills around the
+             *  circumference, paced slightly ahead of the real
+             *  analysis so the user has a clear visual of how long is
+             *  left and stays patient. */}
             {(() => {
-              const SIZE = 80;
-              const STROKE = 5;
+              const SIZE = 132;
+              const STROKE = 8;
               const R = (SIZE - STROKE) / 2;
               const C = 2 * Math.PI * R;
               const offset = C * (1 - progressPct / 100);
               return (
-                <svg
-                  width={SIZE}
-                  height={SIZE}
-                  viewBox={`0 0 ${SIZE} ${SIZE}`}
-                  className="mt-8"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx={SIZE / 2}
-                    cy={SIZE / 2}
-                    r={R}
-                    fill="none"
-                    stroke="hsl(var(--border))"
-                    strokeWidth={STROKE}
-                  />
-                  <circle
-                    cx={SIZE / 2}
-                    cy={SIZE / 2}
-                    r={R}
-                    fill="none"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={STROKE}
-                    strokeLinecap="round"
-                    strokeDasharray={C}
-                    strokeDashoffset={offset}
-                    transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-                    style={{ transition: "stroke-dashoffset 200ms linear" }}
-                  />
-                </svg>
+                <div className="mt-8 relative" style={{ width: SIZE, height: SIZE }}>
+                  <svg
+                    width={SIZE}
+                    height={SIZE}
+                    viewBox={`0 0 ${SIZE} ${SIZE}`}
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx={SIZE / 2}
+                      cy={SIZE / 2}
+                      r={R}
+                      fill="none"
+                      stroke="hsl(var(--border))"
+                      strokeWidth={STROKE}
+                    />
+                    <circle
+                      cx={SIZE / 2}
+                      cy={SIZE / 2}
+                      r={R}
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={STROKE}
+                      strokeLinecap="round"
+                      strokeDasharray={C}
+                      strokeDashoffset={offset}
+                      transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+                      style={{ transition: "stroke-dashoffset 220ms linear" }}
+                    />
+                  </svg>
+                  <div
+                    className="absolute inset-0 flex items-center justify-center font-display text-primary"
+                    style={{ fontSize: 22 }}
+                    aria-live="polite"
+                  >
+                    {Math.round(progressPct)}%
+                  </div>
+                </div>
               );
             })()}
-            <div className="mt-4 flex items-center gap-2">
-              <span className="size-3 rounded-full bg-primary animate-pulse" />
-              <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
-              <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
-            </div>
             <p className="font-display text-lg mt-4">{loadingMessage}</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
               Reading both sides of the label, matching ingredients to your
