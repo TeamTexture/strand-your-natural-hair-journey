@@ -1,23 +1,256 @@
-// Fetches a product page from a pasted URL using Firecrawl (handles JS-rendered
-// pages and anti-bot protection that plain fetch() can't), then asks Gemini to
-// return the same structured product analysis the product-analyse function
-// returns from an image. Personalisation comes from the user-context payload,
-// identical to product-analyse.
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+// Analyses a product URL for THIS user and returns the standard
+// ProductAnalysisPayload. Phase 2 Step 4a: dual-path — Lovable+Gemini
+// (legacy, Firecrawl-scraped) and Claude Sonnet 4.6 (new, native
+// web_fetch + web_search), gated by STRAND_AI_PROVIDER_PRODUCT_URL.
+//
+// Architecture (audit PHASE_2_AUDIT.md §5 Step 4a, 2026-05-01):
+//   - Schema `return_product_analysis` lives in _shared/schemas.ts and is
+//     SHARED with product-analyse (Step 3) so the React renderer
+//     (IngredientDetail.tsx, useProductUrlScan.ts) sees identical
+//     payloads for both flows.
+//   - Forced KB topics: porosity, scalp-conditions, diagnosed-conditions,
+//     hard-water. selectTopicsForContext layers in extras up to a cap of 4.
+//   - No RAG (web is the per-product fact channel; the manuscript RAG
+//     channel remains book-only).
+//   - Anthropic native web_fetch tool retrieves the page; web_search
+//     fallback when the page is JS-rendered or gated. Combined max_uses
+//     across both tools is bounded — tight upper bound on cost.
+//   - Cache by `ai_summaries.kind = "product_analyse:<productKey>"`. URL
+//     flow always has a productKey because the URL itself is a stable
+//     identifier — when the caller doesn't supply one, hash the URL.
+//   - Provenance stamped on every payload: _model_version,
+//     _generated_at, _provider, _used_web_search, _web_search_count, _used_web_fetch.
+//   - Logging: usage tokens + tool counts + sanitised search/fetch URLs
+//     only. Never the analysis body.
+//
+// Provider flag — STRAND_AI_PROVIDER_PRODUCT_URL:
+//   default "lovable" (legacy Firecrawl + Gemini path, unchanged).
+//   "claude"        (new Sonnet 4.6 + web_fetch path).
+//   Independent of STRAND_AI_PROVIDER_PRODUCT_PHOTO so URL and photo
+//   paths can be toggled separately. Read at call time so a flag flip
+//   in Lovable Cloud Secrets takes effect on the next invocation.
+//
+// CRITICAL: do NOT remove the Lovable+Gemini path. The flag defaults to
+// "lovable"; Paige flips to "claude" only after manual verification.
+
+import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { requireAuthedUser } from "../_shared/auth.ts";
+import { aiErrorResponse } from "../_shared/errors.ts";
+import { readAiProvider } from "../_shared/flags.ts";
+import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import {
+  callClaude,
+  type ContentBlockInput,
+  type ServerTool,
+} from "../_shared/anthropic-client.ts";
+import {
+  RETURN_PRODUCT_ANALYSIS_SCHEMA,
+  type ProductAnalysisPayload,
+} from "../_shared/schemas.ts";
+import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
-interface Body {
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve: (h: (req: Request) => Promise<Response>) => void;
+};
+
+const MODEL_VERSION = "claude-sonnet-4-6@v1";
+
+const INVALID_URL_MESSAGE =
+  "STRAND needs a valid product page URL to analyse.";
+
+interface RequestBody {
   url?: string;
-  context?: Record<string, unknown>;
+  /** Optional product cache key. When omitted, the function hashes
+   *  `url` so URL-flow calls are still cached deterministically. */
+  productKey?: string;
+  context?: Record<string, unknown> & {
+    hairProfile?: Record<string, unknown>;
+    healthProfile?: Record<string, unknown>;
+    bloodResults?: unknown[];
+    location?: { is_hard_water_area?: boolean | null };
+    avoid_ingredients?: string[];
+  };
+  force?: boolean;
 }
 
+// ─── Selector context for KB topic matching ────────────────────────────
+function buildSelectorContext(body: RequestBody): SelectorContext {
+  const ctx = body.context ?? {};
+  const hp = (ctx.hairProfile ?? {}) as Record<string, unknown>;
+  const hl = (ctx.healthProfile ?? {}) as Record<string, unknown>;
+  const arr = (v: unknown): string[] | undefined =>
+    Array.isArray(v) ? v.map(String) : typeof v === "string" && v ? [v] : undefined;
+  return {
+    hair: {
+      porosity: arr(hp.porosity),
+      density: arr(hp.density),
+      scalp: arr(hp.scalp_condition),
+      diagnosed: arr(hp.diagnosed_conditions),
+    },
+    health: {
+      lifeStage: arr(hl.life_stage),
+      contraception: arr(hl.contraception),
+      conditions: arr(hl.medical_conditions),
+    },
+    bloodResults: Array.isArray(ctx.bloodResults) ? ctx.bloodResults : [],
+    location: ctx.location ?? {},
+  };
+}
+
+// ─── URL hashing for cache key (when caller didn't supply productKey) ─
+async function sha256Hex(s: string): Promise<string> {
+  const buf = new TextEncoder().encode(s);
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// ─── Task instructions for Claude (URL flow) ───────────────────────────
+function buildTaskInstructions(): string {
+  return `You are receiving a product page URL. Use web_fetch to retrieve the page. Extract: product_name, brand, category, full INCI list (ingredients), usage instructions verbatim if present (usage_instructions). If the page is thin, gated, or in another language, use web_search to fill gaps from secondary sources. The output is identical in shape to the photo flow — return_product_analysis schema. Personalisation rules are identical to the photo flow (focus on hair type, hair goals, hair challenges directly affected by formulation; do NOT introduce tension/styling concerns, lab values, sleep, or dermatologist context unless the product mechanism directly addresses them; use 'consistently flagged ingredients' language never 'avoid list').
+
+Tool budget: web_fetch and web_search share a combined cap of 4 invocations. Prefer ONE web_fetch on the supplied URL first. Only fall back to web_search if web_fetch returned a thin/empty body (page was JS-rendered, gated, or anti-bot-protected). Use web_search up to 3 times to find a cached version, the brand site direct, or a retailer mirror with the full INCI panel. Do NOT search if web_fetch already returned a clear brand + product name + full INCI.
+
+Field rules — strict:
+- product_name / brand: extracted from the page title, h1, or breadcrumbs. NEVER invent. If you can't determine confidently after fetch + search, return the closest readable text and start ai_summary with "Couldn't fully read the page —".
+- category: pick the single best fit from the enum.
+- ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when the fetched page's list is partial or hidden behind tabs; otherwise transcribe what's visible.
+- key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" only when the ingredient is one the user has consistently flagged in their history (appears in 3+ of their saved-and-favourited products) OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity, sulphates with hard water + dry scalp). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
+- match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, current_hairstyle suitability, blood-marker deficiencies (only when relevant to the product), and goal alignment.
+- ai_summary: 2–3 sentences MAXIMUM. Lead with the verdict (good fit / mixed fit / poor fit and why) in sentence one. The first sentence cites a specific reason from THIS user's context (their goal, challenge, current_hairstyle, scalp condition, or porosity). Sentences two and three add the most important nuance. Cut redundancy.
+- usage_instructions: VERBATIM directions from the manufacturer if visible on the page. If no manufacturer directions are available, return "" — never invent or paraphrase.
+- use_cases: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most actionable ways the user should use THIS product given their profile — not every possible use case. Each MUST tie back to one of: their hair profile, current_hairstyle, a goal, or a challenge they listed. Do NOT repeat manufacturer directions.
+- tips: MAXIMUM 2 items. Each item is ONE sentence. Pick the 2 most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product.
+
+Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. When facts come from the fetched page or web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose — do NOT put web-derived facts under the "Read more" line. Do NOT name any source manuscript, author, publisher, chapter, or page anywhere except the formal "Read more —" line.
+
+MOISTURE — NON-NEGOTIABLE LANGUAGE RULE:
+Moisture comes from water. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. Use this phrasing only.
+
+Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition.
+
+PRODUCT ANALYSIS SCOPE — HARD RULE:
+When personalising a product analysis, focus ONLY on signals that intersect with what's INSIDE the product: ingredients, mechanism of action, formulation, application method.
+
+Signals that ARE relevant for product analysis:
+- Hair type (curl pattern, density, porosity, length, current style)
+- Hair goals (length retention, definition, moisture retention, strength)
+- Hair challenges directly affected by formulation (dryness, breakage, build-up, scalp condition, hard water, heat damage history)
+
+Signals that are NOT relevant for product analysis (do NOT mention these in product output — not in ai_summary, key_ingredients[].reason, use_cases, or tips):
+- Tension or styling-related concerns (traction alopecia, tight braids, weight of styles) — these are HANDLING concerns, not formulation concerns. A leave-in conditioner has no tension implications. Do NOT cite tension or traction alopecia in any product analysis unless the product is specifically a tension-related treatment.
+- Lab values (ferritin, vitamin D, thyroid etc.) unless THIS specific product directly addresses them.
+- Sleep, stress, cortisol — systemic concerns, not product-fit concerns.
+- Dermatologist consultation context — only relevant if the product directly intersects with what the dermatologist is treating.
+
+Rule of thumb: if you cannot draw a line from one of the product's INGREDIENTS to the user signal, DON'T cite that signal. The output should be SHORTER if the user profile has less to draw from, not padded with irrelevant context.
+
+LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your avoids", "ingredients on your avoid list", "things to avoid", or imply the user has any list of ingredients they want to avoid. The only ingredient-history signal that exists in STRAND is "consistently flagged ingredients" — ingredients that appear in 3+ of the user's saved-and-favourited products that they're actively using. Use phrasing like "consistently flagged in your history", "ingredients you've flagged across your favourites", or "appears across 3+ products on your shelf and favourites". This applies to EVERY output field.
+
+HARD-WATER GUIDANCE — HARD RULE:
+NEVER recommend a chelating shampoo to the user, even when they're in a hard-water area. Chelating shampoos are too harsh for routine recommendation. If hard water is relevant to the verdict for THIS product, recommend instead — in this order: (1) a shower-head filter for hair-rinse water, (2) a gentle clarifying shampoo used sparingly (every 4–5 washes), (3) a deep conditioner immediately after any clarifying step, (4) a trichologist consult before considering anything stronger. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is.)`;
+}
+
+// ─── Provider: Claude ──────────────────────────────────────────────────
+async function runClaude(args: {
+  url: string;
+  context: Record<string, unknown>;
+  selectorContext: SelectorContext;
+}): Promise<{
+  payload: ProductAnalysisPayload;
+  web_search_invocations: number;
+  web_fetch_invocations: number;
+}> {
+  const userText = `Product page URL to analyse: ${args.url}
+
+Use web_fetch on this URL first. If the fetched body is thin, gated, or missing the brand/INCI, fall back to web_search (combined cap of 4 across both tools). Return JSON only via the return_product_analysis tool.
+
+User context (use to compute key_ingredients flags, match_score, ai_summary, use_cases, and tips):
+${JSON.stringify(args.context ?? {}, null, 2)}`;
+
+  const userContent: ContentBlockInput[] = [{ type: "text", text: userText }];
+
+  const webFetchTool: ServerTool = {
+    type: "web_fetch_20250910",
+    name: "web_fetch",
+    max_uses: 4,
+  };
+  const webSearchTool: ServerTool = {
+    type: "web_search_20250305",
+    name: "web_search",
+    max_uses: 4,
+  };
+
+  const req = await buildClaudeRequest({
+    function_kind: "product-analyse-url",
+    task_instructions: buildTaskInstructions(),
+    user_payload: {},
+    user_content: userContent,
+    selector_context: args.selectorContext,
+    force_topic_ids: [
+      "porosity",
+      "scalp-conditions",
+      "diagnosed-conditions",
+      "hard-water",
+    ],
+    tool: {
+      name: "return_product_analysis",
+      description:
+        "Return the structured product analysis. Always invoke this tool exactly once at the end with the final analysis.",
+      input_schema: RETURN_PRODUCT_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
+    },
+    server_tools: [webFetchTool, webSearchTool],
+    max_tokens: 4096,
+  });
+
+  const result = await callClaude<ProductAnalysisPayload>(req);
+
+  const byName = result.server_tool_use_by_name ?? {};
+  const web_search_invocations = byName["web_search"] ?? 0;
+  const web_fetch_invocations = byName["web_fetch"] ?? 0;
+
+  console.log(
+    JSON.stringify({
+      function: "product-analyse-url",
+      provider: "claude",
+      input_tokens: result.usage.input_tokens,
+      cache_read_input_tokens: result.usage.cache_read_input_tokens,
+      cache_creation_input_tokens: result.usage.cache_creation_input_tokens,
+      output_tokens: result.usage.output_tokens,
+      web_fetch_invocations,
+      web_search_invocations,
+      web_search_queries: result.server_tool_use_queries ?? [],
+      url_host: (() => {
+        try {
+          return new URL(args.url).host;
+        } catch {
+          return "invalid";
+        }
+      })(),
+    }),
+  );
+
+  if (!result.toolInput) {
+    throw new Error("Claude returned no return_product_analysis tool_use block");
+  }
+  return {
+    payload: result.toolInput,
+    web_search_invocations,
+    web_fetch_invocations,
+  };
+}
+
+// ─── Provider: Lovable+Gemini (legacy, Firecrawl scrape) ───────────────
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
-const SYSTEM = `${STRAND_PERSONA}
+const LOVABLE_SYSTEM = `${STRAND_PERSONA}
 
 TASK
 You are analysing a product page that the user has pasted as a URL, in Paige's voice.
@@ -80,9 +313,6 @@ SCHEMA
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
-/** Plain-text fallback used only if Firecrawl is unavailable. Many modern
- *  retailer sites are JS-rendered, so this fallback returns very little, but
- *  it keeps the function working for simple sites. */
 function htmlToText(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -102,12 +332,11 @@ function htmlToText(html: string): string {
 
 interface ScrapeResult {
   title: string;
-  text: string; // markdown preferred, falls back to plain text
+  text: string;
   imageUrl: string | null;
   source: "firecrawl" | "fetch";
 }
 
-/** Pick the first http(s) image URL from markdown ![](...) syntax. */
 function firstMarkdownImage(md: string): string | null {
   const m = md.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
   return m ? m[1] : null;
@@ -125,10 +354,8 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
         url,
         formats: ["markdown"],
         onlyMainContent: true,
-        // Wait a bit for client-rendered ingredient panels (Sephora, Boots, etc.)
         waitFor: 1500,
       }),
-      // Firecrawl can take a while for JS-rendered pages.
       signal: AbortSignal.timeout(45_000),
     });
     if (!resp.ok) {
@@ -137,8 +364,6 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
       return null;
     }
     const j = await resp.json();
-    // v2 returns { success, data: { markdown, metadata } } per docs; some
-    // gateway shapes flatten the payload, so try both.
     const data = (j?.data ?? j) as Record<string, unknown> | undefined;
     const markdown =
       (data?.markdown as string | undefined) ??
@@ -150,8 +375,6 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
       console.error("Firecrawl returned no markdown", JSON.stringify(j).slice(0, 500));
       return null;
     }
-    // Prefer the OG image (set by retailers as the canonical product image),
-    // fall back to the first inline image in the markdown.
     const imageUrl =
       metadata?.ogImage ??
       metadata?.["og:image"] ??
@@ -184,7 +407,6 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
     if (!pageResp.ok) return null;
     const html = await pageResp.text();
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    // Pull og:image / twitter:image / first product <img>.
     const ogMatch =
       html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
       html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
@@ -201,65 +423,36 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
   }
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+async function runLovable(args: {
+  url: string;
+  context: Record<string, unknown>;
+}): Promise<{ payload: ProductAnalysisPayload; image_url: string | null }> {
+  const aiApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!aiApiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-  try {
-    const { url, context } = (await req.json()) as Body;
-    if (!url || typeof url !== "string") {
-      return new Response(JSON.stringify({ error: "url required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
 
-    let parsed: URL;
-    try { parsed = new URL(url); } catch {
-      return new Response(JSON.stringify({ error: "That doesn't look like a valid web link." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (!/^https?:$/.test(parsed.protocol)) {
-      return new Response(JSON.stringify({ error: "Only http(s) links are supported." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  let scraped: ScrapeResult | null = null;
+  if (firecrawlKey) {
+    scraped = await scrapeWithFirecrawl(args.url, firecrawlKey);
+  }
+  if (!scraped) {
+    scraped = await scrapeWithFetch(args.url);
+  }
+  if (!scraped) {
+    const e: Error & { status?: number } = new Error(
+      "Couldn't reach that page. The retailer may be blocking automated access — try a different link or upload a screenshot of the ingredients label instead.",
+    );
+    e.status = 502;
+    throw e;
+  }
 
-    const aiApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!aiApiKey) {
-      return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  const TRIM = 18_000;
+  const trimmed = scraped.text.length > TRIM ? scraped.text.slice(0, TRIM) : scraped.text;
 
-    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  const userMsg = `Analyse this product page and return strict JSON matching the schema.
 
-    // Prefer Firecrawl (handles JS-rendered pages and anti-bot blocks). Fall
-    // back to plain fetch only if Firecrawl is unavailable or errors out.
-    let scraped: ScrapeResult | null = null;
-    if (firecrawlKey) {
-      scraped = await scrapeWithFirecrawl(parsed.toString(), firecrawlKey);
-    }
-    if (!scraped) {
-      scraped = await scrapeWithFetch(parsed.toString());
-    }
-    if (!scraped) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Couldn't reach that page. The retailer may be blocking automated access — try a different link or upload a screenshot of the ingredients label instead.",
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // Cap the page text to keep token cost predictable. Firecrawl markdown is
-    // already main-content only, so 18k chars is plenty for product pages.
-    const TRIM = 18_000;
-    const trimmed = scraped.text.length > TRIM ? scraped.text.slice(0, TRIM) : scraped.text;
-
-    const userMsg = `Analyse this product page and return strict JSON matching the schema.
-
-URL: ${parsed.toString()}
+URL: ${args.url}
 Page title: ${scraped.title}
 Scrape source: ${scraped.source}
 
@@ -269,58 +462,149 @@ ${trimmed}
 """
 
 User context (use to compute flags, match_score, ai_summary, and use_cases):
-${JSON.stringify(context ?? {}, null, 2)}`;
+${JSON.stringify(args.context ?? {}, null, 2)}`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${aiApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: userMsg },
-        ],
-        response_format: { type: "json_object" },
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
+  const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${aiApiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: LOVABLE_SYSTEM },
+        { role: "user", content: userMsg },
+      ],
+      response_format: { type: "json_object" },
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
 
-    if (!aiResp.ok) {
-      const t = await aiResp.text();
-      console.error("AI gateway error", aiResp.status, t);
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit, try again shortly." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+  if (!aiResp.ok) {
+    const status = aiResp.status;
+    const t = await aiResp.text();
+    console.error(`[product-analyse-url] lovable gateway ${status}: ${t.slice(0, 120)}`);
+    const err: Error & { status?: number } = new Error(t.slice(0, 200));
+    err.status = status;
+    throw err;
+  }
+
+  const j = await aiResp.json();
+  const txt: string = j.choices?.[0]?.message?.content ?? "{}";
+  let out: ProductAnalysisPayload;
+  try {
+    out = JSON.parse(txt) as ProductAnalysisPayload;
+  } catch {
+    out = { raw: txt } as unknown as ProductAnalysisPayload;
+  }
+  return { payload: out, image_url: scraped.imageUrl };
+}
+
+// ─── Edge function entry ───────────────────────────────────────────────
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return preflight();
+
+  try {
+    const auth = await requireAuthedUser(req);
+    if (auth instanceof Response) return auth;
+    const { user, supabase } = auth;
+
+    const body = (await req.json()) as RequestBody;
+
+    // ── Input validation ────────────────────────────────────────────
+    if (!body.url || typeof body.url !== "string") {
+      return json(400, { error: INVALID_URL_MESSAGE });
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(body.url);
+    } catch {
+      return json(400, { error: INVALID_URL_MESSAGE });
+    }
+    if (!/^https?:$/.test(parsed.protocol)) {
+      return json(400, { error: INVALID_URL_MESSAGE });
+    }
+    const url = parsed.toString();
+
+    const provider = readAiProvider("STRAND_AI_PROVIDER_PRODUCT_URL");
+
+    // Cache key — URL is a stable identifier, so always cache. Use the
+    // caller-supplied productKey when available; otherwise hash the URL.
+    const productKey = body.productKey ?? (await sha256Hex(url));
+    const cacheKind = `product_analyse:${productKey}`;
+
+    // ── Cache check ────────────────────────────────────────────────
+    if (!body.force) {
+      const { data: existing } = await supabase
+        .from("ai_summaries")
+        .select("payload")
+        .eq("user_id", user.id)
+        .eq("kind", cacheKind)
+        .maybeSingle();
+      if (existing?.payload) {
+        const cached = existing.payload as ProductAnalysisPayload;
+        const versionOk = provider === "claude"
+          ? cached._model_version === MODEL_VERSION && cached._provider === "claude"
+          : cached._provider !== "claude";
+        if (versionOk) {
+          return json(200, sanitiseChapterCitationsDeep(cached));
+        }
       }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in Settings → Workspace → Usage." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+
+    const ctx = body.context ?? {};
+    let analysis: ProductAnalysisPayload;
+
+    if (provider === "claude") {
+      const { payload, web_search_invocations, web_fetch_invocations } =
+        await runClaude({
+          url,
+          context: ctx,
+          selectorContext: buildSelectorContext(body),
         });
+      analysis = {
+        ...payload,
+        _model_version: MODEL_VERSION,
+        _generated_at: new Date().toISOString(),
+        _provider: "claude",
+        _used_web_search: web_search_invocations > 0,
+        _web_search_count: web_search_invocations,
+        _used_web_fetch: web_fetch_invocations > 0,
+      };
+    } else {
+      const { payload, image_url } = await runLovable({ url, context: ctx });
+      analysis = {
+        ...payload,
+        _provider: "lovable",
+        _generated_at: new Date().toISOString(),
+      };
+      if (image_url && !(analysis as Record<string, unknown>).image_url) {
+        (analysis as Record<string, unknown>).image_url = image_url;
       }
-      return new Response(JSON.stringify({ error: "AI request failed" }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+
+    // ── Upsert cache ───────────────────────────────────────────────
+    const { data: prior } = await supabase
+      .from("ai_summaries")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("kind", cacheKind)
+      .maybeSingle();
+    if (prior?.id) {
+      await supabase.from("ai_summaries")
+        .update({ payload: analysis as object, updated_at: new Date().toISOString() })
+        .eq("id", prior.id);
+    } else {
+      await supabase.from("ai_summaries").insert({
+        user_id: user.id,
+        kind: cacheKind,
+        payload: analysis as object,
       });
     }
 
-    const j = await aiResp.json();
-    const txt: string = j.choices?.[0]?.message?.content ?? "{}";
-    let out: Record<string, unknown> = {};
-    try { out = JSON.parse(txt); } catch { out = { raw: txt }; }
-
-    // Attach the image URL pulled from the page so the client can save it
-    // straight onto the product (no upload required for link-added items).
-    if (scraped.imageUrl && !out.image_url) {
-      out.image_url = scraped.imageUrl;
-    }
-
-    return new Response(JSON.stringify(sanitiseChapterCitationsDeep(out)), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify(sanitiseChapterCitationsDeep(analysis)),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
-    console.error("product-analyse-url failed", e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return aiErrorResponse(e, "product-analyse-url");
   }
 });

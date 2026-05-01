@@ -105,4 +105,7 @@ export interface ProductAnalysisPayload {
   _provider?: "claude" | "lovable";
   _used_web_search?: boolean;
   _web_search_count?: number;
+  /** Step 4a (URL flow) only — true when Claude invoked the native
+   *  web_fetch tool to retrieve the page. Photo flow leaves this undefined. */
+  _used_web_fetch?: boolean;
 }

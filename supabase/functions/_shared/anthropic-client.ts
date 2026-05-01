@@ -52,16 +52,23 @@ export interface Tool {
   input_schema: Record<string, unknown>;
 }
 
-/** Anthropic-managed server-side tool (e.g. native web_search). The model
- *  invokes it autonomously inside a single API call; results come back as
- *  `server_tool_use` + `web_search_tool_result` content blocks before the
- *  final assistant response. We pass these straight through to the API.
- *  Audit PHASE_2_AUDIT.md §5 Step 3 — tight max_uses cap to bound cost. */
-export type ServerTool = {
-  type: "web_search_20250305";
-  name: "web_search";
-  max_uses?: number;
-};
+/** Anthropic-managed server-side tool. The model invokes it autonomously
+ *  inside a single API call; results come back as `server_tool_use` plus a
+ *  matching `*_tool_result` content block before the final assistant
+ *  response. We pass these straight through to the API.
+ *  Audit PHASE_2_AUDIT.md §5 Step 3 (web_search) + §5 Step 4a (web_fetch +
+ *  web_search) — tight max_uses cap to bound cost. */
+export type ServerTool =
+  | {
+      type: "web_search_20250305";
+      name: "web_search";
+      max_uses?: number;
+    }
+  | {
+      type: "web_fetch_20250910";
+      name: "web_fetch";
+      max_uses?: number;
+    };
 
 export interface ClaudeCallInput {
   model: ClaudeModel;
@@ -94,6 +101,11 @@ export interface ClaudeCallResult<T = unknown> {
    *  (e.g. native web_search invocations). Useful for cost logging and
    *  surfacing `_used_web_search` provenance in cached payloads. */
   server_tool_use_count?: number;
+  /** Per-tool breakdown of `server_tool_use` invocations keyed by tool
+   *  name (e.g. `{ web_search: 2, web_fetch: 1 }`). Audit §5 Step 4a
+   *  needs this to stamp `_used_web_fetch` separately from
+   *  `_used_web_search` on the URL flow. */
+  server_tool_use_by_name?: Record<string, number>;
   /** Search query strings the model issued, in order. Safe to log — they
    *  contain only product names / brand context, no user PII. Empty when
    *  no server tools fired. */
@@ -203,6 +215,11 @@ export async function callClaude<T = unknown>(
       return typeof inp?.query === "string" ? inp.query : "";
     })
     .filter((q) => q.length > 0);
+  const serverToolByName: Record<string, number> = {};
+  for (const b of serverToolBlocks) {
+    const n = typeof b.name === "string" && b.name ? b.name : "unknown";
+    serverToolByName[n] = (serverToolByName[n] ?? 0) + 1;
+  }
 
   const result: ClaudeCallResult<T> = {
     usage: {
@@ -213,6 +230,7 @@ export async function callClaude<T = unknown>(
     },
     stop_reason: resp.stop_reason,
     server_tool_use_count: serverToolBlocks.length,
+    server_tool_use_by_name: serverToolByName,
     server_tool_use_queries: serverToolQueries,
   };
 
