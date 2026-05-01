@@ -191,7 +191,10 @@ When deciding which 1–2 signals to surface in tips/summary, ask: would a clini
 - Scalp exfoliator → scalp condition, diagnosed scalp/follicle issues, dermatologist context. NOT ferritin, sleep, water hardness unless they're THE reason this product is or isn't a fit.
 - Deep conditioner → porosity, density, hard water (mineral build-up), heat damage history. NOT scalp conditions or labs.
 - Leave-in / styler → porosity, density, current style stage, climate. NOT scalp conditions or labs.
-- Treatment for hair loss → diagnosed conditions, ferritin, dermatologist context. THESE labs ARE relevant here.`;
+- Treatment for hair loss → diagnosed conditions, ferritin, dermatologist context. THESE labs ARE relevant here.
+
+HARD-WATER GUIDANCE — HARD RULE:
+NEVER recommend a chelating shampoo to the user, even when they're in a hard-water area. Chelating shampoos are too harsh for routine recommendation in this product. If hard water is relevant to the verdict for THIS product, recommend instead — in this order: (1) a shower-head filter for hair-rinse water, (2) a gentle clarifying shampoo used sparingly (every 4–5 washes), (3) a deep conditioner immediately after any clarifying step, (4) a trichologist consult before considering anything stronger. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
