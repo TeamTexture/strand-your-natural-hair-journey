@@ -830,3 +830,96 @@ UX modelled on Yuka's food-label scanning. Single-photo + web search still fails
   2. **Client PR (parallel, small)** — `ProductScanning.tsx` + `useProductScan.ts` updated to capture front and back in a guided two-step flow. Ships after the server PR is verified.
 - Only after both PRs are live AND Step 11b verifies clean does Paige flip `STRAND_AI_PROVIDER_PRODUCT_PHOTO=claude`.
 
+
+### 2026-05-01 — Step 4a implementation spec (`product-analyse-url`)
+
+The URL flow ships as a parallel migration to Step 3, sharing the same
+output schema (`RETURN_PRODUCT_ANALYSIS_SCHEMA` in `_shared/schemas.ts`)
+so the React renderer (`IngredientDetail.tsx`) is unchanged. Independent
+provider flag so URL and photo paths can be toggled separately.
+
+**Provider flag:** `STRAND_AI_PROVIDER_PRODUCT_URL` (default: `"lovable"`,
+flip to `"claude"` after manual verification). Independent of
+`STRAND_AI_PROVIDER_PRODUCT_PHOTO` so a regression in one path doesn't
+take down the other.
+
+**Input shape:** `{ url: string, productKey?: string, context?: {...} }`.
+URL must be a valid http(s) URL; reject otherwise with HTTP 400 and a
+user-facing message.
+
+**Architecture:**
+
+- Edge function: `supabase/functions/product-analyse-url/index.ts`
+  (created if not present; if a Lovable+Gemini handler already exists,
+  the Claude path is added behind the flag exactly like Step 3).
+- Anthropic native `web_fetch` tool retrieves the page content. If the
+  page is JS-rendered or behind a bot guard and `web_fetch` returns
+  thin/empty body, fall back to `web_search` with the URL as the query
+  to find a cached/snippet version.
+- Same forced KB topics as Step 3: `porosity`, `scalp-conditions`,
+  `diagnosed-conditions`, `hard-water`. `selectTopicsForContext` layers
+  in extras up to a cap of 4.
+- No RAG (manuscript chunks). Web is the per-product fact channel.
+- Cache by `ai_summaries.kind = "product_analyse:<productKey>"` when
+  `productKey` is present (URL flow typically has one because the URL
+  itself is a stable identifier — hash the URL).
+- Provenance stamped: `_model_version`, `_generated_at`,
+  `_provider`, `_used_web_search`, `_web_search_count`, `_used_web_fetch`.
+- Logging: usage tokens + tool counts + sanitised search/fetch URLs only.
+  Never the analysis body.
+
+**Task instructions for Claude (URL flow):**
+
+"You are receiving a product page URL. Use `web_fetch` to retrieve the
+page. Extract: `product_name`, `brand`, `category`, full INCI list
+(`ingredients`), usage instructions verbatim if present
+(`usage_instructions`). If the page is thin, gated, or in another
+language, use `web_search` to fill gaps from secondary sources. The
+output is identical in shape to the photo flow — `return_product_analysis`
+schema. Personalisation rules are identical to the photo flow (see
+2026-05-01 personalisation revision: focus on hair type, hair goals,
+hair challenges directly affected by formulation; do NOT introduce
+tension/styling concerns, lab values, sleep, or dermatologist context
+unless the product mechanism directly addresses them; use 'consistently
+flagged ingredients' language never 'avoid list')."
+
+**Token cost (estimated):** `web_fetch` retrieves ~2-5K of page content
+~ 2-5K input tokens + ~2.2K text input + ~800 output base + ~1-2
+`web_search` invocations at ~$0.01/search + ~600-1000 output tokens from
+research synthesis → **~$0.02-0.04 per call**. Cheaper than photo flow
+because no vision tokens. Add to §6 cost projections.
+
+**Verification (Step 11c, new):**
+
+- Smoke test against three real URLs: a TT product page
+  (`teamtexture.co.uk`), a mainstream brand product page
+  (e.g. Cantu), and a stylised brand page where ingredients are gated
+  behind tabs / "View full ingredients" expanders.
+- Validate output against the four sample reports (`STRAND-ingredient-report-Maya.pdf`
+  etc.) before flipping the flag.
+- Output payload must be byte-for-byte schema-compatible with photo
+  flow output (no extra fields, no missing required fields).
+
+**Verification of personalisation rules (carry-over from Step 3 polish):**
+
+- AI summary leads with verdict in sentence one
+- No "avoid list" language anywhere
+- Tension/lab/sleep/dermatologist signals only when directly product-
+  mechanism-relevant
+- `use_cases` ≤ 2, `tips` ≤ 2, `key_ingredients` ≤ 6 items
+
+**Sequence:**
+
+1. Server PR — adds Claude path behind `STRAND_AI_PROVIDER_PRODUCT_URL`,
+   leaves Lovable+Gemini default. Tests pass. Push.
+2. Smoke test by setting flag to `claude` in Lovable Cloud Secrets and
+   pasting three real URLs through the live Paste Web Link UI.
+3. If smoke passes, leave flag set; if regressions, revert flag. Either
+   way, the photo flow (Step 3) is unaffected.
+
+**Out of scope for Step 4a:**
+
+- Bulk URL import (Phase 3)
+- Saved retailer cookies for gated content (Phase 3)
+- Brand-specific scrapers (Phase 3 — only if the generic web_fetch
+  pattern fails on enough major brands)
