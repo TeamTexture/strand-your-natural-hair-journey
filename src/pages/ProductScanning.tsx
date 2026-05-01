@@ -296,7 +296,7 @@ const ProductScanning = () => {
                       strokeDasharray={C}
                       strokeDashoffset={offset}
                       transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-                      style={{ transition: "stroke-dashoffset 220ms linear" }}
+                      style={{ transition: "stroke-dashoffset 400ms ease-out" }}
                     />
                   </svg>
                   <div
