@@ -441,6 +441,7 @@ const IngredientDetail = () => {
     try {
       await setShelf(productRow.id, true);
       toast.success(`${productRow.name} added to your shelf`);
+      navigate("/products", { state: { defaultTab: "shelf" } });
     } finally {
       setShelfBusy(false);
     }
@@ -452,6 +453,7 @@ const IngredientDetail = () => {
     try {
       await setWishlist(productRow.id, true);
       toast.success(`${productRow.name} added to your wishlist`);
+      navigate("/products", { state: { defaultTab: "wishlist" } });
     } finally {
       setShelfBusy(false);
     }
