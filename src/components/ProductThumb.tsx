@@ -6,11 +6,10 @@ import { cn } from "@/lib/utils";
  * Small product thumbnail used across every product list (shelf, wishlist,
  * favourites, off-shelf, repository) and on the product detail header.
  *
- * Prefers `image_url` (set by the product-URL scrape path); falls back to
- * signing the private `storage_path` from the `product-photos` bucket so
- * camera-scanned products show their actual photo as a small avatar
- * everywhere they're listed. URLs are cached in-memory so navigating
- * between list and detail doesn't re-sign on every render.
+ * Prefers the saved scan/upload `storage_path`; falls back to `image_url`
+ * from product URL scans. This keeps camera-scanned front images as the
+ * small avatar everywhere the product is listed. Signed URLs are cached
+ * in-memory so navigating between list and detail doesn't re-sign on every render.
  */
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
@@ -39,12 +38,8 @@ export default function ProductThumb({
   const [resolved, setResolved] = useState<string | null>(imageUrl ?? null);
 
   useEffect(() => {
-    if (imageUrl) {
-      setResolved(imageUrl);
-      return;
-    }
     if (!storagePath) {
-      setResolved(null);
+      setResolved(imageUrl ?? null);
       return;
     }
     const now = Date.now();
@@ -61,7 +56,7 @@ export default function ProductThumb({
       if (cancelled) return;
       if (error) {
         console.warn("[ProductThumb] sign failed", { storagePath, error: error.message });
-        setResolved(null);
+        setResolved(imageUrl ?? null);
         return;
       }
       if (data?.signedUrl) {
@@ -72,7 +67,7 @@ export default function ProductThumb({
         setResolved(data.signedUrl);
       } else {
         console.warn("[ProductThumb] no signedUrl returned", { storagePath });
-        setResolved(null);
+        setResolved(imageUrl ?? null);
       }
     })();
     return () => {
