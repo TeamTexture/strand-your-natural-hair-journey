@@ -8,6 +8,13 @@ interface ProductAnalysisLike {
   match_score?: unknown;
 }
 
+type SavedKeyIngredient = {
+  name: string;
+  benefit: string;
+  flag: "good" | "warn" | "avoid";
+  reason: string;
+};
+
 const cleanText = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -28,17 +35,20 @@ const cleanTextList = (value: unknown): string[] => {
     .filter((item): item is string => Boolean(item));
 };
 
-const cleanKeyIngredients = (value: unknown) => {
+const cleanKeyIngredients = (value: unknown): SavedKeyIngredient[] => {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => {
-      if (typeof item === "string") return { name: item };
+      if (typeof item === "string") {
+        const name = cleanText(item);
+        return name ? { name, benefit: "", flag: "warn" as const, reason: "" } : null;
+      }
       if (!item || typeof item !== "object") return null;
       const row = item as Record<string, unknown>;
       const name = cleanText(row.name);
       if (!name) return null;
       const rawFlag = cleanText(row.flag);
-      const flag = rawFlag === "good" || rawFlag === "warn" || rawFlag === "avoid"
+      const flag: SavedKeyIngredient["flag"] = rawFlag === "good" || rawFlag === "warn" || rawFlag === "avoid"
         ? rawFlag
         : rawFlag === "bad" ? "avoid" : "warn";
       return {
