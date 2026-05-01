@@ -80,7 +80,7 @@ const Favourites = () => {
                     imageUrl={p.image_url}
                     storagePath={p.storage_path}
                     alt={p.name}
-                    cover={!p.image_url && !!p.storage_path}
+                    cover={!!p.storage_path}
                   />
                   <button
                     onClick={() => navigate(`/products/profile/${p.id}`)}
