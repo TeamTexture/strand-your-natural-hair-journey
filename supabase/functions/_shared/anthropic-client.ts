@@ -101,6 +101,11 @@ export interface ClaudeCallResult<T = unknown> {
    *  (e.g. native web_search invocations). Useful for cost logging and
    *  surfacing `_used_web_search` provenance in cached payloads. */
   server_tool_use_count?: number;
+  /** Per-tool breakdown of `server_tool_use` invocations keyed by tool
+   *  name (e.g. `{ web_search: 2, web_fetch: 1 }`). Audit §5 Step 4a
+   *  needs this to stamp `_used_web_fetch` separately from
+   *  `_used_web_search` on the URL flow. */
+  server_tool_use_by_name?: Record<string, number>;
   /** Search query strings the model issued, in order. Safe to log — they
    *  contain only product names / brand context, no user PII. Empty when
    *  no server tools fired. */
