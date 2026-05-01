@@ -247,50 +247,56 @@ const ProductScanning = () => {
         </div>
         {phase === "analysing" ? (
           <>
-            {/* Circular progress ring — purely cosmetic, fills over ~60s */}
+            {/* Circular progress ring — gold bar fills around the
+             *  circumference, paced slightly ahead of the real
+             *  analysis so the user has a clear visual of how long is
+             *  left and stays patient. */}
             {(() => {
-              const SIZE = 80;
-              const STROKE = 5;
+              const SIZE = 132;
+              const STROKE = 8;
               const R = (SIZE - STROKE) / 2;
               const C = 2 * Math.PI * R;
               const offset = C * (1 - progressPct / 100);
               return (
-                <svg
-                  width={SIZE}
-                  height={SIZE}
-                  viewBox={`0 0 ${SIZE} ${SIZE}`}
-                  className="mt-8"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx={SIZE / 2}
-                    cy={SIZE / 2}
-                    r={R}
-                    fill="none"
-                    stroke="hsl(var(--border))"
-                    strokeWidth={STROKE}
-                  />
-                  <circle
-                    cx={SIZE / 2}
-                    cy={SIZE / 2}
-                    r={R}
-                    fill="none"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={STROKE}
-                    strokeLinecap="round"
-                    strokeDasharray={C}
-                    strokeDashoffset={offset}
-                    transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-                    style={{ transition: "stroke-dashoffset 200ms linear" }}
-                  />
-                </svg>
+                <div className="mt-8 relative" style={{ width: SIZE, height: SIZE }}>
+                  <svg
+                    width={SIZE}
+                    height={SIZE}
+                    viewBox={`0 0 ${SIZE} ${SIZE}`}
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx={SIZE / 2}
+                      cy={SIZE / 2}
+                      r={R}
+                      fill="none"
+                      stroke="hsl(var(--border))"
+                      strokeWidth={STROKE}
+                    />
+                    <circle
+                      cx={SIZE / 2}
+                      cy={SIZE / 2}
+                      r={R}
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={STROKE}
+                      strokeLinecap="round"
+                      strokeDasharray={C}
+                      strokeDashoffset={offset}
+                      transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+                      style={{ transition: "stroke-dashoffset 220ms linear" }}
+                    />
+                  </svg>
+                  <div
+                    className="absolute inset-0 flex items-center justify-center font-display text-primary"
+                    style={{ fontSize: 22 }}
+                    aria-live="polite"
+                  >
+                    {Math.round(progressPct)}%
+                  </div>
+                </div>
               );
             })()}
-            <div className="mt-4 flex items-center gap-2">
-              <span className="size-3 rounded-full bg-primary animate-pulse" />
-              <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
-              <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
-            </div>
             <p className="font-display text-lg mt-4">{loadingMessage}</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
               Reading both sides of the label, matching ingredients to your
