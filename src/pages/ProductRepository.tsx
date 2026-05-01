@@ -5,6 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { cn } from "@/lib/utils";
+import ProductThumb from "@/components/ProductThumb";
 import { useUserProducts, UserProduct } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 
@@ -107,13 +108,13 @@ const ProductRepository = () => {
                 onClick={() => navigate(`/products/profile/${p.id}`)}
                 className="w-full bg-card border border-border rounded-[14px] p-3.5 flex items-center gap-3 text-left hover:border-primary/40 transition-colors"
               >
-                <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0">
-                  {p.image_url ? (
-                    <img src={p.image_url} alt="" className="size-full object-cover" />
-                  ) : (
-                    <div className="size-full flex items-center justify-center text-2xl bg-primary/15">🧴</div>
-                  )}
-                </div>
+                <ProductThumb
+                  imageUrl={p.image_url}
+                  storagePath={p.storage_path}
+                  alt={p.name}
+                  cover
+                  wrapperClassName="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
