@@ -368,7 +368,7 @@ const IngredientDetail = () => {
         const saved = await upsert({
           product_key: productKey,
           ...saveFields,
-          brand: saveFields.brand ?? productBrand || null,
+          brand: saveFields.brand ?? (productBrand || null),
           storage_path: navState?.storage_path ?? null,
           on_shelf: intent === "shelf",
           on_wishlist: intent === "wishlist",
