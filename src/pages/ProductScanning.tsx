@@ -51,17 +51,25 @@ const ProductScanning = () => {
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
     );
-    // Drive the circular progress ring from 0 → ~95% over 60s using rAF.
-    // Cap at 95% so it doesn't visually "complete" before the backend does;
-    // the page navigates away on real success.
+    // Drive the circular progress ring. Fast fill to ~90% over ~22s
+    // (matches the perceived bulk of the analysis work), then ease
+    // asymptotically toward 99% so it never visually "completes"
+    // before the backend does. We snap to 100% on real success.
     const start = performance.now();
-    const DURATION_MS = 60000;
+    const FAST_MS = 22000; // reach 90% by here
     let raf = 0;
     const tick = (now: number) => {
       const elapsed = now - start;
-      const pct = Math.min(95, (elapsed / DURATION_MS) * 100);
-      setProgressPct(pct);
-      if (elapsed < DURATION_MS) raf = requestAnimationFrame(tick);
+      let pct: number;
+      if (elapsed <= FAST_MS) {
+        pct = (elapsed / FAST_MS) * 90;
+      } else {
+        // Ease from 90 → 99 over the next ~30s, asymptotic.
+        const extra = elapsed - FAST_MS;
+        pct = 90 + 9 * (1 - Math.exp(-extra / 12000));
+      }
+      setProgressPct(Math.min(99, pct));
+      raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => {
