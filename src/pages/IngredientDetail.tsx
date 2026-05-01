@@ -35,6 +35,7 @@ import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from 
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { cn } from "@/lib/utils";
 
 interface Ingredient {
@@ -365,13 +366,8 @@ const IngredientDetail = () => {
       try {
         const saved = await upsert({
           product_key: productKey,
-          name: freshAnalysis.product_name?.trim() || productName || "Untitled product",
-          brand: freshAnalysis.brand?.trim() || productBrand || null,
-          ingredients: freshAnalysis.ingredients ?? [],
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          key_ingredients: (freshAnalysis.key_ingredients ?? []) as any,
-          ai_summary: freshAnalysis.ai_summary ?? null,
-          match_score: typeof freshAnalysis.match_score === "number" ? freshAnalysis.match_score : null,
+          ...buildProductSaveFields(freshAnalysis, productName || "Untitled product"),
+          brand: buildProductSaveFields(freshAnalysis).brand ?? productBrand || null,
           storage_path: navState?.storage_path ?? null,
           on_shelf: intent === "shelf",
           on_wishlist: intent === "wishlist",
