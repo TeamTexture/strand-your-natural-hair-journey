@@ -51,24 +51,20 @@ const ProductScanning = () => {
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
     );
-    // Drive the circular progress ring. Fast fill to ~90% over ~22s
-    // (matches the perceived bulk of the analysis work), then ease
-    // asymptotically toward 99% so it never visually "completes"
-    // before the backend does. We snap to 100% on real success.
+    // Drive the circular progress ring. Starts immediately on mount so
+    // the user sees the gold bar advancing from frame one. Pacing runs
+    // *slightly ahead* of the real ~60s analysis so users feel pulled
+    // forward: ~35% by 10s, ~70% by 25s, ~90% by 45s, then eases
+    // toward 98% so it never visually completes before the backend
+    // does. We snap to 100% on real success.
     const start = performance.now();
-    const FAST_MS = 22000; // reach 90% by here
     let raf = 0;
     const tick = (now: number) => {
       const elapsed = now - start;
-      let pct: number;
-      if (elapsed <= FAST_MS) {
-        pct = (elapsed / FAST_MS) * 90;
-      } else {
-        // Ease from 90 → 99 over the next ~30s, asymptotic.
-        const extra = elapsed - FAST_MS;
-        pct = 90 + 9 * (1 - Math.exp(-extra / 12000));
-      }
-      setProgressPct(Math.min(99, pct));
+      // Ease-out: pct = 98 * (1 - exp(-t/k)). k≈19200 gives ~35/70/90
+      // at 10/25/45s.
+      const pct = 98 * (1 - Math.exp(-elapsed / 19200));
+      setProgressPct(Math.min(98, pct));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
