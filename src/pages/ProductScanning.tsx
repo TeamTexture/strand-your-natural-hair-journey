@@ -60,27 +60,26 @@ const ProductScanning = () => {
     //      so the ring never visually freezes if the backend is slow.
     // On real success we kick `progressPct` to 100 and the
     // stroke-dashoffset CSS transition snaps the ring closed.
-    const start = performance.now();
+    // Use setInterval (200ms) for reliable, visible motion. RAF was
+    // theoretically smoother but appears to not actually drive
+    // re-renders in some preview environments — switching to a simple
+    // interval guarantees the ring keeps moving.
+    const start = Date.now();
     const FAST_MS = 12000; // reach 75% by here
-    let raf = 0;
-    const tick = (now: number) => {
-      const elapsed = now - start;
+    const interval = window.setInterval(() => {
+      const elapsed = Date.now() - start;
       let pct: number;
       if (elapsed <= FAST_MS) {
         pct = (elapsed / FAST_MS) * 75;
       } else {
-        // Ease 75 → 99 over the next ~30s, asymptotic so it never
-        // sits still: even at t+60s it's still creeping up.
         const extra = elapsed - FAST_MS;
         pct = 75 + 24 * (1 - Math.exp(-extra / 18000));
       }
       setProgressPct((prev) => Math.max(prev, Math.min(99, pct)));
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    }, 200);
     return () => {
       timeouts.forEach(window.clearTimeout);
-      cancelAnimationFrame(raf);
+      window.clearInterval(interval);
     };
   }, [phase]);
 
