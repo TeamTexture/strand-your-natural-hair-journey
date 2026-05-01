@@ -61,7 +61,6 @@ export function useProductUrlScan() {
         ai_summary: typeof data?.ai_summary === "string" ? data.ai_summary : null,
         match_score: typeof data?.match_score === "number" ? data.match_score : null,
         image_url: remoteImage,
-        source_url: normalised,
         on_shelf: intent === "shelf",
         on_wishlist: intent === "wishlist",
         ...(intent === "shelf" ? { added_to_shelf_at: new Date().toISOString() } : {}),
