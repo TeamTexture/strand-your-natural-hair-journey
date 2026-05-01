@@ -184,6 +184,9 @@ const ProductScanning = () => {
           throw new Error("Couldn't save the scanned product. Please try again.");
         }
         console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
+        // Snap the ring to a full circle on real success so the user sees
+        // it complete before we navigate away.
+        setProgressPct(100);
 
         const name = encodeURIComponent(payload.name);
         const brand = encodeURIComponent(payload.brand ?? "");
