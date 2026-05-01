@@ -5,6 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
+import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { toast } from "sonner";
 
 /** Nav state shape produced by useProductScan after the dual-photo upload. */
@@ -158,18 +159,11 @@ const ProductScanning = () => {
         // redirect would land on an empty product page and bounce back.
         const product_key = `scan-${Date.now()}`;
         const intent = state.intent ?? "shelf";
+        const saveFields = buildProductSaveFields(data ?? {});
         const payload = {
           user_id: user.id,
           product_key,
-          name: typeof data?.product_name === "string" && data.product_name.trim()
-            ? data.product_name.trim()
-            : "Untitled product",
-          brand: typeof data?.brand === "string" ? data.brand.trim() : null,
-          category: typeof data?.category === "string" ? data.category : null,
-          ingredients: Array.isArray(data?.ingredients) ? data.ingredients : [],
-          key_ingredients: Array.isArray(data?.key_ingredients) ? data.key_ingredients : [],
-          ai_summary: typeof data?.ai_summary === "string" ? data.ai_summary : null,
-          match_score: typeof data?.match_score === "number" ? data.match_score : null,
+          ...saveFields,
           storage_path: state.storage_path,
           // Neutral state by default — the user picks the destination from
           // the 3-CTA decision block on IngredientDetail. Only auto-route
@@ -195,8 +189,8 @@ const ProductScanning = () => {
         setProgressPct(100);
         await new Promise((r) => setTimeout(r, 450));
 
-        const name = encodeURIComponent(payload.name);
-        const brand = encodeURIComponent(payload.brand ?? "");
+        const name = encodeURIComponent(saveFields.name);
+        const brand = encodeURIComponent(saveFields.brand ?? "");
         // Route directly to the unified product page. Analysis is also
         // stashed in location.state for the first render (URL params are
         // for refresh / shareability fallback).
