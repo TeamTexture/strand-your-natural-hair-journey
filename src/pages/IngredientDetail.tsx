@@ -441,6 +441,7 @@ const IngredientDetail = () => {
     try {
       await setShelf(productRow.id, true);
       toast.success(`${productRow.name} added to your shelf`);
+      navigate("/products", { state: { defaultTab: "shelf" } });
     } finally {
       setShelfBusy(false);
     }
@@ -452,6 +453,9 @@ const IngredientDetail = () => {
     try {
       await setWishlist(productRow.id, true);
       toast.success(`${productRow.name} added to your wishlist`);
+      // Wishlist has its own route — send the user there directly so the
+      // mental loop "I just put this on my wishlist → here it is" closes.
+      navigate("/products/wishlist");
     } finally {
       setShelfBusy(false);
     }

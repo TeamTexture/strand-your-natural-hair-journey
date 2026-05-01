@@ -32,6 +32,7 @@ const ProductScanning = () => {
   const [phase, setPhase] = useState<"analysing" | "error">("analysing");
   const [error, setError] = useState("");
   const [loadingMessage, setLoadingMessage] = useState("Reading the front of the label…");
+  const [progressPct, setProgressPct] = useState(0);
   const ranRef = useRef(false);
 
   // Rotate the headline through a sequence of progress signals so the
@@ -50,7 +51,23 @@ const ProductScanning = () => {
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
     );
-    return () => timeouts.forEach(window.clearTimeout);
+    // Drive the circular progress ring from 0 → ~95% over 60s using rAF.
+    // Cap at 95% so it doesn't visually "complete" before the backend does;
+    // the page navigates away on real success.
+    const start = performance.now();
+    const DURATION_MS = 60000;
+    let raf = 0;
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const pct = Math.min(95, (elapsed / DURATION_MS) * 100);
+      setProgressPct(pct);
+      if (elapsed < DURATION_MS) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      timeouts.forEach(window.clearTimeout);
+      cancelAnimationFrame(raf);
+    };
   }, [phase]);
 
   useEffect(() => {
@@ -141,9 +158,14 @@ const ProductScanning = () => {
           ai_summary: typeof data?.ai_summary === "string" ? data.ai_summary : null,
           match_score: typeof data?.match_score === "number" ? data.match_score : null,
           storage_path: state.storage_path,
-          on_shelf: intent === "shelf",
-          on_wishlist: intent === "wishlist",
-          ...(intent === "shelf" ? { added_to_shelf_at: new Date().toISOString() } : {}),
+          // Neutral state by default — the user picks the destination from
+          // the 3-CTA decision block on IngredientDetail. Only auto-route
+          // to shelf/wishlist when the caller explicitly opted in.
+          on_shelf: state.auto_save === true && intent === "shelf",
+          on_wishlist: state.auto_save === true && intent === "wishlist",
+          ...(state.auto_save === true && intent === "shelf"
+            ? { added_to_shelf_at: new Date().toISOString() }
+            : {}),
         };
         const { error: insErr } = await supabase
           .from("user_products")
@@ -218,7 +240,46 @@ const ProductScanning = () => {
         </div>
         {phase === "analysing" ? (
           <>
-            <div className="mt-8 flex items-center gap-2">
+            {/* Circular progress ring — purely cosmetic, fills over ~60s */}
+            {(() => {
+              const SIZE = 80;
+              const STROKE = 5;
+              const R = (SIZE - STROKE) / 2;
+              const C = 2 * Math.PI * R;
+              const offset = C * (1 - progressPct / 100);
+              return (
+                <svg
+                  width={SIZE}
+                  height={SIZE}
+                  viewBox={`0 0 ${SIZE} ${SIZE}`}
+                  className="mt-8"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx={SIZE / 2}
+                    cy={SIZE / 2}
+                    r={R}
+                    fill="none"
+                    stroke="hsl(var(--border))"
+                    strokeWidth={STROKE}
+                  />
+                  <circle
+                    cx={SIZE / 2}
+                    cy={SIZE / 2}
+                    r={R}
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={STROKE}
+                    strokeLinecap="round"
+                    strokeDasharray={C}
+                    strokeDashoffset={offset}
+                    transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+                    style={{ transition: "stroke-dashoffset 200ms linear" }}
+                  />
+                </svg>
+              );
+            })()}
+            <div className="mt-4 flex items-center gap-2">
               <span className="size-3 rounded-full bg-primary animate-pulse" />
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
