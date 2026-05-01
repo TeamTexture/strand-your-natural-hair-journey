@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
+import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { toast } from "sonner";
 
 /** Adds a product from a pasted product-page URL. The edge function fetches
@@ -46,20 +47,11 @@ export function useProductUrlScan() {
       // Persist the row so /products/ingredient (which loads from
       // user_products by product_key) has data to render. Mirrors the
       // photo-scan path in ProductScanning.tsx.
-      const name = typeof data?.product_name === "string" && data.product_name.trim()
-        ? data.product_name.trim()
-        : "Untitled product";
-      const brand = typeof data?.brand === "string" ? data.brand.trim() : null;
+      const saveFields = buildProductSaveFields(data ?? {});
       const payload = {
         user_id: user.id,
         product_key,
-        name,
-        brand,
-        category: typeof data?.category === "string" ? data.category : null,
-        ingredients: Array.isArray(data?.ingredients) ? data.ingredients : [],
-        key_ingredients: Array.isArray(data?.key_ingredients) ? data.key_ingredients : [],
-        ai_summary: typeof data?.ai_summary === "string" ? data.ai_summary : null,
-        match_score: typeof data?.match_score === "number" ? data.match_score : null,
+        ...saveFields,
         image_url: remoteImage,
         on_shelf: intent === "shelf",
         on_wishlist: intent === "wishlist",
@@ -75,7 +67,7 @@ export function useProductUrlScan() {
       }
 
       navigate(
-        `/products/ingredient?key=${encodeURIComponent(product_key)}&name=${encodeURIComponent(name)}&brand=${encodeURIComponent(brand ?? "")}`,
+        `/products/ingredient?key=${encodeURIComponent(product_key)}&name=${encodeURIComponent(saveFields.name)}&brand=${encodeURIComponent(saveFields.brand ?? "")}`,
         {
           replace: true,
           state: {
