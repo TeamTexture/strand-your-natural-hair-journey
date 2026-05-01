@@ -55,10 +55,15 @@ export default function ProductThumb({
     }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from("product-photos")
         .createSignedUrl(storagePath, 3600);
       if (cancelled) return;
+      if (error) {
+        console.warn("[ProductThumb] sign failed", { storagePath, error: error.message });
+        setResolved(null);
+        return;
+      }
       if (data?.signedUrl) {
         signedUrlCache.set(storagePath, {
           url: data.signedUrl,
@@ -66,6 +71,7 @@ export default function ProductThumb({
         });
         setResolved(data.signedUrl);
       } else {
+        console.warn("[ProductThumb] no signedUrl returned", { storagePath });
         setResolved(null);
       }
     })();
