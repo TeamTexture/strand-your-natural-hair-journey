@@ -364,10 +364,11 @@ const IngredientDetail = () => {
       if (!freshAnalysis || !productKey) return null;
       setSavingToShelf(true);
       try {
+        const saveFields = buildProductSaveFields(freshAnalysis, productName || "Untitled product");
         const saved = await upsert({
           product_key: productKey,
-          ...buildProductSaveFields(freshAnalysis, productName || "Untitled product"),
-          brand: buildProductSaveFields(freshAnalysis).brand ?? productBrand || null,
+          ...saveFields,
+          brand: saveFields.brand ?? productBrand || null,
           storage_path: navState?.storage_path ?? null,
           on_shelf: intent === "shelf",
           on_wishlist: intent === "wishlist",
