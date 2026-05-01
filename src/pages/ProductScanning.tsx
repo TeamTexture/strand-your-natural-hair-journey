@@ -240,7 +240,46 @@ const ProductScanning = () => {
         </div>
         {phase === "analysing" ? (
           <>
-            <div className="mt-8 flex items-center gap-2">
+            {/* Circular progress ring — purely cosmetic, fills over ~60s */}
+            {(() => {
+              const SIZE = 80;
+              const STROKE = 5;
+              const R = (SIZE - STROKE) / 2;
+              const C = 2 * Math.PI * R;
+              const offset = C * (1 - progressPct / 100);
+              return (
+                <svg
+                  width={SIZE}
+                  height={SIZE}
+                  viewBox={`0 0 ${SIZE} ${SIZE}`}
+                  className="mt-8"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx={SIZE / 2}
+                    cy={SIZE / 2}
+                    r={R}
+                    fill="none"
+                    stroke="hsl(var(--border))"
+                    strokeWidth={STROKE}
+                  />
+                  <circle
+                    cx={SIZE / 2}
+                    cy={SIZE / 2}
+                    r={R}
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={STROKE}
+                    strokeLinecap="round"
+                    strokeDasharray={C}
+                    strokeDashoffset={offset}
+                    transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+                    style={{ transition: "stroke-dashoffset 200ms linear" }}
+                  />
+                </svg>
+              );
+            })()}
+            <div className="mt-4 flex items-center gap-2">
               <span className="size-3 rounded-full bg-primary animate-pulse" />
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
               <span className="size-3 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
