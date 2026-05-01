@@ -9,6 +9,7 @@ import ProductVoicenotes from "@/components/ProductVoicenotes";
 import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import MyToolsSection from "@/components/MyToolsSection";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
+import ProductThumb from "@/components/ProductThumb";
 import ProductsHeader, {
   CATEGORY_ORDER,
   applyProductFilters,
@@ -154,13 +155,12 @@ const Products = () => {
                     className="bg-card border border-border rounded-[14px] overflow-hidden"
                   >
                     <div className="p-3.5 flex items-center gap-3">
-                      <div className="size-12 rounded-[10px] overflow-hidden bg-transparent shrink-0">
-                        {p.image_url ? (
-                          <img src={p.image_url} alt="" className="size-full object-contain mix-blend-multiply" />
-                        ) : (
-                          <div className="size-full flex items-center justify-center text-2xl bg-primary/15">🧴</div>
-                        )}
-                      </div>
+                      <ProductThumb
+                        imageUrl={p.image_url}
+                        storagePath={p.storage_path}
+                        alt={p.name}
+                        cover={!p.image_url && !!p.storage_path}
+                      />
                       <button
                         onClick={() => navigate(`/products/profile/${p.id}`)}
                         className="flex items-center gap-3 flex-1 min-w-0 text-left"

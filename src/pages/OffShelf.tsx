@@ -6,6 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
+import ProductThumb from "@/components/ProductThumb";
 import ProductsHeader, {
   applyProductFilters,
   useProductsFilterState,
@@ -96,12 +97,13 @@ const OffShelf = () => {
                 className="bg-card border border-border rounded-[14px] overflow-hidden opacity-90"
               >
                 <div className="p-3.5 flex items-center gap-3">
-                  <div className="size-12 rounded-[10px] overflow-hidden bg-transparent shrink-0 grayscale">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt="" className="size-full object-contain mix-blend-multiply" />
-                    ) : (
-                      <div className="size-full flex items-center justify-center text-2xl bg-primary/15">🧴</div>
-                    )}
+                  <div className="grayscale">
+                    <ProductThumb
+                      imageUrl={p.image_url}
+                      storagePath={p.storage_path}
+                      alt={p.name}
+                      cover={!p.image_url && !!p.storage_path}
+                    />
                   </div>
                   <button
                     onClick={() => navigate(`/products/profile/${p.id}`)}
