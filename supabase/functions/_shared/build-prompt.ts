@@ -26,6 +26,7 @@ import {
 } from "./knowledge/index.ts";
 import type { TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
+import { VOICE_PRINCIPLES } from "./voice.ts";
 import type {
   ClaudeCallInput,
   ClaudeModel,
