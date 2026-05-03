@@ -149,7 +149,9 @@ const IngredientDetail = () => {
   const returnTo = navState?.returnTo ?? null;
 
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
-  const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(null);
+  const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(
+    (location.state as { preview_url?: string } | null)?.preview_url ?? null,
+  );
   const photoUrl = photos[productKey]?.signedUrl ?? productPhotoUrl;
 
   const { allProducts, loading: productsLoading, setShelf, setWishlist, setFavourite, remove, reload, upsert } = useUserProducts("all");
