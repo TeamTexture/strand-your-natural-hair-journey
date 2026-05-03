@@ -162,6 +162,45 @@ export async function buildClaudeRequest(
     });
   }
 
+  // ── Personalisation hard-anchor (product flows) ──────────────────
+  // Belt-and-braces: even though currentStyle/goals/challenges are inside
+  // the JSON context dump, an explicit instruction up-front forces the
+  // model to attend to the user's CURRENT values rather than inferring
+  // hair state from the product itself.
+  if (
+    (input.function_kind === "product-analyse" ||
+      input.function_kind === "product-analyse-url") &&
+    input.user_context
+  ) {
+    const ctx = input.user_context as Record<string, unknown>;
+    const cs = (ctx.currentStyle ?? null) as Record<string, unknown> | null;
+    const styleStr = cs
+      ? (cs.current_hairstyle as string | null) ??
+        (cs.default_style as string | null) ??
+        "not specified"
+      : "not specified";
+    const goalsArr = Array.isArray(ctx.goals)
+      ? (ctx.goals as Array<Record<string, unknown>>)
+      : [];
+    const goalsStr = goalsArr.map((g) => g.title).filter(Boolean).join(", ") || "not specified";
+    const challengesStr = goalsArr
+      .map((g) => g.challenge)
+      .filter((c) => typeof c === "string" && c.trim().length > 0)
+      .join(", ") || "not specified";
+    systemBlocks.push({
+      type: "text",
+      text:
+        `PERSONALISATION RULES — APPLY STRICTLY\n\n` +
+        `The user's CURRENT hair style is: ${styleStr}.\n` +
+        `The user's CURRENT goals are: ${goalsStr}.\n` +
+        `The user's CURRENT challenges are: ${challengesStr}.\n\n` +
+        `Base ALL advice and ingredient assessments on these CURRENT values. ` +
+        `Do NOT reference past styles, past goals, or past challenges. ` +
+        `Do NOT infer the user's hair state from the product type — the product is being analysed FOR them, not BY them. ` +
+        `If the user's current style is incompatible with a product (e.g. styling product for a different hair texture, deep conditioner for a style that doesn't need it), say so directly in the verdict.`,
+    });
+  }
+
   // ── Task instructions ────────────────────────────────────────────
   systemBlocks.push({
     type: "text",
