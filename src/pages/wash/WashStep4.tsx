@@ -170,7 +170,14 @@ const WashStep4 = () => {
         // Real shelf product IDs picked across the wash steps (Step1 collected
         // these from each step's selections). The DB trigger on wash_days
         // bumps user_products.use_count + last_used_at for each id atomically.
-        product_ids: Array.from(new Set(step1.productIds ?? [])),
+        product_ids: (() => {
+          const ids = Array.from(new Set(step1.productIds ?? []));
+          // Diagnostic: confirms whether productIds made it through Step1 → Step4.
+          // If this logs `[]` while the user clearly logged products, the bug is
+          // upstream in WashStep1 hydration / collection.
+          console.log("[wash-save] product_ids being saved:", ids);
+          return ids;
+        })(),
         scalp_feel: step2.scalp?.[0] ?? null,
         breakage: step2.breakage?.[0] ?? null,
         style_after: step2.style?.[0] ?? null,
