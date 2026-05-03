@@ -281,6 +281,10 @@ const WashStep1 = () => {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (hydrated) return;
+    // Wait for the shelf to finish loading before seeding category-based
+    // suggestions. Otherwise we lock in empty arrays before products arrive,
+    // and the wash day saves with product_ids=[] (no trigger bump).
+    if (shelfLoading) return;
     let draft: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem("strand_wash_step1_draft");
