@@ -1176,6 +1176,26 @@ const IngredientDetail = () => {
           })()}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={discardOpen} onOpenChange={(o) => !o && handleCancelDiscard()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard analysis?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Leaving without saving will discard this analysis. You'll need to re-scan to see it again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDiscard}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmDiscard}
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
