@@ -161,7 +161,7 @@ Hair-health guidance only — never medical advice. Recommend the user also seek
 OUTPUT TIGHTNESS RULES (override the field rules above where they conflict):
 - use_cases: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most actionable ways the user should use THIS product given their profile — not every possible use case.
 - tips: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product. For a scalp exfoliator, scalp condition + diagnosed alopecia + dermatologist context are relevant; lab values, sleep, and unrelated hair traits are NOT relevant unless they directly intersect this product's mechanism.
-- ai_summary: 2–3 sentences MAXIMUM. Lead with the verdict (good fit / mixed fit / poor fit and why) in sentence one. Sentences two and three add the most important nuance. Cut redundancy — if the verdict already says "good for your dry scalp", don't restate dry scalp again in the nuance.
+- ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (their porosity, current style, a goal, a flagged ingredient pattern, etc.) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence. Use a connective ("which is why", "so", "this means") between mechanism and verdict. Don't restate the same signal twice.
 - key_ingredients: 4–6 items MAXIMUM. Pick the ingredients that most affect the verdict, not every ingredient with a benefit.
 
 PRODUCT ANALYSIS SCOPE — HARD RULE:
