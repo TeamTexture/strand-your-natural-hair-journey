@@ -611,6 +611,10 @@ Deno.serve(async (req: Request) => {
     const productKey = body.productKey ?? (await sha256Hex(url));
     const cacheKind = `product_analyse:${productKey}`;
 
+    // Compute profile hash up-front so we can use it for cache invalidation.
+    const ctxEarly = body.context ?? {};
+    const profileHashEarly = currentProfileHash(ctxEarly as Record<string, unknown>);
+
     // ── Cache check ────────────────────────────────────────────────
     if (!body.force) {
       const { data: existing } = await supabase
@@ -620,11 +624,12 @@ Deno.serve(async (req: Request) => {
         .eq("kind", cacheKind)
         .maybeSingle();
       if (existing?.payload) {
-        const cached = existing.payload as ProductAnalysisPayload;
+        const cached = existing.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION && cached._provider === "claude"
           : cached._provider !== "claude";
-        if (versionOk) {
+        const hashOk = cached._profile_snapshot_hash === profileHashEarly;
+        if (versionOk && hashOk) {
           return json(200, sanitiseChapterCitationsDeep(cached));
         }
       }
