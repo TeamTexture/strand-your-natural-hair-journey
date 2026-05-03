@@ -6,6 +6,7 @@ import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
