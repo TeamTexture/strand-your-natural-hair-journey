@@ -483,6 +483,7 @@ const IngredientDetail = () => {
     setShelfBusy(true);
     try {
       await remove(productRow.id);
+      ctaChosenRef.current = true;
       toast.success("Product removed");
       navigate("/products");
     } finally {
