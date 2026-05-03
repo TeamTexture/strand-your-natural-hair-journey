@@ -34,6 +34,7 @@ interface Step1Saved {
   prePoo?: string; cleanse?: string; coWash?: string; condition?: string; treatment?: string;
   treatmentType?: string[];
   products?: string[];
+  productIds?: string[];
   heatTreatment?: "yes" | "no" | null;
   heatMinutes?: number | null;
   heatToolIds?: string[];
@@ -166,7 +167,10 @@ const WashStep4 = () => {
         wash_date: new Date().toISOString().slice(0, 10),
         steps,
         heat_treatment: heatTreatment,
-        product_ids: [], // free-text products live in `steps`; product_ids stays empty until we link real shelf rows
+        // Real shelf product IDs picked across the wash steps (Step1 collected
+        // these from each step's selections). The DB trigger on wash_days
+        // bumps user_products.use_count + last_used_at for each id atomically.
+        product_ids: Array.from(new Set(step1.productIds ?? [])),
         scalp_feel: step2.scalp?.[0] ?? null,
         breakage: step2.breakage?.[0] ?? null,
         style_after: step2.style?.[0] ?? null,
