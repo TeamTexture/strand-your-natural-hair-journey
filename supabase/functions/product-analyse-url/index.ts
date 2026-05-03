@@ -635,8 +635,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const ctx = body.context ?? {};
-    const profileHash = currentProfileHash(ctx as Record<string, unknown>);
+    const ctx = ctxEarly;
+    const profileHash = profileHashEarly;
     let analysis: ProductAnalysisPayload;
     const t0 = Date.now();
     console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider, profileHash }));
