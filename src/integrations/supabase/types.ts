@@ -778,6 +778,8 @@ export type Database = {
         Row: {
           added_to_shelf_at: string | null
           ai_summary: string | null
+          analysis_generated_at: string | null
+          analysis_profile_snapshot_hash: string | null
           brand: string | null
           category: string | null
           created_at: string
@@ -796,6 +798,7 @@ export type Database = {
           previously_on_shelf: boolean
           product_key: string
           rating: number | null
+          source_url: string | null
           storage_path: string | null
           updated_at: string
           use_count: number
@@ -804,6 +807,8 @@ export type Database = {
         Insert: {
           added_to_shelf_at?: string | null
           ai_summary?: string | null
+          analysis_generated_at?: string | null
+          analysis_profile_snapshot_hash?: string | null
           brand?: string | null
           category?: string | null
           created_at?: string
@@ -822,6 +827,7 @@ export type Database = {
           previously_on_shelf?: boolean
           product_key: string
           rating?: number | null
+          source_url?: string | null
           storage_path?: string | null
           updated_at?: string
           use_count?: number
@@ -830,6 +836,8 @@ export type Database = {
         Update: {
           added_to_shelf_at?: string | null
           ai_summary?: string | null
+          analysis_generated_at?: string | null
+          analysis_profile_snapshot_hash?: string | null
           brand?: string | null
           category?: string | null
           created_at?: string
@@ -848,6 +856,7 @@ export type Database = {
           previously_on_shelf?: boolean
           product_key?: string
           rating?: number | null
+          source_url?: string | null
           storage_path?: string | null
           updated_at?: string
           use_count?: number
