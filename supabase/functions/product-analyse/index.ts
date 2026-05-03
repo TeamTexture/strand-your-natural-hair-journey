@@ -46,6 +46,7 @@ import {
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import { currentProfileHash } from "../_shared/profile-snapshot.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -408,6 +409,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const cacheKind = body.productKey ? `product_analyse:${body.productKey}` : null;
+    const ctx = body.context ?? {};
+    const profileHash = currentProfileHash(ctx as Record<string, unknown>);
 
     // ── Cache check (only when caller passed a productKey) ────────────
     if (cacheKind && !body.force) {
@@ -418,17 +421,17 @@ Deno.serve(async (req: Request) => {
         .eq("kind", cacheKind)
         .maybeSingle();
       if (existing?.payload) {
-        const cached = existing.payload as ProductAnalysisPayload;
+        const cached = existing.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
           : true;
-        if (versionOk) {
+        const hashOk = cached._profile_snapshot_hash === profileHash;
+        if (versionOk && hashOk) {
           return json(200, sanitiseChapterCitationsDeep(cached));
         }
       }
     }
 
-    const ctx = body.context ?? {};
     let analysis: ProductAnalysisPayload;
 
     if (provider === "claude") {
@@ -454,6 +457,7 @@ Deno.serve(async (req: Request) => {
         _generated_at: new Date().toISOString(),
       };
     }
+    (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 
     // ── Upsert cache (only when keyed) ────────────────────────────────
     if (cacheKind) {

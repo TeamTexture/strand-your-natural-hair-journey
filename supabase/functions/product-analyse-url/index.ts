@@ -53,6 +53,7 @@ import {
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import { currentProfileHash } from "../_shared/profile-snapshot.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -413,8 +414,18 @@ function extractOgImageFromHtml(html: string): string | null {
       found.push({ kind, url });
     }
   }
-  const pickHttps = (list: typeof found) =>
-    list.find((f) => f.url.startsWith("https://"))?.url ?? list[0]?.url ?? null;
+  // Prefer https; if only http available, rewrite to https. iOS Safari
+  // blocks http images on https pages (mixed content) more aggressively
+  // than desktop, so we enforce https before returning.
+  const toHttps = (u: string | null | undefined): string | null => {
+    if (!u) return null;
+    return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
+  };
+  const pickHttps = (list: typeof found): string | null => {
+    const https = list.find((f) => f.url.startsWith("https://"))?.url;
+    if (https) return https;
+    return toHttps(list[0]?.url ?? null);
+  };
   const secure = pickHttps(found.filter((f) => f.kind === "secure"));
   if (secure) return secure;
   const og = pickHttps(found.filter((f) => f.kind === "og"));
@@ -427,7 +438,7 @@ function extractOgImageFromHtml(html: string): string | null {
   const img =
     scope.match(/<img[^>]+data-product-image[^>]*src=["']([^"']+)["']/i) ||
     scope.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return img ? img[1] : null;
+  return img ? toHttps(img[1]) : null;
 }
 
 async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
@@ -600,6 +611,10 @@ Deno.serve(async (req: Request) => {
     const productKey = body.productKey ?? (await sha256Hex(url));
     const cacheKind = `product_analyse:${productKey}`;
 
+    // Compute profile hash up-front so we can use it for cache invalidation.
+    const ctxEarly = body.context ?? {};
+    const profileHashEarly = currentProfileHash(ctxEarly as Record<string, unknown>);
+
     // ── Cache check ────────────────────────────────────────────────
     if (!body.force) {
       const { data: existing } = await supabase
@@ -609,20 +624,22 @@ Deno.serve(async (req: Request) => {
         .eq("kind", cacheKind)
         .maybeSingle();
       if (existing?.payload) {
-        const cached = existing.payload as ProductAnalysisPayload;
+        const cached = existing.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION && cached._provider === "claude"
           : cached._provider !== "claude";
-        if (versionOk) {
+        const hashOk = cached._profile_snapshot_hash === profileHashEarly;
+        if (versionOk && hashOk) {
           return json(200, sanitiseChapterCitationsDeep(cached));
         }
       }
     }
 
-    const ctx = body.context ?? {};
+    const ctx = ctxEarly;
+    const profileHash = profileHashEarly;
     let analysis: ProductAnalysisPayload;
     const t0 = Date.now();
-    console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider }));
+    console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider, profileHash }));
 
     if (provider === "claude") {
       // Run model call and og:image scrape in parallel — og fetch is ~1-3s,
@@ -648,8 +665,11 @@ Deno.serve(async (req: Request) => {
         _used_web_fetch: web_fetch_invocations > 0,
       };
       if (ogImage) {
-        (analysis as Record<string, unknown>)._source_image_url = ogImage;
-        (analysis as Record<string, unknown>).image_url = ogImage;
+        const safeImg = ogImage.startsWith("http://")
+          ? "https://" + ogImage.slice("http://".length)
+          : ogImage;
+        (analysis as Record<string, unknown>)._source_image_url = safeImg;
+        (analysis as Record<string, unknown>).image_url = safeImg;
       }
     } else {
       console.log(JSON.stringify({ tag: "url-debug", phase: "before lovable", ms: Date.now() - t0 }));
@@ -664,12 +684,16 @@ Deno.serve(async (req: Request) => {
         _generated_at: new Date().toISOString(),
       };
       if (image_url) {
-        (analysis as Record<string, unknown>)._source_image_url = image_url;
+        const safeImg = image_url.startsWith("http://")
+          ? "https://" + image_url.slice("http://".length)
+          : image_url;
+        (analysis as Record<string, unknown>)._source_image_url = safeImg;
         if (!(analysis as Record<string, unknown>).image_url) {
-          (analysis as Record<string, unknown>).image_url = image_url;
+          (analysis as Record<string, unknown>).image_url = safeImg;
         }
       }
     }
+    (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "url-debug", phase: "all done", total_ms: Date.now() - t0 }));
 
     // ── Upsert cache ───────────────────────────────────────────────
