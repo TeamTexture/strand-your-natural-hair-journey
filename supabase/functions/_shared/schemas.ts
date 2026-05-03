@@ -108,4 +108,11 @@ export interface ProductAnalysisPayload {
   /** Step 4a (URL flow) only — true when Claude invoked the native
    *  web_fetch tool to retrieve the page. Photo flow leaves this undefined. */
   _used_web_fetch?: boolean;
+  /** Stable fingerprint of the user's profile at analysis time — used to
+   *  decide whether a re-scan should hit the cached row or re-analyse. */
+  _profile_snapshot_hash?: string;
+  /** og:image extracted from the source page (URL flow). */
+  _source_image_url?: string;
+  /** Mirror of _source_image_url for the renderer. */
+  image_url?: string;
 }
