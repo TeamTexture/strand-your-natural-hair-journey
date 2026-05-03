@@ -193,6 +193,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     task_instructions: buildTaskInstructions(),
     user_payload: {},
     user_content: userContent,
+    user_context: args.context,
     selector_context: args.selectorContext,
     force_topic_ids: [
       "porosity",
