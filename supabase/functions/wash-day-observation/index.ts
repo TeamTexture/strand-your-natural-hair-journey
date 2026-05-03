@@ -6,7 +6,6 @@
 // `{ observation: string }` shape so the existing client (WashStep4.tsx) is
 // unchanged. Wash days are one-shot per save → no caching.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
