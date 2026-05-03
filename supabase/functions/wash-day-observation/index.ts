@@ -78,16 +78,27 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
 function buildClaudeTaskInstructions(): string {
   return `You're writing ONE personalised observation about the user's wash day, in Paige's voice (2-3 sentences MAX). Return JSON only via the return_observation tool.
 
-OUTPUT RULES (apply Step 3 personalisation rules):
-1. Lead with one concrete next-wash action the user can take, NOT generic affirmations ("Great job!", "Keep going!" — banned).
-2. Reference the user's CURRENT style, goals, and challenges only when they're mechanism-relevant to today's wash. Don't shoehorn them in.
-3. If you spot a pattern across the supplied recent wash days, cite the SPECIFIC days by date or sequence ("Your last 3 wash days using [product] all reported limp hair", "Twice in the past month after using heat without a steamer your scalp felt tight"). Do NOT use vague summaries like "you sometimes report dryness".
-4. If a "consistently flagged" ingredient (from history.flagged_ingredients) appears in today's products, note it directly. NEVER use the phrases "avoid list", "your avoids", or "ingredients to avoid" — use "consistently flagged in your history".
+OUTPUT RULES
+
+1. REFLECT, do not advise. The observation describes what the user did today and how it compares to recent wash days. NEVER tell the user what to do next, what to try next time, or what they should consider — those are banned framings.
+
+2. Lead with a SPECIFIC choice the user made today (a product they used, a technique they applied, a step they skipped, a heat treatment, a styling decision) and what effect it had — drawing on their reported scalp feel, breakage, hair feel note, and styling outcome.
+
+3. Where possible, compare today's choice or outcome to a SPECIFIC pattern across the supplied recent wash days. Cite by date or sequence: "This is the 3rd wash in the past 4 weeks where X" or "Last time you used [product] on [date], you reported [outcome]" or "Three of your last 5 wash days where you skipped a clarifying step have come back with limp roots." Do NOT use vague summaries like "you sometimes report dryness."
+
+4. If a "consistently flagged" ingredient (from history.flagged_ingredients) appeared in today's products, name the ingredient and what it's flagged for. NEVER use the phrases "avoid list," "your avoids," or "ingredients to avoid" — use "consistently flagged in your history."
+
 5. Do NOT cite tension/styling concerns, lab values, sleep, cortisol, or dermatologist context unless they directly intersect today's wash mechanics.
-6. Hair-health guidance only — never medical advice.
+
+6. Hair-health observation only — never medical advice.
+
 7. Moisture comes from water. Products SEAL it, don't add it.
 
-Citation rule: when guidance is rooted in the book, use "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" on its own line at the end. Never name the book or author elsewhere.`;
+8. BANNED PHRASES: "Great job!", "Keep it up!", "Nice work!", "Try [X] next time," "Consider [Y]," "Next wash, you might want to," "I'd recommend," "Going forward."
+
+9. NO chapter citations. NO "Read more — How To Love Your Afro" links. The observation stands alone.
+
+10. Plain English, no jargon. Treat the user as a capable adult who knows their hair.`;
 }
 
 async function runClaude(args: {

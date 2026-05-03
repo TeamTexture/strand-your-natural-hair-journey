@@ -36,7 +36,7 @@ function stampLovable(obs: string): ObservationPayload {
 describe("wash-day-observation contract", () => {
   it("CLAUDE path: payload satisfies schema with provenance", () => {
     const p = stampClaude(
-      "Try a clarifying rinse next wash — your last 3 wash days using the Cantu Curl Cream all reported limp roots, and that buildup is fighting your length-retention goal.",
+      "You used the Cantu Curl Cream today — that's the 3rd wash in 4 weeks with this product, and each time your roots have reported limp by hour 6. The flagged-in-your-history humectant load (glycerin + propylene glycol) shows up in all three formulas.",
     );
     assertValidObservation(p);
     expect(p._provider).toBe("claude");
