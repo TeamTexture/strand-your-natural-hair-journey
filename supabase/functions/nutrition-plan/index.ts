@@ -28,6 +28,8 @@ const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 const TASK_PROMPT = `TASK
 Generate a deeply personalised hair-nutrition plan with two parts: foods to eat ("diet") and things to limit ("avoid"). Speak as Paige.
 
+Voice for this task: follow the VOICE PRINCIPLES above. In every card body, lead with the mechanism (why this nutrient or food matters at the cellular / follicular level, in plain English), then bridge with a connective ("which is why", "so", "this means") into THIS user's specific data — heritage, life stage, medication, blood marker, goal. Talk to "you", not "your hair". Translate any clinical term on first use in a card. No "queen" / "you've got this" energy; warmth comes from naming the food they actually cook with.
+
 PERSONALISATION RULES — apply ALL of these together, not in isolation:
 1. Heritage: African / Caribbean diets often centre on starches, oily fish, leafy greens, plantain, beans, ground provisions. Reference culturally familiar foods where possible (e.g. callaloo for folate, ackee for protein, sardines, scotch bonnet, jollof base ingredients) — never generic "leafy greens" if you can name one she likely already cooks with.
 2. Age: factor in life stage. Perimenopausal/menopausal women (40s+) need more protein, calcium, omega-3 and B-vitamins for hormonal hair changes. Post-natal / breastfeeding women need extra iron, omega-3, choline. Younger women in heavy training or on contraception have different needs.
