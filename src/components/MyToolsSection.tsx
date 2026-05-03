@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
+import { buildAiContext } from "@/lib/aiContext";
 import { cn } from "@/lib/utils";
 
 const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) => (
