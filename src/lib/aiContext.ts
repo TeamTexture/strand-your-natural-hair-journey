@@ -243,7 +243,7 @@ export async function buildAiContext(): Promise<AiContext> {
     last3.push({ date: lastWashIso });
   }
 
-  return {
+  const result: AiContext = {
     hairProfile,
     currentStyle,
     healthProfile,
@@ -266,4 +266,15 @@ export async function buildAiContext(): Promise<AiContext> {
     goals,
     shelf,
   };
+
+  // Diagnostic — confirms the freshly-built context the client is about to
+  // send to AI edge functions reflects the user's CURRENT profile.
+  console.log("[ai-context] built", {
+    currentStyle: result.currentStyle,
+    currentGoals: result.goals?.map((g) => g.title) ?? [],
+    currentChallenges: result.goals?.map((g) => g.challenge).filter(Boolean) ?? [],
+    builtAt: new Date().toISOString(),
+  });
+
+  return result;
 }

@@ -193,6 +193,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     task_instructions: buildTaskInstructions(),
     user_payload: {},
     user_content: userContent,
+    user_context: args.context,
     selector_context: args.selectorContext,
     force_topic_ids: [
       "porosity",
@@ -567,6 +568,15 @@ Deno.serve(async (req: Request) => {
     const { user, supabase } = auth;
 
     const body = (await req.json()) as RequestBody;
+    {
+      const ac = (body.context ?? {}) as Record<string, unknown>;
+      const goalsArr = Array.isArray(ac.goals) ? ac.goals as Array<Record<string, unknown>> : [];
+      console.log("[ai-context-server] received", {
+        currentStyle: ac.currentStyle ?? null,
+        currentGoals: goalsArr.map((g) => g.title).filter(Boolean),
+        currentChallenges: goalsArr.map((g) => g.challenge).filter(Boolean),
+      });
+    }
 
     // ── Input validation ────────────────────────────────────────────
     if (!body.url || typeof body.url !== "string") {
