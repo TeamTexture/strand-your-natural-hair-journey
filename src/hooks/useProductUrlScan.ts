@@ -32,30 +32,38 @@ export function useProductUrlScan() {
     setBusy(true);
     try {
       const context = await buildAiContext();
+      const tStart = Date.now();
+      console.log("[url-debug] client invoke start", { url: normalised });
       const { data, error } = await supabase.functions.invoke("product-analyse-url", {
         body: { url: normalised, context },
       });
+      console.log("[url-debug] client invoke done", { ms: Date.now() - tStart });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       const product_key = `link-${Date.now()}`;
-      // The edge function returns a remote `image_url` pulled from the page's
-      // og:image / first image. Pass it through as `preview_url` so the detail
-      // screen shows it and persists it on the product row.
-      const remoteImage = (data?.image_url as string | undefined) ?? null;
+      // Edge function stamps `_source_image_url` (and mirrors it onto
+      // `image_url`) when an og:image was found on the source page.
+      const remoteImage =
+        (data?._source_image_url as string | undefined) ??
+        (data?.image_url as string | undefined) ??
+        null;
 
-      // Persist the row so /products/ingredient (which loads from
-      // user_products by product_key) has data to render. Mirrors the
-      // photo-scan path in ProductScanning.tsx.
+      // Neutral state — same pattern as photo flow. Only auto-flag
+      // shelf/wishlist when the caller explicitly opted in via
+      // extras.auto_save (e.g. journal/wash-day picker flows).
+      const autoSave = extras?.auto_save === true;
       const saveFields = buildProductSaveFields(data ?? {});
       const payload = {
         user_id: user.id,
         product_key,
         ...saveFields,
         image_url: remoteImage,
-        on_shelf: intent === "shelf",
-        on_wishlist: intent === "wishlist",
-        ...(intent === "shelf" ? { added_to_shelf_at: new Date().toISOString() } : {}),
+        on_shelf: autoSave && intent === "shelf",
+        on_wishlist: autoSave && intent === "wishlist",
+        ...(autoSave && intent === "shelf"
+          ? { added_to_shelf_at: new Date().toISOString() }
+          : {}),
       };
       const { error: insErr } = await supabase
         .from("user_products")
