@@ -240,6 +240,7 @@ Return JSON only via the return_nutrition_plan tool.`;
     JSON.stringify({
       function: "nutrition-plan",
       provider: "claude",
+      stop_reason: result.stop_reason,
       input_tokens: result.usage.input_tokens,
       cache_read_input_tokens: result.usage.cache_read_input_tokens,
       cache_creation_input_tokens: result.usage.cache_creation_input_tokens,
@@ -252,11 +253,22 @@ Return JSON only via the return_nutrition_plan tool.`;
     throw new Error("Claude returned no return_nutrition_plan tool_use block");
   }
   const p = result.toolInput;
-  return {
+  const payload = {
     summary: typeof p.summary === "string" ? p.summary : "",
     diet: Array.isArray(p.diet) ? p.diet : [],
     avoid: Array.isArray(p.avoid) ? p.avoid : [],
   };
+  // Hard guard: never return (and therefore never cache) an empty plan.
+  // If Opus truncated mid tool_use (stop_reason: "max_tokens") the input
+  // object comes back partial and the page silently shows the empty state
+  // forever after the cache write. Surface as a real error so the caller
+  // shows a toast and the next click retries.
+  if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+    throw new Error(
+      `Claude returned incomplete plan (stop_reason=${result.stop_reason}, diet=${payload.diet.length}, avoid=${payload.avoid.length}, summary_len=${payload.summary.length})`,
+    );
+  }
+  return payload;
 }
 
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
