@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
+import { buildAiContext } from "@/lib/aiContext";
 import { cn } from "@/lib/utils";
 
 const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) => (
@@ -120,8 +121,9 @@ const MyToolsSection = () => {
     }
     setAnalysing(true);
     try {
+      const context = await buildAiContext();
       const { data, error } = await supabase.functions.invoke("tool-analyse-url", {
-        body: { url: normalised },
+        body: { url: normalised, context },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
