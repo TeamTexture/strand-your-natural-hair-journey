@@ -225,7 +225,13 @@ Return JSON only via the return_nutrition_plan tool.`;
       input_schema: RETURN_PLAN_SCHEMA as unknown as Record<string, unknown>,
     },
     toolChoice: { type: "tool", name: "return_nutrition_plan" },
-    max_tokens: 4096,
+    // Opus needs headroom for the full tool_use payload (6-10 diet + 4-6
+    // avoid cards, each 2-3 sentences, plus summary). 4096 was truncating
+    // mid-tool_use and Anthropic returned an empty/partial input object —
+    // which we then silently cached as { diet: [], avoid: [], summary: "" },
+    // so every subsequent page load served the empty state without ever
+    // re-invoking the function. 8192 leaves comfortable headroom.
+    max_tokens: 8192,
   });
 
   console.log("[nutrition-debug] before model call");
@@ -234,6 +240,7 @@ Return JSON only via the return_nutrition_plan tool.`;
     JSON.stringify({
       function: "nutrition-plan",
       provider: "claude",
+      stop_reason: result.stop_reason,
       input_tokens: result.usage.input_tokens,
       cache_read_input_tokens: result.usage.cache_read_input_tokens,
       cache_creation_input_tokens: result.usage.cache_creation_input_tokens,
@@ -246,11 +253,22 @@ Return JSON only via the return_nutrition_plan tool.`;
     throw new Error("Claude returned no return_nutrition_plan tool_use block");
   }
   const p = result.toolInput;
-  return {
+  const payload = {
     summary: typeof p.summary === "string" ? p.summary : "",
     diet: Array.isArray(p.diet) ? p.diet : [],
     avoid: Array.isArray(p.avoid) ? p.avoid : [],
   };
+  // Hard guard: never return (and therefore never cache) an empty plan.
+  // If Opus truncated mid tool_use (stop_reason: "max_tokens") the input
+  // object comes back partial and the page silently shows the empty state
+  // forever after the cache write. Surface as a real error so the caller
+  // shows a toast and the next click retries.
+  if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+    throw new Error(
+      `Claude returned incomplete plan (stop_reason=${result.stop_reason}, diet=${payload.diet.length}, avoid=${payload.avoid.length}, summary_len=${payload.summary.length})`,
+    );
+  }
+  return payload;
 }
 
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
@@ -462,6 +480,17 @@ Deno.serve(async (req: Request) => {
     } else {
       payload = await runLovable(body);
       providerStamp = "lovable";
+    }
+
+    // Defence in depth: never write an empty plan to the cache. runClaude
+    // already throws on empty/truncated tool_use, but the legacy Lovable
+    // path could conceivably return an empty payload too; if either does,
+    // surface as a 500 instead of poisoning the cache and freezing the
+    // page on the empty state.
+    if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+      throw new Error(
+        `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
+      );
     }
 
     const stamped = {
