@@ -46,6 +46,7 @@ import {
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import { currentProfileHash } from "../_shared/profile-snapshot.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
