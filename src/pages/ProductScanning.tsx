@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
+import { currentProfileHash } from "@/lib/profileSnapshot";
 import { toast } from "sonner";
 
 /** Nav state shape produced by useProductScan after the dual-photo upload. */
