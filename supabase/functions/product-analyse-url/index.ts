@@ -393,12 +393,34 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
 }
 
 function extractOgImageFromHtml(html: string): string | null {
-  const og =
-    html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
-    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
-    html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
-    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
-  if (og) return og[1];
+  // Capture every og:image / og:image:secure_url / twitter:image meta tag,
+  // handling BOTH attribute orders (property-then-content and
+  // content-then-property). Then prefer secure_url > og:image > twitter:image
+  // and prefer https over http when an equivalent pair exists.
+  const found: Array<{ kind: "secure" | "og" | "twitter"; url: string }> = [];
+  const patterns: Array<{ re: RegExp; kindIdx: number; urlIdx: number }> = [
+    { re: /<meta\s+(?:property|name)=["'](og:image:secure_url|og:image|twitter:image)["']\s+content=["']([^"']+)["']/gi, kindIdx: 1, urlIdx: 2 },
+    { re: /<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["'](og:image:secure_url|og:image|twitter:image)["']/gi, kindIdx: 2, urlIdx: 1 },
+  ];
+  for (const { re, kindIdx, urlIdx } of patterns) {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      const tag = m[kindIdx];
+      const url = m[urlIdx];
+      if (!url) continue;
+      const kind = tag === "og:image:secure_url" ? "secure" : tag === "og:image" ? "og" : "twitter";
+      found.push({ kind, url });
+    }
+  }
+  const pickHttps = (list: typeof found) =>
+    list.find((f) => f.url.startsWith("https://"))?.url ?? list[0]?.url ?? null;
+  const secure = pickHttps(found.filter((f) => f.kind === "secure"));
+  if (secure) return secure;
+  const og = pickHttps(found.filter((f) => f.kind === "og"));
+  if (og) return og;
+  const tw = pickHttps(found.filter((f) => f.kind === "twitter"));
+  if (tw) return tw;
+
   const container = html.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
   const scope = container ? container[1] : html;
   const img =
