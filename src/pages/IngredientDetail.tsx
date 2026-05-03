@@ -418,6 +418,7 @@ const IngredientDetail = () => {
   const handleSaveFreshTo = async (intent: "shelf" | "wishlist") => {
     const saved = await persistFreshScan(intent);
     if (saved) {
+      ctaChosenRef.current = true;
       toast.success(
         intent === "shelf"
           ? `${saved.name} added to your shelf`
