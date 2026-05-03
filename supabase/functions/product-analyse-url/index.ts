@@ -180,12 +180,12 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const webFetchTool: ServerTool = {
     type: "web_fetch_20250910",
     name: "web_fetch",
-    max_uses: 4,
+    max_uses: 2,
   };
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
-    max_uses: 4,
+    max_uses: 2,
   };
 
   const req = await buildClaudeRequest({
