@@ -121,8 +121,9 @@ const MyToolsSection = () => {
     }
     setAnalysing(true);
     try {
+      const context = await buildAiContext();
       const { data, error } = await supabase.functions.invoke("tool-analyse-url", {
-        body: { url: normalised },
+        body: { url: normalised, context },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
