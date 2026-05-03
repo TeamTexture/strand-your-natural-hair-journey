@@ -306,7 +306,7 @@ const WashStep1 = () => {
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
     if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
     setHydrated(true);
-  }, [shelfProducts, hydrated]);
+  }, [shelfProducts, shelfLoading, hydrated]);
 
   // Persist the draft on every change so a trip through the scan flow
   // (which navigates away and back) doesn't lose the user's progress.
