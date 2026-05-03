@@ -414,8 +414,18 @@ function extractOgImageFromHtml(html: string): string | null {
       found.push({ kind, url });
     }
   }
-  const pickHttps = (list: typeof found) =>
-    list.find((f) => f.url.startsWith("https://"))?.url ?? list[0]?.url ?? null;
+  // Prefer https; if only http available, rewrite to https. iOS Safari
+  // blocks http images on https pages (mixed content) more aggressively
+  // than desktop, so we enforce https before returning.
+  const toHttps = (u: string | null | undefined): string | null => {
+    if (!u) return null;
+    return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
+  };
+  const pickHttps = (list: typeof found): string | null => {
+    const https = list.find((f) => f.url.startsWith("https://"))?.url;
+    if (https) return https;
+    return toHttps(list[0]?.url ?? null);
+  };
   const secure = pickHttps(found.filter((f) => f.kind === "secure"));
   if (secure) return secure;
   const og = pickHttps(found.filter((f) => f.kind === "og"));
@@ -428,7 +438,7 @@ function extractOgImageFromHtml(html: string): string | null {
   const img =
     scope.match(/<img[^>]+data-product-image[^>]*src=["']([^"']+)["']/i) ||
     scope.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return img ? img[1] : null;
+  return img ? toHttps(img[1]) : null;
 }
 
 async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
