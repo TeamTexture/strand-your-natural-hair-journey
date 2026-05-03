@@ -129,6 +129,16 @@ const ProductScanning = () => {
         );
 
         const context = await buildAiContext();
+        const currentHash = currentProfileHash(context);
+        // Photo scans always mint a new product_key, so there's no existing
+        // row to dedupe against — log the decision so future tooling
+        // (signals, replays) sees a consistent shape across both flows.
+        console.log("[scan-cache] decision", {
+          existing_row_id: null,
+          existing_hash: null,
+          current_hash: currentHash,
+          decision: "fresh_scan",
+        });
 
         console.log("[scan-debug] about to invoke product-analyse");
         const { data, error: invErr } = await supabase.functions.invoke(
@@ -166,6 +176,8 @@ const ProductScanning = () => {
           product_key,
           ...saveFields,
           storage_path: state.storage_path,
+          analysis_profile_snapshot_hash: currentHash,
+          analysis_generated_at: new Date().toISOString(),
           // Neutral state by default — the user picks the destination from
           // the 3-CTA decision block on IngredientDetail. Only auto-route
           // to shelf/wishlist when the caller explicitly opted in.
