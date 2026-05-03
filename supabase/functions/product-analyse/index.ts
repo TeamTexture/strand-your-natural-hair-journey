@@ -230,6 +230,7 @@ Return JSON only via the return_product_analysis tool.`;
     task_instructions: buildTaskInstructions(),
     user_payload: {}, // unused — user_content overrides
     user_content: userContent,
+    user_context: args.context,
     selector_context: args.selectorContext,
     force_topic_ids: [
       "porosity",
