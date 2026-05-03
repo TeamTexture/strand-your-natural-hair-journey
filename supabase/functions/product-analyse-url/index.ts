@@ -469,8 +469,13 @@ async function fetchOgImageOnly(url: string): Promise<string | null> {
       redirect: "follow",
       signal: AbortSignal.timeout(8_000),
     });
-    if (!resp.ok) return null;
-    return extractOgImageFromHtml(await resp.text());
+    if (!resp.ok) {
+      console.log(JSON.stringify({ tag: "url-debug", phase: "og fetch non-ok", status: resp.status }));
+      return null;
+    }
+    const extracted = extractOgImageFromHtml(await resp.text());
+    console.log(JSON.stringify({ tag: "url-debug", phase: "image_url extracted", url: extracted }));
+    return extracted;
   } catch (e) {
     console.error("[url-debug] og:image fetch failed", e);
     return null;
