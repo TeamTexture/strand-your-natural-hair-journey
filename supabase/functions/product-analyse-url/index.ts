@@ -631,9 +631,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const ctx = body.context ?? {};
+    const profileHash = currentProfileHash(ctx as Record<string, unknown>);
     let analysis: ProductAnalysisPayload;
     const t0 = Date.now();
-    console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider }));
+    console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider, profileHash }));
 
     if (provider === "claude") {
       // Run model call and og:image scrape in parallel — og fetch is ~1-3s,
@@ -659,8 +660,11 @@ Deno.serve(async (req: Request) => {
         _used_web_fetch: web_fetch_invocations > 0,
       };
       if (ogImage) {
-        (analysis as Record<string, unknown>)._source_image_url = ogImage;
-        (analysis as Record<string, unknown>).image_url = ogImage;
+        const safeImg = ogImage.startsWith("http://")
+          ? "https://" + ogImage.slice("http://".length)
+          : ogImage;
+        (analysis as Record<string, unknown>)._source_image_url = safeImg;
+        (analysis as Record<string, unknown>).image_url = safeImg;
       }
     } else {
       console.log(JSON.stringify({ tag: "url-debug", phase: "before lovable", ms: Date.now() - t0 }));
@@ -675,12 +679,16 @@ Deno.serve(async (req: Request) => {
         _generated_at: new Date().toISOString(),
       };
       if (image_url) {
-        (analysis as Record<string, unknown>)._source_image_url = image_url;
+        const safeImg = image_url.startsWith("http://")
+          ? "https://" + image_url.slice("http://".length)
+          : image_url;
+        (analysis as Record<string, unknown>)._source_image_url = safeImg;
         if (!(analysis as Record<string, unknown>).image_url) {
-          (analysis as Record<string, unknown>).image_url = image_url;
+          (analysis as Record<string, unknown>).image_url = safeImg;
         }
       }
     }
+    (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "url-debug", phase: "all done", total_ms: Date.now() - t0 }));
 
     // ── Upsert cache ───────────────────────────────────────────────
