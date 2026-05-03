@@ -310,6 +310,3 @@ Deno.serve(async (req: Request) => {
     return aiErrorResponse(e, "wash-day-observation");
   }
 });
-
-// Re-export createClient so legacy import-graph linters don't trip.
-export const _createClient = createClient;
