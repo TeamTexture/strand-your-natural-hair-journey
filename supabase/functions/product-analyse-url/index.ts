@@ -115,7 +115,11 @@ async function sha256Hex(s: string): Promise<string> {
 
 // ─── Task instructions for Claude (URL flow) ───────────────────────────
 function buildTaskInstructions(): string {
-  return `You are receiving a product page URL. Use web_fetch to retrieve the page. Extract: product_name, brand, category, full INCI list (ingredients), usage instructions verbatim if present (usage_instructions). If the page is thin, gated, or in another language, use web_search to fill gaps from secondary sources. The output is identical in shape to the photo flow — return_product_analysis schema. Personalisation rules are identical to the photo flow (focus on hair type, hair goals, hair challenges directly affected by formulation; do NOT introduce tension/styling concerns, lab values, sleep, or dermatologist context unless the product mechanism directly addresses them; use 'consistently flagged ingredients' language never 'avoid list').
+  return `You are receiving a product page URL. Use web_fetch to retrieve the page. Extract: product_name, brand, category, full INCI list (ingredients), usage instructions verbatim if present (usage_instructions). If the page is thin, gated, or in another language, use web_search to fill gaps from secondary sources. The output is identical in shape to the photo flow — return_product_analysis schema.
+
+Voice for this task: every prose field follows the VOICE PRINCIPLES from the system block. Explain mechanism first, land verdict second; use connectives ("this means", "which is why", "so"); talk to "you" not "your hair"; translate any cosmetic-chemistry term on first use in a field; warm but not saccharine.
+
+Personalisation rules are identical to the photo flow (focus on hair type, hair goals, hair challenges directly affected by formulation; do NOT introduce tension/styling concerns, lab values, sleep, or dermatologist context unless the product mechanism directly addresses them; use 'consistently flagged ingredients' language never 'avoid list').
 
 Tool budget: web_fetch and web_search share a combined cap of 4 invocations. Prefer ONE web_fetch on the supplied URL first. Only fall back to web_search if web_fetch returned a thin/empty body (page was JS-rendered, gated, or anti-bot-protected). Use web_search up to 3 times to find a cached version, the brand site direct, or a retailer mirror with the full INCI panel. Do NOT search if web_fetch already returned a clear brand + product name + full INCI.
 
