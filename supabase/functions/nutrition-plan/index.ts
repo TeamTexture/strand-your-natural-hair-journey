@@ -225,7 +225,13 @@ Return JSON only via the return_nutrition_plan tool.`;
       input_schema: RETURN_PLAN_SCHEMA as unknown as Record<string, unknown>,
     },
     toolChoice: { type: "tool", name: "return_nutrition_plan" },
-    max_tokens: 4096,
+    // Opus needs headroom for the full tool_use payload (6-10 diet + 4-6
+    // avoid cards, each 2-3 sentences, plus summary). 4096 was truncating
+    // mid-tool_use and Anthropic returned an empty/partial input object —
+    // which we then silently cached as { diet: [], avoid: [], summary: "" },
+    // so every subsequent page load served the empty state without ever
+    // re-invoking the function. 8192 leaves comfortable headroom.
+    max_tokens: 8192,
   });
 
   console.log("[nutrition-debug] before model call");
