@@ -251,7 +251,7 @@ const WashStep1 = () => {
   // and resolve any IDs the user has manually picked or just added via the
   // inline picker (auto_save lands them straight on the shelf and we return
   // here with the new product available).
-  const { products: shelfProducts } = useUserProducts("shelf");
+  const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
 
   // Per-step selections — arrays of user_product IDs. We seed them from the
   // shelf the first time it loads and on each step from a category match,
@@ -281,6 +281,10 @@ const WashStep1 = () => {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (hydrated) return;
+    // Wait for the shelf to finish loading before seeding category-based
+    // suggestions. Otherwise we lock in empty arrays before products arrive,
+    // and the wash day saves with product_ids=[] (no trigger bump).
+    if (shelfLoading) return;
     let draft: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem("strand_wash_step1_draft");
@@ -302,7 +306,7 @@ const WashStep1 = () => {
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
     if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
     setHydrated(true);
-  }, [shelfProducts, hydrated]);
+  }, [shelfProducts, shelfLoading, hydrated]);
 
   // Persist the draft on every change so a trip through the scan flow
   // (which navigates away and back) doesn't lose the user's progress.
