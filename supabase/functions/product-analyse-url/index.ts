@@ -180,12 +180,12 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const webFetchTool: ServerTool = {
     type: "web_fetch_20250910",
     name: "web_fetch",
-    max_uses: 4,
+    max_uses: 2,
   };
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
-    max_uses: 4,
+    max_uses: 2,
   };
 
   const req = await buildClaudeRequest({
@@ -392,6 +392,21 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
   }
 }
 
+function extractOgImageFromHtml(html: string): string | null {
+  const og =
+    html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+    html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+  if (og) return og[1];
+  const container = html.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
+  const scope = container ? container[1] : html;
+  const img =
+    scope.match(/<img[^>]+data-product-image[^>]*src=["']([^"']+)["']/i) ||
+    scope.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return img ? img[1] : null;
+}
+
 async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
   try {
     const pageResp = await fetch(url, {
@@ -407,18 +422,35 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
     if (!pageResp.ok) return null;
     const html = await pageResp.text();
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    const ogMatch =
-      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
-      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
-      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
     return {
       title: titleMatch ? titleMatch[1].trim() : "",
       text: htmlToText(html),
-      imageUrl: ogMatch ? ogMatch[1] : null,
+      imageUrl: extractOgImageFromHtml(html),
       source: "fetch",
     };
   } catch (e) {
     console.error("plain fetch failed", e);
+    return null;
+  }
+}
+
+/** Lightweight og:image-only fetcher for the Claude path — Claude's native
+ *  web_fetch returns text only. Runs in parallel with the model call. */
+async function fetchOgImageOnly(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!resp.ok) return null;
+    return extractOgImageFromHtml(await resp.text());
+  } catch (e) {
+    console.error("[url-debug] og:image fetch failed", e);
     return null;
   }
 }
@@ -552,14 +584,23 @@ Deno.serve(async (req: Request) => {
 
     const ctx = body.context ?? {};
     let analysis: ProductAnalysisPayload;
+    const t0 = Date.now();
+    console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider }));
 
     if (provider === "claude") {
-      const { payload, web_search_invocations, web_fetch_invocations } =
-        await runClaude({
-          url,
-          context: ctx,
-          selectorContext: buildSelectorContext(body),
-        });
+      // Run model call and og:image scrape in parallel — og fetch is ~1-3s,
+      // Claude is ~20-40s. Parallelism keeps total time bounded by Claude.
+      console.log(JSON.stringify({ tag: "url-debug", phase: "before model+og", ms: Date.now() - t0 }));
+      const [claudeRes, ogImage] = await Promise.all([
+        runClaude({ url, context: ctx, selectorContext: buildSelectorContext(body) }),
+        fetchOgImageOnly(url),
+      ]);
+      const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
+      console.log(JSON.stringify({
+        tag: "url-debug", phase: "model+og done", ms: Date.now() - t0,
+        used_web_fetch: web_fetch_invocations > 0, used_web_search: web_search_invocations > 0,
+        og_image: ogImage ? "yes" : "no",
+      }));
       analysis = {
         ...payload,
         _model_version: MODEL_VERSION,
@@ -569,17 +610,30 @@ Deno.serve(async (req: Request) => {
         _web_search_count: web_search_invocations,
         _used_web_fetch: web_fetch_invocations > 0,
       };
+      if (ogImage) {
+        (analysis as Record<string, unknown>)._source_image_url = ogImage;
+        (analysis as Record<string, unknown>).image_url = ogImage;
+      }
     } else {
+      console.log(JSON.stringify({ tag: "url-debug", phase: "before lovable", ms: Date.now() - t0 }));
       const { payload, image_url } = await runLovable({ url, context: ctx });
+      console.log(JSON.stringify({
+        tag: "url-debug", phase: "lovable done", ms: Date.now() - t0,
+        og_image: image_url ? "yes" : "no",
+      }));
       analysis = {
         ...payload,
         _provider: "lovable",
         _generated_at: new Date().toISOString(),
       };
-      if (image_url && !(analysis as Record<string, unknown>).image_url) {
-        (analysis as Record<string, unknown>).image_url = image_url;
+      if (image_url) {
+        (analysis as Record<string, unknown>)._source_image_url = image_url;
+        if (!(analysis as Record<string, unknown>).image_url) {
+          (analysis as Record<string, unknown>).image_url = image_url;
+        }
       }
     }
+    console.log(JSON.stringify({ tag: "url-debug", phase: "all done", total_ms: Date.now() - t0 }));
 
     // ── Upsert cache ───────────────────────────────────────────────
     const { data: prior } = await supabase
