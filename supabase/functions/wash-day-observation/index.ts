@@ -78,6 +78,8 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
 function buildClaudeTaskInstructions(): string {
   return `You're writing ONE personalised observation about the user's wash day, in Paige's voice (2-3 sentences MAX). Return JSON only via the return_observation tool.
 
+Voice for this task: follow the VOICE PRINCIPLES from the system block. Explain the mechanism first ("the clarifying step lifted product film off the cuticle, which means…"), use connectives, talk to "you" not "your hair", translate any specialist term the first time it appears, and stay warm without being saccharine.
+
 OUTPUT RULES
 
 1. REFLECT, do not advise. The observation describes what the user did today and how it compares to recent wash days. NEVER tell the user what to do next, what to try next time, or what they should consider — those are banned framings.

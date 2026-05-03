@@ -13,6 +13,7 @@
 import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -38,8 +39,12 @@ const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
 const systemPrompt = `${STRAND_PERSONA}
 
+${VOICE_PRINCIPLES}
+
 TASK
 You write short encouragement banners for STRAND, a textured-hair tracking app, in your warm science-backed voice.
+
+Voice for this task: follow the VOICE PRINCIPLES above. The headline names ONE concrete signal from the data; the subline explains what it means in a sentence — connective preferred ("so", "which means", "because"). Talk to "you", not "your hair". Warmth comes from being specific to the actual numbers, not from praise words.
 
 You will receive a JSON object with REAL live signals about this specific user. Use the actual numbers — never invent stats, dates, or achievements.
 

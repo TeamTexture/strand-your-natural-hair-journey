@@ -26,6 +26,7 @@ import {
 } from "./knowledge/index.ts";
 import type { TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
+import { VOICE_PRINCIPLES } from "./voice.ts";
 import type {
   ClaudeCallInput,
   ClaudeModel,
@@ -162,11 +163,13 @@ export async function buildClaudeRequest(
     });
   }
 
-  // ── Personalisation hard-anchor (product flows) ──────────────────
-  // Belt-and-braces: even though currentStyle/goals/challenges are inside
-  // the JSON context dump, an explicit instruction up-front forces the
-  // model to attend to the user's CURRENT values rather than inferring
-  // hair state from the product itself.
+  // ── VOICE PRINCIPLES (every Claude-path function) ────────────────
+  // Conversational clinician voice. Single source of truth in voice.ts.
+  systemBlocks.push({ type: "text", text: VOICE_PRINCIPLES });
+
+  // ── Personalisation anchor (product flows) ───────────────────────
+  // Same anchor as before (CURRENT style / goals / challenges) but voiced
+  // as the clinician thinking out loud, not as a directive list.
   if (
     (input.function_kind === "product-analyse" ||
       input.function_kind === "product-analyse-url") &&
@@ -190,14 +193,12 @@ export async function buildClaudeRequest(
     systemBlocks.push({
       type: "text",
       text:
-        `PERSONALISATION RULES — APPLY STRICTLY\n\n` +
-        `The user's CURRENT hair style is: ${styleStr}.\n` +
-        `The user's CURRENT goals are: ${goalsStr}.\n` +
-        `The user's CURRENT challenges are: ${challengesStr}.\n\n` +
-        `Base ALL advice and ingredient assessments on these CURRENT values. ` +
-        `Do NOT reference past styles, past goals, or past challenges. ` +
-        `Do NOT infer the user's hair state from the product type — the product is being analysed FOR them, not BY them. ` +
-        `If the user's current style is incompatible with a product (e.g. styling product for a different hair texture, deep conditioner for a style that doesn't need it), say so directly in the verdict.`,
+        `PERSONALISATION — WHAT YOU KNOW ABOUT THIS USER RIGHT NOW\n\n` +
+        `Right now, the user is wearing ${styleStr}. The goals they're actively working on are: ${goalsStr}. The challenges they've told you about are: ${challengesStr}.\n\n` +
+        `Anchor what you say in those CURRENT values — that's how a coach who knows them would talk. ` +
+        `Don't reach back to past styles, past goals, or past challenges; they're not the decision in front of you. ` +
+        `And don't infer their hair state from the product itself — they're asking you about the product, not the other way around. ` +
+        `If the product genuinely doesn't fit the style they're wearing right now, say so plainly in the verdict, then explain why in the next breath. The user would rather hear "this won't help your braids because…" than a polite non-answer.`,
     });
   }
 

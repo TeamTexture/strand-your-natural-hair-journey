@@ -102,6 +102,8 @@ async function sha256Hex(s: string): Promise<string> {
 function buildTaskInstructions(): string {
   return `You are receiving a hair-care TOOL product page URL (brushes, combs, hair dryers, diffusers, heat caps, deep conditioning caps, bonnets, satin pillowcases, microfibre towels, steamers, curlers, wands, etc.). Use web_fetch to retrieve the page. Extract the basic identity (brand, tool name, classification) and produce a short personalised analysis for THIS user.
 
+Voice for this task: every prose field follows the VOICE PRINCIPLES from the system block. Explain the tool's mechanism first ("a heated cap holds warmth against the scalp, which means…"), then land the verdict; use connectives; talk to "you" not "your hair"; translate any specialist term on first use in a field; warm but not saccharine.
+
 Tool budget: web_fetch and web_search share a combined cap of 4 invocations. Prefer ONE web_fetch on the supplied URL first. Only fall back to web_search (max 2) if web_fetch returned a thin/empty body. Do NOT search if web_fetch returned a clear brand + product name + tool kind.
 
 Field rules — strict:
@@ -114,7 +116,7 @@ Field rules — strict:
    * "diffuser" — attachment for a hand-held dryer (NOT the dryer itself).
    * "blow_dryer" / "hair_dryer" — hand-held dryer.
    * Use "other" only if none clearly apply.
-- ai_summary: 2–3 sentences MAX, lead with the verdict (good fit / mixed fit / poor fit and why) referencing THIS user's CURRENT style, goal, or challenge in sentence one. Paige's voice, second person.
+- ai_summary: 2–3 sentences MAX. Open by naming the user signal that's driving the call (current style, a goal, a hair-type trait the tool's mechanism touches) and what the tool's mechanism means for it — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective. Paige's voice, second person.
 - key_features: MAX 4. Each item is { name, relevance } — only include features whose relevance ties back to the user's hair type, current style, goal, or a challenge directly addressed by the tool's mechanism.
 - use_cases: MAX 2 items, each ≤ 1 short sentence. Pick the 2 most actionable ways THIS user should use the tool given their profile.
 - tips: MAX 2 items, each ≤ 1 short sentence. The 2 most relevant personal signals for THIS tool.

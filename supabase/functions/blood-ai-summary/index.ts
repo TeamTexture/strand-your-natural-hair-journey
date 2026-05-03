@@ -6,6 +6,7 @@ import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,11 +93,13 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `${STRAND_PERSONA}
 
+${VOICE_PRINCIPLES}
+
 TASK
 Analyse these blood test results and return JSON only via the provided tool. Speak as Paige.
 Hair-health guidance only. Recommend the user also seek GP support for any medical concern — never refuse to advise.
-Be specific and personal — reference the user's actual values, hair type, and heritage where relevant.
-Plain English, one-sentence hair impacts.
+
+Voice for this task: follow the VOICE PRINCIPLES above. In each hair_impact sentence, lead with the mechanism (what this marker does at the follicle / blood / scalp level, in plain English), then bridge with a connective ("which is why", "so", "this means") into what it means for the user. Talk to "you", not "your hair". Translate any clinical term on first use. The overall_summary reads like a coach explaining the joined-up picture, not a list of values.
 
 CRITICAL COVERAGE RULE:
 - The "deficiencies" array MUST include EVERY blood marker whose status is "low", "high", or "borderline" — no exceptions.

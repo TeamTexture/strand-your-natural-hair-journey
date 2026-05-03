@@ -130,6 +130,8 @@ function toAnthropicImageSource(image_url: string): ImageBlockSource {
 function buildTaskInstructions(): string {
   return `You're looking at two photos of the same product — front (brand + product name) and back (ingredient panel + usage instructions). Read both photos carefully. Return JSON only via the return_product_analysis tool.
 
+Voice for this task: every prose field (ai_summary, key_ingredients[].reason, use_cases, tips) follows the VOICE PRINCIPLES from the system block. In short — explain the mechanism FIRST and land the verdict second; use connectives like "this means", "which is why", "so"; talk to "you" not "your hair"; translate any cosmetic-chemistry term the first time it appears in a field; warm but not saccharine.
+
 1. Extract product_name and brand primarily from photo 1 (front). Extract the full INCI ingredients list and any directions primarily from photo 2 (back).
 
 2. If either photo is partial, blurry, in a foreign language, or missing critical info: USE web_search to find the canonical product. Search for queries like '[brand] [product name] ingredients' or '[brand] [product name] INCI'. Use web_search up to 4 times — judiciously, only when needed. Do NOT search if the two photos already provide a clear, complete brand + INCI combination.
@@ -146,7 +148,7 @@ function buildTaskInstructions(): string {
    - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when photo 2's list is partial; otherwise transcribe what's visible.
    - key_ingredients: pick 4–8 of the most decision-relevant. flag = "avoid" only when the ingredient is one the user has consistently flagged in their history (appears in 3+ of their saved-and-favourited products) OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity, sulphates with hard water + dry scalp). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
    - match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, current_hairstyle suitability, blood-marker deficiencies (only when relevant to the product), and goal alignment.
-   - ai_summary: 2 short sentences max, second-person, warm and direct. The first sentence cites a specific reason from THIS user's context (their goal, challenge, current_hairstyle, scalp condition, or porosity).
+   - ai_summary: 2 short sentences max, second-person, warm and direct. Open with the SPECIFIC reason from THIS user's context (their goal, challenge, current_hairstyle, scalp condition, or porosity) and what that means for the formula in front of them — then land the verdict in the second sentence. Use a connective ("which is why", "so", "this means") to bridge the two.
    - usage_instructions: VERBATIM directions from the manufacturer if visible on photo 2 OR resolved via web_search. If neither source provides directions, return "" — never invent.
    - use_cases: 2–4 concrete tips for how THIS user should use the product, anchored in their hair traits, current_hairstyle, or goals. Do NOT repeat manufacturer directions.
    - tips: 2–4 personalised reasoning tips about fit/usage that go beyond use_cases (e.g. "Pair with your weekly clarifier — your area is hard water"). Anchor each in the user's data.
@@ -159,7 +161,7 @@ Hair-health guidance only — never medical advice. Recommend the user also seek
 OUTPUT TIGHTNESS RULES (override the field rules above where they conflict):
 - use_cases: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most actionable ways the user should use THIS product given their profile — not every possible use case.
 - tips: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product. For a scalp exfoliator, scalp condition + diagnosed alopecia + dermatologist context are relevant; lab values, sleep, and unrelated hair traits are NOT relevant unless they directly intersect this product's mechanism.
-- ai_summary: 2–3 sentences MAXIMUM. Lead with the verdict (good fit / mixed fit / poor fit and why) in sentence one. Sentences two and three add the most important nuance. Cut redundancy — if the verdict already says "good for your dry scalp", don't restate dry scalp again in the nuance.
+- ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (their porosity, current style, a goal, a flagged ingredient pattern, etc.) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence. Use a connective ("which is why", "so", "this means") between mechanism and verdict. Don't restate the same signal twice.
 - key_ingredients: 4–6 items MAXIMUM. Pick the ingredients that most affect the verdict, not every ingredient with a benefit.
 
 PRODUCT ANALYSIS SCOPE — HARD RULE:

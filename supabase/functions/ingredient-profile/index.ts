@@ -18,6 +18,7 @@
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
+import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -93,13 +94,15 @@ const TOOL_SCHEMA = {
 function buildSystemPrompt(): string {
   return `${STRAND_PERSONA}
 
+${VOICE_PRINCIPLES}
+
 TASK
 Return a SHORT, clear, science-backed ingredient profile for ONE ingredient via the return_profile tool. Three fields: what_it_is, benefits, what_it_means_for_you. Audience: a curious shopper who wants a quick, honest explanation — not a deep dive, not a sales pitch, not a warning.
 
-VOICE
-- Plain English, easy to read on a phone in 5 seconds. Use the proper cosmetic-chemistry term once if useful, then explain it simply.
-- Calm, neutral, slightly nerdy. Concrete over vague.
-- BE SUCCINCT. Every sentence must earn its place. No filler, no hedging, no preamble.
+Voice for this task: follow the VOICE PRINCIPLES above. In what_it_is, name the cosmetic-chemistry family AND translate it in the same sentence ("a humectant — it pulls water from the air toward the strand"). In what_it_means_for_you, lead with the mechanism then bridge with a connective ("which means", "so", "this is why") into the user's specific data. Talk to "you", not "your hair".
+
+REMAINING NOTES
+- BE SUCCINCT. Every sentence earns its place. No filler, no hedging, no preamble.
 
 LANGUAGE RULES — NON-NEGOTIABLE
 - Moisture comes from water. Products NEVER add, restore, replenish, deliver or infuse moisture. They seal it in, lock it in, slow water loss, or help retention.
