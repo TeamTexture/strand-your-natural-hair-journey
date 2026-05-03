@@ -493,7 +493,105 @@ const IngredientDetail = () => {
     await recomputeIngredientFlags();
   };
 
+  // ── Discard-on-abandon guard ────────────────────────────────────────
+  // When the user lands here from a fresh scan and the product is still in
+  // NEUTRAL state (no shelf/wishlist decision made), warn before leaving and
+  // delete the orphan user_products row on confirm.
+  const isFreshScan = !!freshAnalysis;
+  const inNeutralState = !!productRow && !productRow.on_shelf && !productRow.on_wishlist && !productRow.previously_on_shelf;
+  const ctaChosenRef = useRef(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const pendingNavRef = useRef<null | (() => void)>(null);
+
+  const shouldGuard = isFreshScan && inNeutralState && !autoSave && !ctaChosenRef.current;
+
+  // Intercept browser back (popstate) so we can show the discard dialog.
+  useEffect(() => {
+    if (!shouldGuard) return;
+    // Push a sentinel history entry so the first back press fires popstate
+    // without leaving the page.
+    window.history.pushState({ __strandGuard: true }, "");
+    const onPop = () => {
+      pendingNavRef.current = () => {
+        // Allow real back after discard.
+        window.history.go(-1);
+      };
+      setDiscardOpen(true);
+      // Re-push so subsequent backs are also captured until user decides.
+      window.history.pushState({ __strandGuard: true }, "");
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("popstate", onPop);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [shouldGuard]);
+
+  // Intercept in-app link clicks (BottomNav tabs, brand link, etc.) while
+  // the guard is active. Any anchor whose pathname differs from the current
+  // route opens the discard dialog instead of navigating.
+  useEffect(() => {
+    if (!shouldGuard) return;
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const target = (e.target as HTMLElement | null)?.closest("a") as HTMLAnchorElement | null;
+      if (!target) return;
+      const href = target.getAttribute("href");
+      if (!href || href.startsWith("#") || target.target === "_blank") return;
+      try {
+        const url = new URL(href, window.location.origin);
+        if (url.origin !== window.location.origin) return;
+        if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+        e.preventDefault();
+        e.stopPropagation();
+        pendingNavRef.current = () => navigate(url.pathname + url.search + url.hash);
+        setDiscardOpen(true);
+      } catch {
+        // ignore
+      }
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [shouldGuard, navigate]);
+
+  const handleConfirmDiscard = async () => {
+    setDiscardOpen(false);
+    try {
+      if (productRow) {
+        await remove(productRow.id);
+      }
+    } catch (err) {
+      console.warn("discard delete failed", err);
+    }
+    ctaChosenRef.current = true; // disable guard for the actual nav
+    const next = pendingNavRef.current;
+    pendingNavRef.current = null;
+    if (next) {
+      next();
+    } else {
+      navigate("/products");
+    }
+  };
+
+  const handleCancelDiscard = () => {
+    setDiscardOpen(false);
+    pendingNavRef.current = null;
+  };
+
   const handleBack = () => {
+    if (shouldGuard) {
+      pendingNavRef.current = () => {
+        if (window.history.state && window.history.state.idx > 0) navigate(-1);
+        else navigate("/products");
+      };
+      setDiscardOpen(true);
+      return;
+    }
     // If we got here via a redirect (replace: true) or a page reload, the
     // history stack may not have a sensible previous entry — fall back to
     // the products list so the back button always does something visible.
