@@ -482,6 +482,17 @@ Deno.serve(async (req: Request) => {
       providerStamp = "lovable";
     }
 
+    // Defence in depth: never write an empty plan to the cache. runClaude
+    // already throws on empty/truncated tool_use, but the legacy Lovable
+    // path could conceivably return an empty payload too; if either does,
+    // surface as a 500 instead of poisoning the cache and freezing the
+    // page on the empty state.
+    if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+      throw new Error(
+        `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
+      );
+    }
+
     const stamped = {
       ...payload,
       _sig: sig,
