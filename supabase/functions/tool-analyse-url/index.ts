@@ -116,7 +116,7 @@ Field rules — strict:
    * "diffuser" — attachment for a hand-held dryer (NOT the dryer itself).
    * "blow_dryer" / "hair_dryer" — hand-held dryer.
    * Use "other" only if none clearly apply.
-- ai_summary: 2–3 sentences MAX, lead with the verdict (good fit / mixed fit / poor fit and why) referencing THIS user's CURRENT style, goal, or challenge in sentence one. Paige's voice, second person.
+- ai_summary: 2–3 sentences MAX. Open by naming the user signal that's driving the call (current style, a goal, a hair-type trait the tool's mechanism touches) and what the tool's mechanism means for it — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective. Paige's voice, second person.
 - key_features: MAX 4. Each item is { name, relevance } — only include features whose relevance ties back to the user's hair type, current style, goal, or a challenge directly addressed by the tool's mechanism.
 - use_cases: MAX 2 items, each ≤ 1 short sentence. Pick the 2 most actionable ways THIS user should use the tool given their profile.
 - tips: MAX 2 items, each ≤ 1 short sentence. The 2 most relevant personal signals for THIS tool.
