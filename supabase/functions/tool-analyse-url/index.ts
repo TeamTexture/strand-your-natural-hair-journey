@@ -5,7 +5,7 @@
 // Mirrors product-analyse-url architecture. Tools have NO ingredients, so
 // the schema is smaller — see _shared/tool-schema.ts.
 
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
