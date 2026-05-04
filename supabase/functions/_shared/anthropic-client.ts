@@ -245,7 +245,32 @@ export async function callClaude<T = unknown>(
       : undefined) ??
     resp.content.find((b) => b.type === "tool_use");
   if (toolBlock?.input !== undefined) {
-    result.toolInput = toolBlock.input as T;
+    // Normalise: Opus occasionally wraps the tool arguments inside a single
+    // top-level `input` key (mirroring OpenAI's function-calling envelope)
+    // even though the schema doesn't declare it. Unwrap defensively so all
+    // callers receive the schema-shaped object directly. Only unwrap when the
+    // outer object has *exclusively* an `input` key whose value is an object —
+    // never when a real schema property happens to be named `input`.
+    const raw = toolBlock.input as unknown;
+    let normalised: unknown = raw;
+    if (
+      raw &&
+      typeof raw === "object" &&
+      !Array.isArray(raw)
+    ) {
+      const keys = Object.keys(raw as Record<string, unknown>);
+      const inner = (raw as Record<string, unknown>).input;
+      if (
+        keys.length === 1 &&
+        keys[0] === "input" &&
+        inner &&
+        typeof inner === "object" &&
+        !Array.isArray(inner)
+      ) {
+        normalised = inner;
+      }
+    }
+    result.toolInput = normalised as T;
     return result;
   }
 
