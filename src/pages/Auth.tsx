@@ -23,7 +23,10 @@ const Auth = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"), "/onboarding/profile-step-1");
-  const [mode, setMode] = useState<"signin" | "signup">("signup");
+  const urlMode = params.get("mode");
+  const [mode, setMode] = useState<"signin" | "signup">(
+    urlMode === "signin" ? "signin" : "signup"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
