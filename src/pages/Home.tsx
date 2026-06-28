@@ -50,6 +50,7 @@ const Home = () => {
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
   const { last: lastWash, daysSinceLast } = useWashDays();
   const { lengthGoal } = useGoals();
+  const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>({});
 
