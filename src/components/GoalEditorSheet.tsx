@@ -267,7 +267,7 @@ const GoalEditorSheet = ({
                 </select>
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Optional — helps STRAND time your tips and check-ins.
+                Optional — helps STRAND tailor your tips around your timeline.
               </p>
             </div>
 
