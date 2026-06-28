@@ -65,7 +65,8 @@ const GoalEditorSheet = ({
   const { upsertGoal, deleteGoal } = useGoals();
   const [challenge, setChallenge] = useState("");
   const [target, setTarget] = useState("");
-  const [targetDate, setTargetDate] = useState("");
+  const [timelineAmount, setTimelineAmount] = useState("");
+  const [timelineUnit, setTimelineUnit] = useState<"days" | "weeks" | "months">("weeks");
   const [challengeVoice, setChallengeVoice] = useState<string | null>(null);
   const [targetVoice, setTargetVoice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -89,10 +90,39 @@ const GoalEditorSheet = ({
     if (!open) return;
     setChallenge(goal?.challenge ?? "");
     setTarget(goal?.target_text ?? "");
-    setTargetDate(goal?.target_date ? goal.target_date.slice(0, 10) : "");
     setChallengeVoice(goal?.challenge_voice_url ?? null);
     setTargetVoice(goal?.target_voice_url ?? null);
+    // Reverse-derive amount + unit from the stored target_date so the
+    // editor opens showing what the user originally picked.
+    if (goal?.target_date) {
+      const diffMs = new Date(goal.target_date).getTime() - Date.now();
+      const days = Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+      if (days % 30 === 0 && days >= 30) {
+        setTimelineAmount(String(days / 30));
+        setTimelineUnit("months");
+      } else if (days % 7 === 0 && days >= 7) {
+        setTimelineAmount(String(days / 7));
+        setTimelineUnit("weeks");
+      } else {
+        setTimelineAmount(String(days));
+        setTimelineUnit("days");
+      }
+    } else {
+      setTimelineAmount("");
+      setTimelineUnit("weeks");
+    }
   }, [open, goal]);
+
+  // Convert the number + unit picker into an ISO date string for storage.
+  const computeTargetDate = (): string | null => {
+    const n = parseInt(timelineAmount, 10);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const d = new Date();
+    if (timelineUnit === "days") d.setDate(d.getDate() + n);
+    else if (timelineUnit === "weeks") d.setDate(d.getDate() + n * 7);
+    else d.setMonth(d.getMonth() + n);
+    return d.toISOString().slice(0, 10);
+  };
 
   const fetchTip = async (savedGoal: {
     challenge: string | null;
