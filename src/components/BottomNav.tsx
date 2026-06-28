@@ -6,7 +6,7 @@ const tabs = [
   { to: "/home", label: "Home", Icon: Home },
   { to: "/products", label: "Products", Icon: FlaskConical },
   { to: "/wash-day", label: "Wash Day", Icon: Droplets },
-  { to: "/journal", label: "Journal", Icon: BookOpen },
+  { to: "/journal", label: "Style Journal", Icon: BookOpen },
   { to: "/profile", label: "Profile", Icon: User },
 ];
 

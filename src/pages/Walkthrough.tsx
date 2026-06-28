@@ -31,9 +31,9 @@ const SLIDES = [
   },
   {
     Illustration: JournalIllustration,
-    title: "Journal & Mood Boards",
-    what: "Track your hair journey with photos, notes, and mood boards for style inspiration.",
-    why: "Progress is easier to see when you have a record. Your journal shows how far you have come.",
+    title: "Style Journal & Mood Boards",
+    what: "Document your favourite styles and track your hair journey with photos, notes, and mood boards for inspiration.",
+    why: "Progress is easier to see when you have a record. Your style journal shows how far you have come.",
   },
   {
     Illustration: ProfileIllustration,

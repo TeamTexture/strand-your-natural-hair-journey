@@ -363,8 +363,8 @@ const Home = () => {
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
           <div className="text-2xl mb-2">📖</div>
-          <p className="text-sm font-medium font-body leading-tight">Hair Journal</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Reflect & document</p>
+          <p className="text-sm font-medium font-body leading-tight">Style Journal</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Document your favourite styles</p>
         </button>
         <button
           onClick={() => navigate("/appointments")}
