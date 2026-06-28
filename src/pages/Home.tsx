@@ -232,7 +232,7 @@ const Home = () => {
                 : null;
               return (
                 <button
-                  onClick={() => navigate("/profile")}
+                  onClick={() => navigate("/journal")}
                   className="w-full text-left"
                 >
                   <div className="flex items-center gap-3">
