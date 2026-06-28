@@ -76,8 +76,8 @@ const ProDetails = () => {
   const applyPro = (p: Professional) => {
     setName(p.name);
     setType(p.type);
-    if (p.gmcNumber) setGmc(p.gmcNumber);
-    if (p.iotNumber) setIot(p.iotNumber);
+    if (p.clinic) setClinic(p.clinic);
+
     if (p.clinic) setClinic(p.clinic);
     setBgInsta(p.insta ?? "");
     setBgWebsite(p.website ?? "");
