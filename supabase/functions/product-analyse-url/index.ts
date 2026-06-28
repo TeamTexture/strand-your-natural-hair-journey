@@ -550,7 +550,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       ],
       response_format: { type: "json_object" },
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(35_000),
   });
 
   if (!aiResp.ok) {
