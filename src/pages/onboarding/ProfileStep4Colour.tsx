@@ -73,14 +73,16 @@ const ProfileStep4Colour = () => {
   const [style, setStyle] = useState(["Box braids"]);
   const [howLongNum, setHowLongNum] = useState("9");
   const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
-  const [plans, setPlans] = useState(["Yes — in 5 weeks"]);
+  const [plansToChange, setPlansToChange] = useState<"yes" | "no">("no");
+  const [changeNum, setChangeNum] = useState("");
+  const [changeUnit, setChangeUnit] = useState<"days" | "weeks" | "months">("weeks");
   const [changingTo, setChangingTo] = useState<string[]>(["Loose natural"]);
   const [defaultStyle, setDefaultStyle] = useState<string[]>([
     "Box braids",
     "Loose natural",
   ]);
 
-  const isChanging = plans.includes("Yes — in 5 weeks");
+  const isChanging = plansToChange === "yes";
 
   return (
     <ScreenLayout>
