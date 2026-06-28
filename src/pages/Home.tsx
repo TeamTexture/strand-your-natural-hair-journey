@@ -6,6 +6,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { useUserProducts } from "@/hooks/useUserProducts";
@@ -162,9 +163,9 @@ const Home = () => {
           <button
             onClick={() => navigate("/profile")}
             aria-label="Profile"
-            className="size-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg shadow-sm"
+            className="size-11 rounded-full overflow-hidden shadow-sm"
           >
-            ✨
+            <UserAvatar name={firstName || "there"} size="size-11" editable={false} />
           </button>
         </div>
       </header>
