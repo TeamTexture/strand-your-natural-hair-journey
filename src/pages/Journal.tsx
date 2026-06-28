@@ -201,15 +201,6 @@ const Journal = () => {
           <h2 className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
             Goals & Challenges
           </h2>
-          {goals.length > 0 && (
-            <button
-              onClick={() => openEditor(null)}
-              className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[36px]"
-              aria-label="Add a new goal"
-            >
-              <Plus className="size-3.5" /> Add
-            </button>
-          )}
         </div>
 
         {goalsLoading ? (
@@ -217,12 +208,29 @@ const Journal = () => {
             <div className="h-4 w-2/3 bg-border/60 rounded animate-pulse" />
             <div className="h-2 w-full bg-border/60 rounded mt-3 animate-pulse" />
           </SurfaceCard>
-        ) : lengthGoal ? (
-          <GoalCard
-            goal={lengthGoal}
-            onEdit={() => openEditor(lengthGoal)}
-            onView={() => openDetail(lengthGoal)}
-          />
+        ) : primaryGoal ? (
+          <>
+            <GoalCard
+              goal={primaryGoal}
+              onEdit={() => openEditor(primaryGoal)}
+              onView={() => openDetail(primaryGoal)}
+            />
+            {otherInProgress.map((g) => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                onEdit={() => openEditor(g)}
+                onView={() => openDetail(g)}
+              />
+            ))}
+            <Button
+              variant="goldOutline"
+              size="pill"
+              onClick={() => setChooserOpen(true)}
+            >
+              + Set new goal
+            </Button>
+          </>
         ) : (
           <SurfaceCard className="text-center">
             <Target className="size-6 text-primary mx-auto mb-2" />
@@ -236,15 +244,23 @@ const Journal = () => {
           </SurfaceCard>
         )}
 
-        {otherGoals.map((g) => (
-          <GoalCard
-            key={g.id}
-            goal={g}
-            onEdit={() => openEditor(g)}
-            onView={() => openDetail(g)}
-          />
-        ))}
+        {futureGoals.length > 0 && (
+          <div className="pt-2 space-y-3">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
+              Future goals
+            </h3>
+            {futureGoals.map((g) => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                onEdit={() => openEditor(g, "future")}
+                onView={() => openDetail(g)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
 
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
