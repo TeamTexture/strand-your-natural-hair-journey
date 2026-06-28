@@ -99,18 +99,16 @@ const SetCurrentStyle = () => {
       toast.error("Pick your current hairstyle");
       return;
     }
-    // Parse "How Long in This Style" — accept "9 days", "3 weeks", "5", etc.
-    const match = howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
-    const num = match ? parseInt(match[1], 10) : NaN;
-    const unit = (match?.[2] ?? "day").toLowerCase();
+    const num = parseInt(howLongNum, 10);
     const days = Number.isFinite(num)
-      ? unit.startsWith("week")
+      ? howLongUnit === "weeks"
         ? num * 7
-        : unit.startsWith("month")
-          ? num * 30
-          : num
+        : howLongUnit === "months"
+        ? num * 30
+        : num
       : 0;
     const style_set_at = new Date(Date.now() - days * 86_400_000).toISOString();
+    const howLong = `${howLongNum} ${howLongUnit}`;
 
     // Dual-write: localStorage (fallback / legacy compat) + DB.
     const prev = readExistingLocal();
@@ -122,6 +120,8 @@ const SetCurrentStyle = () => {
         style_set_at,
         planned_next_style: next[0] ?? "",
         howLong,
+        howLongNum,
+        howLongUnit,
       }),
     );
 
