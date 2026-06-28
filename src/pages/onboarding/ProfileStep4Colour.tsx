@@ -71,7 +71,8 @@ const ProfileStep4Colour = () => {
   const [colour, setColour] = useState(["Natural"]);
   const [chemHist, setChemHist] = useState(["None"]);
   const [style, setStyle] = useState(["Box braids"]);
-  const [howLong, setHowLong] = useState("9 days");
+  const [howLongNum, setHowLongNum] = useState("9");
+  const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
   const [plans, setPlans] = useState(["Yes — in 5 weeks"]);
   const [changingTo, setChangingTo] = useState<string[]>(["Loose natural"]);
   const [defaultStyle, setDefaultStyle] = useState<string[]>([
