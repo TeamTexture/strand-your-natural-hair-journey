@@ -114,12 +114,33 @@ const ProfileStep4Colour = () => {
           multi={false}
         />
 
-        <FormField
-          label="How Long in This Style"
-          value={howLong}
-          onChange={(e) => setHowLong(e.target.value)}
-          showTick={false}
-        />
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            How Long in This Style
+          </div>
+          <div className="flex gap-3">
+            <Input
+              type="number"
+              min={0}
+              value={howLongNum}
+              onChange={(e) => setHowLongNum(e.target.value)}
+              className="w-24"
+            />
+            <Select
+              value={howLongUnit}
+              onValueChange={(v) => setHowLongUnit(v as "days" | "weeks" | "months")}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="days">Days</SelectItem>
+                <SelectItem value="weeks">Weeks</SelectItem>
+                <SelectItem value="months">Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <TagGroup
           label="Plans to Change Style"
