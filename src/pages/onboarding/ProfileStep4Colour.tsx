@@ -146,18 +146,50 @@ const ProfileStep4Colour = () => {
 
         <TagGroup
           label="Plans to Change Style"
-          options={["Yes — in 5 weeks", "No plans yet"]}
-          value={plans} onChange={setPlans}
+          options={["Yes", "No"]}
+          value={plansToChange === "yes" ? ["Yes"] : plansToChange === "no" ? ["No"] : []}
+          onChange={(v) => setPlansToChange(v.includes("Yes") ? "yes" : "no")}
+          multi={false}
         />
 
         {isChanging && (
-          <MultiSelectDropdown
-            label="Changing To"
-            options={HAIRSTYLE_OPTIONS}
-            value={changingTo}
-            onChange={setChangingTo}
-            placeholder="Select your next style…"
-          />
+          <>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+                When do you plan to change it?
+              </div>
+              <div className="flex gap-3">
+                <Input
+                  type="number"
+                  min={0}
+                  value={changeNum}
+                  onChange={(e) => setChangeNum(e.target.value)}
+                  className="w-24"
+                />
+                <Select
+                  value={changeUnit}
+                  onValueChange={(v) => setChangeUnit(v as "days" | "weeks" | "months")}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">Days</SelectItem>
+                    <SelectItem value="weeks">Weeks</SelectItem>
+                    <SelectItem value="months">Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <MultiSelectDropdown
+              label="Changing To"
+              options={HAIRSTYLE_OPTIONS}
+              value={changingTo}
+              onChange={setChangingTo}
+              placeholder="Select your next style…"
+            />
+          </>
         )}
 
         <MultiSelectDropdown
