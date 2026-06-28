@@ -429,7 +429,7 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
         { label: "Updates", value: updates.length ? `${updates.length} logged` : "" },
       ]);
       for (const u of updates.slice(0, 5)) {
-        cur.paragraph(`• ${fmtDate(u.created_at)} — ${u.note ?? u.value ?? ""}`, COLORS.muted, 8);
+        cur.paragraph(`• ${fmtDate(u.created_at)} — ${u.note ?? ""}`, COLORS.muted, 8);
       }
     }
   }
