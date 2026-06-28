@@ -495,6 +495,9 @@ const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
   // numeric progress only when the user hasn't migrated yet.
   const hasNewShape = !!(goal.challenge || goal.target_text);
   const isComplete = goal.status === "complete";
+  const isFuture = goal.status === "future";
+  const statusLabel = isComplete ? "Complete" : isFuture ? "Future" : "In progress";
+
 
   // Stop the card-level click from firing when the pencil is tapped.
   const stopAndEdit = (e: React.MouseEvent) => {
