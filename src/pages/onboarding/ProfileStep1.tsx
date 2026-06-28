@@ -91,12 +91,22 @@ const ProfileStep1 = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url")
+        .select("avatar_url, display_name")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
       const p = data?.avatar_url ?? null;
       setAvatarPath(p);
+      // Pre-populate name from sign-up (profiles.display_name or user metadata),
+      // but don't overwrite anything the user has already typed on this step.
+      const prefillName =
+        data?.display_name ||
+        (user.user_metadata as { display_name?: string; full_name?: string } | null)?.display_name ||
+        (user.user_metadata as { full_name?: string } | null)?.full_name ||
+        "";
+      if (prefillName) {
+        setName((current) => (current.trim() ? current : prefillName));
+      }
       if (p) {
         const { data: sig } = await supabase.storage
           .from(AVATAR_BUCKET)
