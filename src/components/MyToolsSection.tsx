@@ -65,7 +65,7 @@ const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) =
 );
 
 const MyToolsSection = () => {
-  const { tools, loading, addTool, updateTool, deleteTool } = useUserTools();
+  const { tools, loading, addTool, updateTool, setFavourite, deleteTool } = useUserTools();
   // Voicenote counts keyed off the tool_key (ProductVoicenotes works for any key).
   const { counts } = useVoicenoteCounts(tools.map((t) => t.tool_key));
 
