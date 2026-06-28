@@ -36,6 +36,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   goal: UserGoal | null;
   defaultKind?: string;
+  defaultStatus?: string;
 }
 
 /**
@@ -48,7 +49,9 @@ const GoalEditorSheet = ({
   onOpenChange,
   goal,
   defaultKind = "challenge",
+  defaultStatus = "in_progress",
 }: Props) => {
+
   const { upsertGoal, deleteGoal } = useGoals();
   const [challenge, setChallenge] = useState("");
   const [target, setTarget] = useState("");
@@ -91,9 +94,10 @@ const GoalEditorSheet = ({
           target_text: target.trim() || null,
           challenge_voice_url: challengeVoice,
           target_voice_url: targetVoice,
-          status: "in_progress",
+          status: goal?.status ?? defaultStatus,
         },
         goal?.id,
+
       );
       toast.success(goal ? "Goal updated" : "Goal saved");
       onOpenChange(false);
@@ -123,9 +127,10 @@ const GoalEditorSheet = ({
       >
         <SheetHeader>
           <SheetTitle className="font-display">
-            {goal ? "Edit goal" : "Set a new goal"}
+            {goal ? "Edit goal" : defaultStatus === "future" ? "Set a future goal" : "Set a new goal"}
           </SheetTitle>
         </SheetHeader>
+
 
         <div className="space-y-5 mt-4 pb-6">
           <VoiceNoteField

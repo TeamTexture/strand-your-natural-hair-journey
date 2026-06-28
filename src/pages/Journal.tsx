@@ -64,19 +64,35 @@ const Journal = () => {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<UserGoal | null>(null);
+  const [editorStatus, setEditorStatus] = useState<string>("in_progress");
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewing, setViewing] = useState<UserGoal | null>(null);
+  const [chooserOpen, setChooserOpen] = useState(false);
 
-  // Other (non-length) goals are listed beneath the primary card.
-  const otherGoals = useMemo(
-    () => goals.filter((g) => g.id !== lengthGoal?.id),
-    [goals, lengthGoal],
+  // Goals split by status so future goals can render in their own section
+  // and the primary card always reflects what's actively in-progress.
+  const inProgressGoals = useMemo(
+    () => goals.filter((g) => (g.status ?? "in_progress") === "in_progress"),
+    [goals],
+  );
+  const futureGoals = useMemo(
+    () => goals.filter((g) => g.status === "future"),
+    [goals],
+  );
+  const primaryGoal = lengthGoal && (lengthGoal.status ?? "in_progress") === "in_progress"
+    ? lengthGoal
+    : inProgressGoals[0] ?? null;
+  const otherInProgress = useMemo(
+    () => inProgressGoals.filter((g) => g.id !== primaryGoal?.id),
+    [inProgressGoals, primaryGoal],
   );
 
-  const openEditor = (goal: UserGoal | null) => {
+  const openEditor = (goal: UserGoal | null, status: string = "in_progress") => {
     setEditing(goal);
+    setEditorStatus(status);
     setEditorOpen(true);
   };
+
 
   const openDetail = (goal: UserGoal) => {
     setViewing(goal);
@@ -185,15 +201,6 @@ const Journal = () => {
           <h2 className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
             Goals & Challenges
           </h2>
-          {goals.length > 0 && (
-            <button
-              onClick={() => openEditor(null)}
-              className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[36px]"
-              aria-label="Add a new goal"
-            >
-              <Plus className="size-3.5" /> Add
-            </button>
-          )}
         </div>
 
         {goalsLoading ? (
@@ -201,12 +208,29 @@ const Journal = () => {
             <div className="h-4 w-2/3 bg-border/60 rounded animate-pulse" />
             <div className="h-2 w-full bg-border/60 rounded mt-3 animate-pulse" />
           </SurfaceCard>
-        ) : lengthGoal ? (
-          <GoalCard
-            goal={lengthGoal}
-            onEdit={() => openEditor(lengthGoal)}
-            onView={() => openDetail(lengthGoal)}
-          />
+        ) : primaryGoal ? (
+          <>
+            <GoalCard
+              goal={primaryGoal}
+              onEdit={() => openEditor(primaryGoal)}
+              onView={() => openDetail(primaryGoal)}
+            />
+            {otherInProgress.map((g) => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                onEdit={() => openEditor(g)}
+                onView={() => openDetail(g)}
+              />
+            ))}
+            <Button
+              variant="goldOutline"
+              size="pill"
+              onClick={() => setChooserOpen(true)}
+            >
+              + Set new goal
+            </Button>
+          </>
         ) : (
           <SurfaceCard className="text-center">
             <Target className="size-6 text-primary mx-auto mb-2" />
@@ -220,15 +244,23 @@ const Journal = () => {
           </SurfaceCard>
         )}
 
-        {otherGoals.map((g) => (
-          <GoalCard
-            key={g.id}
-            goal={g}
-            onEdit={() => openEditor(g)}
-            onView={() => openDetail(g)}
-          />
-        ))}
+        {futureGoals.length > 0 && (
+          <div className="pt-2 space-y-3">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
+              Future goals
+            </h3>
+            {futureGoals.map((g) => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                onEdit={() => openEditor(g, "future")}
+                onView={() => openDetail(g)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
 
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
@@ -365,7 +397,12 @@ const Journal = () => {
         </>
       )}
 
-      <GoalEditorSheet open={editorOpen} onOpenChange={setEditorOpen} goal={editing} />
+      <GoalEditorSheet
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        goal={editing}
+        defaultStatus={editorStatus}
+      />
       <GoalDetailSheet
         open={detailOpen}
         onOpenChange={setDetailOpen}
@@ -375,6 +412,52 @@ const Journal = () => {
           if (viewing) openEditor(viewing);
         }}
       />
+
+      <AlertDialog open={chooserOpen} onOpenChange={setChooserOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set a new goal</AlertDialogTitle>
+            <AlertDialogDescription>
+              How would you like to handle your current goal?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={() => {
+                setChooserOpen(false);
+                if (primaryGoal) openEditor(primaryGoal, "in_progress");
+              }}
+            >
+              Replace current goal
+            </Button>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              onClick={() => {
+                setChooserOpen(false);
+                openEditor(null, "in_progress");
+              }}
+            >
+              Add to current goal
+            </Button>
+            <Button
+              variant="goldGhost"
+              size="pill"
+              onClick={() => {
+                setChooserOpen(false);
+                openEditor(null, "future");
+              }}
+            >
+              Set as future goal
+            </Button>
+            <AlertDialogCancel className="mt-1">Cancel</AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
@@ -412,6 +495,9 @@ const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
   // numeric progress only when the user hasn't migrated yet.
   const hasNewShape = !!(goal.challenge || goal.target_text);
   const isComplete = goal.status === "complete";
+  const isFuture = goal.status === "future";
+  const statusLabel = isComplete ? "Complete" : isFuture ? "Future" : "In progress";
+
 
   // Stop the card-level click from firing when the pencil is tapped.
   const stopAndEdit = (e: React.MouseEvent) => {
@@ -477,7 +563,7 @@ const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
       <SurfaceCard className="hover:border-primary/50 transition-colors">
         <div className="flex items-start justify-between gap-3 mb-2">
           <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
-            {isComplete ? "Complete" : "In progress"}
+            {statusLabel}
           </span>
           <button
             onClick={stopAndEdit}
