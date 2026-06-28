@@ -99,7 +99,7 @@ const ProDetails = () => {
     <ScreenLayout>
       <TitleBar title="Your Professional" right={<span>4 of 9</span>} />
       <ProgressDots total={9} current={4} />
-      <ItalicSub>Search our directory or add manually. We verify against the official register.</ItalicSub>
+      <ItalicSub>Search our directory or add your professional manually.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-4">
         {/* Name field doubles as a directory search */}
