@@ -331,6 +331,7 @@ const ProfileStep1 = () => {
                 type="button"
                 variant="goldOutline"
                 size="pill"
+                className="!px-3"
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={avatarBusy}
               >
@@ -341,6 +342,7 @@ const ProfileStep1 = () => {
                 type="button"
                 variant="goldOutline"
                 size="pill"
+                className="!px-3"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarBusy}
               >
