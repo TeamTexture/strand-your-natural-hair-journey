@@ -259,16 +259,18 @@ export async function callClaude<T = unknown>(
       !Array.isArray(raw)
     ) {
       const keys = Object.keys(raw as Record<string, unknown>);
-      const inner = (raw as Record<string, unknown>).input;
-      if (
-        keys.length === 1 &&
-        keys[0] === "input" &&
-        inner &&
-        typeof inner === "object" &&
-        !Array.isArray(inner)
-      ) {
-        normalised = inner;
+      // Known single-key envelopes Claude occasionally wraps the tool args in:
+      //  - `input` (OpenAI-style function-calling mirror, mostly on Opus)
+      //  - `$PARAMETER_VALUE` (observed on Sonnet/Haiku when the tool schema
+      //    is presented with a placeholder parameter name)
+      const ENVELOPE_KEYS = new Set(["input", "$PARAMETER_VALUE"]);
+      if (keys.length === 1 && ENVELOPE_KEYS.has(keys[0])) {
+        const inner = (raw as Record<string, unknown>)[keys[0]];
+        if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+          normalised = inner;
+        }
       }
+
     }
     result.toolInput = normalised as T;
     return result;
