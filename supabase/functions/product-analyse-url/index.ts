@@ -360,9 +360,9 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
         url,
         formats: ["markdown"],
         onlyMainContent: true,
-        waitFor: 1500,
+        waitFor: 400,
       }),
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(18_000),
     });
     if (!resp.ok) {
       const errBody = await resp.text();
@@ -522,7 +522,7 @@ async function runLovable(args: {
     throw e;
   }
 
-  const TRIM = 18_000;
+  const TRIM = 9_000;
   const trimmed = scraped.text.length > TRIM ? scraped.text.slice(0, TRIM) : scraped.text;
 
   const userMsg = `Analyse this product page and return strict JSON matching the schema.
@@ -550,7 +550,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       ],
       response_format: { type: "json_object" },
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(35_000),
   });
 
   if (!aiResp.ok) {
