@@ -397,7 +397,12 @@ const Journal = () => {
         </>
       )}
 
-      <GoalEditorSheet open={editorOpen} onOpenChange={setEditorOpen} goal={editing} />
+      <GoalEditorSheet
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        goal={editing}
+        defaultStatus={editorStatus}
+      />
       <GoalDetailSheet
         open={detailOpen}
         onOpenChange={setDetailOpen}
@@ -407,6 +412,52 @@ const Journal = () => {
           if (viewing) openEditor(viewing);
         }}
       />
+
+      <AlertDialog open={chooserOpen} onOpenChange={setChooserOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Set a new goal</AlertDialogTitle>
+            <AlertDialogDescription>
+              How would you like to handle your current goal?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={() => {
+                setChooserOpen(false);
+                if (primaryGoal) openEditor(primaryGoal, "in_progress");
+              }}
+            >
+              Replace current goal
+            </Button>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              onClick={() => {
+                setChooserOpen(false);
+                openEditor(null, "in_progress");
+              }}
+            >
+              Add to current goal
+            </Button>
+            <Button
+              variant="goldGhost"
+              size="pill"
+              onClick={() => {
+                setChooserOpen(false);
+                openEditor(null, "future");
+              }}
+            >
+              Set as future goal
+            </Button>
+            <AlertDialogCancel className="mt-1">Cancel</AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
