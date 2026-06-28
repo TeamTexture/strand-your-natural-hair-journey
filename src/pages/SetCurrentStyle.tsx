@@ -64,7 +64,8 @@ const SetCurrentStyle = () => {
   const navigate = useNavigate();
 
   const [style, setStyle] = useState<string>("");
-  const [howLong, setHowLong] = useState("");
+  const [howLongNum, setHowLongNum] = useState("");
+  const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
   const [next, setNext] = useState<string[]>([]);
 
   // Hydrate from DB-first clinical context (falls back to localStorage when
