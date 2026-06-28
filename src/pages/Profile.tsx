@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
