@@ -236,6 +236,21 @@ const MyToolsSection = () => {
                     </div>
                   </div>
                   <button
+                    onClick={() => setFavourite(t.id, !t.on_favourite)}
+                    aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                    aria-pressed={t.on_favourite}
+                    className="size-9 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                  >
+                    <Heart
+                      className={cn(
+                        "size-4 transition-colors",
+                        t.on_favourite
+                          ? "text-primary fill-primary"
+                          : "text-muted-foreground",
+                      )}
+                    />
+                  </button>
+                  <button
                     onClick={() => setPendingDelete(t)}
                     aria-label="Delete tool"
                     className="size-9 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center shrink-0"
