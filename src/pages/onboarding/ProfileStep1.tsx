@@ -303,9 +303,14 @@ const ProfileStep1 = () => {
             }}
           />
           <div className="flex items-center gap-3">
-            <div
+            <button
+              type="button"
+              onClick={() => !avatarBusy && fileInputRef.current?.click()}
+              disabled={avatarBusy}
+              aria-label={avatarUrl ? "Change profile photo" : "Add profile photo"}
               className={cn(
-                "relative size-20 rounded-full overflow-hidden border-2 flex items-center justify-center bg-card shrink-0",
+                "relative size-20 rounded-full overflow-hidden border-2 flex items-center justify-center bg-card shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                !avatarBusy && "hover:border-primary cursor-pointer",
                 submitted && errors.photo
                   ? "border-[#A04040]"
                   : avatarUrl
@@ -320,7 +325,7 @@ const ProfileStep1 = () => {
               ) : (
                 <Camera className="size-6 text-primary/70" />
               )}
-            </div>
+            </button>
             <div className="flex-1 grid grid-cols-2 gap-2">
               <Button
                 type="button"
