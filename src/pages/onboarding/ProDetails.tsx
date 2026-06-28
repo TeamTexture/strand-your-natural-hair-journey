@@ -35,14 +35,11 @@ const ProDetails = () => {
   const [bgBookingUrl, setBgBookingUrl] = useState("");
 
   const [type, setType] = useState("Dermatologist");
-  const [gmc, setGmc] = useState("");
-  const [iot, setIot] = useState("");
   const [clinic, setClinic] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
   const [notesAudioPath, setNotesAudioPath] = useState<string | null>(null);
 
-  const showIot = type === "Trichologist";
 
   // Validate consultation date: must exist and be within 90 days.
   const { dateError, isWithinWindow, isExpired } = useMemo(() => {
