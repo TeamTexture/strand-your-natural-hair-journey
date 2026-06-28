@@ -94,9 +94,10 @@ const GoalEditorSheet = ({
           target_text: target.trim() || null,
           challenge_voice_url: challengeVoice,
           target_voice_url: targetVoice,
-          status: "in_progress",
+          status: goal?.status ?? defaultStatus,
         },
         goal?.id,
+
       );
       toast.success(goal ? "Goal updated" : "Goal saved");
       onOpenChange(false);
