@@ -255,7 +255,7 @@ const Profile = () => {
   const displayName = rawName || (user?.email ? titleCase(user.email.split("@")[0]) : "");
   const ageDisplay = basic.age !== undefined && basic.age !== "" ? `Age ${basic.age}` : "";
 
-  const hardness = basic.postcode ? getWaterHardness(basic.postcode) : null;
+  
 
   // Flagged blood markers (low/high) — only built from values the user entered.
   const flaggedBlood = useMemo(() => {
