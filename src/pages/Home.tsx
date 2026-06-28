@@ -12,7 +12,8 @@ import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
-import { Ruler } from "lucide-react";
+import { useGoalTip } from "@/hooks/useGoalTip";
+import { Ruler, Sparkles } from "lucide-react";
 import {
   loadClinicalContext,
   invalidateClinicalContextCache,
