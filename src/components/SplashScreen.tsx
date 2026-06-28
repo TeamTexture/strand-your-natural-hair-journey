@@ -55,9 +55,9 @@ const SplashScreen = () => {
   };
 
   return (
-    <div className="flex flex-col h-full px-7 pt-16 pb-10 bg-background">
+    <div className="flex flex-col h-full px-7 pt-10 pb-8 bg-background">
       {/* Top: logo block */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center">
+      <div className="flex flex-col items-center justify-start text-center">
         <HairStrandIcon className="w-16 h-16 text-primary mb-8" />
 
         <h1 className="font-display text-primary text-6xl font-semibold tracking-strand uppercase">
