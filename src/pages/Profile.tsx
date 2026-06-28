@@ -24,7 +24,7 @@ import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
 
 import { generateFullProfilePdf } from "@/lib/fullProfilePdf";
-import { loadClinicalContext } from "@/lib/clinicalContext";
+import { loadClinicalContext, loadClinicalContextLocal } from "@/lib/clinicalContext";
 
 // ---------- Types ----------
 interface BasicProfile {
