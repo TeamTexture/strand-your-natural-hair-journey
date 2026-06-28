@@ -37,7 +37,7 @@ const SplashScreen = () => {
           size="pill"
           onClick={() => navigate(`/auth${joinNext}`)}
         >
-          Join TT Collective Pro
+          Sign Up
         </Button>
 
         <Button
