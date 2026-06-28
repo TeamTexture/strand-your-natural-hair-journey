@@ -193,7 +193,7 @@ async function fetchAll(userId: string) {
   ] = await Promise.all([
     supabase.from("profiles").select("display_name, postcode, country, heritage, birth_year").eq("user_id", userId).maybeSingle(),
     loadClinicalContext(),
-    supabase.from("blood_results").select("marker, value, unit, status, category, taken_at").eq("user_id", userId),
+    supabase.from("blood_results").select("marker, value, unit, status, category").eq("user_id", userId),
     supabase.from("ai_summaries").select("kind, payload, updated_at").eq("user_id", userId),
     supabase.from("user_goals").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("goal_updates").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
