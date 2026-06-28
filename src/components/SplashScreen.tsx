@@ -79,9 +79,6 @@ const SplashScreen = () => {
           </>
         )}
 
-        <p className="mt-3 text-center font-body text-sm text-foreground/60">
-          Exclusive to TT Collective members.
-        </p>
       </div>
     </div>
   );
