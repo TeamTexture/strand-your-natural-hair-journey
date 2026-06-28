@@ -333,7 +333,7 @@ const Journal = () => {
         >
           <Plus className="size-7" />
           <span className="text-[11px] uppercase tracking-[0.2em] font-medium">
-            {savedEntries.length === 0 ? "Add Your First Entry" : "New Entry"}
+            {savedEntries.length === 0 ? "Add first entry" : "Add new entry"}
           </span>
         </button>
       </div>
