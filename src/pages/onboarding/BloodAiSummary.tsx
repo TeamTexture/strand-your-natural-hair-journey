@@ -126,13 +126,37 @@ const BloodAiSummary = () => {
   }, [values]);
 
   if (loading) {
+    const pct = Math.min(100, Math.max(0, Math.round(progress)));
     return (
       <ScreenLayout>
         <TitleBar title="Analysing" />
-        <LoadingDot label="Analysing your results…" />
+        <div className="px-6 pt-10 pb-10 flex flex-col items-center text-center">
+          <p className="font-display text-[22px] leading-tight text-foreground mb-6">
+            Analysing your results…
+          </p>
+          <div
+            className="text-[44px] font-display text-primary tabular-nums mb-3"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+          >
+            {pct}%
+          </div>
+          <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-primary transition-[width] duration-300 ease-out"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground font-body mt-4 leading-relaxed">
+            STRAND is reading your bloods against your hair, health and heritage profile. This takes a few seconds.
+          </p>
+        </div>
       </ScreenLayout>
     );
   }
+
 
   if (error || !summary) {
     return (
