@@ -57,12 +57,12 @@ const ProfileStep3Hair = () => {
       <ItalicSub>Fill these in from your consultation notes. These are the real clinical markers — not curl typing.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-5">
-        <TagGroup label="Strand Diameter" options={["Fine", "Medium", "Coarse", "Mixed"]} value={diameter} onChange={setDiameter} />
-        <TagGroup label="Surface Texture" options={["Rough / crinkly", "Medium", "Silky / glassy"]} value={texture} onChange={setTexture} />
-        <TagGroup label="Density" options={["Low", "Medium", "High"]} value={density} onChange={setDensity} />
-        <TagGroup label="Porosity" options={["Low — tightly closed cuticle", "High — raised cuticle"]} value={porosity} onChange={setPorosity} />
-        <TagGroup label="Elasticity" options={["Strong — stretches and bounces back", "Weak — snaps or does not return"]} value={elasticity} onChange={setElasticity} />
-        <TagGroup label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
+        <TagGroup multi={false} label="Strand Diameter" options={["Fine", "Medium", "Coarse", "Mixed"]} value={diameter} onChange={setDiameter} />
+        <TagGroup multi={false} label="Surface Texture" options={["Rough / crinkly", "Medium", "Silky / glassy"]} value={texture} onChange={setTexture} />
+        <TagGroup multi={false} label="Density" options={["Low", "Medium", "High"]} value={density} onChange={setDensity} />
+        <TagGroup multi={false} label="Porosity" options={["Low — tightly closed cuticle", "High — raised cuticle"]} value={porosity} onChange={setPorosity} />
+        <TagGroup multi={false} label="Elasticity" options={["Strong — stretches and bounces back", "Weak — snaps or does not return"]} value={elasticity} onChange={setElasticity} />
+        <TagGroup multi={false} label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
         <TagGroup
           label="Diagnosed Conditions"
           options={[
