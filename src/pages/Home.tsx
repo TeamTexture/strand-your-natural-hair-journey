@@ -270,7 +270,7 @@ const Home = () => {
             })()
           ) : (
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/journal")}
               className="text-left w-full"
             >
               <p className="text-sm text-muted-foreground">
