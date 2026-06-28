@@ -16,10 +16,16 @@ interface TagGroupProps {
   options: string[];
   value: string[];
   onChange: (next: string[]) => void;
+  single?: boolean;
 }
-const TagGroup = ({ label, options, value, onChange }: TagGroupProps) => {
-  const toggle = (opt: string) =>
-    onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+const TagGroup = ({ label, options, value, onChange, single }: TagGroupProps) => {
+  const toggle = (opt: string) => {
+    if (single) {
+      onChange(value.includes(opt) ? [] : [opt]);
+    } else {
+      onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+    }
+  };
   return (
     <div>
       <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
@@ -83,13 +89,13 @@ const ProfileStep2 = () => {
 
         <div className="border-t border-border my-2" />
 
-        <TagGroup label="Diet Type" options={["Omnivore", "Vegetarian", "Vegan", "Pescatarian", "Other"]} value={diet} onChange={setDiet} />
-        <TagGroup label="Diet Balance" options={["Very varied", "Fairly balanced", "Limited / restricted"]} value={dietBalance} onChange={setDietBalance} />
-        <TagGroup label="Do You Smoke" options={["No", "Occasionally", "Regularly", "Ex-smoker"]} value={smoke} onChange={setSmoke} />
-        <TagGroup label="Alcohol" options={["None", "Light social", "Moderate", "Heavy"]} value={alcohol} onChange={setAlcohol} />
-        <TagGroup label="Daily Water" options={["Under 1 litre", "1-2 litres", "2+ litres"]} value={water} onChange={setWater} />
-        <TagGroup label="Exercise" options={["Rarely", "1-3x per week", "4-5x per week", "Daily"]} value={exercise} onChange={setExercise} />
-        <TagGroup label="Sleep Quality" options={["Poor", "Average", "Good"]} value={sleep} onChange={setSleep} />
+        <TagGroup single label="Diet Type" options={["Omnivore", "Vegetarian", "Vegan", "Pescatarian", "Other"]} value={diet} onChange={setDiet} />
+        <TagGroup single label="Diet Balance" options={["Very varied", "Fairly balanced", "Limited / restricted"]} value={dietBalance} onChange={setDietBalance} />
+        <TagGroup single label="Do You Smoke" options={["No", "Occasionally", "Regularly", "Ex-smoker"]} value={smoke} onChange={setSmoke} />
+        <TagGroup single label="Alcohol" options={["None", "Light social", "Moderate", "Heavy"]} value={alcohol} onChange={setAlcohol} />
+        <TagGroup single label="Daily Water" options={["Under 1 litre", "1-2 litres", "2+ litres"]} value={water} onChange={setWater} />
+        <TagGroup single label="Exercise" options={["Rarely", "1-3x per week", "4-5x per week", "Daily"]} value={exercise} onChange={setExercise} />
+        <TagGroup single label="Sleep Quality" options={["Poor", "Average", "Good"]} value={sleep} onChange={setSleep} />
 
         <MedicationPicker value={meds} onChange={setMeds} />
 
