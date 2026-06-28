@@ -6,6 +6,14 @@ import Tag from "@/components/Tag";
 import FormField from "@/components/FormField";
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
