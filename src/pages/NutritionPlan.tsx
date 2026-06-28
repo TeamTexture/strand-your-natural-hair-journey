@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -7,6 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+
 
 import { evaluate } from "@/data/bloodRanges";
 import { buildAiContext } from "@/lib/aiContext";
@@ -69,6 +70,8 @@ const NutritionPlan = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [profile, setProfile] = useState<Profile>({
     diet: "unknown",
     alcohol: "unknown",
@@ -76,8 +79,28 @@ const NutritionPlan = () => {
   });
   const [plan, setPlan] = useState<AiPlan | null>(null);
 
+  const startProgress = () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    setAiProgress(0);
+    const start = Date.now();
+    progressTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const target = Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 8))));
+      setAiProgress((p) => (target > p ? target : Math.min(95, p + 1)));
+    }, 200);
+  };
+
+  const stopProgress = (final: number) => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setAiProgress(final);
+  };
+
   const fetchPlan = async (force = false, currentProfile = profile) => {
     setAiLoading(true);
+    startProgress();
     try {
       const context = await buildAiContext();
       const { data, error } = await supabase.functions.invoke("nutrition-plan", {
@@ -94,16 +117,25 @@ const NutritionPlan = () => {
         if (msg.includes("429")) toast.error("Try again in a moment.");
         else if (msg.includes("402")) toast.error("AI credits needed.");
         else toast.error(msg);
+        stopProgress(0);
         return;
       }
       if (data?.plan) setPlan(data.plan as AiPlan);
+      stopProgress(100);
+      await new Promise((r) => setTimeout(r, 400));
     } catch (e) {
       console.error("nutrition-plan invoke failed", e);
       toast.error("Couldn't generate your plan.");
+      stopProgress(0);
     } finally {
       setAiLoading(false);
     }
   };
+
+  useEffect(() => () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+  }, []);
+
 
   useEffect(() => {
     (async () => {
@@ -186,7 +218,32 @@ const NutritionPlan = () => {
 
   const renderAiSection = (cards: AiCard[] | undefined, kind: "diet" | "avoid") => {
     if (aiLoading && !cards) {
-      return <LoadingDot label="Personalising your plan…" />;
+      const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
+      return (
+        <div className="px-2 pt-6 pb-4 flex flex-col items-center text-center">
+          <p className="font-display text-[20px] leading-tight text-foreground mb-5">
+            Personalising your plan…
+          </p>
+          <div
+            className="text-[40px] font-display text-primary tabular-nums mb-3"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+          >
+            {pct}%
+          </div>
+          <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-primary transition-[width] duration-300 ease-out"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground font-body mt-4 leading-relaxed">
+            STRAND is tailoring your nutrition guidance to your bloods, hair and heritage profile.
+          </p>
+        </div>
+      );
     }
     if (!cards || cards.length === 0) {
       return (
