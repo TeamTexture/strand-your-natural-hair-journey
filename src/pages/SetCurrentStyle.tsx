@@ -6,6 +6,14 @@ import Tag from "@/components/Tag";
 import FormField from "@/components/FormField";
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -35,6 +43,8 @@ interface ExistingStyleLocal {
   style_set_at?: string;
   planned_next_style?: string;
   howLong?: string;
+  howLongNum?: string;
+  howLongUnit?: string;
   changingTo?: string[];
   defaultStyle?: string[];
   colour?: string[];
@@ -54,7 +64,8 @@ const SetCurrentStyle = () => {
   const navigate = useNavigate();
 
   const [style, setStyle] = useState<string>("");
-  const [howLong, setHowLong] = useState("");
+  const [howLongNum, setHowLongNum] = useState("");
+  const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
   const [next, setNext] = useState<string[]>([]);
 
   // Hydrate from DB-first clinical context (falls back to localStorage when
@@ -66,7 +77,15 @@ const SetCurrentStyle = () => {
       if (cancelled) return;
       if (ctx.style) {
         setStyle(ctx.style.current_hairstyle ?? "");
-        setHowLong(ctx.style.howLong ?? "");
+        if (ctx.style.howLongNum) {
+          setHowLongNum(ctx.style.howLongNum);
+          setHowLongUnit((ctx.style.howLongUnit as "days" | "weeks" | "months") ?? "days");
+        } else if (ctx.style.howLong) {
+          const m = ctx.style.howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
+          setHowLongNum(m?.[1] ?? "");
+          const u = (m?.[2] ?? "day").toLowerCase();
+          setHowLongUnit(u.startsWith("week") ? "weeks" : u.startsWith("month") ? "months" : "days");
+        }
         setNext(ctx.style.planned_next_style ? [ctx.style.planned_next_style] : []);
       }
     })();
@@ -80,18 +99,16 @@ const SetCurrentStyle = () => {
       toast.error("Pick your current hairstyle");
       return;
     }
-    // Parse "How Long in This Style" — accept "9 days", "3 weeks", "5", etc.
-    const match = howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
-    const num = match ? parseInt(match[1], 10) : NaN;
-    const unit = (match?.[2] ?? "day").toLowerCase();
+    const num = parseInt(howLongNum, 10);
     const days = Number.isFinite(num)
-      ? unit.startsWith("week")
+      ? howLongUnit === "weeks"
         ? num * 7
-        : unit.startsWith("month")
-          ? num * 30
-          : num
+        : howLongUnit === "months"
+        ? num * 30
+        : num
       : 0;
     const style_set_at = new Date(Date.now() - days * 86_400_000).toISOString();
+    const howLong = `${howLongNum} ${howLongUnit}`;
 
     // Dual-write: localStorage (fallback / legacy compat) + DB.
     const prev = readExistingLocal();
@@ -103,6 +120,8 @@ const SetCurrentStyle = () => {
         style_set_at,
         planned_next_style: next[0] ?? "",
         howLong,
+        howLongNum,
+        howLongUnit,
       }),
     );
 
@@ -160,13 +179,33 @@ const SetCurrentStyle = () => {
           </div>
         </div>
 
-        <FormField
-          label="How long in this style"
-          placeholder="e.g. 9 days, 3 weeks"
-          value={howLong}
-          onChange={(e) => setHowLong(e.target.value)}
-          showTick={false}
-        />
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            How long in this style
+          </div>
+          <div className="flex gap-3">
+            <Input
+              type="number"
+              min={0}
+              value={howLongNum}
+              onChange={(e) => setHowLongNum(e.target.value)}
+              className="w-24"
+            />
+            <Select
+              value={howLongUnit}
+              onValueChange={(v) => setHowLongUnit(v as "days" | "weeks" | "months")}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="days">Days</SelectItem>
+                <SelectItem value="weeks">Weeks</SelectItem>
+                <SelectItem value="months">Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <MultiSelectDropdown
           label="Planned next style (optional)"

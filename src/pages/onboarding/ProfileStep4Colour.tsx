@@ -7,6 +7,14 @@ import Tag from "@/components/Tag";
 import FormField from "@/components/FormField";
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -63,7 +71,8 @@ const ProfileStep4Colour = () => {
   const [colour, setColour] = useState(["Natural"]);
   const [chemHist, setChemHist] = useState(["None"]);
   const [style, setStyle] = useState(["Box braids"]);
-  const [howLong, setHowLong] = useState("9 days");
+  const [howLongNum, setHowLongNum] = useState("9");
+  const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
   const [plans, setPlans] = useState(["Yes — in 5 weeks"]);
   const [changingTo, setChangingTo] = useState<string[]>(["Loose natural"]);
   const [defaultStyle, setDefaultStyle] = useState<string[]>([
@@ -105,12 +114,33 @@ const ProfileStep4Colour = () => {
           multi={false}
         />
 
-        <FormField
-          label="How Long in This Style"
-          value={howLong}
-          onChange={(e) => setHowLong(e.target.value)}
-          showTick={false}
-        />
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            How Long in This Style
+          </div>
+          <div className="flex gap-3">
+            <Input
+              type="number"
+              min={0}
+              value={howLongNum}
+              onChange={(e) => setHowLongNum(e.target.value)}
+              className="w-24"
+            />
+            <Select
+              value={howLongUnit}
+              onValueChange={(v) => setHowLongUnit(v as "days" | "weeks" | "months")}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="days">Days</SelectItem>
+                <SelectItem value="weeks">Weeks</SelectItem>
+                <SelectItem value="months">Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <TagGroup
           label="Plans to Change Style"
@@ -141,17 +171,16 @@ const ProfileStep4Colour = () => {
           size="pill"
           className="mt-4"
           onClick={async () => {
-            // Parse "How Long in This Style" — accept "9 days", "3 weeks", "5", etc.
-            const match = howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
-            const num = match ? parseInt(match[1], 10) : NaN;
-            const unit = (match?.[2] ?? "day").toLowerCase();
+            const num = parseInt(howLongNum, 10);
+            const unit = howLongUnit;
             const days = Number.isFinite(num)
-              ? unit.startsWith("week")
+              ? unit === "weeks"
                 ? num * 7
-                : unit.startsWith("month")
+                : unit === "months"
                 ? num * 30
                 : num
               : 0;
+            const howLong = `${howLongNum} ${howLongUnit}`;
             const style_set_at = new Date(
               Date.now() - days * 24 * 60 * 60 * 1000,
             ).toISOString();
@@ -164,6 +193,8 @@ const ProfileStep4Colour = () => {
                 style_set_at,
                 planned_next_style: changingTo[0] ?? "",
                 howLong,
+                howLongNum,
+                howLongUnit,
                 plans,
                 changingTo,
                 defaultStyle,
