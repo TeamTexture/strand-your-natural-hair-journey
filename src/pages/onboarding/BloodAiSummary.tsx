@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import LoadingDot from "@/components/LoadingDot";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,8 @@ const BloodAiSummary = () => {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Build a stable fingerprint of the inputs so we can detect when the user
   // has updated their blood values / profile and force the AI to regenerate.
@@ -59,9 +60,30 @@ const BloodAiSummary = () => {
     };
   };
 
+  const startProgress = () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    setProgress(0);
+    const start = Date.now();
+    // Tick toward 95% over ~20s; ease so it slows as it approaches the ceiling.
+    progressTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const target = Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 7))));
+      setProgress((p) => (target > p ? target : Math.min(95, p + 1)));
+    }, 200);
+  };
+
+  const stopProgress = (final: number) => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setProgress(final);
+  };
+
   const generate = async (force = false) => {
     setLoading(true);
     setError(null);
+    startProgress();
     try {
       const clinical = await loadClinicalContext();
       const hairProfile = (clinical.hair ?? {}) as Record<string, unknown>;
@@ -80,14 +102,23 @@ const BloodAiSummary = () => {
       if (data?.error) throw new Error(data.error);
       setSummary(data.summary as Summary);
       localStorage.setItem("strand_blood_summary_fp", fingerprint);
+      stopProgress(100);
+      // Hold 100% visible for a moment before unmounting the loader.
+      await new Promise((r) => setTimeout(r, 400));
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Could not generate your summary.";
       setError(msg);
       toast.error(msg);
+      stopProgress(0);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+  }, []);
+
 
   useEffect(() => {
     generate(false);
@@ -95,13 +126,37 @@ const BloodAiSummary = () => {
   }, [values]);
 
   if (loading) {
+    const pct = Math.min(100, Math.max(0, Math.round(progress)));
     return (
       <ScreenLayout>
         <TitleBar title="Analysing" />
-        <LoadingDot label="Analysing your results…" />
+        <div className="px-6 pt-10 pb-10 flex flex-col items-center text-center">
+          <p className="font-display text-[22px] leading-tight text-foreground mb-6">
+            Analysing your results…
+          </p>
+          <div
+            className="text-[44px] font-display text-primary tabular-nums mb-3"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+          >
+            {pct}%
+          </div>
+          <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-primary transition-[width] duration-300 ease-out"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground font-body mt-4 leading-relaxed">
+            STRAND is reading your bloods against your hair, health and heritage profile. This takes a few seconds.
+          </p>
+        </div>
       </ScreenLayout>
     );
   }
+
 
   if (error || !summary) {
     return (
