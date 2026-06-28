@@ -658,11 +658,8 @@ const Profile = () => {
       )}
 
       <div className="px-5 pb-6 space-y-3 mt-4">
-        <Button variant="gold" size="pill" onClick={() => handleExportPdf("download")} disabled={exportingPdf}>
+        <Button variant="gold" size="pill" onClick={() => handleExportPdf()} disabled={exportingPdf}>
           {exportingPdf ? "Generating PDF…" : "Download full profile (PDF)"}
-        </Button>
-        <Button variant="goldGhost" size="pill" onClick={() => handleExportPdf("share")} disabled={exportingPdf}>
-          Share / Email profile
         </Button>
         <button
           onClick={async () => { await signOut(); navigate("/", { replace: true }); }}
