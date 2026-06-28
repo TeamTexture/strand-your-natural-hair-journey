@@ -212,7 +212,7 @@ const Home = () => {
               Length goal
             </p>
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/journal")}
               className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
             >
               {lengthGoal ? "Edit" : "Set"}
