@@ -368,6 +368,22 @@ export async function encryptForStorage(
   return out;
 }
 
+/**
+ * Synchronous local-only snapshot — used as React Query `initialData` so the
+ * Profile screen renders instantly from cached localStorage while the DB
+ * overlay loads in the background. Safe on SSR (returns all-null slices).
+ */
+export function loadClinicalContextLocal(): ClinicalContext {
+  return {
+    hair: hairFromLocal(),
+    health: healthFromLocal(),
+    style: styleFromLocal(),
+    professional: professionalFromLocal(),
+    basic: basicFromLocal(),
+  };
+}
+
+
 // ─────────────────── Public loader ───────────────────
 
 /**
