@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
+import { AlertCircle, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -17,121 +17,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
 import { toast } from "sonner";
 
+
 const types = ["Trichologist", "Dermatologist", "Curl Specialist", "GP"];
 
-type ValidState = "neutral" | "loading" | "valid" | "error";
 
-interface ValidationResult {
-  state: ValidState;
-  message?: string;
-}
 
-const validateGmc = (raw: string): ValidationResult => {
-  const v = raw.trim();
-  if (v.length === 0) return { state: "neutral" };
-  if (/[^0-9]/.test(v)) {
-    return { state: "error", message: "GMC numbers contain digits only" };
-  }
-  if (v.length < 7) return { state: "neutral" };
-  if (v.length > 7) {
-    return { state: "error", message: "GMC numbers are 7 digits only" };
-  }
-  // PRODUCTION: call GMC public Doctor Search API to verify the registrant.
-  // https://www.gmc-uk.org/registration-and-licensing/the-medical-register
-  return { state: "valid", message: "GMC number format confirmed" };
-};
-
-const validateIot = (raw: string): ValidationResult => {
-  const v = raw.trim();
-  if (v.length === 0) return { state: "neutral" };
-  if (/[^0-9]/.test(v)) {
-    return { state: "error", message: "IOT numbers contain digits only" };
-  }
-  if (v.length < 4) return { state: "neutral" };
-  if (v.length > 6) {
-    return { state: "error", message: "IOT numbers are 4-6 digits" };
-  }
-  return { state: "valid", message: "IOT number format confirmed" };
-};
-
-interface VFieldProps {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  validator: (v: string) => ValidationResult;
-  /** Hint shown when the value was auto-filled from the directory. */
-  autoFilledFrom?: string;
-}
-
-const ValidatedField = ({
-  label,
-  placeholder,
-  value,
-  onChange,
-  validator,
-  autoFilledFrom,
-}: VFieldProps) => {
-  const [debounced, setDebounced] = useState<ValidationResult>({ state: "neutral" });
-
-  useEffect(() => {
-    const next = validator(value);
-    if (next.state !== "valid") {
-      setDebounced(next);
-      return;
-    }
-    setDebounced({ state: "loading" });
-    const t = window.setTimeout(() => setDebounced(next), 500);
-    return () => window.clearTimeout(t);
-  }, [value, validator]);
-
-  const errored = debounced.state === "error";
-
-  return (
-    <div>
-      <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
-        {label}
-      </span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        inputMode="numeric"
-        autoComplete="off"
-        className={cn(
-          "w-full px-3.5 py-3 bg-card rounded-[10px] border text-sm font-body",
-          "placeholder:text-muted-foreground/60 focus:outline-none transition-colors",
-          errored ? "border-warn" : "border-border focus:border-primary/60",
-        )}
-      />
-
-      {autoFilledFrom && debounced.state === "valid" && (
-        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-primary font-body bg-primary/10 px-2 py-1 rounded">
-          <Check className="size-3" />
-          Auto-filled from {autoFilledFrom}
-        </div>
-      )}
-      {!autoFilledFrom && debounced.state === "loading" && (
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground font-body">
-          <Loader2 className="size-3 animate-spin" />
-          Checking format…
-        </div>
-      )}
-      {!autoFilledFrom && debounced.state === "valid" && (
-        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-good font-body bg-good/10 px-2 py-1 rounded">
-          <Shield className="size-3" />
-          {debounced.message}
-        </div>
-      )}
-      {debounced.state === "error" && (
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-warn font-body">
-          <AlertCircle className="size-3" />
-          {debounced.message}
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ProDetails = () => {
   const navigate = useNavigate();
@@ -145,14 +35,11 @@ const ProDetails = () => {
   const [bgBookingUrl, setBgBookingUrl] = useState("");
 
   const [type, setType] = useState("Dermatologist");
-  const [gmc, setGmc] = useState("");
-  const [iot, setIot] = useState("");
   const [clinic, setClinic] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
   const [notesAudioPath, setNotesAudioPath] = useState<string | null>(null);
 
-  const showIot = type === "Trichologist";
 
   // Validate consultation date: must exist and be within 90 days.
   const { dateError, isWithinWindow, isExpired } = useMemo(() => {
@@ -189,8 +76,8 @@ const ProDetails = () => {
   const applyPro = (p: Professional) => {
     setName(p.name);
     setType(p.type);
-    if (p.gmcNumber) setGmc(p.gmcNumber);
-    if (p.iotNumber) setIot(p.iotNumber);
+    if (p.clinic) setClinic(p.clinic);
+
     if (p.clinic) setClinic(p.clinic);
     setBgInsta(p.insta ?? "");
     setBgWebsite(p.website ?? "");
@@ -212,7 +99,7 @@ const ProDetails = () => {
     <ScreenLayout>
       <TitleBar title="Your Professional" right={<span>4 of 9</span>} />
       <ProgressDots total={9} current={4} />
-      <ItalicSub>Search our directory or add manually. We verify against the official register.</ItalicSub>
+      <ItalicSub>Search our directory or add your professional manually.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-4">
         {/* Name field doubles as a directory search */}
@@ -247,11 +134,8 @@ const ProDetails = () => {
                       {p.title} · {p.clinic}
                     </p>
                   </div>
-                  {(p.gmcNumber || p.iotNumber) && (
-                    <span className="text-[10px] uppercase tracking-[0.1em] text-good bg-good/10 px-1.5 py-0.5 rounded shrink-0">
-                      Verified
-                    </span>
-                  )}
+
+
                 </button>
               ))}
             </div>
@@ -287,25 +171,8 @@ const ProDetails = () => {
           </div>
         </div>
 
-        <ValidatedField
-          label="GMC Number"
-          placeholder="Enter GMC number (7 digits)"
-          value={gmc}
-          onChange={(v) => setGmc(v)}
-          validator={validateGmc}
-          autoFilledFrom={pickedFrom && gmc ? pickedFrom : undefined}
-        />
 
-        {showIot && (
-          <ValidatedField
-            label="IOT Membership Number"
-            placeholder="Enter IOT membership number"
-            value={iot}
-            onChange={(v) => setIot(v)}
-            validator={validateIot}
-            autoFilledFrom={pickedFrom && iot ? pickedFrom : undefined}
-          />
-        )}
+
 
         <FormField
           label="Clinic"
@@ -391,7 +258,7 @@ const ProDetails = () => {
                 localStorage.setItem(
                   "strand_professional",
                   JSON.stringify({
-                    name, type, gmc, iot, clinic, date, notes, notesAudioPath,
+                    name, type, clinic, date, notes, notesAudioPath,
                     instagram: bgInsta, website: bgWebsite, bookingUrl: bgBookingUrl,
                     pickedFromDirectory: !!pickedFrom,
                   }),
@@ -404,8 +271,6 @@ const ProDetails = () => {
                 const { data: u } = await supabase.auth.getUser();
                 if (u?.user) {
                   const enc = await encryptForStorage([
-                    { id: "gmc", plaintext: gmc },
-                    { id: "iot", plaintext: iot },
                     { id: "notes", plaintext: notes },
                   ]);
                   const { error } = await supabase
@@ -417,9 +282,10 @@ const ProDetails = () => {
                         professional_type: type,
                         clinic: clinic || null,
                         consultation_date: date || null,
-                        gmc_number_enc: enc.gmc,
-                        iot_number_enc: enc.iot,
+                        gmc_number_enc: null,
+                        iot_number_enc: null,
                         notes_enc: enc.notes,
+
                         notes_audio_path: notesAudioPath,
                         instagram_handle: bgInsta || null,
                         website_url: bgWebsite || null,
