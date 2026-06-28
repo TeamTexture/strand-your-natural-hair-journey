@@ -235,5 +235,5 @@ export function useUserTools() {
     [user, load],
   );
 
-  return { tools, loading, addTool, updateTool, deleteTool, reload: load };
+  return { tools, loading, addTool, updateTool, setFavourite, deleteTool, reload: load };
 }
