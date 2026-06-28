@@ -165,7 +165,7 @@ const GoalEditorSheet = ({
         title: challenge.trim().slice(0, 80) || "Hair goal",
         challenge: challenge.trim() || null,
         target_text: target.trim() || null,
-        target_date: targetDate || null,
+        target_date: computeTargetDate(),
         challenge_voice_url: challengeVoice,
         target_voice_url: targetVoice,
         status: goal?.status ?? defaultStatus,
