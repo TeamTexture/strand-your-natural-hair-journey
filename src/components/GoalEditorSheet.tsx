@@ -65,7 +65,8 @@ const GoalEditorSheet = ({
   const { upsertGoal, deleteGoal } = useGoals();
   const [challenge, setChallenge] = useState("");
   const [target, setTarget] = useState("");
-  const [targetDate, setTargetDate] = useState("");
+  const [timelineAmount, setTimelineAmount] = useState("");
+  const [timelineUnit, setTimelineUnit] = useState<"days" | "weeks" | "months">("weeks");
   const [challengeVoice, setChallengeVoice] = useState<string | null>(null);
   const [targetVoice, setTargetVoice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -89,10 +90,39 @@ const GoalEditorSheet = ({
     if (!open) return;
     setChallenge(goal?.challenge ?? "");
     setTarget(goal?.target_text ?? "");
-    setTargetDate(goal?.target_date ? goal.target_date.slice(0, 10) : "");
     setChallengeVoice(goal?.challenge_voice_url ?? null);
     setTargetVoice(goal?.target_voice_url ?? null);
+    // Reverse-derive amount + unit from the stored target_date so the
+    // editor opens showing what the user originally picked.
+    if (goal?.target_date) {
+      const diffMs = new Date(goal.target_date).getTime() - Date.now();
+      const days = Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+      if (days % 30 === 0 && days >= 30) {
+        setTimelineAmount(String(days / 30));
+        setTimelineUnit("months");
+      } else if (days % 7 === 0 && days >= 7) {
+        setTimelineAmount(String(days / 7));
+        setTimelineUnit("weeks");
+      } else {
+        setTimelineAmount(String(days));
+        setTimelineUnit("days");
+      }
+    } else {
+      setTimelineAmount("");
+      setTimelineUnit("weeks");
+    }
   }, [open, goal]);
+
+  // Convert the number + unit picker into an ISO date string for storage.
+  const computeTargetDate = (): string | null => {
+    const n = parseInt(timelineAmount, 10);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const d = new Date();
+    if (timelineUnit === "days") d.setDate(d.getDate() + n);
+    else if (timelineUnit === "weeks") d.setDate(d.getDate() + n * 7);
+    else d.setMonth(d.getMonth() + n);
+    return d.toISOString().slice(0, 10);
+  };
 
   const fetchTip = async (savedGoal: {
     challenge: string | null;
@@ -135,7 +165,7 @@ const GoalEditorSheet = ({
         title: challenge.trim().slice(0, 80) || "Hair goal",
         challenge: challenge.trim() || null,
         target_text: target.trim() || null,
-        target_date: targetDate || null,
+        target_date: computeTargetDate(),
         challenge_voice_url: challengeVoice,
         target_voice_url: targetVoice,
         status: goal?.status ?? defaultStatus,
@@ -209,19 +239,33 @@ const GoalEditorSheet = ({
 
             <div>
               <label
-                htmlFor="goal-target-date"
+                htmlFor="goal-timeline-amount"
                 className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5 font-medium"
               >
                 When do you want to achieve this by?
               </label>
-              <input
-                id="goal-target-date"
-                type="date"
-                value={targetDate}
-                min={today}
-                onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full rounded-pill border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  id="goal-timeline-amount"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  placeholder="e.g. 6"
+                  value={timelineAmount}
+                  onChange={(e) => setTimelineAmount(e.target.value)}
+                  className="w-24 rounded-pill border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
+                />
+                <select
+                  aria-label="Timeline unit"
+                  value={timelineUnit}
+                  onChange={(e) => setTimelineUnit(e.target.value as "days" | "weeks" | "months")}
+                  className="flex-1 rounded-pill border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
+                >
+                  <option value="days">Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                </select>
+              </div>
               <p className="text-[10px] text-muted-foreground mt-1">
                 Optional — helps STRAND time your tips and check-ins.
               </p>
