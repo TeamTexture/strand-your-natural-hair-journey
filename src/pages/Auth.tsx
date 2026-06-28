@@ -94,12 +94,12 @@ const Auth = () => {
         <form onSubmit={submit} className="space-y-4 selectable">
           {mode === "signup" && (
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Name</Label>
+              <Label htmlFor="name" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Full name</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
+                placeholder="Your full name"
                 autoComplete="name"
               />
             </div>
