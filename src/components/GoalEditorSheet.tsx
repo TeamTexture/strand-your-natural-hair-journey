@@ -127,9 +127,10 @@ const GoalEditorSheet = ({
       >
         <SheetHeader>
           <SheetTitle className="font-display">
-            {goal ? "Edit goal" : "Set a new goal"}
+            {goal ? "Edit goal" : defaultStatus === "future" ? "Set a future goal" : "Set a new goal"}
           </SheetTitle>
         </SheetHeader>
+
 
         <div className="space-y-5 mt-4 pb-6">
           <VoiceNoteField
