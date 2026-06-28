@@ -23,7 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
 import { getWaterHardness } from "@/data/hardWaterPostcodes";
-import { generateProfilePdf } from "@/lib/profilePdf";
+import { generateFullProfilePdf } from "@/lib/fullProfilePdf";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 
 // ---------- Types ----------
@@ -343,20 +343,31 @@ const Profile = () => {
     return out;
   }, [flaggedBlood, washAlert, appts, navigate]);
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (mode: "download" | "share" = "download") => {
     if (exportingPdf) return;
     setExportingPdf(true);
     try {
-      const { blob, fileName } = generateProfilePdf({
-        displayName: displayName || "STRAND Member",
-        age: ageDisplay ? String(basic.age ?? "") : undefined,
-        postcode: basic.postcode?.trim() || undefined,
-        waterHardness: hardness === "hard" ? "Hard water" : hardness === "soft" ? "Soft water" : null,
-        hair,
-        flaggedBlood,
-        hasAnyBloodValues: Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v)),
-        medications: Array.isArray(health.medications) ? health.medications : [],
-      });
+      const { blob, fileName } = await generateFullProfilePdf();
+
+      if (mode === "share" && typeof navigator !== "undefined" && "share" in navigator) {
+        const file = new File([blob], fileName, { type: "application/pdf" });
+        const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
+        if (nav.canShare && nav.canShare({ files: [file] })) {
+          try {
+            await (navigator as any).share({
+              files: [file],
+              title: "My STRAND profile",
+              text: "Sharing my full STRAND hair profile.",
+            });
+            toast.success("Profile shared");
+            return;
+          } catch (err) {
+            if ((err as Error).name === "AbortError") return;
+            // Fall through to download/mailto.
+          }
+        }
+      }
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -365,7 +376,17 @@ const Profile = () => {
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success("Profile PDF downloaded");
+
+      if (mode === "share") {
+        const subject = encodeURIComponent("My STRAND profile");
+        const body = encodeURIComponent(
+          `Hi,\n\nI've attached my full STRAND hair profile (downloaded to your device as ${fileName}). Please attach it to this email before sending.\n\nThanks.`,
+        );
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        toast.success("PDF downloaded — attach it to your email");
+      } else {
+        toast.success("Profile PDF downloaded");
+      }
     } catch (e) {
       console.error("Profile PDF export failed", e);
       toast.error("Could not export PDF");
@@ -667,11 +688,11 @@ const Profile = () => {
       )}
 
       <div className="px-5 pb-6 space-y-3 mt-4">
-        <Button variant="gold" size="pill" onClick={handleExportPdf} disabled={exportingPdf}>
-          {exportingPdf ? "Generating PDF…" : "Export as PDF"}
+        <Button variant="gold" size="pill" onClick={() => handleExportPdf("download")} disabled={exportingPdf}>
+          {exportingPdf ? "Generating PDF…" : "Download full profile (PDF)"}
         </Button>
-        <Button variant="goldGhost" size="pill" onClick={() => toast("Share link copied")}>
-          Copy Share Link
+        <Button variant="goldGhost" size="pill" onClick={() => handleExportPdf("share")} disabled={exportingPdf}>
+          Share / Email profile
         </Button>
         <button
           onClick={async () => { await signOut(); navigate("/", { replace: true }); }}
