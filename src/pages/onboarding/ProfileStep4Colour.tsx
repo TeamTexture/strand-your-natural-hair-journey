@@ -269,7 +269,7 @@ const ProfileStep4Colour = () => {
                       current_hairstyle: style[0] ?? null,
                       style_set_at,
                       planned_next_style: changingTo[0] ?? null,
-                      planned_change_date: null,
+                      planned_change_date,
                       default_styles: defaultStyle,
                     },
                     { onConflict: "user_id" },
