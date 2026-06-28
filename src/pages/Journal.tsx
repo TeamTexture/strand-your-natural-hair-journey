@@ -563,7 +563,7 @@ const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
       <SurfaceCard className="hover:border-primary/50 transition-colors">
         <div className="flex items-start justify-between gap-3 mb-2">
           <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
-            {isComplete ? "Complete" : "In progress"}
+            {statusLabel}
           </span>
           <button
             onClick={stopAndEdit}
