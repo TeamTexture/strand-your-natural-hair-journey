@@ -84,14 +84,41 @@ const ProfileStep1 = () => {
   const hardWater = useMemo(() => isHardWaterPostcode(postcode), [postcode]);
   const isUK = country === "United Kingdom";
 
-  // Load any existing avatar so users returning to the step see their photo.
+  // Load any existing profile so users returning to the step see their previous values.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+
+    // Hydrate immediately from local cache so the form is never blank on re-entry.
+    try {
+      const cached = localStorage.getItem("strand_profile_basic");
+      if (cached) {
+        const p = JSON.parse(cached) as Partial<{
+          name: string;
+          age: string | number;
+          postcode: string;
+          country: string;
+          heritage: string;
+        }>;
+        if (p.name) setName((c) => (c.trim() ? c : p.name!));
+        if (p.age != null && p.age !== "") setAge((c) => (c ? c : String(p.age)));
+        if (p.postcode) setPostcode((c) => (c ? c : String(p.postcode).toUpperCase()));
+        if (p.country) setCountry(p.country);
+        if (p.heritage) setHeritage((c) => (c ? c : p.heritage!));
+      }
+      const cachedH = localStorage.getItem("strand_heritage");
+      if (cachedH) {
+        const arr = JSON.parse(cachedH);
+        if (Array.isArray(arr) && arr[0]) setHeritage((c) => (c ? c : String(arr[0])));
+      }
+    } catch {
+      /* ignore cache parse errors */
+    }
+
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, display_name")
+        .select("avatar_url, display_name, birth_year, postcode, country, heritage")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -106,6 +133,22 @@ const ProfileStep1 = () => {
         "";
       if (prefillName) {
         setName((current) => (current.trim() ? current : prefillName));
+      }
+      if (data?.birth_year && Number.isFinite(data.birth_year)) {
+        const derivedAge = new Date().getFullYear() - data.birth_year;
+        if (derivedAge >= 16 && derivedAge <= 100) {
+          setAge((current) => (current ? current : String(derivedAge)));
+        }
+      }
+      if (data?.postcode) {
+        setPostcode((current) => (current ? current : String(data.postcode).toUpperCase()));
+      }
+      if (data?.country) {
+        setCountry(data.country);
+      }
+      const h = (data as { heritage?: string[] | null } | null)?.heritage;
+      if (Array.isArray(h) && h[0]) {
+        setHeritage((current) => (current ? current : String(h[0])));
       }
       if (p) {
         const { data: sig } = await supabase.storage
