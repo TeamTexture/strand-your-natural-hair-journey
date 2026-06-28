@@ -51,34 +51,13 @@ const SplashScreen = () => {
 
       {/* Bottom: CTAs */}
       <div className="flex flex-col gap-3">
-        {firstName ? (
-          <Button
-            variant="gold"
-            size="pill"
-            onClick={() => navigate(`/auth${memberNext}`)}
-          >
-            Sign in
-          </Button>
-        ) : (
-          <>
-            <Button
-              variant="gold"
-              size="pill"
-              onClick={() => navigate(`/auth${joinNext}`)}
-            >
-              Sign Up
-            </Button>
-
-            <Button
-              variant="goldOutline"
-              size="pill"
-              onClick={() => navigate(`/auth${memberNext}`)}
-            >
-              I'm Already a Member
-            </Button>
-          </>
-        )}
-
+        <Button
+          variant="gold"
+          size="pill"
+          onClick={() => navigate(`/auth${firstName ? memberNext : joinNext}`)}
+        >
+          Sign Up
+        </Button>
       </div>
     </div>
   );
