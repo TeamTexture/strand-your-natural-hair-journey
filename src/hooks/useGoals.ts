@@ -118,7 +118,11 @@ export const useGoals = () => {
   const deleteGoal = useCallback((id: string) => deleteMutation.mutateAsync(id), [deleteMutation]);
   const refresh = useCallback(() => qc.invalidateQueries({ queryKey }), [qc, queryKey]);
 
-  const lengthGoal = goals.find((g) => g.kind === "length_retention") ?? null;
+  // Prefer an explicit length-retention goal, but fall back to the most
+  // recent goal so anything the user saves in the Style Journal editor
+  // (which currently writes kind="challenge") still surfaces on Home.
+  const lengthGoal =
+    goals.find((g) => g.kind === "length_retention") ?? goals[0] ?? null;
 
   return { goals, lengthGoal, loading, upsertGoal, deleteGoal, refresh };
 };
