@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -139,14 +140,8 @@ const Profile = () => {
   const { signOut, user } = useAuth();
   const { values: bloodValues } = useBloodValues();
 
-  const [appts, setAppts] = useState<Appt[]>([]);
-  const [apptsLoaded, setApptsLoaded] = useState(false);
-  const [profileName, setProfileName] = useState<string | null>(null);
   const [editPickerOpen, setEditPickerOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [basic, setBasic] = useState<BasicProfile>({});
-  const [hair, setHair] = useState<HairProfile>({});
-  const [health, setHealth] = useState<HealthProfile>({});
 
   // Quick-jump destinations for the edit picker.
   const editTargets = useMemo(
@@ -170,78 +165,75 @@ const Profile = () => {
     navigate(route);
   };
 
-  // Load clinical fragments from the new Postgres tables (with localStorage
-  // fallback during the rollout window — see PHASE_1_PLAN.md §5).
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const ctx = await loadClinicalContext();
-      if (cancelled) return;
-      setBasic({
-        name: ctx.basic?.name ?? undefined,
-        age: ctx.basic?.age ?? undefined,
-        postcode: ctx.basic?.postcode ?? undefined,
-      });
-      setHair({
-        diameter: ctx.hair?.diameter,
-        texture: ctx.hair?.texture,
-        density: ctx.hair?.density,
-        porosity: ctx.hair?.porosity,
-        scalp: ctx.hair?.scalp,
-        diagnosed: ctx.hair?.diagnosed,
-      });
-      setHealth({
-        conditions: ctx.health?.conditions,
-        medications: ctx.health?.medications,
-        diet: ctx.health?.diet,
-        smoke: ctx.health?.smoke?.[0],
-        alcohol: ctx.health?.alcohol,
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+  // Cache clinical fragments so navigating away/back is instant.
+  // staleTime: Infinity — invalidated by the onboarding edit screens after save.
+  const { data: clinical } = useQuery({
+    queryKey: ["profile", "clinical", user?.id ?? "anon"],
+    queryFn: () => loadClinicalContext(),
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
+  });
+  const basic: BasicProfile = useMemo(() => ({
+    name: clinical?.basic?.name ?? undefined,
+    age: clinical?.basic?.age ?? undefined,
+    postcode: clinical?.basic?.postcode ?? undefined,
+  }), [clinical]);
+  const hair: HairProfile = useMemo(() => ({
+    diameter: clinical?.hair?.diameter,
+    texture: clinical?.hair?.texture,
+    density: clinical?.hair?.density,
+    porosity: clinical?.hair?.porosity,
+    scalp: clinical?.hair?.scalp,
+    diagnosed: clinical?.hair?.diagnosed,
+  }), [clinical]);
+  const health: HealthProfile = useMemo(() => ({
+    conditions: clinical?.health?.conditions,
+    medications: clinical?.health?.medications,
+    diet: clinical?.health?.diet,
+    smoke: clinical?.health?.smoke?.[0],
+    alcohol: clinical?.health?.alcohol,
+  }), [clinical]);
+
   const lastWashRaw =
     typeof window !== "undefined"
       ? localStorage.getItem("strand_last_wash_date")
       : null;
 
-  // Load the saved display_name from the profile row (set on signup from the
-  // name the user entered, falling back to the email prefix only as a last resort).
-  useEffect(() => {
-    if (!user) { setProfileName(null); return; }
-    let cancelled = false;
-    (async () => {
+  // Cached profile display_name lookup.
+  const { data: profileName = null } = useQuery({
+    queryKey: ["profile", "display_name", user?.id ?? "anon"],
+    enabled: !!user,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 60,
+    queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
         .select("display_name")
-        .eq("user_id", user.id)
+        .eq("user_id", user!.id)
         .maybeSingle();
-      if (!cancelled) setProfileName(data?.display_name ?? null);
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
+      return data?.display_name ?? null;
+    },
+  });
 
-  // Load upcoming appointments from DB
-  useEffect(() => {
-    if (!user) { setApptsLoaded(true); return; }
-    let cancelled = false;
-    (async () => {
+  // Cached upcoming appointments.
+  const { data: appts = [], isSuccess: apptsLoaded } = useQuery({
+    queryKey: ["profile", "appts", user?.id ?? "anon"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    queryFn: async () => {
       const today = new Date().toISOString().slice(0, 10);
       const { data } = await supabase
         .from("appointments")
         .select("id, appointment_date, appointment_time, professional_name, professional_type, status")
-        .eq("user_id", user.id)
+        .eq("user_id", user!.id)
         .gte("appointment_date", today)
         .order("appointment_date", { ascending: true })
         .limit(2);
-      if (cancelled) return;
-      setAppts((data ?? []) as Appt[]);
-      setApptsLoaded(true);
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
+      return (data ?? []) as Appt[];
+    },
+  });
+
 
   // ---------- Derived: only present if real data exists ----------
   // Name priority: onboarding "basic" name → DB display_name → auth metadata → titlecased email prefix.
