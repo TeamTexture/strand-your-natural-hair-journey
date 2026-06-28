@@ -710,34 +710,55 @@ const IngredientDetail = () => {
           )}
 
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your Rating</p>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setRating(n)}
-                    className={cn(
-                      "text-2xl transition-transform",
-                      n <= rating ? "text-primary" : "text-border",
-                      "hover:scale-110",
-                    )}
-                    aria-label={`${n} stars`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-              <Button
-                variant="gold"
-                onClick={handleSaveRating}
-                disabled={saving || rating === 0}
-                className="shrink-0 !min-h-0 h-7 px-3.5 rounded-pill text-[10px] tracking-[0.12em]"
-              >
-                {saving ? "Saving…" : "Save"}
-              </Button>
-            </div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">AI Rating</p>
+            {(() => {
+              if (!analysis) {
+                return (
+                  <p className="text-xs text-muted-foreground italic">
+                    {loading ? "Calculating…" : "Awaiting analysis"}
+                  </p>
+                );
+              }
+              // Derive a 1–5 star recommendation from the AI's match_score
+              // (0–100). Fall back to ingredient-flag balance when no score
+              // is returned so the row is always populated.
+              let score = typeof analysis.match_score === "number" ? analysis.match_score : 0;
+              if (!score && analysis.ingredients?.length) {
+                const total = analysis.ingredients.length;
+                const good = analysis.ingredients.filter((i) => i.tone === "good").length;
+                const bad = analysis.ingredients.filter((i) => i.tone === "bad").length;
+                score = Math.round(((good - bad) / total) * 50 + 50);
+              }
+              const aiStars = Math.max(1, Math.min(5, Math.round(score / 20)));
+              const label =
+                aiStars >= 5 ? "Excellent match for your hair"
+                : aiStars === 4 ? "Good fit for your routine"
+                : aiStars === 3 ? "Use with care"
+                : aiStars === 2 ? "Not ideal for your profile"
+                : "Best avoided";
+              return (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5" aria-label={`${aiStars} of 5 stars`}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span
+                        key={n}
+                        className={cn(
+                          "text-2xl",
+                          n <= aiStars ? "text-primary" : "text-border",
+                        )}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground text-right max-w-[160px] leading-tight">
+                    {label}
+                  </p>
+                </div>
+              );
+            })()}
           </div>
+
         </SurfaceCard>
 
         {loading && (
