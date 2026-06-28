@@ -80,6 +80,7 @@ const ProfileStep4Colour = () => {
           label="Current Colour Status"
           options={["Natural", "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"]}
           value={colour} onChange={setColour}
+          multi={false}
         />
         <TagGroup
           label="Chemical History"
@@ -97,6 +98,7 @@ const ProfileStep4Colour = () => {
             "Twist-out", "Finger comb coils",
           ]}
           value={style} onChange={setStyle}
+          multi={false}
         />
 
         <FormField
