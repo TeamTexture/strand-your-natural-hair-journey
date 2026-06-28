@@ -70,6 +70,8 @@ const NutritionPlan = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [profile, setProfile] = useState<Profile>({
     diet: "unknown",
     alcohol: "unknown",
