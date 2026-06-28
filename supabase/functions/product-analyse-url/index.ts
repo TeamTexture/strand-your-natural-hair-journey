@@ -360,9 +360,9 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
         url,
         formats: ["markdown"],
         onlyMainContent: true,
-        waitFor: 1500,
+        waitFor: 400,
       }),
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(18_000),
     });
     if (!resp.ok) {
       const errBody = await resp.text();
