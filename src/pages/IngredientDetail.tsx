@@ -905,26 +905,16 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {(tipsExpanded ? analysis.tips : analysis.tips.slice(0, 1)).map((tip, idx) => (
+                  {analysis.tips.slice(0, 2).map((tip, idx) => (
                     <div key={`tip-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
-                  {analysis.tips.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setTipsExpanded((v) => !v)}
-                      className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1"
-                    >
-                      {tipsExpanded
-                        ? "Show less"
-                        : `Read ${analysis.tips.length - 1} more tip${analysis.tips.length - 1 === 1 ? "" : "s"}`}
-                    </button>
-                  )}
                 </SurfaceCard>
               </>
             )}
+
           </>
         )}
 
