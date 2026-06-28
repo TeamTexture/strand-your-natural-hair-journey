@@ -60,9 +60,30 @@ const BloodAiSummary = () => {
     };
   };
 
+  const startProgress = () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    setProgress(0);
+    const start = Date.now();
+    // Tick toward 95% over ~20s; ease so it slows as it approaches the ceiling.
+    progressTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const target = Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 7))));
+      setProgress((p) => (target > p ? target : Math.min(95, p + 1)));
+    }, 200);
+  };
+
+  const stopProgress = (final: number) => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setProgress(final);
+  };
+
   const generate = async (force = false) => {
     setLoading(true);
     setError(null);
+    startProgress();
     try {
       const clinical = await loadClinicalContext();
       const hairProfile = (clinical.hair ?? {}) as Record<string, unknown>;
@@ -81,14 +102,23 @@ const BloodAiSummary = () => {
       if (data?.error) throw new Error(data.error);
       setSummary(data.summary as Summary);
       localStorage.setItem("strand_blood_summary_fp", fingerprint);
+      stopProgress(100);
+      // Hold 100% visible for a moment before unmounting the loader.
+      await new Promise((r) => setTimeout(r, 400));
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Could not generate your summary.";
       setError(msg);
       toast.error(msg);
+      stopProgress(0);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+  }, []);
+
 
   useEffect(() => {
     generate(false);
