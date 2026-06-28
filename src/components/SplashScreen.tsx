@@ -55,33 +55,34 @@ const SplashScreen = () => {
   };
 
   return (
-    <div className="flex flex-col h-full px-7 pt-10 pb-8 bg-background">
-      {/* Top: logo block */}
-      <div className="flex flex-col items-center justify-start text-center">
-        <HairStrandIcon className="w-16 h-16 text-primary mb-8" />
+    <div className="flex flex-col h-full px-7 pb-8 bg-background">
+      <div className="flex flex-col items-center justify-center flex-1 pt-8 gap-8">
+        {/* Logo block */}
+        <div className="flex flex-col items-center text-center">
+          <HairStrandIcon className="w-16 h-16 text-primary mb-6" />
 
-        <h1 className="font-display text-primary text-6xl font-semibold tracking-strand uppercase">
-          Strand
-        </h1>
+          <h1 className="font-display text-primary text-6xl font-semibold tracking-strand uppercase">
+            Strand
+          </h1>
 
-        <div className="mt-8 max-w-[260px] text-foreground/75 text-sm leading-relaxed space-y-1">
-          <p>
-            Built with insights from
-            <br />
-            <span className="font-display italic text-foreground text-base">
-              "How To Love Your Afro"
-            </span>
-          </p>
-          {firstName && (
-            <p className="font-body text-foreground text-base">
-              Welcome back {firstName}
+          <div className="mt-6 max-w-[260px] text-foreground/75 text-sm leading-relaxed space-y-1">
+            <p>
+              Built with insights from
+              <br />
+              <span className="font-display italic text-foreground text-base">
+                "How To Love Your Afro"
+              </span>
             </p>
-          )}
+            {firstName && (
+              <p className="font-body text-foreground text-base">
+                Welcome back {firstName}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Bottom: sign-in form */}
-      <form onSubmit={submit} className="flex flex-col gap-3 selectable">
+        {/* Sign-in form */}
+        <form onSubmit={submit} className="w-full flex flex-col gap-3 selectable">
         <div className="space-y-1.5">
           <Label
             htmlFor="splash-email"
