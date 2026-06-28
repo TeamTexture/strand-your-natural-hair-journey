@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, AlertCircle, Loader2, Check, CalendarX } from "lucide-react";
+import { AlertCircle, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
@@ -16,6 +16,7 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
 import { toast } from "sonner";
+
 
 const types = ["Trichologist", "Dermatologist", "Curl Specialist", "GP"];
 
