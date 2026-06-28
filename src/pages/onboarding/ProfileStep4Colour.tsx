@@ -73,14 +73,16 @@ const ProfileStep4Colour = () => {
   const [style, setStyle] = useState(["Box braids"]);
   const [howLongNum, setHowLongNum] = useState("9");
   const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
-  const [plans, setPlans] = useState(["Yes — in 5 weeks"]);
+  const [plansToChange, setPlansToChange] = useState<"yes" | "no">("no");
+  const [changeNum, setChangeNum] = useState("");
+  const [changeUnit, setChangeUnit] = useState<"days" | "weeks" | "months">("weeks");
   const [changingTo, setChangingTo] = useState<string[]>(["Loose natural"]);
   const [defaultStyle, setDefaultStyle] = useState<string[]>([
     "Box braids",
     "Loose natural",
   ]);
 
-  const isChanging = plans.includes("Yes — in 5 weeks");
+  const isChanging = plansToChange === "yes";
 
   return (
     <ScreenLayout>
@@ -144,18 +146,50 @@ const ProfileStep4Colour = () => {
 
         <TagGroup
           label="Plans to Change Style"
-          options={["Yes — in 5 weeks", "No plans yet"]}
-          value={plans} onChange={setPlans}
+          options={["Yes", "No"]}
+          value={plansToChange === "yes" ? ["Yes"] : plansToChange === "no" ? ["No"] : []}
+          onChange={(v) => setPlansToChange(v.includes("Yes") ? "yes" : "no")}
+          multi={false}
         />
 
         {isChanging && (
-          <MultiSelectDropdown
-            label="Changing To"
-            options={HAIRSTYLE_OPTIONS}
-            value={changingTo}
-            onChange={setChangingTo}
-            placeholder="Select your next style…"
-          />
+          <>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+                When do you plan to change it?
+              </div>
+              <div className="flex gap-3">
+                <Input
+                  type="number"
+                  min={0}
+                  value={changeNum}
+                  onChange={(e) => setChangeNum(e.target.value)}
+                  className="w-24"
+                />
+                <Select
+                  value={changeUnit}
+                  onValueChange={(v) => setChangeUnit(v as "days" | "weeks" | "months")}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">Days</SelectItem>
+                    <SelectItem value="weeks">Weeks</SelectItem>
+                    <SelectItem value="months">Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <MultiSelectDropdown
+              label="Changing To"
+              options={HAIRSTYLE_OPTIONS}
+              value={changingTo}
+              onChange={setChangingTo}
+              placeholder="Select your next style…"
+            />
+          </>
         )}
 
         <MultiSelectDropdown
@@ -184,6 +218,22 @@ const ProfileStep4Colour = () => {
             const style_set_at = new Date(
               Date.now() - days * 24 * 60 * 60 * 1000,
             ).toISOString();
+
+            let planned_change_date: string | null = null;
+            if (plansToChange === "yes") {
+              const cNum = parseInt(changeNum, 10);
+              const cDays = Number.isFinite(cNum)
+                ? changeUnit === "weeks"
+                  ? cNum * 7
+                  : changeUnit === "months"
+                  ? cNum * 30
+                  : cNum
+                : 0;
+              planned_change_date = new Date(
+                Date.now() + cDays * 24 * 60 * 60 * 1000,
+              ).toISOString();
+            }
+
             // Use the same shape as SetCurrentStyle / Home so the value
             // pulls through to the "Current Style" card on the homescreen.
             localStorage.setItem(
@@ -192,10 +242,13 @@ const ProfileStep4Colour = () => {
                 current_hairstyle: style[0] ?? "",
                 style_set_at,
                 planned_next_style: changingTo[0] ?? "",
+                planned_change_date,
                 howLong,
                 howLongNum,
                 howLongUnit,
-                plans,
+                plansToChange,
+                changeNum,
+                changeUnit,
                 changingTo,
                 defaultStyle,
                 colour,
@@ -216,7 +269,7 @@ const ProfileStep4Colour = () => {
                       current_hairstyle: style[0] ?? null,
                       style_set_at,
                       planned_next_style: changingTo[0] ?? null,
-                      planned_change_date: null,
+                      planned_change_date,
                       default_styles: defaultStyle,
                     },
                     { onConflict: "user_id" },
