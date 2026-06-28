@@ -48,7 +48,7 @@ export const PROFESSIONALS: Professional[] = [
       "Mother–daughter team of certified trichologists, founded 2011. Specialists in Afro and curly textured hair, known for honest, in-depth diagnosis and in-house scalp treatments using electrotherapy, infra-red and steaming. Featured in Texture Talks Season 2.",
     insta: "@fulhamscalpandhairclinic",
     instaUrl: "https://www.instagram.com/fulhamscalpandhairclinic/",
-    website: "https://www.fulhamscalpandhair.com",
+    website: "https://fulhamscalphairclinic.com/",
     bookCode: "STRAND15",
     discount: "STRAND15 — 15% off first consultation",
     featured: true,
