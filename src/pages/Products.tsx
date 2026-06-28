@@ -309,19 +309,12 @@ const Products = () => {
               disabled={urlBusy}
               className="h-12 text-sm"
             />
-            <Button
-              variant="gold"
-              size="pill"
-              onClick={handleLinkSubmit}
+            <UrlScanProgressButton
+              busy={urlBusy}
               disabled={!linkValue.trim() || urlBusy}
+              onClick={handleLinkSubmit}
               className="w-full"
-            >
-              {urlBusy ? (
-                <><Loader2 className="size-4 mr-2 animate-spin" /> Reading page…</>
-              ) : (
-                "Analyse this link"
-              )}
-            </Button>
+            />
             <p className="text-[10px] text-muted-foreground leading-snug">
               Works best with direct product pages (not search results or home
               pages). If a page hides ingredients behind a tab, the AI may
