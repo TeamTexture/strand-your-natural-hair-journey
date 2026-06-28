@@ -22,7 +22,7 @@ const PhoneShell = ({ children }: Props) => (
     >
       {/* iOS notch (desktop only) */}
       <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground/90 rounded-b-2xl z-30 pointer-events-none" />
-      <div className="relative z-10 h-full">{children}</div>
+      <div className="relative z-10 h-full sm:pt-8">{children}</div>
     </div>
   </div>
 );
