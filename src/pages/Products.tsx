@@ -10,6 +10,7 @@ import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import MyToolsSection from "@/components/MyToolsSection";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import ProductThumb from "@/components/ProductThumb";
+import { UrlScanProgressButton } from "@/components/UrlScanProgressButton";
 import ProductsHeader, {
   CATEGORY_ORDER,
   applyProductFilters,
