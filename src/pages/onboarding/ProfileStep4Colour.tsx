@@ -218,6 +218,22 @@ const ProfileStep4Colour = () => {
             const style_set_at = new Date(
               Date.now() - days * 24 * 60 * 60 * 1000,
             ).toISOString();
+
+            let planned_change_date: string | null = null;
+            if (plansToChange === "yes") {
+              const cNum = parseInt(changeNum, 10);
+              const cDays = Number.isFinite(cNum)
+                ? changeUnit === "weeks"
+                  ? cNum * 7
+                  : changeUnit === "months"
+                  ? cNum * 30
+                  : cNum
+                : 0;
+              planned_change_date = new Date(
+                Date.now() + cDays * 24 * 60 * 60 * 1000,
+              ).toISOString();
+            }
+
             // Use the same shape as SetCurrentStyle / Home so the value
             // pulls through to the "Current Style" card on the homescreen.
             localStorage.setItem(
@@ -226,10 +242,13 @@ const ProfileStep4Colour = () => {
                 current_hairstyle: style[0] ?? "",
                 style_set_at,
                 planned_next_style: changingTo[0] ?? "",
+                planned_change_date,
                 howLong,
                 howLongNum,
                 howLongUnit,
-                plans,
+                plansToChange,
+                changeNum,
+                changeUnit,
                 changingTo,
                 defaultStyle,
                 colour,
