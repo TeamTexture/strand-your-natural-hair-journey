@@ -218,7 +218,32 @@ const NutritionPlan = () => {
 
   const renderAiSection = (cards: AiCard[] | undefined, kind: "diet" | "avoid") => {
     if (aiLoading && !cards) {
-      return <LoadingDot label="Personalising your plan…" />;
+      const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
+      return (
+        <div className="px-2 pt-6 pb-4 flex flex-col items-center text-center">
+          <p className="font-display text-[20px] leading-tight text-foreground mb-5">
+            Personalising your plan…
+          </p>
+          <div
+            className="text-[40px] font-display text-primary tabular-nums mb-3"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+          >
+            {pct}%
+          </div>
+          <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-primary transition-[width] duration-300 ease-out"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground font-body mt-4 leading-relaxed">
+            STRAND is tailoring your nutrition guidance to your bloods, hair and heritage profile.
+          </p>
+        </div>
+      );
     }
     if (!cards || cards.length === 0) {
       return (
