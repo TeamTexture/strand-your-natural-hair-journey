@@ -263,7 +263,7 @@ export async function callClaude<T = unknown>(
       //  - `input` (OpenAI-style function-calling mirror, mostly on Opus)
       //  - `$PARAMETER_VALUE` (observed on Sonnet/Haiku when the tool schema
       //    is presented with a placeholder parameter name)
-      const ENVELOPE_KEYS = new Set(["input", "$PARAMETER_VALUE"]);
+      const ENVELOPE_KEYS = new Set(["input", "$PARAMETER_VALUE", "$PARAMETER_NAME"]);
       if (keys.length === 1 && ENVELOPE_KEYS.has(keys[0])) {
         const inner = (raw as Record<string, unknown>)[keys[0]];
         if (inner && typeof inner === "object" && !Array.isArray(inner)) {
