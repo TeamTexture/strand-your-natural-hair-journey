@@ -79,8 +79,28 @@ const NutritionPlan = () => {
   });
   const [plan, setPlan] = useState<AiPlan | null>(null);
 
+  const startProgress = () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    setAiProgress(0);
+    const start = Date.now();
+    progressTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const target = Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 8))));
+      setAiProgress((p) => (target > p ? target : Math.min(95, p + 1)));
+    }, 200);
+  };
+
+  const stopProgress = (final: number) => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setAiProgress(final);
+  };
+
   const fetchPlan = async (force = false, currentProfile = profile) => {
     setAiLoading(true);
+    startProgress();
     try {
       const context = await buildAiContext();
       const { data, error } = await supabase.functions.invoke("nutrition-plan", {
@@ -97,16 +117,25 @@ const NutritionPlan = () => {
         if (msg.includes("429")) toast.error("Try again in a moment.");
         else if (msg.includes("402")) toast.error("AI credits needed.");
         else toast.error(msg);
+        stopProgress(0);
         return;
       }
       if (data?.plan) setPlan(data.plan as AiPlan);
+      stopProgress(100);
+      await new Promise((r) => setTimeout(r, 400));
     } catch (e) {
       console.error("nutrition-plan invoke failed", e);
       toast.error("Couldn't generate your plan.");
+      stopProgress(0);
     } finally {
       setAiLoading(false);
     }
   };
+
+  useEffect(() => () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+  }, []);
+
 
   useEffect(() => {
     (async () => {
