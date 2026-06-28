@@ -136,6 +136,7 @@ const SplashScreen = () => {
           New to Strand? Create an account
         </button>
       </form>
+      </div>
     </div>
   );
 };
