@@ -151,7 +151,13 @@ const Journal = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Hair Journal" back={false} />
+      <TitleBar title="Style Journal" back={false} />
+
+      <div className="px-5 pb-2">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          The place to document your favourite styles and track every step of your hair journey.
+        </p>
+      </div>
 
       <div className="px-5 pb-4">
         <div className="rounded-[14px] p-4 bg-gradient-to-r from-primary to-[#8B6914] text-primary-foreground">
