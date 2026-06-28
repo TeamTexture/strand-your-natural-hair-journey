@@ -16,10 +16,16 @@ interface TagGroupProps {
   options: string[];
   value: string[];
   onChange: (next: string[]) => void;
+  single?: boolean;
 }
-const TagGroup = ({ label, options, value, onChange }: TagGroupProps) => {
-  const toggle = (opt: string) =>
-    onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+const TagGroup = ({ label, options, value, onChange, single }: TagGroupProps) => {
+  const toggle = (opt: string) => {
+    if (single) {
+      onChange(value.includes(opt) ? [] : [opt]);
+    } else {
+      onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+    }
+  };
   return (
     <div>
       <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
