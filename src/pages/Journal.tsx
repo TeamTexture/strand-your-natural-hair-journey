@@ -64,19 +64,35 @@ const Journal = () => {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<UserGoal | null>(null);
+  const [editorStatus, setEditorStatus] = useState<string>("in_progress");
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewing, setViewing] = useState<UserGoal | null>(null);
+  const [chooserOpen, setChooserOpen] = useState(false);
 
-  // Other (non-length) goals are listed beneath the primary card.
-  const otherGoals = useMemo(
-    () => goals.filter((g) => g.id !== lengthGoal?.id),
-    [goals, lengthGoal],
+  // Goals split by status so future goals can render in their own section
+  // and the primary card always reflects what's actively in-progress.
+  const inProgressGoals = useMemo(
+    () => goals.filter((g) => (g.status ?? "in_progress") === "in_progress"),
+    [goals],
+  );
+  const futureGoals = useMemo(
+    () => goals.filter((g) => g.status === "future"),
+    [goals],
+  );
+  const primaryGoal = lengthGoal && (lengthGoal.status ?? "in_progress") === "in_progress"
+    ? lengthGoal
+    : inProgressGoals[0] ?? null;
+  const otherInProgress = useMemo(
+    () => inProgressGoals.filter((g) => g.id !== primaryGoal?.id),
+    [inProgressGoals, primaryGoal],
   );
 
-  const openEditor = (goal: UserGoal | null) => {
+  const openEditor = (goal: UserGoal | null, status: string = "in_progress") => {
     setEditing(goal);
+    setEditorStatus(status);
     setEditorOpen(true);
   };
+
 
   const openDetail = (goal: UserGoal) => {
     setViewing(goal);
