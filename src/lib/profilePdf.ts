@@ -5,7 +5,7 @@ interface ProfilePdfInput {
   displayName: string;
   age?: string;
   postcode?: string;
-  waterHardness?: string | null;
+  
   hair: {
     diameter?: string | string[];
     porosity?: string | string[];
@@ -123,7 +123,7 @@ export function generateProfilePdf(input: ProfilePdfInput) {
   y = row(doc, y, "Name", input.displayName || "STRAND Member");
   if (input.age) y = row(doc, y, "Age", input.age);
   if (input.postcode) y = row(doc, y, "Postcode", input.postcode);
-  if (input.waterHardness) y = row(doc, y, "Water", input.waterHardness);
+  
 
   const diameter = toText(input.hair.diameter);
   const porosity = toText(input.hair.porosity);

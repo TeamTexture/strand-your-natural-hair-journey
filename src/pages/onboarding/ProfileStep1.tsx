@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
-import { isHardWaterPostcode } from "@/data/hardWaterPostcodes";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -81,7 +81,7 @@ const ProfileStep1 = () => {
   const ageRef = useRef<HTMLSelectElement>(null);
   const postcodeRef = useRef<HTMLInputElement>(null);
 
-  const hardWater = useMemo(() => isHardWaterPostcode(postcode), [postcode]);
+  
   const isUK = country === "United Kingdom";
 
   // Load any existing profile so users returning to the step see their previous values.
@@ -493,16 +493,6 @@ const ProfileStep1 = () => {
               }}
               className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] uppercase min-h-[44px]"
             />
-            {hardWater === true && (
-              <span className="bg-primary/15 text-primary text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded mr-2 shrink-0">
-                Hard water ⚠
-              </span>
-            )}
-            {hardWater === false && (
-              <span className="bg-good/15 text-good text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded mr-2 shrink-0">
-                Soft water ✓
-              </span>
-            )}
           </FieldFrame>
           {submitted && errors.postcode && <FieldError>{errors.postcode}</FieldError>}
         </label>

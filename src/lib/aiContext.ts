@@ -16,7 +16,7 @@
 //   });
 
 import { supabase } from "@/integrations/supabase/client";
-import { isHardWaterPostcode } from "@/data/hardWaterPostcodes";
+
 import { loadClinicalContext } from "@/lib/clinicalContext";
 
 export interface AiContext {
@@ -251,7 +251,7 @@ export async function buildAiContext(): Promise<AiContext> {
     professional,
     location: {
       postcode: postcode ?? null,
-      is_hard_water_area: postcode ? isHardWaterPostcode(postcode) : null,
+      is_hard_water_area: null,
     },
     history: {
       last_3_wash_days: last3,
