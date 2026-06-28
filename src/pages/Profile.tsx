@@ -172,7 +172,12 @@ const Profile = () => {
     queryFn: () => loadClinicalContext(),
     staleTime: Infinity,
     gcTime: 1000 * 60 * 60,
+    // Render immediately from the local snapshot so fields aren't blank on
+    // first paint; the DB overlay refreshes the cache in the background.
+    initialData: loadClinicalContextLocal,
+    initialDataUpdatedAt: 0,
   });
+
   const basic: BasicProfile = useMemo(() => ({
     name: clinical?.basic?.name ?? undefined,
     age: clinical?.basic?.age ?? undefined,
