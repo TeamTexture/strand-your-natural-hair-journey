@@ -174,7 +174,7 @@ export function useUserTools() {
   const updateTool = useCallback(
     async (
       id: string,
-      patch: Partial<Pick<UserTool, "name" | "brand" | "category" | "rating" | "notes" | "on_shelf">>,
+      patch: Partial<Pick<UserTool, "name" | "brand" | "category" | "rating" | "notes" | "on_shelf" | "on_favourite">>,
     ) => {
       if (!user) return false;
       const { error } = await supabase
@@ -187,6 +187,26 @@ export function useUserTools() {
         return false;
       }
       await load();
+      return true;
+    },
+    [user, load],
+  );
+
+  const setFavourite = useCallback(
+    async (id: string, on: boolean) => {
+      if (!user) return false;
+      // Optimistic update so the heart fills instantly.
+      setTools((prev) => prev.map((t) => (t.id === id ? { ...t, on_favourite: on } : t)));
+      const { error } = await supabase
+        .from("user_tools")
+        .update({ on_favourite: on })
+        .eq("id", id)
+        .eq("user_id", user.id);
+      if (error) {
+        toast.error("Could not update favourite");
+        await load();
+        return false;
+      }
       return true;
     },
     [user, load],
