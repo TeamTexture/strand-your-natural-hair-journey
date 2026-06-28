@@ -134,11 +134,8 @@ const ProDetails = () => {
                       {p.title} · {p.clinic}
                     </p>
                   </div>
-                  {(p.gmcNumber || p.iotNumber) && (
-                    <span className="text-[10px] uppercase tracking-[0.1em] text-good bg-good/10 px-1.5 py-0.5 rounded shrink-0">
-                      Verified
-                    </span>
-                  )}
+
+
                 </button>
               ))}
             </div>
