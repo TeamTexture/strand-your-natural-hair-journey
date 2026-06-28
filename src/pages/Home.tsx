@@ -233,42 +233,91 @@ const Home = () => {
               const targetDate = lengthGoal.target_date
                 ? new Date(lengthGoal.target_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })
                 : null;
+              // The user's own words come first — challenge is the free-text
+              // they wrote in the editor, target_text is what success looks
+              // like to them. Fall back to a numeric summary only if neither
+              // exists.
+              const userText =
+                lengthGoal.challenge?.trim() ||
+                lengthGoal.target_text?.trim() ||
+                lengthGoal.title?.trim() ||
+                null;
               return (
-                <button
-                  onClick={() => navigate("/journal")}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
-                      <Ruler className="size-5 text-primary" />
+                <div className="w-full">
+                  <button
+                    onClick={() => navigate("/journal")}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
+                        <Ruler className="size-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display text-base font-semibold leading-snug">
+                          {userText ?? `${current} ${unit}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {target != null
+                            ? `${current} / ${target} ${unit}${targetDate ? ` · by ${targetDate}` : ""}`
+                            : targetDate
+                              ? `Target: ${targetDate}`
+                              : "Tap to update progress"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display text-base font-semibold leading-tight truncate">
-                        {current} {unit}
-                        {target != null && (
-                          <span className="text-muted-foreground font-normal">
-                            {" "}/ {target} {unit}
-                          </span>
+                    {pct != null && (
+                      <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* AI tip — pulled from the goal-tip edge function using
+                      the user's full profile. Cached per goal id+updated_at
+                      so it loads instantly after the first generation. */}
+                  <div className="mt-3 rounded-[12px] bg-primary/10 border border-primary/20 p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Sparkles className="size-3.5 text-primary" />
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-medium">
+                        Strand tip
+                      </p>
+                    </div>
+                    {tipLoading && !goalTip ? (
+                      <p className="text-xs text-muted-foreground italic">
+                        Personalising a tip for this goal…
+                      </p>
+                    ) : goalTip ? (
+                      <>
+                        <p className="text-sm font-medium leading-snug">
+                          {goalTip.headline}
+                        </p>
+                        <p className="text-xs text-foreground/80 leading-relaxed mt-1">
+                          {goalTip.body}
+                        </p>
+                        {goalTip.actions?.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {goalTip.actions.slice(0, 3).map((a, i) => (
+                              <li
+                                key={i}
+                                className="text-xs text-foreground/80 leading-snug flex gap-1.5"
+                              >
+                                <span className="text-primary">•</span>
+                                <span>{a}</span>
+                              </li>
+                            ))}
+                          </ul>
                         )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Tip will appear once your profile has a little more detail.
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {lengthGoal.target_text
-                          ? lengthGoal.target_text
-                          : targetDate
-                            ? `Target: ${targetDate}`
-                            : lengthGoal.title}
-                      </p>
-                    </div>
+                    )}
                   </div>
-                  {pct != null && (
-                    <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  )}
-                </button>
+                </div>
               );
             })()
           ) : (
