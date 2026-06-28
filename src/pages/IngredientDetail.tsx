@@ -871,17 +871,10 @@ const IngredientDetail = () => {
               })()}
             </div>
 
-            {/* Fresh-scan extras: usage_instructions + personalised use_cases + tips. */}
-            {analysis.usage_instructions && analysis.usage_instructions.trim().length > 0 && (
-              <>
-                <SectionLabel>How to use it</SectionLabel>
-                <SurfaceCard>
-                  <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">
-                    {analysis.usage_instructions}
-                  </p>
-                </SurfaceCard>
-              </>
-            )}
+            {/* Standard "How to use it" intentionally removed — only the
+                personalised guidance/tips below are shown. */}
+
+
 
             {analysis.use_cases && analysis.use_cases.length > 0 && (
               <>
