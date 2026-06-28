@@ -18,6 +18,7 @@ export const STRAND_PREFIX = "strand_";
 export const STRAND_PRESERVED_KEYS: ReadonlySet<string> = new Set([
   "strand_walkthrough_complete",
   "strand_migration_v1_done",
+  "strand_last_display_name",
 ]);
 
 /** Remove every `strand_*` key from localStorage except the device-level UI
