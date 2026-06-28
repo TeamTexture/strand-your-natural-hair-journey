@@ -281,6 +281,8 @@ function styleFromLocal(): StyleSlice | null {
     chemical_history: raw.chemHist ?? [],
     chemHist: raw.chemHist ?? [],
     howLong: raw.howLong,
+    howLongNum: raw.howLongNum,
+    howLongUnit: raw.howLongUnit,
     plans: raw.plans,
     changingTo: raw.changingTo,
     style: raw.style,
