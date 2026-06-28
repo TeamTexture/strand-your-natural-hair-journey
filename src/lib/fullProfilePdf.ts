@@ -498,7 +498,6 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
       cur.card(`${r.product_brand ? r.product_brand + " — " : ""}${r.product_name}`, [
         { label: "Rating", value: r.rating ? `${r.rating}/5` : "" },
         { label: "When", value: fmtDate(r.created_at) },
-        { label: "Notes", value: r.notes || "" },
       ]);
     }
   }
