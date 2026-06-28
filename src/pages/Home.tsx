@@ -6,6 +6,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { useUserProducts } from "@/hooks/useUserProducts";
