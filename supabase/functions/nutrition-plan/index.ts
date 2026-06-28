@@ -252,9 +252,21 @@ Return JSON only via the return_nutrition_plan tool.`;
   if (!result.toolInput) {
     throw new Error("Claude returned no return_nutrition_plan tool_use block");
   }
-  const p = result.toolInput;
-  // Diagnostic: dump shape & key list so we can tell if Claude returned an
-  // empty {} vs a fully-populated object that we then misread.
+  // Defensive unwrap: Claude (Sonnet/Haiku especially) sometimes wraps tool
+  // args under a placeholder envelope key like `$PARAMETER_NAME`,
+  // `$PARAMETER_VALUE`, or `input`. The shared anthropic-client also does
+  // this, but we re-run it here as a safety net in case of double-nesting or
+  // a stale deploy.
+  let p: any = result.toolInput;
+  for (let depth = 0; depth < 3; depth++) {
+    if (!p || typeof p !== "object" || Array.isArray(p)) break;
+    const keys = Object.keys(p);
+    if (keys.length !== 1) break;
+    if (!/^(\$PARAMETER_NAME|\$PARAMETER_VALUE|input|arguments|parameters)$/.test(keys[0])) break;
+    const inner = p[keys[0]];
+    if (!inner || typeof inner !== "object" || Array.isArray(inner)) break;
+    p = inner;
+  }
   try {
     const raw = JSON.stringify(p);
     console.log(
@@ -274,6 +286,7 @@ Return JSON only via the return_nutrition_plan tool.`;
     diet: Array.isArray(p.diet) ? p.diet : [],
     avoid: Array.isArray(p.avoid) ? p.avoid : [],
   };
+
   // Hard guard: never return (and therefore never cache) an empty plan.
   if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
     throw new Error(
