@@ -54,7 +54,16 @@ const Home = () => {
   const { lengthGoal } = useGoals();
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
-  const [style, setStyle] = useState<ProfileStyle>({});
+  const [style, setStyle] = useState<ProfileStyle>(() => {
+    // Hydrate instantly from the local snapshot so the Home card never
+    // flashes empty on first paint.
+    const local = loadClinicalContextLocal();
+    return {
+      current_hairstyle: local.style?.current_hairstyle ?? undefined,
+      style_set_at: local.style?.style_set_at ?? undefined,
+      planned_next_style: local.style?.planned_next_style ?? undefined,
+    };
+  });
 
   // Re-fetch style from DB (with localStorage fallback) whenever the user
   // lands on Home, regains focus, the tab becomes visible again, OR an
@@ -63,8 +72,8 @@ const Home = () => {
   // matters because the native `storage` event only fires in OTHER tabs.
   useEffect(() => {
     let cancelled = false;
-    const refresh = async () => {
-      invalidateClinicalContextCache();
+    const refresh = async (forceFresh: boolean) => {
+      if (forceFresh) invalidateClinicalContextCache();
       const ctx = await loadClinicalContext();
       if (cancelled) return;
       setStyle({
@@ -73,8 +82,11 @@ const Home = () => {
         planned_next_style: ctx.style?.planned_next_style ?? undefined,
       });
     };
-    void refresh();
-    const onEvt = () => void refresh();
+    // Initial mount: use the (possibly cached) edge-function result so
+    // navigations back to Home don't pay a full decrypt round-trip.
+    void refresh(false);
+    const onEvt = () => void refresh(true);
+
     window.addEventListener("focus", onEvt);
     window.addEventListener("storage", onEvt);
     window.addEventListener("strand:style-updated", onEvt);
