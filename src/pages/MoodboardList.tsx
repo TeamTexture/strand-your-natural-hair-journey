@@ -288,7 +288,7 @@ const MoodboardList = () => {
                     type="button"
                     onClick={() => setGradient(g)}
                     className={`h-12 rounded-[10px] bg-gradient-to-br ${g} border-2 ${
-                      gradient === g ? "border-primary" : "border-transparent"
+                      gradient === g ? "border-black" : "border-transparent"
                     }`}
                     aria-label="Pick colour"
                   />
