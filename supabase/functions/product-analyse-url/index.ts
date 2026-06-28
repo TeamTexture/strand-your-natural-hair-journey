@@ -522,7 +522,7 @@ async function runLovable(args: {
     throw e;
   }
 
-  const TRIM = 18_000;
+  const TRIM = 9_000;
   const trimmed = scraped.text.length > TRIM ? scraped.text.slice(0, TRIM) : scraped.text;
 
   const userMsg = `Analyse this product page and return strict JSON matching the schema.
