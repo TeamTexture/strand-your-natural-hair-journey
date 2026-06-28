@@ -22,7 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
-import { getWaterHardness } from "@/data/hardWaterPostcodes";
+
 import { generateFullProfilePdf } from "@/lib/fullProfilePdf";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 
@@ -255,7 +255,7 @@ const Profile = () => {
   const displayName = rawName || (user?.email ? titleCase(user.email.split("@")[0]) : "");
   const ageDisplay = basic.age !== undefined && basic.age !== "" ? `Age ${basic.age}` : "";
 
-  const hardness = basic.postcode ? getWaterHardness(basic.postcode) : null;
+  
 
   // Flagged blood markers (low/high) — only built from values the user entered.
   const flaggedBlood = useMemo(() => {
@@ -283,8 +283,6 @@ const Profile = () => {
   // Build chips list — ONLY from real data
   const chips = useMemo(() => {
     const out: string[] = [];
-    if (hardness === "hard") out.push("⚠ Hard water");
-    else if (hardness === "soft") out.push("💧 Soft water");
     flaggedBlood.slice(0, 3).forEach((b) => {
       out.push(`🩸 ${b.status === "low" ? "Low" : "High"} ${b.marker.toLowerCase()}`);
     });
@@ -297,7 +295,7 @@ const Profile = () => {
       hair.diagnosed.slice(0, 2).forEach((d) => out.push(`🩺 ${d}`));
     }
     return out;
-  }, [hardness, flaggedBlood, health.medications, hair.diagnosed]);
+  }, [flaggedBlood, health.medications, hair.diagnosed]);
 
   // Build alerts list (priority: blood > wash > appointments)
   const alerts = useMemo<AlertItem[]>(() => {

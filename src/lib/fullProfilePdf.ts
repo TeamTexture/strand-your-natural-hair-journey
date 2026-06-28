@@ -27,7 +27,7 @@
 import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { loadClinicalContext } from "@/lib/clinicalContext";
-import { getWaterHardness } from "@/data/hardWaterPostcodes";
+
 import { BLOOD_RANGES, evaluate, statusLabel } from "@/data/bloodRanges";
 
 const PAGE = { w: 210, h: 297 };
@@ -311,8 +311,6 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
   if (basic?.postcode) cur.row("Postcode", basic.postcode);
   if (basic?.country) cur.row("Country", basic.country);
   if (basic?.heritage?.length) cur.row("Heritage", basic.heritage.join(", "));
-  const hardness = basic?.postcode ? getWaterHardness(basic.postcode) : null;
-  if (hardness) cur.row("Water", hardness === "hard" ? "Hard water area" : "Soft water area", hardness === "hard" ? COLORS.warn : COLORS.good);
 
   // ── Hair profile ──
   cur.section("Hair profile");
