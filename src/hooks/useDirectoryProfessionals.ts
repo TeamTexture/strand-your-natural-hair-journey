@@ -20,9 +20,16 @@ export function useDirectoryProfessionals() {
 
     (async () => {
       try {
+        // Column-level GRANT on professionals_directory restricts which
+        // fields authenticated users can read (verification_number,
+        // discount_code and verification_type are intentionally hidden).
+        // SELECT * would fail with permission denied, wiping the DB-sourced
+        // pros and leaving Book Now / Website buttons empty for those rows.
         const { data, error: dbErr } = await supabase
           .from("professionals_directory")
-          .select("*")
+          .select(
+            "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at",
+          )
           .eq("is_active", true);
 
         if (cancelled) return;
