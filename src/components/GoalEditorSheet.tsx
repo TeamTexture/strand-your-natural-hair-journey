@@ -36,6 +36,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   goal: UserGoal | null;
   defaultKind?: string;
+  defaultStatus?: string;
 }
 
 /**
@@ -48,7 +49,9 @@ const GoalEditorSheet = ({
   onOpenChange,
   goal,
   defaultKind = "challenge",
+  defaultStatus = "in_progress",
 }: Props) => {
+
   const { upsertGoal, deleteGoal } = useGoals();
   const [challenge, setChallenge] = useState("");
   const [target, setTarget] = useState("");
