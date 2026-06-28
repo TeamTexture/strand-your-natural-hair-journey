@@ -16,8 +16,10 @@ import { useGoalTip } from "@/hooks/useGoalTip";
 import { Ruler, Sparkles } from "lucide-react";
 import {
   loadClinicalContext,
+  loadClinicalContextLocal,
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
+
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight" aria-label={`${n} stars`}>
