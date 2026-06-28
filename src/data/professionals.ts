@@ -68,7 +68,7 @@ export const PROFESSIONALS: Professional[] = [
       "Operating since the 1950s, The Spencer Clinic is one of London's most trusted hair and scalp clinics. Samantha Stewart is a certified trichologist and Afro hair specialist who deeply understands cultural styling practices. Featured in Texture Talks Season 1.",
     insta: "@thespencerclinic",
     instaUrl: "https://www.instagram.com/thespencerclinic/",
-    website: "https://www.thespencerclinic.co.uk",
+    website: "https://www.spencerclinic.co.uk/",
     bookCode: "STRAND10",
     discount: "STRAND10 — 10% off consultation",
   },
