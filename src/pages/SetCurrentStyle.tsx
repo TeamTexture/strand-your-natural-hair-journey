@@ -77,7 +77,15 @@ const SetCurrentStyle = () => {
       if (cancelled) return;
       if (ctx.style) {
         setStyle(ctx.style.current_hairstyle ?? "");
-        setHowLong(ctx.style.howLong ?? "");
+        if (ctx.style.howLongNum) {
+          setHowLongNum(ctx.style.howLongNum);
+          setHowLongUnit((ctx.style.howLongUnit as "days" | "weeks" | "months") ?? "days");
+        } else if (ctx.style.howLong) {
+          const m = ctx.style.howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
+          setHowLongNum(m?.[1] ?? "");
+          const u = (m?.[2] ?? "day").toLowerCase();
+          setHowLongUnit(u.startsWith("week") ? "weeks" : u.startsWith("month") ? "months" : "days");
+        }
         setNext(ctx.style.planned_next_style ? [ctx.style.planned_next_style] : []);
       }
     })();
