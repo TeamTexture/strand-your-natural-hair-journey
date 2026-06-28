@@ -171,17 +171,16 @@ const ProfileStep4Colour = () => {
           size="pill"
           className="mt-4"
           onClick={async () => {
-            // Parse "How Long in This Style" — accept "9 days", "3 weeks", "5", etc.
-            const match = howLong.trim().match(/(\d+)\s*(day|week|month)?s?/i);
-            const num = match ? parseInt(match[1], 10) : NaN;
-            const unit = (match?.[2] ?? "day").toLowerCase();
+            const num = parseInt(howLongNum, 10);
+            const unit = howLongUnit;
             const days = Number.isFinite(num)
-              ? unit.startsWith("week")
+              ? unit === "weeks"
                 ? num * 7
-                : unit.startsWith("month")
+                : unit === "months"
                 ? num * 30
                 : num
               : 0;
+            const howLong = `${howLongNum} ${howLongUnit}`;
             const style_set_at = new Date(
               Date.now() - days * 24 * 60 * 60 * 1000,
             ).toISOString();
@@ -194,6 +193,8 @@ const ProfileStep4Colour = () => {
                 style_set_at,
                 planned_next_style: changingTo[0] ?? "",
                 howLong,
+                howLongNum,
+                howLongUnit,
                 plans,
                 changingTo,
                 defaultStyle,
