@@ -48,25 +48,22 @@ const SOFT_AREAS = new Set<string>([
  * outward and at least the start of the inward code).
  */
 function extractOutwardArea(raw: string): string | null {
-  const cleaned = raw.trim().toUpperCase();
-  // Must contain a space — that's the boundary between outward and inward.
-  const spaceIdx = cleaned.indexOf(" ");
-  if (spaceIdx <= 0) return null;
-  const outward = cleaned.slice(0, spaceIdx);
-  // Outward starts with 1–2 letters, then digit(s), optionally a trailing letter.
-  const match = outward.match(/^([A-Z]{1,2})\d/);
+  // Strip all whitespace so "SW6 3AB" and "sw63ab" both normalise the same way.
+  const cleaned = raw.replace(/\s+/g, "").toUpperCase();
+  if (cleaned.length < 2) return null;
+  // UK postcode outward code: 1–2 letters, then a digit, optionally followed
+  // by another digit or letter. We only need the leading letters (the "area").
+  const match = cleaned.match(/^([A-Z]{1,2})[0-9]/);
   return match ? match[1] : null;
 }
 
 /**
  * Returns the water hardness category for a UK postcode, or `null` if the
- * input is not yet recognisable (still being typed, missing space, or in
- * an area not classified in the spec — in which case no badge is shown).
- *
- * Requires at least 5 characters including a space, e.g. "SW6 3".
+ * input is not yet recognisable. Works whether or not the user typed a space
+ * (e.g. "SW6 3AB", "SW63AB", and "sw6" all resolve to the SW area).
  */
 export function getWaterHardness(raw: string): WaterHardness | null {
-  if (raw.trim().length < 5) return null;
+  if (!raw || raw.replace(/\s+/g, "").length < 3) return null;
   const area = extractOutwardArea(raw);
   if (!area) return null;
   if (HARD_AREAS.has(area)) return "hard";
