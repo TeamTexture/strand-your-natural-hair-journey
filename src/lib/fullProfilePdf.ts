@@ -207,7 +207,7 @@ async function fetchAll(userId: string) {
     supabase.from("ingredient_lists").select("ingredient, list_kind, reason, product_count").eq("user_id", userId),
     supabase.from("user_medications").select("name, category").eq("user_id", userId),
     supabase.from("user_product_photos").select("product_key, kind, created_at").eq("user_id", userId),
-    supabase.from("product_ratings").select("product_name, product_brand, rating, notes, created_at").eq("user_id", userId),
+    supabase.from("product_ratings").select("product_name, product_brand, rating, created_at").eq("user_id", userId),
   ]);
 
   return {
