@@ -20,9 +20,16 @@ export function useDirectoryProfessionals() {
 
     (async () => {
       try {
+        // Column-level GRANT on professionals_directory restricts which
+        // fields authenticated users can read (verification_number,
+        // discount_code and verification_type are intentionally hidden).
+        // SELECT * would fail with permission denied, wiping the DB-sourced
+        // pros and leaving Book Now / Website buttons empty for those rows.
         const { data, error: dbErr } = await supabase
           .from("professionals_directory")
-          .select("*")
+          .select(
+            "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at",
+          )
           .eq("is_active", true);
 
         if (cancelled) return;
@@ -36,16 +43,11 @@ export function useDirectoryProfessionals() {
           const instaUrl = row.instagram_handle
             ? `https://www.instagram.com/${row.instagram_handle}/`
             : "";
-          const bookCode = row.discount_code ?? "";
-          const discount =
-            bookCode && row.discount_description
-              ? `${bookCode} — ${row.discount_description}`
-              : row.discount_description ?? "";
-
-          // Pull verification number into typed slot so the manual form can
-          // auto-populate when this pro is picked.
-          const isGmc = (row.verification_type ?? "").toUpperCase().includes("GMC");
-          const isIot = (row.verification_type ?? "").toUpperCase().includes("IOT");
+          // discount_code, verification_type and verification_number are
+          // intentionally NOT granted to the authenticated role (security
+          // hardening), so they're unavailable client-side. Default the
+          // public-facing badge to "Specialist" and leave gmc/iot empty.
+          const discount = row.discount_description ?? "";
 
           return {
             id: row.id,
@@ -53,7 +55,7 @@ export function useDirectoryProfessionals() {
             name: row.name,
             title: row.title,
             type,
-            verified: row.verification_type ?? "Specialist",
+            verified: "Specialist",
             clinic: row.clinic_name ?? row.name,
             location: row.postcode ?? row.address ?? "",
             specs: row.specialisms ?? [],
@@ -61,12 +63,12 @@ export function useDirectoryProfessionals() {
             insta,
             instaUrl,
             website: row.website_url ?? instaUrl,
-            bookCode,
+            bookCode: "",
             discount,
             bookingUrl: row.booking_url ?? row.website_url ?? undefined,
             featured: true,
-            gmcNumber: isGmc ? row.verification_number ?? undefined : undefined,
-            iotNumber: isIot ? row.verification_number ?? undefined : undefined,
+            gmcNumber: undefined,
+            iotNumber: undefined,
           };
         });
 
