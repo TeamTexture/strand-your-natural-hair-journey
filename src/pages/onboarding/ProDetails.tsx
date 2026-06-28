@@ -171,25 +171,8 @@ const ProDetails = () => {
           </div>
         </div>
 
-        <ValidatedField
-          label="GMC Number"
-          placeholder="Enter GMC number (7 digits)"
-          value={gmc}
-          onChange={(v) => setGmc(v)}
-          validator={validateGmc}
-          autoFilledFrom={pickedFrom && gmc ? pickedFrom : undefined}
-        />
 
-        {showIot && (
-          <ValidatedField
-            label="IOT Membership Number"
-            placeholder="Enter IOT membership number"
-            value={iot}
-            onChange={(v) => setIot(v)}
-            validator={validateIot}
-            autoFilledFrom={pickedFrom && iot ? pickedFrom : undefined}
-          />
-        )}
+
 
         <FormField
           label="Clinic"
