@@ -374,23 +374,23 @@ const ProfileStep1 = () => {
                 type="button"
                 variant="goldOutline"
                 size="pill"
-                className="!px-3"
+                className="!px-2 !gap-1.5 !min-h-[40px] !text-[11px] !tracking-wider"
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={avatarBusy}
               >
                 Take Photo
-                <Camera className="size-3.5" />
+                <Camera className="size-3" />
               </Button>
               <Button
                 type="button"
                 variant="goldOutline"
                 size="pill"
-                className="!px-3"
+                className="!px-2 !gap-1.5 !min-h-[40px] !text-[11px] !tracking-wider"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarBusy}
               >
                 Upload
-                <ImagePlus className="size-3.5" />
+                <ImagePlus className="size-3" />
               </Button>
               {avatarUrl && (
                 <button
