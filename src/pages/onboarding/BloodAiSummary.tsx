@@ -32,6 +32,8 @@ const BloodAiSummary = () => {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Build a stable fingerprint of the inputs so we can detect when the user
   // has updated their blood values / profile and force the AI to regenerate.
