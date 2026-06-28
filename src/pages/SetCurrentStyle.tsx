@@ -43,6 +43,8 @@ interface ExistingStyleLocal {
   style_set_at?: string;
   planned_next_style?: string;
   howLong?: string;
+  howLongNum?: string;
+  howLongUnit?: string;
   changingTo?: string[];
   defaultStyle?: string[];
   colour?: string[];
