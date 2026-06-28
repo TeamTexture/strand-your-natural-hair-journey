@@ -24,6 +24,9 @@ const HAIRSTYLE_OPTIONS = [
   "Wash and go",
   "Twist-out",
   "Finger comb coils",
+  "Low manipulation natural style",
+  "Bald",
+  "Low cut",
   "Not sure yet",
 ];
 
@@ -96,6 +99,7 @@ const ProfileStep4Colour = () => {
             "Loose natural", "Box braids", "Faux locs", "Cornrows", "Locs", "Wig / unit",
             "Weave", "Relaxed", "Curly perm", "Silk press", "Wash and go",
             "Twist-out", "Finger comb coils",
+            "Low manipulation natural style", "Bald", "Low cut",
           ]}
           value={style} onChange={setStyle}
           multi={false}
