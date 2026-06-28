@@ -987,6 +987,7 @@ export type Database = {
           last_used_at: string | null
           name: string
           notes: string | null
+          on_favourite: boolean
           on_shelf: boolean
           rating: number | null
           source_url: string | null
@@ -1008,6 +1009,7 @@ export type Database = {
           last_used_at?: string | null
           name: string
           notes?: string | null
+          on_favourite?: boolean
           on_shelf?: boolean
           rating?: number | null
           source_url?: string | null
@@ -1029,6 +1031,7 @@ export type Database = {
           last_used_at?: string | null
           name?: string
           notes?: string | null
+          on_favourite?: boolean
           on_shelf?: boolean
           rating?: number | null
           source_url?: string | null

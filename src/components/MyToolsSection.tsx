@@ -3,7 +3,7 @@
 // so there's no match score, no AI scan, no URL paste, and no ingredient
 // detail navigation. Photos + name/brand/category/rating + voicenotes only.
 import { useState } from "react";
-import { ChevronDown, Link2, Loader2, Trash2, Wrench } from "lucide-react";
+import { ChevronDown, Heart, Link2, Loader2, Trash2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import EmptyState from "@/components/EmptyState";
@@ -65,7 +65,7 @@ const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) =
 );
 
 const MyToolsSection = () => {
-  const { tools, loading, addTool, updateTool, deleteTool } = useUserTools();
+  const { tools, loading, addTool, updateTool, setFavourite, deleteTool } = useUserTools();
   // Voicenote counts keyed off the tool_key (ProductVoicenotes works for any key).
   const { counts } = useVoicenoteCounts(tools.map((t) => t.tool_key));
 
@@ -235,6 +235,21 @@ const MyToolsSection = () => {
                       )}
                     </div>
                   </div>
+                  <button
+                    onClick={() => setFavourite(t.id, !t.on_favourite)}
+                    aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                    aria-pressed={t.on_favourite}
+                    className="size-9 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                  >
+                    <Heart
+                      className={cn(
+                        "size-4 transition-colors",
+                        t.on_favourite
+                          ? "text-primary fill-primary"
+                          : "text-muted-foreground",
+                      )}
+                    />
+                  </button>
                   <button
                     onClick={() => setPendingDelete(t)}
                     aria-label="Delete tool"
