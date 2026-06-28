@@ -239,19 +239,33 @@ const GoalEditorSheet = ({
 
             <div>
               <label
-                htmlFor="goal-target-date"
+                htmlFor="goal-timeline-amount"
                 className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5 font-medium"
               >
                 When do you want to achieve this by?
               </label>
-              <input
-                id="goal-target-date"
-                type="date"
-                value={targetDate}
-                min={today}
-                onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full rounded-pill border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  id="goal-timeline-amount"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  placeholder="e.g. 6"
+                  value={timelineAmount}
+                  onChange={(e) => setTimelineAmount(e.target.value)}
+                  className="w-24 rounded-pill border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
+                />
+                <select
+                  aria-label="Timeline unit"
+                  value={timelineUnit}
+                  onChange={(e) => setTimelineUnit(e.target.value as "days" | "weeks" | "months")}
+                  className="flex-1 rounded-pill border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
+                >
+                  <option value="days">Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                </select>
+              </div>
               <p className="text-[10px] text-muted-foreground mt-1">
                 Optional — helps STRAND time your tips and check-ins.
               </p>
