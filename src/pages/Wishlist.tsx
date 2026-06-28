@@ -9,6 +9,7 @@ import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import ProductThumb from "@/components/ProductThumb";
 import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
+import { UrlScanProgressButton } from "@/components/UrlScanProgressButton";
 import ProductsHeader, {
   applyProductFilters,
   useProductsFilterState,
