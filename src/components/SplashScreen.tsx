@@ -1,16 +1,28 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import HairStrandIcon from "./HairStrandIcon";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
 
 const SplashScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [firstName, setFirstName] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("strand_last_display_name");
+      if (stored) setFirstName(stored);
+    } catch {}
+  }, []);
+
   const nextParam = searchParams.get("next");
-  const memberNext = nextParam ? `?next=${encodeURIComponent(nextParam)}` : "?next=/home";
+  const memberNext = nextParam
+    ? `?mode=signin&next=${encodeURIComponent(nextParam)}`
+    : "?mode=signin&next=/home";
   const joinNext = nextParam
     ? `?next=${encodeURIComponent(nextParam)}`
     : "?next=/onboarding/profile-step-1";
+
   return (
     <div className="flex flex-col h-full px-7 pt-16 pb-10 bg-background">
       {/* Top: logo block */}
@@ -21,32 +33,51 @@ const SplashScreen = () => {
           Strand
         </h1>
 
-        <p className="mt-8 max-w-[260px] text-foreground/75 text-sm leading-relaxed">
-          Built with insights from
-          <br />
-          <span className="font-display italic text-foreground text-base">
-            "How To Love Your Afro"
-          </span>
-        </p>
+        <div className="mt-8 max-w-[260px] text-foreground/75 text-sm leading-relaxed space-y-1">
+          <p>
+            Built with insights from
+            <br />
+            <span className="font-display italic text-foreground text-base">
+              "How To Love Your Afro"
+            </span>
+          </p>
+          {firstName && (
+            <p className="font-body text-foreground text-base">
+              Welcome back {firstName}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Bottom: CTAs */}
       <div className="flex flex-col gap-3">
-        <Button
-          variant="gold"
-          size="pill"
-          onClick={() => navigate(`/auth${joinNext}`)}
-        >
-          Sign Up
-        </Button>
+        {firstName ? (
+          <Button
+            variant="gold"
+            size="pill"
+            onClick={() => navigate(`/auth${memberNext}`)}
+          >
+            Sign in
+          </Button>
+        ) : (
+          <>
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={() => navigate(`/auth${joinNext}`)}
+            >
+              Sign Up
+            </Button>
 
-        <Button
-          variant="goldOutline"
-          size="pill"
-          onClick={() => navigate(`/auth${memberNext}`)}
-        >
-          I'm Already a Member
-        </Button>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              onClick={() => navigate(`/auth${memberNext}`)}
+            >
+              I'm Already a Member
+            </Button>
+          </>
+        )}
 
         <p className="mt-3 text-center font-body text-sm text-foreground/60">
           Exclusive to TT Collective members.

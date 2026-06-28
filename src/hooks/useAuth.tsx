@@ -44,6 +44,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
+    // Remember first name for the returning-user welcome on the splash screen.
+    const displayName = session?.user?.user_metadata?.display_name as string | undefined;
+    if (displayName) {
+      const firstName = displayName.trim().split(/\s+/)[0];
+      if (firstName) {
+        try { localStorage.setItem("strand_last_display_name", firstName); } catch {}
+      }
+    }
     // Purge BEFORE the supabase call so even if the network signOut fails,
     // the next user on this device still gets a clean cache. The
     // SIGNED_OUT event handler above will run too, but is idempotent.
