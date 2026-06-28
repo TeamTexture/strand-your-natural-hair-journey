@@ -24,6 +24,9 @@ const HAIRSTYLE_OPTIONS = [
   "Wash and go",
   "Twist-out",
   "Finger comb coils",
+  "Low manipulation natural style",
+  "Bald",
+  "Low cut",
   "Not sure yet",
 ];
 
