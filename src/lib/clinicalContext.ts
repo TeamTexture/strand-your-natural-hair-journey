@@ -58,6 +58,8 @@ export interface StyleSlice {
   // Legacy localStorage fields kept for compatibility with code that reads
   // `style.howLong` / `style.plans` / `style.style` / `style.style_set_on`.
   howLong?: string;
+  howLongNum?: string;
+  howLongUnit?: string;
   plans?: string[];
   changingTo?: string[];
   defaultStyle?: string[];
