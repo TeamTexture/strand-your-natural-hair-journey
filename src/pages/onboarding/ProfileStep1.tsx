@@ -318,10 +318,9 @@ const ProfileStep1 = () => {
                 size="pill"
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={avatarBusy}
-                className="!px-2 !text-[11px]"
               >
-                <Camera className="size-3.5 mr-1" />
                 Take Photo
+                <Camera className="size-3.5" />
               </Button>
               <Button
                 type="button"
@@ -329,10 +328,9 @@ const ProfileStep1 = () => {
                 size="pill"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarBusy}
-                className="!px-2 !text-[11px]"
               >
-                <ImagePlus className="size-3.5 mr-1" />
                 Upload
+                <ImagePlus className="size-3.5" />
               </Button>
               {avatarUrl && (
                 <button
