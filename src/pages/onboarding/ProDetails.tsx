@@ -258,7 +258,7 @@ const ProDetails = () => {
                 localStorage.setItem(
                   "strand_professional",
                   JSON.stringify({
-                    name, type, gmc, iot, clinic, date, notes, notesAudioPath,
+                    name, type, clinic, date, notes, notesAudioPath,
                     instagram: bgInsta, website: bgWebsite, bookingUrl: bgBookingUrl,
                     pickedFromDirectory: !!pickedFrom,
                   }),
@@ -271,8 +271,6 @@ const ProDetails = () => {
                 const { data: u } = await supabase.auth.getUser();
                 if (u?.user) {
                   const enc = await encryptForStorage([
-                    { id: "gmc", plaintext: gmc },
-                    { id: "iot", plaintext: iot },
                     { id: "notes", plaintext: notes },
                   ]);
                   const { error } = await supabase
@@ -284,9 +282,10 @@ const ProDetails = () => {
                         professional_type: type,
                         clinic: clinic || null,
                         consultation_date: date || null,
-                        gmc_number_enc: enc.gmc,
-                        iot_number_enc: enc.iot,
+                        gmc_number_enc: null,
+                        iot_number_enc: null,
                         notes_enc: enc.notes,
+
                         notes_audio_path: notesAudioPath,
                         instagram_handle: bgInsta || null,
                         website_url: bgWebsite || null,
