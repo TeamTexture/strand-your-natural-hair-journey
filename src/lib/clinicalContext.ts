@@ -203,6 +203,8 @@ interface LegacyStyle {
   planned_next_style?: string;
   planned_change_date?: string;
   howLong?: string;
+  howLongNum?: string;
+  howLongUnit?: string;
   plans?: string[];
   changingTo?: string[];
   defaultStyle?: string[];
