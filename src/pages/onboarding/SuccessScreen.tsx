@@ -2,9 +2,21 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import ScreenLayout from "@/components/ScreenLayout";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const SuccessScreen = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Mark onboarding complete on the profile so the next login skips onboarding.
+  useEffect(() => {
+    if (!user) return;
+    void supabase
+      .from("profiles")
+      .update({ onboarding_completed_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+  }, [user]);
 
   // Decide where to send the user when they tap Enter Strand
   const handleContinue = () => {
