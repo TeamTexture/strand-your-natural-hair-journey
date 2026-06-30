@@ -1,6 +1,11 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { applyFontScale, getFontScale } from "./lib/fontScale";
+
+// Apply the user's saved text size before React mounts so there's no flash
+// of the default size on first paint.
+applyFontScale(getFontScale());
 
 declare global {
   interface Window {
