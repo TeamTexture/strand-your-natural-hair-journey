@@ -262,7 +262,7 @@ Return JSON only via the return_nutrition_plan tool.`;
     if (!p || typeof p !== "object" || Array.isArray(p)) break;
     const keys = Object.keys(p);
     if (keys.length !== 1) break;
-    if (!/^(\$PARAMETER_NAME|\$PARAMETER_VALUE|input|arguments|parameters)$/.test(keys[0])) break;
+    if (!/^(\$PARAMETER_NAME|\$PARAMETER_VALUE|input|arguments|parameters|plan|result|data|response|output)$/.test(keys[0])) break;
     const inner = p[keys[0]];
     if (!inner || typeof inner !== "object" || Array.isArray(inner)) break;
     p = inner;
