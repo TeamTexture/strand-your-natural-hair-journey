@@ -8,6 +8,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import UserAvatar from "@/components/UserAvatar";
+import FontScaleControl from "@/components/FontScaleControl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -499,6 +500,15 @@ const Profile = () => {
           <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
         </button>
       </div>
+
+      {/* Accessibility — global text size */}
+      <SectionLabel>Accessibility</SectionLabel>
+      <div className="px-5 pb-4">
+        <div className="p-4 rounded-[12px] bg-card border border-border">
+          <FontScaleControl />
+        </div>
+      </div>
+
 
       {/* Alerts — replaces the chips area when data exists */}
       <SectionLabel>Alerts & Upcoming</SectionLabel>
