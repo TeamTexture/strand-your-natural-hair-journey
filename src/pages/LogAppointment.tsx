@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Check } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -14,6 +14,8 @@ import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { toast } from "sonner";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
+import { Camera, X } from "lucide-react";
+import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 
@@ -41,6 +43,12 @@ const LogAppointment = () => {
   const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
   const [followUp, setFollowUp] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Local-only list of File objects awaiting upload; uploaded after the
+  // appointment row is created so we can FK them to its id.
+  const [pendingPhotos, setPendingPhotos] = useState<{ file: File; previewUrl: string }[]>([]);
+  const photoFileRef = useRef<HTMLInputElement | null>(null);
+  const { upload: uploadApptPhoto } = usePhotoUploader("appointment-photos");
 
   // Default date to today (yyyy-mm-dd)
   useEffect(() => {
@@ -79,24 +87,42 @@ const LogAppointment = () => {
     }
     if (!canSave) return;
     setSaving(true);
-    const { error } = await supabase.from("appointments").insert({
-      user_id: user.id,
-      professional_name: proName.trim(),
-      professional_type: proType,
-      clinic_name: clinic.trim() || null,
-      appointment_date: date,
-      appointment_time: time.trim() || null,
-      reason: reason.trim() || null,
-      notes: notes.trim() || null,
-      status,
-      follow_up_needed: followUp,
-    });
-    setSaving(false);
-    if (error) {
+    const { data: inserted, error } = await supabase
+      .from("appointments")
+      .insert({
+        user_id: user.id,
+        professional_name: proName.trim(),
+        professional_type: proType,
+        clinic_name: clinic.trim() || null,
+        appointment_date: date,
+        appointment_time: time.trim() || null,
+        reason: reason.trim() || null,
+        notes: notes.trim() || null,
+        status,
+        follow_up_needed: followUp,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      setSaving(false);
       console.error("Appointment save failed:", error);
       toast.error("Could not save appointment");
       return;
     }
+
+    // Upload any pending photos in parallel and link them to the new appointment.
+    if (pendingPhotos.length > 0) {
+      const uploaded = await Promise.all(pendingPhotos.map((p) => uploadApptPhoto(p.file)));
+      const rows = uploaded
+        .filter((path): path is string => !!path)
+        .map((path) => ({ appointment_id: inserted.id, user_id: user.id, storage_path: path }));
+      if (rows.length > 0) {
+        const { error: photoErr } = await supabase.from("appointment_photos").insert(rows);
+        if (photoErr) console.error("appointment_photos insert failed", photoErr);
+      }
+    }
+
+    setSaving(false);
     toast.success("Appointment logged");
     navigate("/appointments");
   };
@@ -235,6 +261,55 @@ const LogAppointment = () => {
           rows={4}
         />
 
+        {/* Photos — attach scalp / receipt / treatment shots to the appointment */}
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            Photos
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {pendingPhotos.map((p, idx) => (
+              <div key={idx} className="relative size-20 rounded-[10px] overflow-hidden bg-muted">
+                <img src={p.previewUrl} alt="Attachment" className="absolute inset-0 size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    URL.revokeObjectURL(p.previewUrl);
+                    setPendingPhotos((prev) => prev.filter((_, i) => i !== idx));
+                  }}
+                  aria-label="Remove photo"
+                  className="absolute top-0.5 right-0.5 size-6 rounded-full bg-background/85 backdrop-blur flex items-center justify-center text-foreground hover:text-destructive"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => photoFileRef.current?.click()}
+              className="size-20 rounded-[10px] border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center gap-1 text-primary transition-colors"
+            >
+              <Camera className="size-5" />
+              <span className="text-[10px] font-medium">Add</span>
+            </button>
+          </div>
+          <input
+            ref={photoFileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) setPendingPhotos((prev) => [...prev, { file: f, previewUrl: URL.createObjectURL(f) }]);
+              if (photoFileRef.current) photoFileRef.current.value = "";
+            }}
+          />
+          {pendingPhotos.length > 0 && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              Photos upload when you save the appointment.
+            </p>
+          )}
+        </div>
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
             Status

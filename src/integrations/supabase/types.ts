@@ -41,6 +41,41 @@ export type Database = {
         }
         Relationships: []
       }
+      appointment_photos: {
+        Row: {
+          appointment_id: string
+          caption: string | null
+          created_at: string
+          id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_photos_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -198,6 +233,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hair_strand_summaries: {
+        Row: {
+          action_plan: Json
+          context_snapshot: Json | null
+          created_at: string
+          id: string
+          overview: string
+          routine_tips: Json
+          user_id: string
+        }
+        Insert: {
+          action_plan?: Json
+          context_snapshot?: Json | null
+          created_at?: string
+          id?: string
+          overview: string
+          routine_tips?: Json
+          user_id: string
+        }
+        Update: {
+          action_plan?: Json
+          context_snapshot?: Json | null
+          created_at?: string
+          id?: string
+          overview?: string
+          routine_tips?: Json
+          user_id?: string
+        }
+        Relationships: []
       }
       ingredient_lists: {
         Row: {
@@ -558,6 +623,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_before_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_goals: {
         Row: {
           challenge: string | null
@@ -740,6 +829,33 @@ export type Database = {
           id?: string
           name?: string
           name_enc?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_milestone_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          storage_path: string
+          taken_on: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path: string
+          taken_on?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path?: string
+          taken_on?: string
           user_id?: string
         }
         Relationships: []

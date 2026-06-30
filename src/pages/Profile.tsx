@@ -654,7 +654,25 @@ const Profile = () => {
         </>
       )}
 
-      {/* Empty state for brand new users */}
+      {/* Progress photos shortcut */}
+      <SectionLabel>Progress Photos</SectionLabel>
+      <div className="px-5 pb-4">
+        <button
+          onClick={() => navigate("/profile/milestones")}
+          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
+        >
+          <div className="size-10 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 text-lg">📸</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight">Milestone gallery</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5">
+              6-week check-ins so real progress is visible.
+            </p>
+          </div>
+          <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+        </button>
+      </div>
+
+
       {!hasAnyProfileData && (
         <div className="px-5 py-6">
           <EmptyState

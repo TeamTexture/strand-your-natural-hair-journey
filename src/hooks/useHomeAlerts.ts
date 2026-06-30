@@ -191,6 +191,7 @@ export function useHomeAlerts() {
         ratingsRes,
         goalsRes,
         journalRes,
+        milestoneRes,
       ] = await Promise.all([
         supabase
           .from("blood_results")
@@ -256,6 +257,12 @@ export function useHomeAlerts() {
           .select("entry_date, title")
           .eq("user_id", user.id)
           .order("entry_date", { ascending: false })
+          .limit(1),
+        supabase
+          .from("user_milestone_photos")
+          .select("taken_on")
+          .eq("user_id", user.id)
+          .order("taken_on", { ascending: false })
           .limit(1),
       ]);
 
@@ -526,6 +533,25 @@ export function useHomeAlerts() {
           tone: "warning",
           signature: `goalOverdue:${overdueGoal.id}:${overdueGoal.target_date}`,
         });
+      }
+
+      // 13. Milestone photos — 6-week cadence reminder. Only fires once the
+      // user has captured at least one photo (so we don't pester brand new
+      // accounts) AND it's been 42+ days since the last one.
+      const lastMilestone = (milestoneRes.data ?? [])[0] as { taken_on: string } | undefined;
+      if (lastMilestone?.taken_on) {
+        const dSince = daysSince(`${lastMilestone.taken_on}T00:00:00`);
+        if (dSince >= 42) {
+          next.push({
+            id: "milestone-due",
+            emoji: "📸",
+            title: "Time for your 6-week progress photo",
+            body: `Last milestone was ${dSince} days ago — capture the next one.`,
+            to: "/profile/milestones",
+            tone: "warning",
+            signature: `milestone:${lastMilestone.taken_on}`,
+          });
+        }
       }
 
       // ---------------------------------------------------------------

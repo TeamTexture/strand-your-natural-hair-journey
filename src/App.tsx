@@ -29,6 +29,9 @@ import BloodThyroid from "./pages/onboarding/BloodThyroid";
 import BloodHormones from "./pages/onboarding/BloodHormones";
 import BloodAiSummary from "./pages/onboarding/BloodAiSummary";
 import SuccessScreen from "./pages/onboarding/SuccessScreen";
+import ProfileStepPhotos from "./pages/onboarding/ProfileStepPhotos";
+import StrandSummary from "./pages/onboarding/StrandSummary";
+import MilestoneGallery from "./pages/MilestoneGallery";
 
 // Main app
 import Home from "./pages/Home";
@@ -103,6 +106,8 @@ const App = () => (
               <Route path="/onboarding/blood-thyroid" element={<Protected><BloodThyroid /></Protected>} />
               <Route path="/onboarding/blood-hormones" element={<Protected><BloodHormones /></Protected>} />
               <Route path="/onboarding/blood-ai-summary" element={<Protected><BloodAiSummary /></Protected>} />
+              <Route path="/onboarding/photos" element={<Protected><ProfileStepPhotos /></Protected>} />
+              <Route path="/onboarding/strand-summary" element={<Protected><StrandSummary /></Protected>} />
               <Route path="/onboarding/success" element={<Protected><SuccessScreen /></Protected>} />
 
               {/* Main app */}
@@ -133,6 +138,7 @@ const App = () => (
               <Route path="/appointments/log" element={<Protected><LogAppointment /></Protected>} />
               <Route path="/directory" element={<Protected><Directory /></Protected>} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
+              <Route path="/profile/milestones" element={<Protected><MilestoneGallery /></Protected>} />
               <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
