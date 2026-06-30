@@ -310,7 +310,10 @@ const LogAppointment = () => {
             </p>
           )}
         </div>
-
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            Status
+          </div>
           <div className="flex flex-wrap gap-2">
             {STATUSES.map((s) => (
               <Tag
