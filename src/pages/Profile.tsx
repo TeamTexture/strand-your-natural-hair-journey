@@ -500,6 +500,15 @@ const Profile = () => {
         </button>
       </div>
 
+      {/* Accessibility — global text size */}
+      <SectionLabel>Accessibility</SectionLabel>
+      <div className="px-5 pb-4">
+        <div className="p-4 rounded-[12px] bg-card border border-border">
+          <FontScaleControl />
+        </div>
+      </div>
+
+
       {/* Alerts — replaces the chips area when data exists */}
       <SectionLabel>Alerts & Upcoming</SectionLabel>
       <div className="px-5 pb-4">
