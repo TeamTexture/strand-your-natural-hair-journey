@@ -308,6 +308,15 @@ const WashStep1 = () => {
     setHydrated(true);
   }, [shelfProducts, shelfLoading, hydrated]);
 
+  // If user tapped a specific calendar date on the hub, persist it so WashStep4
+  // saves the wash_day with that date rather than today.
+  useEffect(() => {
+    const d = searchParams.get("date");
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      localStorage.setItem("strand_wash_date", d);
+    }
+  }, [searchParams]);
+
   // Persist the draft on every change so a trip through the scan flow
   // (which navigates away and back) doesn't lose the user's progress.
   useEffect(() => {
