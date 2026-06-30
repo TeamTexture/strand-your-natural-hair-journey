@@ -41,6 +41,7 @@ import WashDayDetail from "./pages/WashDayDetail";
 import WashStep1 from "./pages/wash/WashStep1";
 import WashStep2 from "./pages/wash/WashStep2";
 import WashStep3 from "./pages/wash/WashStep3";
+import WashStepStyling from "./pages/wash/WashStepStyling";
 import WashStep4 from "./pages/wash/WashStep4";
 import Products from "./pages/Products";
 import IngredientDetail from "./pages/IngredientDetail";
