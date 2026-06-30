@@ -24,12 +24,13 @@ interface CalProps {
   onPrev: () => void;
   onNext: () => void;
   onPickDate: (iso: string) => void;
+  onLogDate: (iso: string) => void;
 }
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 const isoFor = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 
-const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, onPickDate }: CalProps) => {
+const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, onPickDate, onLogDate }: CalProps) => {
   const first = new Date(year, month, 1);
   // Mon-Sun grid: shift Sunday (0) -> 6
   const startOffset = (first.getDay() + 6) % 7;
@@ -65,16 +66,24 @@ const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, on
           const isWash = washDates.has(iso);
           const isToday = iso === todayIso;
           const wdId = washDayIdsByDate[iso];
-          const Tag = isWash ? "button" : "span";
+          const isPastOrToday = iso <= todayIso;
+          const isTappable = isWash || isPastOrToday;
+          const Tag = isTappable ? "button" : "span";
+          const handleClick = isWash && wdId
+            ? () => onPickDate(wdId)
+            : isPastOrToday
+              ? () => onLogDate(iso)
+              : undefined;
           return (
             <Tag
               key={i}
-              {...(isWash && wdId ? { onClick: () => onPickDate(wdId), "aria-label": `View wash day on ${iso}` } : {})}
+              {...(isTappable ? { onClick: handleClick, "aria-label": isWash ? `View wash day on ${iso}` : `Log wash day on ${iso}` } : {})}
               className={cn(
                 "h-9 flex items-center justify-center rounded-full font-body transition-colors",
                 isWash && "bg-primary text-primary-foreground font-medium hover:bg-primary/90 cursor-pointer",
-                isToday && !isWash && "border border-primary text-primary font-medium rounded-md",
-                !isWash && !isToday && "text-foreground/70",
+                isToday && !isWash && "border border-primary text-primary font-medium rounded-md hover:bg-primary/10",
+                !isWash && !isToday && isPastOrToday && "text-foreground/70 hover:bg-primary/10 cursor-pointer",
+                !isWash && !isToday && !isPastOrToday && "text-foreground/30",
               )}
             >
               {c}
@@ -139,6 +148,7 @@ const WashDayHub = () => {
           onPrev={goPrev}
           onNext={goNext}
           onPickDate={(id) => navigate(`/wash-day/${id}`)}
+          onLogDate={(iso) => navigate(`/wash/step-1?date=${iso}`)}
         />
         <SurfaceCard tone="gold">
           <p className="text-sm font-medium">

@@ -162,9 +162,13 @@ const WashStep4 = () => {
           }
         : null;
 
+      const chosenDate = localStorage.getItem("strand_wash_date");
+      const washDate = chosenDate && /^\d{4}-\d{2}-\d{2}$/.test(chosenDate)
+        ? chosenDate
+        : new Date().toISOString().slice(0, 10);
       const payload = {
         user_id: user.id,
-        wash_date: new Date().toISOString().slice(0, 10),
+        wash_date: washDate,
         steps,
         heat_treatment: heatTreatment,
         // Real shelf product IDs picked across the wash steps (Step1 collected
@@ -198,6 +202,7 @@ const WashStep4 = () => {
       localStorage.removeItem("strand_wash_step1");
       localStorage.removeItem("strand_wash_step2");
       localStorage.removeItem("strand_wash_step3");
+      localStorage.removeItem("strand_wash_date");
 
       toast("💧 Wash day saved!");
       navigate("/wash-day");
