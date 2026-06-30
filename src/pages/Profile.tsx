@@ -8,6 +8,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import UserAvatar from "@/components/UserAvatar";
+import FontScaleControl from "@/components/FontScaleControl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
