@@ -54,6 +54,7 @@ const Home = () => {
   const { lengthGoal } = useGoals();
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
+  const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(() => {
     // Hydrate instantly from the local snapshot so the Home card never
     // flashes empty on first paint.
