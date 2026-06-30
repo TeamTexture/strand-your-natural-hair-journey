@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pause, Play } from "lucide-react";
+import { AlertCircle, Pause, Play } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import VoiceNoteField from "@/components/VoiceNoteField";
+import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const VOICENOTE_BUCKET = "voicenotes";
 
 interface PreviousEntry {
-  date: string;          // ISO wash_date
+  date: string;
   note: string | null;
   audioUrl: string | null;
 }
@@ -29,15 +32,52 @@ const formatDate = (iso: string): string => {
   return year === new Date().getFullYear() ? `${day} ${month}` : `${day} ${month} ${year}`;
 };
 
+const TG = ({
+  label,
+  options,
+  value,
+  onChange,
+  error = false,
+}: {
+  label: string;
+  options: string[];
+  value: string[];
+  onChange: (n: string[]) => void;
+  error?: boolean;
+}) => (
+  <div>
+    <div className="text-[11px] uppercase tracking-[0.18em] font-body mb-2 flex items-center gap-1.5">
+      <span className={cn(error ? "text-destructive" : "text-muted-foreground")}>{label}</span>
+      <span className={cn(error ? "text-destructive" : "text-primary")}>*</span>
+    </div>
+    <div className={cn("flex flex-wrap gap-2", error && "ring-1 ring-destructive/40 rounded-[10px] p-1.5 -m-1.5")}>
+      {options.map((o) => (
+        <Tag
+          key={o}
+          selected={value.includes(o)}
+          onClick={() => onChange(value.includes(o) ? value.filter((v) => v !== o) : [...value, o])}
+        >
+          {o}
+        </Tag>
+      ))}
+    </div>
+    {error && (
+      <p className="mt-1.5 text-[11px] text-destructive flex items-center gap-1">
+        <AlertCircle className="size-3" /> Pick at least one
+      </p>
+    )}
+  </div>
+);
+
 const WashStep3 = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [audioPath, setAudioPath] = useState<string | null>(null);
+  const [duration, setDuration] = useState<string[]>([]);
+  const [stress, setStress] = useState<string[]>([]);
+  const [submitted, setSubmitted] = useState(false);
 
-  // The previous entry is loaded from real wash_days history. We only render the
-  // card if the user actually has a previous wash logged AND it carries either a
-  // voicenote or a written hair-feel note worth replaying.
   const [previous, setPrevious] = useState<PreviousEntry | null>(null);
   const [loadingPrev, setLoadingPrev] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -60,7 +100,6 @@ const WashStep3 = () => {
         setLoadingPrev(false);
         return;
       }
-      // The voice URL stored on the row is a storage path — sign it for playback.
       let audioUrl: string | null = null;
       if (data.hair_feel_voice_url) {
         const { data: sig } = await supabase
@@ -69,11 +108,7 @@ const WashStep3 = () => {
           .createSignedUrl(data.hair_feel_voice_url, 3600);
         audioUrl = sig?.signedUrl ?? null;
       }
-      setPrevious({
-        date: data.wash_date,
-        note: data.hair_feel_note,
-        audioUrl,
-      });
+      setPrevious({ date: data.wash_date, note: data.hair_feel_note, audioUrl });
       setLoadingPrev(false);
     })();
     return () => { cancelled = true; };
@@ -94,21 +129,38 @@ const WashStep3 = () => {
     }
   };
 
-  // Tear down the audio element on unmount so playback doesn't continue after navigating away.
   useEffect(() => () => {
     audioRef.current?.pause();
     audioRef.current = null;
   }, []);
 
+  const errors = {
+    duration: duration.length === 0,
+    stress: stress.length === 0,
+  };
+
+  const handleNext = () => {
+    if (errors.duration || errors.stress) {
+      setSubmitted(true);
+      toast.error("Pick a duration and stress level");
+      return;
+    }
+    localStorage.setItem(
+      "strand_wash_step3",
+      JSON.stringify({ note: text, audioPath, duration, stress }),
+    );
+    navigate("/wash/step-styling");
+  };
+
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>3 of 4</span>} onBack={() => navigate("/wash/step-2")} />
-      <ProgressDots total={4} current={3} />
+      <TitleBar title="Wash Day" right={<span>3 of 5</span>} onBack={() => navigate("/wash/step-2")} />
+      <ProgressDots total={5} current={3} />
       <ItalicSub>
         Moisture is in how your hair moves and feels — not a label. Tell us in your own words.
       </ItalicSub>
 
-      <div className="px-5 pb-8 space-y-4">
+      <div className="px-5 pb-8 space-y-5">
         <VoiceNoteField
           label="How does your hair feel?"
           placeholder="My hair feels..."
@@ -118,6 +170,21 @@ const WashStep3 = () => {
           onAudioPathChange={setAudioPath}
           folder="wash-day"
           rows={5}
+        />
+
+        <TG
+          label="Wash Duration"
+          options={["Under 1 hour", "1-2 hours", "2-3 hours", "3-4 hours", "4+ hours"]}
+          value={duration}
+          onChange={setDuration}
+          error={submitted && errors.duration}
+        />
+        <TG
+          label="Stress This Week"
+          options={["Low", "Moderate", "High"]}
+          value={stress}
+          onChange={setStress}
+          error={submitted && errors.stress}
         />
 
         {!loadingPrev && previous && (
@@ -148,16 +215,8 @@ const WashStep3 = () => {
           </SurfaceCard>
         )}
 
-        <Button
-          variant="gold"
-          size="pill"
-          className="mt-4"
-          onClick={() => {
-            localStorage.setItem("strand_wash_step3", JSON.stringify({ note: text, audioPath }));
-            navigate("/wash/step-4");
-          }}
-        >
-          Next — Review & Save →
+        <Button variant="gold" size="pill" className="mt-4" onClick={handleNext}>
+          Next — Styling →
         </Button>
       </div>
     </ScreenLayout>
