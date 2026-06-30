@@ -38,6 +38,40 @@ const formatDate = (iso: string): string => {
     return iso;
   }
 };
+/** Inline photo strip for one appointment. Loads on mount and signs URLs. */
+const ApptPhotos = ({ appointmentId }: { appointmentId: string }) => {
+  const { sign } = usePhotoUploader("appointment-photos");
+  const [urls, setUrls] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("appointment_photos")
+        .select("storage_path")
+        .eq("appointment_id", appointmentId)
+        .order("created_at", { ascending: true });
+      if (cancelled) return;
+      const rows = (data ?? []) as Array<{ storage_path: string }>;
+      const signed: string[] = [];
+      for (const r of rows) {
+        const u = await sign(r.storage_path);
+        if (u) signed.push(u);
+      }
+      if (!cancelled) setUrls(signed);
+    })();
+    return () => { cancelled = true; };
+  }, [appointmentId, sign]);
+  if (urls.length === 0) return null;
+  return (
+    <div className="flex gap-2 mt-3 overflow-x-auto -mx-1 px-1">
+      {urls.map((u, i) => (
+        <a key={i} href={u} target="_blank" rel="noreferrer" className="size-16 rounded-[10px] overflow-hidden bg-muted shrink-0 block">
+          <img src={u} alt={`Appointment photo ${i + 1}`} className="size-full object-cover" />
+        </a>
+      ))}
+    </div>
+  );
+};
 
 const Appointments = () => {
   const navigate = useNavigate();
