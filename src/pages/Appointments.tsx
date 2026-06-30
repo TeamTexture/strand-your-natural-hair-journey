@@ -173,6 +173,7 @@ const Appointments = () => {
                         }}
                       />
                     </div>
+                    <ApptPhotos appointmentId={a.id} />
                   </SurfaceCard>
                 ))}
               </div>
@@ -211,6 +212,7 @@ const Appointments = () => {
                         {a.notes}
                       </p>
                     )}
+                    <ApptPhotos appointmentId={a.id} />
                   </SurfaceCard>
                 ))}
               </div>
