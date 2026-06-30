@@ -626,6 +626,41 @@ const WashStep1 = () => {
                   Why heat could help your hair →
                 </button>
               )}
+
+              {/* Always-available accordion — quick education before deciding */}
+              <Accordion type="single" collapsible className="border-t border-primary/20 pt-1">
+                <AccordionItem value="why-heat" className="border-b-0">
+                  <AccordionTrigger
+                    onClick={() => { if (!heatRationale && !heatLoading) void handleHeatNo(); }}
+                    className="py-2 text-[11px] font-medium text-primary hover:no-underline"
+                  >
+                    Why do a heat treatment?
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-2">
+                    {heatLoading && !heatRationale ? (
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <Loader2 className="size-3 animate-spin" /> Personalising…
+                      </div>
+                    ) : heatRationale ? (
+                      <div className="space-y-1.5">
+                        <p className="text-[11.5px] font-semibold">{heatRationale.headline}</p>
+                        <ul className="space-y-1">
+                          {heatRationale.reasons.map((r, i) => (
+                            <li key={i} className="flex gap-1.5 text-[11px] text-foreground/80">
+                              <span className="text-primary">•</span>
+                              <span>{r}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">
+                        Gentle heat lifts the cuticle so deep conditioner absorbs further — useful for length retention, dryness, or coarser strands.
+                      </p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           }
         />
