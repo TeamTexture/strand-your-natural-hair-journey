@@ -195,13 +195,15 @@ const WashStep4 = () => {
         breakage: step2.breakage?.[0] ?? null,
         style_after: styling.style?.[0] ?? null,
         duration_min: null,
-        stress_level: styling.stress?.[0] ?? null,
+        stress_level: styling.stress?.[0]
+          ? ({ Low: 1, Moderate: 2, High: 3 } as Record<string, number>)[styling.stress[0]] ?? null
+          : null,
         hair_feel_note: step3.note?.trim() ? step3.note.trim() : null,
         hair_feel_voice_url: step3.audioPath ?? null,
         ai_insight: observation,
       };
 
-      const { error } = await supabase.from("wash_days").insert([payload]);
+      const { error } = await supabase.from("wash_days").insert(payload);
       if (error) throw error;
 
       // Optionally create a Style Journal entry to document this style.
