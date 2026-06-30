@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 const VOICENOTE_BUCKET = "voicenotes";
 
 interface PreviousEntry {
-  date: string;          // ISO wash_date
+  date: string;
   note: string | null;
   audioUrl: string | null;
 }
@@ -35,9 +35,6 @@ const WashStep3 = () => {
   const [text, setText] = useState("");
   const [audioPath, setAudioPath] = useState<string | null>(null);
 
-  // The previous entry is loaded from real wash_days history. We only render the
-  // card if the user actually has a previous wash logged AND it carries either a
-  // voicenote or a written hair-feel note worth replaying.
   const [previous, setPrevious] = useState<PreviousEntry | null>(null);
   const [loadingPrev, setLoadingPrev] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -60,7 +57,6 @@ const WashStep3 = () => {
         setLoadingPrev(false);
         return;
       }
-      // The voice URL stored on the row is a storage path — sign it for playback.
       let audioUrl: string | null = null;
       if (data.hair_feel_voice_url) {
         const { data: sig } = await supabase
@@ -69,11 +65,7 @@ const WashStep3 = () => {
           .createSignedUrl(data.hair_feel_voice_url, 3600);
         audioUrl = sig?.signedUrl ?? null;
       }
-      setPrevious({
-        date: data.wash_date,
-        note: data.hair_feel_note,
-        audioUrl,
-      });
+      setPrevious({ date: data.wash_date, note: data.hair_feel_note, audioUrl });
       setLoadingPrev(false);
     })();
     return () => { cancelled = true; };
@@ -94,7 +86,6 @@ const WashStep3 = () => {
     }
   };
 
-  // Tear down the audio element on unmount so playback doesn't continue after navigating away.
   useEffect(() => () => {
     audioRef.current?.pause();
     audioRef.current = null;
@@ -102,8 +93,8 @@ const WashStep3 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>3 of 4</span>} onBack={() => navigate("/wash/step-2")} />
-      <ProgressDots total={4} current={3} />
+      <TitleBar title="Wash Day" right={<span>3 of 5</span>} onBack={() => navigate("/wash/step-2")} />
+      <ProgressDots total={5} current={3} />
       <ItalicSub>
         Moisture is in how your hair moves and feels — not a label. Tell us in your own words.
       </ItalicSub>
@@ -154,10 +145,10 @@ const WashStep3 = () => {
           className="mt-4"
           onClick={() => {
             localStorage.setItem("strand_wash_step3", JSON.stringify({ note: text, audioPath }));
-            navigate("/wash/step-4");
+            navigate("/wash/step-styling");
           }}
         >
-          Next — Review & Save →
+          Next — Styling →
         </Button>
       </div>
     </ScreenLayout>
