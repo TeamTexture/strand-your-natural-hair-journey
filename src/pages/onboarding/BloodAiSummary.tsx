@@ -167,7 +167,7 @@ const BloodAiSummary = () => {
             <p className="text-sm">Could not generate your summary.</p>
           </SurfaceCard>
           <Button variant="gold" size="pill" onClick={() => generate(true)}>Retry</Button>
-          <Button variant="goldGhost" size="pill" onClick={() => navigate("/onboarding/success")}>
+          <Button variant="goldGhost" size="pill" onClick={() => navigate("/onboarding/photos")}>
             Continue anyway →
           </Button>
         </div>
@@ -248,7 +248,7 @@ const BloodAiSummary = () => {
           </Button>
           <button
             className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => navigate("/onboarding/success")}
+            onClick={() => navigate("/onboarding/photos")}
           >
             Continue to app →
           </button>
