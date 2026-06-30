@@ -54,6 +54,7 @@ const Home = () => {
   const { lengthGoal } = useGoals();
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
+  const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(() => {
     // Hydrate instantly from the local snapshot so the Home card never
     // flashes empty on first paint.
@@ -142,6 +143,27 @@ const Home = () => {
     return () => { cancelled = true; };
   }, [user]);
 
+  // First "before" photo for the current style card thumbnail.
+  useEffect(() => {
+    if (!user) { setBeforePhotoUrl(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("user_before_photos")
+        .select("storage_path")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      const path = (data?.[0] as { storage_path?: string } | undefined)?.storage_path;
+      if (!path) return;
+      const { data: signed } = await supabase.storage
+        .from("before-photos")
+        .createSignedUrl(path, 3600);
+      if (!cancelled && signed?.signedUrl) setBeforePhotoUrl(signed.signedUrl);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   // Days in style
   const daysInStyle = style.style_set_at
     ? Math.max(0, Math.floor((Date.now() - new Date(style.style_set_at).getTime()) / 86_400_000))
@@ -191,23 +213,45 @@ const Home = () => {
         <SurfaceCard>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Current style</p>
           {style.current_hairstyle ? (
-            <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="font-display text-base font-semibold leading-tight">
-                  {style.current_hairstyle}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {daysInStyle != null ? `Day ${daysInStyle}` : "Just set"}
-                  {style.planned_next_style && ` · Next: ${style.planned_next_style}`}
-                </p>
+            <>
+              <div className="flex items-center gap-3">
+                {beforePhotoUrl && (
+                  <button
+                    onClick={() => navigate("/onboarding/strand-summary")}
+                    aria-label="See My Strand Summary"
+                    className="size-14 rounded-xl overflow-hidden border border-border shrink-0 bg-muted"
+                  >
+                    <img
+                      src={beforePhotoUrl}
+                      alt="Your hair"
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-base font-semibold leading-tight">
+                    {style.current_hairstyle}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {daysInStyle != null ? `Day ${daysInStyle}` : "Just set"}
+                    {style.planned_next_style && ` · Next: ${style.planned_next_style}`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/home/style")}
+                  className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+                >
+                  Edit
+                </button>
               </div>
               <button
-                onClick={() => navigate("/home/style")}
-                className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+                onClick={() => navigate("/onboarding/strand-summary")}
+                className="mt-3 w-full flex items-center justify-between text-xs uppercase tracking-[0.15em] text-primary font-medium border-t border-border pt-2"
               >
-                Edit
+                <span>See My Strand Summary</span>
+                <span aria-hidden>→</span>
               </button>
-            </div>
+            </>
           ) : (
             <button
               onClick={() => navigate("/home/style")}
