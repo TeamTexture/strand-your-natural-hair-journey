@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { prepareImageForUpload } from "@/lib/imagePrep";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
 
 export type PhotoBucket = "before-photos" | "milestone-photos" | "appointment-photos";
 
@@ -17,7 +17,7 @@ export function usePhotoUploader(bucket: PhotoBucket) {
     if (!user) return null;
     setUploading(true);
     try {
-      const prepared = await prepareImageForUpload(file).catch(() => file);
+      const prepared = await convertHeicToJpeg(file).catch(() => file);
       const ext = (prepared.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
       const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error } = await supabase.storage.from(bucket).upload(path, prepared, {
