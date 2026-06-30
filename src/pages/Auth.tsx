@@ -7,6 +7,7 @@ import HairStrandIcon from "@/components/HairStrandIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PasswordInput from "@/components/PasswordInput";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -14,7 +15,6 @@ import { useAuth } from "@/hooks/useAuth";
 // attacks via crafted ?next=https://evil.com links.
 const safeNext = (raw: string | null, fallback: string) => {
   if (!raw) return fallback;
-  // Must start with a single "/" but not "//" (protocol-relative URL).
   if (!raw.startsWith("/") || raw.startsWith("//")) return fallback;
   return raw;
 };
@@ -22,30 +22,51 @@ const safeNext = (raw: string | null, fallback: string) => {
 const Auth = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const next = safeNext(params.get("next"), "/onboarding/profile-step-1");
+  // Default returning users to /home; new signups are routed to onboarding below.
+  const next = safeNext(params.get("next"), "/home");
   const urlMode = params.get("mode");
   const [mode, setMode] = useState<"signin" | "signup">(
-    urlMode === "signin" ? "signin" : "signup"
+    urlMode === "signin" ? "signin" : "signup",
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // If a session already exists (returning user with a persisted session),
-  // skip the auth screen entirely — they shouldn't have to sign in again.
   const { user, loading: authLoading } = useAuth();
   useEffect(() => {
     if (!authLoading && user) {
-      const target = safeNext(params.get("next"), "/home");
-      navigate(target, { replace: true });
+      // If already signed in, route based on onboarding status.
+      (async () => {
+        const { data } = await supabase
+          .from("profiles")
+          .select("onboarding_completed_at")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const target = data?.onboarding_completed_at
+          ? safeNext(params.get("next"), "/home")
+          : "/onboarding/profile-step-1";
+        navigate(target, { replace: true });
+      })();
     }
   }, [authLoading, user, navigate, params]);
+
+  const passwordsMatch = mode !== "signup" || password === confirmPassword;
+  const canSubmit =
+    !loading &&
+    email.length > 0 &&
+    password.length >= 6 &&
+    (mode !== "signup" || (confirmPassword.length >= 6 && passwordsMatch));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || password.length < 6) {
       toast.error("Enter a valid email and a 6+ character password.");
+      return;
+    }
+    if (mode === "signup" && password !== confirmPassword) {
+      toast.error("Passwords don't match.");
       return;
     }
     setLoading(true);
@@ -60,19 +81,32 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        // Mark this account as needing the home-screen setup guide on first entry.
         const uid = data.user?.id;
         if (uid) {
           localStorage.setItem(`strand_setup_pending:${uid}`, "true");
         }
         toast.success("Welcome to Strand");
-        // Send brand new users through the setup guide first; then onboarding.
         navigate("/setup", { replace: true });
         return;
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Signed in");
+        // After sign-in, check onboarding status so completed users go straight to /home.
+        const uid = signInData.user?.id;
+        if (uid) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("onboarding_completed_at")
+            .eq("user_id", uid)
+            .maybeSingle();
+          if (prof?.onboarding_completed_at) {
+            navigate(safeNext(params.get("next"), "/home"), { replace: true });
+            return;
+          }
+          navigate("/onboarding/profile-step-1", { replace: true });
+          return;
+        }
       }
       navigate(next, { replace: true });
     } catch (err: unknown) {
@@ -121,9 +155,8 @@ const Auth = () => {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               required
               minLength={6}
@@ -133,7 +166,28 @@ const Auth = () => {
             />
           </div>
 
-          <Button variant="gold" size="pill" type="submit" disabled={loading}>
+          {mode === "signup" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-password" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Confirm password</Label>
+              <PasswordInput
+                id="confirm-password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter your password"
+                aria-invalid={confirmPassword.length > 0 && !passwordsMatch}
+              />
+              {confirmPassword.length > 0 && !passwordsMatch && (
+                <p className="text-[11px] text-destructive font-body" role="alert">
+                  Passwords don't match
+                </p>
+              )}
+            </div>
+          )}
+
+          <Button variant="gold" size="pill" type="submit" disabled={!canSubmit}>
             {loading ? "Please wait…" : mode === "signup" ? "Create Account →" : "Sign In →"}
           </Button>
         </form>
