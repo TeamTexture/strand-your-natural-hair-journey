@@ -535,8 +535,6 @@ export function useHomeAlerts() {
         });
       }
 
-      // ---------------------------------------------------------------
-      // POSITIVE / ENCOURAGING ALERTS
       // 13. Milestone photos — 6-week cadence reminder. Only fires once the
       // user has captured at least one photo (so we don't pester brand new
       // accounts) AND it's been 42+ days since the last one.
@@ -556,6 +554,8 @@ export function useHomeAlerts() {
         }
       }
 
+      // ---------------------------------------------------------------
+      // POSITIVE / ENCOURAGING ALERTS
       // ---------------------------------------------------------------
 
       // P1. Recent wash logged (last 3 days)
