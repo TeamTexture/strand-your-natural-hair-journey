@@ -14,6 +14,8 @@ import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { toast } from "sonner";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
+import { Camera, X } from "lucide-react";
+import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 
