@@ -41,7 +41,18 @@ interface Step1Saved {
   heatToolNames?: string[];
 }
 interface Step2Saved {
-  scalp?: string[]; breakage?: string[]; style?: string[]; duration?: string[]; stress?: string[];
+  scalp?: string[]; breakage?: string[];
+}
+interface StylingSaved {
+  style?: string[];
+  productIds?: string[];
+  productNames?: string[];
+  duration?: string[];
+  stress?: string[];
+  note?: string;
+  audioPath?: string | null;
+  photoPaths?: string[];
+  saveAsJournal?: boolean;
 }
 
 const WashStep4 = () => {
@@ -50,16 +61,13 @@ const WashStep4 = () => {
   const [obsLoading, setObsLoading] = useState(true);
   const [obsError, setObsError] = useState<string | null>(null);
 
-  // Re-read the saved steps so the review reflects the user's real input
-  // instead of a hardcoded summary line.
   const step1 = safeParse<Step1Saved>("strand_wash_step1", {});
   const step2 = safeParse<Step2Saved>("strand_wash_step2", {});
   const step3 = safeParse<{ note?: string; audioPath?: string | null }>("strand_wash_step3", {});
+  const styling = safeParse<StylingSaved>("strand_wash_styling", {});
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  // Build a "Pre-poo ✓ · Cleanse (X) · Condition ✓ + Heat ✓" style line from
-  // the user's actual selections. Skipped steps are dropped, todo steps too.
   const stepsSummary = useMemo(() => {
     const parts: string[] = [];
     const labels: Record<string, string> = {
@@ -90,11 +98,18 @@ const WashStep4 = () => {
     const bits: string[] = [];
     if (step2.scalp?.length) bits.push(`Scalp: ${step2.scalp.join(", ")}`);
     if (step2.breakage?.length) bits.push(`Breakage: ${step2.breakage.join(", ")}`);
-    if (step2.style?.length) bits.push(`Style: ${step2.style.join(", ")}`);
-    if (step2.duration?.length) bits.push(`Duration: ${step2.duration.join(", ")}`);
-    if (step2.stress?.length) bits.push(`Stress: ${step2.stress.join(", ")}`);
     return bits.length > 0 ? bits.join(" · ") : "No results captured yet — tap to add.";
   }, [step2]);
+
+  const stylingSummary = useMemo(() => {
+    const bits: string[] = [];
+    if (styling.style?.length) bits.push(`Style: ${styling.style.join(", ")}`);
+    if (styling.productNames?.length) bits.push(`Products: ${styling.productNames.join(", ")}`);
+    if (styling.duration?.length) bits.push(`Duration: ${styling.duration.join(", ")}`);
+    if (styling.stress?.length) bits.push(`Stress: ${styling.stress.join(", ")}`);
+    if (styling.photoPaths?.length) bits.push(`${styling.photoPaths.length} photo${styling.photoPaths.length === 1 ? "" : "s"}`);
+    return bits.length > 0 ? bits.join(" · ") : "No styling captured yet — tap to add.";
+  }, [styling]);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +127,7 @@ const WashStep4 = () => {
         const { data, error } = await supabase.functions.invoke("wash-day-observation", {
           body: {
             steps,
-            results,
+            results: { ...results, styling },
             hairFeelNote: reflectionStep3.note ?? "",
             hairProfile,
             healthProfile,
@@ -143,8 +158,6 @@ const WashStep4 = () => {
     }
     setSaving(true);
     try {
-      // Build the steps array from what the user actually completed.
-      // Skipped / todo steps are dropped so the saved record reflects reality.
       const stepLabels: Record<string, string> = {
         prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
       };
@@ -152,7 +165,6 @@ const WashStep4 = () => {
         .filter((k) => step1[k] === "done")
         .map((k) => ({ name: stepLabels[k] }));
 
-      // Heat treatment: only persist when the user explicitly said yes/no during Condition.
       const heatTreatment = step1.heatTreatment
         ? {
             used: step1.heatTreatment === "yes",
@@ -166,30 +178,25 @@ const WashStep4 = () => {
       const washDate = chosenDate && /^\d{4}-\d{2}-\d{2}$/.test(chosenDate)
         ? chosenDate
         : new Date().toISOString().slice(0, 10);
+
+      // Merge wash-step + styling product IDs so use_count + last_used_at
+      // get bumped for everything actually used today.
+      const mergedProductIds = Array.from(
+        new Set([...(step1.productIds ?? []), ...(styling.productIds ?? [])]),
+      );
+
       const payload = {
         user_id: user.id,
         wash_date: washDate,
         steps,
         heat_treatment: heatTreatment,
-        // Real shelf product IDs picked across the wash steps (Step1 collected
-        // these from each step's selections). The DB trigger on wash_days
-        // bumps user_products.use_count + last_used_at for each id atomically.
-        product_ids: (() => {
-          const ids = Array.from(new Set(step1.productIds ?? []));
-          // Diagnostic: confirms whether productIds made it through Step1 → Step4.
-          // If this logs `[]` while the user clearly logged products, the bug is
-          // upstream in WashStep1 hydration / collection.
-          console.log("[wash-save] product_ids being saved:", ids);
-          return ids;
-        })(),
+        product_ids: mergedProductIds,
         scalp_feel: step2.scalp?.[0] ?? null,
         breakage: step2.breakage?.[0] ?? null,
-        style_after: step2.style?.[0] ?? null,
-        // Step 2 stores duration as a label (e.g. "2-3 hours") — leave the numeric column null.
+        style_after: styling.style?.[0] ?? null,
         duration_min: null,
-        stress_level: null,
+        stress_level: styling.stress?.[0] ?? null,
         hair_feel_note: step3.note?.trim() ? step3.note.trim() : null,
-        // Persist the storage path so Step3 of the *next* wash day can sign + replay it.
         hair_feel_voice_url: step3.audioPath ?? null,
         ai_insight: observation,
       };
@@ -197,11 +204,34 @@ const WashStep4 = () => {
       const { error } = await supabase.from("wash_days").insert(payload);
       if (error) throw error;
 
-      // Cache the timestamp + clear the in-progress draft.
+      // Optionally create a Style Journal entry to document this style.
+      if (styling.saveAsJournal && (styling.photoPaths?.length || styling.note?.trim() || styling.style?.length)) {
+        const noteParts: string[] = [];
+        if (styling.style?.length) noteParts.push(`Style: ${styling.style.join(", ")}`);
+        if (styling.productNames?.length) noteParts.push(`Products: ${styling.productNames.join(", ")}`);
+        if (styling.duration?.length) noteParts.push(`Styling duration: ${styling.duration.join(", ")}`);
+        if (styling.stress?.length) noteParts.push(`Stress this week: ${styling.stress.join(", ")}`);
+        if (styling.note?.trim()) noteParts.push(styling.note.trim());
+
+        const { error: journalErr } = await supabase.from("journal_entries").insert({
+          user_id: user.id,
+          title: `Style — ${styling.style?.[0] ?? "Wash day"}`,
+          note: noteParts.join("\n\n") || null,
+          photo_paths: styling.photoPaths ?? [],
+          products_used: styling.productIds ?? [],
+          entry_date: washDate,
+        });
+        if (journalErr) {
+          console.error("journal insert failed", journalErr);
+          toast.error("Wash day saved — journal entry failed");
+        }
+      }
+
       localStorage.setItem("strand_last_wash_date", new Date().toISOString());
       localStorage.removeItem("strand_wash_step1");
       localStorage.removeItem("strand_wash_step2");
       localStorage.removeItem("strand_wash_step3");
+      localStorage.removeItem("strand_wash_styling");
       localStorage.removeItem("strand_wash_date");
 
       toast("💧 Wash day saved!");
@@ -216,32 +246,26 @@ const WashStep4 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>4 of 4</span>} onBack={() => navigate("/wash/step-3")} />
-      <ProgressDots total={4} current={4} />
+      <TitleBar title="Wash Day" right={<span>5 of 5</span>} onBack={() => navigate("/wash/step-styling")} />
+      <ProgressDots total={5} current={5} />
       <ItalicSub>Your wash day summary. Tap any section to edit.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-3">
         <Card
           title="Steps & Products"
-          body={
-            <p className="text-xs text-foreground/80 leading-relaxed">{stepsSummary}</p>
-          }
+          body={<p className="text-xs text-foreground/80 leading-relaxed">{stepsSummary}</p>}
           to="/wash/step-1" navigate={navigate}
         />
         <Card
           title="Results"
-          body={
-            <p className="text-xs text-foreground/80 leading-relaxed">{resultsSummary}</p>
-          }
+          body={<p className="text-xs text-foreground/80 leading-relaxed">{resultsSummary}</p>}
           to="/wash/step-2" navigate={navigate}
         />
         <Card
           title="How Your Hair Felt"
           body={
             step3.note ? (
-              <p className="font-body text-sm text-muted-foreground leading-snug">
-                "{step3.note}"
-              </p>
+              <p className="font-body text-sm text-muted-foreground leading-snug">"{step3.note}"</p>
             ) : (
               <p className="font-body text-sm text-muted-foreground italic">
                 No reflection added yet — tap to write or record one.
@@ -249,6 +273,11 @@ const WashStep4 = () => {
             )
           }
           to="/wash/step-3" navigate={navigate}
+        />
+        <Card
+          title="Styling"
+          body={<p className="text-xs text-foreground/80 leading-relaxed">{stylingSummary}</p>}
+          to="/wash/step-styling" navigate={navigate}
         />
 
         <SurfaceCard tone="green">
