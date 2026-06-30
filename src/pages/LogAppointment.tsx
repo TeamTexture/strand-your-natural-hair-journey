@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Check } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -43,6 +43,12 @@ const LogAppointment = () => {
   const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
   const [followUp, setFollowUp] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Local-only list of File objects awaiting upload; uploaded after the
+  // appointment row is created so we can FK them to its id.
+  const [pendingPhotos, setPendingPhotos] = useState<{ file: File; previewUrl: string }[]>([]);
+  const photoFileRef = useRef<HTMLInputElement | null>(null);
+  const { upload: uploadApptPhoto } = usePhotoUploader("appointment-photos");
 
   // Default date to today (yyyy-mm-dd)
   useEffect(() => {
