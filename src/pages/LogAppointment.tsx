@@ -87,24 +87,42 @@ const LogAppointment = () => {
     }
     if (!canSave) return;
     setSaving(true);
-    const { error } = await supabase.from("appointments").insert({
-      user_id: user.id,
-      professional_name: proName.trim(),
-      professional_type: proType,
-      clinic_name: clinic.trim() || null,
-      appointment_date: date,
-      appointment_time: time.trim() || null,
-      reason: reason.trim() || null,
-      notes: notes.trim() || null,
-      status,
-      follow_up_needed: followUp,
-    });
-    setSaving(false);
-    if (error) {
+    const { data: inserted, error } = await supabase
+      .from("appointments")
+      .insert({
+        user_id: user.id,
+        professional_name: proName.trim(),
+        professional_type: proType,
+        clinic_name: clinic.trim() || null,
+        appointment_date: date,
+        appointment_time: time.trim() || null,
+        reason: reason.trim() || null,
+        notes: notes.trim() || null,
+        status,
+        follow_up_needed: followUp,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      setSaving(false);
       console.error("Appointment save failed:", error);
       toast.error("Could not save appointment");
       return;
     }
+
+    // Upload any pending photos in parallel and link them to the new appointment.
+    if (pendingPhotos.length > 0) {
+      const uploaded = await Promise.all(pendingPhotos.map((p) => uploadApptPhoto(p.file)));
+      const rows = uploaded
+        .filter((path): path is string => !!path)
+        .map((path) => ({ appointment_id: inserted.id, user_id: user.id, storage_path: path }));
+      if (rows.length > 0) {
+        const { error: photoErr } = await supabase.from("appointment_photos").insert(rows);
+        if (photoErr) console.error("appointment_photos insert failed", photoErr);
+      }
+    }
+
+    setSaving(false);
     toast.success("Appointment logged");
     navigate("/appointments");
   };
