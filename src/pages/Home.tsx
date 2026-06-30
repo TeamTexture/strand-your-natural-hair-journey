@@ -213,23 +213,45 @@ const Home = () => {
         <SurfaceCard>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Current style</p>
           {style.current_hairstyle ? (
-            <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="font-display text-base font-semibold leading-tight">
-                  {style.current_hairstyle}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {daysInStyle != null ? `Day ${daysInStyle}` : "Just set"}
-                  {style.planned_next_style && ` · Next: ${style.planned_next_style}`}
-                </p>
+            <>
+              <div className="flex items-center gap-3">
+                {beforePhotoUrl && (
+                  <button
+                    onClick={() => navigate("/onboarding/strand-summary")}
+                    aria-label="See My Strand Summary"
+                    className="size-14 rounded-xl overflow-hidden border border-border shrink-0 bg-muted"
+                  >
+                    <img
+                      src={beforePhotoUrl}
+                      alt="Your hair"
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-base font-semibold leading-tight">
+                    {style.current_hairstyle}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {daysInStyle != null ? `Day ${daysInStyle}` : "Just set"}
+                    {style.planned_next_style && ` · Next: ${style.planned_next_style}`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/home/style")}
+                  className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+                >
+                  Edit
+                </button>
               </div>
               <button
-                onClick={() => navigate("/home/style")}
-                className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+                onClick={() => navigate("/onboarding/strand-summary")}
+                className="mt-3 w-full flex items-center justify-between text-xs uppercase tracking-[0.15em] text-primary font-medium border-t border-border pt-2"
               >
-                Edit
+                <span>See My Strand Summary</span>
+                <span aria-hidden>→</span>
               </button>
-            </div>
+            </>
           ) : (
             <button
               onClick={() => navigate("/home/style")}
