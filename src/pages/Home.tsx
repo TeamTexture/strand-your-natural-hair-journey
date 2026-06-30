@@ -143,6 +143,27 @@ const Home = () => {
     return () => { cancelled = true; };
   }, [user]);
 
+  // First "before" photo for the current style card thumbnail.
+  useEffect(() => {
+    if (!user) { setBeforePhotoUrl(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("user_before_photos")
+        .select("storage_path")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      const path = (data?.[0] as { storage_path?: string } | undefined)?.storage_path;
+      if (!path) return;
+      const { data: signed } = await supabase.storage
+        .from("before-photos")
+        .createSignedUrl(path, 3600);
+      if (!cancelled && signed?.signedUrl) setBeforePhotoUrl(signed.signedUrl);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   // Days in style
   const daysInStyle = style.style_set_at
     ? Math.max(0, Math.floor((Date.now() - new Date(style.style_set_at).getTime()) / 86_400_000))
