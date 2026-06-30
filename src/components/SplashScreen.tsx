@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PasswordInput from "@/components/PasswordInput";
 import HairStrandIcon from "./HairStrandIcon";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,9 +108,8 @@ const SplashScreen = () => {
           >
             Password
           </Label>
-          <Input
+          <PasswordInput
             id="splash-password"
-            type="password"
             autoComplete="current-password"
             required
             minLength={6}
