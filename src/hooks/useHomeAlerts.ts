@@ -191,18 +191,6 @@ export function useHomeAlerts() {
         ratingsRes,
         goalsRes,
         journalRes,
-      const [
-        bloodRes,
-        apptRes,
-        recentWashRes,
-        washCountRes,
-        breakageWashRes,
-        upcomingApptRes,
-        shelfRes,
-        ingListsRes,
-        ratingsRes,
-        goalsRes,
-        journalRes,
         milestoneRes,
       ] = await Promise.all([
         supabase
