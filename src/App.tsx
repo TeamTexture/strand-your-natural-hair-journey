@@ -119,6 +119,7 @@ const App = () => (
               <Route path="/wash/step-1" element={<Protected><WashStep1 /></Protected>} />
               <Route path="/wash/step-2" element={<Protected><WashStep2 /></Protected>} />
               <Route path="/wash/step-3" element={<Protected><WashStep3 /></Protected>} />
+              <Route path="/wash/step-styling" element={<Protected><WashStepStyling /></Protected>} />
               <Route path="/wash/step-4" element={<Protected><WashStep4 /></Protected>} />
               <Route path="/products" element={<Protected><Products /></Protected>} />
               <Route path="/products/ingredient" element={<Protected><IngredientDetail /></Protected>} />
