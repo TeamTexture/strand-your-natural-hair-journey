@@ -261,10 +261,56 @@ const LogAppointment = () => {
           rows={4}
         />
 
+        {/* Photos — attach scalp / receipt / treatment shots to the appointment */}
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
-            Status
+            Photos
           </div>
+          <div className="flex flex-wrap gap-2">
+            {pendingPhotos.map((p, idx) => (
+              <div key={idx} className="relative size-20 rounded-[10px] overflow-hidden bg-muted">
+                <img src={p.previewUrl} alt="Attachment" className="absolute inset-0 size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    URL.revokeObjectURL(p.previewUrl);
+                    setPendingPhotos((prev) => prev.filter((_, i) => i !== idx));
+                  }}
+                  aria-label="Remove photo"
+                  className="absolute top-0.5 right-0.5 size-6 rounded-full bg-background/85 backdrop-blur flex items-center justify-center text-foreground hover:text-destructive"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => photoFileRef.current?.click()}
+              className="size-20 rounded-[10px] border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center gap-1 text-primary transition-colors"
+            >
+              <Camera className="size-5" />
+              <span className="text-[10px] font-medium">Add</span>
+            </button>
+          </div>
+          <input
+            ref={photoFileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) setPendingPhotos((prev) => [...prev, { file: f, previewUrl: URL.createObjectURL(f) }]);
+              if (photoFileRef.current) photoFileRef.current.value = "";
+            }}
+          />
+          {pendingPhotos.length > 0 && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              Photos upload when you save the appointment.
+            </p>
+          )}
+        </div>
+
           <div className="flex flex-wrap gap-2">
             {STATUSES.map((s) => (
               <Tag
