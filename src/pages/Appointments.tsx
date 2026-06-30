@@ -12,6 +12,7 @@ import AddToCalendarButton from "@/components/AddToCalendarButton";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 
 interface Appointment {
   id: string;
