@@ -201,7 +201,7 @@ const WashStep4 = () => {
         ai_insight: observation,
       };
 
-      const { error } = await supabase.from("wash_days").insert(payload);
+      const { error } = await supabase.from("wash_days").insert([payload]);
       if (error) throw error;
 
       // Optionally create a Style Journal entry to document this style.
