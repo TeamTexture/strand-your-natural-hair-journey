@@ -50,6 +50,18 @@ const StrandSummary = () => {
     let cancelled = false;
     (async () => {
       try {
+        // Check if the user has completed onboarding — used to flip this
+        // page into "revisit" mode (back-arrow returns to previous route,
+        // CTA becomes Done rather than pushing to /onboarding/success).
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed_at")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!cancelled && (profile as { onboarding_completed_at?: string | null } | null)?.onboarding_completed_at) {
+          setIsRevisit(true);
+        }
+
         const inputHash = await computeStrandSummaryFingerprint(user.id);
 
         // 1) Try the most recent cached summary. If its input_hash matches
