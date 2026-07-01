@@ -144,6 +144,7 @@ Deno.serve(async (req: Request) => {
         action_plan: payload.action_plan,
         routine_tips: payload.routine_tips,
         context_snapshot: context,
+        input_hash: body.inputHash ?? null,
       })
       .select()
       .single();
