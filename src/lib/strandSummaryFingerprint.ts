@@ -46,7 +46,7 @@ export async function computeStrandSummaryFingerprint(userId: string): Promise<s
         .eq("user_id", userId)
         .order(tsCol, { ascending: false })
         .limit(1);
-      const latest = (data?.[0] as Record<string, unknown> | undefined)?.[tsCol] ?? "";
+      const latest = (data?.[0] as unknown as Record<string, unknown> | undefined)?.[tsCol] ?? "";
       parts.push(`${table}:${count ?? 0}:${latest}`);
     }),
   );
