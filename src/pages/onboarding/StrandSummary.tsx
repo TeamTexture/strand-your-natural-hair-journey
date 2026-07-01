@@ -1,9 +1,9 @@
 // Post-onboarding AI summary screen. Calls hair-strand-summary which writes
 // to hair_strand_summaries and returns overview + action plan + routine tips.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Camera, Plus, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -11,9 +11,20 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { buildAiContext } from "@/lib/aiContext";
 import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
+
+const MAX_PHOTOS = 12;
+
+interface PhotoItem {
+  id: string;
+  path: string;
+  url: string;
+  createdAt: string;
+}
+
 
 interface Summary {
   overview: string;
