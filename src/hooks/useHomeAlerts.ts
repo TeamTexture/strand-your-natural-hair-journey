@@ -355,23 +355,25 @@ export function useHomeAlerts() {
           });
         }
       }
-      const lowMarkers = Array.from(latestByMarker.entries())
-        .filter(([, v]) => v.status === "low")
-        .map(([m]) => m);
+      const flaggedMarkers = Array.from(latestByMarker.entries())
+        .filter(([, v]) => v.status === "low" || v.status === "high")
+        .map(([m, v]) => ({ marker: m, status: v.status as "low" | "high" }));
       const lastBloodIso = bloodRows[0]?.updated_at ?? null;
       const daysSinceBlood = daysSince(lastBloodIso);
 
-      if (lowMarkers.length > 0) {
-        const sample = lowMarkers.slice(0, 2).join(", ");
-        const more = lowMarkers.length > 2 ? ` +${lowMarkers.length - 2} more` : "";
+      if (flaggedMarkers.length > 0) {
+        const label = (f: { marker: string; status: "low" | "high" }) =>
+          `${f.status === "low" ? "Low" : "High"} ${f.marker}`;
+        const sample = flaggedMarkers.slice(0, 2).map(label).join(", ");
+        const more = flaggedMarkers.length > 2 ? ` +${flaggedMarkers.length - 2} more` : "";
         next.push({
           id: "blood-low-markers",
           emoji: "🩸",
-          title: `${lowMarkers.length} low marker${lowMarkers.length === 1 ? "" : "s"} on file`,
+          title: `${flaggedMarkers.length} flagged marker${flaggedMarkers.length === 1 ? "" : "s"} on file`,
           body: `${sample}${more} — see your nutrition plan.`,
           to: "/nutrition-plan",
           tone: "warning",
-          signature: `lowMarkers:${lowMarkers.sort().join(",")}`,
+          signature: `flaggedMarkers:${flaggedMarkers.map((f) => `${f.marker}:${f.status}`).sort().join(",")}`,
         });
       }
 
