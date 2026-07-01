@@ -23,11 +23,18 @@ interface Summary {
 
 const StrandSummary = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [progress, setProgress] = useState(8);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Treat as a revisit (not the onboarding flow) when the route was pushed
+  // from anywhere other than the onboarding photos step, or when the user
+  // has already completed onboarding.
+  const [isRevisit, setIsRevisit] = useState<boolean>(
+    (location.state as { fromOnboarding?: boolean } | null)?.fromOnboarding !== true,
+  );
 
   // Progress driver — climbs to 95 while we wait; snaps to 100 on completion.
   useEffect(() => {
