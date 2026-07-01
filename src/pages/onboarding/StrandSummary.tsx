@@ -2,7 +2,7 @@
 // to hair_strand_summaries and returns overview + action plan + routine tips.
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -23,11 +23,18 @@ interface Summary {
 
 const StrandSummary = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [progress, setProgress] = useState(8);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Treat as a revisit (not the onboarding flow) when the route was pushed
+  // from anywhere other than the onboarding photos step, or when the user
+  // has already completed onboarding.
+  const [isRevisit, setIsRevisit] = useState<boolean>(
+    (location.state as { fromOnboarding?: boolean } | null)?.fromOnboarding !== true,
+  );
 
   // Progress driver — climbs to 95 while we wait; snaps to 100 on completion.
   useEffect(() => {
@@ -43,6 +50,18 @@ const StrandSummary = () => {
     let cancelled = false;
     (async () => {
       try {
+        // Check if the user has completed onboarding — used to flip this
+        // page into "revisit" mode (back-arrow returns to previous route,
+        // CTA becomes Done rather than pushing to /onboarding/success).
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed_at")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!cancelled && (profile as { onboarding_completed_at?: string | null } | null)?.onboarding_completed_at) {
+          setIsRevisit(true);
+        }
+
         const inputHash = await computeStrandSummaryFingerprint(user.id);
 
         // 1) Try the most recent cached summary. If its input_hash matches
@@ -95,11 +114,12 @@ const StrandSummary = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  const goNext = () => navigate("/onboarding/success");
+  const goBack = () => (isRevisit ? navigate(-1) : navigate("/onboarding/photos"));
+  const goNext = () => (isRevisit ? navigate(-1) : navigate("/onboarding/success"));
 
   return (
     <ScreenLayout>
-      <TitleBar title="Your Strand Summary" onBack={() => navigate("/onboarding/photos")} />
+      <TitleBar title="Your Strand Summary" onBack={goBack} />
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard tone="gold">
@@ -176,7 +196,7 @@ const StrandSummary = () => {
         )}
 
         <Button variant="gold" size="pill" onClick={goNext} disabled={loading}>
-          Continue →
+          {isRevisit ? "Done" : "Continue →"}
         </Button>
       </div>
     </ScreenLayout>
