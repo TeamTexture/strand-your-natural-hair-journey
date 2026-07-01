@@ -241,25 +241,6 @@ const Profile = () => {
   });
 
 
-  // ---------- Derived: only present if real data exists ----------
-  // Name priority: onboarding "basic" name → DB display_name → auth metadata → titlecased email prefix.
-  // We only fall back to the email prefix as an absolute last resort, and we
-  // titlecase it (and replace dots/underscores with spaces) so it doesn't look like a login.
-  const titleCase = (s: string) =>
-    s
-      .replace(/[._-]+/g, " ")
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
-      .join(" ");
-
-  const rawName =
-    (basic.name && basic.name.trim()) ||
-    (profileName && profileName.trim()) ||
-    (user?.user_metadata?.display_name as string | undefined)?.trim() ||
-    "";
-  const displayName = rawName || (user?.email ? titleCase(user.email.split("@")[0]) : "");
-  const ageDisplay = basic.age !== undefined && basic.age !== "" ? `Age ${basic.age}` : "";
 
   // Backend blood results — source-of-truth for flagged markers so alerts
   // still fire on a fresh device/session where localStorage is empty.
