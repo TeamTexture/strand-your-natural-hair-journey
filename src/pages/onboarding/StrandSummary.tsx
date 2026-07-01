@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
+import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
 
 interface Summary {
@@ -42,6 +43,29 @@ const StrandSummary = () => {
     let cancelled = false;
     (async () => {
       try {
+        const inputHash = await computeStrandSummaryFingerprint(user.id);
+
+        // 1) Try the most recent cached summary. If its input_hash matches
+        //    the current fingerprint, reuse it — no AI call needed.
+        const { data: cached } = await supabase
+          .from("hair_strand_summaries")
+          .select("overview, action_plan, routine_tips, input_hash")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!cancelled && cached && (cached as { input_hash?: string }).input_hash === inputHash) {
+          setSummary({
+            overview: cached.overview ?? "",
+            action_plan: (cached.action_plan as string[] | null) ?? [],
+            routine_tips: (cached.routine_tips as string[] | null) ?? [],
+          });
+          setLoading(false);
+          return;
+        }
+
+        // 2) Stale or missing → regenerate.
         const context = await buildAiContext();
         const { count: photoCount } = await supabase
           .from("user_before_photos")
@@ -49,7 +73,7 @@ const StrandSummary = () => {
           .eq("user_id", user.id);
 
         const { data, error: fnErr } = await supabase.functions.invoke("hair-strand-summary", {
-          body: { context, beforePhotoCount: photoCount ?? 0 },
+          body: { context, beforePhotoCount: photoCount ?? 0, inputHash },
         });
         if (cancelled) return;
         if (fnErr) throw fnErr;

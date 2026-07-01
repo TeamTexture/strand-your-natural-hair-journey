@@ -1,0 +1,2 @@
+ALTER TABLE public.hair_strand_summaries ADD COLUMN IF NOT EXISTS input_hash text;
+CREATE INDEX IF NOT EXISTS hair_strand_summaries_user_created_idx ON public.hair_strand_summaries (user_id, created_at DESC);

@@ -240,6 +240,7 @@ export type Database = {
           context_snapshot: Json | null
           created_at: string
           id: string
+          input_hash: string | null
           overview: string
           routine_tips: Json
           user_id: string
@@ -249,6 +250,7 @@ export type Database = {
           context_snapshot?: Json | null
           created_at?: string
           id?: string
+          input_hash?: string | null
           overview: string
           routine_tips?: Json
           user_id: string
@@ -258,6 +260,7 @@ export type Database = {
           context_snapshot?: Json | null
           created_at?: string
           id?: string
+          input_hash?: string | null
           overview?: string
           routine_tips?: Json
           user_id?: string
