@@ -4,6 +4,7 @@ import { HelpCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import ProductThumb from "@/components/ProductThumb";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import UserAvatar from "@/components/UserAvatar";
