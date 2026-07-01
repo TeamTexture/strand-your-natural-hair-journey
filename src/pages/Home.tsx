@@ -4,6 +4,7 @@ import { HelpCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import ProductThumb from "@/components/ProductThumb";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import UserAvatar from "@/components/UserAvatar";
@@ -499,22 +500,31 @@ const Home = () => {
               Your shelf is empty. Tap + to add your first product.
             </button>
           ) : (
-            shelfProducts.slice(0, 4).map((s) => (
-              <button
-                key={s.id}
-                onClick={() => navigate(`/products/profile/${s.id}`)}
-                className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px] last:rounded-b-[14px]"
-              >
-                <div className="size-11 rounded-[10px] overflow-hidden bg-primary/15 flex items-center justify-center text-xl">
-                  {s.image_url ? <img src={s.image_url} alt="" className="size-full object-cover" /> : "🧴"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{s.brand}</p>
-                  <Stars n={s.rating ?? 0} />
-                </div>
-              </button>
-            ))
+            shelfProducts.slice(0, 4).map((s) => {
+              const aiStars = typeof s.match_score === "number"
+                ? Math.max(1, Math.min(5, Math.round(s.match_score / 20)))
+                : (s.rating ?? 0);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => navigate(`/products/profile/${s.id}`)}
+                  className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px] last:rounded-b-[14px]"
+                >
+                  <ProductThumb
+                    imageUrl={s.image_url}
+                    storagePath={s.storage_path}
+                    alt={s.name}
+                    cover
+                    wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{s.brand}</p>
+                    <Stars n={aiStars} />
+                  </div>
+                </button>
+              );
+            })
           )}
         </SurfaceCard>
       </div>
