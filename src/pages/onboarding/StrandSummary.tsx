@@ -50,12 +50,8 @@ const StrandSummary = () => {
   const { upload, sign, uploading } = usePhotoUploader("before-photos");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  // Treat as a revisit (not the onboarding flow) when the route was pushed
-  // from anywhere other than the onboarding photos step, or when the user
-  // has already completed onboarding.
-  const [isRevisit, setIsRevisit] = useState<boolean>(
-    (location.state as { fromOnboarding?: boolean } | null)?.fromOnboarding !== true,
-  );
+
+
 
   const loadPhotos = async (uid: string) => {
     const { data } = await supabase
