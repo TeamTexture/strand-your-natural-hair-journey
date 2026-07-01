@@ -47,6 +47,73 @@ const StrandSummary = () => {
     (location.state as { fromOnboarding?: boolean } | null)?.fromOnboarding !== true,
   );
 
+  const { upload, sign, uploading } = usePhotoUploader("before-photos");
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  // Treat as a revisit (not the onboarding flow) when the route was pushed
+  // from anywhere other than the onboarding photos step, or when the user
+  // has already completed onboarding.
+  const [isRevisit, setIsRevisit] = useState<boolean>(
+    (location.state as { fromOnboarding?: boolean } | null)?.fromOnboarding !== true,
+  );
+
+  const loadPhotos = async (uid: string) => {
+    const { data } = await supabase
+      .from("user_before_photos")
+      .select("id, storage_path, created_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
+    const rows = (data ?? []) as Array<{ id: string; storage_path: string; created_at: string }>;
+    const withUrls = await Promise.all(
+      rows.map(async (r) => ({
+        id: r.id,
+        path: r.storage_path,
+        url: (await sign(r.storage_path)) ?? "",
+        createdAt: r.created_at,
+      })),
+    );
+    setPhotos(withUrls.filter((p) => p.url));
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    void loadPhotos(user.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const handlePick = async (file: File | null) => {
+    if (!file || !user) return;
+    if (photos.length >= MAX_PHOTOS) {
+      toast.error(`Up to ${MAX_PHOTOS} photos`);
+      return;
+    }
+    const path = await upload(file);
+    if (!path) { toast.error("Upload failed"); return; }
+    const { data: inserted, error } = await supabase
+      .from("user_before_photos")
+      .insert({ user_id: user.id, storage_path: path })
+      .select("id, storage_path, created_at")
+      .single();
+    if (error || !inserted) {
+      toast.error("Could not save photo");
+      return;
+    }
+    const url = await sign(inserted.storage_path);
+    if (url) {
+      setPhotos((p) => [
+        { id: inserted.id, path: inserted.storage_path, url, createdAt: inserted.created_at },
+        ...p,
+      ]);
+    }
+  };
+
+  const removePhoto = async (photo: PhotoItem) => {
+    if (!user) return;
+    await supabase.from("user_before_photos").delete().eq("id", photo.id).eq("user_id", user.id);
+    await supabase.storage.from("before-photos").remove([photo.path]);
+    setPhotos((p) => p.filter((i) => i.id !== photo.id));
+  };
+
   // Progress driver — climbs to 95 while we wait; snaps to 100 on completion.
   useEffect(() => {
     if (!loading) { setProgress(100); return; }
@@ -55,6 +122,7 @@ const StrandSummary = () => {
     }, 220);
     return () => window.clearInterval(id);
   }, [loading]);
+
 
   useEffect(() => {
     if (!user) return;
