@@ -270,6 +270,90 @@ const StrandSummary = () => {
           </>
         )}
 
+        {/* Progress photos with timestamps */}
+        <SurfaceCard>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-medium">
+              Progress photos
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              {photos.length}/{MAX_PHOTOS}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-3 leading-snug">
+            Add photos over time to see your strand journey. Each is timestamped so you can track real progress.
+          </p>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            {photos.map((p) => (
+              <div key={p.id} className="relative aspect-square rounded-[12px] overflow-hidden bg-muted">
+                <img src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(p)}
+                  aria-label="Remove photo"
+                  className="absolute top-1.5 right-1.5 size-6 rounded-full bg-background/85 backdrop-blur flex items-center justify-center text-foreground hover:text-destructive"
+                >
+                  <X className="size-3" />
+                </button>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                  <p className="text-[10px] text-white font-medium leading-tight">
+                    {new Date(p.createdAt).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <p className="text-[9px] text-white/80 leading-tight">
+                    {new Date(p.createdAt).toLocaleTimeString(undefined, {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {photos.length < MAX_PHOTOS && (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="aspect-square rounded-[12px] border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center gap-1.5 text-primary transition-colors"
+              >
+                {uploading ? (
+                  <span className="text-[10px]">Uploading…</span>
+                ) : photos.length === 0 ? (
+                  <>
+                    <Camera className="size-5" />
+                    <span className="text-[10px] font-medium">Add photo</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-5" />
+                    <span className="text-[10px] font-medium">Add another</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              void handlePick(f ?? null);
+              if (fileRef.current) fileRef.current.value = "";
+            }}
+          />
+        </SurfaceCard>
+
+
+
         <Button variant="gold" size="pill" onClick={goNext} disabled={loading}>
           {isRevisit ? "Done" : "Continue →"}
         </Button>
