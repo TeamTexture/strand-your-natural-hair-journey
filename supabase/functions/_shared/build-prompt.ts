@@ -60,7 +60,7 @@ export const FUNCTION_MODEL_MAP: Record<FunctionKind, ClaudeModel> = {
   "tool-analyse-url": "claude-haiku-4-5-20251001",
   "wash-day-observation": "claude-haiku-4-5-20251001",
   "heat-treatment-rationale": "claude-haiku-4-5-20251001",
-  "nutrition-plan": "claude-opus-4-7",
+  "nutrition-plan": "claude-sonnet-4-6",
   "blood-ai-summary": "claude-opus-4-7",
   "journal-encouragement": "claude-haiku-4-5-20251001",
   "claude-smoke": "claude-sonnet-4-6",
