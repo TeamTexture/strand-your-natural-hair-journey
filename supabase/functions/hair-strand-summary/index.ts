@@ -34,6 +34,7 @@ const json = (status: number, body: unknown) =>
 interface Body {
   context?: Record<string, unknown> | null;
   beforePhotoCount?: number;
+  inputHash?: string | null;
 }
 
 interface SummaryPayload {
