@@ -196,7 +196,7 @@ const StrandSummary = () => {
         )}
 
         <Button variant="gold" size="pill" onClick={goNext} disabled={loading}>
-          Continue →
+          {isRevisit ? "Done" : "Continue →"}
         </Button>
       </div>
     </ScreenLayout>
