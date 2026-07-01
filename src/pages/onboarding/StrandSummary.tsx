@@ -1,9 +1,9 @@
 // Post-onboarding AI summary screen. Calls hair-strand-summary which writes
 // to hair_strand_summaries and returns overview + action plan + routine tips.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Camera, Plus, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -11,9 +11,20 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { buildAiContext } from "@/lib/aiContext";
 import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
+
+const MAX_PHOTOS = 12;
+
+interface PhotoItem {
+  id: string;
+  path: string;
+  url: string;
+  createdAt: string;
+}
+
 
 interface Summary {
   overview: string;
@@ -36,6 +47,69 @@ const StrandSummary = () => {
     (location.state as { fromOnboarding?: boolean } | null)?.fromOnboarding !== true,
   );
 
+  const { upload, sign, uploading } = usePhotoUploader("before-photos");
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+
+
+
+  const loadPhotos = async (uid: string) => {
+    const { data } = await supabase
+      .from("user_before_photos")
+      .select("id, storage_path, created_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
+    const rows = (data ?? []) as Array<{ id: string; storage_path: string; created_at: string }>;
+    const withUrls = await Promise.all(
+      rows.map(async (r) => ({
+        id: r.id,
+        path: r.storage_path,
+        url: (await sign(r.storage_path)) ?? "",
+        createdAt: r.created_at,
+      })),
+    );
+    setPhotos(withUrls.filter((p) => p.url));
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    void loadPhotos(user.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const handlePick = async (file: File | null) => {
+    if (!file || !user) return;
+    if (photos.length >= MAX_PHOTOS) {
+      toast.error(`Up to ${MAX_PHOTOS} photos`);
+      return;
+    }
+    const path = await upload(file);
+    if (!path) { toast.error("Upload failed"); return; }
+    const { data: inserted, error } = await supabase
+      .from("user_before_photos")
+      .insert({ user_id: user.id, storage_path: path })
+      .select("id, storage_path, created_at")
+      .single();
+    if (error || !inserted) {
+      toast.error("Could not save photo");
+      return;
+    }
+    const url = await sign(inserted.storage_path);
+    if (url) {
+      setPhotos((p) => [
+        { id: inserted.id, path: inserted.storage_path, url, createdAt: inserted.created_at },
+        ...p,
+      ]);
+    }
+  };
+
+  const removePhoto = async (photo: PhotoItem) => {
+    if (!user) return;
+    await supabase.from("user_before_photos").delete().eq("id", photo.id).eq("user_id", user.id);
+    await supabase.storage.from("before-photos").remove([photo.path]);
+    setPhotos((p) => p.filter((i) => i.id !== photo.id));
+  };
+
   // Progress driver — climbs to 95 while we wait; snaps to 100 on completion.
   useEffect(() => {
     if (!loading) { setProgress(100); return; }
@@ -44,6 +118,7 @@ const StrandSummary = () => {
     }, 220);
     return () => window.clearInterval(id);
   }, [loading]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -194,6 +269,90 @@ const StrandSummary = () => {
             )}
           </>
         )}
+
+        {/* Progress photos with timestamps */}
+        <SurfaceCard>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-medium">
+              Progress photos
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              {photos.length}/{MAX_PHOTOS}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-3 leading-snug">
+            Add photos over time to see your strand journey. Each is timestamped so you can track real progress.
+          </p>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            {photos.map((p) => (
+              <div key={p.id} className="relative aspect-square rounded-[12px] overflow-hidden bg-muted">
+                <img src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(p)}
+                  aria-label="Remove photo"
+                  className="absolute top-1.5 right-1.5 size-6 rounded-full bg-background/85 backdrop-blur flex items-center justify-center text-foreground hover:text-destructive"
+                >
+                  <X className="size-3" />
+                </button>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                  <p className="text-[10px] text-white font-medium leading-tight">
+                    {new Date(p.createdAt).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <p className="text-[9px] text-white/80 leading-tight">
+                    {new Date(p.createdAt).toLocaleTimeString(undefined, {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {photos.length < MAX_PHOTOS && (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="aspect-square rounded-[12px] border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center gap-1.5 text-primary transition-colors"
+              >
+                {uploading ? (
+                  <span className="text-[10px]">Uploading…</span>
+                ) : photos.length === 0 ? (
+                  <>
+                    <Camera className="size-5" />
+                    <span className="text-[10px] font-medium">Add photo</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-5" />
+                    <span className="text-[10px] font-medium">Add another</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              void handlePick(f ?? null);
+              if (fileRef.current) fileRef.current.value = "";
+            }}
+          />
+        </SurfaceCard>
+
+
 
         <Button variant="gold" size="pill" onClick={goNext} disabled={loading}>
           {isRevisit ? "Done" : "Continue →"}
