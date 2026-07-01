@@ -35,7 +35,7 @@ const BottomNav = () => (
         {({ isActive }) => (
           <>
             <Icon className={`size-5 ${isActive ? "stroke-[2]" : "stroke-[1.5]"}`} aria-hidden="true" />
-            <span>{label}</span>
+            <span className="text-center leading-none">{label}</span>
           </>
         )}
       </NavLink>
