@@ -241,6 +241,23 @@ const Profile = () => {
   });
 
 
+
+  // Backend blood results — source-of-truth for flagged markers so alerts
+  // still fire on a fresh device/session where localStorage is empty.
+  const { data: dbBloodRows = [] } = useQuery({
+    queryKey: ["profile", "blood_results", user?.id ?? "anon"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("blood_results")
+        .select("marker, value, status, unit")
+        .eq("user_id", user!.id);
+      return (data ?? []) as Array<{ marker: string; value: number | null; status: string | null; unit: string | null }>;
+    },
+  });
+
   // ---------- Derived: only present if real data exists ----------
   // Name priority: onboarding "basic" name → DB display_name → auth metadata → titlecased email prefix.
   // We only fall back to the email prefix as an absolute last resort, and we
@@ -263,18 +280,38 @@ const Profile = () => {
 
   
 
-  // Flagged blood markers (low/high) — only built from values the user entered.
+  // Flagged blood markers (low/high) — merge local onboarding values with
+  // backend rows so a signed-in user always sees their persisted results.
   const flaggedBlood = useMemo(() => {
-    const out: { marker: string; value: number; status: BloodStatus; unit: string }[] = [];
+    const map = new Map<string, { marker: string; value: number; status: BloodStatus; unit: string }>();
     for (const [marker, value] of Object.entries(bloodValues)) {
       if (value === null || value === undefined || Number.isNaN(value)) continue;
       const status = evaluate(marker, value as number);
       if (status === "low" || status === "high") {
-        out.push({ marker, value: value as number, status, unit: BLOOD_RANGES[marker]?.unit ?? "" });
+        map.set(marker, { marker, value: value as number, status, unit: BLOOD_RANGES[marker]?.unit ?? "" });
       }
     }
-    return out;
-  }, [bloodValues]);
+    for (const row of dbBloodRows) {
+      if (map.has(row.marker)) continue;
+      if (row.value === null || row.value === undefined) continue;
+      // Prefer computed evaluation for consistency; fall back to stored status.
+      const computed = evaluate(row.marker, row.value);
+      const status: BloodStatus = computed !== "untested"
+        ? computed
+        : (row.status === "low" || row.status === "high" || row.status === "normal")
+          ? (row.status as BloodStatus)
+          : "untested";
+      if (status === "low" || status === "high") {
+        map.set(row.marker, {
+          marker: row.marker,
+          value: row.value,
+          status,
+          unit: row.unit ?? BLOOD_RANGES[row.marker]?.unit ?? "",
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [bloodValues, dbBloodRows]);
 
   // Wash day alert: due if last wash was 7+ days ago.
   const washAlert = useMemo(() => {
