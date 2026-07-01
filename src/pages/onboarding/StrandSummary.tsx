@@ -114,11 +114,12 @@ const StrandSummary = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  const goNext = () => navigate("/onboarding/success");
+  const goBack = () => (isRevisit ? navigate(-1) : navigate("/onboarding/photos"));
+  const goNext = () => (isRevisit ? navigate(-1) : navigate("/onboarding/success"));
 
   return (
     <ScreenLayout>
-      <TitleBar title="Your Strand Summary" onBack={() => navigate("/onboarding/photos")} />
+      <TitleBar title="Your Strand Summary" onBack={goBack} />
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard tone="gold">
