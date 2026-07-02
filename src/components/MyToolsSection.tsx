@@ -38,14 +38,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { ToolAdviceDialog } from "@/components/ToolAdviceDialog";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
