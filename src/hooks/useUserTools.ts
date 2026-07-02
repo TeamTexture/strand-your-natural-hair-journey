@@ -164,7 +164,7 @@ export function useUserTools() {
           rating: input.rating ?? null,
           notes: input.notes?.trim() || null,
           match_score: input.matchScore ?? null,
-          ai_analysis: input.aiAnalysis ?? null,
+          ai_analysis: (input.aiAnalysis ?? null) as never,
           source_url: input.sourceUrl ?? null,
         })
         .select("*")
