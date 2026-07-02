@@ -38,6 +38,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
 import { buildAiContext } from "@/lib/aiContext";
