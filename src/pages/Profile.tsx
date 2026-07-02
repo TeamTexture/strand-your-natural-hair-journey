@@ -753,6 +753,9 @@ const Profile = () => {
         <Button variant="gold" size="pill" onClick={() => handleExportPdf()} disabled={exportingPdf}>
           {exportingPdf ? "Generating PDF…" : "Download full profile (PDF)"}
         </Button>
+        <Button variant="outline" size="pill" onClick={() => handleExportSnapshot()} disabled={exportingSnapshot}>
+          {exportingSnapshot ? "Preparing snapshot…" : "Export for my Professional"}
+        </Button>
         <button
           onClick={async () => { await signOut(); navigate("/", { replace: true }); }}
           className="w-full flex items-center justify-center gap-2 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground py-3 min-h-[44px]"
