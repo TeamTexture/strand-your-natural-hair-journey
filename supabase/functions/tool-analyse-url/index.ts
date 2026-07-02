@@ -122,6 +122,8 @@ Field rules — strict:
 - tips: MAX 2 items, each ≤ 1 short sentence. The 2 most relevant personal signals for THIS tool.
 - warnings: optional, MAX 2. Only include if the tool has a contraindication for THIS user (e.g. high heat tool when user has a heat-damage challenge).
 - personalisation_rationale: 1–2 sentences explaining why this tool does or doesn't suit THIS user's hair profile.
+- match_score: integer 0–100 for how well this tool fits THIS user (hair type, current style, goals, challenges). Be honest — poor fits should score 20–40, mixed 40–65, strong fits 70–90. Reserve 90+ for near-ideal matches.
+- how_to_use: 1–3 short sentences, second person, on how THIS user specifically should use it (technique, section size, heat setting, frequency, before/after which step).
 
 Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. Web-derived facts go inline, never under "Read more —".
 
