@@ -41,6 +41,9 @@ export interface UserTool {
   added_at: string;
   last_used_at: string | null;
   use_count: number;
+  match_score: number | null;
+  ai_analysis: Record<string, unknown> | null;
+  source_url: string | null;
   created_at: string;
   updated_at: string;
 }
