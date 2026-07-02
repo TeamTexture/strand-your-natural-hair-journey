@@ -137,24 +137,31 @@ const StrandSummary = () => {
           setIsRevisit(true);
         }
 
-        const inputHash = await computeStrandSummaryFingerprint(user.id);
+        // Fetch cached summary + compute fingerprint in parallel so we can
+        // show the cached overview instantly while we verify freshness.
+        const [cachedRes, inputHash] = await Promise.all([
+          supabase
+            .from("hair_strand_summaries")
+            .select("overview, action_plan, routine_tips, input_hash")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          computeStrandSummaryFingerprint(user.id),
+        ]);
+        const cached = cachedRes.data;
 
-        // 1) Try the most recent cached summary. If its input_hash matches
-        //    the current fingerprint, reuse it — no AI call needed.
-        const { data: cached } = await supabase
-          .from("hair_strand_summaries")
-          .select("overview, action_plan, routine_tips, input_hash")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!cancelled && cached && (cached as { input_hash?: string }).input_hash === inputHash) {
+        // Paint cached immediately for perceived speed.
+        if (!cancelled && cached?.overview) {
           setSummary({
-            overview: cached.overview ?? "",
+            overview: cached.overview,
             action_plan: (cached.action_plan as string[] | null) ?? [],
             routine_tips: (cached.routine_tips as string[] | null) ?? [],
           });
+        }
+
+        // If the fingerprint matches, the cached copy is authoritative — stop.
+        if (!cancelled && cached && (cached as { input_hash?: string }).input_hash === inputHash) {
           setLoading(false);
           return;
         }
