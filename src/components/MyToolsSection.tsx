@@ -506,6 +506,24 @@ const MyToolsSection = () => {
         </SheetContent>
       </Sheet>
 
+      <ToolAdviceDialog
+        open={adviceOpen}
+        onOpenChange={setAdviceOpen}
+        payload={analysis}
+        title="STRAND advice"
+        primaryLabel="Got it — review & save"
+      />
+
+      <ToolAdviceDialog
+        open={!!viewAdvice}
+        onOpenChange={(o) => !o && setViewAdvice(null)}
+        payload={(viewAdvice?.ai_analysis as Record<string, unknown> | null) ?? null}
+        title={viewAdvice?.name ? `Advice · ${viewAdvice.name}` : "STRAND advice"}
+        primaryLabel="Close"
+      />
+
+
+
       <AlertDialog
         open={!!pendingDelete}
         onOpenChange={(o) => !o && !deleting && setPendingDelete(null)}
