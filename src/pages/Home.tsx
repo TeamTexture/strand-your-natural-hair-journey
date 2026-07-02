@@ -212,7 +212,7 @@ const Home = () => {
       <div className="px-5 space-y-4 pb-6">
         {/* current style */}
         <SurfaceCard>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Current style</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Current style</p>
           {style.current_hairstyle ? (
             <>
               <div className="flex items-center gap-3">
