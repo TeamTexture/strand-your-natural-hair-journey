@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, FlaskConical, Droplets, BookOpen, User } from "lucide-react";
+import { Home, FlaskConical, Droplets, Apple, User } from "lucide-react";
 import { tap } from "@/lib/haptics";
 
 const tabs = [
