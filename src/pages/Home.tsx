@@ -229,7 +229,7 @@ const Home = () => {
                   <button
                     onClick={() => navigate("/onboarding/strand-summary")}
                     aria-label="See My Strand Summary"
-                    className="size-10 rounded-md overflow-hidden border border-border shrink-0 bg-muted"
+                    className="size-20 rounded-md overflow-hidden border border-border shrink-0 bg-muted"
                   >
                     <img
                       src={beforePhotoUrl}
