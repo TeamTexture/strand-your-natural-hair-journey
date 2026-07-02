@@ -89,6 +89,11 @@ const MyToolsSection = () => {
   // Remote image URL pulled from the scraped product page (og:image / JSON-LD).
   // Persisted on the tool row so the tile + detail page show the right photo.
   const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
+  // Full AI advice payload from tool-analyse-url. Shown in the advice popup
+  // and saved onto the user_tools row so it can be re-opened later.
+  const [analysis, setAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [adviceOpen, setAdviceOpen] = useState(false);
+  const [viewAdvice, setViewAdvice] = useState<UserTool | null>(null);
 
   const resetForm = () => {
     setPickedPhoto(null);
