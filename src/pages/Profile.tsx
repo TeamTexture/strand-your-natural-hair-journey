@@ -144,6 +144,7 @@ const Profile = () => {
 
   const [editPickerOpen, setEditPickerOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingSnapshot, setExportingSnapshot] = useState(false);
 
   // Quick-jump destinations for the edit picker.
   const editTargets = useMemo(
