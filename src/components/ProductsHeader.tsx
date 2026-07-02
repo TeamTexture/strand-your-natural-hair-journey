@@ -42,7 +42,7 @@ export const categoryBucket = (raw: string | null | undefined) => {
   for (const b of CATEGORY_ORDER) {
     if (b.matchers.some((rx) => rx.test(c))) return { key: b.key, label: b.label };
   }
-  return { key: "other", label: "Other" };
+  return { key: "other", label: "Treatments" };
 };
 
 export interface ProductsFilterState {
