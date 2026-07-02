@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, FlaskConical, Droplets, BookOpen, User } from "lucide-react";
+import { Home, FlaskConical, Droplets, Apple, User } from "lucide-react";
 import { tap } from "@/lib/haptics";
 
 const tabs = [
   { to: "/home", label: "Home", Icon: Home },
   { to: "/products", label: "Products", Icon: FlaskConical },
   { to: "/wash-day", label: "Wash Day", Icon: Droplets },
-  { to: "/journal", label: "Style Journal", Icon: BookOpen },
+  { to: "/nutrition-plan", label: "Diet", Icon: Apple },
   { to: "/profile", label: "Profile", Icon: User },
 ];
 
