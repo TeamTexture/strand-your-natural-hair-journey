@@ -105,6 +105,7 @@ const MyToolsSection = () => {
     setRating(0);
     setLinkUrl("");
     setRemoteImageUrl(null);
+    setAnalysis(null);
   };
 
   const handlePickPhoto = (f: File) => {
