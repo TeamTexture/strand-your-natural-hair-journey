@@ -216,19 +216,6 @@ const Home = () => {
           {style.current_hairstyle ? (
             <>
               <div className="flex items-center gap-3">
-                {beforePhotoUrl && (
-                  <button
-                    onClick={() => navigate("/onboarding/strand-summary")}
-                    aria-label="See My Strand Summary"
-                    className="size-14 rounded-xl overflow-hidden border border-border shrink-0 bg-muted"
-                  >
-                    <img
-                      src={beforePhotoUrl}
-                      alt="Your hair"
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-base font-semibold leading-tight">
                     {style.current_hairstyle}
@@ -238,6 +225,19 @@ const Home = () => {
                     {style.planned_next_style && ` · Next: ${style.planned_next_style}`}
                   </p>
                 </div>
+                {beforePhotoUrl && (
+                  <button
+                    onClick={() => navigate("/onboarding/strand-summary")}
+                    aria-label="See My Strand Summary"
+                    className="size-10 rounded-md overflow-hidden border border-border shrink-0 bg-muted"
+                  >
+                    <img
+                      src={beforePhotoUrl}
+                      alt="Your hair"
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )}
                 <button
                   onClick={() => navigate("/home/style")}
                   className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
