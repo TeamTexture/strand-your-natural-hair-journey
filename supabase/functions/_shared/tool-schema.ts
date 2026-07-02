@@ -71,6 +71,18 @@ export const RETURN_TOOL_ANALYSIS_SCHEMA = {
       description:
         "1–2 sentences explaining why this tool does or doesn't suit this specific user's hair profile.",
     },
+    match_score: {
+      type: "integer",
+      minimum: 0,
+      maximum: 100,
+      description:
+        "How well this tool fits THIS user's hair profile, goals and current style. 0 = poor fit, 100 = ideal fit. Calibrate honestly — most tools land 40–75.",
+    },
+    how_to_use: {
+      type: "string",
+      description:
+        "1–3 short sentences on HOW this specific user should use this tool given their hair (technique, section size, heat setting, frequency). Second person, plain English.",
+    },
   },
   required: [
     "tool_name",
@@ -81,6 +93,8 @@ export const RETURN_TOOL_ANALYSIS_SCHEMA = {
     "use_cases",
     "tips",
     "personalisation_rationale",
+    "match_score",
+    "how_to_use",
   ],
 } as const;
 
