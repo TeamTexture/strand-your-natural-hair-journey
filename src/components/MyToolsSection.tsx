@@ -237,9 +237,19 @@ const MyToolsSection = () => {
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Stars
-                        n={t.rating ?? 0}
+                        n={
+                          t.rating ??
+                          (typeof t.match_score === "number"
+                            ? Math.max(1, Math.round(t.match_score / 20))
+                            : 0)
+                        }
                         onChange={(n) => updateTool(t.id, { rating: n || null })}
                       />
+                      {t.rating == null && typeof t.match_score === "number" && (
+                        <span className="text-[9px] uppercase tracking-wider text-primary/80">
+                          AI fit
+                        </span>
+                      )}
                       {noteCount > 0 && (
                         <span className="text-[10px] text-primary font-medium">
                           🎙 {noteCount}
@@ -247,6 +257,15 @@ const MyToolsSection = () => {
                       )}
                     </div>
                   </div>
+                  {t.ai_analysis && (
+                    <button
+                      onClick={() => setViewAdvice(t)}
+                      aria-label="View STRAND advice"
+                      className="size-9 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center shrink-0"
+                    >
+                      <Sparkles className="size-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => setFavourite(t.id, !t.on_favourite)}
                     aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
