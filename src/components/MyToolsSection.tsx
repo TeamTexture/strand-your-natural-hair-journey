@@ -152,7 +152,9 @@ const MyToolsSection = () => {
         setRemoteImageUrl(img);
         setPhotoPreview(img);
       }
-      toast.success("Tool details filled in — review and save");
+      setAnalysis(data as Record<string, unknown>);
+      setAdviceOpen(true);
+      toast.success("STRAND has some advice on this tool");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Couldn't analyse that page";
       console.error("tool URL scan failed", e);
@@ -165,6 +167,9 @@ const MyToolsSection = () => {
 
   const handleSave = async () => {
     setSaving(true);
+    const rawScore = analysis?.match_score;
+    const matchScore =
+      typeof rawScore === "number" ? Math.max(0, Math.min(100, Math.round(rawScore))) : null;
     const created = await addTool({
       name,
       brand,
@@ -172,9 +177,10 @@ const MyToolsSection = () => {
       rating: rating || undefined,
       notes,
       photoFile: pickedPhoto,
-      // If no file was picked, fall back to the remote product image we
-      // scraped from the URL so the tool tile isn't blank.
       imageUrl: !pickedPhoto ? remoteImageUrl : null,
+      matchScore,
+      aiAnalysis: analysis,
+      sourceUrl: linkUrl.trim() || null,
     });
     setSaving(false);
     if (created) {
