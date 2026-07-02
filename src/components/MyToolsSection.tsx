@@ -3,7 +3,7 @@
 // so there's no match score, no AI scan, no URL paste, and no ingredient
 // detail navigation. Photos + name/brand/category/rating + voicenotes only.
 import { useState } from "react";
-import { ChevronDown, Heart, Link2, Loader2, Trash2, Wrench } from "lucide-react";
+import { ChevronDown, Heart, Link2, Loader2, Sparkles, Trash2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import EmptyState from "@/components/EmptyState";
@@ -38,6 +38,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
 import { buildAiContext } from "@/lib/aiContext";
@@ -89,6 +97,11 @@ const MyToolsSection = () => {
   // Remote image URL pulled from the scraped product page (og:image / JSON-LD).
   // Persisted on the tool row so the tile + detail page show the right photo.
   const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
+  // Full AI advice payload from tool-analyse-url. Shown in the advice popup
+  // and saved onto the user_tools row so it can be re-opened later.
+  const [analysis, setAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [adviceOpen, setAdviceOpen] = useState(false);
+  const [viewAdvice, setViewAdvice] = useState<UserTool | null>(null);
 
   const resetForm = () => {
     setPickedPhoto(null);
@@ -100,6 +113,7 @@ const MyToolsSection = () => {
     setRating(0);
     setLinkUrl("");
     setRemoteImageUrl(null);
+    setAnalysis(null);
   };
 
   const handlePickPhoto = (f: File) => {
@@ -146,7 +160,9 @@ const MyToolsSection = () => {
         setRemoteImageUrl(img);
         setPhotoPreview(img);
       }
-      toast.success("Tool details filled in — review and save");
+      setAnalysis(data as Record<string, unknown>);
+      setAdviceOpen(true);
+      toast.success("STRAND has some advice on this tool");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Couldn't analyse that page";
       console.error("tool URL scan failed", e);
@@ -159,6 +175,9 @@ const MyToolsSection = () => {
 
   const handleSave = async () => {
     setSaving(true);
+    const rawScore = analysis?.match_score;
+    const matchScore =
+      typeof rawScore === "number" ? Math.max(0, Math.min(100, Math.round(rawScore))) : null;
     const created = await addTool({
       name,
       brand,
@@ -166,9 +185,10 @@ const MyToolsSection = () => {
       rating: rating || undefined,
       notes,
       photoFile: pickedPhoto,
-      // If no file was picked, fall back to the remote product image we
-      // scraped from the URL so the tool tile isn't blank.
       imageUrl: !pickedPhoto ? remoteImageUrl : null,
+      matchScore,
+      aiAnalysis: analysis,
+      sourceUrl: linkUrl.trim() || null,
     });
     setSaving(false);
     if (created) {
@@ -225,9 +245,19 @@ const MyToolsSection = () => {
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Stars
-                        n={t.rating ?? 0}
+                        n={
+                          t.rating ??
+                          (typeof t.match_score === "number"
+                            ? Math.max(1, Math.round(t.match_score / 20))
+                            : 0)
+                        }
                         onChange={(n) => updateTool(t.id, { rating: n || null })}
                       />
+                      {t.rating == null && typeof t.match_score === "number" && (
+                        <span className="text-[9px] uppercase tracking-wider text-primary/80">
+                          AI fit
+                        </span>
+                      )}
                       {noteCount > 0 && (
                         <span className="text-[10px] text-primary font-medium">
                           🎙 {noteCount}
@@ -235,6 +265,15 @@ const MyToolsSection = () => {
                       )}
                     </div>
                   </div>
+                  {t.ai_analysis && (
+                    <button
+                      onClick={() => setViewAdvice(t)}
+                      aria-label="View STRAND advice"
+                      className="size-9 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center shrink-0"
+                    >
+                      <Sparkles className="size-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => setFavourite(t.id, !t.on_favourite)}
                     aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
@@ -467,6 +506,24 @@ const MyToolsSection = () => {
         </SheetContent>
       </Sheet>
 
+      <ToolAdviceDialog
+        open={adviceOpen}
+        onOpenChange={setAdviceOpen}
+        payload={analysis}
+        title="STRAND advice"
+        primaryLabel="Got it — review & save"
+      />
+
+      <ToolAdviceDialog
+        open={!!viewAdvice}
+        onOpenChange={(o) => !o && setViewAdvice(null)}
+        payload={(viewAdvice?.ai_analysis as Record<string, unknown> | null) ?? null}
+        title={viewAdvice?.name ? `Advice · ${viewAdvice.name}` : "STRAND advice"}
+        primaryLabel="Close"
+      />
+
+
+
       <AlertDialog
         open={!!pendingDelete}
         onOpenChange={(o) => !o && !deleting && setPendingDelete(null)}
@@ -496,5 +553,141 @@ const MyToolsSection = () => {
     </>
   );
 };
+
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+}
+
+function ToolAdviceDialog({
+  open,
+  onOpenChange,
+  payload,
+  title,
+  primaryLabel,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  payload: Record<string, unknown> | null;
+  title: string;
+  primaryLabel: string;
+}) {
+  if (!payload) return null;
+  const rawScore = payload.match_score;
+  const score =
+    typeof rawScore === "number" ? Math.max(0, Math.min(100, Math.round(rawScore))) : null;
+  const stars = score != null ? Math.max(1, Math.round(score / 20)) : null;
+  const summary =
+    typeof payload.ai_summary === "string"
+      ? payload.ai_summary
+      : typeof payload.summary === "string"
+      ? (payload.summary as string)
+      : "";
+  const rationale =
+    typeof payload.personalisation_rationale === "string"
+      ? payload.personalisation_rationale
+      : "";
+  const howToUse =
+    typeof payload.how_to_use === "string" ? payload.how_to_use : "";
+  const features = asStringArray(payload.key_features);
+  const tips = asStringArray(payload.tips);
+  const useCases = asStringArray(payload.use_cases);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="size-4 text-primary" />
+            {title}
+          </DialogTitle>
+          {score != null && (
+            <DialogDescription asChild>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-2xl font-heading text-primary">{score}</span>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                  / 100 hair-profile fit
+                </span>
+                {stars != null && (
+                  <span className="ml-auto text-primary">
+                    {"★".repeat(stars)}
+                    <span className="text-muted-foreground/40">
+                      {"★".repeat(5 - stars)}
+                    </span>
+                  </span>
+                )}
+              </div>
+            </DialogDescription>
+          )}
+        </DialogHeader>
+
+        <div className="space-y-4 text-sm">
+          {rationale && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                Why for you
+              </h4>
+              <p className="leading-relaxed">{rationale}</p>
+            </section>
+          )}
+          {howToUse && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                How to use
+              </h4>
+              <p className="leading-relaxed">{howToUse}</p>
+            </section>
+          )}
+          {summary && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                What it is
+              </h4>
+              <p className="leading-relaxed">{summary}</p>
+            </section>
+          )}
+          {features.length > 0 && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                Key features
+              </h4>
+              <ul className="list-disc pl-4 space-y-1">
+                {features.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {tips.length > 0 && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                Tips
+              </h4>
+              <ul className="list-disc pl-4 space-y-1">
+                {tips.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {useCases.length > 0 && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                Best for
+              </h4>
+              <p className="leading-relaxed">{useCases.join(" · ")}</p>
+            </section>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="gold" size="pill" onClick={() => onOpenChange(false)}>
+            {primaryLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default MyToolsSection;

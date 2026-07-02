@@ -1099,6 +1099,7 @@ export type Database = {
       user_tools: {
         Row: {
           added_at: string
+          ai_analysis: Json | null
           analysis_generated_at: string | null
           analysis_profile_snapshot_hash: string | null
           brand: string | null
@@ -1107,6 +1108,7 @@ export type Database = {
           id: string
           image_url: string | null
           last_used_at: string | null
+          match_score: number | null
           name: string
           notes: string | null
           on_favourite: boolean
@@ -1121,6 +1123,7 @@ export type Database = {
         }
         Insert: {
           added_at?: string
+          ai_analysis?: Json | null
           analysis_generated_at?: string | null
           analysis_profile_snapshot_hash?: string | null
           brand?: string | null
@@ -1129,6 +1132,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           last_used_at?: string | null
+          match_score?: number | null
           name: string
           notes?: string | null
           on_favourite?: boolean
@@ -1143,6 +1147,7 @@ export type Database = {
         }
         Update: {
           added_at?: string
+          ai_analysis?: Json | null
           analysis_generated_at?: string | null
           analysis_profile_snapshot_hash?: string | null
           brand?: string | null
@@ -1151,6 +1156,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           last_used_at?: string | null
+          match_score?: number | null
           name?: string
           notes?: string | null
           on_favourite?: boolean

@@ -41,6 +41,9 @@ export interface UserTool {
   added_at: string;
   last_used_at: string | null;
   use_count: number;
+  match_score: number | null;
+  ai_analysis: Record<string, unknown> | null;
+  source_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +105,12 @@ export function useUserTools() {
        * when the user adds the tool via "Paste link" instead of uploading
        * their own photo. Stored directly on `image_url`. */
       imageUrl?: string | null;
+      /** AI hair-profile fit (0–100) — surfaces as star rating fallback. */
+      matchScore?: number | null;
+      /** Full AI advice payload (summary, features, tips, warnings, how_to_use). */
+      aiAnalysis?: Record<string, unknown> | null;
+      /** Original product URL if analysed from a link. */
+      sourceUrl?: string | null;
     }): Promise<UserTool | null> => {
       if (!user) {
         toast.error("Please sign in to add tools");
@@ -151,11 +160,12 @@ export function useUserTools() {
           brand: input.brand?.trim() || null,
           category: input.category || null,
           storage_path,
-          // Remote URL only used when no file was uploaded — uploaded photos
-          // are signed on load instead.
           image_url: storage_path ? null : (input.imageUrl?.trim() || null),
           rating: input.rating ?? null,
           notes: input.notes?.trim() || null,
+          match_score: input.matchScore ?? null,
+          ai_analysis: (input.aiAnalysis ?? null) as never,
+          source_url: input.sourceUrl ?? null,
         })
         .select("*")
         .single();
