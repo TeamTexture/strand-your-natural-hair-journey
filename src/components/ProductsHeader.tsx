@@ -38,11 +38,11 @@ export const CATEGORY_ORDER: { key: string; label: string; matchers: RegExp[] }[
 
 export const categoryBucket = (raw: string | null | undefined) => {
   const c = (raw ?? "").trim();
-  if (!c) return { key: "other", label: "Other" };
+  if (!c) return { key: "other", label: "Treatments" };
   for (const b of CATEGORY_ORDER) {
     if (b.matchers.some((rx) => rx.test(c))) return { key: b.key, label: b.label };
   }
-  return { key: "other", label: "Other" };
+  return { key: "other", label: "Treatments" };
 };
 
 export interface ProductsFilterState {
@@ -135,7 +135,7 @@ const ProductsHeader = ({
     }
     const ordered: { key: string; label: string }[] = [];
     for (const b of CATEGORY_ORDER) if (set.has(b.key)) ordered.push({ key: b.key, label: set.get(b.key)! });
-    if (set.has("other")) ordered.push({ key: "other", label: "Other" });
+    if (set.has("other")) ordered.push({ key: "other", label: "Treatments" });
     return ordered;
   }, [products]);
 
