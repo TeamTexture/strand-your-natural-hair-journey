@@ -500,31 +500,42 @@ const Home = () => {
               Your shelf is empty. Tap + to add your first product.
             </button>
           ) : (
-            shelfProducts.slice(0, 4).map((s) => {
-              const aiStars = typeof s.match_score === "number"
-                ? Math.max(1, Math.min(5, Math.round(s.match_score / 20)))
-                : (s.rating ?? 0);
-              return (
+            <>
+              {shelfProducts.slice(0, 4).map((s) => {
+                const aiStars = typeof s.match_score === "number"
+                  ? Math.max(1, Math.min(5, Math.round(s.match_score / 20)))
+                  : (s.rating ?? 0);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => navigate(`/products/profile/${s.id}`)}
+                    className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px]"
+                  >
+                    <ProductThumb
+                      imageUrl={s.image_url}
+                      storagePath={s.storage_path}
+                      alt={s.name}
+                      cover
+                      wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{s.brand}</p>
+                      <Stars n={aiStars} />
+                    </div>
+                  </button>
+                );
+              })}
+              {shelfProducts.length > 4 && (
                 <button
-                  key={s.id}
-                  onClick={() => navigate(`/products/profile/${s.id}`)}
-                  className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px] last:rounded-b-[14px]"
+                  onClick={() => navigate("/products")}
+                  className="w-full p-3.5 flex items-center justify-center gap-2 text-left text-xs uppercase tracking-[0.15em] text-primary font-medium hover:bg-primary/5 transition-colors rounded-b-[14px]"
                 >
-                  <ProductThumb
-                    imageUrl={s.image_url}
-                    storagePath={s.storage_path}
-                    alt={s.name}
-                    cover
-                    wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{s.brand}</p>
-                    <Stars n={aiStars} />
-                  </div>
+                  <span>See Full Shelf</span>
+                  <span aria-hidden>→</span>
                 </button>
-              );
-            })
+              )}
+            </>
           )}
         </SurfaceCard>
       </div>
