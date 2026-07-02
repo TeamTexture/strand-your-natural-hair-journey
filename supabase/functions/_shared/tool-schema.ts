@@ -110,6 +110,8 @@ export interface ToolAnalysisPayload {
   tips: string[];
   warnings?: string[];
   personalisation_rationale: string;
+  match_score: number;
+  how_to_use: string;
   // Provenance (added by edge function)
   _model_version?: string;
   _generated_at?: string;
