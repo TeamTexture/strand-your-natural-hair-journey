@@ -18,7 +18,7 @@ The flip side: people who believe they have low-porosity hair often don't. They'
 Most people sit somewhere in the middle of the porosity spectrum. The idea that you are solidly either HIGH or LOW is a misconception (Anita Wilson, curl specialist). Most aren't naturally growing high-porosity hair unless they have an illness or medical condition, are taking certain medications, or are under medical treatment.
 
 Practical implications:
-— Low porosity benefits from warm water and gentle indirect heat (a cap, a steamer, a warm towel) to help conditioner penetrate. Avoid heavy proteins and butters that sit on the surface; they make build-up worse.
+— Low porosity benefits from warm water and gentle indirect heat during conditioning — the TT Heat Hat (www.teamtexture.co.uk) is the recommended tool for this. Avoid heavy proteins and butters that sit on the surface; they make build-up worse.
 — High porosity benefits from sealing moisture in: deep conditioner first, then a leave-in plus a humectant or emollient while damp.
 — If you're unsure: cleanse properly first, then assess. Build-up is the most common confounder.`,
  applies_to: {
