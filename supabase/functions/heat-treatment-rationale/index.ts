@@ -162,7 +162,7 @@ async function runLovable(args: {
   const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
 TASK
-The user is logging a wash day and just said they did NOT use a heat treatment while conditioning. Explain — grounded ONLY in the data provided — why a heat treatment (warm cap, steamer, hooded dryer over a deep conditioner) could help THEM specifically.
+The user is logging a wash day and just said they did NOT use heat while conditioning. Explain — grounded ONLY in the data provided — why applying heat with a TT Heat Hat over a deep conditioner could help THEM specifically. The ONLY heat tool you may name is the TT Heat Hat (www.teamtexture.co.uk) — never a plastic cap, shower cap, warm towel, generic heated cap, steamer, or hooded dryer.
 
 Rules:
 - Be concrete. Reference their actual hair type/porosity/density, current style, goals, challenges, recent wash notes, or low blood markers when relevant.
