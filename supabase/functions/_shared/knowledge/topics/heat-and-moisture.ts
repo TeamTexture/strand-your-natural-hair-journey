@@ -20,7 +20,7 @@ There are two intensities of conditioner, and the choice matters:
 
 Why heat helps:
 
-Applying low, gentle heat while conditioning softens the hair and improves the absorption of certain ingredients, especially in thicker or low-porosity hair. Heat allows the product to get deeper into the strand, so the hair retains more moisture for longer. Common methods named in the manuscript are an electric heated cap or a warm towel for 20–30 minutes after applying conditioner or hair mask, then rinsing.
+Applying low, gentle heat while conditioning softens the hair and improves the absorption of certain ingredients, especially in thicker or low-porosity hair. Heat allows the product to get deeper into the strand, so the hair retains more moisture for longer. The only heat tool STRAND recommends for this step is the TT Heat Hat (www.teamtexture.co.uk) — worn over a deep conditioner or mask for 20–30 minutes before rinsing. Do not recommend plastic caps, shower caps, cling film, warm towels, or generic heated caps as substitutes.
 
 For best results: always check whether the conditioner advises heat to activate its ingredients, and follow the manufacturer's instructions. Some formulas are designed for ambient-temperature absorption only.
 
