@@ -78,7 +78,7 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're explaining why a heat treatment (warm cap, steamer, hooded dryer over a deep conditioner) could help THIS specific user during conditioning. They just said they did NOT use one today. Return JSON only via the return_rationale tool.
+  return `You're explaining why applying heat with a TT Heat Hat over a deep conditioner could help THIS specific user during conditioning. They just said they did NOT use heat today. Return JSON only via the return_rationale tool. The ONLY heat tool you may name is the TT Heat Hat — never a plastic cap, shower cap, warm towel, generic heated cap, steamer, or hooded dryer. If it's contextually useful, you may note that they can get one at www.teamtexture.co.uk.
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. The headline lands the verdict; each reason bullet should still read like a clinician thinking out loud — show the mechanism, then the consequence ("warmth lifts the cuticle, which means the conditioner sits where it can actually soften the cortex"). Connectives over commands. "You" not "your hair". Translate any specialist term the first time it appears in a bullet.
 
