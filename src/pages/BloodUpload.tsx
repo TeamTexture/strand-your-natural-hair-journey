@@ -72,6 +72,31 @@ export default function BloodUpload() {
   // Duplicate detection — existing panel already logged for this user/date.
   const [duplicatePanel, setDuplicatePanel] = useState<{ id: string; created_at: string } | null>(null);
   const [dupConfirmed, setDupConfirmed] = useState(false);
+  const [deletingDup, setDeletingDup] = useState(false);
+
+  const deleteDuplicate = async () => {
+    if (!duplicatePanel || !user) return;
+    if (!window.confirm("Delete the existing panel for this date? This can't be undone.")) return;
+    setDeletingDup(true);
+    try {
+      const { error } = await supabase
+        .from("blood_panels")
+        .delete()
+        .eq("id", duplicatePanel.id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      setDuplicatePanel(null);
+      setDupConfirmed(false);
+      window.dispatchEvent(new Event("strand:blood-update"));
+      toast.success("Existing panel deleted. You can save this one now.");
+    } catch (err) {
+      console.error("delete panel failed:", err);
+      toast.error("Couldn't delete the existing panel. Please try again.");
+    } finally {
+      setDeletingDup(false);
+    }
+  };
+
 
   useEffect(() => {
     if (!user || !panelDate) { setDuplicatePanel(null); return; }
@@ -467,16 +492,32 @@ export default function BloodUpload() {
                 <div className="flex gap-3">
                   <AlertTriangle className="size-5 text-alert-dark shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-display text-sm text-alert-dark">Already uploaded</p>
+                    <p className="font-display text-sm text-alert-dark">Duplicate detected</p>
                     <p className="text-xs text-foreground/70 font-body mt-1 leading-relaxed">
                       A blood panel for <strong>{new Date(panelDate).toLocaleDateString()}</strong> is already saved
                       {duplicatePanel.created_at ? ` (added ${new Date(duplicatePanel.created_at).toLocaleDateString()})` : ""}.
-                      Change the test date above, or continue to add another panel for the same day.
+                      You can save this as a duplicate, delete the existing panel and replace it, or change the test date above.
                     </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="pill"
+                        className="h-8 text-xs"
+                        onClick={deleteDuplicate}
+                        disabled={deletingDup || saving}
+                      >
+                        {deletingDup ? (
+                          <><Loader2 className="size-3 animate-spin" /> Deleting…</>
+                        ) : (
+                          "Delete existing panel"
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </SurfaceCard>
             )}
+
 
 
             <SurfaceCard>
@@ -597,7 +638,7 @@ export default function BloodUpload() {
                   Saving…
                 </>
               ) : (
-                duplicatePanel && !dupConfirmed ? "Save anyway" : "Save to history"
+                duplicatePanel ? (dupConfirmed ? "Save duplicate" : "Save as duplicate") : "Save to history"
 
               )}
             </Button>
