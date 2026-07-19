@@ -122,6 +122,8 @@ Field rules — strict:
 - personalisation_rationale: 1–2 sentences explaining why this tool does or doesn't suit THIS user's hair profile.
 - match_score: integer 0–100 for how well this tool fits THIS user (hair type, current style, goals, challenges). Be honest — poor fits should score 20–40, mixed 40–65, strong fits 70–90. Reserve 90+ for near-ideal matches.
 - how_to_use: 1–3 short sentences, second person, on how THIS user specifically should use it (technique, section size, heat setting, frequency, before/after which step).
+- pair_with: up to 3 items from the user's SHELF (context.shelf, high_rated_products) or existing tools/favourites that would combine well with THIS tool. Reference the item by its real name and brand (e.g. "Cantu Shea Butter Leave-In"). Each entry needs a one-sentence "why" tying the pairing to the user's hair goal, challenge, or current style. If nothing on the shelf pairs meaningfully, return []. NEVER invent products.
+- routine_suggestion: 1–2 sentences slotting the tool into this user's routine — reference their current_style, last wash-day steps, and cadence when relevant. Empty string if nothing meaningful.
 
 Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. Web-derived facts go inline, never under "Read more —".
 
