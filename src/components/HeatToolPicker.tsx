@@ -142,18 +142,10 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
             className="h-9 text-xs"
             autoFocus
           />
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {TOOL_CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c} className="text-xs">
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <p className="text-[10px] text-muted-foreground">
+            Category: Deep conditioning cap / heat hat
+          </p>
+
           <Button
             type="button"
             variant="gold"
