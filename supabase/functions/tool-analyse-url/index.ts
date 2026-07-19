@@ -169,6 +169,8 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     user_context: args.context,
     selector_context: args.selectorContext,
     force_topic_ids: ["porosity", "scalp-conditions", "heat-and-moisture", "protective-styling"],
+    rag_query: `hair tool ${args.url} heat detangle scalp damage Afro texture porosity`,
+    rag_k: 4,
     tool: {
       name: "return_tool_analysis",
       description:
