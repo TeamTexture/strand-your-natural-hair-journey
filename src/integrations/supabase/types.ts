@@ -802,6 +802,8 @@ export type Database = {
           diameter: string | null
           elasticity: string | null
           id: string
+          length_bucket: string | null
+          length_inches: number | null
           porosity: string | null
           scalp_condition_enc: string | null
           surface_texture: string | null
@@ -816,6 +818,8 @@ export type Database = {
           diameter?: string | null
           elasticity?: string | null
           id?: string
+          length_bucket?: string | null
+          length_inches?: number | null
           porosity?: string | null
           scalp_condition_enc?: string | null
           surface_texture?: string | null
@@ -830,6 +834,8 @@ export type Database = {
           diameter?: string | null
           elasticity?: string | null
           id?: string
+          length_bucket?: string | null
+          length_inches?: number | null
           porosity?: string | null
           scalp_condition_enc?: string | null
           surface_texture?: string | null

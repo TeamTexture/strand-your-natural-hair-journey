@@ -301,6 +301,8 @@ export async function buildAiContext(): Promise<AiContext> {
         scalp: clinical.hair.scalp,
         diagnosed: clinical.hair.diagnosed,
         areas: clinical.hair.areas,
+        length_inches: clinical.hair.length_inches,
+        length_bucket: clinical.hair.length_bucket,
       }
     : null;
 

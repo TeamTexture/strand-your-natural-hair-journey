@@ -31,6 +31,8 @@ export interface HairSlice {
   scalp: string[];
   diagnosed: string[];
   areas: string[];
+  length_inches: number | null;
+  length_bucket: string | null;
 }
 
 export interface HealthSlice {
@@ -185,6 +187,8 @@ interface LegacyHair {
   scalp?: unknown;
   diagnosed?: unknown;
   areas?: unknown;
+  length_inches?: unknown;
+  length_bucket?: unknown;
 }
 interface LegacyHealth {
   lifeStage?: unknown;
@@ -242,6 +246,7 @@ interface LegacyBasic {
 function hairFromLocal(): HairSlice | null {
   const raw = safeParse<LegacyHair | null>("strand_hair_profile", null);
   if (!raw) return null;
+  const inchesNum = Number(raw.length_inches);
   return {
     diameter: ensureStringArray(raw.diameter),
     texture: ensureStringArray(raw.texture),
@@ -251,6 +256,8 @@ function hairFromLocal(): HairSlice | null {
     scalp: ensureStringArray(raw.scalp),
     diagnosed: ensureStringArray(raw.diagnosed),
     areas: ensureStringArray(raw.areas),
+    length_inches: Number.isFinite(inchesNum) && inchesNum > 0 ? inchesNum : null,
+    length_bucket: typeof raw.length_bucket === "string" && raw.length_bucket ? raw.length_bucket : null,
   };
 }
 
@@ -457,7 +464,7 @@ export async function loadClinicalContext(
         supabase
           .from("user_hair_profile")
           .select(
-            "diameter, surface_texture, density, porosity, elasticity, areas_of_concern",
+            "diameter, surface_texture, density, porosity, elasticity, areas_of_concern, length_inches, length_bucket",
           )
           .eq("user_id", userId)
           .maybeSingle(),
@@ -518,6 +525,8 @@ export async function loadClinicalContext(
     // ── hair ──
     const hairRow = hairRes.data;
     if (hairRow) {
+      const hairRowAny = hairRow as Record<string, unknown>;
+      const li = Number(hairRowAny.length_inches);
       ctx.hair = {
         diameter: wrap(hairRow.diameter),
         texture: wrap(hairRow.surface_texture),
@@ -527,6 +536,8 @@ export async function loadClinicalContext(
         scalp: wrap(decrypted?.hair?.scalp_condition ?? null),
         diagnosed: decrypted?.hair?.diagnosed_conditions ?? [],
         areas: hairRow.areas_of_concern ?? [],
+        length_inches: Number.isFinite(li) && li > 0 ? li : null,
+        length_bucket: typeof hairRowAny.length_bucket === "string" && hairRowAny.length_bucket ? (hairRowAny.length_bucket as string) : null,
       };
     }
 
