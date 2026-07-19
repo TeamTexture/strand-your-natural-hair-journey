@@ -111,8 +111,6 @@ const AlertCard = ({ alert }: { alert: AlertItem }) => (
     )}>
       {alert.icon}
     </div>
-      {alert.icon}
-    </div>
     <div className="flex-1 min-w-0">
       <p className="text-base font-semibold leading-tight truncate">{alert.label}</p>
       <p className="text-[13px] text-foreground/70 mt-0.5 truncate">{alert.detail}</p>
