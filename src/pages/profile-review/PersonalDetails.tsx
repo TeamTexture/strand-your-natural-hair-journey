@@ -17,9 +17,9 @@ import { HERITAGE_OPTIONS } from "@/data/heritage";
 
 const AVATAR_BUCKET = "avatars";
 
-const heritageValues = HERITAGE_OPTIONS
-  .filter((o) => o.kind === "item")
-  .map((o) => (o as { kind: "item"; value: string }).value);
+const heritageValues = HERITAGE_OPTIONS.flatMap((o) =>
+  o.kind === "option" ? [o.value] : [],
+);
 
 const PersonalDetailsReview = () => {
   const navigate = useNavigate();
