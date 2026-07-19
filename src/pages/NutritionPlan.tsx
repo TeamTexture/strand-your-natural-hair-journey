@@ -371,6 +371,73 @@ const NutritionPlan = () => {
     flagged: new Set(),
   });
   const [plan, setPlan] = useState<AiPlan | null>(null);
+  const [meals, setMeals] = useState<AiMeal[] | null>(null);
+  const [mealsLoading, setMealsLoading] = useState(false);
+  const [mealsView, setMealsView] = useState<"ideas" | "saved">("ideas");
+  const savedMealsQ = useSavedMeals();
+
+  const savedByKey = useMemo(() => {
+    const set = new Set<string>();
+    (savedMealsQ.data ?? []).forEach((m) => set.add(m.name.trim().toLowerCase()));
+    return set;
+  }, [savedMealsQ.data]);
+
+  const fetchMeals = async (currentProfile = profile) => {
+    setMealsLoading(true);
+    try {
+      const context = await buildAiContext();
+      const { data, error } = await supabase.functions.invoke("meal-ideas", {
+        body: {
+          context,
+          diet: currentProfile.diet,
+          alcohol: currentProfile.alcohol,
+          flaggedMarkers: Array.from(currentProfile.flagged),
+        },
+      });
+      if (error) {
+        const msg = error.message ?? "Couldn't generate meals";
+        if (msg.includes("429")) toast.error("Try again in a moment.");
+        else if (msg.includes("402")) toast.error("AI credits needed.");
+        else toast.error(msg);
+        return;
+      }
+      if (Array.isArray(data?.meals)) setMeals(data.meals as AiMeal[]);
+    } catch (e) {
+      console.error("meal-ideas invoke failed", e);
+      toast.error("Couldn't generate meal ideas.");
+    } finally {
+      setMealsLoading(false);
+    }
+  };
+
+  const handleSaveMeal = async (meal: AiMeal) => {
+    const key = meal.name.trim().toLowerCase();
+    const existing = (savedMealsQ.data ?? []).find(
+      (m) => m.name.trim().toLowerCase() === key,
+    );
+    if (existing) {
+      await savedMealsQ.remove.mutateAsync(existing.id);
+      toast.success("Removed from saved meals");
+      return;
+    }
+    const draft: MealDraft = {
+      name: meal.name,
+      emoji: meal.emoji ?? null,
+      cuisine: meal.cuisine ?? null,
+      time_minutes: meal.time_minutes ?? null,
+      summary: meal.summary ?? null,
+      targets: meal.targets ?? [],
+      ingredients: meal.ingredients ?? [],
+      steps: meal.steps ?? [],
+    };
+    await savedMealsQ.save.mutateAsync(draft);
+    toast.success("Saved to your meals");
+  };
+
+  const handleDeleteSaved = async (m: SavedMeal) => {
+    await savedMealsQ.remove.mutateAsync(m.id);
+    toast.success("Deleted");
+  };
 
   const startProgress = () => {
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
