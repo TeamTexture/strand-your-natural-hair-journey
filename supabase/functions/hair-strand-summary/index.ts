@@ -187,15 +187,23 @@ Deno.serve(async (req: Request) => {
     let parsed: Partial<SummaryPayload> = {};
     try { parsed = JSON.parse(content); } catch { parsed = {}; }
 
+    const rawAction = Array.isArray(parsed.action_plan) ? parsed.action_plan.map(String) : [];
+    const rawTips = Array.isArray(parsed.routine_tips) ? parsed.routine_tips.map(String) : [];
+    // Merge any lingering action_plan items into routine_tips (deduped by first 40 chars)
+    const seen = new Set<string>();
+    const mergedTips: string[] = [];
+    for (const t of [...rawTips, ...rawAction]) {
+      const key = t.trim().toLowerCase().slice(0, 40);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      mergedTips.push(t.trim());
+    }
     const payload: SummaryPayload = {
       overview: (parsed.overview ?? "").toString().trim(),
-      action_plan: Array.isArray(parsed.action_plan)
-        ? parsed.action_plan.map(String).slice(0, 6)
-        : [],
-      routine_tips: Array.isArray(parsed.routine_tips)
-        ? parsed.routine_tips.map(String).slice(0, 6)
-        : [],
+      action_plan: [], // deprecated — always empty going forward
+      routine_tips: mergedTips.slice(0, 6),
     };
+
 
     if (!payload.overview) {
       return json(502, { error: "AI returned empty summary" });
