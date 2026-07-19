@@ -286,6 +286,7 @@ export async function buildAiContext(): Promise<AiContext> {
       highRated = allRatings.filter((r) => Number(r.rating) >= 4);
       goals = (goalRows.data ?? []) as AiContext["goals"];
       tools = (toolRows.data ?? []) as Array<Record<string, unknown>>;
+      wishlist = (wishRows.data ?? []) as Array<Record<string, unknown>>;
     }
   } catch (e) {
     console.warn("buildAiContext: backend fetch failed", e);
