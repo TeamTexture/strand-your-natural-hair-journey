@@ -522,48 +522,58 @@ export default function BloodPanelReview() {
                             </button>
 
                             {isOpen && (
-                              <div className="px-4 pb-4 -mt-1 text-xs font-body text-foreground/80 space-y-2 bg-muted/30">
+                              <div className="px-4 pt-4 pb-5 text-xs font-body text-foreground/80 space-y-3 bg-secondary/40 border-t border-border/40">
                                 {info ? (
                                   <>
-                                    <p>
-                                      <span className="font-semibold text-foreground">
-                                        What it is —{" "}
-                                      </span>
-                                      {info.what}
-                                    </p>
-                                    <p>
-                                      <span className="font-semibold text-foreground">
-                                        Why it matters —{" "}
-                                      </span>
-                                      {info.whyItMatters}
-                                    </p>
-                                    {isFlag && target && (
-                                      <p className="text-warn">
-                                        <span className="font-semibold">
-                                          Your target —{" "}
-                                        </span>
-                                        {target}
+                                    <div className="space-y-1.5">
+                                      <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
+                                        What it is
                                       </p>
+                                      <p className="leading-relaxed">
+                                        {info.what}
+                                      </p>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
+                                        Why it matters
+                                      </p>
+                                      <p className="leading-relaxed">
+                                        {info.whyItMatters}
+                                      </p>
+                                    </div>
+                                    {isFlag && target && (
+                                      <div className="space-y-1.5 rounded-xl bg-warn/10 px-3 py-2.5">
+                                        <p className="text-[11px] uppercase tracking-wide font-semibold text-warn">
+                                          Your target
+                                        </p>
+                                        <p className="leading-relaxed text-warn">
+                                          {target}
+                                        </p>
+                                      </div>
                                     )}
                                     {status === "low" && info.ifLow && (
-                                      <p>
-                                        <span className="font-semibold text-foreground">
-                                          If low —{" "}
-                                        </span>
-                                        {info.ifLow}
-                                      </p>
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-wide font-semibold text-foreground">
+                                          If low
+                                        </p>
+                                        <p className="leading-relaxed">
+                                          {info.ifLow}
+                                        </p>
+                                      </div>
                                     )}
                                     {status === "high" && info.ifHigh && (
-                                      <p>
-                                        <span className="font-semibold text-foreground">
-                                          If high —{" "}
-                                        </span>
-                                        {info.ifHigh}
-                                      </p>
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-wide font-semibold text-foreground">
+                                          If high
+                                        </p>
+                                        <p className="leading-relaxed">
+                                          {info.ifHigh}
+                                        </p>
+                                      </div>
                                     )}
                                   </>
                                 ) : (
-                                  <p className="text-muted-foreground">
+                                  <p className="text-muted-foreground leading-relaxed">
                                     STRAND doesn't have a plain-English
                                     explanation for this marker yet. Your
                                     value has been recorded from your report
