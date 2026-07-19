@@ -63,12 +63,12 @@ const RETURN_OBSERVATION_SCHEMA = {
         action: {
           type: "string",
           description:
-            "ONE clear, imperative action for the user's NEXT wash day. Max 18 words. Starts with a verb. No preamble, no hedging. Names a specific product/tool from their shelf/wishlist/tools when possible. If today's products are working and have only been used 1-3 cycles, tell them to keep using the same product sequence rather than changing products.",
+            "ONE imperative sentence for the user's NEXT wash day. MAX 14 words. Starts with a verb. No preamble, no hedging, no adverbs like 'gently'/'carefully'. Names a specific product from their shelf or a specific tool when possible. If today's products are working and only used 1-3 cycles, say 'Keep…' or 'Repeat…' rather than changing.",
         },
         why: {
           type: "string",
           description:
-            "The explanation for the action, 2-3 short sentences. Grounds the reasoning in the STRAND core teachings (How To Love Your Afro), especially the 3-4 wash-cycle consistency rule, AND ties it to at least one concrete signal from the user's profile or today's wash day (porosity, scalp feel, breakage, style, goal, product outcome). Plain English, no chapter/page citations.",
+            "MAX 2 short sentences (~35 words total). Sentence 1: tie to a concrete signal from the user — a specific pattern in recent wash days (name the date or 'last wash') OR their current goal — in plain conversational English. Sentence 2: ground the reasoning in a How To Love Your Afro teaching (the 3-4 wash-cycle rule, moisture-first for high porosity, low-manipulation for length retention, scalp-first for growth, etc.) without naming the book, chapters, or pages.",
         },
       },
     },
