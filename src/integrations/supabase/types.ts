@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_citation_violations: {
+        Row: {
+          cleaned_length: number | null
+          created_at: string
+          function_name: string
+          id: string
+          original_length: number | null
+          stripped_text: string
+        }
+        Insert: {
+          cleaned_length?: number | null
+          created_at?: string
+          function_name: string
+          id?: string
+          original_length?: number | null
+          stripped_text: string
+        }
+        Update: {
+          cleaned_length?: number | null
+          created_at?: string
+          function_name?: string
+          id?: string
+          original_length?: number | null
+          stripped_text?: string
+        }
+        Relationships: []
+      }
       ai_summaries: {
         Row: {
           created_at: string
