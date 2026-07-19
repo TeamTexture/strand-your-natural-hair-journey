@@ -380,7 +380,7 @@ export default function BloodUpload() {
       // list shows a real preview of the report instead of a generic flask.
       if (thumbSource) {
         try {
-          const thumb = await resizeToThumbnail(thumbSource, 320, 0.82);
+          const thumb = await resizeToThumbnail(thumbSource, 320, 0.82, logoBbox);
           const path = `${user.id}/${crypto.randomUUID()}.jpg`;
           const { error: upErr } = await supabase.storage
             .from("blood-panel-thumbs")
