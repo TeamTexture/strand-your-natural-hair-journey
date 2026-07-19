@@ -512,46 +512,46 @@ const Profile = () => {
       </Dialog>
 
       {/* Update after appointment CTA — go straight to the section being updated */}
-      <div className="px-5 pb-3 grid grid-cols-3 gap-2">
+      <div className="px-5 pb-3 grid grid-cols-3 gap-3">
         <button
           onClick={() => navigate("/onboarding/profile-step-1")}
-          className="flex flex-col items-start gap-1.5 p-2.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[88px] text-left"
+          className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
-          <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-            <RefreshCw className="size-3.5" />
+          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+            <User className="size-4" />
           </div>
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold leading-tight">Update personal details</p>
-            <p className="text-[10px] text-foreground/70 mt-0.5 leading-snug">
-              Name, age, postcode &amp; photo.
+          <div className="min-w-0 w-full">
+            <p className="text-[11px] font-semibold leading-tight">Personal details</p>
+            <p className="text-[9px] text-foreground/70 mt-0.5 leading-snug">
+              Name, age, postcode &amp; photo
             </p>
           </div>
         </button>
         <button
           onClick={() => navigate("/onboarding/profile-step-3-hair")}
-          className="flex flex-col items-start gap-1.5 p-2.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[88px] text-left"
+          className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
-          <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-            <RefreshCw className="size-3.5" />
+          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+            <Sparkles className="size-4" />
           </div>
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold leading-tight">Update hair details</p>
-            <p className="text-[10px] text-foreground/70 mt-0.5 leading-snug">
-              Diameter, porosity &amp; scalp.
+          <div className="min-w-0 w-full">
+            <p className="text-[11px] font-semibold leading-tight">Hair details</p>
+            <p className="text-[9px] text-foreground/70 mt-0.5 leading-snug">
+              Diameter, porosity &amp; scalp
             </p>
           </div>
         </button>
         <button
           onClick={() => navigate("/onboarding/blood-iron-vitamins")}
-          className="flex flex-col items-start gap-1.5 p-2.5 rounded-[12px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[88px] text-left"
+          className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
-          <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-            <RefreshCw className="size-3.5" />
+          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+            <Droplet className="size-4" />
           </div>
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold leading-tight">Update blood results</p>
-            <p className="text-[10px] text-foreground/70 mt-0.5 leading-snug">
-              Refresh your markers.
+          <div className="min-w-0 w-full">
+            <p className="text-[11px] font-semibold leading-tight">Blood results</p>
+            <p className="text-[9px] text-foreground/70 mt-0.5 leading-snug">
+              Refresh your markers
             </p>
           </div>
         </button>
