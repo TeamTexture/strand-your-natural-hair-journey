@@ -214,13 +214,16 @@ Deno.serve(async (req) => {
     const test_type = cleanStr(parsed.test_type);
     const lab_name = cleanStr(parsed.lab_name);
 
-    // Build a human-friendly label prioritising the document title from the
-    // report itself, falling back to test type + lab.
+    // Build a human-friendly label prioritising the document title printed at
+    // the top of the report itself. Fall back to test type, then lab name,
+    // then a date-stamped generic so panels are never left as "Blood test".
     let label: string | null = document_title;
     if (!label && test_type) label = lab_name ? `${test_type} — ${lab_name}` : test_type;
     else if (label && lab_name && !label.toLowerCase().includes(lab_name.toLowerCase())) {
       label = `${label} — ${lab_name}`;
     }
+    if (!label && lab_name) label = `${lab_name} blood test`;
+    if (!label && panel_date) label = `Blood test — ${panel_date}`;
 
     return json(200, { panel_date, document_title, test_type, lab_name, label, results });
 
