@@ -143,6 +143,7 @@ export async function buildAiContext(): Promise<AiContext> {
     : [];
 
   let bloodResults: Array<Record<string, unknown>> = [];
+  let bloodPanels: AiContext["bloodPanels"] = [];
   let flaggedIngredients: string[] = [];
   let recentWashes: Array<Record<string, unknown>> = [];
   let shelf: Array<Record<string, unknown>> = [];
