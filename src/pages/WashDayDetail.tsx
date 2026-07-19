@@ -392,14 +392,7 @@ const WashDayDetail = () => {
               why = parsed.why ?? "";
             }
           } catch { /* legacy plain text */ }
-          return (
-            <SurfaceCard tone="gold">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
-                ✨ Tip for next wash day
-              </p>
-              <RichBody text={formatNextWashTip(action, why)} />
-            </SurfaceCard>
-          );
+          return <NextWashTipCard action={action} why={why} />;
         })()}
 
         {!editing && (
