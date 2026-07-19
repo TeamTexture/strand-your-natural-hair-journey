@@ -13,9 +13,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
+import {
+  clearBloodDraft,
+  setDraftPanelDate,
+  setUnknownMarkers,
+  type UnknownMarker,
+} from "@/hooks/useBloodValues";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { detectPdfEncrypted, renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
+
 
 interface ExtractedRow {
   marker: string;
