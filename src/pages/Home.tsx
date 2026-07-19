@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -719,7 +719,12 @@ const Home = () => {
                       wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium font-body leading-tight truncate">{s.name}</p>
+                        {s.on_favourite && (
+                          <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
+                        )}
+                      </div>
                       <p className="text-[11px] text-muted-foreground">{s.brand}</p>
                       <Stars n={aiStars} />
                     </div>
