@@ -247,15 +247,29 @@ const Profile = () => {
   // Backend blood results — source-of-truth for flagged markers so alerts
   // still fire on a fresh device/session where localStorage is empty.
   const { data: dbBloodRows = [] } = useQuery({
-    queryKey: ["profile", "blood_results", user?.id ?? "anon"],
+    queryKey: ["profile", "blood_results_latest_panel", user?.id ?? "anon"],
     enabled: !!user,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     queryFn: async () => {
-      const { data } = await supabase
+      // Grab the newest panel first, then only that panel's rows so the
+      // Profile card reflects the user's most recent test — not a merge of
+      // historical panels.
+      const { data: panels } = await supabase
+        .from("blood_panels" as never)
+        .select("id")
+        .eq("user_id", user!.id)
+        .order("panel_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const latest = (panels ?? [])[0] as { id?: string } | undefined;
+      const q = supabase
         .from("blood_results")
         .select("marker, value, status, unit")
         .eq("user_id", user!.id);
+      const { data } = latest?.id
+        ? await q.eq("panel_id" as never, latest.id as never)
+        : await q;
       return (data ?? []) as Array<{ marker: string; value: number | null; status: string | null; unit: string | null }>;
     },
   });
