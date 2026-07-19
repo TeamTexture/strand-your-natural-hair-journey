@@ -116,6 +116,7 @@ const fmtCardDate = (iso: string) => {
 const WashDayHub = () => {
   const navigate = useNavigate();
   const { washDays, loading } = useWashDays();
+  const { goals } = useGoals();
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
 
