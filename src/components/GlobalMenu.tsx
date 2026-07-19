@@ -58,8 +58,8 @@ const GlobalMenu = () => {
         type="button"
         aria-label="Open menu"
         onClick={() => setOpen(true)}
-        className="fixed top-3 right-3 z-50 size-10 rounded-full bg-background/85 backdrop-blur border border-border shadow-sm flex items-center justify-center text-foreground hover:bg-background transition-colors"
-        style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+        className="absolute right-3 z-50 size-10 rounded-full bg-background/85 backdrop-blur border border-border shadow-sm flex items-center justify-center text-foreground hover:bg-background transition-colors"
+        style={{ top: "max(env(safe-area-inset-top, 0px), 12px)" }}
       >
         <Menu className="size-5" />
       </button>
