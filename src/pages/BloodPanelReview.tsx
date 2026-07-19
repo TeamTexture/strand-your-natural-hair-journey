@@ -205,6 +205,26 @@ export default function BloodPanelReview() {
     },
     onError: () => toast.error("Couldn't delete — try again"),
   });
+  const renamePanel = useMutation({
+    mutationFn: async (nextLabel: string) => {
+      if (!id) return;
+      const clean = nextLabel.trim().slice(0, 120) || null;
+      const { error } = await supabase
+        .from("blood_panels" as never)
+        .update({ label: clean } as never)
+        .eq("id", id);
+      if (error) throw error;
+      return clean;
+    },
+    onSuccess: () => {
+      toast.success("Name updated");
+      qc.invalidateQueries({ queryKey: ["blood-panel", id] });
+      qc.invalidateQueries({ queryKey: ["blood-history"] });
+      setEditingLabel(false);
+    },
+    onError: () => toast.error("Couldn't rename — try again"),
+  });
+
 
   const toggle = (marker: string) => {
     setExpanded((s) => {
