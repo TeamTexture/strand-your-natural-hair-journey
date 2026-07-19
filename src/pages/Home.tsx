@@ -67,15 +67,17 @@ const Home = () => {
     };
   });
   const [water, setWater] = useState<{
-    band: string | null; mg_l: number | null; supplier: string | null;
+    band: string | null; mg_l: number | null; supplier: string | null; postcode: string | null;
   }>(() => {
     const local = loadClinicalContextLocal();
     return {
       band: local.basic?.water_hardness_band ?? null,
       mg_l: local.basic?.water_hardness_mg_l ?? null,
       supplier: local.basic?.water_supplier ?? null,
+      postcode: local.basic?.postcode ?? null,
     };
   });
+  const [waterDialogOpen, setWaterDialogOpen] = useState(false);
 
   // Re-fetch style from DB (with localStorage fallback) whenever the user
   // lands on Home, regains focus, the tab becomes visible again, OR an
