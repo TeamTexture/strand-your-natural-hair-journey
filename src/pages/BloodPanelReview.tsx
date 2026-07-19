@@ -154,6 +154,9 @@ function describeTestPurpose(
   if (/wellness|general health|baseline|comprehensive/.test(src))
     return "A general wellness screen covering the key markers that influence overall and hair health.";
   return "A snapshot of the markers relevant to your overall health and hair.";
+}
+
+
 
 
 function referenceText(marker: string): string | null {
