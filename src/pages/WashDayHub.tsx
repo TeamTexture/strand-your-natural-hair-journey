@@ -10,6 +10,8 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useWashDays } from "@/hooks/useWashDays";
+import { useGoals } from "@/hooks/useGoals";
+import { AlertTriangle } from "lucide-react";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
