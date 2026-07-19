@@ -6,7 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
-import { useBloodValues } from "@/hooks/useBloodValues";
+import { useBloodValues, clearBloodDraft } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
