@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle, Heart } from "lucide-react";
+import { HelpCircle, Heart, FlaskConical } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -81,6 +81,11 @@ const Home = () => {
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
+  const [bloodSummary, setBloodSummary] = useState<{
+    panelDate: string | null;
+    total: number;
+    flagged: number;
+  } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(() => {
     // Hydrate instantly from the local snapshot so the Home card never
     // flashes empty on first paint.
@@ -187,6 +192,41 @@ const Home = () => {
         .from("before-photos")
         .createSignedUrl(path, 3600);
       if (!cancelled && signed?.signedUrl) setBeforePhotoUrl(signed.signedUrl);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Latest blood panel summary for the "My Blood Work" home section.
+  useEffect(() => {
+    if (!user) { setBloodSummary(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: panels } = await supabase
+        .from("blood_panels")
+        .select("id, panel_date")
+        .eq("user_id", user.id)
+        .eq("status", "logged")
+        .order("panel_date", { ascending: false })
+        .limit(1);
+      const panel = panels?.[0] as { id?: string; panel_date?: string } | undefined;
+      if (!panel?.id) {
+        if (!cancelled) setBloodSummary(null);
+        return;
+      }
+      const { data: results } = await supabase
+        .from("blood_results")
+        .select("status")
+        .eq("user_id", user.id)
+        .eq("panel_id", panel.id);
+      const rows = (results ?? []) as Array<{ status: string | null }>;
+      const flagged = rows.filter((r) => r.status === "low" || r.status === "high").length;
+      if (!cancelled) {
+        setBloodSummary({
+          panelDate: panel.panel_date ?? null,
+          total: rows.length,
+          flagged,
+        });
+      }
     })();
     return () => { cancelled = true; };
   }, [user]);
@@ -431,6 +471,53 @@ const Home = () => {
             </button>
           )}
         </SurfaceCard>
+
+        {/* My Blood Work */}
+        <SurfaceCard>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              My Blood Work
+            </p>
+            <button
+              onClick={() => navigate("/blood-history")}
+              className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+            >
+              Review
+            </button>
+          </div>
+          {bloodSummary ? (
+            <button
+              onClick={() => navigate("/blood-history")}
+              className="w-full text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
+                  <FlaskConical className="size-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-base font-semibold leading-snug">
+                    {bloodSummary.total} marker{bloodSummary.total === 1 ? "" : "s"} on file
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {bloodSummary.flagged > 0
+                      ? `${bloodSummary.flagged} flagged — last updated ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                      : `Last updated ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate("/blood-history")}
+              className="text-left w-full"
+            >
+              <p className="text-sm text-muted-foreground">
+                No blood work logged yet. Tap to add your first panel.
+              </p>
+            </button>
+          )}
+        </SurfaceCard>
+
         <SurfaceCard tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
