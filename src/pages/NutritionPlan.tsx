@@ -88,7 +88,15 @@ const normaliseText = (raw: string): string => {
   return t.replace(/\n{3,}/g, "\n\n").trim();
 };
 
-const RichBody = ({ text, className = "" }: { text: string; className?: string }) => {
+const RichBody = ({
+  text,
+  className = "",
+  strandTipLast = false,
+}: {
+  text: string;
+  className?: string;
+  strandTipLast?: boolean;
+}) => {
   const raw = normaliseText(text);
   let paras = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   if (paras.length <= 1 && raw.length > 220) {
@@ -109,6 +117,21 @@ const RichBody = ({ text, className = "" }: { text: string; className?: string }
       return <span key={`${keyPrefix}-t-${i}`}>{part}</span>;
     });
   };
+
+  // Decide which paragraph, if any, becomes the Strand tip. When strandTipLast
+  // is on we pull the last unlabelled paragraph out so it can render as a gold
+  // outlined callout at the bottom of the card.
+  let tipPara: string | null = null;
+  if (strandTipLast && paras.length > 1) {
+    const lastIdx = paras.length - 1;
+    const last = paras[lastIdx];
+    const isLabelled = /^([A-Z][A-Za-z ]{2,24}):/.test(last);
+    if (!isLabelled && last.length <= 320) {
+      tipPara = last.replace(/^(?:Tip|Strand tip):\s*/i, "");
+      paras = paras.slice(0, lastIdx);
+    }
+  }
+
   return (
     <div className={`space-y-3 ${className}`}>
       {paras.map((p, i) => {
@@ -135,6 +158,19 @@ const RichBody = ({ text, className = "" }: { text: string; className?: string }
           </p>
         );
       })}
+      {tipPara && (
+        <div className="mt-1 rounded-lg border-2 border-primary/70 bg-primary/[0.06] px-3 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="size-3 text-primary" aria-hidden />
+            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-primary">
+              Strand tip
+            </p>
+          </div>
+          <p className="mt-1 text-xs text-foreground/90 font-body leading-relaxed">
+            {renderInline(tipPara, "tip")}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
