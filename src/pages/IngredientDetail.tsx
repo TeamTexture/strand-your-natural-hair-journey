@@ -54,6 +54,8 @@ interface Analysis {
   usage_instructions?: string;
   use_cases?: string[];
   tips?: string[];
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
 }
 
 // Shape returned by the product-analyse edge function (passed via route state
