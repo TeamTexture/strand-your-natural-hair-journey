@@ -164,8 +164,7 @@ export function useHomeAlerts() {
       const plannedChangeDate = clinical.style?.planned_change_date ?? null;
       const inTakedownStyle = currentStyles.some(isTakedownStyle);
 
-      const postcode = clinical.basic?.postcode ?? null;
-      const hardWater = postcode ? isHardWaterPostcode(postcode) : false;
+      const hardWater = false;
 
       const lastWashIso = (() => {
         try {
