@@ -90,6 +90,7 @@ const App = () => (
           <PhoneShell>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/setup" element={<Protected><SetupGuide /></Protected>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/walkthrough" element={<Protected><Walkthrough /></Protected>} />
