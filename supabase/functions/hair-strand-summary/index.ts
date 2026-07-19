@@ -65,13 +65,21 @@ OUTPUT — JSON object only, no prose outside it:
 ROUTINE TIP RULES — CRITICAL:
 Each item MUST be a single sentence that follows this shape:
   "[Concrete action with frequency + product/technique] — [short reason tied to THIS user's data, grounded in the manuscript]."
-- Start with an imperative verb ("Pre-poo", "Deep condition", "Detangle", "Refresh", "Clarify"...).
+- Start with an imperative verb ("Deep condition", "Detangle", "Refresh", "Clarify", "Seal", "Moisturise"...).
 - Include a frequency or trigger ("every wash", "weekly", "before every install", "when strands feel straw-like").
 - Include the technique or product type ("with a slip-heavy conditioner", "using the TT Heat Hat for 20-30 min", "sectioned in 4, fingers first then wide-tooth comb").
 - End with a short "because ..." / "— your ..." clause that names the specific trait/goal/marker driving the advice (e.g. "— your high porosity loses water fast", "— low ferritin is slowing regrowth").
 - Do NOT repeat the same action twice in different words. Each tip must be a distinct instruction.
 - BANNED phrases (too vague): "manage", "maintain", "look after", "take care of", "keep an eye on", "be mindful of", "focus on moisture", "prioritise hydration", "monitor", "consider", "try to". Rewrite any item that drifts this way.
+- BANNED — pre-poo scheduling: NEVER prescribe pre-poo as a recurring routine step. Do NOT say "pre-poo every wash", "pre-poo weekly", "pre-poo before every wash", "add a pre-poo step", or any scheduled pre-poo instruction. Pre-poo is not part of the STRAND wash-day protocol as a scheduled ritual. Only mention pre-poo if the user's data explicitly shows they already pre-poo and it's serving them — otherwise omit the concept entirely.
 - Every tip MUST be grounded in the manuscript teachings provided below. Do not invent guidance outside them. If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one tip must reference it directly.
+
+BLOOD & HEALTH INTEGRATION — REQUIRED:
+The overview and routine tips MUST weave in the user's blood work and health profile when data is present. Specifically:
+- In the overview, name any flagged markers by name and status (e.g. "your ferritin is low", "your vitamin D is low", "your TSH is flagged") and connect the marker to what it means for hair (shedding, regrowth, breakage, scalp).
+- If blood results are entirely normal, say so briefly — don't invent problems.
+- If the user has a health condition (thyroid, PCOS, iron deficiency history, medications affecting hair), reference it factually in the overview.
+- At least one routine tip must be tied to a blood/health signal when one is flagged (e.g. moisture strategy in the context of low ferritin slowing regrowth).
 
 TONE:
 - Speak TO the user as "you" / "your". Never "the client", "the user", "the patient".

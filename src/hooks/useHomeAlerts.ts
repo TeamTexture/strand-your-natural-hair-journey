@@ -45,9 +45,9 @@ export interface HomeAlert {
   title: string;
   body: string;
   to: string;
-  /** "warning" = cautionary; "good" = positive/encouraging. Used by the UI
-   *  if it wants to style alerts differently — Home renders both today. */
-  tone?: "warning" | "good";
+  /** "warning" = cautionary; "good" = positive/encouraging; "danger" = urgent (red).
+   *  Used by the UI if it wants to style alerts differently. */
+  tone?: "warning" | "good" | "danger";
   /** Stable signature representing the underlying state. If this changes, the
    *  alert is treated as new and any previous dismissal is ignored. */
   signature: string;
@@ -389,14 +389,15 @@ export function useHomeAlerts() {
       }
 
       // 5. Blood retest due — 3 months since last test
-      if (lastBloodIso && daysSinceBlood >= 90) {
+      if (lastBloodIso && daysSinceBlood !== null && daysSinceBlood >= 90) {
+        const months = Math.max(3, Math.floor(daysSinceBlood / 30));
         next.push({
           id: "blood-retest",
           emoji: "🧪",
           title: "Time to book a blood test",
-          body: `It's been ${daysSinceBlood} days since your last blood test. Book a retest so your hair guidance stays current.`,
+          body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair guidance stays current.`,
           to: "/blood-history",
-          tone: "warning",
+          tone: "danger",
           signature: `blood:${lastBloodIso}`,
         });
       }

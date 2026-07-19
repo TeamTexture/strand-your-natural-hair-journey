@@ -550,19 +550,25 @@ const Home = () => {
                 </p>
               </div>
             ) : (
-              visibleAlerts.map((a) => (
+              visibleAlerts.map((a) => {
+                const isDanger = a.tone === "danger";
+                return (
                 <div
                   key={a.id}
-                  className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
+                  className={
+                    isDanger
+                      ? "relative w-full p-3 pr-9 rounded-[10px] border-2 border-red-600/70 bg-red-600/20 hover:border-red-600 transition-colors"
+                      : "relative w-full p-3 pr-9 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
+                  }
                 >
                   <button
                     onClick={() => navigate(a.to)}
                     className="w-full text-left"
                   >
-                    <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
+                    <p className={`text-xs font-medium leading-tight ${isDanger ? "text-red-100" : "text-alert-dark-foreground"}`}>
                       {a.emoji} {a.title}
                     </p>
-                    <p className="text-[11px] text-alert-dark-foreground/70 mt-1">{a.body}</p>
+                    <p className={`text-[11px] mt-1 ${isDanger ? "text-red-100/85" : "text-alert-dark-foreground/70"}`}>{a.body}</p>
                   </button>
                   <button
                     onClick={(e) => {
@@ -571,12 +577,13 @@ const Home = () => {
                       toast("Alert cleared");
                     }}
                     aria-label="Dismiss alert"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center text-alert-dark-foreground/50 hover:text-alert-dark-foreground transition-colors"
+                    className={`absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center transition-colors ${isDanger ? "text-red-100/60 hover:text-red-100" : "text-alert-dark-foreground/50 hover:text-alert-dark-foreground"}`}
                   >
                     ✕
                   </button>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </SurfaceCard>
