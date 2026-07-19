@@ -389,6 +389,15 @@ const WashDayDetail = () => {
           </SurfaceCard>
         )}
 
+        {wd.next_wash_tip && (
+          <SurfaceCard tone="gold">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
+              ✨ Tip for next wash day
+            </p>
+            <p className="text-sm leading-snug">{wd.next_wash_tip}</p>
+          </SurfaceCard>
+        )}
+
         {!editing && (
           <>
             <Button variant="goldOutline" size="pill" onClick={() => navigate("/wash-day")}>
