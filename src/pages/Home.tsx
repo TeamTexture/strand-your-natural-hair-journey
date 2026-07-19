@@ -714,23 +714,72 @@ const Home = () => {
             </div>
           </div>
 
+          {pcEditing ? (
+            <div className="space-y-2 pt-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Update your postcode
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={pcDraft}
+                onChange={(e) => setPcDraft(e.target.value.toUpperCase())}
+                placeholder="e.g. E16 2XE"
+                className="w-full rounded-pill border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void savePostcode();
+                }}
+              />
+              {pcError && <p className="text-xs text-destructive">{pcError}</p>}
+              <p className="text-[11px] text-muted-foreground">
+                We'll look up your water hardness and bring you straight back here.
+              </p>
+            </div>
+          ) : null}
+
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setWaterDialogOpen(false)}
-              className="rounded-pill"
-            >
-              Close
-            </Button>
-            <Button
-              onClick={() => {
-                setWaterDialogOpen(false);
-                navigate("/onboarding/profile-step-1#postcode");
-              }}
-              className="rounded-pill"
-            >
-              Update postcode
-            </Button>
+            {pcEditing ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPcEditing(false);
+                    setPcError(null);
+                  }}
+                  disabled={pcSaving}
+                  className="rounded-pill"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => void savePostcode()}
+                  disabled={pcSaving}
+                  className="rounded-pill"
+                >
+                  {pcSaving ? "Saving…" : "Save & return"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setWaterDialogOpen(false)}
+                  className="rounded-pill"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    setPcDraft(water.postcode ?? "");
+                    setPcError(null);
+                    setPcEditing(true);
+                  }}
+                  className="rounded-pill"
+                >
+                  Update postcode
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
