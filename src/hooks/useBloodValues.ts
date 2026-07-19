@@ -13,6 +13,7 @@ const KEY = "strand_blood_values";
 const UNKNOWN_KEY = "strand_blood_unknown";
 const DRAFT_PANEL_KEY = "strand_blood_draft_panel_id";
 const DRAFT_PANEL_DATE_KEY = "strand_blood_draft_panel_date";
+const DRAFT_PANEL_LABEL_KEY = "strand_blood_draft_panel_label";
 
 export interface UnknownMarker {
   marker: string;
