@@ -388,6 +388,22 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
                   type: "object",
                   properties: {
                     summary: { type: "string" },
+                    supplements: {
+                      type: "array",
+                      minItems: 3,
+                      maxItems: 8,
+                      items: {
+                        type: "object",
+                        properties: {
+                          emoji: { type: "string" },
+                          name: { type: "string" },
+                          dose: { type: "string" },
+                          body: { type: "string" },
+                          priority: { type: "string", enum: ["high", "medium", "low"] },
+                        },
+                        required: ["emoji", "name", "body"],
+                      },
+                    },
                     diet: {
                       type: "array",
                       minItems: 6,
@@ -421,7 +437,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
                       },
                     },
                   },
-                  required: ["summary", "diet", "avoid"],
+                  required: ["summary", "supplements", "diet", "avoid"],
                 },
               },
             },
