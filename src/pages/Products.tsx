@@ -149,7 +149,11 @@ const Products = () => {
               {group.items.map((p) => {
                 const isOpen = expanded === p.product_key;
                 const noteCount = counts[p.product_key] ?? 0;
-                const stars = p.rating ?? 0;
+                const aiStars = p.match_score != null
+                  ? Math.max(1, Math.min(5, Math.round(p.match_score / 20)))
+                  : 0;
+                const stars = p.rating ?? aiStars;
+
                 return (
                   <div
                     key={p.id}
