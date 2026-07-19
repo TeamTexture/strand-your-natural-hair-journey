@@ -47,11 +47,7 @@ export interface AiContext {
     professional_notes: string | null;
   } | null;
   location: {
-    is_hard_water_area: boolean | null;
     postcode: string | null;
-    water_hardness_band?: string | null;
-    water_hardness_mg_l?: number | null;
-    water_supplier?: string | null;
   };
   history: {
     last_3_wash_days: Array<Record<string, unknown>>;
