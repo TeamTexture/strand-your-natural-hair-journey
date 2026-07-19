@@ -275,6 +275,28 @@ const Profile = () => {
     },
   });
 
+  // All blood panels preview (list + count) for the Profile hub card.
+  const { data: bloodPanels = [] } = useQuery({
+    queryKey: ["profile", "blood_panels_preview", user?.id ?? "anon"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("blood_panels" as never)
+        .select("id, panel_date, scheduled_at, status, label")
+        .eq("user_id", user!.id)
+        .order("panel_date", { ascending: false })
+        .order("created_at", { ascending: false });
+      return (data ?? []) as unknown as Array<{
+        id: string;
+        panel_date: string | null;
+        scheduled_at: string | null;
+        status: "logged" | "scheduled";
+        label: string | null;
+      }>;
+    },
+  });
+
   // ---------- Derived: only present if real data exists ----------
   // Name priority: onboarding "basic" name → DB display_name → auth metadata → titlecased email prefix.
   // We only fall back to the email prefix as an absolute last resort, and we
