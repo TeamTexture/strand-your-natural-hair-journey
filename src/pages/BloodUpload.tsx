@@ -86,9 +86,7 @@ export default function BloodUpload() {
       const results = (data?.results ?? []) as ExtractedRow[];
       if (data?.panel_date) setPanelDate(data.panel_date);
       setRows(results);
-      const initialChecked: Record<string, boolean> = {};
-      results.forEach((r) => { initialChecked[r.marker] = true; });
-      setChecked(initialChecked);
+
       if (results.length === 0) {
         toast.error("No markers found. Try clearer photos or the PDF from your lab.");
       } else {
