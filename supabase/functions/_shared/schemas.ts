@@ -118,6 +118,8 @@ export interface ProductAnalysisPayload {
   usage_instructions: string;
   use_cases: string[];
   tips: string[];
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
   // Provenance — added by the edge function, not part of the model output schema.
   _model_version?: string;
   _generated_at?: string;
