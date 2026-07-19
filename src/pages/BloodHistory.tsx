@@ -117,16 +117,22 @@ function buildPanelInsight(
   if (flagged.length === 0) {
     return `All ${rows.length} markers sit inside their healthy range — a solid baseline for your hair.`;
   }
-  const named = flagged
-    .slice(0, 3)
-    .map((f) => `${f.status === "low" ? "low" : "high"} ${f.marker}`)
-    .join(", ");
-  const cats = Array.from(
-    new Set(flagged.map((f) => BLOOD_RANGES[f.marker]?.category).filter(Boolean) as string[]),
-  ).slice(0, 2);
-  const focus = cats.map((c) => CATEGORY_FOCUS[c] ?? c).join(" and ");
-  const extra = flagged.length > 3 ? ` and ${flagged.length - 3} more` : "";
-  return `${flagged.length} marker${flagged.length > 1 ? "s" : ""} outside range: ${named}${extra}.${focus ? ` Focus area: ${focus}.` : ""}`;
+  return null;
+}
+
+// Short, friendly marker names for chip display. Long clinical names get
+// trimmed so the pill reads like a human tag ("Low Ferritin"), not a lab row.
+const MARKER_SHORT: Record<string, string> = {
+  "Vitamin B12": "B12",
+  "Oestrogen / Oestradiol": "Oestrogen",
+  "DHEA-S": "DHEA",
+};
+function friendlyMarkerName(marker: string): string {
+  return MARKER_SHORT[marker] ?? marker;
+}
+function friendlyStatusTag(marker: string, status: string | null): string {
+  const s = status === "low" ? "Low" : status === "high" ? "High" : "Flagged";
+  return `${s} ${friendlyMarkerName(marker)}`;
 }
 
 
