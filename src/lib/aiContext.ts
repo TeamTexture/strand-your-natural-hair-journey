@@ -78,6 +78,7 @@ export interface AiContext {
     status: string;
   }>;
   shelf: Array<Record<string, unknown>>;
+  tools: Array<Record<string, unknown>>;
 }
 
 const safeParse = <T,>(key: string, fallback: T): T => {
