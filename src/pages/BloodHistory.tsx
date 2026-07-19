@@ -444,9 +444,17 @@ const BloodHistory = () => {
                   className="bg-card border border-border rounded-[14px] p-3.5"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="size-11 rounded-[12px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <FlaskConical className="size-4" />
-                    </div>
+                    {p.thumbnail_path && thumbUrls[p.thumbnail_path] ? (
+                      <img
+                        src={thumbUrls[p.thumbnail_path]}
+                        alt=""
+                        className="size-11 rounded-[12px] object-cover border border-border/60 shrink-0"
+                      />
+                    ) : (
+                      <div className="size-11 rounded-[12px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <FlaskConical className="size-4" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-body font-semibold flex items-center gap-2 truncate">
                         <span className="truncate">{p.label ?? "Blood test"}</span>
