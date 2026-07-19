@@ -275,7 +275,7 @@ export default function BloodUpload() {
           and pre-fill your panel — check them, then save.
         </p>
 
-        {!file && (
+        {files.length === 0 && (
           <SurfaceCard>
             <div
               onClick={pick}
@@ -285,8 +285,7 @@ export default function BloodUpload() {
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOver(false);
-                const dropped = e.dataTransfer.files?.[0];
-                if (dropped) onFile(dropped);
+                onFiles(e.dataTransfer.files);
               }}
               role="button"
               tabIndex={0}
@@ -304,7 +303,7 @@ export default function BloodUpload() {
                   {dragOver ? "Drop to upload" : "Upload results"}
                 </p>
                 <p className="text-xs text-foreground/60 font-body">
-                  Drag & drop, or tap to choose · PDF or photo · up to 15 MB
+                  Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 15 MB each
                 </p>
               </div>
             </div>
@@ -312,38 +311,56 @@ export default function BloodUpload() {
               ref={inputRef}
               type="file"
               accept="application/pdf,image/*"
+              multiple
               className="hidden"
-              onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => onFiles(e.target.files)}
             />
           </SurfaceCard>
         )}
 
 
-        {file && (
+        {files.length > 0 && (
           <SurfaceCard>
-            <div className="flex items-center gap-3">
-              {file.type === "application/pdf" ? (
-                <FileText className="size-6 text-primary shrink-0" />
-              ) : (
-                <ImageIcon className="size-6 text-primary shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-body font-medium truncate">{file.name}</p>
-                <p className="text-xs text-foreground/60 font-body">
-                  {(file.size / 1024).toFixed(0)} KB
-                </p>
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-foreground/60 font-body">
+                {files.length === 1 ? "1 file" : `${files.length} photos`}
+              </p>
               <button
                 onClick={() => {
-                  setFile(null);
+                  setFiles([]);
                   setRows([]);
                   setChecked({});
                 }}
-                className="size-8 rounded-full hover:bg-muted flex items-center justify-center"
-                aria-label="Remove file"
+                className="text-xs text-foreground/60 hover:text-foreground font-body underline"
               >
-                <X className="size-4" />
+                Remove all
               </button>
+            </div>
+            <div className="space-y-2">
+              {files.map((f, i) => (
+                <div key={`${f.name}-${i}`} className="flex items-center gap-3">
+                  {f.type === "application/pdf" ? (
+                    <FileText className="size-6 text-primary shrink-0" />
+                  ) : (
+                    <ImageIcon className="size-6 text-primary shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-body font-medium truncate">{f.name}</p>
+                    <p className="text-xs text-foreground/60 font-body">
+                      {(f.size / 1024).toFixed(0)} KB
+                    </p>
+                  </div>
+                  {files.length > 1 && (
+                    <button
+                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="size-8 rounded-full hover:bg-muted flex items-center justify-center"
+                      aria-label="Remove file"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </SurfaceCard>
         )}
