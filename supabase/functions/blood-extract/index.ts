@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
       document_title?: string | null;
       test_type?: string | null;
       lab_name?: string | null;
+      logo_bbox?: { x?: unknown; y?: unknown; w?: unknown; h?: unknown } | null;
       results?: Array<Record<string, unknown>>;
     } = {};
     try {
