@@ -249,8 +249,8 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
   if (!toolCall?.function?.arguments) {
     throw new Error("Malformed AI output");
   }
-  const parsed = JSON.parse(toolCall.function.arguments) as { observation?: string };
-  return { observation: parsed.observation ?? "" };
+  const parsed = JSON.parse(toolCall.function.arguments) as { observation?: string; next_wash_tip?: string };
+  return { observation: parsed.observation ?? "", next_wash_tip: parsed.next_wash_tip ?? "" };
 }
 
 Deno.serve(async (req: Request) => {
