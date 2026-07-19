@@ -83,32 +83,39 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're writing ONE professional observation about the user's wash day (2-3 sentences MAX). Return JSON only via the return_observation tool.
+  return `You're writing TWO short professional pieces about the user's wash day. Return JSON only via the return_observation tool.
 
-Voice for this task: follow the VOICE PRINCIPLES from the system block. Explain the mechanism first ("the clarifying step lifted product film off the cuticle, which means…"), use connectives, talk to "you" not "your hair", translate any specialist term the first time it appears, and stay professional, direct, and never over-familiar.
+Voice: follow VOICE PRINCIPLES from the system block. Mechanism-first, talk to "you", translate any specialist term, professional and direct, never over-familiar.
 
-OUTPUT RULES
+=========================================
+PART 1 — OBSERVATION (field: observation)
+=========================================
+2-3 sentences MAX. REFLECT, do not advise. Describes what the user did today and how it compares to recent wash days.
 
-1. REFLECT, do not advise. The observation describes what the user did today and how it compares to recent wash days. NEVER tell the user what to do next, what to try next time, or what they should consider — those are banned framings.
+RULES:
+- Lead with a SPECIFIC choice the user made today (a product, technique, step skipped, heat treatment, styling decision) and what effect it had — using their reported scalp feel, breakage, hair feel note, and styling outcome.
+- Where possible, compare today to a SPECIFIC pattern in recent wash days. Cite by date/sequence ("3rd wash in past 4 weeks where X", "Last time you used [product] on [date], you reported [outcome]").
+- If a "consistently flagged" ingredient appeared in today's products, name it. NEVER say "avoid list" — say "consistently flagged in your history."
+- NEVER tell the user what to do next in this field. No "try X next time", "consider Y", "going forward" — that belongs in PART 2.
+- Hair-health observation only, never medical advice.
+- BANNED PHRASES in observation: "Great job!", "Keep it up!", "Nice work!", "Try [X] next time," "Consider," "I'd recommend."
 
-2. Lead with a SPECIFIC choice the user made today (a product they used, a technique they applied, a step they skipped, a heat treatment, a styling decision) and what effect it had — drawing on their reported scalp feel, breakage, hair feel note, and styling outcome.
+=========================================
+PART 2 — NEXT WASH DAY TIP (field: next_wash_tip)
+=========================================
+2-3 sentences MAX. Concrete, forward-looking advice for the user's NEXT wash day.
 
-3. Where possible, compare today's choice or outcome to a SPECIFIC pattern across the supplied recent wash days. Cite by date or sequence: "This is the 3rd wash in the past 4 weeks where X" or "Last time you used [product] on [date], you reported [outcome]" or "Three of your last 5 wash days where you skipped a clarifying step have come back with limp roots." Do NOT use vague summaries like "you sometimes report dryness."
-
-4. If a "consistently flagged" ingredient (from history.flagged_ingredients) appeared in today's products, name the ingredient and what it's flagged for. NEVER use the phrases "avoid list," "your avoids," or "ingredients to avoid" — use "consistently flagged in your history."
-
-5. Do NOT cite tension/styling concerns, lab values, sleep, cortisol, or dermatologist context unless they directly intersect today's wash mechanics.
-
-6. Hair-health observation only — never medical advice.
-
-7. Moisture comes from water. Products SEAL it, don't add it.
-
-8. BANNED PHRASES: "Great job!", "Keep it up!", "Nice work!", "Try [X] next time," "Consider [Y]," "Next wash, you might want to," "I'd recommend," "Going forward."
-
-9. NO chapter citations. NO "Read more — How To Love Your Afro" links. The observation stands alone.
-
-10. Plain English, no jargon. Treat the user as a capable adult who knows their hair.`;
+RULES:
+- Use context.shelf, context.wishlist, context.tools, context.goals, and today's outcome to design the tip.
+- Name at least ONE specific product from their shelf OR wishlist OR a specific tool they own — by name. Do not invent products they don't have.
+- Tie the tip to something concrete from today (e.g. "Because breakage was moderate today and your goal is length retention, next wash try leading with [Product X from shelf] before your co-wash…").
+- Give a mechanism ("this coats the cuticle before manipulation, which reduces mid-shaft snapping").
+- If they logged heat today, and heat is due next wash, ONLY reference the TT Heat Hat (link https://www.teamtexture.co.uk). Never suggest plastic caps, shower caps, warm towels, or steamers.
+- If there's a wishlist item that would genuinely help, you may suggest picking it up — but never sound salesy.
+- NO chapter citations. NO "Read more" links. Plain English.
+- BANNED in tip: "you might want to", "perhaps", "if you feel like it" — be direct and confident.`;
 }
+
 
 async function runClaude(args: {
   body: RequestBody;
