@@ -217,10 +217,10 @@ const MyToolsSection = () => {
             return (
               <div
                 key={t.id}
-                className="bg-card border border-border rounded-[14px] overflow-hidden"
+                className="bg-card border border-border rounded-[14px] overflow-hidden shadow-sm"
               >
-                <div className="p-3.5 flex items-center gap-3">
-                  <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0">
+                <div className="p-3 flex items-start gap-3">
+                  <div className="size-14 rounded-[10px] overflow-hidden bg-secondary shrink-0">
                     {t.image_url ? (
                       <img src={t.image_url} alt="" className="size-full object-cover" />
                     ) : (
@@ -230,12 +230,62 @@ const MyToolsSection = () => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium font-body leading-tight break-words">
-                      {t.name}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground break-words">
-                      {[t.brand, t.category].filter(Boolean).join(" · ") || "Tool"}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-display font-semibold leading-snug text-foreground break-words">
+                          {t.name}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground/90 font-medium tracking-wide mt-0.5 break-words">
+                          {[t.brand, t.category].filter(Boolean).join(" · ") || "Tool"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0 -mr-1 -mt-1">
+                        {t.ai_analysis && (
+                          <button
+                            onClick={() => setViewAdvice(t)}
+                            aria-label="View STRAND advice"
+                            className="size-7 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center"
+                          >
+                            <Sparkles className="size-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setFavourite(t.id, !t.on_favourite)}
+                          aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                          aria-pressed={t.on_favourite}
+                          className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center"
+                        >
+                          <Heart
+                            className={cn(
+                              "size-3.5 transition-colors",
+                              t.on_favourite
+                                ? "text-primary fill-primary"
+                                : "text-muted-foreground",
+                            )}
+                          />
+                        </button>
+                        <button
+                          onClick={() => setPendingDelete(t)}
+                          aria-label="Delete tool"
+                          className="size-7 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setExpanded(isOpen ? null : t.tool_key)}
+                          className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center"
+                          aria-label={isOpen ? "Hide notes" : "Show notes"}
+                          aria-expanded={isOpen}
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "size-3.5 text-muted-foreground transition-transform",
+                              isOpen && "rotate-180",
+                            )}
+                          />
+                        </button>
+                      </div>
+                    </div>
                     {(() => {
                       const aiScoreRaw = (t.ai_analysis as Record<string, unknown> | null)?.match_score;
                       const aiScore = typeof aiScoreRaw === "number" ? aiScoreRaw : null;
@@ -244,10 +294,10 @@ const MyToolsSection = () => {
                       const stars =
                         score != null ? Math.max(1, Math.min(5, Math.round(score / 20))) : 0;
                       return (
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           <Stars n={stars} />
                           {score != null && (
-                            <span className="text-[9px] uppercase tracking-wider text-primary/80">
+                            <span className="text-[9px] uppercase tracking-[0.12em] text-primary/80 font-semibold">
                               Strand
                             </span>
                           )}
@@ -260,50 +310,6 @@ const MyToolsSection = () => {
                       );
                     })()}
                   </div>
-                  {t.ai_analysis && (
-                    <button
-                      onClick={() => setViewAdvice(t)}
-                      aria-label="View STRAND advice"
-                      className="size-9 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center shrink-0"
-                    >
-                      <Sparkles className="size-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setFavourite(t.id, !t.on_favourite)}
-                    aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
-                    aria-pressed={t.on_favourite}
-                    className="size-9 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                  >
-                    <Heart
-                      className={cn(
-                        "size-4 transition-colors",
-                        t.on_favourite
-                          ? "text-primary fill-primary"
-                          : "text-muted-foreground",
-                      )}
-                    />
-                  </button>
-                  <button
-                    onClick={() => setPendingDelete(t)}
-                    aria-label="Delete tool"
-                    className="size-9 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center shrink-0"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                  <button
-                    onClick={() => setExpanded(isOpen ? null : t.tool_key)}
-                    className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                    aria-label={isOpen ? "Hide notes" : "Show notes"}
-                    aria-expanded={isOpen}
-                  >
-                    <ChevronDown
-                      className={cn(
-                        "size-4 text-muted-foreground transition-transform",
-                        isOpen && "rotate-180",
-                      )}
-                    />
-                  </button>
                 </div>
 
                 {isOpen && (
