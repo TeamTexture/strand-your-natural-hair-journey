@@ -758,7 +758,7 @@ export function useHomeAlerts() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refreshTick]);
 
   // Prune dismissals whose alert no longer exists (or whose signature changed).
   useEffect(() => {
