@@ -246,6 +246,7 @@ interface LegacyBasic {
 function hairFromLocal(): HairSlice | null {
   const raw = safeParse<LegacyHair | null>("strand_hair_profile", null);
   if (!raw) return null;
+  const inchesNum = Number(raw.length_inches);
   return {
     diameter: ensureStringArray(raw.diameter),
     texture: ensureStringArray(raw.texture),
@@ -255,6 +256,8 @@ function hairFromLocal(): HairSlice | null {
     scalp: ensureStringArray(raw.scalp),
     diagnosed: ensureStringArray(raw.diagnosed),
     areas: ensureStringArray(raw.areas),
+    length_inches: Number.isFinite(inchesNum) && inchesNum > 0 ? inchesNum : null,
+    length_bucket: typeof raw.length_bucket === "string" && raw.length_bucket ? raw.length_bucket : null,
   };
 }
 
