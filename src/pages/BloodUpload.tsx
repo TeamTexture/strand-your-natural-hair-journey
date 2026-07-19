@@ -588,16 +588,17 @@ export default function BloodUpload() {
               variant="gold"
               size="pill"
               className="w-full"
-              onClick={continueToReview}
+              onClick={saveUpload}
               disabled={saving || rows.length === 0}
             >
               {saving ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Opening review…
+                  Saving…
                 </>
               ) : (
-                `Continue — review by category →`
+                duplicatePanel && !dupConfirmed ? "Save anyway" : "Save to history"
+
               )}
             </Button>
           </>
