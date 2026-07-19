@@ -331,8 +331,12 @@ function basicFromLocal(): ProfileBasicSlice | null {
     postcode: raw?.postcode ?? null,
     country: raw?.country ?? null,
     heritage: heritageArr.length > 0 ? heritageArr : raw?.heritage ? [raw.heritage] : [],
+    water_hardness_mg_l: null,
+    water_hardness_band: null,
+    water_supplier: null,
   };
 }
+
 
 // ─────────────────── Encrypt helper (write side) ───────────────────
 
