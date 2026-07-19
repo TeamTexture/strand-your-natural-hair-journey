@@ -74,7 +74,7 @@ const InitialAvatar = ({ name }: { name: string }) => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }, [name]);
   return (
-    <div className="size-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-lg font-semibold">
+    <div className="size-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-xl font-semibold">
       {initials}
     </div>
   );
@@ -110,8 +110,8 @@ const AlertCard = ({ alert }: { alert: AlertItem }) => (
       {alert.icon}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-sm font-semibold leading-tight truncate">{alert.label}</p>
-      <p className="text-[11px] text-foreground/70 mt-0.5 truncate">{alert.detail}</p>
+      <p className="text-base font-semibold leading-tight truncate">{alert.label}</p>
+      <p className="text-[13px] text-foreground/70 mt-0.5 truncate">{alert.detail}</p>
     </div>
   </button>
 );
@@ -123,14 +123,14 @@ const EditableSectionLabel = ({
   editLabel = "Edit",
 }: { children: React.ReactNode; onEdit: () => void; editLabel?: string }) => (
   <div className="px-5 pt-2 pb-1.5 flex items-end justify-between">
-    <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+    <span className="text-[13px] uppercase tracking-[0.18em] text-muted-foreground font-body">
       {children}
     </span>
     <button
       onClick={onEdit}
-      className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium inline-flex items-center gap-1 px-2 -mr-2 min-h-[36px]"
+      className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium inline-flex items-center gap-1 px-2 -mr-2 min-h-[36px]"
     >
-      <Pencil className="size-3" /> {editLabel}
+      <Pencil className="size-3.5" /> {editLabel}
     </button>
   </div>
 );
@@ -438,7 +438,7 @@ const Profile = () => {
         title="My Profile"
         back={false}
         right={
-          <button onClick={() => toast("Profile link copied")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
+          <button onClick={() => toast("Profile link copied")} className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
             Share ↗
           </button>
         }
@@ -448,10 +448,10 @@ const Profile = () => {
       <div className="px-5 pb-4 flex items-center gap-3">
         <UserAvatar name={displayName || "?"} />
         <div className="flex-1 min-w-0">
-          <p className="font-display text-lg font-semibold leading-tight truncate">
+          <p className="font-display text-xl font-semibold leading-tight truncate">
             {displayName || "Welcome"}
           </p>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium truncate">
+          <p className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium truncate">
             STRAND Member{ageDisplay ? ` · ${ageDisplay}` : ""}
           </p>
         </div>
@@ -468,8 +468,8 @@ const Profile = () => {
       <Dialog open={editPickerOpen} onOpenChange={setEditPickerOpen}>
         <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] sm:max-w-md rounded-[20px] p-5 gap-3 overflow-hidden max-h-[80vh] overflow-y-auto">
           <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="font-display text-lg">What would you like to edit?</DialogTitle>
-            <DialogDescription className="text-[12px]">
+            <DialogTitle className="font-display text-xl">What would you like to edit?</DialogTitle>
+            <DialogDescription className="text-[14px]">
               Tap a bubble to jump straight to that section.
             </DialogDescription>
           </DialogHeader>
@@ -485,13 +485,13 @@ const Profile = () => {
                   <span className="size-6 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
                     <Icon className="size-3.5" />
                   </span>
-                  <span className="text-[13px] font-medium leading-none">{t.label}</span>
+                  <span className="text-[15px] font-medium leading-none">{t.label}</span>
                 </button>
               );
             })}
           </div>
           <div className="pt-2 mt-1 border-t border-border/60 -mx-5 px-5">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground pt-3 pb-1">Or browse all</p>
+            <p className="text-[12px] uppercase tracking-[0.18em] text-muted-foreground pt-3 pb-1">Or browse all</p>
             <div className="space-y-1">
               {editTargets.map((t) => (
                 <button
@@ -500,8 +500,8 @@ const Profile = () => {
                   className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-secondary/60 rounded-lg px-2 -mx-2 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight">{t.label}</p>
-                    <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{t.hint}</p>
+                    <p className="text-base font-medium leading-tight">{t.label}</p>
+                    <p className="text-[13px] text-muted-foreground leading-tight mt-0.5">{t.hint}</p>
                   </div>
                   <ChevronRight className="size-4 text-muted-foreground shrink-0" />
                 </button>
@@ -521,8 +521,8 @@ const Profile = () => {
             <User className="size-4" />
           </div>
           <div className="min-w-0 w-full">
-            <p className="text-[11px] font-semibold leading-tight">Personal details</p>
-            <p className="text-[9px] text-foreground/70 mt-0.5 leading-snug">
+            <p className="text-[13px] font-semibold leading-tight">Personal details</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
               Name, age, postcode &amp; photo
             </p>
           </div>
@@ -535,8 +535,8 @@ const Profile = () => {
             <Sparkles className="size-4" />
           </div>
           <div className="min-w-0 w-full">
-            <p className="text-[11px] font-semibold leading-tight">Hair details</p>
-            <p className="text-[9px] text-foreground/70 mt-0.5 leading-snug">
+            <p className="text-[13px] font-semibold leading-tight">Hair details</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
               Diameter, porosity &amp; scalp
             </p>
           </div>
@@ -549,8 +549,8 @@ const Profile = () => {
             <Droplet className="size-4" />
           </div>
           <div className="min-w-0 w-full">
-            <p className="text-[11px] font-semibold leading-tight">Blood results</p>
-            <p className="text-[9px] text-foreground/70 mt-0.5 leading-snug">
+            <p className="text-[13px] font-semibold leading-tight">Blood results</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
               Refresh your markers
             </p>
           </div>
@@ -567,12 +567,12 @@ const Profile = () => {
             <HelpCircle className="size-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold leading-tight">Help & Support</p>
-            <p className="text-[11px] text-foreground/70 mt-0.5">
+            <p className="text-base font-semibold leading-tight">Help & Support</p>
+            <p className="text-[13px] text-foreground/70 mt-0.5">
               Install guide, FAQs and how to reach us.
             </p>
           </div>
-          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
+          <span className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
         </button>
       </div>
 
@@ -586,12 +586,12 @@ const Profile = () => {
             <Compass className="size-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold leading-tight">App Walkthrough</p>
-            <p className="text-[11px] text-foreground/70 mt-0.5">
+            <p className="text-base font-semibold leading-tight">App Walkthrough</p>
+            <p className="text-[13px] text-foreground/70 mt-0.5">
               A quick tour of the main STRAND screens.
             </p>
           </div>
-          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
+          <span className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
         </button>
       </div>
 
@@ -617,8 +617,8 @@ const Profile = () => {
           <div className="p-4 rounded-[12px] bg-good/10 border border-good/30 flex items-center gap-3">
             <Sparkles className="size-5 text-good shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold leading-tight">All clear</p>
-              <p className="text-[11px] text-foreground/70 mt-0.5">
+              <p className="text-base font-semibold leading-tight">All clear</p>
+              <p className="text-[13px] text-foreground/70 mt-0.5">
                 No flagged blood markers, wash days, or upcoming appointments.
               </p>
             </div>
@@ -630,7 +630,7 @@ const Profile = () => {
       {chips.length > 0 && (
         <div className="px-5 pb-4 flex flex-wrap gap-2">
           {chips.map((c) => (
-            <span key={c} className="bg-secondary text-foreground/80 text-[11px] px-2.5 py-1.5 rounded-full">{c}</span>
+            <span key={c} className="bg-secondary text-foreground/80 text-[13px] px-2.5 py-1.5 rounded-full">{c}</span>
           ))}
         </div>
       )}
@@ -639,23 +639,23 @@ const Profile = () => {
       <div className="px-5 grid grid-cols-2 gap-3 pb-2">
         <button onClick={() => navigate("/appointments")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">📅</div>
-          <p className="text-sm font-medium leading-tight">Appointments</p>
-          <p className="text-[11px] text-muted-foreground">{appts.length > 0 ? `${appts.length} upcoming` : "Tap to log"}</p>
+          <p className="text-base font-medium leading-tight">Appointments</p>
+          <p className="text-[13px] text-muted-foreground">{appts.length > 0 ? `${appts.length} upcoming` : "Tap to log"}</p>
         </button>
         <button onClick={() => navigate("/directory")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🩺</div>
-          <p className="text-sm font-medium leading-tight">Find Professionals</p>
-          <p className="text-[11px] text-muted-foreground">Verified directory</p>
+          <p className="text-base font-medium leading-tight">Find Professionals</p>
+          <p className="text-[13px] text-muted-foreground">Verified directory</p>
         </button>
         <button onClick={() => navigate("/nutrition-plan")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🥗</div>
-          <p className="text-sm font-medium leading-tight">Nutrition Plan</p>
-          <p className="text-[11px] text-muted-foreground">Personalised</p>
+          <p className="text-base font-medium leading-tight">Nutrition Plan</p>
+          <p className="text-[13px] text-muted-foreground">Personalised</p>
         </button>
         <button onClick={() => navigate("/onboarding/blood-ai-summary")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🧪</div>
-          <p className="text-sm font-medium leading-tight">Blood Summary</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-base font-medium leading-tight">Blood Summary</p>
+          <p className="text-[13px] text-muted-foreground">
             {flaggedBlood.length > 0 ? `${flaggedBlood.length} flagged` : "AI-generated"}
           </p>
         </button>
@@ -723,7 +723,7 @@ const Profile = () => {
           <div className="px-5 pb-4">
             <div className="p-4 rounded-[14px] bg-good/10 border border-good/30 flex items-center gap-3">
               <Sparkles className="size-5 text-good shrink-0" />
-              <p className="text-sm">All blood markers in normal range</p>
+              <p className="text-base">All blood markers in normal range</p>
             </div>
           </div>
         </>
@@ -740,7 +740,7 @@ const Profile = () => {
               {health.medications.slice(0, 5).map((m) => (
                 <div key={m} className="flex items-center gap-3 px-4 py-3">
                   <Pill className="size-4 text-primary shrink-0" />
-                  <span className="flex-1 text-sm font-body truncate">{m}</span>
+                  <span className="flex-1 text-base font-body truncate">{m}</span>
                 </div>
               ))}
             </SurfaceCard>
@@ -757,8 +757,8 @@ const Profile = () => {
         >
           <div className="size-10 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 text-lg">📸</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold leading-tight">Milestone gallery</p>
-            <p className="text-[11px] text-foreground/70 mt-0.5">
+            <p className="text-base font-semibold leading-tight">Milestone gallery</p>
+            <p className="text-[13px] text-foreground/70 mt-0.5">
               6-week check-ins so real progress is visible.
             </p>
           </div>
@@ -791,7 +791,7 @@ const Profile = () => {
         </Button>
         <button
           onClick={async () => { await signOut(); navigate("/", { replace: true }); }}
-          className="w-full flex items-center justify-center gap-2 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground py-3 min-h-[44px]"
+          className="w-full flex items-center justify-center gap-2 text-sm uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground py-3 min-h-[44px]"
         >
           <LogOut className="size-3.5" /> Sign out
         </button>
@@ -806,9 +806,9 @@ const ProfileRow = ({
 }: { icon: string; label: string; value: string; tone?: "warn" | "good" }) => (
   <div className="flex items-center gap-3 px-4 py-3">
     <span className="text-lg w-6 text-center">{icon}</span>
-    <span className="flex-1 text-sm text-foreground font-body truncate">{label}</span>
+    <span className="flex-1 text-base text-foreground font-body truncate">{label}</span>
     <span className={cn(
-      "text-xs font-medium text-right max-w-[55%] truncate",
+      "text-sm font-medium text-right max-w-[55%] truncate",
       tone === "warn" && "text-warn",
       tone === "good" && "text-good",
       !tone && "text-foreground/80",
