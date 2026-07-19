@@ -396,7 +396,7 @@ export default function BloodPanelReview() {
                     {panel.lab_name && (
                       <div className="flex items-center gap-2">
                         <Building2 className="size-3.5 text-primary/70 shrink-0" />
-                        <span>{panel.lab_name}</span>
+                        <span>{titleCaseBrand(panel.lab_name)}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
@@ -404,6 +404,15 @@ export default function BloodPanelReview() {
                       <span>{fmtDate(panel.panel_date)}</span>
                     </div>
                   </div>
+                  {(() => {
+                    const purpose = describeTestPurpose(panel.test_type, panel.label);
+                    return purpose ? (
+                      <p className="mt-2.5 text-xs font-body text-foreground/70 leading-snug">
+                        {purpose}
+                      </p>
+                    ) : null;
+                  })()}
+
                 </div>
               </div>
 
