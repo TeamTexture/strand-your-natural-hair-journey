@@ -8,6 +8,61 @@
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
+import {
+  KNOWLEDGE_REGISTRY,
+  renderTopicBlock,
+} from "../_shared/knowledge/index.ts";
+import type { TopicId } from "../_shared/knowledge/types.ts";
+
+/**
+ * Select up to 4 manuscript topics relevant to this goal + user context.
+ * Grounds every Strand tip in How To Love Your Afro's core teachings.
+ * We bypass the function_kinds gate (goal-tip is not in that union) and
+ * match purely on: (a) keywords in the goal challenge/target text, and
+ * (b) the user's clinical signals (porosity, density, scalp, life stage,
+ * conditions, flagged blood markers).
+ */
+const GOAL_KEYWORD_TOPICS: Array<{ re: RegExp; topics: TopicId[] }> = [
+  { re: /length|grow|retention|retain/i, topics: ["wash-day-mechanics", "protective-styling", "heat-and-moisture"] },
+  { re: /shed|shedding|fall(ing)? out|thinning/i, topics: ["iron-and-shedding", "thyroid", "vits-and-minerals"] },
+  { re: /break(age|ing)?|snap|split/i, topics: ["protein-and-strengthening", "hair-architecture", "wash-day-mechanics"] },
+  { re: /moisture|moisturis|hydrat|dry|dryness/i, topics: ["porosity", "heat-and-moisture", "wash-day-mechanics"] },
+  { re: /scalp|itch|flake|dandruff|seborr/i, topics: ["scalp-conditions", "diagnosed-conditions"] },
+  { re: /heat|straighten|blow[- ]?dry|silk press/i, topics: ["heat-and-moisture", "protein-and-strengthening"] },
+  { re: /protective|braid|twist|wig|weave/i, topics: ["protective-styling", "wash-day-mechanics"] },
+  { re: /colour|color|dye|bleach|highlight/i, topics: ["protein-and-strengthening", "porosity"] },
+  { re: /volume|density|thicker|fuller/i, topics: ["hair-architecture", "wash-day-mechanics"] },
+  { re: /menopause|perimenopause|pregnan|postpartum|contracept|pill|coil|iud/i, topics: ["hormones-and-life-stage", "thyroid"] },
+];
+
+function selectGoalTopics(body: RequestBody): string[] {
+  const picks = new Set<TopicId>();
+  const goalText = [body.goal.challenge, body.goal.target_text]
+    .filter(Boolean).join(" ");
+  for (const { re, topics } of GOAL_KEYWORD_TOPICS) {
+    if (re.test(goalText)) topics.forEach((t) => picks.add(t));
+    if (picks.size >= 4) break;
+  }
+
+  const ctx = body.context as {
+    hair?: { porosity?: string[]; scalp?: string[]; diagnosed?: string[] };
+    health?: { lifeStage?: string[]; conditions?: string[]; contraception?: string[] };
+    bloodResults?: Array<{ marker?: string; status?: string | null }>;
+  };
+  const flagged = (ctx.bloodResults ?? [])
+    .filter((b) => b.status && !["normal", "untested"].includes((b.status ?? "").toLowerCase()))
+    .map((b) => (b.marker ?? "").toLowerCase());
+  if (picks.size < 4 && flagged.some((m) => m.includes("ferritin") || m.includes("iron"))) picks.add("iron-and-shedding");
+  if (picks.size < 4 && flagged.some((m) => m.includes("tsh") || m.includes("t3") || m.includes("t4"))) picks.add("thyroid");
+  if (picks.size < 4 && flagged.some((m) => m.includes("vit") || m.includes("zinc") || m.includes("b12") || m.includes("folate"))) picks.add("vits-and-minerals");
+  if (picks.size < 4 && (ctx.hair?.porosity?.length ?? 0) > 0) picks.add("porosity");
+  if (picks.size < 4 && (ctx.hair?.scalp?.length ?? 0) > 0) picks.add("scalp-conditions");
+  if (picks.size < 4 && (ctx.health?.lifeStage?.length ?? 0) > 0) picks.add("hormones-and-life-stage");
+  if (picks.size < 4) picks.add("wash-day-mechanics");
+
+  return Array.from(picks).slice(0, 4)
+    .map((id) => renderTopicBlock(KNOWLEDGE_REGISTRY[id]));
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
