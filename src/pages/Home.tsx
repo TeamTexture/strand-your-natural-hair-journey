@@ -30,6 +30,31 @@ import {
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
 
+// Render text with "TT Heat Hat" turned into a link to Team Texture.
+const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
+const renderRichText = (text: string) => {
+  const cleaned = text
+    .replace(/\s*\(https?:\/\/(?:www\.)?teamtexture\.co\.uk[^)]*\)/gi, "")
+    .replace(/\s*—\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "")
+    .replace(/\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "");
+  const parts = cleaned.split(/(TT Heat Hat)/gi);
+  return parts.map((part, i) =>
+    /^tt heat hat$/i.test(part) ? (
+      <a
+        key={i}
+        href={HEAT_HAT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+};
+
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight" aria-label={`${n} stars`}>
@@ -523,10 +548,10 @@ const Home = () => {
                     ) : goalTip ? (
                       <>
                         <p className="text-sm font-medium leading-snug">
-                          {goalTip.headline}
+                          {renderRichText(goalTip.headline)}
                         </p>
                         <p className="text-xs text-foreground/80 leading-relaxed mt-1">
-                          {goalTip.body}
+                          {renderRichText(goalTip.body)}
                         </p>
                         {goalTip.actions?.length > 0 && (
                           <ul className="mt-2 space-y-1">
@@ -536,7 +561,7 @@ const Home = () => {
                                 className="text-xs text-foreground/80 leading-snug flex gap-1.5"
                               >
                                 <span className="text-primary">•</span>
-                                <span>{a}</span>
+                                <span>{renderRichText(a)}</span>
                               </li>
                             ))}
                           </ul>
