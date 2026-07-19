@@ -134,7 +134,7 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => (
             <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
           </div>
         )}
-        <p className="text-xs text-foreground/85 font-body mt-2 leading-relaxed">{s.body}</p>
+        <RichBody text={s.body} className="mt-2" />
       </div>
     </div>
   </SurfaceCard>
