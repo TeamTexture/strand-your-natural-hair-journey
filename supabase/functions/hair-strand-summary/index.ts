@@ -12,6 +12,12 @@
 // service role so RLS-protected inserts still flow.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import {
+  selectTopicsForContext,
+  renderTopicBlock,
+  type SelectorContext,
+} from "../_shared/knowledge/index.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
