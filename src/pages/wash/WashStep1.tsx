@@ -96,6 +96,8 @@ const StepCard = ({
    * If omitted we just show the products captured for this step.
    */
   summaryChips,
+  /** Show a "from your last wash day" hint above the picked list. */
+  showLastWashHint = false,
 }: {
   step: Step;
   state: StepState;
@@ -105,7 +107,9 @@ const StepCard = ({
   onOpenPicker: () => void;
   editor?: React.ReactNode;
   summaryChips?: string[];
+  showLastWashHint?: boolean;
 }) => {
+
   const isEditing = state === "editing";
   const isDone = state === "done";
   const isSkipped = state === "skipped";
