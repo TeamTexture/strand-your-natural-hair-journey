@@ -164,9 +164,54 @@ export function useHomeAlerts() {
       const plannedChangeDate = clinical.style?.planned_change_date ?? null;
       const inTakedownStyle = currentStyles.some(isTakedownStyle);
 
-      const waterBand = clinical.basic?.water_hardness_band ?? null;
-      const waterMgL = clinical.basic?.water_hardness_mg_l ?? null;
-      const waterSupplier = clinical.basic?.water_supplier ?? null;
+      let waterBand = clinical.basic?.water_hardness_band ?? null;
+      let waterMgL = clinical.basic?.water_hardness_mg_l ?? null;
+      let waterSupplier = clinical.basic?.water_supplier ?? null;
+      const postcode = clinical.basic?.postcode ?? null;
+      const country = (clinical.basic?.country ?? "").toString().toLowerCase();
+      const isUK =
+        country.includes("united kingdom") ||
+        country === "uk" ||
+        country === "gb" ||
+        country.includes("britain") ||
+        country.includes("england") ||
+        country.includes("scotland") ||
+        country.includes("wales") ||
+        country.includes("northern ireland");
+
+      // Backfill: if the profile has a UK postcode but no resolved water
+      // hardness yet, call the edge function once and refresh the profile.
+      if (!waterBand && postcode && (isUK || !clinical.basic?.country)) {
+        try {
+          const { data } = await supabase.functions.invoke(
+            "water-hardness-lookup",
+            { body: { postcode } },
+          );
+          const band = (data as { band?: string | null } | null)?.band ?? null;
+          const mgl =
+            (data as { mg_l?: number | null } | null)?.mg_l ??
+            (data as { hardness_mg_l?: number | null } | null)?.hardness_mg_l ??
+            null;
+          const supplier =
+            (data as { supplier?: string | null } | null)?.supplier ?? null;
+          if (band) {
+            await supabase
+              .from("profiles")
+              .update({
+                water_hardness_band: band,
+                water_hardness_mg_l: mgl,
+                water_supplier: supplier,
+              })
+              .eq("id", user.id);
+            waterBand = band;
+            waterMgL = mgl;
+            waterSupplier = supplier;
+          }
+        } catch {
+          /* non-fatal — alert simply won't show this pass */
+        }
+      }
+
       const hardWater = waterBand === "hard" || waterBand === "very_hard";
 
       // Water hardness informational alert — always surface once we've resolved
