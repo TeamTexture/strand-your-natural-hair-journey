@@ -117,16 +117,22 @@ function buildPanelInsight(
   if (flagged.length === 0) {
     return `All ${rows.length} markers sit inside their healthy range — a solid baseline for your hair.`;
   }
-  const named = flagged
-    .slice(0, 3)
-    .map((f) => `${f.status === "low" ? "low" : "high"} ${f.marker}`)
-    .join(", ");
-  const cats = Array.from(
-    new Set(flagged.map((f) => BLOOD_RANGES[f.marker]?.category).filter(Boolean) as string[]),
-  ).slice(0, 2);
-  const focus = cats.map((c) => CATEGORY_FOCUS[c] ?? c).join(" and ");
-  const extra = flagged.length > 3 ? ` and ${flagged.length - 3} more` : "";
-  return `${flagged.length} marker${flagged.length > 1 ? "s" : ""} outside range: ${named}${extra}.${focus ? ` Focus area: ${focus}.` : ""}`;
+  return null;
+}
+
+// Short, friendly marker names for chip display. Long clinical names get
+// trimmed so the pill reads like a human tag ("Low Ferritin"), not a lab row.
+const MARKER_SHORT: Record<string, string> = {
+  "Vitamin B12": "B12",
+  "Oestrogen / Oestradiol": "Oestrogen",
+  "DHEA-S": "DHEA",
+};
+function friendlyMarkerName(marker: string): string {
+  return MARKER_SHORT[marker] ?? marker;
+}
+function friendlyStatusTag(marker: string, status: string | null): string {
+  const s = status === "low" ? "Low" : status === "high" ? "High" : "Flagged";
+  return `${s} ${friendlyMarkerName(marker)}`;
 }
 
 
@@ -528,7 +534,7 @@ const BloodHistory = () => {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-body font-semibold flex items-center gap-2 truncate">
-                        <span className="truncate">{p.label ?? "Blood test"}</span>
+                        <span className="truncate">{titleCaseBrand(p.label) ?? "Blood test"}</span>
                         {idx === 0 && (
                           <span className="text-[10px] tracking-[0.2em] uppercase text-primary shrink-0">
                             Latest
@@ -543,12 +549,30 @@ const BloodHistory = () => {
                         {displayDate(p)} · {rows.length} markers
                         {flagged.length > 0 ? ` · ${flagged.length} flagged` : ""}
                       </p>
-                      {insight && (
+                      {flagged.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {flagged.slice(0, 4).map((f) => (
+                            <span
+                              key={f.marker}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-destructive/30 bg-destructive/5 text-destructive text-[11px] font-body font-medium"
+                            >
+                              <span className="size-1.5 rounded-full bg-destructive/70" />
+                              {friendlyStatusTag(f.marker, f.status)}
+                            </span>
+                          ))}
+                          {flagged.length > 4 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-body text-muted-foreground">
+                              +{flagged.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      ) : insight ? (
                         <p className="text-xs font-body text-foreground/80 mt-2 leading-relaxed">
                           {insight}
                         </p>
-                      )}
+                      ) : null}
                     </div>
+
                   </div>
 
                   <Button
