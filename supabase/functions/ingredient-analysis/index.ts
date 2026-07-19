@@ -62,6 +62,54 @@ interface AnalysisPayload {
   _provider?: "claude" | "lovable";
 }
 
+// ── Guidance validators ─────────────────────────────────────────────────
+// Detects references to any OTHER product/step so the tip stays about
+// getting the most out of THIS product only.
+const FORBIDDEN_GUIDANCE_PATTERNS: RegExp[] = [
+  /\b(pair|layer|follow|combine|use)\s+(it\s+)?(with|under|over|after|before)\b/i,
+  /\bfollow(ed)?\s+(this\s+\w+\s+)?with\b/i,
+  /\bthen\s+(apply|use|add|seal|smooth|comb)\b/i,
+  /\b(deep\s+conditioner|deep\s+conditioning|conditioning\s+treatment|leave[-\s]?in|hair\s+mask|protein\s+treatment|clarifying\s+wash|pre[-\s]?poo|styler|styling\s+cream|hair\s+oil|scalp\s+oil|hair\s+butter|serum|mousse|gel|edge\s+control|setting\s+lotion|heat\s+protectant|heat\s+protector)\b/i,
+  /\bheat\s+(hat|cap)\b/i,
+  /\bshower\s+cap\b/i,
+  /\bplastic\s+cap\b/i,
+  /\bteamtexture\b/i,
+  /\btt\s+heat\b/i,
+];
+
+function guidanceReferencesOtherProduct(analysis: AnalysisPayload): boolean {
+  const tips = analysis.personalised_guidance ?? [];
+  for (const tip of tips) {
+    const text = `${tip?.title ?? ""} ${tip?.body ?? ""}`;
+    if (FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(text))) return true;
+  }
+  return false;
+}
+
+// Last-resort scrubber: strips whole sentences containing forbidden
+// references so the UI never renders "pair with a deep conditioner" etc.
+// If the tip empties out, replace with a minimal technique-only fallback.
+function scrubGuidance(analysis: AnalysisPayload): AnalysisPayload {
+  const tips = analysis.personalised_guidance;
+  if (!Array.isArray(tips) || tips.length === 0) return analysis;
+  const cleaned = tips.map((tip) => {
+    const sentences = (tip?.body ?? "").split(/(?<=[.!?])\s+/);
+    const kept = sentences.filter(
+      (s) => !FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(s)),
+    );
+    let body = kept.join(" ").trim();
+    let title = (tip?.title ?? "").trim();
+    if (FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(title))) {
+      title = "Get the most from this product";
+    }
+    if (!body) {
+      body = "Focus on how you apply this product itself — technique, amount, sectioning, water temperature, dwell time and rinse — rather than reaching for another step.";
+    }
+    return { title, body };
+  });
+  return { ...analysis, personalised_guidance: cleaned };
+}
+
 interface RequestBody {
   productKey: string;
   productName: string;
