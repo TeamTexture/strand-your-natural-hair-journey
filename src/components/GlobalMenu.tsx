@@ -1,5 +1,5 @@
-// Fixed top-right hamburger menu, always visible on authenticated app screens.
-// Opens a Sheet with quick navigation across the main areas of the app.
+// Inline top bar with hamburger menu — part of the app layout, not a floating overlay.
+// Reserves its own row above page content so pages never sit under it.
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -43,9 +43,12 @@ const GlobalMenu = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  if (!session) return null;
-  if (location.pathname === "/") return null;
-  if (HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p))) return null;
+  const hidden =
+    !session ||
+    location.pathname === "/" ||
+    HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
+
+  if (hidden) return null;
 
   const go = (to: string) => {
     setOpen(false);
@@ -53,13 +56,18 @@ const GlobalMenu = () => {
   };
 
   return (
-    <>
+    <div
+      className="shrink-0 flex items-center justify-end px-3 border-b border-border/40 bg-background"
+      style={{
+        paddingTop: "max(env(safe-area-inset-top, 0px), 6px)",
+        paddingBottom: "6px",
+      }}
+    >
       <button
         type="button"
         aria-label="Open menu"
         onClick={() => setOpen(true)}
-        className="absolute right-3 z-50 size-10 rounded-full bg-background/85 backdrop-blur border border-border shadow-sm flex items-center justify-center text-foreground hover:bg-background transition-colors"
-        style={{ top: "max(env(safe-area-inset-top, 0px), 12px)" }}
+        className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
       >
         <Menu className="size-5" />
       </button>
@@ -104,7 +112,7 @@ const GlobalMenu = () => {
           </div>
         </SheetContent>
       </Sheet>
-    </>
+    </div>
   );
 };
 

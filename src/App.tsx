@@ -96,8 +96,10 @@ const App = () => (
         <AuthProvider>
           <GlobalEffects />
           <PhoneShell>
-            <GlobalMenu />
-            <Routes>
+            <div className="flex flex-col h-full">
+              <GlobalMenu />
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/setup" element={<Protected><SetupGuide /></Protected>} />
@@ -166,7 +168,9 @@ const App = () => (
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
+                </Routes>
+              </div>
+            </div>
           </PhoneShell>
         </AuthProvider>
       </BrowserRouter>
