@@ -114,6 +114,11 @@ Deno.serve(async (req) => {
     const body: RequestBody = await req.json();
     const userPayload = JSON.stringify(body);
 
+    const teachings = selectGoalTopics(body);
+    const systemPrompt = teachings.length > 0
+      ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}`
+      : baseSystemPrompt;
+
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
