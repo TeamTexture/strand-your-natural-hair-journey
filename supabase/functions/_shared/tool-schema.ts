@@ -131,6 +131,8 @@ export interface ToolAnalysisPayload {
   personalisation_rationale: string;
   match_score: number;
   how_to_use: string;
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
   // Provenance (added by edge function)
   _model_version?: string;
   _generated_at?: string;
