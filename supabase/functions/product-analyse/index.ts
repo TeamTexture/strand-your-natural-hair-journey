@@ -138,7 +138,7 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
 
 4. Compose the analysis using the user's specific profile data passed in the user message. Reference porosity, density, scalp condition, diagnosed conditions, current hairstyle, blood markers (only when this product directly intersects them), the user's consistently flagged ingredients, and goals when they actually move the verdict. Generic responses are forbidden when user data is available.
 
-5. Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. When facts come from web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose — do NOT put web-derived facts under the "Read more" line. Do NOT name any source manuscript, author, publisher, chapter, or page anywhere except the formal "Read more —" line.
+5. Grounding rule: when your guidance is rooted in the retrieved manuscript passages, reason from them and blend the underlying idea into your prose in STRAND's voice — do NOT name the book, its author, chapters, or page numbers, and do NOT emit any "Read more — …" line. When facts come from web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose. Never claim something "comes from the book" unless the specific point is supported by a retrieved passage.
 
 6. Field rules — strict:
    - product_name / brand: read from photo 1 if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
