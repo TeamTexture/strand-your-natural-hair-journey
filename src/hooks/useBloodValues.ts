@@ -176,7 +176,21 @@ export async function persistBloodValues() {
         status: evaluate(marker, value as number),
       };
     });
-  if (rows.length === 0) return { ok: true, count: 0 };
+  // Include any "unknown" markers (extracted from a lab report but not in
+  // our reference set). We store them so they show up in history too.
+  const unknown = readUnknown()
+    .filter((u) => u.value !== null && u.value !== undefined && !Number.isNaN(u.value))
+    .map((u) => ({
+      user_id: user.id,
+      marker: u.marker,
+      value: u.value as number,
+      unit: u.unit || null,
+      category: null as string | null,
+      status: "untested" as const,
+    }));
+
+  const combined = [...rows, ...unknown];
+  if (combined.length === 0) return { ok: true, count: 0 };
 
   const panelId = await ensureDraftPanel(user.id);
   if (!panelId) return { ok: false, reason: "panel_create_failed" as const };
@@ -191,10 +205,11 @@ export async function persistBloodValues() {
     .eq("panel_id" as never, panelId as never)
     .in(
       "marker",
-      rows.map((r) => r.marker),
+      combined.map((r) => r.marker),
     );
-  const rowsWithPanel = rows.map((r) => ({ ...r, panel_id: panelId } as never));
+  const rowsWithPanel = combined.map((r) => ({ ...r, panel_id: panelId } as never));
   const { error } = await supabase.from("blood_results").insert(rowsWithPanel);
   if (error) return { ok: false, reason: "insert_failed" as const, error };
-  return { ok: true, count: rows.length, panelId };
+  return { ok: true, count: combined.length, panelId };
 }
+
