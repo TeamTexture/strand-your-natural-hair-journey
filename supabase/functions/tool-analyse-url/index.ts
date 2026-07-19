@@ -102,7 +102,7 @@ async function sha256Hex(s: string): Promise<string> {
 function buildTaskInstructions(): string {
   return `You are receiving a hair-care TOOL product page URL (brushes, combs, hair dryers, diffusers, heat caps, deep conditioning caps, bonnets, satin pillowcases, microfibre towels, steamers, curlers, wands, etc.). Use web_fetch to retrieve the page. Extract the basic identity (brand, tool name, classification) and produce a short personalised analysis for THIS user.
 
-Voice for this task: every prose field follows the VOICE PRINCIPLES from the system block. Explain the tool's mechanism first ("a heated cap holds warmth against the scalp, which means…"), then land the verdict; use connectives; talk to "you" not "your hair"; translate any specialist term on first use in a field; warm but not saccharine.
+Voice for this task: every prose field follows the VOICE PRINCIPLES from the system block. Explain the tool's mechanism first ("a TT Heat Hat holds warmth around the conditioner, which means…"), then land the verdict; use connectives; talk to "you" not "your hair"; translate any specialist term on first use in a field; professional, direct, and never over-familiar.
 
 Tool budget: web_fetch and web_search share a combined cap of 4 invocations. Prefer ONE web_fetch on the supplied URL first. Only fall back to web_search (max 2) if web_fetch returned a thin/empty body. Do NOT search if web_fetch returned a clear brand + product name + tool kind.
 

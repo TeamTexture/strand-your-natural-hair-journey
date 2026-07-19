@@ -33,7 +33,7 @@ const buildTips = (p: HairProfile | null): string[] => {
     );
   } else if (por.includes("low")) {
     tips.push(
-      "Low porosity: tight cuticles resist water — use warm water + indirect heat (cap/steamer) to help conditioner penetrate; avoid heavy proteins.",
+      "Low porosity: tight cuticles resist water — use warm water and the TT Heat Hat (www.teamtexture.co.uk) with conditioner to support penetration; avoid heavy proteins.",
     );
   }
 

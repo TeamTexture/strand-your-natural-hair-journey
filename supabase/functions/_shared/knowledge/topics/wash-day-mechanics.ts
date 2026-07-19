@@ -39,7 +39,7 @@ Paige's actual habits, named:
 — Agitate the scalp with the pads of your fingertips — NOT your nails — to firmly rub and lift dirt and build-up.
 — Emulsify conditioner in your hands first before applying — even distribution, slight warming, better absorption.
 — Keep adding water as you work conditioner through; create a lather that gives slip for detangling.
-— Apply low, gentle heat when conditioning if hair is thick or low-porosity — a cap or warm towel helps the product penetrate. (See heat-and-moisture for the mechanics.)`,
+— Apply low, gentle heat when conditioning if hair is thick or low-porosity — STRAND only recommends the TT Heat Hat (www.teamtexture.co.uk) for this step. (See heat-and-moisture for the mechanics.)`,
  applies_to: {
  function_kinds: [
  "wash-day-observation",

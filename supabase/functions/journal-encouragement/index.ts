@@ -2,7 +2,7 @@
 //
 // The client computes REAL signals from Supabase (saved entries, wash days,
 // active goals, last activity, lifecycle stage) and we ask Lovable AI to write
-// a warm, data-aware headline + subline. Nothing is hardcoded — every banner
+// a professional, data-aware headline + subline. Nothing is hardcoded — every banner
 // must reference the actual numbers passed in.
 //
 // Rules enforced via the system prompt:
@@ -42,9 +42,9 @@ const systemPrompt = `${STRAND_PERSONA}
 ${VOICE_PRINCIPLES}
 
 TASK
-You write short encouragement banners for STRAND, a textured-hair tracking app, in your warm science-backed voice.
+You write short data banners for STRAND, a textured-hair tracking app, in a professional science-backed voice.
 
-Voice for this task: follow the VOICE PRINCIPLES above. The headline names ONE concrete signal from the data; the subline explains what it means in a sentence — connective preferred ("so", "which means", "because"). Talk to "you", not "your hair". Warmth comes from being specific to the actual numbers, not from praise words.
+Voice for this task: follow the VOICE PRINCIPLES above. The headline names ONE concrete signal from the data; the subline explains what it means in a sentence — connective preferred ("so", "which means", "because"). Talk to "you", not "your hair". Keep it specific to the actual numbers, not praise-based.
 
 You will receive a JSON object with REAL live signals about this specific user. Use the actual numbers — never invent stats, dates, or achievements.
 
@@ -56,7 +56,7 @@ Voice rules:
 - Confident, modern, Black-British-friendly. No clichés ("queen", "slay", "journey", "you got this", "growth journey").
 - Reference at least one concrete signal from the data (entry count, wash count, days since last activity, goal title, or lifecycle stage).
 - Never claim medical results, hair growth, length retention, or scientific outcomes.
-- If engagementState is "comeback" or "dormant" → warm welcome-back energy referencing how long it's been.
+- If engagementState is "comeback" or "dormant" → factual return-to-tracking language referencing how long it's been.
 - If engagementState is "active_streak" → celebrate the consistency with the actual count.
 - If engagementState is "no_data" → invite them to log their first wash or entry, no pressure.
 - If a recentGoalTitle is present and daysSinceGoalUpdate <= 14, you may reference the goal by name.
