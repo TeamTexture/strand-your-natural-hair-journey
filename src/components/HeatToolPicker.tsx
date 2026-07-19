@@ -9,14 +9,8 @@ import { useMemo, useState } from "react";
 import { Check, Plus, X, Loader2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
+import { useUserTools, type UserTool } from "@/hooks/useUserTools";
+
 import { cn } from "@/lib/utils";
 
 // Heat-related categories rise to the top so the relevant tools (heat hat,
