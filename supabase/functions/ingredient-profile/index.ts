@@ -94,7 +94,7 @@ const TOOL_SCHEMA = {
 } as const;
 
 function buildSystemPrompt(): string {
-  return `${STRAND_PERSONA}
+  return `${STRAND_PERSONA_WITH_RULES}
 
 ${VOICE_PRINCIPLES}
 
