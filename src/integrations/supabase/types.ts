@@ -162,6 +162,7 @@ export type Database = {
           scheduled_at: string | null
           status: string
           test_type: string | null
+          thumbnail_path: string | null
           updated_at: string
           user_id: string
         }
@@ -175,6 +176,7 @@ export type Database = {
           scheduled_at?: string | null
           status?: string
           test_type?: string | null
+          thumbnail_path?: string | null
           updated_at?: string
           user_id: string
         }
@@ -188,6 +190,7 @@ export type Database = {
           scheduled_at?: string | null
           status?: string
           test_type?: string | null
+          thumbnail_path?: string | null
           updated_at?: string
           user_id?: string
         }

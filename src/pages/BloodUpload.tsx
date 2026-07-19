@@ -20,6 +20,7 @@ import {
   setDraftPanelLabel,
   setDraftPanelTestType,
   setDraftPanelLabName,
+  setDraftPanelThumbnail,
   setUnknownMarkers,
   persistBloodValues,
   type UnknownMarker,
@@ -28,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
+import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 
 
 interface ExtractedRow {
@@ -65,6 +67,9 @@ export default function BloodUpload() {
   const [panelLabel, setPanelLabel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  // Source image we'll derive the panel thumbnail from (rendered PDF page or first photo).
+  const [thumbSource, setThumbSource] = useState<Blob | null>(null);
+  const [thumbPreview, setThumbPreview] = useState<string | null>(null);
 
   // Password dialog state for encrypted PDFs
   const [pwOpen, setPwOpen] = useState(false);
@@ -217,6 +222,11 @@ export default function BloodUpload() {
           { type: "image/jpeg" },
         );
         setFiles([shown]);
+        setThumbSource(image);
+        setThumbPreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(image);
+        });
         setExtracting(false);
         await runExtract([image]);
       } catch (err) {
@@ -235,8 +245,13 @@ export default function BloodUpload() {
       return;
     }
 
-    // Photos path — up to 10.
+    // Photos path — up to 10. First photo becomes the panel thumbnail source.
     setFiles(imgs);
+    setThumbSource(imgs[0]);
+    setThumbPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(imgs[0]);
+    });
     await runExtract(imgs);
   }, [runExtract]);
 
@@ -250,6 +265,11 @@ export default function BloodUpload() {
       setPendingBytes(null);
       const shown = new File([image], pendingName.replace(/\.pdf$/i, "") + " (unlocked).jpg", { type: "image/jpeg" });
       setFiles([shown]);
+      setThumbSource(image);
+      setThumbPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(image);
+      });
       await runExtract([image]);
     } catch (err) {
       if (err instanceof PdfPasswordRequiredError) {
@@ -340,6 +360,26 @@ export default function BloodUpload() {
       setDraftPanelLabel(panelLabel);
       setDraftPanelTestType(testType);
       setDraftPanelLabName(labName);
+
+      // Build & upload a thumbnail from the source document so the blood-work
+      // list shows a real preview of the report instead of a generic flask.
+      if (thumbSource) {
+        try {
+          const thumb = await resizeToThumbnail(thumbSource, 320, 0.82);
+          const path = `${user.id}/${crypto.randomUUID()}.jpg`;
+          const { error: upErr } = await supabase.storage
+            .from("blood-panel-thumbs")
+            .upload(path, thumb, {
+              contentType: "image/jpeg",
+              upsert: false,
+              cacheControl: "3600",
+            });
+          if (!upErr) setDraftPanelThumbnail(path);
+          else console.warn("thumbnail upload failed:", upErr);
+        } catch (err) {
+          console.warn("thumbnail build failed:", err);
+        }
+      }
 
       // Seed the known-marker cache that persistBloodValues reads from.
       const values: Record<string, number> = {};
@@ -449,6 +489,9 @@ export default function BloodUpload() {
                   setTestType(null);
                   setLabName(null);
                   setPanelLabel(null);
+                  setThumbSource(null);
+                  if (thumbPreview) URL.revokeObjectURL(thumbPreview);
+                  setThumbPreview(null);
                 }}
                 className="text-xs text-foreground/60 hover:text-foreground font-body underline"
               >
@@ -456,6 +499,23 @@ export default function BloodUpload() {
               </button>
 
             </div>
+
+            {/* Preview thumbnail — a mini version of what will appear on the
+                blood-work list once this panel is saved. */}
+            {thumbPreview && (
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src={thumbPreview}
+                  alt="Report preview"
+                  className="size-14 rounded-[12px] object-cover border border-border shrink-0"
+                />
+                <p className="text-xs text-foreground/70 font-body leading-snug">
+                  This preview will appear as the thumbnail on your blood
+                  work page once you save.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               {files.map((f, i) => (
                 <div key={`${f.name}-${i}`} className="flex items-center gap-3">

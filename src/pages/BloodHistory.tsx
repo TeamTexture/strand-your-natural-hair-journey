@@ -54,6 +54,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearBloodDraft } from "@/hooks/useBloodValues";
+import { useBloodPanelThumbs } from "@/hooks/useBloodPanelThumbs";
 import { BLOOD_RANGES } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -68,6 +69,7 @@ interface PanelRow {
   label: string | null;
   test_type: string | null;
   lab_name: string | null;
+  thumbnail_path: string | null;
   notes: string | null;
 }
 interface ResultRow {
@@ -125,7 +127,7 @@ const BloodHistory = () => {
     queryFn: async () => {
       const { data: panels } = await supabase
         .from("blood_panels" as never)
-        .select("id, panel_date, scheduled_at, status, label, test_type, lab_name, notes")
+        .select("id, panel_date, scheduled_at, status, label, test_type, lab_name, thumbnail_path, notes")
         .eq("user_id", user!.id)
         .order("panel_date", { ascending: false })
         .order("created_at", { ascending: false });
@@ -155,6 +157,7 @@ const BloodHistory = () => {
 
   const scheduled = panels.filter((p) => p.status === "scheduled");
   const logged = panels.filter((p) => p.status !== "scheduled");
+  const thumbUrls = useBloodPanelThumbs(logged.map((p) => p.thumbnail_path));
   const latest = logged[0];
   const previous = logged[1];
 
@@ -441,9 +444,17 @@ const BloodHistory = () => {
                   className="bg-card border border-border rounded-[14px] p-3.5"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="size-11 rounded-[12px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <FlaskConical className="size-4" />
-                    </div>
+                    {p.thumbnail_path && thumbUrls[p.thumbnail_path] ? (
+                      <img
+                        src={thumbUrls[p.thumbnail_path]}
+                        alt=""
+                        className="size-11 rounded-[12px] object-cover border border-border/60 shrink-0"
+                      />
+                    ) : (
+                      <div className="size-11 rounded-[12px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <FlaskConical className="size-4" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-body font-semibold flex items-center gap-2 truncate">
                         <span className="truncate">{p.label ?? "Blood test"}</span>

@@ -41,6 +41,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { BLOOD_RANGES, statusLabel, type BloodStatus } from "@/data/bloodRanges";
+import { useBloodPanelThumb } from "@/hooks/useBloodPanelThumbs";
 import {
   MARKER_EXPLANATIONS,
   CATEGORY_META,
@@ -57,6 +58,7 @@ interface PanelRow {
   label: string | null;
   test_type: string | null;
   lab_name: string | null;
+  thumbnail_path: string | null;
   notes: string | null;
   created_at: string | null;
 }
@@ -125,7 +127,7 @@ export default function BloodPanelReview() {
       const { data: panel } = await supabase
         .from("blood_panels" as never)
         .select(
-          "id, user_id, panel_date, scheduled_at, status, label, test_type, lab_name, notes, created_at",
+          "id, user_id, panel_date, scheduled_at, status, label, test_type, lab_name, thumbnail_path, notes, created_at",
         )
         .eq("id", id!)
         .eq("user_id", user!.id)
@@ -144,6 +146,7 @@ export default function BloodPanelReview() {
   });
 
   const panel = data?.panel ?? null;
+  const thumbUrl = useBloodPanelThumb(panel?.thumbnail_path);
   const results = data?.results ?? [];
 
   // Group results by category. Anything we don't know goes into "other".
@@ -176,6 +179,13 @@ export default function BloodPanelReview() {
   const deletePanel = useMutation({
     mutationFn: async () => {
       if (!id) return;
+      // Best-effort remove the source-doc thumbnail before deleting the row.
+      if (panel?.thumbnail_path) {
+        await supabase.storage
+          .from("blood-panel-thumbs")
+          .remove([panel.thumbnail_path])
+          .catch(() => {});
+      }
       const { error } = await supabase
         .from("blood_panels" as never)
         .delete()
@@ -227,9 +237,17 @@ export default function BloodPanelReview() {
             {/* Header card — test identity */}
             <SurfaceCard>
               <div className="flex items-start gap-3">
-                <div className="size-12 rounded-[14px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <FlaskConical className="size-5" />
-                </div>
+                {thumbUrl ? (
+                  <img
+                    src={thumbUrl}
+                    alt=""
+                    className="size-12 rounded-[14px] object-cover border border-border/60 shrink-0"
+                  />
+                ) : (
+                  <div className="size-12 rounded-[14px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <FlaskConical className="size-5" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <h1 className="font-display text-lg leading-tight text-foreground">
                     {panel.label ?? "Blood test"}
