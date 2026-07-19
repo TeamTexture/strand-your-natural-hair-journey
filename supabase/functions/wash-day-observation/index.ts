@@ -63,12 +63,12 @@ const RETURN_OBSERVATION_SCHEMA = {
         action: {
           type: "string",
           description:
-            "ONE clear, imperative action for the user's NEXT wash day. Max 18 words. Starts with a verb. No preamble, no hedging. Names a specific product/tool from their shelf/wishlist/tools when possible. If today's products are working and have only been used 1-3 cycles, tell them to keep using the same product sequence rather than changing products.",
+            "ONE imperative sentence for the user's NEXT wash day. MAX 14 words. Starts with a verb. No preamble, no hedging, no adverbs like 'gently'/'carefully'. Names a specific product from their shelf or a specific tool when possible. If today's products are working and only used 1-3 cycles, say 'Keep…' or 'Repeat…' rather than changing.",
         },
         why: {
           type: "string",
           description:
-            "The explanation for the action, 2-3 short sentences. Grounds the reasoning in the STRAND core teachings (How To Love Your Afro), especially the 3-4 wash-cycle consistency rule, AND ties it to at least one concrete signal from the user's profile or today's wash day (porosity, scalp feel, breakage, style, goal, product outcome). Plain English, no chapter/page citations.",
+            "MAX 2 short sentences (~35 words total). Sentence 1: tie to a concrete signal from the user — a specific pattern in recent wash days (name the date or 'last wash') OR their current goal — in plain conversational English. Sentence 2: ground the reasoning in a How To Love Your Afro teaching (the 3-4 wash-cycle rule, moisture-first for high porosity, low-manipulation for length retention, scalp-first for growth, etc.) without naming the book, chapters, or pages.",
         },
       },
     },
@@ -127,25 +127,24 @@ RULES:
 =========================================
 PART 2 — NEXT WASH DAY TIP (field: next_wash_tip — object with { action, why })
 =========================================
-This is the primary value the user reads. Do NOT re-analyse today. Focus 100% on what to DO next wash day.
+This is the primary value the user reads on the home screen. Be SUCCINCT. Do not re-analyse today.
 
 FIELD: action
-- ONE clear, imperative sentence. Max 18 words. Starts with a verb ("Keep…", "Lead with…", "Skip…", "Deep-condition under…").
-- Concrete and doable in one wash session.
+- ONE imperative sentence. HARD LIMIT: 14 words. Starts with a verb ("Keep…", "Repeat…", "Lead with…", "Skip…", "Deep-condition under…").
+- Concrete and doable in a single wash session.
 - Name at least ONE specific product from context.shelf/wishlist OR a specific tool from context.tools, by name. Never invent items they don't have.
-- If today's product outcome is working, neutral, or under 4 wash cycles, prefer "Keep using…" or "Repeat…" over changing products.
-- Do not use "Swap…" unless the user's own data shows a clear negative reaction or repeated poor outcome.
+- If today's product outcome is working, neutral, or under 4 wash cycles, prefer "Keep using…" / "Repeat…" over changing products.
+- Never use "Swap…" unless the user's own data shows a clear negative reaction or repeated poor outcome.
 - If suggesting heat, ONLY the TT Heat Hat (https://www.teamtexture.co.uk). Never plastic caps, shower caps, warm towels, or steamers.
-- ABSOLUTE: NEVER recommend a protein, keratin, bond-repair or "strengthening" treatment on any cadence (no weekly, fortnightly, monthly, "every X washes", or scheduled protein of any kind). Afro hair is protein-rich (keratin); default to moisture. Only mention a protein step as a one-off if the user's own data shows fresh chemical processing or documented heat damage — never as part of a routine.
-- No hedging ("you might want to", "perhaps", "if you feel like it").
+- ABSOLUTE: NEVER recommend a protein, keratin, bond-repair or "strengthening" treatment on any cadence.
+- No hedging ("you might want to", "perhaps", "if you feel like it"). No filler adverbs.
 
 FIELD: why
-- 2-3 short sentences explaining the reasoning.
-- MUST be grounded in the STRAND core teachings from the CORE TEACHINGS block (drawn from How To Love Your Afro), especially the 3–4 wash-cycle consistency rule. Reason from the manuscript's framework — do not import outside hair-care lore.
-- MUST tie the reasoning to at least ONE concrete signal from the user (porosity, density, scalp condition today, breakage today, style choice, a specific product outcome, a goal, a chemical history flag, a blood marker). Say WHY it matters for THIS user.
-- If recommending a deep conditioning mask, explain it as a moisture response to dryness/high porosity/humidity and not as a routine product change.
-- Plain English. Never name the manuscript, chapters, or page numbers.
-- Never medical advice.`;
+- HARD LIMIT: 2 short sentences (~35 words total). Punchy, plain English.
+- Sentence 1 MUST tie to a concrete pattern the user can verify in their own data: name a recent wash day ("last wash", "your wash on 12 July"), a repeated signal (scalp feel, breakage, hair-feel note), a product outcome the user has already logged, OR the user's active goal by title. Do NOT invent history — only reference what appears in the payload.
+- Sentence 2 MUST ground the reasoning in an explicit How To Love Your Afro teaching, referenced by mechanism not by name. Draw from: the 3-4 wash-cycle consistency rule; moisture-first response for high porosity / humidity / dry hair; low-manipulation and ends-tucking for length retention; scalp-first (clean, calm, well-circulated) for growth; no scheduled protein — moisture leads. If recommending a deep conditioning mask, frame it as a moisture response, never as a routine change.
+- Do NOT name the manuscript, chapters, or page numbers. Do NOT say "the book says". Reason from the teaching directly.
+- No medical advice.`;
 }
 
 
@@ -234,14 +233,15 @@ ${CHAPTER_WHITELIST_PROMPT}
 TASK
 Given a single wash day log + the user's profile, return TWO fields via the tool. The client UI foregrounds next_wash_tip, so make that the most useful part.
 1) observation (1-2 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
-2) next_wash_tip: an object with { action, why }.
-   - action: ONE clear imperative sentence (max 18 words) for the NEXT wash day. Starts with a verb. Names a specific product from context.shelf/wishlist OR a specific tool from context.tools. Never invent items the user doesn't have.
-   - Core rule: wash-day products need 3–4 wash cycles before judging them. If the product outcome is working, neutral, or only 1–3 cycles in, tell the user to keep the same product sequence and observe the pattern. Do NOT suggest changing products after two washes unless there is a clear negative reaction.
-   - why: 2-3 short sentences explaining the reasoning. MUST be grounded in the STRAND core teachings from How To Love Your Afro, especially the 3–4 wash-cycle rule, AND tied to at least ONE concrete signal from the user (porosity, scalp today, breakage today, style, goal, product outcome). Plain English, no chapter/page citations.
-   - For dryness/high porosity/humid weather, recommend moisture-first support such as a deep conditioning mask or improved conditioner technique when relevant; do not default to protein or product-hopping.
-   - If suggesting heat, ONLY reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
-   - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence — no weekly, fortnightly, monthly, or scheduled protein of any kind. Default to moisture. A protein step is only ever a one-off after fresh chemical processing or documented heat damage.
-   - ABSOLUTE: NEVER suggest scheduled pre-poo.
+2) next_wash_tip: an object with { action, why }. BE SUCCINCT — this is a home-screen card, not a paragraph.
+   - action: ONE imperative sentence, HARD MAX 14 words. Starts with a verb ("Keep…", "Repeat…", "Lead with…"). Names a specific product from context.shelf/wishlist OR a specific tool from context.tools. Never invent items the user doesn't have. No hedging, no filler adverbs.
+   - Core rule: wash-day products need 3–4 wash cycles before judging them. If the product outcome is working, neutral, or only 1–3 cycles in, tell the user to keep the same product sequence and observe. Do NOT suggest changing products after two washes unless the user's own data shows a clear negative reaction.
+   - why: MAX 2 short sentences (~35 words total).
+     • Sentence 1 MUST tie to a concrete pattern in the user's own data — a recent wash day (name the date or "last wash"), a repeated signal, a product outcome they've logged, OR their active goal by title. Do not invent history.
+     • Sentence 2 MUST ground the reasoning in an explicit How To Love Your Afro teaching (3–4 wash-cycle consistency; moisture-first for high porosity/humidity; low-manipulation + ends-tucking for length retention; scalp-first for growth). Never name the book, chapters, or pages.
+   - For dryness/high porosity/humid weather, recommend moisture-first support (deep conditioning mask, conditioner slip) — never default to protein or product-hopping.
+   - If suggesting heat, ONLY the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
+   - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence. ABSOLUTE: NEVER suggest scheduled pre-poo.
 - Direct, professional, no hedging. Plain English. No medical advice.
 - Return JSON only via the provided tool.`;
 

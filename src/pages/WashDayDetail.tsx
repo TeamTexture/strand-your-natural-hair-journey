@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
-import RichBody from "@/components/RichBody";
+import { NextWashTipCard } from "@/components/NextWashTipCard";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -39,10 +39,6 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
   </div>
 );
 
-const formatNextWashTip = (action: string, why: string) => [
-  action ? `Do this next wash: ${action}` : "",
-  why ? `Why it matters: ${why}` : "",
-].filter(Boolean).join("\n\n");
 
 interface EditDraft {
   wash_date: string;
@@ -396,14 +392,7 @@ const WashDayDetail = () => {
               why = parsed.why ?? "";
             }
           } catch { /* legacy plain text */ }
-          return (
-            <SurfaceCard tone="gold">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
-                ✨ Tip for next wash day
-              </p>
-              <RichBody text={formatNextWashTip(action, why)} />
-            </SurfaceCard>
-          );
+          return <NextWashTipCard action={action} why={why} />;
         })()}
 
         {!editing && (
