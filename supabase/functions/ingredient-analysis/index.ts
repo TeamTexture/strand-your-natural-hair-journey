@@ -27,8 +27,8 @@ import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
-  sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
           ? cached._model_version === MODEL_VERSION
           : true;
         if (versionOk && hasGuidance) {
-          return json(200, { cached: true, analysis: sanitiseChapterCitationsDeep(cached) });
+          return json(200, { cached: true, analysis: await sanitiseAndLog(cached, "ingredient-analysis") });
         }
       }
     }
@@ -449,7 +449,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
       });
     }
 
-    return json(200, { cached: false, analysis: sanitiseChapterCitationsDeep(analysis) });
+    return json(200, { cached: false, analysis: await sanitiseAndLog(analysis, "ingredient-analysis") });
   } catch (e) {
     return aiErrorResponse(e, "ingredient-analysis");
   }

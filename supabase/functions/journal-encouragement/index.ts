@@ -10,7 +10,8 @@
 // - No medical or growth claims.
 // - Two lines, tight word counts, modern voice.
 
-import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
@@ -75,6 +76,30 @@ Deno.serve(async (req) => {
 
     const userPayload = JSON.stringify(body);
 
+    // Lightweight RAG so even a banner headline stays framework-aligned.
+    // We keep k=2 (banner text is tiny) and swallow failures — a missed
+    // retrieval must never break the encouragement flow.
+    let ragBlock = "";
+    try {
+      const ragQuery = [
+        body.recentGoalTitle,
+        body.milestoneLabel,
+        body.lifecycleStage,
+        body.engagementState,
+        "Afro hair tracking encouragement wash-day journal",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const passages = await retrievePassages(ragQuery, 2);
+      if (passages.length > 0) {
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
+      }
+    } catch (e) {
+      console.warn("journal-encouragement RAG retrieval failed (continuing):", e);
+    }
+
+    const systemWithRag = `${systemPrompt}${ragBlock}`;
+
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -86,7 +111,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: systemWithRag },
             { role: "user", content: userPayload },
           ],
           tools: [
@@ -167,7 +192,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ banner: sanitiseChapterCitationsDeep(banner) }), {
+    return new Response(JSON.stringify({ banner: await sanitiseAndLog(banner, "journal-encouragement") }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

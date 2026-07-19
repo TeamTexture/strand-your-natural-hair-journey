@@ -13,8 +13,8 @@ import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
-  sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
   callClaude,
   type ContentBlockInput,
@@ -477,7 +477,7 @@ Deno.serve(async (req: Request) => {
           : cached._provider !== "claude";
         const hashOk = cached._profile_snapshot_hash === profileHash;
         if (versionOk && hashOk) {
-          return jsonResp(200, sanitiseChapterCitationsDeep(cached));
+          return jsonResp(200, await sanitiseAndLog(cached, "tool-analyse-url"));
         }
       }
     }
@@ -560,7 +560,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify(sanitiseChapterCitationsDeep(analysis)),
+      JSON.stringify(await sanitiseAndLog(analysis, "tool-analyse-url")),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

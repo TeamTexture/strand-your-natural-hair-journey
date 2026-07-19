@@ -17,9 +17,10 @@
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
-import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
+import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -93,7 +94,7 @@ const TOOL_SCHEMA = {
 } as const;
 
 function buildSystemPrompt(): string {
-  return `${STRAND_PERSONA}
+  return `${STRAND_PERSONA_WITH_RULES}
 
 ${VOICE_PRINCIPLES}
 
@@ -262,7 +263,7 @@ Deno.serve(async (req) => {
     ) {
       throw new Error("invalid tool args shape");
     }
-    parsed = {
+    parsed = await sanitiseAndLog({
       what_it_is: String(args.what_it_is).trim(),
       deep_dive: [],
       benefits: args.benefits.map((s: unknown) => String(s).trim()).filter(Boolean),
@@ -273,7 +274,7 @@ Deno.serve(async (req) => {
           : undefined,
       _model_version: MODEL_VERSION,
       _generated_at: new Date().toISOString(),
-    };
+    }, "ingredient-profile");
   } catch (e) {
     console.error("ingredient-profile parse failed", e);
     return json(502, { error: "ai response could not be parsed" });

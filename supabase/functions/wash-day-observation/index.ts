@@ -15,8 +15,8 @@ import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
-  sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: {
@@ -380,7 +380,7 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log("[wash-debug] all done", { total_ms: Date.now() - t0 });
-    return json(200, sanitiseChapterCitationsDeep(result));
+    return json(200, await sanitiseAndLog(result, "wash-day-observation"));
   } catch (e) {
     console.log("[wash-debug] failed", { total_ms: Date.now() - t0 });
     return aiErrorResponse(e, "wash-day-observation");

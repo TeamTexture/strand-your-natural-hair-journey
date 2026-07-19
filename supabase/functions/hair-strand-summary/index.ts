@@ -19,6 +19,7 @@ import {
   type SelectorContext,
 } from "../_shared/knowledge/index.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -198,11 +199,13 @@ Deno.serve(async (req: Request) => {
       seen.add(key);
       mergedTips.push(t.trim());
     }
-    const payload: SummaryPayload = {
+    const payload: SummaryPayload = await sanitiseAndLog({
       overview: (parsed.overview ?? "").toString().trim(),
       action_plan: [], // deprecated — always empty going forward
       routine_tips: mergedTips.slice(0, 6),
-    };
+    }, "hair-strand-summary");
+
+
 
 
     if (!payload.overview) {

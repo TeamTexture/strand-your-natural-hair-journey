@@ -41,8 +41,8 @@ import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
-  sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
   callClaude,
   type ContentBlockInput,
@@ -134,7 +134,7 @@ Field rules — strict:
 - pair_with: OPTIONAL. Up to 3 items from the user's shelf (context.shelf), high_rated_products, or existing tools/favourites that would layer well with THIS product for THIS user. Reference each by real name and brand. Each entry: { item, why } where "why" is one sentence tying the pairing to a user hair goal, challenge, current style, or wash-day step. Return [] if nothing on the shelf pairs meaningfully. NEVER invent products or tools.
 - routine_suggestion: OPTIONAL. 1–2 short sentences slotting THIS product into the user's routine — reference their current_style, most recent wash-day steps, or cadence when relevant. Empty string if nothing meaningful.
 
-Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. When facts come from the fetched page or web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose — do NOT put web-derived facts under the "Read more" line. Do NOT name any source manuscript, author, publisher, chapter, or page anywhere except the formal "Read more —" line.
+Grounding rule: when your guidance is rooted in the retrieved manuscript passages, reason from them and blend the underlying idea into your prose in STRAND's voice — do NOT name the book, its author, chapters, or page numbers, and do NOT emit any "Read more — …" line. When facts come from the fetched page or web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose. Never claim something "comes from the book" unless the specific point is supported by a retrieved passage.
 
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE:
 Moisture comes from water. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. Use this phrasing only.
@@ -635,7 +635,7 @@ Deno.serve(async (req: Request) => {
           : cached._provider !== "claude";
         const hashOk = cached._profile_snapshot_hash === profileHashEarly;
         if (versionOk && hashOk) {
-          return json(200, sanitiseChapterCitationsDeep(cached));
+          return json(200, await sanitiseAndLog(cached, "product-analyse-url"));
         }
       }
     }
@@ -721,7 +721,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify(sanitiseChapterCitationsDeep(analysis)),
+      JSON.stringify(await sanitiseAndLog(analysis, "product-analyse-url")),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
