@@ -70,6 +70,8 @@ interface FreshAnalysisPayload {
   usage_instructions?: string;
   use_cases?: string[];
   tips?: string[];
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
 }
 
 /** Convert a fresh product-analyse payload into the local Analysis shape so
