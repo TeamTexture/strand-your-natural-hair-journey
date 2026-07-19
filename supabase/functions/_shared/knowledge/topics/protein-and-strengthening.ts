@@ -12,15 +12,15 @@ export const PROTEIN_AND_STRENGTHENING: Topic = {
   title: "Protein, Bond Repair and Strengthening Treatments",
   body: `Afro-textured hair is already keratin-rich. Its structural challenge is not lack of protein but lack of moisture — water not reaching the cortex and not being retained once it does. The STRAND manuscript treats moisture, not protein, as the default wash-day priority.
 
-Protein treatments (including keratin masks, "strengthening" masks, bond-repair steps and hydrolysed-protein-heavy conditioners) are a targeted, occasional intervention. They are NOT a weekly, bi-weekly or fortnightly step, and they must never be recommended on that cadence.
+Protein treatments (including keratin masks, "strengthening" masks, bond-repair steps and hydrolysed-protein-heavy conditioners) must NEVER be recommended on any recurring cadence — no weekly, bi-weekly, fortnightly, monthly or "every X washes" schedule of any kind. Do not add a protein step to a routine, a wash-day plan, an action plan or a goal tip.
 
-When protein IS appropriate:
-— After chemical processing (relaxer, texturiser, colour, bleach).
-— After a period of frequent direct heat use where the strand has lost elasticity.
-— When a strand-stretch test shows the hair snaps rather than stretches when wet — a sign of protein loss.
-— As an occasional reset, roughly every 4–6 weeks at most, and only when one of the above indicators is present.
+When protein MAY be discussed (only as a one-off, reactive intervention — never as a schedule):
+— The user has just had chemical processing (relaxer, texturiser, colour, bleach).
+— The user has documented heat damage with lost elasticity.
+— A strand-stretch test shows the hair snaps rather than stretches when wet.
+In these cases, describe protein as a single targeted step, with no cadence and no repetition, and pair it with a stronger moisture emphasis afterwards.
 
-When protein is NOT appropriate:
+When protein is NEVER appropriate:
 — As a routine wash-day step for a user without chemical processing, heat damage, or a failed elasticity test.
 — When hair already feels stiff, straw-like, dull, or is snapping rather than stretching — these are signs of protein overload, and the correct answer is moisture (hydration, slip, emollients), not more protein.
 — As a "just in case" strengthening step on hair that is behaving well.
@@ -31,9 +31,9 @@ Signs of protein overload the assistant should recognise and steer against:
 — Loss of curl definition and elasticity.
 — Dullness that doesn't improve with a leave-in.
 
-Practical rule: default to moisture. Recommend a protein or bond-repair treatment only when the user's data (recent colour/relaxer, heat damage, or reported elasticity loss) genuinely calls for it, and cap the cadence at roughly monthly. Never suggest "add a protein step to every wash", "weekly keratin mask", "fortnightly bond repair", or similar. If a product on the user's shelf is protein-heavy and they are already showing signs of overload, flag it and suggest spacing it out or replacing it with a moisture-focused conditioner.
+Practical rule: default to moisture at every wash. Never suggest "add a protein step", "weekly keratin mask", "fortnightly bond repair", "monthly protein", "protein day", or any scheduled protein/strengthening treatment. If a product on the user's shelf is protein-heavy and they are already showing signs of overload, flag it and suggest spacing it out or replacing it with a moisture-focused conditioner.
 
-Deep conditioning, when heat is used to help absorption, is a moisture step — the ONLY heat tool for that is the TT Heat Hat (www.teamtexture.co.uk). Heat should not be used to "push protein in" on a routine basis.`,
+Deep conditioning, when heat is used to help absorption, is a moisture step — the ONLY heat tool for that is the TT Heat Hat (www.teamtexture.co.uk). Heat should not be used to "push protein in".`,
   applies_to: {
     function_kinds: [
       "ingredient-analysis",

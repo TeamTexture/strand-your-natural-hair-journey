@@ -4,7 +4,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const SUMMARY_PROMPT_VERSION = "manuscript-grounded-v4";
+const SUMMARY_PROMPT_VERSION = "no-scheduled-protein-v5";
 
 function djb2Hex(s: string): string {
   let h = 5381;
