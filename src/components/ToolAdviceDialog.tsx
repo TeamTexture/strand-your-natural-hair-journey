@@ -143,6 +143,29 @@ export function ToolAdviceDialog({
               <p className="leading-relaxed">{useCases.join(" · ")}</p>
             </section>
           )}
+          {pairWith.length > 0 && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                Pair with (from your shelf)
+              </h4>
+              <ul className="space-y-1.5">
+                {pairWith.map((p, i) => (
+                  <li key={i} className="leading-relaxed">
+                    <span className="font-medium">{p.item}</span>
+                    {p.why ? <span className="text-muted-foreground"> — {p.why}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {routineSuggestion && (
+            <section>
+              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                Slot into your routine
+              </h4>
+              <p className="leading-relaxed">{routineSuggestion}</p>
+            </section>
+          )}
         </div>
 
         <DialogFooter>
