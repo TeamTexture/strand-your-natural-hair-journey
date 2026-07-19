@@ -10,7 +10,7 @@
 //  Cautionary
 //   - Wash overdue (7+ days since last wash) when in protective style
 //   - Style worn 42+ days → time to take down
-//   - Blood retest due (>85 days since latest result)
+//   - Blood retest due (>85 days since latest blood panel date)
 //   - Last appointment > 170 days ago → rebook
 //   - Any blood marker still flagged "low" → nutrition guidance available
 //   - Hard water area + no clarifying step in the last 3 wash days
@@ -180,6 +180,7 @@ export function useHomeAlerts() {
       // ---------------------------------------------------------------
       const [
         bloodRes,
+        bloodPanelsRes,
         apptRes,
         recentWashRes,
         washCountRes,
@@ -197,6 +198,12 @@ export function useHomeAlerts() {
           .select("marker, status, updated_at")
           .eq("user_id", user.id)
           .order("updated_at", { ascending: false }),
+        supabase
+          .from("blood_panels" as never)
+          .select("id, panel_date, scheduled_at, status, created_at" as never)
+          .eq("user_id", user.id)
+          .order("panel_date", { ascending: false })
+          .order("created_at", { ascending: false }),
         supabase
           .from("appointments")
           .select("appointment_date, professional_name")
@@ -369,8 +376,28 @@ export function useHomeAlerts() {
       const flaggedMarkers = Array.from(latestByMarker.entries())
         .filter(([, v]) => v.status === "low" || v.status === "high")
         .map(([m, v]) => ({ marker: m, status: v.status as "low" | "high" }));
-      const lastBloodIso = bloodRows[0]?.updated_at ?? null;
-      const daysSinceBlood = daysSince(lastBloodIso);
+      const bloodPanels = (bloodPanelsRes.data ?? []) as unknown as Array<{
+        id: string;
+        panel_date: string | null;
+        scheduled_at: string | null;
+        status: "logged" | "scheduled" | string | null;
+        created_at: string | null;
+      }>;
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const scheduledBloodDate = bloodPanels
+        .filter((p) => p.status === "scheduled" && (p.scheduled_at ?? p.panel_date))
+        .map((p) => (p.scheduled_at ?? p.panel_date) as string)
+        .filter((d) => d >= todayIso)
+        .sort()[0] ?? null;
+      const latestLoggedBlood = bloodPanels
+        .filter((p) => p.status === "logged" && p.panel_date)
+        .sort((a, b) => {
+          const dateDiff = Date.parse(`${b.panel_date}T00:00:00`) - Date.parse(`${a.panel_date}T00:00:00`);
+          if (dateDiff !== 0) return dateDiff;
+          return Date.parse(b.created_at ?? "") - Date.parse(a.created_at ?? "");
+        })[0] ?? null;
+      const lastBloodPanelDate = latestLoggedBlood?.panel_date ?? null;
+      const daysSinceBlood = daysSince(lastBloodPanelDate ? `${lastBloodPanelDate}T00:00:00` : null);
 
       if (flaggedMarkers.length > 0) {
         const label = (f: { marker: string; status: "low" | "high" }) =>
@@ -388,8 +415,20 @@ export function useHomeAlerts() {
         });
       }
 
-      // 5. Blood retest due — ~3 months since last test, OR never uploaded one
-      if (lastBloodIso && daysSinceBlood !== null && daysSinceBlood >= 85) {
+      // 5. Blood retest due — ~3 months since latest actual test date, OR never uploaded one.
+      // IMPORTANT: use blood_panels.panel_date (the test date), not blood_results.updated_at
+      // (the upload/save date), otherwise an old report uploaded today never appears due on Home.
+      if (scheduledBloodDate) {
+        next.push({
+          id: "blood-scheduled",
+          emoji: "🧪",
+          title: "Blood test scheduled",
+          body: `Your next blood test is booked for ${new Date(`${scheduledBloodDate}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.`,
+          to: "/blood-history",
+          tone: "warning",
+          signature: `bloodScheduled:${scheduledBloodDate}`,
+        });
+      } else if (lastBloodPanelDate && Number.isFinite(daysSinceBlood) && daysSinceBlood >= 85) {
         const months = Math.max(3, Math.round(daysSinceBlood / 30));
         next.push({
           id: "blood-retest",
@@ -398,13 +437,13 @@ export function useHomeAlerts() {
           body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair, nutrition and supplement guidance stays accurate.`,
           to: "/blood-history",
           tone: "danger",
-          signature: `blood:${lastBloodIso}`,
+          signature: `blood:${lastBloodPanelDate}`,
         });
-      } else if (!lastBloodIso) {
+      } else if (!lastBloodPanelDate) {
         // Never uploaded a blood test — nudge after a 14-day grace window
         const accountCreatedIso = user.created_at ?? null;
         const daysSinceSignup = daysSince(accountCreatedIso);
-        if (daysSinceSignup === null || daysSinceSignup >= 14) {
+        if (!Number.isFinite(daysSinceSignup) || daysSinceSignup >= 14) {
           next.push({
             id: "blood-first-test",
             emoji: "🧪",
@@ -664,8 +703,10 @@ export function useHomeAlerts() {
       if (!cancelled) {
         // Cap at 8 to keep the panel scannable; cautionary first, then good.
         const ordered = [...next].sort((a, b) => {
-          const aw = a.tone === "warning" ? 0 : 1;
-          const bw = b.tone === "warning" ? 0 : 1;
+          const weight = (tone: HomeAlert["tone"]) =>
+            tone === "danger" ? 0 : tone === "warning" ? 1 : 2;
+          const aw = weight(a.tone);
+          const bw = weight(b.tone);
           return aw - bw;
         });
         setAlerts(ordered.slice(0, 8));
