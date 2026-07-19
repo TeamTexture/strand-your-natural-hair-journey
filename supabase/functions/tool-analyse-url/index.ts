@@ -172,7 +172,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       input_schema: RETURN_TOOL_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
     },
     server_tools: [webFetchTool, webSearchTool],
-    max_tokens: 2048,
+    max_tokens: 2600,
   });
 
   const result = await callClaude<ToolAnalysisPayload>(req);
