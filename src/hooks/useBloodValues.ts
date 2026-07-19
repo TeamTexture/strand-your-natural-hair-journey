@@ -10,8 +10,52 @@ import { supabase } from "@/integrations/supabase/client";
 import { evaluate, BLOOD_RANGES } from "@/data/bloodRanges";
 
 const KEY = "strand_blood_values";
+const UNKNOWN_KEY = "strand_blood_unknown";
 const DRAFT_PANEL_KEY = "strand_blood_draft_panel_id";
 const DRAFT_PANEL_DATE_KEY = "strand_blood_draft_panel_date";
+
+export interface UnknownMarker {
+  marker: string;
+  value: number | null;
+  unit: string;
+}
+
+function readUnknown(): UnknownMarker[] {
+  try {
+    const raw = localStorage.getItem(UNKNOWN_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getUnknownMarkers(): UnknownMarker[] {
+  return readUnknown();
+}
+
+export function setUnknownMarkers(list: UnknownMarker[]) {
+  localStorage.setItem(UNKNOWN_KEY, JSON.stringify(list));
+  window.dispatchEvent(new Event("strand:blood-update"));
+}
+
+export function useUnknownMarkers() {
+  const [list, setList] = useState<UnknownMarker[]>(() => readUnknown());
+  useEffect(() => {
+    const handler = () => setList(readUnknown());
+    window.addEventListener("storage", handler);
+    window.addEventListener("strand:blood-update", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("strand:blood-update", handler);
+    };
+  }, []);
+  const update = useCallback((next: UnknownMarker[]) => {
+    setUnknownMarkers(next);
+    setList(next);
+  }, []);
+  return { unknown: list, setUnknown: update };
+}
+
 
 export type BloodValues = Record<string, number | null>;
 
@@ -73,11 +117,13 @@ export function summariseValues(values: BloodValues, markers: string[]) {
  *  Call when starting a brand-new blood-test entry. */
 export function clearBloodDraft() {
   localStorage.removeItem(KEY);
+  localStorage.removeItem(UNKNOWN_KEY);
   localStorage.removeItem(DRAFT_PANEL_KEY);
   localStorage.removeItem(DRAFT_PANEL_DATE_KEY);
   localStorage.removeItem("strand_blood_summary_fp");
   window.dispatchEvent(new Event("strand:blood-update"));
 }
+
 
 /** Set the panel date for the current draft (before persisting).
  *  If not set, today's date is used. */
@@ -130,7 +176,21 @@ export async function persistBloodValues() {
         status: evaluate(marker, value as number),
       };
     });
-  if (rows.length === 0) return { ok: true, count: 0 };
+  // Include any "unknown" markers (extracted from a lab report but not in
+  // our reference set). We store them so they show up in history too.
+  const unknown = readUnknown()
+    .filter((u) => u.value !== null && u.value !== undefined && !Number.isNaN(u.value))
+    .map((u) => ({
+      user_id: user.id,
+      marker: u.marker,
+      value: u.value as number,
+      unit: u.unit || null,
+      category: null as string | null,
+      status: "untested" as const,
+    }));
+
+  const combined = [...rows, ...unknown];
+  if (combined.length === 0) return { ok: true, count: 0 };
 
   const panelId = await ensureDraftPanel(user.id);
   if (!panelId) return { ok: false, reason: "panel_create_failed" as const };
@@ -145,10 +205,11 @@ export async function persistBloodValues() {
     .eq("panel_id" as never, panelId as never)
     .in(
       "marker",
-      rows.map((r) => r.marker),
+      combined.map((r) => r.marker),
     );
-  const rowsWithPanel = rows.map((r) => ({ ...r, panel_id: panelId } as never));
+  const rowsWithPanel = combined.map((r) => ({ ...r, panel_id: panelId } as never));
   const { error } = await supabase.from("blood_results").insert(rowsWithPanel);
   if (error) return { ok: false, reason: "insert_failed" as const, error };
-  return { ok: true, count: rows.length, panelId };
+  return { ok: true, count: combined.length, panelId };
 }
+
