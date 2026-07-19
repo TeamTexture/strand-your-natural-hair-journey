@@ -516,21 +516,8 @@ export default function BloodUpload() {
 
             </div>
 
-            {/* Preview thumbnail — a mini version of what will appear on the
-                blood-work list once this panel is saved. */}
-            {thumbPreview && (
-              <div className="flex items-center gap-3 mb-3">
-                <img
-                  src={thumbPreview}
-                  alt="Report preview"
-                  className="size-14 rounded-[12px] object-cover border border-border shrink-0"
-                />
-                <p className="text-xs text-foreground/70 font-body leading-snug">
-                  This preview will appear as the thumbnail on your blood
-                  work page once you save.
-                </p>
-              </div>
-            )}
+
+
 
             <div className="space-y-2">
               {files.map((f, i) => (
