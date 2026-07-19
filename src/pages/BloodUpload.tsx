@@ -131,7 +131,8 @@ export default function BloodUpload() {
     }
 
     setRows([]);
-    setChecked({});
+
+
 
     // Single PDF path — render to images client-side (gateway won't accept raw PDFs).
     if (pdfs.length === 1) {
