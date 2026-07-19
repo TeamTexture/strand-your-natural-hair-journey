@@ -11,6 +11,8 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
+import ProductThumb from "@/components/ProductThumb";
+
 import VoiceNoteField from "@/components/VoiceNoteField";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -200,15 +202,51 @@ const WashStepStyling = () => {
               No products on your shelf yet — add some on the Products screen.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {shelfProducts.map((p) => (
-                <Tag key={p.id} selected={productIds.includes(p.id)} onClick={() => toggleProduct(p.id)}>
-                  {p.name}
-                </Tag>
-              ))}
+            <div className="space-y-1.5">
+              {shelfProducts.map((p) => {
+                const selected = productIds.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleProduct(p.id)}
+                    aria-pressed={selected}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-2.5 py-2 rounded-[12px] border transition-colors text-left",
+                      selected
+                        ? "bg-primary/10 border-primary/50"
+                        : "bg-card border-border hover:bg-muted/40",
+                    )}
+                  >
+                    <ProductThumb
+                      imageUrl={p.image_url}
+                      storagePath={p.storage_path}
+                      alt={p.name}
+                      cover
+                      wrapperClassName="size-11 rounded-[10px] shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium leading-tight truncate">{p.name}</p>
+                      {p.brand && (
+                        <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        "size-5 rounded-full border flex items-center justify-center shrink-0",
+                        selected ? "bg-primary border-primary" : "border-border",
+                      )}
+                      aria-hidden
+                    >
+                      {selected && <span className="text-primary-foreground text-[11px] leading-none">✓</span>}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
+
 
         <TG label="Styling Duration" options={DURATION_OPTIONS} value={duration} onChange={setDuration} error={submitted && errors.duration} />
         <TG label="Stress This Week" options={STRESS_OPTIONS} value={stress} onChange={setStress} error={submitted && errors.stress} />
