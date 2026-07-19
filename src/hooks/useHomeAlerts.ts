@@ -138,6 +138,47 @@ export function useHomeAlerts() {
   const [alerts, setAlerts] = useState<HomeAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [dismissals, setDismissals] = useState<DismissMap>(() => readDismissals());
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Re-run alerts computation whenever data that drives them changes, so
+  // alerts stay dynamic: once the user fixes the underlying issue (e.g. logs
+  // a wash day, books a blood test, adds a milestone), the corresponding
+  // alert disappears immediately without needing a full page reload.
+  useEffect(() => {
+    if (!user) return;
+    const bump = () => setRefreshTick((t) => t + 1);
+    const tables = [
+      "wash_days",
+      "appointments",
+      "blood_panels",
+      "blood_results",
+      "user_goals",
+      "journal_entries",
+      "user_milestone_photos",
+      "user_products",
+      "product_ratings",
+      "ingredient_lists",
+    ] as const;
+    const channel = supabase.channel(`home-alerts:${user.id}`);
+    for (const table of tables) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table, filter: `user_id=eq.${user.id}` },
+        bump,
+      );
+    }
+    channel.subscribe();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") bump();
+    };
+    window.addEventListener("focus", bump);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      void supabase.removeChannel(channel);
+      window.removeEventListener("focus", bump);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -717,7 +758,7 @@ export function useHomeAlerts() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refreshTick]);
 
   // Prune dismissals whose alert no longer exists (or whose signature changed).
   useEffect(() => {
