@@ -187,6 +187,8 @@ interface LegacyHair {
   scalp?: unknown;
   diagnosed?: unknown;
   areas?: unknown;
+  length_inches?: unknown;
+  length_bucket?: unknown;
 }
 interface LegacyHealth {
   lifeStage?: unknown;
