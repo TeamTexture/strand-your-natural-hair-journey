@@ -79,6 +79,28 @@ const ReviewField = ({
     }
   }, [value, editing]);
 
+  const isDirty = (() => {
+    const original = Array.isArray(value) ? value : (value ?? "");
+    if (Array.isArray(original) && Array.isArray(draft)) {
+      if (original.length !== draft.length) return true;
+      const a = [...original].sort();
+      const b = [...draft].sort();
+      return a.some((v, i) => v !== b[i]);
+    }
+    return String(original ?? "") !== String(draft ?? "");
+  })();
+
+  // Warn on tab close / refresh while editing with unsaved changes.
+  useEffect(() => {
+    if (!editing || !isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [editing, isDirty]);
+
   const startEdit = () => {
     if (readOnly) return;
     if (onOpenExternal) {
@@ -90,6 +112,12 @@ const ReviewField = ({
   };
 
   const cancel = () => {
+    if (isDirty) {
+      const ok = window.confirm(
+        "You have unsaved changes. Discard them and close this field?",
+      );
+      if (!ok) return;
+    }
     setEditing(false);
     setDraft(Array.isArray(value) ? [...value] : (value ?? ""));
   };
