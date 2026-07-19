@@ -36,7 +36,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { isHardWaterPostcode } from "@/data/hardWaterPostcodes";
+
 import { loadClinicalContext } from "@/lib/clinicalContext";
 
 export interface HomeAlert {
