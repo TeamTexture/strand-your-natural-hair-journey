@@ -139,7 +139,17 @@ const WashDayHub = () => {
   const goNext = () =>
     setView((v) => v.month === 11 ? { year: v.year + 1, month: 0 } : { ...v, month: v.month + 1 });
 
-  const latestTip = washDays.find((w) => w.next_wash_tip)?.next_wash_tip ?? null;
+  const latestTipRaw = washDays.find((w) => w.next_wash_tip)?.next_wash_tip ?? null;
+  const latestTip = useMemo(() => {
+    if (!latestTipRaw) return null;
+    try {
+      const parsed = JSON.parse(latestTipRaw);
+      if (parsed && typeof parsed === "object" && (parsed.action || parsed.why)) {
+        return { action: parsed.action ?? "", why: parsed.why ?? "" };
+      }
+    } catch { /* legacy plain-text tip */ }
+    return { action: latestTipRaw, why: "" };
+  }, [latestTipRaw]);
 
   const overdue = useMemo(() => {
     if (!washDays.length) return null;
