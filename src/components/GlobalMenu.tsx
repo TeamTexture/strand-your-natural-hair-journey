@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
+  ChevronLeft,
   Home as HomeIcon,
   Droplets,
   ShoppingBag,
