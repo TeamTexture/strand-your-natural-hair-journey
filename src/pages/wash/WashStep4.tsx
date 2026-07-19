@@ -55,12 +55,14 @@ interface StylingSaved {
   saveAsJournal?: boolean;
 }
 
+interface NextWashTip { action: string; why: string }
+
 const WashStep4 = () => {
   const navigate = useNavigate();
   const [observation, setObservation] = useState<string | null>(null);
-  const [nextTip, setNextTip] = useState<string | null>(null);
+  const [nextTip, setNextTip] = useState<NextWashTip | null>(null);
   const [saveNextTip, setSaveNextTip] = useState(true);
-  const [showNextTip, setShowNextTip] = useState(false);
+  const [showNextTip, setShowNextTip] = useState(true);
   const [obsLoading, setObsLoading] = useState(true);
   const [obsError, setObsError] = useState<string | null>(null);
 
