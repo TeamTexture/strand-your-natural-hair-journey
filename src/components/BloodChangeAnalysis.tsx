@@ -49,7 +49,7 @@ interface LatestResult {
 interface Panel {
   id: string;
   date: string | null;
-  label: string | null;
+  label?: string | null;
   lab_name?: string | null;
   test_type?: string | null;
 }
