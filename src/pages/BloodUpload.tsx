@@ -72,6 +72,31 @@ export default function BloodUpload() {
   // Duplicate detection — existing panel already logged for this user/date.
   const [duplicatePanel, setDuplicatePanel] = useState<{ id: string; created_at: string } | null>(null);
   const [dupConfirmed, setDupConfirmed] = useState(false);
+  const [deletingDup, setDeletingDup] = useState(false);
+
+  const deleteDuplicate = async () => {
+    if (!duplicatePanel || !user) return;
+    if (!window.confirm("Delete the existing panel for this date? This can't be undone.")) return;
+    setDeletingDup(true);
+    try {
+      const { error } = await supabase
+        .from("blood_panels")
+        .delete()
+        .eq("id", duplicatePanel.id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      setDuplicatePanel(null);
+      setDupConfirmed(false);
+      window.dispatchEvent(new Event("strand:blood-update"));
+      toast.success("Existing panel deleted. You can save this one now.");
+    } catch (err) {
+      console.error("delete panel failed:", err);
+      toast.error("Couldn't delete the existing panel. Please try again.");
+    } finally {
+      setDeletingDup(false);
+    }
+  };
+
 
   useEffect(() => {
     if (!user || !panelDate) { setDuplicatePanel(null); return; }
