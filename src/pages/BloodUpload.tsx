@@ -265,6 +265,11 @@ export default function BloodUpload() {
       setPendingBytes(null);
       const shown = new File([image], pendingName.replace(/\.pdf$/i, "") + " (unlocked).jpg", { type: "image/jpeg" });
       setFiles([shown]);
+      setThumbSource(image);
+      setThumbPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(image);
+      });
       await runExtract([image]);
     } catch (err) {
       if (err instanceof PdfPasswordRequiredError) {
