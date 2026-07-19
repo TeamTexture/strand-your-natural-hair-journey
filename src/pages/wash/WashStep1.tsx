@@ -421,11 +421,13 @@ const WashStep1 = () => {
   };
   const handleTogglePicked = (productId: string) => {
     if (!pickerTarget) return;
+    markTouched(pickerTarget);
     const current = targetIds[pickerTarget];
     targetSetters[pickerTarget](
       current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
     );
   };
+
 
   // When the user adds a brand new product via the picker (auto_save) they
   // get bounced through the scan/detail flow and back to this URL. We watch
