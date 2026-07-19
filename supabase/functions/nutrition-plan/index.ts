@@ -95,7 +95,7 @@ const RETURN_PLAN_SCHEMA = {
     summary: {
       type: "string",
       description:
-        "3-4 sentence overview of the plan's logic in Paige's voice, grounded in this user's specific data.",
+        "Exactly two short paragraphs separated by \\n\\n. Each paragraph is ONE sentence, max 22 words. Paragraph 1 opens '**Your signal:**' and translates a flagged blood marker or key data point into plain English (e.g. 'ferritin (stored iron)'). Paragraph 2 opens '**Your focus:**' and names the 1-2 levers this plan pulls, in everyday words. No jargon, no doses, no food names.",
     },
     supplements: {
       type: "array",
