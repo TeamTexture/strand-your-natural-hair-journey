@@ -496,13 +496,14 @@ const Home = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-base font-semibold leading-snug">
-                    {bloodSummary.total} marker{bloodSummary.total === 1 ? "" : "s"} on file
+                    {bloodSummary.flagged > 0
+                      ? `${bloodSummary.flagged} result${bloodSummary.flagged === 1 ? "" : "s"} outside normal range`
+                      : "All results within normal range"}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {bloodSummary.flagged > 0
-                      ? `${bloodSummary.flagged} flagged — last updated ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
-                      : `Last updated ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+                    {`Tracking ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"} · Last test ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
                   </p>
+
                 </div>
               </div>
             </button>
