@@ -457,6 +457,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
   const parsed = JSON.parse(toolCall.function.arguments) as Partial<NutritionPlanPayload>;
   return {
     summary: typeof parsed.summary === "string" ? parsed.summary : "",
+    supplements: Array.isArray(parsed.supplements) ? parsed.supplements : [],
     diet: Array.isArray(parsed.diet) ? parsed.diet : [],
     avoid: Array.isArray(parsed.avoid) ? parsed.avoid : [],
   };
