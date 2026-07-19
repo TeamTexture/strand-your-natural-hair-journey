@@ -84,6 +84,52 @@ interface ResultRow {
   panel_id: string | null;
 }
 
+const SMALL_WORDS = new Set(["and", "or", "of", "the", "for", "to", "a", "an", "in", "on", "at", "by"]);
+function titleCaseBrand(name?: string | null): string | null {
+  if (!name) return null;
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  return trimmed
+    .split(/\s+/)
+    .map((word, i) => {
+      const lower = word.toLowerCase();
+      if (i > 0 && SMALL_WORDS.has(lower)) return lower;
+      if (/^[A-Z0-9]{2,}$/.test(word)) return word; // keep acronyms like NHS, RDL
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
+
+const CATEGORY_FOCUS: Record<string, string> = {
+  iron: "iron stores & energy",
+  vitamins: "core vitamins",
+  minerals: "strand-strength minerals",
+  thyroid: "thyroid & hair cycle",
+  hormones: "hormones & shedding",
+  inflammation: "inflammation & general health",
+};
+
+function buildPanelInsight(
+  rows: { marker: string; value: number | null; unit: string | null; status: string | null }[],
+  flagged: { marker: string; status: string | null }[],
+): string | null {
+  if (rows.length === 0) return null;
+  if (flagged.length === 0) {
+    return `All ${rows.length} markers sit inside their healthy range — a solid baseline for your hair.`;
+  }
+  const named = flagged
+    .slice(0, 3)
+    .map((f) => `${f.status === "low" ? "low" : "high"} ${f.marker}`)
+    .join(", ");
+  const cats = Array.from(
+    new Set(flagged.map((f) => BLOOD_RANGES[f.marker]?.category).filter(Boolean) as string[]),
+  ).slice(0, 2);
+  const focus = cats.map((c) => CATEGORY_FOCUS[c] ?? c).join(" and ");
+  const extra = flagged.length > 3 ? ` and ${flagged.length - 3} more` : "";
+  return `${flagged.length} marker${flagged.length > 1 ? "s" : ""} outside range: ${named}${extra}.${focus ? ` Focus area: ${focus}.` : ""}`;
+}
+
+
 type Zoom = "week" | "month" | "year";
 
 const fmtDate = (iso: string | null) => {
