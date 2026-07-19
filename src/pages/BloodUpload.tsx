@@ -156,7 +156,7 @@ export default function BloodUpload() {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Upload blood test" back="/blood-history" />
+      <TitleBar title="Upload blood test" onBack={() => navigate("/blood-history")} />
       <div className="px-5 pt-2 pb-10 space-y-4">
         <p className="text-sm text-foreground/80 font-body leading-relaxed">
           Upload a PDF or photo of your lab report. STRAND will read the results
