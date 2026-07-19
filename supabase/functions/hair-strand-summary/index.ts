@@ -18,6 +18,7 @@ import {
   renderTopicBlock,
   type SelectorContext,
 } from "../_shared/knowledge/index.ts";
+import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
