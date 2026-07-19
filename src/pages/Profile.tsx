@@ -579,7 +579,7 @@ const Profile = () => {
           </div>
         </button>
         <button
-          onClick={() => navigate("/onboarding/blood-iron-vitamins")}
+          onClick={() => navigate("/blood-history")}
           className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
           <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
@@ -588,7 +588,7 @@ const Profile = () => {
           <div className="min-w-0 w-full">
             <p className="text-[13px] font-semibold leading-tight">Blood results</p>
             <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
-              Refresh your markers
+              Review &amp; edit tests
             </p>
           </div>
         </button>
