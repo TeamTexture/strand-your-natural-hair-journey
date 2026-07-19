@@ -90,12 +90,33 @@ CRITICAL: Never produce generic text. If a card could apply to anyone, rewrite i
 const RETURN_PLAN_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["summary", "diet", "avoid"],
+  required: ["summary", "supplements", "diet", "avoid"],
   properties: {
     summary: {
       type: "string",
       description:
         "3-4 sentence overview of the plan's logic in Paige's voice, grounded in this user's specific data.",
+    },
+    supplements: {
+      type: "array",
+      minItems: 3,
+      maxItems: 8,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["emoji", "name", "body"],
+        properties: {
+          emoji: { type: "string" },
+          name: { type: "string", description: "Plain-English supplement name (e.g. 'Iron', 'Vitamin D3')." },
+          dose: { type: "string", description: "Plain-English dose guidance (e.g. '1000 IU daily with breakfast')." },
+          body: {
+            type: "string",
+            description:
+              "2-3 sentences in LAYMAN'S English. Explain in everyday words why THIS user needs it (their blood marker, age, heritage, medication, condition). No textbook jargon — translate any clinical term the first time it appears (e.g. 'ferritin (your body's stored iron)').",
+          },
+          priority: { type: "string", enum: ["high", "medium", "low"] },
+        },
+      },
     },
     diet: {
       type: "array",
@@ -111,7 +132,7 @@ const RETURN_PLAN_SCHEMA = {
           body: {
             type: "string",
             description:
-              "2-3 sentences. Lead with the mechanism in plain English, then connect ('which is why', 'so', 'this means') to THIS user's data: heritage, life stage, blood marker, goal, medication.",
+              "2-3 sentences in LAYMAN'S English. Lead with the mechanism in everyday words, then connect ('which is why', 'so', 'this means') to THIS user's data: heritage, life stage, blood marker, goal, medication.",
           },
         },
       },
@@ -130,7 +151,7 @@ const RETURN_PLAN_SCHEMA = {
           body: {
             type: "string",
             description:
-              "2-3 sentences. Mechanism first, then why it matters for THIS user specifically (medication, condition, alcohol level).",
+              "2-3 sentences in LAYMAN'S English. Mechanism first in plain words, then why it matters for THIS user (medication, condition, alcohol level).",
           },
           severity: { type: "string", enum: ["high", "medium", "low"] },
         },
