@@ -32,7 +32,7 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v8-single-tip";
+const MODEL_VERSION = "claude-sonnet-4-6@v9-this-product-only";
 
 interface IngredientCard {
   name: string;
@@ -60,6 +60,54 @@ interface AnalysisPayload {
   _model_version?: string;
   _generated_at?: string;
   _provider?: "claude" | "lovable";
+}
+
+// ── Guidance validators ─────────────────────────────────────────────────
+// Detects references to any OTHER product/step so the tip stays about
+// getting the most out of THIS product only.
+const FORBIDDEN_GUIDANCE_PATTERNS: RegExp[] = [
+  /\b(pair|layer|follow|combine|use)\s+(it\s+)?(with|under|over|after|before)\b/i,
+  /\bfollow(ed)?\s+(this\s+\w+\s+)?with\b/i,
+  /\bthen\s+(apply|use|add|seal|smooth|comb)\b/i,
+  /\b(deep\s+conditioner|deep\s+conditioning|conditioning\s+treatment|leave[-\s]?in|hair\s+mask|protein\s+treatment|clarifying\s+wash|pre[-\s]?poo|styler|styling\s+cream|hair\s+oil|scalp\s+oil|hair\s+butter|serum|mousse|gel|edge\s+control|setting\s+lotion|heat\s+protectant|heat\s+protector)\b/i,
+  /\bheat\s+(hat|cap)\b/i,
+  /\bshower\s+cap\b/i,
+  /\bplastic\s+cap\b/i,
+  /\bteamtexture\b/i,
+  /\btt\s+heat\b/i,
+];
+
+function guidanceReferencesOtherProduct(analysis: AnalysisPayload): boolean {
+  const tips = analysis.personalised_guidance ?? [];
+  for (const tip of tips) {
+    const text = `${tip?.title ?? ""} ${tip?.body ?? ""}`;
+    if (FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(text))) return true;
+  }
+  return false;
+}
+
+// Last-resort scrubber: strips whole sentences containing forbidden
+// references so the UI never renders "pair with a deep conditioner" etc.
+// If the tip empties out, replace with a minimal technique-only fallback.
+function scrubGuidance(analysis: AnalysisPayload): AnalysisPayload {
+  const tips = analysis.personalised_guidance;
+  if (!Array.isArray(tips) || tips.length === 0) return analysis;
+  const cleaned = tips.map((tip) => {
+    const sentences = (tip?.body ?? "").split(/(?<=[.!?])\s+/);
+    const kept = sentences.filter(
+      (s) => !FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(s)),
+    );
+    let body = kept.join(" ").trim();
+    let title = (tip?.title ?? "").trim();
+    if (FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(title))) {
+      title = "Get the most from this product";
+    }
+    if (!body) {
+      body = "Focus on how you apply this product itself — technique, amount, sectioning, water temperature, dwell time and rinse — rather than reaching for another step.";
+    }
+    return { title, body };
+  });
+  return { ...analysis, personalised_guidance: cleaned };
 }
 
 interface RequestBody {
@@ -113,12 +161,12 @@ function buildToolSchema(ingredientCount: number) {
         type: "array",
         minItems: 1,
         maxItems: 1,
-        description: "Exactly ONE concrete tip — the single highest-impact, science-rooted way this user can get the most out of THIS product, drawing on the manufacturer's intended use, the actual key ingredients, the STRAND manuscript guidance, and the user's hair data. Pick the one that delivers the clearest benefit; do not pad with a second tip.",
+        description: "Exactly ONE tip on how the user gets maximum benefit FROM THIS PRODUCT ALONE. The tip must describe how to USE this exact product — technique, amount, section pattern, water/temperature, dwell time, rinse, frequency, dilution, distribution, where on the head. It must NEVER reference, name, pair with, layer with, follow with, or suggest ANY other product, product type, product category or routine step (no 'deep conditioner', 'leave-in', 'mask', 'oil', 'conditioner', 'styler', 'pre-poo', 'clarifying wash', 'protein treatment', 'heat cap', 'hat', 'towel', etc.). Do NOT mention the TT Heat Hat or any brand accessory here. If you would otherwise recommend another step, replace it with a technique-only lever on THIS product.",
         items: {
           type: "object",
           properties: {
-            title: { type: "string", description: "Short label, max 6 words (e.g. 'Apply on damp hair', 'Layer under your leave-in')." },
-            body: { type: "string", description: "1-2 sentences, max 35 words. Reference the product's intended purpose and at least one of the user's hair traits (porosity, density, type, length, surface texture, hair challenge, hair goal). Cite the active/key ingredient mechanism where it helps." },
+            title: { type: "string", description: "Short imperative label about applying/using THIS product, max 6 words. Must be an action performed on THIS product itself. GOOD examples: 'Emulsify before it touches ends', 'Focus on the scalp only', 'Rinse with cooler water', 'Double-cleanse dense sections', 'Work through soaking-wet hair'. FORBIDDEN examples (never write these or anything similar): 'Pair with deep conditioning', 'Layer under your leave-in', 'Follow with a mask', 'Use with an oil'." },
+            body: { type: "string", description: "1-2 sentences, max 35 words. Describe HOW to use THIS product to get the most from it, tied to at least one of the user's hair traits (porosity, density, type, length, current style, hair challenge, or a signal from last_3_wash_days). Cite the mechanism of THIS product's key ingredient if helpful. Do NOT reference any other product, product type, brand, accessory, or wash-day step." },
           },
           required: ["title", "body"],
         },
@@ -425,6 +473,32 @@ Deno.serve(async (req) => {
         selectorContext: buildSelectorContext(body),
         avoidList,
       });
+      // Guard: if the tip references another product/step, retry once with
+      // a hardened payload that echoes the violation back to the model.
+      if (guidanceReferencesOtherProduct(analysis)) {
+        console.log(JSON.stringify({
+          function: "ingredient-analysis",
+          violation: "other_product_reference",
+          retry: true,
+        }));
+        const retryPayload = {
+          ...userPayload,
+          _retry_reason:
+            "Previous tip referenced another product, product type, brand, accessory, or wash-day step. Regenerate the personalised_guidance tip so it describes ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution). Do not mention any other product, category, brand, hat, cap, towel, or routine step.",
+        };
+        analysis = await runClaude({
+          productName,
+          productBrand,
+          ingredients: ingredients ?? [],
+          hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
+          userPayload: retryPayload,
+          selectorContext: buildSelectorContext(body),
+          avoidList,
+        });
+      }
+      // Last line of defence: scrub any lingering forbidden phrases from
+      // the tip so a stubborn model can't leak them into the UI.
+      analysis = scrubGuidance(analysis);
       // Stamp provenance — required for cache_version invalidation.
       analysis._model_version = MODEL_VERSION;
       analysis._generated_at = new Date().toISOString();
@@ -439,6 +513,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
         userPayload,
         ingredientCount,
       });
+      analysis = scrubGuidance(analysis);
       analysis._provider = "lovable";
       analysis._generated_at = new Date().toISOString();
       // Note: no _model_version stamp on Lovable path — back-compat.
