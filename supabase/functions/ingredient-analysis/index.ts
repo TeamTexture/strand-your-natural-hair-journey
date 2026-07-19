@@ -425,6 +425,32 @@ Deno.serve(async (req) => {
         selectorContext: buildSelectorContext(body),
         avoidList,
       });
+      // Guard: if the tip references another product/step, retry once with
+      // a hardened payload that echoes the violation back to the model.
+      if (guidanceReferencesOtherProduct(analysis)) {
+        console.log(JSON.stringify({
+          function: "ingredient-analysis",
+          violation: "other_product_reference",
+          retry: true,
+        }));
+        const retryPayload = {
+          ...userPayload,
+          _retry_reason:
+            "Previous tip referenced another product, product type, brand, accessory, or wash-day step. Regenerate the personalised_guidance tip so it describes ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution). Do not mention any other product, category, brand, hat, cap, towel, or routine step.",
+        };
+        analysis = await runClaude({
+          productName,
+          productBrand,
+          ingredients: ingredients ?? [],
+          hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
+          userPayload: retryPayload,
+          selectorContext: buildSelectorContext(body),
+          avoidList,
+        });
+      }
+      // Last line of defence: scrub any lingering forbidden phrases from
+      // the tip so a stubborn model can't leak them into the UI.
+      analysis = scrubGuidance(analysis);
       // Stamp provenance — required for cache_version invalidation.
       analysis._model_version = MODEL_VERSION;
       analysis._generated_at = new Date().toISOString();
@@ -439,6 +465,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
         userPayload,
         ingredientCount,
       });
+      analysis = scrubGuidance(analysis);
       analysis._provider = "lovable";
       analysis._generated_at = new Date().toISOString();
       // Note: no _model_version stamp on Lovable path — back-compat.
