@@ -240,37 +240,6 @@ const Home = () => {
     };
   }, [location.key]);
 
-  // Hydrate richer water-quality detail (calcium/magnesium/pH/chlorine) the
-  // first time the water dialog opens with a known postcode. These fields
-  // aren't persisted on the profile row, so we ask the edge function fresh.
-  useEffect(() => {
-    if (!waterDialogOpen) return;
-    if (!water.postcode) return;
-    if (water.calcium_mg_l != null) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { data } = await supabase.functions
-          .invoke("water-hardness-lookup", { body: { postcode: water.postcode } });
-        const d = data as {
-          calcium_mg_l?: number; magnesium_mg_l?: number;
-          ph_min?: number; ph_max?: number; chlorine_note?: string;
-        } | null;
-        if (cancelled || !d) return;
-        setWater((prev) => ({
-          ...prev,
-          calcium_mg_l: typeof d.calcium_mg_l === "number" ? d.calcium_mg_l : prev.calcium_mg_l,
-          magnesium_mg_l: typeof d.magnesium_mg_l === "number" ? d.magnesium_mg_l : prev.magnesium_mg_l,
-          ph_min: typeof d.ph_min === "number" ? d.ph_min : prev.ph_min,
-          ph_max: typeof d.ph_max === "number" ? d.ph_max : prev.ph_max,
-          chlorine_note: d.chlorine_note ?? prev.chlorine_note,
-        }));
-      } catch {
-        /* non-fatal */
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [waterDialogOpen, water.postcode, water.calcium_mg_l]);
 
   // Resolve the display name from the profiles table first
   useEffect(() => {
