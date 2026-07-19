@@ -461,7 +461,10 @@ const Home = () => {
                   className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
                 >
                   <button
-                    onClick={() => navigate(a.to)}
+                    onClick={() => {
+                      if (a.id === "water-hardness") setWaterDialogOpen(true);
+                      else navigate(a.to);
+                    }}
                     className="w-full text-left"
                   >
                     <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
