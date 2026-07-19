@@ -684,6 +684,109 @@ const NutritionPlan = () => {
               Personalised by STRAND AI from your full profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
             </SourceNote>
           </TabsContent>
+
+          <TabsContent value="meals" className="space-y-3 mt-4">
+            <div className="grid grid-cols-2 gap-1.5 p-0.5 bg-secondary rounded-[12px]">
+              <button
+                type="button"
+                onClick={() => setMealsView("ideas")}
+                className={`py-2 rounded-[10px] text-[12px] font-semibold transition ${
+                  mealsView === "ideas"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                }`}
+              >
+                Meal Ideas
+              </button>
+              <button
+                type="button"
+                onClick={() => setMealsView("saved")}
+                className={`py-2 rounded-[10px] text-[12px] font-semibold transition inline-flex items-center justify-center gap-1.5 ${
+                  mealsView === "saved"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <Heart className="size-3" /> Saved
+                {(savedMealsQ.data?.length ?? 0) > 0 && (
+                  <span className="text-[10px] px-1.5 rounded-full bg-primary text-primary-foreground">
+                    {savedMealsQ.data?.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {mealsView === "ideas" ? (
+              <>
+                {mealsLoading && !meals ? (
+                  renderLoading("Cooking up your meal ideas…")
+                ) : meals && meals.length > 0 ? (
+                  <>
+                    {meals.map((m, i) => (
+                      <MealCard
+                        key={`${m.name}-${i}`}
+                        meal={m}
+                        saved={savedByKey.has(m.name.trim().toLowerCase())}
+                        onToggleSave={() => void handleSaveMeal(m)}
+                      />
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => void fetchMeals()}
+                      disabled={mealsLoading}
+                      className="w-full py-2.5 rounded-pill bg-secondary text-foreground text-[12px] font-semibold hover:bg-secondary/80 transition disabled:opacity-50"
+                    >
+                      Generate new ideas
+                    </button>
+                  </>
+                ) : (
+                  <SurfaceCard tone="gold">
+                    <p className="text-xs font-body leading-relaxed">
+                      Your personalised meal ideas will appear here.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void fetchMeals()}
+                      className="mt-3 px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+                    >
+                      Generate meal ideas
+                    </button>
+                  </SurfaceCard>
+                )}
+                <SourceNote>
+                  Personalised by STRAND AI from your bloods, heritage and hair goals, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
+                </SourceNote>
+              </>
+            ) : (
+              <>
+                {(savedMealsQ.data ?? []).length === 0 ? (
+                  <SurfaceCard tone="gold">
+                    <p className="text-xs font-body leading-relaxed">
+                      Tap the heart on any meal idea to save it here for later.
+                    </p>
+                  </SurfaceCard>
+                ) : (
+                  (savedMealsQ.data ?? []).map((m) => (
+                    <MealCard
+                      key={m.id}
+                      meal={{
+                        emoji: m.emoji ?? "🍽️",
+                        name: m.name,
+                        cuisine: m.cuisine ?? undefined,
+                        time_minutes: m.time_minutes ?? undefined,
+                        summary: m.summary ?? undefined,
+                        targets: m.targets,
+                        ingredients: m.ingredients,
+                        steps: m.steps,
+                      }}
+                      saved
+                      onDelete={() => void handleDeleteSaved(m)}
+                    />
+                  ))
+                )}
+              </>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </ScreenLayout>
