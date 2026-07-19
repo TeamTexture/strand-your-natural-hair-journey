@@ -437,6 +437,10 @@ export default function BloodUpload() {
                 onClick={() => {
                   setFiles([]);
                   setRows([]);
+                  setDocumentTitle(null);
+                  setTestType(null);
+                  setLabName(null);
+                  setPanelLabel(null);
                 }}
                 className="text-xs text-foreground/60 hover:text-foreground font-body underline"
               >
