@@ -44,12 +44,16 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
   const [category, setCategory] = useState<string>("Deep conditioning cap / heat hat");
   const [submitting, setSubmitting] = useState(false);
 
-  // Heat-relevant tools first, then everything else — keeps the picker short.
-  const sorted = useMemo(() => {
-    const heat = tools.filter((t) => t.category && HEAT_CATEGORIES.has(t.category));
-    const rest = tools.filter((t) => !t.category || !HEAT_CATEGORIES.has(t.category));
-    return [...heat, ...rest];
-  }, [tools]);
+  // Wash-day heat step is heat-hat only — filter everything else out so the
+  // picker doesn't surface straighteners, wands, etc.
+  const sorted = useMemo(
+    () =>
+      tools.filter(
+        (t) => t.category === "Deep conditioning cap / heat hat",
+      ),
+    [tools],
+  );
+
 
   const formatTool = (t: UserTool) =>
     t.brand ? `${t.name} — ${t.brand}` : t.name;
