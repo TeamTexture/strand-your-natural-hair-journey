@@ -27,7 +27,6 @@ export function currentProfileHash(ctx: Record<string, unknown> | null | undefin
   const hp = (c.hairProfile ?? {}) as Record<string, unknown>;
   const goals = Array.isArray(c.goals) ? c.goals as Array<Record<string, unknown>> : [];
   const blood = Array.isArray(c.bloodResults) ? c.bloodResults as Array<Record<string, unknown>> : [];
-  const loc = (c.location ?? {}) as Record<string, unknown>;
   const snap = {
     currentStyle: c.currentStyle ?? null,
     hairProfile: {
@@ -57,7 +56,6 @@ export function currentProfileHash(ctx: Record<string, unknown> | null | undefin
       }))
       .sort((a, b) => String(a.marker).localeCompare(String(b.marker))),
     professional: c.professional ?? null,
-    isHardWater: loc.is_hard_water_area ?? null,
   };
   return djb2Hex(canonicalStringify(snap));
 }

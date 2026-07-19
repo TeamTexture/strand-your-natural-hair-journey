@@ -39,7 +39,6 @@ interface SnapshotInput {
   goals?: Array<Record<string, unknown>>;
   bloodResults?: Array<Record<string, unknown>>;
   professional?: unknown;
-  location?: { is_hard_water_area?: boolean | null } & Record<string, unknown>;
 }
 
 /** Compute the stable profile fingerprint. Returns an 8-char hex string. */
@@ -78,7 +77,6 @@ export function currentProfileHash(ctx: SnapshotInput | null | undefined): strin
       }))
       .sort((a, b) => String(a.marker).localeCompare(String(b.marker))),
     professional: c.professional ?? null,
-    isHardWater: c.location?.is_hard_water_area ?? null,
   };
   return djb2Hex(canonicalStringify(snap));
 }
