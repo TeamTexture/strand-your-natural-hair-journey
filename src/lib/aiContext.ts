@@ -31,6 +31,16 @@ export interface AiContext {
   } | null;
   healthProfile: Record<string, unknown> | null;
   bloodResults: Array<Record<string, unknown>>;
+  /** History of previous blood-test panels (latest first, up to 3), each with
+   *  its date, its own results, and a per-marker delta vs the panel BEFORE it.
+   *  Empty array when the user has no prior tests. */
+  bloodPanels: Array<{
+    panel_id: string;
+    panel_date: string | null;
+    label: string | null;
+    results: Array<{ marker: string; value: number | null; unit: string | null; status: string | null; category: string | null }>;
+    deltas: Array<{ marker: string; previous_value: number | null; current_value: number | null; direction: "up" | "down" | "unchanged"; previous_status: string | null; current_status: string | null }>;
+  }>;
   professional: {
     professional_type: string | null;
     last_consultation_date: string | null;
