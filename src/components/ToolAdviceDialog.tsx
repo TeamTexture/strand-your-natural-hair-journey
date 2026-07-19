@@ -1,5 +1,6 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, Copy, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -51,12 +52,30 @@ export function ToolAdviceDialog({
     typeof payload.routine_suggestion === "string" ? payload.routine_suggestion : "";
   const pairWith = Array.isArray(payload.pair_with)
     ? (payload.pair_with as Array<Record<string, unknown>>)
-        .map((p) => ({
-          item: typeof p?.item === "string" ? p.item : "",
-          why: typeof p?.why === "string" ? p.why : "",
-        }))
+        .map((p) => {
+          const rawSource = typeof p?.source === "string" ? p.source.toLowerCase() : "";
+          const source: "shelf" | "wishlist" | "suggested" =
+            rawSource === "wishlist" ? "wishlist" : rawSource === "suggested" ? "suggested" : "shelf";
+          return {
+            item: typeof p?.item === "string" ? p.item : "",
+            why: typeof p?.why === "string" ? p.why : "",
+            source,
+          };
+        })
         .filter((p) => p.item)
     : [];
+  const warnings = asStringArray(payload.warnings);
+
+  const copyAndOpenAmazon = async (name: string) => {
+    try {
+      await navigator.clipboard.writeText(name);
+      toast.success("Name copied — opening Amazon.co.uk");
+    } catch {
+      toast.message("Opening Amazon.co.uk", { description: name });
+    }
+    const q = encodeURIComponent(name);
+    window.open(`https://www.amazon.co.uk/s?k=${q}`, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -143,18 +162,69 @@ export function ToolAdviceDialog({
               <p className="leading-relaxed">{useCases.join(" · ")}</p>
             </section>
           )}
+          {warnings.length > 0 && (
+            <section className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <h4 className="text-[11px] uppercase tracking-wider text-destructive mb-1 flex items-center gap-1.5">
+                <AlertTriangle className="size-3" /> Be careful
+              </h4>
+              <ul className="list-disc pl-4 space-y-1">
+                {warnings.map((w, i) => (
+                  <li key={i} className="leading-relaxed">{w}</li>
+                ))}
+              </ul>
+            </section>
+          )}
           {pairWith.length > 0 && (
             <section>
               <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-                Pair with (from your shelf)
+                Pair with
               </h4>
-              <ul className="space-y-1.5">
-                {pairWith.map((p, i) => (
-                  <li key={i} className="leading-relaxed">
-                    <span className="font-medium">{p.item}</span>
-                    {p.why ? <span className="text-muted-foreground"> — {p.why}</span> : null}
-                  </li>
-                ))}
+              <ul className="space-y-2.5">
+                {pairWith.map((p, i) => {
+                  const badge =
+                    p.source === "shelf"
+                      ? { label: "On your shelf", cls: "bg-primary/15 text-primary" }
+                      : p.source === "wishlist"
+                      ? { label: "On your wishlist", cls: "bg-warn/20 text-warn" }
+                      : { label: "Suggested", cls: "bg-muted text-muted-foreground" };
+                  const showBuy = p.source === "wishlist" || p.source === "suggested";
+                  return (
+                    <li key={i} className="leading-relaxed">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{p.item}</span>
+                        <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${badge.cls}`}>
+                          {badge.label}
+                        </span>
+                      </div>
+                      {p.why && (
+                        <p className="text-muted-foreground text-xs mt-0.5">{p.why}</p>
+                      )}
+                      {showBuy && (
+                        <div className="flex gap-2 mt-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard?.writeText(p.item).then(
+                                () => toast.success("Name copied"),
+                                () => toast.error("Couldn't copy"),
+                              );
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                          >
+                            <Copy className="size-3" /> Copy name
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyAndOpenAmazon(p.item)}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                          >
+                            <ExternalLink className="size-3" /> Buy on Amazon.co.uk
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}

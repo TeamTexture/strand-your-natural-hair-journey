@@ -85,16 +85,17 @@ export const RETURN_TOOL_ANALYSIS_SCHEMA = {
     },
     pair_with: {
       type: "array",
-      maxItems: 3,
+      maxItems: 4,
       description:
-        "Up to 3 pairings that reference SPECIFIC products/tools already on the user's shelf, favourites, or tools list by name. Each item names the item and says why pairing it with THIS tool helps the user (e.g. deep conditioner + heat cap). Empty array if nothing on the user's shelf pairs meaningfully — do NOT invent generic pairings.",
+        "Up to 4 pairings. Each pairing references EITHER a specific item already on the user's shelf/favourites/tools list (source='shelf'), a specific item already on the user's wishlist (source='wishlist'), or — when nothing suitable exists in the user's data — a generic product type / category the user should look for (source='suggested'). NEVER invent brands the user does not own; suggested entries must be generic (e.g. 'a lightweight water-based leave-in with silk-amino acids'). Every entry must include a personalised 'why' that ties the pairing to THIS user's hair type, goal, or the specific risk of using this tool.",
       items: {
         type: "object",
         properties: {
-          item: { type: "string" },
-          why: { type: "string" },
+          item: { type: "string", description: "Real product/tool name if source is 'shelf' or 'wishlist'. Generic product-type description if source is 'suggested'." },
+          why: { type: "string", description: "One sentence tying the pairing to THIS user's hair profile, goal, or the tool's risk." },
+          source: { type: "string", enum: ["shelf", "wishlist", "suggested"], description: "Where the pairing comes from. Must be accurate — do not label a wishlist item as shelf." },
         },
-        required: ["item", "why"],
+        required: ["item", "why", "source"],
       },
     },
     routine_suggestion: {
@@ -131,7 +132,7 @@ export interface ToolAnalysisPayload {
   personalisation_rationale: string;
   match_score: number;
   how_to_use: string;
-  pair_with?: Array<{ item: string; why: string }>;
+  pair_with?: Array<{ item: string; why: string; source?: "shelf" | "wishlist" | "suggested" }>;
   routine_suggestion?: string;
   // Provenance (added by edge function)
   _model_version?: string;
