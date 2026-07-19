@@ -35,9 +35,13 @@ interface RequestBody {
   context?: Record<string, unknown>;
 }
 
+interface NextWashTip {
+  action: string;
+  why: string;
+}
 interface ObservationPayload {
   observation: string;
-  next_wash_tip?: string;
+  next_wash_tip?: NextWashTip | string;
 }
 
 const RETURN_OBSERVATION_SCHEMA = {
@@ -51,12 +55,25 @@ const RETURN_OBSERVATION_SCHEMA = {
         "2-3 sentence personalised wash-day observation. REFLECTS on today only — no advice, no 'next time'.",
     },
     next_wash_tip: {
-      type: "string",
-      description:
-        "2-3 sentence CONCRETE, forward-looking tip for the user's NEXT wash day. Reference specific products on their shelf/wishlist, specific tools they own, and their stated goals. Name at least one specific product OR tool OR technique. This is where advice belongs.",
+      type: "object",
+      additionalProperties: false,
+      required: ["action", "why"],
+      properties: {
+        action: {
+          type: "string",
+          description:
+            "ONE clear, imperative action for the user's NEXT wash day. Max 18 words. Starts with a verb. No preamble, no hedging. Names a specific product/tool from their shelf/wishlist/tools when possible.",
+        },
+        why: {
+          type: "string",
+          description:
+            "The explanation for the action, 2-3 short sentences. Grounds the reasoning in the STRAND core teachings (How To Love Your Afro) AND ties it to at least one concrete signal from the user's profile or today's wash day (porosity, scalp feel, breakage, style, goal, product outcome). Plain English, no chapter/page citations.",
+        },
+      },
     },
   },
 } as const;
+
 
 
 function buildSelectorContext(body: RequestBody): SelectorContext {
@@ -101,19 +118,24 @@ RULES:
 - BANNED PHRASES in observation: "Great job!", "Keep it up!", "Nice work!", "Try [X] next time," "Consider," "I'd recommend."
 
 =========================================
-PART 2 — NEXT WASH DAY TIP (field: next_wash_tip)
+PART 2 — NEXT WASH DAY TIP (field: next_wash_tip — object with { action, why })
 =========================================
-2-3 sentences MAX. Concrete, forward-looking advice for the user's NEXT wash day.
+This is the primary value the user reads. Do NOT re-analyse today. Focus 100% on what to DO next wash day.
 
-RULES:
-- Use context.shelf, context.wishlist, context.tools, context.goals, and today's outcome to design the tip.
-- Name at least ONE specific product from their shelf OR wishlist OR a specific tool they own — by name. Do not invent products they don't have.
-- Tie the tip to something concrete from today (e.g. "Because breakage was moderate today and your goal is length retention, next wash try leading with [Product X from shelf] before your co-wash…").
-- Give a mechanism ("this coats the cuticle before manipulation, which reduces mid-shaft snapping").
-- If they logged heat today, and heat is due next wash, ONLY reference the TT Heat Hat (link https://www.teamtexture.co.uk). Never suggest plastic caps, shower caps, warm towels, or steamers.
-- If there's a wishlist item that would genuinely help, you may suggest picking it up — but never sound salesy.
-- NO chapter citations. NO "Read more" links. Plain English.
-- BANNED in tip: "you might want to", "perhaps", "if you feel like it" — be direct and confident.`;
+FIELD: action
+- ONE clear, imperative sentence. Max 18 words. Starts with a verb ("Lead with…", "Swap…", "Skip…", "Deep-condition under…").
+- Concrete and doable in one wash session.
+- Name at least ONE specific product from context.shelf/wishlist OR a specific tool from context.tools, by name. Never invent items they don't have.
+- If suggesting heat, ONLY the TT Heat Hat (https://www.teamtexture.co.uk). Never plastic caps, shower caps, warm towels, or steamers.
+- NEVER recommend weekly/fortnightly protein — Afro hair is protein-rich (keratin). Protein is occasional and targeted only.
+- No hedging ("you might want to", "perhaps", "if you feel like it").
+
+FIELD: why
+- 2-3 short sentences explaining the reasoning.
+- MUST be grounded in the STRAND core teachings from the CORE TEACHINGS block (drawn from How To Love Your Afro). Reason from the manuscript's framework — do not import outside hair-care lore.
+- MUST tie the reasoning to at least ONE concrete signal from the user (porosity, density, scalp condition today, breakage today, style choice, a specific product outcome, a goal, a chemical history flag, a blood marker). Say WHY it matters for THIS user.
+- Plain English. Never name the manuscript, chapters, or page numbers.
+- Never medical advice.`;
 }
 
 
@@ -196,8 +218,12 @@ ${CHAPTER_WHITELIST_PROMPT}
 TASK
 Given a single wash day log + the user's profile, return TWO fields via the tool:
 1) observation (2-3 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
-2) next_wash_tip (2-3 sentences): a CONCRETE tip for the next wash day. Name at least one specific product from context.shelf/wishlist OR a specific tool from context.tools. Tie to today's outcome and the user's goals. If suggesting heat, only reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
-- Encouraging, never preachy. Plain English. No medical advice.
+2) next_wash_tip: an object with { action, why }.
+   - action: ONE clear imperative sentence (max 18 words) for the NEXT wash day. Starts with a verb. Names a specific product from context.shelf/wishlist OR a specific tool from context.tools. Never invent items the user doesn't have.
+   - why: 2-3 short sentences explaining the reasoning. MUST be grounded in the STRAND core teachings from How To Love Your Afro AND tied to at least ONE concrete signal from the user (porosity, scalp today, breakage today, style, goal, product outcome). Plain English, no chapter/page citations.
+   - If suggesting heat, ONLY reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
+   - NEVER suggest weekly/fortnightly protein.
+- Direct, professional, no hedging. Plain English. No medical advice.
 - Return JSON only via the provided tool.`;
 
   const aiResp = await fetch(
@@ -224,7 +250,14 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
                 type: "object",
                 properties: {
                   observation: { type: "string", description: "2-3 sentence reflection on today." },
-                  next_wash_tip: { type: "string", description: "2-3 sentence concrete tip for the next wash day, naming a specific product/tool the user owns." },
+                  next_wash_tip: {
+                    type: "object",
+                    properties: {
+                      action: { type: "string", description: "One imperative sentence, max 18 words." },
+                      why: { type: "string", description: "2-3 sentence explanation grounded in HTLA teachings + a user-specific signal." },
+                    },
+                    required: ["action", "why"],
+                  },
                 },
                 required: ["observation", "next_wash_tip"],
               },
@@ -249,8 +282,17 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
   if (!toolCall?.function?.arguments) {
     throw new Error("Malformed AI output");
   }
-  const parsed = JSON.parse(toolCall.function.arguments) as { observation?: string; next_wash_tip?: string };
-  return { observation: parsed.observation ?? "", next_wash_tip: parsed.next_wash_tip ?? "" };
+  const parsed = JSON.parse(toolCall.function.arguments) as {
+    observation?: string;
+    next_wash_tip?: NextWashTip | string;
+  };
+  return {
+    observation: parsed.observation ?? "",
+    next_wash_tip:
+      typeof parsed.next_wash_tip === "string"
+        ? { action: parsed.next_wash_tip, why: "" }
+        : parsed.next_wash_tip ?? { action: "", why: "" },
+  };
 }
 
 Deno.serve(async (req: Request) => {

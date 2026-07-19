@@ -55,12 +55,14 @@ interface StylingSaved {
   saveAsJournal?: boolean;
 }
 
+interface NextWashTip { action: string; why: string }
+
 const WashStep4 = () => {
   const navigate = useNavigate();
   const [observation, setObservation] = useState<string | null>(null);
-  const [nextTip, setNextTip] = useState<string | null>(null);
+  const [nextTip, setNextTip] = useState<NextWashTip | null>(null);
   const [saveNextTip, setSaveNextTip] = useState(true);
-  const [showNextTip, setShowNextTip] = useState(false);
+  const [showNextTip, setShowNextTip] = useState(true);
   const [obsLoading, setObsLoading] = useState(true);
   const [obsError, setObsError] = useState<string | null>(null);
 
@@ -141,7 +143,14 @@ const WashStep4 = () => {
         if (data?.error) throw new Error(data.error);
         if (!cancelled) {
           setObservation(data?.observation ?? "");
-          setNextTip(data?.next_wash_tip ?? "");
+          const raw = data?.next_wash_tip;
+          if (raw && typeof raw === "object" && (raw.action || raw.why)) {
+            setNextTip({ action: raw.action ?? "", why: raw.why ?? "" });
+          } else if (typeof raw === "string" && raw.trim()) {
+            setNextTip({ action: raw.trim(), why: "" });
+          } else {
+            setNextTip(null);
+          }
         }
       } catch (e: unknown) {
         if (!cancelled) {
@@ -207,7 +216,7 @@ const WashStep4 = () => {
         hair_feel_note: step3.note?.trim() ? step3.note.trim() : null,
         hair_feel_voice_url: step3.audioPath ?? null,
         ai_insight: observation,
-        next_wash_tip: saveNextTip && nextTip ? nextTip : null,
+        next_wash_tip: saveNextTip && nextTip ? JSON.stringify(nextTip) : null,
       };
 
       const { error } = await supabase.from("wash_days").insert(payload);
@@ -310,7 +319,7 @@ const WashStep4 = () => {
 
         {!obsLoading && !obsError && nextTip && (
           <SurfaceCard tone="gold">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-medium">
                 ✨ Tip for next wash day
               </p>
@@ -319,15 +328,26 @@ const WashStep4 = () => {
                 onClick={() => setShowNextTip((s) => !s)}
                 className="text-[11px] uppercase tracking-[0.15em] text-primary"
               >
-                {showNextTip ? "Hide" : "Preview"}
+                {showNextTip ? "Hide" : "Show"}
               </button>
             </div>
-            {showNextTip ? (
-              <p className="text-sm leading-snug">{nextTip}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground italic">
-                A tailored suggestion based on your shelf, tools, and goals. Tap Preview to see it.
-              </p>
+            {showNextTip && (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mb-1">
+                    Do this next wash
+                  </p>
+                  <p className="text-sm leading-snug font-medium">{nextTip.action}</p>
+                </div>
+                {nextTip.why && (
+                  <div className="pt-2 border-t border-primary/15">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mb-1">
+                      Why
+                    </p>
+                    <p className="text-xs leading-relaxed text-foreground/80">{nextTip.why}</p>
+                  </div>
+                )}
+              </div>
             )}
             <label className="mt-3 flex items-center gap-2 text-xs text-foreground/80 cursor-pointer">
               <input

@@ -389,14 +389,36 @@ const WashDayDetail = () => {
           </SurfaceCard>
         )}
 
-        {wd.next_wash_tip && (
-          <SurfaceCard tone="gold">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
-              ✨ Tip for next wash day
-            </p>
-            <p className="text-sm leading-snug">{wd.next_wash_tip}</p>
-          </SurfaceCard>
-        )}
+        {wd.next_wash_tip && (() => {
+          let action = wd.next_wash_tip;
+          let why = "";
+          try {
+            const parsed = JSON.parse(wd.next_wash_tip);
+            if (parsed && typeof parsed === "object" && (parsed.action || parsed.why)) {
+              action = parsed.action ?? "";
+              why = parsed.why ?? "";
+            }
+          } catch { /* legacy plain text */ }
+          return (
+            <SurfaceCard tone="gold">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
+                ✨ Tip for next wash day
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mb-1">
+                Do this next wash
+              </p>
+              <p className="text-sm leading-snug font-medium">{action}</p>
+              {why && (
+                <>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mt-3 mb-1 pt-2 border-t border-primary/15">
+                    Why
+                  </p>
+                  <p className="text-xs leading-relaxed text-foreground/80">{why}</p>
+                </>
+              )}
+            </SurfaceCard>
+          );
+        })()}
 
         {!editing && (
           <>
