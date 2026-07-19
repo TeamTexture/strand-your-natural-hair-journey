@@ -42,8 +42,17 @@ interface NutritionCard {
   severity?: "high" | "medium" | "low";
 }
 
+interface SupplementCard {
+  emoji: string;
+  name: string;
+  dose?: string;
+  body: string;
+  priority?: "high" | "medium" | "low";
+}
+
 interface NutritionPlanPayload {
   summary: string;
+  supplements: SupplementCard[];
   diet: NutritionCard[];
   avoid: NutritionCard[];
 }
