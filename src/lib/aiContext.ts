@@ -157,7 +157,7 @@ export async function buildAiContext(): Promise<AiContext> {
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, ratings, goalRows, toolRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows] = await Promise.all([
         supabase
           .from("blood_panels" as never)
           .select("id, panel_date, label")
@@ -181,6 +181,11 @@ export async function buildAiContext(): Promise<AiContext> {
           .eq("user_id", userId)
           .eq("on_shelf", true),
         supabase
+          .from("user_products")
+          .select("name, brand, category, match_score")
+          .eq("user_id", userId)
+          .eq("on_wishlist", true),
+        supabase
           .from("product_ratings")
           .select("product_name, product_brand, rating, ingredients")
           .eq("user_id", userId),
@@ -193,6 +198,7 @@ export async function buildAiContext(): Promise<AiContext> {
           .select("name, brand, category, rating, match_score, on_favourite, use_count")
           .eq("user_id", userId),
       ]);
+
 
       // Load rows for the returned panels; also fetch legacy rows with NULL panel_id
       // as a fallback for accounts that pre-date the panels migration.
