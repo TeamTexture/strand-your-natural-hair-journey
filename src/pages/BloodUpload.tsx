@@ -143,6 +143,10 @@ export default function BloodUpload() {
       if (error) throw error;
       const results = (data?.results ?? []) as ExtractedRow[];
       if (data?.panel_date) setPanelDate(data.panel_date);
+      setDocumentTitle(data?.document_title ?? null);
+      setTestType(data?.test_type ?? null);
+      setLabName(data?.lab_name ?? null);
+      setPanelLabel(data?.label ?? null);
       setRows(results);
 
       if (results.length === 0) {
