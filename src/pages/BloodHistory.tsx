@@ -173,21 +173,34 @@ const BloodHistory = () => {
       .map((r) => {
         const p = prevByMarker.get(r.marker);
         if (!p || p.value == null || r.value == null) return null;
-        const diff = Number(r.value) - Number(p.value);
         return {
           marker: r.marker,
           unit: r.unit ?? BLOOD_RANGES[r.marker]?.unit ?? "",
           previous: Number(p.value),
           current: Number(r.value),
-          diff,
-          prevStatus: p.status,
-          curStatus: r.status,
+          previous_status: p.status,
+          current_status: r.status,
         };
       })
-      .filter((x): x is NonNullable<typeof x> => x !== null)
-      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
-      .slice(0, 6);
+      .filter((x): x is NonNullable<typeof x> => x !== null);
   }, [latest, previous, rowsByPanel]);
+
+  const latestResults = useMemo(
+    () => (latest ? rowsByPanel.get(latest.id) ?? [] : []),
+    [latest, rowsByPanel],
+  );
+
+  // 3-month overdue detection — mirrors the Wash Day "7 days since last wash"
+  // reminder pattern. Uses the logged panel_date on the latest test.
+  const daysSinceLatest = useMemo(() => {
+    if (!latest?.panel_date) return null;
+    try {
+      return differenceInDays(new Date(), parseISO(latest.panel_date));
+    } catch {
+      return null;
+    }
+  }, [latest]);
+  const overdue = daysSinceLatest !== null && daysSinceLatest >= 90;
 
   const startNew = () => {
     clearBloodDraft();
