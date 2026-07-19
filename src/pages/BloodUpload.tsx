@@ -88,10 +88,17 @@ export default function BloodUpload() {
       setRows(results);
 
       if (results.length === 0) {
-        toast.error("No markers found. Try clearer photos or the PDF from your lab.");
+        toast.error("Couldn't read any results. Try clearer photos or the original PDF from your lab.");
       } else {
-        toast.success(`Found ${results.length} marker${results.length === 1 ? "" : "s"}`);
+        const matched = results.filter((r) => BLOOD_RANGES[r.marker]).length;
+        const extra = results.length - matched;
+        toast.success(
+          extra > 0
+            ? `Found ${results.length} marker${results.length === 1 ? "" : "s"} (${matched} tracked, ${extra} extra)`
+            : `Found ${results.length} marker${results.length === 1 ? "" : "s"}`,
+        );
       }
+
     } catch (err) {
       console.error("blood-extract failed:", err);
       toast.error("Couldn't read that file. Try again with clearer photos or a PDF.");
