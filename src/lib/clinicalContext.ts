@@ -319,16 +319,24 @@ function basicFromLocal(): ProfileBasicSlice | null {
   const raw = safeParse<LegacyBasic | null>("strand_profile_basic", null);
   const heritageArr = safeParse<string[]>("strand_heritage", []);
   if (!raw && (!heritageArr || heritageArr.length === 0)) return null;
-  const ageNum =
+  const cachedBirthYear =
+    raw?.birth_year != null && Number.isFinite(Number(raw.birth_year))
+      ? Number(raw.birth_year)
+      : null;
+  const ageFromBirthYear =
+    cachedBirthYear != null ? new Date().getFullYear() - cachedBirthYear : null;
+  const ageFromRaw =
     raw?.age != null && raw.age !== ""
       ? typeof raw.age === "number"
         ? raw.age
         : parseInt(String(raw.age), 10)
       : null;
+  // Prefer birth_year-derived age so it ticks up automatically each year.
+  const ageNum = ageFromBirthYear ?? ageFromRaw;
   return {
     name: raw?.name ?? null,
     age: Number.isFinite(ageNum) ? (ageNum as number) : null,
-    birth_year: null,
+    birth_year: cachedBirthYear,
     postcode: raw?.postcode ?? null,
     country: raw?.country ?? null,
     heritage: heritageArr.length > 0 ? heritageArr : raw?.heritage ? [raw.heritage] : [],
