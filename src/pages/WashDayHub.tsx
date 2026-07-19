@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { AlertTriangle } from "lucide-react";
+import RichBody from "@/components/RichBody";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -31,6 +32,10 @@ interface CalProps {
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 const isoFor = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
+const formatNextWashTip = (action: string, why: string) => [
+  action ? `Do this next wash: ${action}` : "",
+  why ? `Why it matters: ${why}` : "",
+].filter(Boolean).join("\n\n");
 
 const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, onPickDate, onLogDate }: CalProps) => {
   const first = new Date(year, month, 1);
@@ -206,18 +211,7 @@ const WashDayHub = () => {
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
               ✨ Tip for your next wash day
             </p>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mb-1">
-              Do this next wash
-            </p>
-            <p className="text-sm leading-snug font-medium">{latestTip.action}</p>
-            {latestTip.why && (
-              <>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mt-3 mb-1 pt-2 border-t border-primary/15">
-                  Why
-                </p>
-                <p className="text-xs leading-relaxed text-foreground/80">{latestTip.why}</p>
-              </>
-            )}
+            <RichBody text={formatNextWashTip(latestTip.action, latestTip.why)} />
           </SurfaceCard>
         )}
         <Calendar
