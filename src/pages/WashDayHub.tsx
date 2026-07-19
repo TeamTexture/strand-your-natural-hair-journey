@@ -103,10 +103,140 @@ const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, on
   );
 };
 
+const fmtDayLong = (d: Date) =>
+  d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
+const startCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+interface EducationalNoteInput {
+  porosity: string | null;
+  density: string | null;
+  scalp: string | null;
+  goalTitles: string[];
+  lastWash: Date | null;
+  today: Date;
+}
+
+interface EducationalNote {
+  headline: string;
+  window: string;
+  why: string;
+  reminder: string;
+}
+
+const buildEducationalNote = ({
+  porosity,
+  density,
+  scalp,
+  goalTitles,
+  lastWash,
+  today,
+}: EducationalNoteInput): EducationalNote => {
+  // Personalise the ideal cadence inside the 7–10 day window based on scalp + porosity.
+  const p = (porosity ?? "").toLowerCase();
+  const s = (scalp ?? "").toLowerCase();
+  const d = (density ?? "").toLowerCase();
+
+  let idealDays = 7;
+  let cadenceLabel = "every 7 days";
+
+  if (s.includes("oily")) {
+    idealDays = 7;
+    cadenceLabel = "every 7 days";
+  } else if (s.includes("dry") || p.includes("high")) {
+    idealDays = 10;
+    cadenceLabel = "every 10 days";
+  } else if (p.includes("low")) {
+    idealDays = 8;
+    cadenceLabel = "every 7–8 days";
+  } else {
+    idealDays = 9;
+    cadenceLabel = "every 7–10 days";
+  }
+
+  // Why it matters — grounded in porosity, density and goals.
+  const reasons: string[] = [];
+  if (p.includes("high")) {
+    reasons.push(
+      "your high-porosity hair loses moisture quickly, so a consistent wash rhythm followed by a moisture-rich conditioner keeps your strands hydrated between washes",
+    );
+  } else if (p.includes("low")) {
+    reasons.push(
+      "your low-porosity hair struggles to let moisture in, so regular cleansing removes the buildup that would otherwise block conditioner from absorbing",
+    );
+  } else {
+    reasons.push(
+      "regular cleansing clears the sebum, product residue and pollution that build up on the scalp between washes",
+    );
+  }
+
+  if (s.includes("oily")) {
+    reasons.push(
+      "your scalp runs on the oilier side, so leaving it too long between washes lets follicles clog and can slow growth",
+    );
+  } else if (s.includes("flaky") || s.includes("itchy")) {
+    reasons.push(
+      "your scalp is prone to flaking or itch, and a steady wash rhythm keeps that inflammation calm",
+    );
+  } else if (s.includes("dry")) {
+    reasons.push(
+      "your scalp tends to dryness, so an over-long gap lets it get tight and irritated — cleansing gently and re-moisturising resets it",
+    );
+  }
+
+  if (d.includes("high") || d.includes("thick")) {
+    reasons.push(
+      "with your denser hair, product and shed strands sit close to the scalp and need consistent washing to lift out",
+    );
+  }
+
+  const activeGoals = goalTitles.slice(0, 2);
+  if (activeGoals.length) {
+    reasons.push(
+      `a healthy, clean scalp is the foundation for your goal${activeGoals.length > 1 ? "s" : ""} — ${activeGoals.join(" and ")}`,
+    );
+  }
+
+  const why = reasons.slice(0, 3).join("; ") + ".";
+
+  // Next-wash reminder — anchored to the actual last wash date.
+  let reminder: string;
+  if (!lastWash) {
+    reminder = "Log your first wash day so we can time your next one for you.";
+  } else {
+    const nextDate = new Date(lastWash);
+    nextDate.setDate(nextDate.getDate() + idealDays);
+    const outerDate = new Date(lastWash);
+    outerDate.setDate(outerDate.getDate() + 10);
+    const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / 86400000);
+    const overdue = daysUntil < 0;
+
+    if (overdue) {
+      const overdueBy = Math.abs(daysUntil);
+      reminder = `Your ideal window (${fmtDayLong(nextDate)}) has passed by ${overdueBy} day${overdueBy === 1 ? "" : "s"} — aim to wash today or tomorrow to stay within the 7–10 day rhythm.`;
+    } else if (daysUntil === 0) {
+      reminder = `That means today, ${fmtDayLong(today)}, is your ideal next wash day.`;
+    } else if (daysUntil === 1) {
+      reminder = `That puts your next wash tomorrow, ${fmtDayLong(nextDate)} — no later than ${fmtDayLong(outerDate)}.`;
+    } else {
+      reminder = `That points to ${fmtDayLong(nextDate)} (in ${daysUntil} days) as your ideal next wash, and no later than ${fmtDayLong(outerDate)}.`;
+    }
+  }
+
+  return {
+    headline: p || d
+      ? `A ${cadenceLabel} rhythm suits your ${[p && `${p} porosity`, d && `${d} density`].filter(Boolean).map(startCase).join(", ")} hair.`
+      : `Aim to wash ${cadenceLabel} for a healthy scalp and strong strands.`,
+    window: cadenceLabel,
+    why,
+    reminder,
+  };
+};
+
 const encouragement = (count: number) => {
   if (count === 0) return "No wash days logged this month yet. Consistency is key to healthy hair.";
   if (count <= 2) return "Good start — keep going this month.";
-  if (count <= 4) return "Great consistency — washing weekly keeps your scalp clean and your hair hydrated.";
+  if (count <= 4) return "Great consistency — a steady rhythm is what your scalp and strands need.";
   return "Excellent — your scalp and hair will thank you for this routine.";
 };
 
