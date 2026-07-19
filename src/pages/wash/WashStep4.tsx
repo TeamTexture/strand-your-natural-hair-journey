@@ -314,46 +314,47 @@ const WashStep4 = () => {
           to="/wash/step-styling" navigate={navigate}
         />
 
-        <SurfaceCard tone="gold">
-          {obsLoading ? (
+        {obsLoading ? (
+          <SurfaceCard tone="gold">
             <p className="text-sm leading-snug text-foreground/70">
               <span className="font-semibold">✨ </span>
               Creating your next wash-day tip…
             </p>
-          ) : obsError || !nextTip ? (
+          </SurfaceCard>
+        ) : obsError || !nextTip ? (
+          <SurfaceCard tone="gold">
             <p className="text-sm leading-snug text-foreground/70">
               <span className="font-semibold">✨ </span>
               Couldn't create a tip right now — your wash day is still saved.
             </p>
-          ) : (
-            <>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-medium">
-                ✨ Tip for next wash day
-              </p>
+          </SurfaceCard>
+        ) : (
+          <NextWashTipCard
+            action={nextTip.action}
+            why={nextTip.why}
+            collapsed={!showNextTip}
+            headerRight={
               <button
                 type="button"
                 onClick={() => setShowNextTip((s) => !s)}
-                className="text-[11px] uppercase tracking-[0.15em] text-primary"
+                className="shrink-0 text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
               >
                 {showNextTip ? "Hide" : "Show"}
               </button>
-            </div>
-            {showNextTip && (
-              <RichBody text={tipText(nextTip)} />
-            )}
-            <label className="mt-3 flex items-center gap-2 text-xs text-foreground/80 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={saveNextTip}
-                onChange={(e) => setSaveNextTip(e.target.checked)}
-                className="size-4 accent-primary"
-              />
-              Save this tip to my wash day
-            </label>
-            </>
-          )}
-        </SurfaceCard>
+            }
+            footer={
+              <label className="flex items-center gap-2 text-[12px] text-[#E0D7CC]/90 cursor-pointer font-body">
+                <input
+                  type="checkbox"
+                  checked={saveNextTip}
+                  onChange={(e) => setSaveNextTip(e.target.checked)}
+                  className="size-4 accent-[#C5A059]"
+                />
+                Save this tip to my wash day
+              </label>
+            }
+          />
+        )}
 
 
         <Button variant="gold" size="pill" className="mt-4" onClick={save} disabled={saving}>
