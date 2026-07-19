@@ -118,19 +118,24 @@ RULES:
 - BANNED PHRASES in observation: "Great job!", "Keep it up!", "Nice work!", "Try [X] next time," "Consider," "I'd recommend."
 
 =========================================
-PART 2 — NEXT WASH DAY TIP (field: next_wash_tip)
+PART 2 — NEXT WASH DAY TIP (field: next_wash_tip — object with { action, why })
 =========================================
-2-3 sentences MAX. Concrete, forward-looking advice for the user's NEXT wash day.
+This is the primary value the user reads. Do NOT re-analyse today. Focus 100% on what to DO next wash day.
 
-RULES:
-- Use context.shelf, context.wishlist, context.tools, context.goals, and today's outcome to design the tip.
-- Name at least ONE specific product from their shelf OR wishlist OR a specific tool they own — by name. Do not invent products they don't have.
-- Tie the tip to something concrete from today (e.g. "Because breakage was moderate today and your goal is length retention, next wash try leading with [Product X from shelf] before your co-wash…").
-- Give a mechanism ("this coats the cuticle before manipulation, which reduces mid-shaft snapping").
-- If they logged heat today, and heat is due next wash, ONLY reference the TT Heat Hat (link https://www.teamtexture.co.uk). Never suggest plastic caps, shower caps, warm towels, or steamers.
-- If there's a wishlist item that would genuinely help, you may suggest picking it up — but never sound salesy.
-- NO chapter citations. NO "Read more" links. Plain English.
-- BANNED in tip: "you might want to", "perhaps", "if you feel like it" — be direct and confident.`;
+FIELD: action
+- ONE clear, imperative sentence. Max 18 words. Starts with a verb ("Lead with…", "Swap…", "Skip…", "Deep-condition under…").
+- Concrete and doable in one wash session.
+- Name at least ONE specific product from context.shelf/wishlist OR a specific tool from context.tools, by name. Never invent items they don't have.
+- If suggesting heat, ONLY the TT Heat Hat (https://www.teamtexture.co.uk). Never plastic caps, shower caps, warm towels, or steamers.
+- NEVER recommend weekly/fortnightly protein — Afro hair is protein-rich (keratin). Protein is occasional and targeted only.
+- No hedging ("you might want to", "perhaps", "if you feel like it").
+
+FIELD: why
+- 2-3 short sentences explaining the reasoning.
+- MUST be grounded in the STRAND core teachings from the CORE TEACHINGS block (drawn from How To Love Your Afro). Reason from the manuscript's framework — do not import outside hair-care lore.
+- MUST tie the reasoning to at least ONE concrete signal from the user (porosity, density, scalp condition today, breakage today, style choice, a specific product outcome, a goal, a chemical history flag, a blood marker). Say WHY it matters for THIS user.
+- Plain English. Never name the manuscript, chapters, or page numbers.
+- Never medical advice.`;
 }
 
 
