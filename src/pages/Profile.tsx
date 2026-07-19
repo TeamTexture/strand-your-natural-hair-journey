@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -556,6 +556,25 @@ const Profile = () => {
             <p className="text-sm font-semibold leading-tight">Help & Support</p>
             <p className="text-[11px] text-foreground/70 mt-0.5">
               Install guide, FAQs and how to reach us.
+            </p>
+          </div>
+          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
+        </button>
+      </div>
+
+      {/* App Walkthrough — re-runnable tour of the main screens */}
+      <div className="px-5 pb-4">
+        <button
+          onClick={() => navigate("/walkthrough", { state: { returnTo: "/profile" } })}
+          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
+        >
+          <div className="size-10 rounded-full bg-secondary text-foreground/80 flex items-center justify-center shrink-0">
+            <Compass className="size-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight">App Walkthrough</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5">
+              A quick tour of the main STRAND screens.
             </p>
           </div>
           <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>

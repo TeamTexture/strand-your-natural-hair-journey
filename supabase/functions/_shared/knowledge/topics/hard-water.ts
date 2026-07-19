@@ -12,7 +12,7 @@ export const HARD_WATER: Topic = {
 
 How to know:
 
-— Postcode lookup. The book's practical tip: type your postcode into Google followed by "water hardness" and the name of your area. STRAND already does this server-side via the hardWaterPostcodes data file when the user has set their postcode.
+— Postcode lookup. The book's practical tip: type your postcode into Google followed by "water hardness" and the name of your area.
 — Behaviour pattern. If hair takes longer than usual to wet down, stops reacting to styling products in the way it normally does, or curls feel heavy, tacky or even greasy to the touch, that's the same kind of build-up signal the manuscript describes.
 
 IMPORTANT GUIDANCE RULE — chelating shampoos:

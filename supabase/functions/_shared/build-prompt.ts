@@ -37,8 +37,7 @@ import type {
   Tool,
 } from "./anthropic-client.ts";
 
-/** Function-id used to pick the default model. `claude-smoke` is the Step-0
- *  smoke test; deleted at Phase 2 close-out per audit §8 Step 25/29. */
+/** Function-id used to pick the default model. */
 export type FunctionKind =
   | "ingredient-analysis"
   | "product-analyse"
@@ -48,8 +47,7 @@ export type FunctionKind =
   | "heat-treatment-rationale"
   | "nutrition-plan"
   | "blood-ai-summary"
-  | "journal-encouragement"
-  | "claude-smoke";
+  | "journal-encouragement";
 
 /** Default model per function. Phase 2 §5. Override per-call via
  *  BuildPromptInput.model when needed (e.g. cheaper tier for a force-refresh). */
@@ -63,7 +61,6 @@ export const FUNCTION_MODEL_MAP: Record<FunctionKind, ClaudeModel> = {
   "nutrition-plan": "claude-sonnet-4-6",
   "blood-ai-summary": "claude-opus-4-7",
   "journal-encouragement": "claude-haiku-4-5-20251001",
-  "claude-smoke": "claude-sonnet-4-6",
 };
 
 export interface BuildPromptInput {
@@ -135,7 +132,7 @@ export async function buildClaudeRequest(
     kbBlocks = input.knowledge_blocks.filter((s) => typeof s === "string" && s.length > 0);
   } else if (input.selector_context || input.force_topic_ids) {
     const topics = selectTopicsForContext(input.selector_context ?? {}, {
-      function_kind: input.function_kind === "claude-smoke" ? "ingredient-analysis" : input.function_kind,
+      function_kind: input.function_kind,
       force: input.force_topic_ids,
     });
     kbBlocks = topics.map(renderTopicBlock);

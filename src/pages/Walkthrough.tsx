@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -47,13 +47,16 @@ const FLAG = "strand_walkthrough_complete";
 
 const Walkthrough = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo =
+    (location.state as { returnTo?: string } | null)?.returnTo ?? "/home";
   const [i, setI] = useState(0);
   const slide = SLIDES[i];
   const Illustration = slide.Illustration;
 
   const finish = () => {
     localStorage.setItem(FLAG, "true");
-    navigate("/home", { replace: true });
+    navigate(returnTo, { replace: true });
   };
 
   return (
