@@ -441,9 +441,10 @@ export async function loadClinicalContext(
       await Promise.all([
         supabase
           .from("profiles")
-          .select("display_name, postcode, country, heritage, birth_year")
+          .select("display_name, postcode, country, heritage, birth_year, water_hardness_mg_l, water_hardness_band, water_supplier")
           .eq("user_id", userId)
           .maybeSingle(),
+
         supabase
           .from("user_hair_profile")
           .select(
