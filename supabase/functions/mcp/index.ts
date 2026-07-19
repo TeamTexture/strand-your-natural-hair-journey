@@ -21,15 +21,20 @@ var get_hair_profile_default = defineTool({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser(ctx);
-    const { data, error } = await sb.from("profiles").select("display_name, birth_year, country, heritage, onboarding_completed_at").eq("user_id", ctx.getUserId()).maybeSingle();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? {}, null, 2) }],
-      structuredContent: { profile: data }
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser(ctx);
+      const { data, error } = await sb.from("profiles").select("display_name, birth_year, country, heritage, onboarding_completed_at").eq("user_id", ctx.getUserId()).maybeSingle();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? {}, null, 2) }],
+        structuredContent: { profile: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   }
 });
 
@@ -52,17 +57,22 @@ var list_wash_days_default = defineTool2({
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser2(ctx);
-    const { data, error } = await sb.from("wash_days").select(
-      "id, wash_date, scalp_feel, breakage, stress_level, duration_min, style_after, hair_feel_note, ai_insight"
-    ).eq("user_id", ctx.getUserId()).order("wash_date", { ascending: false }).limit(limit ?? 10);
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
-      structuredContent: { wash_days: data ?? [] }
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser2(ctx);
+      const { data, error } = await sb.from("wash_days").select(
+        "id, wash_date, scalp_feel, breakage, stress_level, duration_min, style_after, hair_feel_note, ai_insight"
+      ).eq("user_id", ctx.getUserId()).order("wash_date", { ascending: false }).limit(limit ?? 10);
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+        structuredContent: { wash_days: data ?? [] }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   }
 });
 
@@ -82,15 +92,20 @@ var list_shelf_products_default = defineTool3({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser3(ctx);
-    const { data, error } = await sb.from("user_products").select("id, name, brand, category, match_score, rating, use_count, last_used_at").eq("user_id", ctx.getUserId()).eq("on_shelf", true).order("last_used_at", { ascending: false, nullsFirst: false });
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
-      structuredContent: { products: data ?? [] }
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser3(ctx);
+      const { data, error } = await sb.from("user_products").select("id, name, brand, category, match_score, rating, use_count, last_used_at").eq("user_id", ctx.getUserId()).eq("on_shelf", true).order("last_used_at", { ascending: false, nullsFirst: false });
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+        structuredContent: { products: data ?? [] }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   }
 });
 
@@ -110,15 +125,20 @@ var list_goals_default = defineTool4({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser4(ctx);
-    const { data, error } = await sb.from("user_goals").select("id, title, kind, status, start_value, current_value, target_value, unit, target_date, target_text, notes").eq("user_id", ctx.getUserId()).order("created_at", { ascending: false });
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
-      structuredContent: { goals: data ?? [] }
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser4(ctx);
+      const { data, error } = await sb.from("user_goals").select("id, title, kind, status, start_value, current_value, target_value, unit, target_date, target_text, notes").eq("user_id", ctx.getUserId()).order("created_at", { ascending: false });
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+        structuredContent: { goals: data ?? [] }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   }
 });
 
@@ -138,15 +158,20 @@ var list_flagged_blood_markers_default = defineTool5({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser5(ctx);
-    const { data, error } = await sb.from("blood_results").select("marker, category, value, unit, status, updated_at").eq("user_id", ctx.getUserId()).in("status", ["low", "high"]).order("updated_at", { ascending: false });
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
-      structuredContent: { flagged: data ?? [] }
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser5(ctx);
+      const { data, error } = await sb.from("blood_results").select("marker, category, value, unit, status, updated_at").eq("user_id", ctx.getUserId()).in("status", ["low", "high"]).order("updated_at", { ascending: false });
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+        structuredContent: { flagged: data ?? [] }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   }
 });
 
@@ -169,15 +194,20 @@ var list_journal_entries_default = defineTool6({
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser6(ctx);
-    const { data, error } = await sb.from("journal_entries").select("id, entry_date, title, mood, note, products_used, photo_paths").eq("user_id", ctx.getUserId()).order("entry_date", { ascending: false }).limit(limit ?? 10);
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
-      structuredContent: { entries: data ?? [] }
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser6(ctx);
+      const { data, error } = await sb.from("journal_entries").select("id, entry_date, title, mood, note, products_used, photo_paths").eq("user_id", ctx.getUserId()).order("entry_date", { ascending: false }).limit(limit ?? 10);
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+        structuredContent: { entries: data ?? [] }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   }
 });
 
@@ -203,21 +233,26 @@ var create_journal_entry_default = defineTool7({
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ title, note, mood, entry_date }, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser7(ctx);
-    const { data, error } = await sb.from("journal_entries").insert({
-      user_id: ctx.getUserId(),
-      title,
-      note: note ?? null,
-      mood: mood ?? null,
-      entry_date: entry_date ?? (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
-    }).select("id, entry_date, title, mood, note").single();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: `Created journal entry ${data.id}` }],
-      structuredContent: { entry: data }
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser7(ctx);
+      const { data, error } = await sb.from("journal_entries").insert({
+        user_id: ctx.getUserId(),
+        title,
+        note: note ?? null,
+        mood: mood ?? null,
+        entry_date: entry_date ?? (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
+      }).select("id, entry_date, title, mood, note").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Created journal entry ${data.id}` }],
+        structuredContent: { entry: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   }
 });
 

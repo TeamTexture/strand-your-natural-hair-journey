@@ -15,18 +15,23 @@ export default defineTool({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser(ctx);
-    const { data, error } = await sb
-      .from("user_goals")
-      .select("id, title, kind, status, start_value, current_value, target_value, unit, target_date, target_text, notes")
-      .eq("user_id", ctx.getUserId())
-      .order("created_at", { ascending: false });
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
-      structuredContent: { goals: data ?? [] },
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser(ctx);
+      const { data, error } = await sb
+        .from("user_goals")
+        .select("id, title, kind, status, start_value, current_value, target_value, unit, target_date, target_text, notes")
+        .eq("user_id", ctx.getUserId())
+        .order("created_at", { ascending: false });
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+        structuredContent: { goals: data ?? [] },
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   },
 });

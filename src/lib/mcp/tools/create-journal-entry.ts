@@ -25,24 +25,29 @@ export default defineTool({
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ title, note, mood, entry_date }, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser(ctx);
-    const { data, error } = await sb
-      .from("journal_entries")
-      .insert({
-        user_id: ctx.getUserId(),
-        title,
-        note: note ?? null,
-        mood: mood ?? null,
-        entry_date: entry_date ?? new Date().toISOString().slice(0, 10),
-      })
-      .select("id, entry_date, title, mood, note")
-      .single();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: `Created journal entry ${data.id}` }],
-      structuredContent: { entry: data },
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser(ctx);
+      const { data, error } = await sb
+        .from("journal_entries")
+        .insert({
+          user_id: ctx.getUserId(),
+          title,
+          note: note ?? null,
+          mood: mood ?? null,
+          entry_date: entry_date ?? new Date().toISOString().slice(0, 10),
+        })
+        .select("id, entry_date, title, mood, note")
+        .single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Created journal entry ${data.id}` }],
+        structuredContent: { entry: data },
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   },
 });

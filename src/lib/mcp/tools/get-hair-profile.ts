@@ -16,18 +16,23 @@ export default defineTool({
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated())
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const sb = supabaseForUser(ctx);
-    const { data, error } = await sb
-      .from("profiles")
-      .select("display_name, birth_year, country, heritage, onboarding_completed_at")
-      .eq("user_id", ctx.getUserId())
-      .maybeSingle();
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-    return {
-      content: [{ type: "text", text: JSON.stringify(data ?? {}, null, 2) }],
-      structuredContent: { profile: data },
-    };
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser(ctx);
+      const { data, error } = await sb
+        .from("profiles")
+        .select("display_name, birth_year, country, heritage, onboarding_completed_at")
+        .eq("user_id", ctx.getUserId())
+        .maybeSingle();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? {}, null, 2) }],
+        structuredContent: { profile: data },
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
   },
 });
