@@ -35,9 +35,13 @@ interface RequestBody {
   context?: Record<string, unknown>;
 }
 
+interface NextWashTip {
+  action: string;
+  why: string;
+}
 interface ObservationPayload {
   observation: string;
-  next_wash_tip?: string;
+  next_wash_tip?: NextWashTip | string;
 }
 
 const RETURN_OBSERVATION_SCHEMA = {
@@ -51,12 +55,25 @@ const RETURN_OBSERVATION_SCHEMA = {
         "2-3 sentence personalised wash-day observation. REFLECTS on today only — no advice, no 'next time'.",
     },
     next_wash_tip: {
-      type: "string",
-      description:
-        "2-3 sentence CONCRETE, forward-looking tip for the user's NEXT wash day. Reference specific products on their shelf/wishlist, specific tools they own, and their stated goals. Name at least one specific product OR tool OR technique. This is where advice belongs.",
+      type: "object",
+      additionalProperties: false,
+      required: ["action", "why"],
+      properties: {
+        action: {
+          type: "string",
+          description:
+            "ONE clear, imperative action for the user's NEXT wash day. Max 18 words. Starts with a verb. No preamble, no hedging. Names a specific product/tool from their shelf/wishlist/tools when possible.",
+        },
+        why: {
+          type: "string",
+          description:
+            "The explanation for the action, 2-3 short sentences. Grounds the reasoning in the STRAND core teachings (How To Love Your Afro) AND ties it to at least one concrete signal from the user's profile or today's wash day (porosity, scalp feel, breakage, style, goal, product outcome). Plain English, no chapter/page citations.",
+        },
+      },
     },
   },
 } as const;
+
 
 
 function buildSelectorContext(body: RequestBody): SelectorContext {
