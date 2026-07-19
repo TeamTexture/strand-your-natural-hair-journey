@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -6,11 +6,12 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingDot from "@/components/LoadingDot";
-import { Pill, Leaf, Ban, Sparkles, Info } from "lucide-react";
+import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2 } from "lucide-react";
 
 import { evaluate } from "@/data/bloodRanges";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { useSavedMeals, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
 import { toast } from "sonner";
 
 
@@ -186,6 +187,150 @@ const AvoidCard = ({ c }: { c: AiCard }) => (
   </SurfaceCard>
 );
 
+// ── Meal cards ───────────────────────────────────────────────────────────
+
+interface AiMeal {
+  emoji: string;
+  name: string;
+  cuisine?: string;
+  time_minutes?: number;
+  summary?: string;
+  targets?: string[];
+  ingredients?: string[];
+  steps?: string[];
+}
+
+const MealCard = ({
+  meal,
+  saved,
+  onToggleSave,
+  onDelete,
+}: {
+  meal: AiMeal;
+  saved: boolean;
+  onToggleSave?: () => void;
+  onDelete?: () => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <SurfaceCard className="border-l-4 border-l-primary">
+      <div className="flex gap-3">
+        <IconBubble emoji={meal.emoji || "🍽️"} tone="gold" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-display text-[17px] leading-tight text-foreground truncate">
+                {meal.name}
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {meal.cuisine && (
+                  <span className="px-2 py-[2px] rounded-full bg-primary/10 text-primary text-[10px] uppercase tracking-[0.14em] font-semibold">
+                    {meal.cuisine}
+                  </span>
+                )}
+                {typeof meal.time_minutes === "number" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-body text-muted-foreground">
+                    <Clock className="size-3" /> {meal.time_minutes} min
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {onToggleSave && (
+                <button
+                  type="button"
+                  onClick={onToggleSave}
+                  aria-label={saved ? "Remove from saved meals" : "Save meal"}
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-primary/10 transition"
+                >
+                  <Heart
+                    className={`size-4 transition ${
+                      saved ? "fill-primary text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  aria-label="Delete saved meal"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-destructive/10 transition text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          {meal.summary && (
+            <p className="mt-2 text-xs text-foreground/85 font-body leading-relaxed">
+              {meal.summary}
+            </p>
+          )}
+          {meal.targets && meal.targets.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {meal.targets.map((t) => (
+                <span
+                  key={t}
+                  className="px-2 py-[2px] rounded-full bg-good/15 text-good text-[10px] font-medium font-body"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary"
+          >
+            {open ? "Hide recipe" : "View recipe"}
+            <ChevronDown
+              className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+          {open && (
+            <div className="mt-3 space-y-3 rounded-[12px] bg-secondary/40 border-t-2 border-primary/25 p-3">
+              {meal.ingredients && meal.ingredients.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                    Ingredients
+                  </p>
+                  <ul className="space-y-1">
+                    {meal.ingredients.map((ing, i) => (
+                      <li key={i} className="text-xs font-body text-foreground/85 leading-relaxed pl-3 relative before:content-['•'] before:absolute before:left-0 before:text-primary">
+                        {ing}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {meal.steps && meal.steps.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                    Method
+                  </p>
+                  <ol className="space-y-1.5">
+                    {meal.steps.map((s, i) => (
+                      <li key={i} className="text-xs font-body text-foreground/85 leading-relaxed flex gap-2">
+                        <span className="shrink-0 size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+};
+
 // ── Deterministic fallback supplements (only used if AI omits them) ─────
 
 const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
@@ -226,6 +371,73 @@ const NutritionPlan = () => {
     flagged: new Set(),
   });
   const [plan, setPlan] = useState<AiPlan | null>(null);
+  const [meals, setMeals] = useState<AiMeal[] | null>(null);
+  const [mealsLoading, setMealsLoading] = useState(false);
+  const [mealsView, setMealsView] = useState<"ideas" | "saved">("ideas");
+  const savedMealsQ = useSavedMeals();
+
+  const savedByKey = useMemo(() => {
+    const set = new Set<string>();
+    (savedMealsQ.data ?? []).forEach((m) => set.add(m.name.trim().toLowerCase()));
+    return set;
+  }, [savedMealsQ.data]);
+
+  const fetchMeals = async (currentProfile = profile) => {
+    setMealsLoading(true);
+    try {
+      const context = await buildAiContext();
+      const { data, error } = await supabase.functions.invoke("meal-ideas", {
+        body: {
+          context,
+          diet: currentProfile.diet,
+          alcohol: currentProfile.alcohol,
+          flaggedMarkers: Array.from(currentProfile.flagged),
+        },
+      });
+      if (error) {
+        const msg = error.message ?? "Couldn't generate meals";
+        if (msg.includes("429")) toast.error("Try again in a moment.");
+        else if (msg.includes("402")) toast.error("AI credits needed.");
+        else toast.error(msg);
+        return;
+      }
+      if (Array.isArray(data?.meals)) setMeals(data.meals as AiMeal[]);
+    } catch (e) {
+      console.error("meal-ideas invoke failed", e);
+      toast.error("Couldn't generate meal ideas.");
+    } finally {
+      setMealsLoading(false);
+    }
+  };
+
+  const handleSaveMeal = async (meal: AiMeal) => {
+    const key = meal.name.trim().toLowerCase();
+    const existing = (savedMealsQ.data ?? []).find(
+      (m) => m.name.trim().toLowerCase() === key,
+    );
+    if (existing) {
+      await savedMealsQ.remove.mutateAsync(existing.id);
+      toast.success("Removed from saved meals");
+      return;
+    }
+    const draft: MealDraft = {
+      name: meal.name,
+      emoji: meal.emoji ?? null,
+      cuisine: meal.cuisine ?? null,
+      time_minutes: meal.time_minutes ?? null,
+      summary: meal.summary ?? null,
+      targets: meal.targets ?? [],
+      ingredients: meal.ingredients ?? [],
+      steps: meal.steps ?? [],
+    };
+    await savedMealsQ.save.mutateAsync(draft);
+    toast.success("Saved to your meals");
+  };
+
+  const handleDeleteSaved = async (m: SavedMeal) => {
+    await savedMealsQ.remove.mutateAsync(m.id);
+    toast.success("Deleted");
+  };
 
   const startProgress = () => {
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -425,16 +637,21 @@ const NutritionPlan = () => {
           </div>
         )}
 
-        <Tabs defaultValue="supplements">
-          <TabsList className="grid w-full grid-cols-3 bg-secondary">
-            <TabsTrigger value="supplements" className="gap-1.5">
-              <Pill className="size-3.5" /> Supplements
+        <Tabs defaultValue="supplements" onValueChange={(v) => {
+          if (v === "meals" && !meals && !mealsLoading) void fetchMeals();
+        }}>
+          <TabsList className="grid w-full grid-cols-4 bg-secondary gap-0.5 p-0.5">
+            <TabsTrigger value="supplements" className="gap-1 px-1 text-[11px]">
+              <Pill className="size-3" /> Supps
             </TabsTrigger>
-            <TabsTrigger value="diet" className="gap-1.5">
-              <Leaf className="size-3.5" /> Diet
+            <TabsTrigger value="diet" className="gap-1 px-1 text-[11px]">
+              <Leaf className="size-3" /> Diet
             </TabsTrigger>
-            <TabsTrigger value="avoid" className="gap-1.5">
-              <Ban className="size-3.5" /> Avoid
+            <TabsTrigger value="avoid" className="gap-1 px-1 text-[11px]">
+              <Ban className="size-3" /> Avoid
+            </TabsTrigger>
+            <TabsTrigger value="meals" className="gap-1 px-1 text-[11px]">
+              <ChefHat className="size-3" /> Meals
             </TabsTrigger>
           </TabsList>
 
@@ -466,6 +683,109 @@ const NutritionPlan = () => {
             <SourceNote>
               Personalised by STRAND AI from your full profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
             </SourceNote>
+          </TabsContent>
+
+          <TabsContent value="meals" className="space-y-3 mt-4">
+            <div className="grid grid-cols-2 gap-1.5 p-0.5 bg-secondary rounded-[12px]">
+              <button
+                type="button"
+                onClick={() => setMealsView("ideas")}
+                className={`py-2 rounded-[10px] text-[12px] font-semibold transition ${
+                  mealsView === "ideas"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                }`}
+              >
+                Meal Ideas
+              </button>
+              <button
+                type="button"
+                onClick={() => setMealsView("saved")}
+                className={`py-2 rounded-[10px] text-[12px] font-semibold transition inline-flex items-center justify-center gap-1.5 ${
+                  mealsView === "saved"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <Heart className="size-3" /> Saved
+                {(savedMealsQ.data?.length ?? 0) > 0 && (
+                  <span className="text-[10px] px-1.5 rounded-full bg-primary text-primary-foreground">
+                    {savedMealsQ.data?.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {mealsView === "ideas" ? (
+              <>
+                {mealsLoading && !meals ? (
+                  renderLoading("Cooking up your meal ideas…")
+                ) : meals && meals.length > 0 ? (
+                  <>
+                    {meals.map((m, i) => (
+                      <MealCard
+                        key={`${m.name}-${i}`}
+                        meal={m}
+                        saved={savedByKey.has(m.name.trim().toLowerCase())}
+                        onToggleSave={() => void handleSaveMeal(m)}
+                      />
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => void fetchMeals()}
+                      disabled={mealsLoading}
+                      className="w-full py-2.5 rounded-pill bg-secondary text-foreground text-[12px] font-semibold hover:bg-secondary/80 transition disabled:opacity-50"
+                    >
+                      Generate new ideas
+                    </button>
+                  </>
+                ) : (
+                  <SurfaceCard tone="gold">
+                    <p className="text-xs font-body leading-relaxed">
+                      Your personalised meal ideas will appear here.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void fetchMeals()}
+                      className="mt-3 px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+                    >
+                      Generate meal ideas
+                    </button>
+                  </SurfaceCard>
+                )}
+                <SourceNote>
+                  Personalised by STRAND AI from your bloods, heritage and hair goals, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
+                </SourceNote>
+              </>
+            ) : (
+              <>
+                {(savedMealsQ.data ?? []).length === 0 ? (
+                  <SurfaceCard tone="gold">
+                    <p className="text-xs font-body leading-relaxed">
+                      Tap the heart on any meal idea to save it here for later.
+                    </p>
+                  </SurfaceCard>
+                ) : (
+                  (savedMealsQ.data ?? []).map((m) => (
+                    <MealCard
+                      key={m.id}
+                      meal={{
+                        emoji: m.emoji ?? "🍽️",
+                        name: m.name,
+                        cuisine: m.cuisine ?? undefined,
+                        time_minutes: m.time_minutes ?? undefined,
+                        summary: m.summary ?? undefined,
+                        targets: m.targets,
+                        ingredients: m.ingredients,
+                        steps: m.steps,
+                      }}
+                      saved
+                      onDelete={() => void handleDeleteSaved(m)}
+                    />
+                  ))
+                )}
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>
