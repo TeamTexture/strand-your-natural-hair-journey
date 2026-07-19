@@ -379,7 +379,32 @@ const Profile = () => {
     return out;
   }, [flaggedBlood, health.medications, hair.diagnosed]);
 
-  // Build alerts list (priority: blood > wash > appointments)
+  // Blood-test-due / scheduled alert. Fires when the most recent logged
+  // panel is 90+ days old and there is no scheduled future panel; if a
+  // future panel is scheduled we surface that instead as an info alert.
+  const bloodTestAlert = useMemo(() => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const scheduled = bloodPanels
+      .filter((p) => p.status === "scheduled" && (p.scheduled_at ?? p.panel_date))
+      .map((p) => (p.scheduled_at ?? p.panel_date) as string)
+      .filter((d) => d >= todayIso)
+      .sort()[0];
+    if (scheduled) {
+      return { kind: "scheduled" as const, date: scheduled };
+    }
+    const logged = bloodPanels
+      .filter((p) => p.status === "logged" && p.panel_date)
+      .map((p) => p.panel_date as string)
+      .sort()
+      .reverse();
+    const latest = logged[0];
+    if (!latest) return null;
+    const days = Math.floor((Date.now() - new Date(latest).getTime()) / (1000 * 60 * 60 * 24));
+    if (days >= 90) return { kind: "due" as const, days, lastDate: latest };
+    return null;
+  }, [bloodPanels]);
+
+  // Build alerts list (priority: blood-flagged > wash > blood-test-due > appointments)
   const alerts = useMemo<AlertItem[]>(() => {
     const out: AlertItem[] = [];
 
@@ -404,7 +429,29 @@ const Profile = () => {
         label: "Wash day due",
         detail: `${washAlert.days} days since last wash`,
         tone: washAlert.days >= 14 ? "warn" : "info",
-        onClick: () => navigate("/wash"),
+        onClick: () => navigate("/wash-day"),
+      });
+    }
+
+    // Blood test due / scheduled
+    if (bloodTestAlert?.kind === "due") {
+      const months = Math.floor(bloodTestAlert.days / 30);
+      out.push({
+        key: "blood-due",
+        icon: <FlaskConical className="size-5" />,
+        label: "Blood test due",
+        detail: `${months >= 1 ? `${months} month${months === 1 ? "" : "s"}` : `${bloodTestAlert.days} days`} since last test · book a new one`,
+        tone: "warn",
+        onClick: () => navigate("/blood-history"),
+      });
+    } else if (bloodTestAlert?.kind === "scheduled") {
+      out.push({
+        key: "blood-scheduled",
+        icon: <FlaskConical className="size-5" />,
+        label: "Blood test scheduled",
+        detail: formatShortDate(bloodTestAlert.date),
+        tone: "info",
+        onClick: () => navigate("/blood-history"),
       });
     }
 
@@ -421,7 +468,7 @@ const Profile = () => {
     });
 
     return out;
-  }, [flaggedBlood, washAlert, appts, navigate]);
+  }, [flaggedBlood, washAlert, bloodTestAlert, appts, navigate]);
 
   const handleExportPdf = async () => {
     if (exportingPdf) return;
