@@ -342,31 +342,6 @@ const StrandSummary = () => {
               </div>
             </SurfaceCard>
 
-            {summary.action_plan.length > 0 && (
-              <SurfaceCard>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="size-7 rounded-full bg-primary/15 flex items-center justify-center">
-                    <ListChecks className="size-3.5 text-primary" />
-                  </span>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Action plan</p>
-                </div>
-                <ul className="space-y-2">
-                  {summary.action_plan.map((b, i) => {
-                    const Icon = pickIcon(b);
-                    return (
-                      <li key={i} className="flex gap-2.5 items-start rounded-[12px] bg-primary/5 px-3 py-2.5">
-                        <span className="mt-0.5 size-7 rounded-full bg-background border border-primary/25 flex items-center justify-center shrink-0">
-                          <Icon className="size-3.5 text-primary" />
-                        </span>
-                        <span className="flex-1 text-[13px] leading-snug text-foreground/90">
-                          {renderRichText(b)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </SurfaceCard>
-            )}
 
             {summary.routine_tips.length > 0 && (
               <SurfaceCard>

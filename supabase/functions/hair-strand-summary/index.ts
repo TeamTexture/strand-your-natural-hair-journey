@@ -57,24 +57,20 @@ TASK — Produce a personalised hair profile written directly to the user, groun
 OUTPUT — JSON object only, no prose outside it:
 {
   "overview": string,            // 3-5 sentences. Second-person description of the user's hair, current style, and any relevant clinical/blood signals. Plain, factual, human. No pleasantries, no flattery, no filler.
-  "action_plan": string[],       // 3-5 items. See ACTION PLAN RULES below.
-  "routine_tips": string[]       // 3-5 items. Concrete routine instructions, each one specific to this user's profile and grounded in the manuscript teachings.
+  "action_plan": [],             // DEPRECATED. Always return an empty array. Fold every concrete action into routine_tips instead.
+  "routine_tips": string[]       // 4-6 items. See ROUTINE TIP RULES below. This is now the ONLY list of recommendations shown to the user, so it must carry the concrete actions AND their reasoning.
 }
 
-ACTION PLAN RULES — CRITICAL:
+ROUTINE TIP RULES — CRITICAL:
 Each item MUST be a single sentence that follows this shape:
-  "[Concrete action with frequency + product/technique] — [short reason tied to THIS user's data]."
+  "[Concrete action with frequency + product/technique] — [short reason tied to THIS user's data, grounded in the manuscript]."
 - Start with an imperative verb ("Pre-poo", "Deep condition", "Detangle", "Refresh", "Clarify"...).
 - Include a frequency or trigger ("every wash", "weekly", "before every install", "when strands feel straw-like").
-- Include the technique or product type ("with a slip-heavy conditioner", "using the TT Heat Hat for 30 min", "sectioned in 4, fingers first then wide-tooth comb").
-- End with a short "because ..." or "— your ..." clause that names the specific trait/goal/marker driving the advice (e.g. "— your high porosity loses water fast", "— to protect the ends of your loose natural style", "— low ferritin is slowing regrowth").
-- BANNED phrases (too vague): "manage", "maintain", "look after", "take care of", "keep an eye on", "be mindful of", "focus on moisture", "prioritise hydration", "monitor", "consider", "try to". If you catch yourself writing one, rewrite the whole item as a concrete instruction.
-- Never write an action item without the "why" clause tied to this user.
-
-ROUTINE TIP RULES:
-- Same specificity bar as action_plan: concrete step, not a slogan.
-- Grounded in the manuscript teachings provided below. Do not invent guidance outside them.
-- If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one routine tip must reference it directly.
+- Include the technique or product type ("with a slip-heavy conditioner", "using the TT Heat Hat for 20-30 min", "sectioned in 4, fingers first then wide-tooth comb").
+- End with a short "because ..." / "— your ..." clause that names the specific trait/goal/marker driving the advice (e.g. "— your high porosity loses water fast", "— low ferritin is slowing regrowth").
+- Do NOT repeat the same action twice in different words. Each tip must be a distinct instruction.
+- BANNED phrases (too vague): "manage", "maintain", "look after", "take care of", "keep an eye on", "be mindful of", "focus on moisture", "prioritise hydration", "monitor", "consider", "try to". Rewrite any item that drifts this way.
+- Every tip MUST be grounded in the manuscript teachings provided below. Do not invent guidance outside them. If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one tip must reference it directly.
 
 TONE:
 - Speak TO the user as "you" / "your". Never "the client", "the user", "the patient".
@@ -83,6 +79,7 @@ TONE:
 - Every recommendation must be justified by the data + manuscript teachings. If data is missing for a claim, omit the claim.
 
 HEAT MENTIONS: Include a TT Heat Hat (www.teamtexture.co.uk) instruction only where the data warrants it (low porosity, dryness, moisture-retention goal, deep-condition routine). If included, write it as a concrete routine step with duration.
+
 
 Below are the manuscript teachings most relevant to THIS user. Base every action item and routine tip on this material:
 `;
@@ -190,15 +187,23 @@ Deno.serve(async (req: Request) => {
     let parsed: Partial<SummaryPayload> = {};
     try { parsed = JSON.parse(content); } catch { parsed = {}; }
 
+    const rawAction = Array.isArray(parsed.action_plan) ? parsed.action_plan.map(String) : [];
+    const rawTips = Array.isArray(parsed.routine_tips) ? parsed.routine_tips.map(String) : [];
+    // Merge any lingering action_plan items into routine_tips (deduped by first 40 chars)
+    const seen = new Set<string>();
+    const mergedTips: string[] = [];
+    for (const t of [...rawTips, ...rawAction]) {
+      const key = t.trim().toLowerCase().slice(0, 40);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      mergedTips.push(t.trim());
+    }
     const payload: SummaryPayload = {
       overview: (parsed.overview ?? "").toString().trim(),
-      action_plan: Array.isArray(parsed.action_plan)
-        ? parsed.action_plan.map(String).slice(0, 6)
-        : [],
-      routine_tips: Array.isArray(parsed.routine_tips)
-        ? parsed.routine_tips.map(String).slice(0, 6)
-        : [],
+      action_plan: [], // deprecated — always empty going forward
+      routine_tips: mergedTips.slice(0, 6),
     };
+
 
     if (!payload.overview) {
       return json(502, { error: "AI returned empty summary" });
