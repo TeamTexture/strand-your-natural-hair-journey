@@ -161,7 +161,7 @@ const AvoidCard = ({ c }: { c: AiCard }) => (
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
           <SeverityChip level={c.severity} />
         </div>
-        <p className="text-xs text-foreground/85 font-body mt-1.5 leading-relaxed">{c.body}</p>
+        <RichBody text={c.body} className="mt-1.5" />
       </div>
     </div>
   </SurfaceCard>
