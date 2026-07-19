@@ -20,6 +20,7 @@ import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
