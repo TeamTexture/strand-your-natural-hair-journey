@@ -75,7 +75,7 @@ export async function renderPdfToImage(
     canvas.height = Math.ceil(viewport.height);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas not supported");
-    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    await page.render({ canvasContext: ctx, viewport }).promise;
     canvases.push(canvas);
     totalHeight += canvas.height;
     width = Math.max(width, canvas.width);
