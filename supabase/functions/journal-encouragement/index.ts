@@ -11,6 +11,7 @@
 // - Two lines, tight word counts, modern voice.
 
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
