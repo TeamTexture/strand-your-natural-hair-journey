@@ -799,7 +799,7 @@ const Home = () => {
                           <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">{s.brand}</p>
+                      <p className="text-[11px] text-muted-foreground"><BrandLink brand={s.brand} /></p>
                       <Stars n={aiStars} />
                     </div>
                   </button>

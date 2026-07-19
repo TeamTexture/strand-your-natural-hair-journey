@@ -77,7 +77,7 @@ const ProductsByIngredient = () => {
                       <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
                       {p.brand && (
                         <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5 truncate">
-                          {p.brand}
+                          <BrandLink brand={p.brand} />
                         </p>
                       )}
                       <span

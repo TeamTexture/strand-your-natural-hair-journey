@@ -282,7 +282,7 @@ const IngredientRow = ({
                     <p className="text-xs font-medium truncate">{p.name}</p>
                     {p.brand && (
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {p.brand}
+                        <BrandLink brand={p.brand} />
                       </p>
                     )}
                   </div>
