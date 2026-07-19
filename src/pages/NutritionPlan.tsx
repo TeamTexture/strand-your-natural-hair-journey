@@ -273,7 +273,7 @@ const AvoidCard = ({ c }: { c: AiCard }) => (
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
           <SeverityChip level={c.severity} />
         </div>
-        <RichBody text={c.body} className="mt-1.5" />
+        <RichBody text={c.body} className="mt-1.5" strandTipLast />
       </div>
     </div>
   </SurfaceCard>
