@@ -121,6 +121,7 @@ export function clearBloodDraft() {
   localStorage.removeItem(UNKNOWN_KEY);
   localStorage.removeItem(DRAFT_PANEL_KEY);
   localStorage.removeItem(DRAFT_PANEL_DATE_KEY);
+  localStorage.removeItem(DRAFT_PANEL_LABEL_KEY);
   localStorage.removeItem("strand_blood_summary_fp");
   window.dispatchEvent(new Event("strand:blood-update"));
 }
@@ -132,7 +133,18 @@ export function setDraftPanelDate(isoDate: string) {
   localStorage.setItem(DRAFT_PANEL_DATE_KEY, isoDate);
 }
 
+/** Set the human-readable label for the current draft panel (extracted from
+ *  the uploaded document itself — e.g. "Advanced Thyroid Blood Test — Medichecks"). */
+export function setDraftPanelLabel(label: string | null) {
+  if (label && label.trim()) {
+    localStorage.setItem(DRAFT_PANEL_LABEL_KEY, label.trim());
+  } else {
+    localStorage.removeItem(DRAFT_PANEL_LABEL_KEY);
+  }
+}
+
 async function ensureDraftPanel(userId: string): Promise<string | null> {
+  const label = localStorage.getItem(DRAFT_PANEL_LABEL_KEY);
   const existing = localStorage.getItem(DRAFT_PANEL_KEY);
   if (existing) {
     // Verify the panel still exists & belongs to this user
@@ -142,14 +154,26 @@ async function ensureDraftPanel(userId: string): Promise<string | null> {
       .eq("id", existing)
       .eq("user_id", userId)
       .maybeSingle();
-    if (data) return existing;
+    if (data) {
+      // Keep label in sync if we have one now.
+      if (label) {
+        await supabase
+          .from("blood_panels" as never)
+          .update({ label } as never)
+          .eq("id", existing)
+          .eq("user_id", userId);
+      }
+      return existing;
+    }
   }
   const panelDate =
     localStorage.getItem(DRAFT_PANEL_DATE_KEY) ??
     new Date().toISOString().slice(0, 10);
+  const insertRow: Record<string, unknown> = { user_id: userId, panel_date: panelDate };
+  if (label) insertRow.label = label;
   const { data, error } = await supabase
     .from("blood_panels" as never)
-    .insert({ user_id: userId, panel_date: panelDate } as never)
+    .insert(insertRow as never)
     .select("id")
     .single();
   if (error || !data) return null;
