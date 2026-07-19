@@ -548,10 +548,10 @@ const Home = () => {
                     ) : goalTip ? (
                       <>
                         <p className="text-sm font-medium leading-snug">
-                          {goalTip.headline}
+                          {renderRichText(goalTip.headline)}
                         </p>
                         <p className="text-xs text-foreground/80 leading-relaxed mt-1">
-                          {goalTip.body}
+                          {renderRichText(goalTip.body)}
                         </p>
                         {goalTip.actions?.length > 0 && (
                           <ul className="mt-2 space-y-1">
@@ -561,7 +561,7 @@ const Home = () => {
                                 className="text-xs text-foreground/80 leading-snug flex gap-1.5"
                               >
                                 <span className="text-primary">•</span>
-                                <span>{a}</span>
+                                <span>{renderRichText(a)}</span>
                               </li>
                             ))}
                           </ul>
