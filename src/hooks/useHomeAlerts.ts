@@ -279,22 +279,34 @@ export function useHomeAlerts() {
       // CAUTIONARY ALERTS
       // ---------------------------------------------------------------
 
-      // 1. Wash overdue + protective style
+      // 1. Wash overdue — fires at 7+ days regardless of style. Message
+      // escalates as the gap widens so the alert stays fresh (7-day, 14-day,
+      // 21-day, 30-day thresholds all read differently).
       if (
-        inTakedownStyle &&
         Number.isFinite(daysSinceWash) &&
         daysSinceWash >= 7 &&
         lastWashDate
       ) {
-        const dayLabel = `Day ${daysSinceWash} in ${currentStyles[0]?.toLowerCase() ?? "style"}`;
+        const styleLabel = currentStyles[0]?.toLowerCase();
+        const dayLabel = inTakedownStyle && styleLabel
+          ? `Day ${daysSinceWash} in ${styleLabel}`
+          : `${daysSinceWash} days since your last wash`;
+        const body =
+          daysSinceWash >= 30
+            ? "Scalp is overdue for a full cleanse — build-up and sebum oxidation are well underway."
+            : daysSinceWash >= 21
+              ? "Three weeks in — product residue and sebum are compromising scalp health. Log a cleanse."
+              : daysSinceWash >= 14
+                ? "Two weeks since your last wash. Time to reset the scalp."
+                : "Product build-up begins now. Log a cleanse.";
         next.push({
           id: "wash-overdue",
           emoji: "💧",
           title: `Wash day overdue — ${dayLabel}`,
-          body: "Product build-up begins now. Log a cleanse.",
+          body,
           to: "/wash-day",
           tone: "warning",
-          signature: `wash:${lastWashDate}`,
+          signature: `wash:${lastWashDate}:${Math.min(daysSinceWash, 60)}`,
         });
       }
 
