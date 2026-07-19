@@ -209,35 +209,35 @@ const PersonalDetailsReview = () => {
                 <Camera className="size-6 text-primary/70" />
               )}
             </button>
-            <div className="flex-1 grid grid-cols-2 gap-2">
+            <div className="flex-1 min-w-0 flex flex-col gap-2">
               <Button
                 type="button"
                 variant="goldOutline"
                 size="pill"
-                className="!px-2 !gap-1.5 !min-h-[38px] !text-[11px] !tracking-wider"
+                className="w-full !px-3 !gap-2 !min-h-[40px] !text-[11px] !tracking-[0.14em] justify-center"
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={avatarBusy}
               >
-                Take Photo
-                <Camera className="size-3" />
+                <Camera className="size-3.5 shrink-0" />
+                <span className="whitespace-nowrap">Take photo</span>
               </Button>
               <Button
                 type="button"
                 variant="goldOutline"
                 size="pill"
-                className="!px-2 !gap-1.5 !min-h-[38px] !text-[11px] !tracking-wider"
+                className="w-full !px-3 !gap-2 !min-h-[40px] !text-[11px] !tracking-[0.14em] justify-center"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarBusy}
               >
-                Upload
-                <ImagePlus className="size-3" />
+                <ImagePlus className="size-3.5 shrink-0" />
+                <span className="whitespace-nowrap">Upload</span>
               </Button>
               {avatarUrl && (
                 <button
                   type="button"
                   onClick={removePhoto}
                   disabled={avatarBusy}
-                  className="col-span-2 text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1 mt-0.5"
+                  className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1 mt-0.5"
                 >
                   <X className="size-3" /> Remove photo
                 </button>
