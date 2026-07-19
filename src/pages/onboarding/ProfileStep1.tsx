@@ -162,6 +162,20 @@ const ProfileStep1 = () => {
     };
   }, [user]);
 
+  // If routed here with #postcode, scroll to and focus the postcode input.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#postcode") return;
+    const t = setTimeout(() => {
+      const el = postcodeRef.current;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, []);
+
   const handlePickPhoto = async (rawFile: File | undefined) => {
     if (!rawFile) return;
     if (!user) {
