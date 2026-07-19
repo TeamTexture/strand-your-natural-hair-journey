@@ -164,7 +164,42 @@ export function useHomeAlerts() {
       const plannedChangeDate = clinical.style?.planned_change_date ?? null;
       const inTakedownStyle = currentStyles.some(isTakedownStyle);
 
-      const hardWater = false;
+      const waterBand = clinical.basic?.water_hardness_band ?? null;
+      const waterMgL = clinical.basic?.water_hardness_mg_l ?? null;
+      const waterSupplier = clinical.basic?.water_supplier ?? null;
+      const hardWater = waterBand === "hard" || waterBand === "very_hard";
+
+      // Water hardness informational alert — always surface once we've resolved
+      // the user's postcode to a supplier / band so the impact on their routine
+      // is visible on Home.
+      if (waterBand) {
+        const bandLabel =
+          waterBand === "very_hard"
+            ? "Very hard water"
+            : waterBand === "hard"
+              ? "Hard water"
+              : waterBand === "moderate"
+                ? "Moderately hard water"
+                : "Soft water";
+        const tone: "warning" | "good" = hardWater ? "warning" : "good";
+        const emoji = hardWater ? "🚱" : "💧";
+        const supplierBit = waterSupplier ? ` — ${waterSupplier}` : "";
+        const mgBit = waterMgL != null ? ` · ${Math.round(waterMgL)} mg/L CaCO₃` : "";
+        const body = hardWater
+          ? `Mineral build-up risk${supplierBit}${mgBit}. Add a clarifier and chelating rinse.`
+          : waterBand === "moderate"
+            ? `Some mineral load${supplierBit}${mgBit}. Occasional clarifying still helps.`
+            : `Low mineral load${supplierBit}${mgBit}. Kind to your strands and colour.`;
+        next.push({
+          id: "water-hardness",
+          emoji,
+          title: `${bandLabel} in your area`,
+          body,
+          to: "/profile",
+          tone,
+          signature: `water:${waterBand}:${waterMgL ?? "?"}:${waterSupplier ?? "?"}`,
+        });
+      }
 
       const lastWashIso = (() => {
         try {
