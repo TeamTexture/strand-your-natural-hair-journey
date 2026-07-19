@@ -147,11 +147,35 @@ export function setDraftPanelLabel(label: string | null) {
   }
 }
 
+/** Test type / category as printed on the report (e.g. "Thyroid function"). */
+export function setDraftPanelTestType(testType: string | null) {
+  if (testType && testType.trim()) {
+    localStorage.setItem(DRAFT_PANEL_TEST_TYPE_KEY, testType.trim());
+  } else {
+    localStorage.removeItem(DRAFT_PANEL_TEST_TYPE_KEY);
+  }
+}
+
+/** Lab/brand that ran the test (e.g. "Medichecks", "Thriva"). */
+export function setDraftPanelLabName(labName: string | null) {
+  if (labName && labName.trim()) {
+    localStorage.setItem(DRAFT_PANEL_LAB_NAME_KEY, labName.trim());
+  } else {
+    localStorage.removeItem(DRAFT_PANEL_LAB_NAME_KEY);
+  }
+}
+
 async function ensureDraftPanel(userId: string): Promise<string | null> {
   const label = localStorage.getItem(DRAFT_PANEL_LABEL_KEY);
+  const testType = localStorage.getItem(DRAFT_PANEL_TEST_TYPE_KEY);
+  const labName = localStorage.getItem(DRAFT_PANEL_LAB_NAME_KEY);
   const existing = localStorage.getItem(DRAFT_PANEL_KEY);
+  const metaUpdate: Record<string, unknown> = {};
+  if (label) metaUpdate.label = label;
+  if (testType) metaUpdate.test_type = testType;
+  if (labName) metaUpdate.lab_name = labName;
+
   if (existing) {
-    // Verify the panel still exists & belongs to this user
     const { data } = await supabase
       .from("blood_panels" as never)
       .select("id")
@@ -159,11 +183,10 @@ async function ensureDraftPanel(userId: string): Promise<string | null> {
       .eq("user_id", userId)
       .maybeSingle();
     if (data) {
-      // Keep label in sync if we have one now.
-      if (label) {
+      if (Object.keys(metaUpdate).length > 0) {
         await supabase
           .from("blood_panels" as never)
-          .update({ label } as never)
+          .update(metaUpdate as never)
           .eq("id", existing)
           .eq("user_id", userId);
       }
@@ -173,8 +196,7 @@ async function ensureDraftPanel(userId: string): Promise<string | null> {
   const panelDate =
     localStorage.getItem(DRAFT_PANEL_DATE_KEY) ??
     new Date().toISOString().slice(0, 10);
-  const insertRow: Record<string, unknown> = { user_id: userId, panel_date: panelDate };
-  if (label) insertRow.label = label;
+  const insertRow: Record<string, unknown> = { user_id: userId, panel_date: panelDate, ...metaUpdate };
   const { data, error } = await supabase
     .from("blood_panels" as never)
     .insert(insertRow as never)
