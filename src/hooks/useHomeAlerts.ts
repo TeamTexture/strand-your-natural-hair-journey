@@ -388,7 +388,7 @@ export function useHomeAlerts() {
         });
       }
 
-      // 5. Blood retest due — 3 months since last test
+      // 5. Blood retest due — 3 months since last test, OR never uploaded one
       if (lastBloodIso && daysSinceBlood !== null && daysSinceBlood >= 90) {
         const months = Math.max(3, Math.floor(daysSinceBlood / 30));
         next.push({
@@ -400,7 +400,23 @@ export function useHomeAlerts() {
           tone: "danger",
           signature: `blood:${lastBloodIso}`,
         });
+      } else if (!lastBloodIso) {
+        // Never uploaded a blood test — nudge after a 14-day grace window
+        const accountCreatedIso = user.created_at ?? null;
+        const daysSinceSignup = daysSince(accountCreatedIso);
+        if (daysSinceSignup === null || daysSinceSignup >= 14) {
+          next.push({
+            id: "blood-first-test",
+            emoji: "🧪",
+            title: "Book your first blood test",
+            body: "Add a recent blood test so STRAND can personalise your hair, nutrition and supplement guidance to your body.",
+            to: "/blood-history",
+            tone: "danger",
+            signature: "blood:none",
+          });
+        }
       }
+
 
       // 6. Rebook professional
       const lastApptDate = apptRes.data?.[0]?.appointment_date ?? null;
