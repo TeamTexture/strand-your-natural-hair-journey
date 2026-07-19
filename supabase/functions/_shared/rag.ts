@@ -91,6 +91,7 @@ interface ChunkRow {
 export async function retrievePassages(
   query: string,
   k: number = 4,
+  chapterFilter?: number[],
 ): Promise<Passage[]> {
   if (!query || query.trim().length === 0) return [];
   const trimmedK = Math.max(1, Math.min(k, 10));
@@ -120,19 +121,15 @@ export async function retrievePassages(
   // RPC is not registered (we don't ship one in Step 1; embedded helper
   // here uses .select with `.order` on a synthetic distance column via
   // a select expression).
-  const { data, error } = await admin
+  let queryBuilder = admin
     .from("manuscript_chunks")
     .select(
       `body, chapter, chapter_title, section_heading, page_start, page_end, similarity:embedding`,
-    )
-    // pgvector cosine distance ordering. We can't pass a vector directly
-    // through PostgREST's order param; use rpc-via-raw-query instead.
-    // Workaround: use a Postgres function `match_manuscript_chunks` that
-    // we install in the same migration if needed. For Step 1 we install
-    // a minimal helper at runtime via the indexer; if absent, we fall
-    // back to client-side scoring on the full table (acceptable for a
-    // ~500-chunk corpus, slow for larger).
-    .limit(trimmedK * 50);
+    );
+  if (chapterFilter && chapterFilter.length > 0) {
+    queryBuilder = queryBuilder.in("chapter", chapterFilter);
+  }
+  const { data, error } = await queryBuilder.limit(trimmedK * 50);
 
   if (error) {
     throw new Error(`manuscript_chunks query failed: ${error.message}`);
