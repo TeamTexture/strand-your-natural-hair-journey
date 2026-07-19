@@ -21,7 +21,6 @@ import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
-  sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";

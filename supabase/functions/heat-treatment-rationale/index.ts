@@ -17,7 +17,6 @@ import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 

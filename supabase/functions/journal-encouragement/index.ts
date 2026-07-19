@@ -10,7 +10,6 @@
 // - No medical or growth claims.
 // - Two lines, tight word counts, modern voice.
 
-import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
