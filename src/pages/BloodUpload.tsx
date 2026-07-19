@@ -385,6 +385,40 @@ export default function BloodUpload() {
           </>
         )}
       </div>
+
+      <Dialog open={pwOpen} onOpenChange={(v) => { if (!v) cancelPassword(); }}>
+        <DialogContent className="max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Lock className="size-4 text-primary" /> Password-protected PDF
+            </DialogTitle>
+            <DialogDescription className="font-body text-xs">
+              This lab report is locked. Enter the password from your lab email so STRAND can read your results.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="pdf-pw" className="text-xs font-body">Password</Label>
+            <Input
+              id="pdf-pw"
+              type="password"
+              autoFocus
+              value={pwValue}
+              onChange={(e) => { setPwValue(e.target.value); setPwError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") submitPassword(); }}
+              disabled={pwUnlocking}
+            />
+            {pwError && <p className="text-xs text-alert-dark font-body">{pwError}</p>}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="pill" onClick={cancelPassword} disabled={pwUnlocking}>
+              Cancel
+            </Button>
+            <Button variant="gold" size="pill" onClick={submitPassword} disabled={pwUnlocking || !pwValue}>
+              {pwUnlocking ? (<><Loader2 className="size-4 animate-spin" /> Unlocking…</>) : "Unlock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 }
