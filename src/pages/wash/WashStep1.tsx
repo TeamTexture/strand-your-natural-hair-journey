@@ -37,9 +37,19 @@ type StepKind = "prepoo" | "cleanse" | "condition" | "treatment";
  * Pick product IDs from the user's shelf that look like they belong to a wash-day step.
  * Used only as a starter suggestion — the user can add or remove inline.
  */
-const suggestStepProductIds = (shelf: UserProduct[], kind: StepKind): string[] =>
-  shelf
+const suggestStepProductIds = (
+  shelf: UserProduct[],
+  kind: StepKind,
+  lastWashIds: string[],
+): string[] => {
+  // Only pre-populate a step with products the user actually used on their
+  // last wash day. First-ever wash days (or steps with no matching product
+  // from the last log) start empty — the user has to add products manually.
+  if (!lastWashIds.length) return [];
+  const lastSet = new Set(lastWashIds);
+  return shelf
     .filter((p) => {
+      if (!lastSet.has(p.id)) return false;
       const cat = (p.category ?? "").toLowerCase();
       const name = (p.name ?? "").toLowerCase();
       if (kind === "cleanse") return /shampoo|cleans|co-?wash/.test(cat) || /shampoo|cleans|co-?wash/.test(name);
@@ -49,6 +59,8 @@ const suggestStepProductIds = (shelf: UserProduct[], kind: StepKind): string[] =
       return false;
     })
     .map((p) => p.id);
+};
+
 
 
 interface Step {
