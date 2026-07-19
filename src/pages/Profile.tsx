@@ -85,7 +85,7 @@ interface AlertItem {
   icon: React.ReactNode;
   label: string;
   detail: string;
-  tone: "warn" | "info" | "good";
+  tone: "warn" | "info" | "good" | "danger";
   onClick?: () => void;
 }
 
@@ -95,6 +95,7 @@ const AlertCard = ({ alert }: { alert: AlertItem }) => (
     disabled={!alert.onClick}
     className={cn(
       "w-full text-left flex items-center gap-3 p-3.5 rounded-[12px] border min-h-[64px] transition-colors",
+      alert.tone === "danger" && "bg-destructive/10 border-destructive/40 hover:bg-destructive/15",
       alert.tone === "warn" && "bg-warn/10 border-warn/40 hover:bg-warn/15",
       alert.tone === "info" && "bg-primary/10 border-primary/30 hover:bg-primary/15",
       alert.tone === "good" && "bg-good/10 border-good/30 hover:bg-good/15",
@@ -103,10 +104,13 @@ const AlertCard = ({ alert }: { alert: AlertItem }) => (
   >
     <div className={cn(
       "size-10 rounded-full flex items-center justify-center shrink-0",
+      alert.tone === "danger" && "bg-destructive/20 text-destructive",
       alert.tone === "warn" && "bg-warn/20 text-warn",
       alert.tone === "info" && "bg-primary/20 text-primary",
       alert.tone === "good" && "bg-good/20 text-good",
     )}>
+      {alert.icon}
+    </div>
       {alert.icon}
     </div>
     <div className="flex-1 min-w-0">
