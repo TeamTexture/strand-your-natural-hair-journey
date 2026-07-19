@@ -587,6 +587,96 @@ const Home = () => {
           )}
         </SurfaceCard>
       </div>
+
+      <Dialog open={waterDialogOpen} onOpenChange={setWaterDialogOpen}>
+        <DialogContent className="max-w-[92%] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">
+              {water.band === "very_hard"
+                ? "Very hard water"
+                : water.band === "hard"
+                  ? "Hard water"
+                  : water.band === "moderate"
+                    ? "Moderately hard water"
+                    : "Soft water"}{" "}
+              in your area
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {water.postcode ? (
+                <>Based on your postcode <span className="font-semibold text-foreground">{water.postcode}</span>{water.supplier ? <> — supplied by <span className="font-semibold text-foreground">{water.supplier}</span></> : null}.</>
+              ) : (
+                <>Add your postcode to your profile so STRAND can tailor water advice.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border border-border p-3 space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Postcode</span>
+                <span className="font-medium">{water.postcode ?? "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Supplier</span>
+                <span className="font-medium">{water.supplier ?? "—"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Mineral content</span>
+                <span className="font-medium">
+                  {water.mg_l != null ? `${Math.round(water.mg_l)} mg/L CaCO₃` : "—"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Band</span>
+                <span className="font-medium capitalize">
+                  {(water.band ?? "unknown").replace("_", " ")}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <p className="font-semibold mb-1">What this means for your hair</p>
+              {water.band === "hard" || water.band === "very_hard" ? (
+                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
+                  <li>Mineral build-up on the cuticle can cause dryness, dullness and colour fade.</li>
+                  <li>Add a clarifying wash every 4–5 washes; use a chelating rinse monthly.</li>
+                  <li>Follow with a deep condition under a TT Heat Hat.</li>
+                  <li>Consider an in-shower filter to reduce calcium and magnesium exposure.</li>
+                </ul>
+              ) : water.band === "moderate" ? (
+                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
+                  <li>Some mineral load — occasional clarifying still helps.</li>
+                  <li>Deep condition weekly to keep porosity balanced.</li>
+                </ul>
+              ) : (
+                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
+                  <li>Low mineral load — kind to colour and strand integrity.</li>
+                  <li>Focus on protein/moisture balance rather than clarifying.</li>
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setWaterDialogOpen(false)}
+              className="rounded-pill"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setWaterDialogOpen(false);
+                navigate("/profile");
+              }}
+              className="rounded-pill"
+            >
+              Update postcode
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 };
