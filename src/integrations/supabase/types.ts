@@ -155,33 +155,39 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          lab_name: string | null
           label: string | null
           notes: string | null
           panel_date: string
           scheduled_at: string | null
           status: string
+          test_type: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          lab_name?: string | null
           label?: string | null
           notes?: string | null
           panel_date?: string
           scheduled_at?: string | null
           status?: string
+          test_type?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          lab_name?: string | null
           label?: string | null
           notes?: string | null
           panel_date?: string
           scheduled_at?: string | null
           status?: string
+          test_type?: string | null
           updated_at?: string
           user_id?: string
         }

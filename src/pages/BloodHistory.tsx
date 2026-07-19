@@ -66,6 +66,8 @@ interface PanelRow {
   scheduled_at: string | null;
   status: PanelStatus;
   label: string | null;
+  test_type: string | null;
+  lab_name: string | null;
   notes: string | null;
 }
 interface ResultRow {
@@ -112,7 +114,9 @@ const BloodHistory = () => {
   const [cursor, setCursor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<PanelRow | null>(null);
   const [scheduling, setScheduling] = useState<boolean>(false);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Kept for backwards compatibility with any earlier UI paths, but the new
+  // thumbnail routes to /blood-panel/:id via a "Review results" button.
+  const [, setExpanded] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
     queryKey: ["blood-history", user?.id ?? "anon"],
@@ -121,7 +125,7 @@ const BloodHistory = () => {
     queryFn: async () => {
       const { data: panels } = await supabase
         .from("blood_panels" as never)
-        .select("id, panel_date, scheduled_at, status, label, notes")
+        .select("id, panel_date, scheduled_at, status, label, test_type, lab_name, notes")
         .eq("user_id", user!.id)
         .order("panel_date", { ascending: false })
         .order("created_at", { ascending: false });
@@ -431,24 +435,13 @@ const BloodHistory = () => {
               const rows = rowsByPanel.get(p.id) ?? [];
               const flagged = rows.filter((r) => r.status === "low" || r.status === "high");
               const preview = flagged.length > 0 ? flagged.slice(0, 3) : rows.slice(0, 3);
-              const isOpen = expanded.has(p.id);
               return (
                 <div
                   key={p.id}
                   className="bg-card border border-border rounded-[14px] p-3.5"
                 >
-                  <button
-                    onClick={() => {
-                      setExpanded((s) => {
-                        const n = new Set(s);
-                        if (n.has(p.id)) n.delete(p.id);
-                        else n.add(p.id);
-                        return n;
-                      });
-                    }}
-                    className="w-full flex items-start gap-3 text-left"
-                  >
-                    <div className="size-11 rounded-[12px] bg-primary/10 text-primary flex flex-col items-center justify-center shrink-0">
+                  <div className="flex items-start gap-3">
+                    <div className="size-11 rounded-[12px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <FlaskConical className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -459,6 +452,10 @@ const BloodHistory = () => {
                             Latest
                           </span>
                         )}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-body mt-0.5 truncate">
+                        {[p.lab_name, p.test_type].filter(Boolean).join(" · ") ||
+                          "Blood panel"}
                       </p>
                       <p className="text-xs text-muted-foreground font-body mt-0.5">
                         {displayDate(p)} · {rows.length} markers
@@ -483,57 +480,15 @@ const BloodHistory = () => {
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditing(p);
-                      }}
-                      className="size-8 rounded-full hover:bg-muted flex items-center justify-center shrink-0"
-                      aria-label="Edit"
-                    >
-                      <Pencil className="size-4" />
-                    </button>
-                  </button>
-
-                  {isOpen && rows.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-border/60 space-y-1">
-                      {rows.map((r) => (
-                        <div
-                          key={r.marker}
-                          className="flex items-center justify-between text-xs font-body"
-                        >
-                          <span className="text-foreground/80">{r.marker}</span>
-                          <span
-                            className={cn(
-                              "font-medium",
-                              r.status === "low" || r.status === "high"
-                                ? "text-warn"
-                                : "text-foreground",
-                            )}
-                          >
-                            {r.value ?? "–"} {r.unit ?? ""}
-                          </span>
-                        </div>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="pill"
-                        className="w-full mt-3"
-                        onClick={() => {
-                          clearBloodDraft();
-                          localStorage.setItem("strand_blood_draft_panel_id", p.id);
-                          if (p.panel_date)
-                            localStorage.setItem(
-                              "strand_blood_draft_panel_date",
-                              p.panel_date,
-                            );
-                          navigate("/onboarding/blood-iron-vitamins");
-                        }}
-                      >
-                        Edit values
-                      </Button>
-                    </div>
-                  )}
+                  </div>
+                  <Button
+                    variant="gold"
+                    size="pill"
+                    className="w-full mt-3"
+                    onClick={() => navigate(`/blood-panel/${p.id}`)}
+                  >
+                    Review results
+                  </Button>
                 </div>
               );
             })}
