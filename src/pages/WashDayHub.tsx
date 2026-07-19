@@ -141,6 +141,30 @@ const WashDayHub = () => {
 
   const latestTip = washDays.find((w) => w.next_wash_tip)?.next_wash_tip ?? null;
 
+  const overdue = useMemo(() => {
+    if (!washDays.length) return null;
+    const last = washDays[0]?.wash_date;
+    if (!last) return null;
+    const lastDate = new Date(last);
+    const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / 86400000);
+    if (diffDays <= 7) return null;
+    const activeGoalTitles = (goals ?? [])
+      .filter((g) => g.status !== "complete" && g.status !== "archived")
+      .map((g) => g.title)
+      .filter(Boolean)
+      .slice(0, 2);
+    return { diffDays, lastDate, goalTitles: activeGoalTitles };
+  }, [washDays, goals, today]);
+
+  const overdueReason = (() => {
+    if (!overdue) return "";
+    const base = "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
+    if (overdue.goalTitles.length) {
+      return `${base} That directly works against your goal${overdue.goalTitles.length > 1 ? "s" : ""}: ${overdue.goalTitles.join(" and ")}. Log a wash day to keep the scalp environment on track.`;
+    }
+    return `${base} Log a wash day to reset your scalp environment.`;
+  })();
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} />
