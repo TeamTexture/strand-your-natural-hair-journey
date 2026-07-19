@@ -84,6 +84,52 @@ interface ResultRow {
   panel_id: string | null;
 }
 
+const SMALL_WORDS = new Set(["and", "or", "of", "the", "for", "to", "a", "an", "in", "on", "at", "by"]);
+function titleCaseBrand(name?: string | null): string | null {
+  if (!name) return null;
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  return trimmed
+    .split(/\s+/)
+    .map((word, i) => {
+      const lower = word.toLowerCase();
+      if (i > 0 && SMALL_WORDS.has(lower)) return lower;
+      if (/^[A-Z0-9]{2,}$/.test(word)) return word; // keep acronyms like NHS, RDL
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
+
+const CATEGORY_FOCUS: Record<string, string> = {
+  iron: "iron stores & energy",
+  vitamins: "core vitamins",
+  minerals: "strand-strength minerals",
+  thyroid: "thyroid & hair cycle",
+  hormones: "hormones & shedding",
+  inflammation: "inflammation & general health",
+};
+
+function buildPanelInsight(
+  rows: { marker: string; value: number | null; unit: string | null; status: string | null }[],
+  flagged: { marker: string; status: string | null }[],
+): string | null {
+  if (rows.length === 0) return null;
+  if (flagged.length === 0) {
+    return `All ${rows.length} markers sit inside their healthy range — a solid baseline for your hair.`;
+  }
+  const named = flagged
+    .slice(0, 3)
+    .map((f) => `${f.status === "low" ? "low" : "high"} ${f.marker}`)
+    .join(", ");
+  const cats = Array.from(
+    new Set(flagged.map((f) => BLOOD_RANGES[f.marker]?.category).filter(Boolean) as string[]),
+  ).slice(0, 2);
+  const focus = cats.map((c) => CATEGORY_FOCUS[c] ?? c).join(" and ");
+  const extra = flagged.length > 3 ? ` and ${flagged.length - 3} more` : "";
+  return `${flagged.length} marker${flagged.length > 1 ? "s" : ""} outside range: ${named}${extra}.${focus ? ` Focus area: ${focus}.` : ""}`;
+}
+
+
 type Zoom = "week" | "month" | "year";
 
 const fmtDate = (iso: string | null) => {
@@ -462,7 +508,7 @@ const BloodHistory = () => {
             {logged.map((p, idx) => {
               const rows = rowsByPanel.get(p.id) ?? [];
               const flagged = rows.filter((r) => r.status === "low" || r.status === "high");
-              const preview = flagged.length > 0 ? flagged.slice(0, 3) : rows.slice(0, 3);
+              const insight = buildPanelInsight(rows, flagged);
               return (
                 <div
                   key={p.id}
@@ -490,33 +536,21 @@ const BloodHistory = () => {
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground font-body mt-0.5 truncate">
-                        {[p.lab_name, p.test_type].filter(Boolean).join(" · ") ||
+                        {[titleCaseBrand(p.lab_name), p.test_type].filter(Boolean).join(" · ") ||
                           "Blood panel"}
                       </p>
                       <p className="text-xs text-muted-foreground font-body mt-0.5">
                         {displayDate(p)} · {rows.length} markers
                         {flagged.length > 0 ? ` · ${flagged.length} flagged` : ""}
                       </p>
-                      {preview.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {preview.map((r) => (
-                            <span
-                              key={r.marker}
-                              className={cn(
-                                "text-[10px] font-body px-2 py-0.5 rounded-full border",
-                                r.status === "low" || r.status === "high"
-                                  ? "border-warn/40 bg-warn/10 text-warn"
-                                  : "border-border bg-muted text-foreground/70",
-                              )}
-                            >
-                              {r.marker} {r.value ?? "–"}
-                              {r.unit ? ` ${r.unit}` : ""}
-                            </span>
-                          ))}
-                        </div>
+                      {insight && (
+                        <p className="text-xs font-body text-foreground/80 mt-2 leading-relaxed">
+                          {insight}
+                        </p>
                       )}
                     </div>
                   </div>
+
                   <Button
                     variant="gold"
                     size="pill"
