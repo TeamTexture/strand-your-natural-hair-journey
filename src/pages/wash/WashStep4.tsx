@@ -58,10 +58,6 @@ interface StylingSaved {
 
 interface NextWashTip { action: string; why: string }
 
-const tipText = (tip: NextWashTip) => [
-  tip.action ? `Do this next wash: ${tip.action}` : "",
-  tip.why ? `Why it matters: ${tip.why}` : "",
-].filter(Boolean).join("\n\n");
 
 const WashStep4 = () => {
   const navigate = useNavigate();
