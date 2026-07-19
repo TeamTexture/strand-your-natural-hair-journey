@@ -66,6 +66,8 @@ interface PanelRow {
   scheduled_at: string | null;
   status: PanelStatus;
   label: string | null;
+  test_type: string | null;
+  lab_name: string | null;
   notes: string | null;
 }
 interface ResultRow {
