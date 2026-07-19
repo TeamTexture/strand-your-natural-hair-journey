@@ -222,6 +222,11 @@ export default function BloodUpload() {
           { type: "image/jpeg" },
         );
         setFiles([shown]);
+        setThumbSource(image);
+        setThumbPreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(image);
+        });
         setExtracting(false);
         await runExtract([image]);
       } catch (err) {
