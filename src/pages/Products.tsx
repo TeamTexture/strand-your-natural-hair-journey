@@ -160,19 +160,55 @@ const Products = () => {
                     key={p.id}
                     className="bg-card border border-border rounded-[14px] overflow-hidden"
                   >
-                    <div className="p-3.5 flex items-center gap-3">
-                      <ProductThumb
-                        imageUrl={p.image_url}
-                        storagePath={p.storage_path}
-                        alt={p.name}
-                        cover={!!p.storage_path}
-                      />
-                      <button
-                        onClick={() => navigate(`/products/profile/${p.id}`)}
-                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                      >
-                        <div className="flex-1 min-w-0">
+                    <div className="p-3.5 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <button
+                          onClick={() => navigate(`/products/profile/${p.id}`)}
+                          className="flex-1 min-w-0 text-left"
+                        >
                           <p className="text-sm font-medium font-body leading-snug break-words">{p.name}</p>
+                        </button>
+                        <div className="flex items-center shrink-0 -mt-1">
+                          <button
+                            onClick={() => handleToggleFavourite(p)}
+                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                            aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                            aria-pressed={p.on_favourite}
+                          >
+                            <Heart
+                              className={cn(
+                                "size-4 transition-colors",
+                                p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
+                              )}
+                            />
+                          </button>
+                          <button
+                            onClick={() => setExpanded(isOpen ? null : p.product_key)}
+                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                            aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
+                            aria-expanded={isOpen}
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "size-4 text-muted-foreground transition-transform",
+                                isOpen && "rotate-180",
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <ProductThumb
+                          imageUrl={p.image_url}
+                          storagePath={p.storage_path}
+                          alt={p.name}
+                          cover={!!p.storage_path}
+                        />
+                        <button
+                          onClick={() => navigate(`/products/profile/${p.id}`)}
+                          className="flex-1 min-w-0 text-left"
+                        >
                           <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Stars n={stars} />
@@ -182,34 +218,8 @@ const Products = () => {
                               </span>
                             )}
                           </div>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => handleToggleFavourite(p)}
-                        className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                        aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
-                        aria-pressed={p.on_favourite}
-                      >
-                        <Heart
-                          className={cn(
-                            "size-4 transition-colors",
-                            p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
-                          )}
-                        />
-                      </button>
-                      <button
-                        onClick={() => setExpanded(isOpen ? null : p.product_key)}
-                        className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                        aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
-                        aria-expanded={isOpen}
-                      >
-                        <ChevronDown
-                          className={cn(
-                            "size-4 text-muted-foreground transition-transform",
-                            isOpen && "rotate-180",
-                          )}
-                        />
-                      </button>
+                        </button>
+                      </div>
                     </div>
 
                     {isOpen && (
