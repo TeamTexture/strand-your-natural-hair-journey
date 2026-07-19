@@ -14,6 +14,7 @@ import { uuid } from "@/lib/uuid";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
+import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
 
 const AVATAR_BUCKET = "avatars";
 
