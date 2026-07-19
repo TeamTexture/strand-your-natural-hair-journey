@@ -17,7 +17,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
-import { journalEntries } from "@/data/journalEntries";
+
 import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
