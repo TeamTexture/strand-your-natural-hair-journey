@@ -239,16 +239,14 @@ const MyToolsSection = () => {
                     <div className="flex items-center gap-2 mt-0.5">
                       <Stars
                         n={
-                          t.rating ??
-                          (typeof t.match_score === "number"
-                            ? Math.max(1, Math.round(t.match_score / 20))
-                            : 0)
+                          typeof t.match_score === "number"
+                            ? Math.max(1, Math.min(5, Math.round(t.match_score / 20)))
+                            : 0
                         }
-                        onChange={(n) => updateTool(t.id, { rating: n || null })}
                       />
-                      {t.rating == null && typeof t.match_score === "number" && (
+                      {typeof t.match_score === "number" && (
                         <span className="text-[9px] uppercase tracking-wider text-primary/80">
-                          AI fit
+                          Strand
                         </span>
                       )}
                       {noteCount > 0 && (
@@ -468,12 +466,27 @@ const MyToolsSection = () => {
 
             <div className="space-y-1.5">
               <label className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
-                Your rating
+                Strand rating
               </label>
-              <div className="text-2xl">
-                <Stars n={rating} onChange={setRating} />
-              </div>
+              {(() => {
+                const raw = analysis?.match_score;
+                const score = typeof raw === "number" ? Math.max(0, Math.min(100, raw)) : null;
+                const stars = score != null ? Math.max(1, Math.min(5, Math.round(score / 20))) : 0;
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-0.5 text-2xl leading-none">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <span key={i} className={i <= stars ? "text-primary" : "text-border"}>★</span>
+                      ))}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {score != null ? "Based on your hair profile" : "Add a link to run STRAND analysis"}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
+
 
             <VoiceNoteField
               label="Notes"
