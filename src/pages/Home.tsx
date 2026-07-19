@@ -30,6 +30,31 @@ import {
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
 
+// Render text with "TT Heat Hat" turned into a link to Team Texture.
+const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
+const renderRichText = (text: string) => {
+  const cleaned = text
+    .replace(/\s*\(https?:\/\/(?:www\.)?teamtexture\.co\.uk[^)]*\)/gi, "")
+    .replace(/\s*—\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "")
+    .replace(/\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "");
+  const parts = cleaned.split(/(TT Heat Hat)/gi);
+  return parts.map((part, i) =>
+    /^tt heat hat$/i.test(part) ? (
+      <a
+        key={i}
+        href={HEAT_HAT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+};
+
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight" aria-label={`${n} stars`}>
