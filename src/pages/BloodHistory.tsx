@@ -56,6 +56,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { clearBloodDraft } from "@/hooks/useBloodValues";
 import { useBloodPanelThumbs } from "@/hooks/useBloodPanelThumbs";
 import { BLOOD_RANGES } from "@/data/bloodRanges";
+import BloodChangeAnalysis from "@/components/BloodChangeAnalysis";
+import { AlertCircle } from "lucide-react";
+import { differenceInDays } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
