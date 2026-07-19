@@ -125,14 +125,28 @@ const Home = () => {
       let band: string | null = null;
       let mg: number | null = null;
       let supplier: string | null = null;
+      let calcium: number | null = null;
+      let magnesium: number | null = null;
+      let phMin: number | null = null;
+      let phMax: number | null = null;
+      let chlorineNote: string | null = null;
       try {
         const { data } = await supabase.functions
           .invoke("water-hardness-lookup", { body: { postcode: trimmed } });
-        const d = data as { band?: string; mg_l?: number; supplier?: string } | null;
+        const d = data as {
+          band?: string; mg_l?: number; supplier?: string;
+          calcium_mg_l?: number; magnesium_mg_l?: number;
+          ph_min?: number; ph_max?: number; chlorine_note?: string;
+        } | null;
         if (d) {
           band = d.band ?? null;
           mg = typeof d.mg_l === "number" ? d.mg_l : null;
           supplier = d.supplier ?? null;
+          calcium = typeof d.calcium_mg_l === "number" ? d.calcium_mg_l : null;
+          magnesium = typeof d.magnesium_mg_l === "number" ? d.magnesium_mg_l : null;
+          phMin = typeof d.ph_min === "number" ? d.ph_min : null;
+          phMax = typeof d.ph_max === "number" ? d.ph_max : null;
+          chlorineNote = d.chlorine_note ?? null;
           await supabase
             .from("profiles")
             .update({
@@ -146,7 +160,17 @@ const Home = () => {
         /* non-fatal: postcode saved even if lookup fails */
       }
 
-      setWater({ postcode: trimmed, band, mg_l: mg, supplier });
+      setWater({
+        postcode: trimmed,
+        band,
+        mg_l: mg,
+        supplier,
+        calcium_mg_l: calcium,
+        magnesium_mg_l: magnesium,
+        ph_min: phMin,
+        ph_max: phMax,
+        chlorine_note: chlorineNote,
+      });
       invalidateClinicalContextCache();
       void loadClinicalContext();
       toast.success("Postcode updated");
