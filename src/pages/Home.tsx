@@ -87,6 +87,63 @@ const Home = () => {
     };
   });
   const [waterDialogOpen, setWaterDialogOpen] = useState(false);
+  const [pcEditing, setPcEditing] = useState(false);
+  const [pcDraft, setPcDraft] = useState("");
+  const [pcSaving, setPcSaving] = useState(false);
+  const [pcError, setPcError] = useState<string | null>(null);
+
+  const savePostcode = async () => {
+    if (!user) return;
+    const trimmed = pcDraft.trim().toUpperCase();
+    if (trimmed.length < 3) {
+      setPcError("Enter a valid UK postcode");
+      return;
+    }
+    setPcSaving(true);
+    setPcError(null);
+    try {
+      const { error: upErr } = await supabase
+        .from("profiles")
+        .update({ postcode: trimmed })
+        .eq("user_id", user.id);
+      if (upErr) throw upErr;
+
+      // Look up water hardness and persist supplier/band/mg_l
+      let band: string | null = null;
+      let mg: number | null = null;
+      let supplier: string | null = null;
+      try {
+        const { data } = await supabase.functions
+          .invoke("water-hardness-lookup", { body: { postcode: trimmed } });
+        const d = data as { band?: string; mg_l?: number; supplier?: string } | null;
+        if (d) {
+          band = d.band ?? null;
+          mg = typeof d.mg_l === "number" ? d.mg_l : null;
+          supplier = d.supplier ?? null;
+          await supabase
+            .from("profiles")
+            .update({
+              water_hardness_band: band,
+              water_hardness_mg_l: mg,
+              water_supplier: supplier,
+            })
+            .eq("user_id", user.id);
+        }
+      } catch {
+        /* non-fatal: postcode saved even if lookup fails */
+      }
+
+      setWater({ postcode: trimmed, band, mg_l: mg, supplier });
+      invalidateClinicalContextCache();
+      void loadClinicalContext();
+      toast.success("Postcode updated");
+      setPcEditing(false);
+    } catch (e) {
+      setPcError((e as Error).message || "Could not save postcode");
+    } finally {
+      setPcSaving(false);
+    }
+  };
 
   // Re-fetch style from DB (with localStorage fallback) whenever the user
   // lands on Home, regains focus, the tab becomes visible again, OR an
