@@ -57,8 +57,11 @@ RULES:
 - If a value cannot be parsed as a number (e.g. "Negative", "<5"), skip that ONE row but keep going with the rest.
 - If the report shows only a reference range with no measured value, skip that row.
 - If you find a panel date (collection date, report date, sample date), return it as panel_date in YYYY-MM-DD format. If uncertain, return null.
+- Identify the DOCUMENT TITLE / test name as printed at the top of the report (e.g. "Advanced Thyroid Blood Test", "Menopause Health Panel", "Full Blood Count", "Iron Studies"). Return it as document_title. If nothing suitable is printed, set to null. Do NOT invent a title.
+- Identify the TEST TYPE — a short category label describing what kind of test it is (e.g. "Thyroid function", "Full blood count", "Female hormones", "Iron studies", "General wellness"). Return it as test_type. If unsure, set to null.
+- Identify the LAB / PROVIDER name if printed on the report (e.g. "Medichecks", "Thriva", "Quest Diagnostics", "The Doctors Laboratory"). Return it as lab_name. If not visible, null.
 - Never invent values. Only include markers where you actually see a numeric result on the report.
-- If the image is not a blood test at all, return an empty results array.
+- If the image is not a blood test at all, return an empty results array and null for all metadata.
 
 STRAND whitelist (for canonical_marker matching only — do NOT restrict extraction to these):
 ${MARKER_LIST_FOR_PROMPT}
@@ -66,6 +69,9 @@ ${MARKER_LIST_FOR_PROMPT}
 Return ONLY valid JSON matching:
 {
   "panel_date": "YYYY-MM-DD" | null,
+  "document_title": string | null,
+  "test_type": string | null,
+  "lab_name": string | null,
   "results": [
     { "canonical_marker": string | null, "raw_marker": string, "value": number, "unit_reported": string, "raw_value": string }
   ]
