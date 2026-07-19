@@ -31,6 +31,8 @@ export interface HairSlice {
   scalp: string[];
   diagnosed: string[];
   areas: string[];
+  length_inches: number | null;
+  length_bucket: string | null;
 }
 
 export interface HealthSlice {
