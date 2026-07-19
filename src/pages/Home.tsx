@@ -66,6 +66,16 @@ const Home = () => {
       planned_next_style: local.style?.planned_next_style ?? undefined,
     };
   });
+  const [water, setWater] = useState<{
+    band: string | null; mg_l: number | null; supplier: string | null;
+  }>(() => {
+    const local = loadClinicalContextLocal();
+    return {
+      band: local.basic?.water_hardness_band ?? null,
+      mg_l: local.basic?.water_hardness_mg_l ?? null,
+      supplier: local.basic?.water_supplier ?? null,
+    };
+  });
 
   // Re-fetch style from DB (with localStorage fallback) whenever the user
   // lands on Home, regains focus, the tab becomes visible again, OR an
