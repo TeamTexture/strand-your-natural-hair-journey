@@ -39,10 +39,6 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
   </div>
 );
 
-const formatNextWashTip = (action: string, why: string) => [
-  action ? `Do this next wash: ${action}` : "",
-  why ? `Why it matters: ${why}` : "",
-].filter(Boolean).join("\n\n");
 
 interface EditDraft {
   wash_date: string;
