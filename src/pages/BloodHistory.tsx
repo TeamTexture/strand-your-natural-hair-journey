@@ -396,44 +396,30 @@ const BloodHistory = () => {
           </>
         )}
 
-        {/* Movement */}
-        {deltas.length > 0 && (
-          <>
-            <SectionLabel>Movement since your last test</SectionLabel>
-            <SurfaceCard padded={false}>
-              <ul className="divide-y divide-border/60">
-                {deltas.map((d) => {
-                  const up = d.diff > 0;
-                  const flat = d.diff === 0;
-                  const Icon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
-                  const tone = flat
-                    ? "text-muted-foreground"
-                    : d.curStatus === "normal" && d.prevStatus !== "normal"
-                      ? "text-good"
-                      : d.curStatus && d.curStatus !== "normal" && d.prevStatus === "normal"
-                        ? "text-warn"
-                        : "text-foreground/80";
-                  return (
-                    <li key={d.marker} className="flex items-center gap-3 px-4 py-3">
-                      <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <FlaskConical className="size-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-body font-medium truncate">{d.marker}</p>
-                        <p className="text-xs text-muted-foreground font-body">
-                          {d.previous} → {d.current} {d.unit}
-                        </p>
-                      </div>
-                      <span className={`flex items-center gap-1 text-xs font-body ${tone}`}>
-                        <Icon className="size-4" />
-                        {flat ? "no change" : `${up ? "+" : ""}${d.diff.toFixed(1)}`}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </SurfaceCard>
-          </>
+        {/* AI Analysis on changes since last test */}
+        {latest && latestResults.length > 0 && (
+          <BloodChangeAnalysis
+            latestPanel={{
+              id: latest.id,
+              date: latest.panel_date ?? null,
+              label: latest.label ?? null,
+              lab_name: latest.lab_name ?? null,
+              test_type: latest.test_type ?? null,
+            }}
+            previousPanel={
+              previous
+                ? { id: previous.id, date: previous.panel_date ?? null }
+                : null
+            }
+            deltas={deltas}
+            latestResults={latestResults.map((r) => ({
+              marker: r.marker,
+              value: r.value == null ? null : Number(r.value),
+              unit: r.unit ?? BLOOD_RANGES[r.marker]?.unit ?? null,
+              status: r.status ?? null,
+              category: BLOOD_RANGES[r.marker]?.category ?? null,
+            }))}
+          />
         )}
 
         {/* All logged tests */}
