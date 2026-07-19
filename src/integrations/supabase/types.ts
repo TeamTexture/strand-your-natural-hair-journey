@@ -644,9 +644,6 @@ export type Database = {
           postcode: string | null
           updated_at: string
           user_id: string
-          water_hardness_band: string | null
-          water_hardness_mg_l: number | null
-          water_supplier: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -660,9 +657,6 @@ export type Database = {
           postcode?: string | null
           updated_at?: string
           user_id: string
-          water_hardness_band?: string | null
-          water_hardness_mg_l?: number | null
-          water_supplier?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -676,9 +670,6 @@ export type Database = {
           postcode?: string | null
           updated_at?: string
           user_id?: string
-          water_hardness_band?: string | null
-          water_hardness_mg_l?: number | null
-          water_supplier?: string | null
         }
         Relationships: []
       }

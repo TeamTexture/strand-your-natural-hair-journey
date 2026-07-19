@@ -1,13 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { HelpCircle, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -23,7 +14,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
-import { Ruler, Sparkles, Droplet } from "lucide-react";
+import { Ruler, Sparkles } from "lucide-react";
 import {
   loadClinicalContext,
   loadClinicalContextLocal,
@@ -100,112 +91,6 @@ const Home = () => {
       planned_next_style: local.style?.planned_next_style ?? undefined,
     };
   });
-  const [water, setWater] = useState<{
-    band: string | null;
-    mg_l: number | null;
-    supplier: string | null;
-    postcode: string | null;
-    calcium_mg_l: number | null;
-    magnesium_mg_l: number | null;
-    ph_min: number | null;
-    ph_max: number | null;
-    chlorine_note: string | null;
-  }>(() => {
-    const local = loadClinicalContextLocal();
-    return {
-      band: local.basic?.water_hardness_band ?? null,
-      mg_l: local.basic?.water_hardness_mg_l ?? null,
-      supplier: local.basic?.water_supplier ?? null,
-      postcode: local.basic?.postcode ?? null,
-      calcium_mg_l: null,
-      magnesium_mg_l: null,
-      ph_min: null,
-      ph_max: null,
-      chlorine_note: null,
-    };
-  });
-  const [waterDialogOpen, setWaterDialogOpen] = useState(false);
-  const [pcEditing, setPcEditing] = useState(false);
-  const [pcDraft, setPcDraft] = useState("");
-  const [pcSaving, setPcSaving] = useState(false);
-  const [pcError, setPcError] = useState<string | null>(null);
-
-  const savePostcode = async () => {
-    if (!user) return;
-    const trimmed = pcDraft.trim().toUpperCase();
-    if (trimmed.length < 3) {
-      setPcError("Enter a valid UK postcode");
-      return;
-    }
-    setPcSaving(true);
-    setPcError(null);
-    try {
-      const { error: upErr } = await supabase
-        .from("profiles")
-        .update({ postcode: trimmed })
-        .eq("user_id", user.id);
-      if (upErr) throw upErr;
-
-      // Look up water hardness and persist supplier/band/mg_l
-      let band: string | null = null;
-      let mg: number | null = null;
-      let supplier: string | null = null;
-      let calcium: number | null = null;
-      let magnesium: number | null = null;
-      let phMin: number | null = null;
-      let phMax: number | null = null;
-      let chlorineNote: string | null = null;
-      try {
-        const { data } = await supabase.functions
-          .invoke("water-hardness-lookup", { body: { postcode: trimmed } });
-        const d = data as {
-          band?: string; mg_l?: number; supplier?: string;
-          calcium_mg_l?: number; magnesium_mg_l?: number;
-          ph_min?: number; ph_max?: number; chlorine_note?: string;
-        } | null;
-        if (d) {
-          band = d.band ?? null;
-          mg = typeof d.mg_l === "number" ? d.mg_l : null;
-          supplier = d.supplier ?? null;
-          calcium = typeof d.calcium_mg_l === "number" ? d.calcium_mg_l : null;
-          magnesium = typeof d.magnesium_mg_l === "number" ? d.magnesium_mg_l : null;
-          phMin = typeof d.ph_min === "number" ? d.ph_min : null;
-          phMax = typeof d.ph_max === "number" ? d.ph_max : null;
-          chlorineNote = d.chlorine_note ?? null;
-          await supabase
-            .from("profiles")
-            .update({
-              water_hardness_band: band,
-              water_hardness_mg_l: mg,
-              water_supplier: supplier,
-            } as never)
-            .eq("user_id", user.id);
-        }
-      } catch {
-        /* non-fatal: postcode saved even if lookup fails */
-      }
-
-      setWater({
-        postcode: trimmed,
-        band,
-        mg_l: mg,
-        supplier,
-        calcium_mg_l: calcium,
-        magnesium_mg_l: magnesium,
-        ph_min: phMin,
-        ph_max: phMax,
-        chlorine_note: chlorineNote,
-      });
-      invalidateClinicalContextCache();
-      void loadClinicalContext();
-      toast.success("Postcode updated");
-      setPcEditing(false);
-    } catch (e) {
-      setPcError((e as Error).message || "Could not save postcode");
-    } finally {
-      setPcSaving(false);
-    }
-  };
 
   // Re-fetch style from DB (with localStorage fallback) whenever the user
   // lands on Home, regains focus, the tab becomes visible again, OR an
@@ -223,13 +108,6 @@ const Home = () => {
         style_set_at: ctx.style?.style_set_at ?? undefined,
         planned_next_style: ctx.style?.planned_next_style ?? undefined,
       });
-      setWater((prev) => ({
-        ...prev,
-        band: ctx.basic?.water_hardness_band ?? null,
-        mg_l: ctx.basic?.water_hardness_mg_l ?? null,
-        supplier: ctx.basic?.water_supplier ?? null,
-        postcode: ctx.basic?.postcode ?? null,
-      }));
     };
     // Initial mount: use the (possibly cached) edge-function result so
     // navigations back to Home don't pay a full decrypt round-trip.
@@ -249,37 +127,6 @@ const Home = () => {
     };
   }, [location.key]);
 
-  // Hydrate richer water-quality detail (calcium/magnesium/pH/chlorine) the
-  // first time the water dialog opens with a known postcode. These fields
-  // aren't persisted on the profile row, so we ask the edge function fresh.
-  useEffect(() => {
-    if (!waterDialogOpen) return;
-    if (!water.postcode) return;
-    if (water.calcium_mg_l != null) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { data } = await supabase.functions
-          .invoke("water-hardness-lookup", { body: { postcode: water.postcode } });
-        const d = data as {
-          calcium_mg_l?: number; magnesium_mg_l?: number;
-          ph_min?: number; ph_max?: number; chlorine_note?: string;
-        } | null;
-        if (cancelled || !d) return;
-        setWater((prev) => ({
-          ...prev,
-          calcium_mg_l: typeof d.calcium_mg_l === "number" ? d.calcium_mg_l : prev.calcium_mg_l,
-          magnesium_mg_l: typeof d.magnesium_mg_l === "number" ? d.magnesium_mg_l : prev.magnesium_mg_l,
-          ph_min: typeof d.ph_min === "number" ? d.ph_min : prev.ph_min,
-          ph_max: typeof d.ph_max === "number" ? d.ph_max : prev.ph_max,
-          chlorine_note: d.chlorine_note ?? prev.chlorine_note,
-        }));
-      } catch {
-        /* non-fatal */
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [waterDialogOpen, water.postcode, water.calcium_mg_l]);
 
   // Resolve the display name from the profiles table first
   useEffect(() => {
@@ -369,23 +216,6 @@ const Home = () => {
           <h1 className="font-display text-[24px] font-bold leading-tight">
             {firstName || "there"}
           </h1>
-          {water.band && (
-            <button
-              onClick={() => setWaterDialogOpen(true)}
-              title={`${water.supplier ?? "Your area"} · ${water.mg_l ?? "?"} mg/L CaCO₃`}
-              aria-label={`Water in your area is ${water.band.replace(/_/g, " ")}`}
-              className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] border ${
-                water.band === "very_hard" || water.band === "hard"
-                  ? "bg-alert-dark/10 text-alert-dark border-alert-dark/30"
-                  : water.band === "moderately_hard"
-                    ? "bg-warn/10 text-warn border-warn/30"
-                    : "bg-good/10 text-good border-good/30"
-              }`}
-            >
-              <Droplet className="size-3" />
-              {water.band.replace(/_/g, " ")} water
-            </button>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -636,10 +466,7 @@ const Home = () => {
                   className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
                 >
                   <button
-                    onClick={() => {
-                      if (a.id === "water-hardness") setWaterDialogOpen(true);
-                      else navigate(a.to);
-                    }}
+                    onClick={() => navigate(a.to)}
                     className="w-full text-left"
                   >
                     <p className="text-xs font-medium text-alert-dark-foreground leading-tight">
@@ -759,204 +586,7 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
-      <Dialog open={waterDialogOpen} onOpenChange={setWaterDialogOpen}>
-        <DialogContent className="max-w-[92%] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              {water.band === "very_hard"
-                ? "Very hard water"
-                : water.band === "hard"
-                  ? "Hard water"
-                  : water.band === "moderately_hard"
-                    ? "Moderately hard water"
-                    : water.band === "slightly_hard"
-                      ? "Slightly hard water"
-                      : "Soft water"}{" "}
-              in your area
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {water.postcode ? (
-                <>
-                  Based on your postcode{" "}
-                  <span className="font-semibold text-foreground">{water.postcode}</span>
-                  {water.supplier ? (
-                    <>
-                      {" "}— supplied by{" "}
-                      <span className="font-semibold text-foreground">{water.supplier}</span>
-                    </>
-                  ) : null}
-                  . Supplier-average values for guidance — check your supplier's water-quality
-                  report for street-level precision.
-                </>
-              ) : (
-                <>Add your postcode to your profile so STRAND can tailor water advice.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-3 text-sm">
-            <div className="rounded-xl border border-border p-3 space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Postcode</span>
-                <span className="font-medium">{water.postcode ?? "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Supplier</span>
-                <span className="font-medium text-right">{water.supplier ?? "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Hardness</span>
-                <span className="font-medium">
-                  {water.mg_l != null ? `${Math.round(water.mg_l)} mg/L CaCO₃` : "—"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Band</span>
-                <span className="font-medium capitalize">
-                  {(water.band ?? "unknown").replace(/_/g, " ")}
-                </span>
-              </div>
-              {water.calcium_mg_l != null && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Calcium (Ca²⁺)</span>
-                  <span className="font-medium">{Math.round(water.calcium_mg_l)} mg/L</span>
-                </div>
-              )}
-              {water.magnesium_mg_l != null && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Magnesium (Mg²⁺)</span>
-                  <span className="font-medium">{Math.round(water.magnesium_mg_l)} mg/L</span>
-                </div>
-              )}
-              {water.ph_min != null && water.ph_max != null && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">pH range</span>
-                  <span className="font-medium">
-                    {water.ph_min.toFixed(1)}–{water.ph_max.toFixed(1)}
-                  </span>
-                </div>
-              )}
-              {water.chlorine_note && (
-                <div className="flex justify-between gap-3">
-                  <span className="text-muted-foreground">Chlorine</span>
-                  <span className="font-medium text-right text-[12px]">{water.chlorine_note}</span>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <p className="font-semibold mb-1">What this means for your hair</p>
-              {water.band === "very_hard" ? (
-                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
-                  <li>Heavy calcium & magnesium load — expect noticeable mineral build-up, dullness, dryness and faster colour fade.</li>
-                  <li>Clarify every 3–4 washes; add a chelating rinse (EDTA / phytic acid) every 2–3 weeks.</li>
-                  <li>Deep condition weekly under a{" "}
-                    <a href="https://www.teamtexture.co.uk" target="_blank" rel="noopener noreferrer" className="text-primary underline">TT Heat Hat</a>{" "}
-                    to force moisture past the mineral layer.</li>
-                  <li>Fit an in-shower filter — the single biggest step for very-hard-water areas.</li>
-                  <li>Do a final cool rinse with distilled or filtered water before styling.</li>
-                </ul>
-              ) : water.band === "hard" ? (
-                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
-                  <li>Mineral build-up on the cuticle can cause dryness, dullness and colour fade.</li>
-                  <li>Clarify every 4–5 washes; use a chelating rinse monthly.</li>
-                  <li>Follow with a deep condition under a{" "}
-                    <a href="https://www.teamtexture.co.uk" target="_blank" rel="noopener noreferrer" className="text-primary underline">TT Heat Hat</a>.</li>
-                  <li>An in-shower filter will noticeably reduce calcium and magnesium exposure.</li>
-                </ul>
-              ) : water.band === "moderately_hard" ? (
-                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
-                  <li>Moderate mineral load — build-up is slower but still cumulative over months.</li>
-                  <li>Clarify every 6–8 washes; chelating rinse quarterly.</li>
-                  <li>Deep condition weekly under a{" "}
-                    <a href="https://www.teamtexture.co.uk" target="_blank" rel="noopener noreferrer" className="text-primary underline">TT Heat Hat</a>{" "}
-                    to keep porosity balanced.</li>
-                </ul>
-              ) : water.band === "slightly_hard" ? (
-                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
-                  <li>Low mineral load — cuticle stays smoother and colour holds longer.</li>
-                  <li>Clarify only when product residue appears (typically every 8–10 washes).</li>
-                  <li>Prioritise protein/moisture balance over clarifying.</li>
-                </ul>
-              ) : (
-                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
-                  <li>Very low mineral load — kind to colour and strand integrity.</li>
-                  <li>Chlorine, not minerals, is the main variable to manage.</li>
-                  <li>Focus on protein/moisture balance rather than clarifying.</li>
-                </ul>
-              )}
-            </div>
-          </div>
-
-          {pcEditing ? (
-            <div className="space-y-2 pt-1">
-              <label className="text-xs font-medium text-muted-foreground">
-                Update your postcode
-              </label>
-              <input
-                type="text"
-                autoFocus
-                value={pcDraft}
-                onChange={(e) => setPcDraft(e.target.value.toUpperCase())}
-                placeholder="e.g. E16 2XE"
-                className="w-full rounded-pill border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void savePostcode();
-                }}
-              />
-              {pcError && <p className="text-xs text-destructive">{pcError}</p>}
-              <p className="text-[11px] text-muted-foreground">
-                We'll look up your water hardness and bring you straight back here.
-              </p>
-            </div>
-          ) : null}
-
-          <DialogFooter className="gap-2 sm:gap-2">
-            {pcEditing ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setPcEditing(false);
-                    setPcError(null);
-                  }}
-                  disabled={pcSaving}
-                  className="rounded-pill"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => void savePostcode()}
-                  disabled={pcSaving}
-                  className="rounded-pill"
-                >
-                  {pcSaving ? "Saving…" : "Save & return"}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => setWaterDialogOpen(false)}
-                  className="rounded-pill"
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={() => {
-                    setPcDraft(water.postcode ?? "");
-                    setPcError(null);
-                    setPcEditing(true);
-                  }}
-                  className="rounded-pill"
-                >
-                  Update postcode
-                </Button>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </ScreenLayout>
   );
 };
