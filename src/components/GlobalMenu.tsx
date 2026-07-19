@@ -56,14 +56,28 @@ const GlobalMenu = () => {
     navigate(to);
   };
 
+  const canGoBack = location.pathname !== "/home";
+
   return (
     <div
-      className="shrink-0 flex items-center justify-end px-3 border-b border-border/40 bg-background"
+      className="shrink-0 flex items-center justify-between px-3 border-b border-border/40 bg-background"
       style={{
         paddingTop: "max(env(safe-area-inset-top, 0px), 6px)",
         paddingBottom: "6px",
       }}
     >
+      {canGoBack ? (
+        <button
+          type="button"
+          aria-label="Back"
+          onClick={() => navigate(-1)}
+          className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
+        >
+          <ChevronLeft className="size-5" />
+        </button>
+      ) : (
+        <span className="size-9" aria-hidden />
+      )}
       <button
         type="button"
         aria-label="Open menu"
