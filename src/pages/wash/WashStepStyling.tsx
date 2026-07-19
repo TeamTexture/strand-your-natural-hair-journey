@@ -11,6 +11,8 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
+import ProductThumb from "@/components/ProductThumb";
+
 import VoiceNoteField from "@/components/VoiceNoteField";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
