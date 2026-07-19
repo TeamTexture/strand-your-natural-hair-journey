@@ -20,11 +20,15 @@ export interface GoalTip {
  * navigation reuses the cached tip instantly.
  */
 export const useGoalTip = (goal: UserGoal | null) => {
+  // Daily rotation — key rolls over at local midnight so the AI re-analyses
+  // once per day using whatever the user has since logged (products, wash
+  // days, appointments, blood work, hair/health profile changes).
+  const today = new Date().toISOString().slice(0, 10);
   return useQuery({
-    queryKey: ["goal-tip", "manuscript-v4-chapter-scoped", goal?.id, goal?.updated_at],
+    queryKey: ["goal-tip", "manuscript-v5-daily", today, goal?.id, goal?.updated_at],
     enabled: !!goal && !!(goal.challenge || goal.target_text || goal.title),
-    staleTime: 1000 * 60 * 60 * 6,
-    gcTime: 1000 * 60 * 60 * 24,
+    staleTime: 1000 * 60 * 60 * 12,
+    gcTime: 1000 * 60 * 60 * 36,
     retry: 1,
     queryFn: async (): Promise<GoalTip | null> => {
       if (!goal) return null;
