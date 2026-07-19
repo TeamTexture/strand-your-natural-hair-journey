@@ -139,7 +139,10 @@ const WashStep4 = () => {
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        if (!cancelled) setObservation(data?.observation ?? "");
+        if (!cancelled) {
+          setObservation(data?.observation ?? "");
+          setNextTip(data?.next_wash_tip ?? "");
+        }
       } catch (e: unknown) {
         if (!cancelled) {
           setObsError(e instanceof Error ? e.message : "Could not generate observation");
