@@ -5,7 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
-import RichBody from "@/components/RichBody";
+import { NextWashTipCard } from "@/components/NextWashTipCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
