@@ -10,6 +10,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ProductThumb from "@/components/ProductThumb";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,11 @@ const BrandProducts = () => {
         ) : (
           products.map((p) => {
             const s = statusLabel(p);
+            const aiStars =
+              p.match_score != null
+                ? Math.max(1, Math.min(5, Math.round(p.match_score / 20)))
+                : null;
+            const starValue = p.rating ?? aiStars;
             return (
               <button
                 key={p.id}
@@ -83,26 +89,18 @@ const BrandProducts = () => {
                 className="w-full text-left"
               >
                 <SurfaceCard className="!py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="size-12 rounded-[10px] bg-transparent overflow-hidden shrink-0 flex items-center justify-center">
-                      {p.image_url ? (
-                        <img
-                          src={p.image_url}
-                          alt=""
-                          className="size-full object-contain mix-blend-multiply"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="text-2xl" aria-hidden>
-                          🧴
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-start gap-3">
+                    <ProductThumb
+                      imageUrl={p.image_url}
+                      storagePath={p.storage_path}
+                      alt={p.name}
+                      cover={!!p.storage_path}
+                    />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight truncate">
+                      <p className="text-sm font-medium leading-snug break-words">
                         {p.name}
                       </p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span
                           className={cn(
                             "text-[10px] uppercase tracking-[0.14em] font-semibold",
@@ -112,7 +110,7 @@ const BrandProducts = () => {
                           {s.label}
                         </span>
                         <span className="text-muted-foreground/50">•</span>
-                        <Stars value={p.rating} />
+                        <Stars value={starValue} />
                       </div>
                     </div>
                   </div>
