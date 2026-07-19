@@ -18,10 +18,15 @@ const SuccessScreen = () => {
       .eq("user_id", user.id);
   }, [user]);
 
-  // Decide where to send the user when they tap Enter Strand
+  // Primary CTA — always go straight into the app. The walkthrough is now
+  // opt-in via the secondary link below (and re-reachable from Profile).
   const handleContinue = () => {
-    const seen = localStorage.getItem("strand_walkthrough_complete") === "true";
-    navigate(seen ? "/home" : "/walkthrough", { replace: true });
+    localStorage.setItem("strand_walkthrough_complete", "true");
+    navigate("/home", { replace: true });
+  };
+
+  const handleTakeTour = () => {
+    navigate("/walkthrough", { state: { returnTo: "/home" } });
   };
 
   // Auto-route forward after a moment so the success screen still feels celebratory
@@ -46,6 +51,13 @@ const SuccessScreen = () => {
         <Button variant="gold" size="pill" onClick={handleContinue}>
           Enter Strand →
         </Button>
+        <button
+          type="button"
+          onClick={handleTakeTour}
+          className="mt-3 font-body text-[13px] text-primary hover:underline underline-offset-4 self-center min-h-[44px] px-2"
+        >
+          Take a quick tour of STRAND
+        </button>
       </div>
     </ScreenLayout>
   );
