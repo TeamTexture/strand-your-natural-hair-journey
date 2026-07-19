@@ -16,6 +16,7 @@ const DRAFT_PANEL_DATE_KEY = "strand_blood_draft_panel_date";
 const DRAFT_PANEL_LABEL_KEY = "strand_blood_draft_panel_label";
 const DRAFT_PANEL_TEST_TYPE_KEY = "strand_blood_draft_panel_test_type";
 const DRAFT_PANEL_LAB_NAME_KEY = "strand_blood_draft_panel_lab_name";
+const DRAFT_PANEL_THUMB_KEY = "strand_blood_draft_panel_thumb";
 
 export interface UnknownMarker {
   marker: string;
