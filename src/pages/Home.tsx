@@ -79,7 +79,13 @@ const Home = () => {
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
   const { last: lastWash, daysSinceLast } = useWashDays();
   const { lengthGoal } = useGoals();
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
+  const { data: goalTip, isLoading: tipLoading, isFetching: tipFetching, refetch: refetchTip } = useGoalTip(lengthGoal);
+  const queryClient = useQueryClient();
+  const regenerateTip = async () => {
+    if (!lengthGoal) return;
+    await queryClient.invalidateQueries({ queryKey: ["goal-tip"] });
+    await refetchTip();
+  };
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
   const [bloodSummary, setBloodSummary] = useState<{
