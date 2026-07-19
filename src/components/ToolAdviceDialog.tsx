@@ -47,6 +47,16 @@ export function ToolAdviceDialog({
   const features = asStringArray(payload.key_features);
   const tips = asStringArray(payload.tips);
   const useCases = asStringArray(payload.use_cases);
+  const routineSuggestion =
+    typeof payload.routine_suggestion === "string" ? payload.routine_suggestion : "";
+  const pairWith = Array.isArray(payload.pair_with)
+    ? (payload.pair_with as Array<Record<string, unknown>>)
+        .map((p) => ({
+          item: typeof p?.item === "string" ? p.item : "",
+          why: typeof p?.why === "string" ? p.why : "",
+        }))
+        .filter((p) => p.item)
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
