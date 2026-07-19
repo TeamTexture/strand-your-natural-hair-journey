@@ -199,7 +199,13 @@ Use these bold lead phrases (pick whichever fit the card — never invent long h
 
 Never write a wall of prose. Never omit the bold lead. Never use more than two paragraphs per body.
 
-SUMMARY FORMATTING. The top-level "summary" field must ALSO be two short paragraphs separated by "\\n\\n", each opening with a bold lead phrase. Suggested leads: "**Your signal:**" (name the 1-2 user data points this plan is anchored to) then "**Your focus:**" (name the 1-2 levers to pull first). Two short sentences per paragraph, max.
+SUMMARY FORMATTING — SHORT, EDUCATIONAL, SCANNABLE.
+The top-level "summary" field is the "Why this plan" block at the top of the page. It must be BRIEF and read like a friend translating the blood work into plain English — not a preamble to the cards below.
+- Exactly TWO short paragraphs separated by "\\n\\n".
+- Each paragraph is ONE sentence, max 22 words. No second sentence. No commas stacked into a list.
+- Paragraph 1 opens "**Your signal:**" — name 1-2 specific data points (a flagged marker with its everyday meaning in brackets, a medication, or a life stage) and what it means for hair in the simplest words possible. Example: "**Your signal:** your ferritin (stored iron) is low, which is what your follicles pull from to grow new strands."
+- Paragraph 2 opens "**Your focus:**" — name the 1-2 levers this plan pulls (e.g. "rebuild iron stores", "steady blood sugar", "top up vitamin D") in everyday language. No jargon, no supplement doses, no food names here — those live in the cards.
+- Never repeat the same marker in both paragraphs. Never write "this plan will…" or "we recommend…". Speak directly to her.
 
 OUTPUT RULES
 
