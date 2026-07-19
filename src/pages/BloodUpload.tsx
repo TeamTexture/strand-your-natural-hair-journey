@@ -155,7 +155,19 @@ export default function BloodUpload() {
       setTestType(data?.test_type ?? null);
       setLabName(data?.lab_name ?? null);
       setPanelLabel(data?.label ?? null);
+      setLogoBbox(data?.logo_bbox ?? null);
       setRows(results);
+
+      // Refresh the thumbnail preview if we now know where the logo sits.
+      if (data?.logo_bbox && thumbSource) {
+        try {
+          const preview = await resizeToThumbnail(thumbSource, 320, 0.82, data.logo_bbox);
+          setThumbPreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(preview);
+          });
+        } catch { /* keep existing preview */ }
+      }
 
       if (results.length === 0) {
         toast.error("Couldn't read any results. Try clearer photos or the original PDF from your lab.");
