@@ -14,6 +14,7 @@ import { uuid } from "@/lib/uuid";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
+import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
 
 const AVATAR_BUCKET = "avatars";
 
@@ -306,6 +307,17 @@ const PersonalDetailsReview = () => {
             return saveField({ heritage: s ? [s] : [] });
           }}
         />
+
+        {/* Health & medical — same review-first inline-edit pattern */}
+        <div className="pt-4">
+          <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground font-body mb-2">
+            Health & medical
+          </div>
+          <p className="text-[13px] text-muted-foreground leading-snug pb-2">
+            These directly shape your STRAND guidance. Edit any field individually.
+          </p>
+          <HealthFieldsSection />
+        </div>
       </div>
     </ScreenLayout>
   );
