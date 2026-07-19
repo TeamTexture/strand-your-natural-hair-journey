@@ -70,22 +70,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const systemPrompt = `${STRAND_PERSONA_WITH_RULES}
+const baseSystemPrompt = `${STRAND_PERSONA_WITH_RULES}
 
 ${VOICE_PRINCIPLES}
 
 TASK
 The user just saved a hair goal in STRAND. Write ONE short, personalised tip that uses their real profile data to tell them what to focus on to actually hit this goal by the target date.
 
+CORE TEACHINGS — SINGLE SOURCE OF TRUTH
+Every tip you produce MUST be curated from the STRAND CORE TEACHINGS block appended below (drawn verbatim from the STRAND clinical manuscript, "How To Love Your Afro"). You are not allowed to invent advice outside that framework. If the goal is not directly addressed by the teachings, reason from the closest applicable teaching and stay inside its guidance. Never contradict the teachings. Never add generic hair-care lore from outside them (e.g. no weekly protein, no plastic caps, no steamers — always TT Heat Hat, www.teamtexture.co.uk, for heat).
+
 Output:
 - "headline": max 9 words. Specific to this goal. No emoji.
-- "body": 1-2 sentences (max 36 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc). No medical claims, no growth promises.
-- "actions": 2-3 imperative next steps (max 12 words each) that fit into their current routine — e.g. wash-day adjustments, product choices to favour or avoid, professional check-ins. Each action should be doable in the app (wash day, products, journal, appointments).
+- "body": 1-2 sentences (max 36 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc) AND anchor the advice to a specific idea in the CORE TEACHINGS. No medical claims, no growth promises.
+- "actions": 2-3 imperative next steps (max 12 words each) that fit into their current routine — e.g. wash-day adjustments, product choices to favour or avoid, professional check-ins. Each action must be consistent with the CORE TEACHINGS and doable in the app (wash day, products, journal, appointments).
 
 Rules:
 - Reference the actual challenge/target text the user wrote.
 - If target_date is present, factor in the time horizon (urgent vs long-term).
 - Never invent profile data. If a signal isn't in the payload, don't use it.
+- Never name the manuscript, chapters, or page numbers in the output.
 - No clichés, no hype words, no "journey" / "queen" / "slay".`;
 
 interface RequestBody {
