@@ -41,7 +41,6 @@ describe("selectTopicsForContext", () => {
           diagnosed: [],
         },
         bloodResults: [],
-        location: { is_hard_water_area: false },
       },
       { function_kind: "ingredient-analysis" },
     );

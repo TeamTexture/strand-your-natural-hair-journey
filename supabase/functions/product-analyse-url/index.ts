@@ -8,8 +8,8 @@
 //     SHARED with product-analyse (Step 3) so the React renderer
 //     (IngredientDetail.tsx, useProductUrlScan.ts) sees identical
 //     payloads for both flows.
-//   - Forced KB topics: porosity, scalp-conditions, diagnosed-conditions,
-//     hard-water. selectTopicsForContext layers in extras up to a cap of 4.
+//   - Forced KB topics: porosity, scalp-conditions, diagnosed-conditions.
+//     selectTopicsForContext layers in extras up to a cap of 4.
 //   - No RAG (web is the per-product fact channel; the manuscript RAG
 //     channel remains book-only).
 //   - Anthropic native web_fetch tool retrieves the page; web_search
@@ -74,7 +74,6 @@ interface RequestBody {
     hairProfile?: Record<string, unknown>;
     healthProfile?: Record<string, unknown>;
     bloodResults?: unknown[];
-    location?: { is_hard_water_area?: boolean | null };
     avoid_ingredients?: string[];
   };
   force?: boolean;
@@ -100,7 +99,6 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
       conditions: arr(hl.medical_conditions),
     },
     bloodResults: Array.isArray(ctx.bloodResults) ? ctx.bloodResults : [],
-    location: ctx.location ?? {},
   };
 }
 
@@ -127,7 +125,7 @@ Field rules — strict:
 - product_name / brand: extracted from the page title, h1, or breadcrumbs. NEVER invent. If you can't determine confidently after fetch + search, return the closest readable text and start ai_summary with "Couldn't fully read the page —".
 - category: pick the single best fit from the enum.
 - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when the fetched page's list is partial or hidden behind tabs; otherwise transcribe what's visible.
-- key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" only when the ingredient is one the user has consistently flagged in their history (appears in 3+ of their saved-and-favourited products) OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity, sulphates with hard water + dry scalp). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
+- key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" only when the ingredient is one the user has consistently flagged in their history (appears in 3+ of their saved-and-favourited products) OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
 - match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, current_hairstyle suitability, blood-marker deficiencies (only when relevant to the product), and goal alignment.
 - ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, current_hairstyle, a goal, scalp condition, a flagged ingredient pattern) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
 - usage_instructions: VERBATIM directions from the manufacturer if visible on the page. If no manufacturer directions are available, return "" — never invent or paraphrase.
@@ -147,7 +145,7 @@ When personalising a product analysis, focus ONLY on signals that intersect with
 Signals that ARE relevant for product analysis:
 - Hair type (curl pattern, density, porosity, length, current style)
 - Hair goals (length retention, definition, moisture retention, strength)
-- Hair challenges directly affected by formulation (dryness, breakage, build-up, scalp condition, hard water, heat damage history)
+- Hair challenges directly affected by formulation (dryness, breakage, build-up, scalp condition, heat damage history)
 
 Signals that are NOT relevant for product analysis (do NOT mention these in product output — not in ai_summary, key_ingredients[].reason, use_cases, or tips):
 - Tension or styling-related concerns (traction alopecia, tight braids, weight of styles) — these are HANDLING concerns, not formulation concerns. A leave-in conditioner has no tension implications. Do NOT cite tension or traction alopecia in any product analysis unless the product is specifically a tension-related treatment.
@@ -159,8 +157,8 @@ Rule of thumb: if you cannot draw a line from one of the product's INGREDIENTS t
 
 LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your avoids", "ingredients on your avoid list", "things to avoid", or imply the user has any list of ingredients they want to avoid. The only ingredient-history signal that exists in STRAND is "consistently flagged ingredients" — ingredients that appear in 3+ of the user's saved-and-favourited products that they're actively using. Use phrasing like "consistently flagged in your history", "ingredients you've flagged across your favourites", or "appears across 3+ products on your shelf and favourites". This applies to EVERY output field.
 
-HARD-WATER GUIDANCE — HARD RULE:
-NEVER recommend a chelating shampoo to the user, even when they're in a hard-water area. Chelating shampoos are too harsh for routine recommendation. If hard water is relevant to the verdict for THIS product, recommend instead — in this order: (1) a shower-head filter for hair-rinse water, (2) a gentle clarifying shampoo used sparingly (every 4–5 washes), (3) a deep conditioner immediately after any clarifying step, (4) a trichologist consult before considering anything stronger. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is.)`;
+CLARIFYING GUIDANCE — HARD RULE:
+Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is.)`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -204,7 +202,6 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       "porosity",
       "scalp-conditions",
       "diagnosed-conditions",
-      "hard-water",
     ],
     tool: {
       name: "return_product_analysis",
@@ -273,7 +270,7 @@ ABSOLUTE RULES
 3. Personalise everything to the user's profile passed in context: hairProfile
    (porosity, texture, density, scalp), currentStyle (current_hairstyle,
    days_in_style, planned_next_style), goals (each with a "challenge" the user
-   wrote and an optional "target_text"), location (hard water?), bloodResults,
+   wrote and an optional "target_text"), bloodResults,
    healthProfile (medications, conditions), history.avoid_ingredients,
    history.favourite_ingredients, history.low_rated_products and
    history.high_rated_products.

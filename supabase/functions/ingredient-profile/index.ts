@@ -4,7 +4,7 @@
 //   - what_it_is: 1–2 plain-English sentences explaining the ingredient
 //   - benefits: 2–4 bullet points on what it does for hair (with mechanism)
 //   - personal_notes: 2–4 bullet points anchored in THIS user's own data
-//     (porosity, density, scalp condition, hard-water area, current style,
+//     (porosity, density, scalp condition, current style,
 //     goals, challenges) explaining how the ingredient is likely to behave
 //     for THEIR hair specifically. Educational, never a diagnosis, never
 //     framed as good/bad.
@@ -85,7 +85,7 @@ const TOOL_SCHEMA = {
     what_it_means_for_you: {
       type: "string",
       description:
-        "1–2 sentences (max 45 words) of calm, personalised guidance for THIS user's hair, framed as 'what this means for your hair type'. Reference at least one concrete data point (porosity, density, scalp data, hard water, a goal, current style) and keep impact framing proportionate — most cosmetic ingredients sit at fractions of a percent. Never alarmist, never good/bad, never prescribe avoidance, never diagnose.",
+        "1–2 sentences (max 45 words) of calm, personalised guidance for THIS user's hair, framed as 'what this means for your hair type'. Reference at least one concrete data point (porosity, density, scalp data, a goal, current style) and keep impact framing proportionate — most cosmetic ingredients sit at fractions of a percent. Never alarmist, never good/bad, never prescribe avoidance, never diagnose.",
     },
   },
   required: ["what_it_is", "benefits", "what_it_means_for_you"],
@@ -109,7 +109,6 @@ LANGUAGE RULES — NON-NEGOTIABLE
 - Never name a book, chapter, page, or author. No "Read more" lines.
 - Never give a medical diagnosis. Never name diagnosed scalp/skin conditions, alopecia types, hormones, blood markers, medications or life stage — phrase around them ("your scalp data", "what you've logged").
 - No fear-mongering and no good/bad framing. Never call an ingredient harmful, bad, problematic, risky, ideal or "exactly what you need".
-- HARD-WATER RULE: never recommend a chelating shampoo, even if the user is in a hard-water area — they're too harsh for routine recommendation. If hard water is relevant, mention a shower-head filter or a gentle clarifying shampoo used sparingly instead. ("Chelator" is fine as a neutral category label for what an ingredient like EDTA is — that's descriptive, not a recommendation.)
 - Most cosmetic ingredients sit at fractions of a percent — keep impact framing proportionate.
 
 WHAT_IT_MEANS_FOR_YOU RULES

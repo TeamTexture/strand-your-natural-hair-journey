@@ -8,7 +8,7 @@
 //     ingredients.length per request — replaces the brittle "EXACTLY ${n}"
 //     prose flagged in AUDIT.md §1.
 //   - Curated KB topics: porosity, scalp-conditions, diagnosed-conditions,
-//     hard-water (force_topic_ids). selectTopicsForContext layers in extras
+//     selectTopicsForContext layers in extras
 //     up to the cap of 4.
 //   - Conditional RAG via shouldTriggerRag(ingredients, userAvoidList).
 //   - ai_summaries cache keyed by `ingredient_analysis:<productKey>`.
@@ -76,7 +76,6 @@ interface RequestBody {
   force?: boolean;
   context?: Record<string, unknown> & {
     avoid_ingredients?: string[];
-    location?: { is_hard_water_area?: boolean | null };
   };
 }
 
@@ -166,8 +165,6 @@ RULES — STRICT:
    - Where the STRAND manuscript covers the relevant technique (e.g. pre-poo on dry hair before washing, sectioning for detangling, applying leave-in to soaking-wet hair for low porosity, refresh routines for braids/twists), use that guidance directly in your own voice — never name the source, the author, a chapter or a page.
    - DO NOT mention: traction alopecia, alopecia of any kind, diagnosed scalp conditions, medical conditions, medications, blood markers, hormones, life stage, or any health diagnosis. Those belong elsewhere in the app, not in product usage tips.
    - DO NOT prescribe styling-tension behaviour (braids too tight, take-down schedules driven by alopecia risk, etc.). Style references are only allowed as neutral context (e.g. "good for refreshing day-3 twist-outs") not as a medical warning.
-   - HARD-WATER RULE: NEVER recommend a chelating shampoo, even if the user is in a hard-water area — chelating shampoos are too harsh for routine recommendation in this app. If hard water is relevant to THIS product, prefer in this order: (1) a shower-head filter, (2) a gentle clarifying shampoo used sparingly (every 4–5 washes), (3) a deep conditioner immediately after any clarifying step, (4) a trichologist consult for anything stronger. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in personalised_guidance. ("Chelator" can still appear as a neutral cosmetic-chemistry category label when describing what an ingredient like EDTA is.) For leave-ins, oils, creams, masks-on-top, or pre-poos in a hard-water area, focus on what hard water means for THIS product (e.g. mineral film blocking absorption) — never tell the user to chelate before applying it. Never mention the user's postcode; refer only to the fact they live in a hard-water area.
-
    Examples (adapt — never copy verbatim):
    - title: "Pre-poo on dry hair", body: "As a pre-shampoo, work this through dry, sectioned strands 20-30 min before washing — the oils coat your high-porosity cuticle so shampoo doesn't strip it further, supporting your length-retention goal."
    - title: "Refresh week-3 braids", body: "Three weeks into your box braids, dilute 1:3 with water in a spray bottle and mist the parted scalp only — the humectants pull moisture in for your low-porosity strands without weighing the install down or disturbing your length-retention goal."
@@ -195,7 +192,6 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
       conditions: arr(hl.medical_conditions),
     },
     bloodResults: [],
-    location: ctx.location ?? {},
   };
 }
 
@@ -240,7 +236,7 @@ async function runClaude(args: {
     task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount),
     user_payload: userPayload,
     selector_context: selectorContext,
-    force_topic_ids: ["porosity", "scalp-conditions", "diagnosed-conditions", "hard-water"],
+    force_topic_ids: ["porosity", "scalp-conditions", "diagnosed-conditions"],
     rag_query: ragQuery,
     rag_k: 4,
     tool: {

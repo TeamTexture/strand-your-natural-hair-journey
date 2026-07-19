@@ -131,11 +131,11 @@ function mockClaudeToolInput(): ProductAnalysisPayload {
     ],
     match_score: 78,
     ai_summary:
-      "Good fit while you're 4 weeks into box braids and trying to clear hard-water build-up — the salicylic acid will lift residue without disturbing your low-porosity strands.\nRead more — How To Love Your Afro, Chapter 8: Scalp Care, p.94.",
+      "Good fit while you're 4 weeks into box braids and trying to clear scalp build-up — the salicylic acid will lift residue without disturbing your low-porosity strands.\nRead more — How To Love Your Afro, Chapter 8: Scalp Care, p.94.",
     usage_instructions: "Apply a small amount directly to the scalp, massage gently for 1-2 minutes, then rinse thoroughly.",
     use_cases: [
-      "Use weekly between braid refreshes to lift residue from your hard-water area.",
-      "Pair with your monthly clarifying wash to keep mineral deposits down.",
+      "Use weekly between braid refreshes to lift scalp residue.",
+      "Pair with your monthly clarifying wash to keep build-up down.",
     ],
     tips: [
       "Section your braids and apply only to the parted scalp — avoid running it down the lengths.",

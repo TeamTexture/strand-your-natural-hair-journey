@@ -60,7 +60,7 @@ const sampleAvoid: NutritionCard[] = [
   { emoji: "🍷", name: "Daily wine", body: "Alcohol depletes B-vitamins, which matters more given your weekly intake.", severity: "medium" },
   { emoji: "🍩", name: "Refined sugar spikes", body: "Insulin spikes worsen androgenic thinning when PCOS is in the mix.", severity: "high" },
   { emoji: "☕", name: "Coffee with meals", body: "Tannins block iron uptake, so separate it from your iron-rich plates by an hour." },
-  { emoji: "🧂", name: "Ultra-processed snacks", body: "Sodium load raises water retention; for your hard-water postcode, antioxidants matter more." },
+  { emoji: "🧂", name: "Ultra-processed snacks", body: "Sodium load raises water retention; with your weekly intake, steady antioxidants matter more." },
 ];
 
 describe("nutrition-plan contract", () => {
