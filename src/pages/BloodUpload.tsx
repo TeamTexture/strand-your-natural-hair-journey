@@ -49,6 +49,7 @@ export default function BloodUpload() {
   );
   const [saving, setSaving] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [dragOver, setDragOver] = useState(false);
 
   // Password dialog state for encrypted PDFs
   const [pwOpen, setPwOpen] = useState(false);
