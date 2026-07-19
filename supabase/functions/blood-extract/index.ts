@@ -57,7 +57,7 @@ RULES:
 - If a value cannot be parsed as a number (e.g. "Negative", "<5"), skip that ONE row but keep going with the rest.
 - If the report shows only a reference range with no measured value, skip that row.
 - If you find a panel date (collection date, report date, sample date), return it as panel_date in YYYY-MM-DD format. If uncertain, return null.
-- Identify the DOCUMENT TITLE / test name as printed at the top of the report (e.g. "Advanced Thyroid Blood Test", "Menopause Health Panel", "Full Blood Count", "Iron Studies"). Return it as document_title. If nothing suitable is printed, set to null. Do NOT invent a title.
+- Identify the DOCUMENT TITLE / test name AS PRINTED INSIDE THE REPORT ITSELF — usually the largest heading at the top of the first page, or the product/panel name printed near the lab's logo (e.g. "Advanced Thyroid Blood Test", "Menopause Health Panel", "Full Blood Count", "Iron Studies"). Return it as document_title. IMPORTANT: do NOT use the uploaded file's filename, upload metadata, or any text outside the actual report content — read the visible title on the page. If no suitable title is printed inside the document, set to null. Do NOT invent a title.
 - Identify the TEST TYPE — a short category label describing what kind of test it is (e.g. "Thyroid function", "Full blood count", "Female hormones", "Iron studies", "General wellness"). Return it as test_type. If unsure, set to null.
 - Identify the LAB / PROVIDER name if printed on the report (e.g. "Medichecks", "Thriva", "Quest Diagnostics", "The Doctors Laboratory"). Return it as lab_name. If not visible, null.
 - Never invent values. Only include markers where you actually see a numeric result on the report.
