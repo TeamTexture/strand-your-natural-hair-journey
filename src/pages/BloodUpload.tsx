@@ -56,6 +56,7 @@ export default function BloodUpload() {
   const [pwValue, setPwValue] = useState("");
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwUnlocking, setPwUnlocking] = useState(false);
+  const [pwVisible, setPwVisible] = useState(false);
   const [pendingBytes, setPendingBytes] = useState<Uint8Array | null>(null);
   const [pendingName, setPendingName] = useState<string>("");
 
