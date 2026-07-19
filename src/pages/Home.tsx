@@ -723,14 +723,27 @@ const Home = () => {
                 ? "Very hard water"
                 : water.band === "hard"
                   ? "Hard water"
-                  : water.band === "moderate"
+                  : water.band === "moderately_hard"
                     ? "Moderately hard water"
-                    : "Soft water"}{" "}
+                    : water.band === "slightly_hard"
+                      ? "Slightly hard water"
+                      : "Soft water"}{" "}
               in your area
             </DialogTitle>
             <DialogDescription className="text-xs">
               {water.postcode ? (
-                <>Based on your postcode <span className="font-semibold text-foreground">{water.postcode}</span>{water.supplier ? <> — supplied by <span className="font-semibold text-foreground">{water.supplier}</span></> : null}.</>
+                <>
+                  Based on your postcode{" "}
+                  <span className="font-semibold text-foreground">{water.postcode}</span>
+                  {water.supplier ? (
+                    <>
+                      {" "}— supplied by{" "}
+                      <span className="font-semibold text-foreground">{water.supplier}</span>
+                    </>
+                  ) : null}
+                  . Supplier-average values for guidance — check your supplier's water-quality
+                  report for street-level precision.
+                </>
               ) : (
                 <>Add your postcode to your profile so STRAND can tailor water advice.</>
               )}
@@ -745,10 +758,10 @@ const Home = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Supplier</span>
-                <span className="font-medium">{water.supplier ?? "—"}</span>
+                <span className="font-medium text-right">{water.supplier ?? "—"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Mineral content</span>
+                <span className="text-muted-foreground">Hardness</span>
                 <span className="font-medium">
                   {water.mg_l != null ? `${Math.round(water.mg_l)} mg/L CaCO₃` : "—"}
                 </span>
@@ -756,28 +769,75 @@ const Home = () => {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Band</span>
                 <span className="font-medium capitalize">
-                  {(water.band ?? "unknown").replace("_", " ")}
+                  {(water.band ?? "unknown").replace(/_/g, " ")}
                 </span>
               </div>
+              {water.calcium_mg_l != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Calcium (Ca²⁺)</span>
+                  <span className="font-medium">{Math.round(water.calcium_mg_l)} mg/L</span>
+                </div>
+              )}
+              {water.magnesium_mg_l != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Magnesium (Mg²⁺)</span>
+                  <span className="font-medium">{Math.round(water.magnesium_mg_l)} mg/L</span>
+                </div>
+              )}
+              {water.ph_min != null && water.ph_max != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">pH range</span>
+                  <span className="font-medium">
+                    {water.ph_min.toFixed(1)}–{water.ph_max.toFixed(1)}
+                  </span>
+                </div>
+              )}
+              {water.chlorine_note && (
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Chlorine</span>
+                  <span className="font-medium text-right text-[12px]">{water.chlorine_note}</span>
+                </div>
+              )}
             </div>
 
             <div>
               <p className="font-semibold mb-1">What this means for your hair</p>
-              {water.band === "hard" || water.band === "very_hard" ? (
+              {water.band === "very_hard" ? (
+                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
+                  <li>Heavy calcium & magnesium load — expect noticeable mineral build-up, dullness, dryness and faster colour fade.</li>
+                  <li>Clarify every 3–4 washes; add a chelating rinse (EDTA / phytic acid) every 2–3 weeks.</li>
+                  <li>Deep condition weekly under a{" "}
+                    <a href="https://www.teamtexture.co.uk" target="_blank" rel="noopener noreferrer" className="text-primary underline">TT Heat Hat</a>{" "}
+                    to force moisture past the mineral layer.</li>
+                  <li>Fit an in-shower filter — the single biggest step for very-hard-water areas.</li>
+                  <li>Do a final cool rinse with distilled or filtered water before styling.</li>
+                </ul>
+              ) : water.band === "hard" ? (
                 <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
                   <li>Mineral build-up on the cuticle can cause dryness, dullness and colour fade.</li>
-                  <li>Add a clarifying wash every 4–5 washes; use a chelating rinse monthly.</li>
-                  <li>Follow with a deep condition under a TT Heat Hat.</li>
-                  <li>Consider an in-shower filter to reduce calcium and magnesium exposure.</li>
+                  <li>Clarify every 4–5 washes; use a chelating rinse monthly.</li>
+                  <li>Follow with a deep condition under a{" "}
+                    <a href="https://www.teamtexture.co.uk" target="_blank" rel="noopener noreferrer" className="text-primary underline">TT Heat Hat</a>.</li>
+                  <li>An in-shower filter will noticeably reduce calcium and magnesium exposure.</li>
                 </ul>
-              ) : water.band === "moderate" ? (
+              ) : water.band === "moderately_hard" ? (
                 <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
-                  <li>Some mineral load — occasional clarifying still helps.</li>
-                  <li>Deep condition weekly to keep porosity balanced.</li>
+                  <li>Moderate mineral load — build-up is slower but still cumulative over months.</li>
+                  <li>Clarify every 6–8 washes; chelating rinse quarterly.</li>
+                  <li>Deep condition weekly under a{" "}
+                    <a href="https://www.teamtexture.co.uk" target="_blank" rel="noopener noreferrer" className="text-primary underline">TT Heat Hat</a>{" "}
+                    to keep porosity balanced.</li>
+                </ul>
+              ) : water.band === "slightly_hard" ? (
+                <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
+                  <li>Low mineral load — cuticle stays smoother and colour holds longer.</li>
+                  <li>Clarify only when product residue appears (typically every 8–10 washes).</li>
+                  <li>Prioritise protein/moisture balance over clarifying.</li>
                 </ul>
               ) : (
                 <ul className="list-disc pl-4 space-y-1 text-[13px] text-muted-foreground">
-                  <li>Low mineral load — kind to colour and strand integrity.</li>
+                  <li>Very low mineral load — kind to colour and strand integrity.</li>
+                  <li>Chlorine, not minerals, is the main variable to manage.</li>
                   <li>Focus on protein/moisture balance rather than clarifying.</li>
                 </ul>
               )}
