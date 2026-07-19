@@ -3,8 +3,9 @@
 // gated by STRAND_AI_PROVIDER_WASH_OBSERVATION. Defaults to "lovable".
 //
 // Clean port: no scraping, no images, no schema overhaul. Returns the same
-// `{ observation: string }` shape so the existing client (WashStep4.tsx) is
-// unchanged. Wash days are one-shot per save → no caching.
+// `{ observation, next_wash_tip }` shape. The client foregrounds next_wash_tip;
+// observation is retained for storage/provenance. Wash days are one-shot per
+// save → no caching.
 
 import { json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
@@ -62,12 +63,12 @@ const RETURN_OBSERVATION_SCHEMA = {
         action: {
           type: "string",
           description:
-            "ONE clear, imperative action for the user's NEXT wash day. Max 18 words. Starts with a verb. No preamble, no hedging. Names a specific product/tool from their shelf/wishlist/tools when possible.",
+            "ONE clear, imperative action for the user's NEXT wash day. Max 18 words. Starts with a verb. No preamble, no hedging. Names a specific product/tool from their shelf/wishlist/tools when possible. If today's products are working and have only been used 1-3 cycles, tell them to keep using the same product sequence rather than changing products.",
         },
         why: {
           type: "string",
           description:
-            "The explanation for the action, 2-3 short sentences. Grounds the reasoning in the STRAND core teachings (How To Love Your Afro) AND ties it to at least one concrete signal from the user's profile or today's wash day (porosity, scalp feel, breakage, style, goal, product outcome). Plain English, no chapter/page citations.",
+            "The explanation for the action, 2-3 short sentences. Grounds the reasoning in the STRAND core teachings (How To Love Your Afro), especially the 3-4 wash-cycle consistency rule, AND ties it to at least one concrete signal from the user's profile or today's wash day (porosity, scalp feel, breakage, style, goal, product outcome). Plain English, no chapter/page citations.",
         },
       },
     },
