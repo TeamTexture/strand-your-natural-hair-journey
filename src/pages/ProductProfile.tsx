@@ -385,14 +385,26 @@ const ProductProfile = () => {
         )}
 
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Your rating</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Strand rating</p>
           <SurfaceCard>
-            <StarPicker
-              value={product.rating ?? 0}
-              onChange={(n) => { if (!savingRating) void updateRating(n); }}
-            />
+            {(() => {
+              const stars = score > 0 ? Math.max(1, Math.min(5, Math.round(score / 20))) : 0;
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-0.5 text-2xl leading-none">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <span key={i} className={i <= stars ? "text-primary" : "text-border"}>★</span>
+                    ))}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {stars > 0 ? "Based on your hair profile" : "Awaiting analysis"}
+                  </span>
+                </div>
+              );
+            })()}
           </SurfaceCard>
         </div>
+
 
         {ingredients.length > 0 && (
           <div>
