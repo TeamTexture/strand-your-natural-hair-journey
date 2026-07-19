@@ -381,7 +381,7 @@ const NutritionPlan = () => {
               </div>
               <p className="font-display text-[15px] leading-tight text-foreground pt-1">Why this plan</p>
             </div>
-            <p className="text-xs font-body leading-relaxed text-foreground/85">{plan.summary}</p>
+            <RichBody text={plan.summary} />
           </div>
         )}
 
