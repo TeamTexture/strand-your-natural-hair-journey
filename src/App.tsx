@@ -144,6 +144,7 @@ const App = () => (
               <Route path="/directory" element={<Protected><Directory /></Protected>} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/profile/milestones" element={<Protected><MilestoneGallery /></Protected>} />
+              <Route path="/blood-history" element={<Protected><BloodHistory /></Protected>} />
               <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
