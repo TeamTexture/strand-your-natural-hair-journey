@@ -33,7 +33,39 @@ const SourceNote = ({ children }: { children?: React.ReactNode }) => (
   </p>
 );
 
+// Render "**bold**" segments and "\n\n" as scannable paragraphs so long
+// bodies read like a note from a friend, not a wall of text.
+const RichBody = ({ text, className = "" }: { text: string; className?: string }) => {
+  const paras = String(text ?? "")
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const renderInline = (line: string, keyPrefix: string) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (/^\*\*[^*]+\*\*$/.test(part)) {
+        return (
+          <strong key={`${keyPrefix}-b-${i}`} className="font-semibold text-foreground">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return <span key={`${keyPrefix}-t-${i}`}>{part}</span>;
+    });
+  };
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {paras.map((p, i) => (
+        <p key={i} className="text-xs text-foreground/85 font-body leading-relaxed">
+          {renderInline(p, `p${i}`)}
+        </p>
+      ))}
+    </div>
+  );
+};
+
 // ── Aesthetic card primitives ────────────────────────────────────────────
+
 
 const IconBubble = ({
   emoji,
@@ -102,7 +134,7 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => (
             <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
           </div>
         )}
-        <p className="text-xs text-foreground/85 font-body mt-2 leading-relaxed">{s.body}</p>
+        <RichBody text={s.body} className="mt-2" />
       </div>
     </div>
   </SurfaceCard>
@@ -114,7 +146,7 @@ const DietCard = ({ c }: { c: AiCard }) => (
       <IconBubble emoji={c.emoji || "🥗"} tone="good" />
       <div className="flex-1 min-w-0">
         <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-        <p className="text-xs text-foreground/85 font-body mt-1.5 leading-relaxed">{c.body}</p>
+        <RichBody text={c.body} className="mt-1.5" />
       </div>
     </div>
   </SurfaceCard>
@@ -129,7 +161,7 @@ const AvoidCard = ({ c }: { c: AiCard }) => (
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
           <SeverityChip level={c.severity} />
         </div>
-        <p className="text-xs text-foreground/85 font-body mt-1.5 leading-relaxed">{c.body}</p>
+        <RichBody text={c.body} className="mt-1.5" />
       </div>
     </div>
   </SurfaceCard>
@@ -349,7 +381,7 @@ const NutritionPlan = () => {
               </div>
               <p className="font-display text-[15px] leading-tight text-foreground pt-1">Why this plan</p>
             </div>
-            <p className="text-xs font-body leading-relaxed text-foreground/85">{plan.summary}</p>
+            <RichBody text={plan.summary} />
           </div>
         )}
 
