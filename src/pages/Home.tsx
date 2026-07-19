@@ -83,6 +83,7 @@ const Home = () => {
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
   const [bloodSummary, setBloodSummary] = useState<{
     panelDate: string | null;
+    label: string | null;
     total: number;
     flagged: number;
   } | null>(null);
