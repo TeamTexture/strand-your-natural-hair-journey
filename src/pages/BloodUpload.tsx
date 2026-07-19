@@ -1,8 +1,9 @@
 // Upload a blood test PDF or photo — AI extracts marker values, user reviews
 // and confirms, then saves as a new blood panel + results.
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff } from "lucide-react";
+import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
