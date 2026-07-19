@@ -37,7 +37,11 @@ export interface AiContext {
     professional_notes: string | null;
   } | null;
   location: {
+    is_hard_water_area: boolean | null;
     postcode: string | null;
+    water_hardness_band?: string | null;
+    water_hardness_mg_l?: number | null;
+    water_supplier?: string | null;
   };
   history: {
     last_3_wash_days: Array<Record<string, unknown>>;
@@ -236,6 +240,9 @@ export async function buildAiContext(): Promise<AiContext> {
     : null;
 
   const postcode = clinical.basic?.postcode ?? null;
+  const waterBand = clinical.basic?.water_hardness_band ?? null;
+  const isHardWater =
+    waterBand === "hard" || waterBand === "very_hard" ? true : waterBand ? false : null;
 
   const last3Local = [...localWashHistory]
     .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))
@@ -253,6 +260,10 @@ export async function buildAiContext(): Promise<AiContext> {
     professional,
     location: {
       postcode: postcode ?? null,
+      is_hard_water_area: isHardWater,
+      water_hardness_band: waterBand,
+      water_hardness_mg_l: clinical.basic?.water_hardness_mg_l ?? null,
+      water_supplier: clinical.basic?.water_supplier ?? null,
     },
     history: {
       last_3_wash_days: last3,
