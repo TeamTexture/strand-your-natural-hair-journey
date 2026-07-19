@@ -129,7 +129,9 @@ Deno.serve(async (req) => {
       } else {
         userContent.push({
           type: "file",
-          file: { filename: f.name ?? "blood-test.pdf", file_data: dataUrl },
+          // Deliberately generic filename — the model must read the title from
+          // inside the document, not infer it from the uploaded filename.
+          file: { filename: "report.pdf", file_data: dataUrl },
         });
       }
     }
