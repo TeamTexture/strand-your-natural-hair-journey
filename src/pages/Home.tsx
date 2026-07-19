@@ -543,20 +543,37 @@ const Home = () => {
               onClick={() => navigate("/blood-history")}
               className="w-full text-left"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
-                  <FlaskConical className="size-5 text-primary" />
+                  <Droplet className="size-5 text-primary fill-primary/40" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-base font-semibold leading-snug">
-                    {bloodSummary.flagged > 0
-                      ? `${bloodSummary.flagged} result${bloodSummary.flagged === 1 ? "" : "s"} outside normal range`
-                      : "All results within normal range"}
+                    {bloodSummary.label ?? "Blood test"}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {`${bloodSummary.label ?? "Blood test"} · ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"}`}
+                  <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mt-0.5">
+                    {bloodSummary.panelDate
+                      ? new Date(bloodSummary.panelDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                      : ""}
+                    {` · ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"}`}
                   </p>
-
+                  <ul className="mt-2 space-y-1">
+                    {bloodSummary.insights.map((line, i) => {
+                      const isNegative = /^(low|high)\b/i.test(line);
+                      const isPositive = /back in range|within normal/i.test(line);
+                      const dotClass = isNegative
+                        ? "bg-destructive"
+                        : isPositive
+                          ? "bg-good"
+                          : "bg-primary";
+                      return (
+                        <li key={i} className="flex items-start gap-2 text-xs text-foreground/85 leading-snug">
+                          <span className={`mt-1.5 size-1.5 rounded-full shrink-0 ${dotClass}`} />
+                          <span className="min-w-0">{line}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </div>
             </button>
