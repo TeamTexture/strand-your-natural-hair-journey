@@ -36,7 +36,13 @@ export interface AiContext {
     last_consultation_date: string | null;
     professional_notes: string | null;
   } | null;
-  location: { is_hard_water_area: boolean | null; postcode: string | null };
+  location: {
+    is_hard_water_area: boolean | null;
+    postcode: string | null;
+    water_hardness_band?: string | null;
+    water_hardness_mg_l?: number | null;
+    water_supplier?: string | null;
+  };
   history: {
     last_3_wash_days: Array<Record<string, unknown>>;
     /** Single unified list of ingredients that appear in 3+ of the user's
