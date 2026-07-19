@@ -429,7 +429,7 @@ const BloodHistory = () => {
         ) : logged.length === 0 ? (
           <SurfaceCard>
             <p className="text-sm font-body">
-              No blood tests logged yet. Tap <em>Add test</em> to add your first one.
+              No blood tests logged yet. Tap <em>Add test manually</em> to add your first one.
             </p>
           </SurfaceCard>
         ) : (
