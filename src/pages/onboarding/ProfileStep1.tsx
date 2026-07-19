@@ -326,15 +326,12 @@ const ProfileStep1 = () => {
             try {
               await supabase
                 .from("profiles")
-                .upsert(
-                  {
-                    user_id: user.id,
-                    water_hardness_mg_l: d.mg_l ?? null,
-                    water_hardness_band: d.band ?? null,
-                    water_supplier: d.supplier ?? null,
-                  },
-                  { onConflict: "user_id" },
-                );
+                .update({
+                  water_hardness_mg_l: d.mg_l ?? null,
+                  water_hardness_band: d.band ?? null,
+                  water_supplier: d.supplier ?? null,
+                } as never)
+                .eq("user_id", user.id);
             } catch (e) {
               console.warn("[strand] water hardness write failed", e);
             }
