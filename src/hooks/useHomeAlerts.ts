@@ -520,28 +520,14 @@ export function useHomeAlerts() {
         }
       }
 
-      // 8. Hard water + no clarifier in the last 3 washes
+      // (Hard-water clarifier alert removed.)
       const recentWashes = (recentWashRes.data ?? []) as Array<{
         wash_date: string;
         steps: unknown;
         breakage: string | null;
       }>;
-      if (
-        hardWater &&
-        recentWashes.length >= 1 &&
-        !recentWashes.some((w) => washHadClarifier(w.steps))
-      ) {
-        const lastIds = recentWashes.map((w) => w.wash_date).join(",");
-        next.push({
-          id: "hard-water-clarify",
-          emoji: "🚿",
-          title: "Hard water build-up risk",
-          body: "No clarifying step in your last washes. Add one to lift mineral residue.",
-          to: "/wash-day",
-          tone: "warning",
-          signature: `hardWater:${lastIds || "none"}`,
-        });
-      }
+      void recentWashes;
+      void washHadClarifier;
 
       // 9. Recent breakage reported
       const lastBreakageRow = breakageWashRes.data?.[0];
