@@ -118,11 +118,15 @@ Field rules — strict:
 - key_features: MAX 4. Each item is { name, relevance } — only include features whose relevance ties back to the user's hair type, current style, goal, or a challenge directly addressed by the tool's mechanism.
 - use_cases: MAX 2 items, each ≤ 1 short sentence. Pick the 2 most actionable ways THIS user should use the tool given their profile.
 - tips: MAX 2 items, each ≤ 1 short sentence. The 2 most relevant personal signals for THIS tool.
-- warnings: optional, MAX 2. Only include if the tool has a contraindication for THIS user (e.g. high heat tool when user has a heat-damage challenge).
-- personalisation_rationale: 1–2 sentences explaining why this tool does or doesn't suit THIS user's hair profile.
+- warnings: optional, MAX 2. Only include if the tool has a contraindication for THIS user (e.g. high heat tool when user has a heat-damage challenge, dry/porous strands, chemical processing, or a length/retention goal).
+- personalisation_rationale: 2–3 sentences. MUST follow the pattern: "Because your hair is [specific trait — porosity/density/scalp/state from the profile] and you want [specific goal from the user's goals], this tool [names the specific risk from its mechanism]. If you use it, [concrete precaution]." Never generic. If a goal or trait is missing from the profile, drop that clause — do NOT invent one.
 - match_score: integer 0–100 for how well this tool fits THIS user (hair type, current style, goals, challenges). Be honest — poor fits should score 20–40, mixed 40–65, strong fits 70–90. Reserve 90+ for near-ideal matches.
-- how_to_use: 1–3 short sentences, second person, on how THIS user specifically should use it (technique, section size, heat setting, frequency, before/after which step).
-- pair_with: up to 3 items from the user's SHELF (context.shelf, high_rated_products) or existing tools/favourites that would combine well with THIS tool. Reference the item by its real name and brand (e.g. "Cantu Shea Butter Leave-In"). Each entry needs a one-sentence "why" tying the pairing to the user's hair goal, challenge, or current style. If nothing on the shelf pairs meaningfully, return []. NEVER invent products.
+- how_to_use: 2–4 short sentences, second person, on how THIS user specifically should use it (heat setting tied to their porosity, section size tied to their density, frequency tied to their goal, thermal-protection product step, cool-down / low-manipulation follow-up). Anchor at least one instruction to a value from the user's profile.
+- pair_with: up to 4 pairings supporting THIS tool. Sources, in priority order:
+   1. source='shelf' — real items from context.shelf / high_rated_products / user's tools. Use their real name + brand.
+   2. source='wishlist' — real items from context.wishlist. Use their real name + brand. Flag these so the UI can offer a buy link.
+   3. source='suggested' — ONLY when nothing on shelf/wishlist fits. Describe a generic product type the user should look for (e.g. "a water-based leave-in with silk amino acids and glycerin", "a ceramic-plate heat protectant spray rated to 230°C"). Never invent a brand.
+   Every entry needs a personalised 'why' tying the pairing to the user's hair goal, challenge, current style, or the specific risk of using this tool.
 - routine_suggestion: 1–2 sentences slotting the tool into this user's routine — reference their current_style, last wash-day steps, and cadence when relevant. Empty string if nothing meaningful.
 
 Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. Web-derived facts go inline, never under "Read more —".
