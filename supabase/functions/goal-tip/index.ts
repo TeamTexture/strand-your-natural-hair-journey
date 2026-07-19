@@ -8,6 +8,61 @@
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
+import {
+  KNOWLEDGE_REGISTRY,
+  renderTopicBlock,
+} from "../_shared/knowledge/index.ts";
+import type { TopicId } from "../_shared/knowledge/types.ts";
+
+/**
+ * Select up to 4 manuscript topics relevant to this goal + user context.
+ * Grounds every Strand tip in How To Love Your Afro's core teachings.
+ * We bypass the function_kinds gate (goal-tip is not in that union) and
+ * match purely on: (a) keywords in the goal challenge/target text, and
+ * (b) the user's clinical signals (porosity, density, scalp, life stage,
+ * conditions, flagged blood markers).
+ */
+const GOAL_KEYWORD_TOPICS: Array<{ re: RegExp; topics: TopicId[] }> = [
+  { re: /length|grow|retention|retain/i, topics: ["wash-day-mechanics", "protective-styling", "heat-and-moisture"] },
+  { re: /shed|shedding|fall(ing)? out|thinning/i, topics: ["iron-and-shedding", "thyroid", "vits-and-minerals"] },
+  { re: /break(age|ing)?|snap|split/i, topics: ["protein-and-strengthening", "hair-architecture", "wash-day-mechanics"] },
+  { re: /moisture|moisturis|hydrat|dry|dryness/i, topics: ["porosity", "heat-and-moisture", "wash-day-mechanics"] },
+  { re: /scalp|itch|flake|dandruff|seborr/i, topics: ["scalp-conditions", "diagnosed-conditions"] },
+  { re: /heat|straighten|blow[- ]?dry|silk press/i, topics: ["heat-and-moisture", "protein-and-strengthening"] },
+  { re: /protective|braid|twist|wig|weave/i, topics: ["protective-styling", "wash-day-mechanics"] },
+  { re: /colour|color|dye|bleach|highlight/i, topics: ["protein-and-strengthening", "porosity"] },
+  { re: /volume|density|thicker|fuller/i, topics: ["hair-architecture", "wash-day-mechanics"] },
+  { re: /menopause|perimenopause|pregnan|postpartum|contracept|pill|coil|iud/i, topics: ["hormones-and-life-stage", "thyroid"] },
+];
+
+function selectGoalTopics(body: RequestBody): string[] {
+  const picks = new Set<TopicId>();
+  const goalText = [body.goal.challenge, body.goal.target_text]
+    .filter(Boolean).join(" ");
+  for (const { re, topics } of GOAL_KEYWORD_TOPICS) {
+    if (re.test(goalText)) topics.forEach((t) => picks.add(t));
+    if (picks.size >= 4) break;
+  }
+
+  const ctx = body.context as {
+    hair?: { porosity?: string[]; scalp?: string[]; diagnosed?: string[] };
+    health?: { lifeStage?: string[]; conditions?: string[]; contraception?: string[] };
+    bloodResults?: Array<{ marker?: string; status?: string | null }>;
+  };
+  const flagged = (ctx.bloodResults ?? [])
+    .filter((b) => b.status && !["normal", "untested"].includes((b.status ?? "").toLowerCase()))
+    .map((b) => (b.marker ?? "").toLowerCase());
+  if (picks.size < 4 && flagged.some((m) => m.includes("ferritin") || m.includes("iron"))) picks.add("iron-and-shedding");
+  if (picks.size < 4 && flagged.some((m) => m.includes("tsh") || m.includes("t3") || m.includes("t4"))) picks.add("thyroid");
+  if (picks.size < 4 && flagged.some((m) => m.includes("vit") || m.includes("zinc") || m.includes("b12") || m.includes("folate"))) picks.add("vits-and-minerals");
+  if (picks.size < 4 && (ctx.hair?.porosity?.length ?? 0) > 0) picks.add("porosity");
+  if (picks.size < 4 && (ctx.hair?.scalp?.length ?? 0) > 0) picks.add("scalp-conditions");
+  if (picks.size < 4 && (ctx.health?.lifeStage?.length ?? 0) > 0) picks.add("hormones-and-life-stage");
+  if (picks.size < 4) picks.add("wash-day-mechanics");
+
+  return Array.from(picks).slice(0, 4)
+    .map((id) => renderTopicBlock(KNOWLEDGE_REGISTRY[id]));
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,22 +70,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const systemPrompt = `${STRAND_PERSONA_WITH_RULES}
+const baseSystemPrompt = `${STRAND_PERSONA_WITH_RULES}
 
 ${VOICE_PRINCIPLES}
 
 TASK
 The user just saved a hair goal in STRAND. Write ONE short, personalised tip that uses their real profile data to tell them what to focus on to actually hit this goal by the target date.
 
+CORE TEACHINGS — SINGLE SOURCE OF TRUTH
+Every tip you produce MUST be curated from the STRAND CORE TEACHINGS block appended below (drawn verbatim from the STRAND clinical manuscript, "How To Love Your Afro"). You are not allowed to invent advice outside that framework. If the goal is not directly addressed by the teachings, reason from the closest applicable teaching and stay inside its guidance. Never contradict the teachings. Never add generic hair-care lore from outside them (e.g. no weekly protein, no plastic caps, no steamers — always TT Heat Hat, www.teamtexture.co.uk, for heat).
+
 Output:
 - "headline": max 9 words. Specific to this goal. No emoji.
-- "body": 1-2 sentences (max 36 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc). No medical claims, no growth promises.
-- "actions": 2-3 imperative next steps (max 12 words each) that fit into their current routine — e.g. wash-day adjustments, product choices to favour or avoid, professional check-ins. Each action should be doable in the app (wash day, products, journal, appointments).
+- "body": 1-2 sentences (max 36 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc) AND anchor the advice to a specific idea in the CORE TEACHINGS. No medical claims, no growth promises.
+- "actions": 2-3 imperative next steps (max 12 words each) that fit into their current routine — e.g. wash-day adjustments, product choices to favour or avoid, professional check-ins. Each action must be consistent with the CORE TEACHINGS and doable in the app (wash day, products, journal, appointments).
 
 Rules:
 - Reference the actual challenge/target text the user wrote.
 - If target_date is present, factor in the time horizon (urgent vs long-term).
 - Never invent profile data. If a signal isn't in the payload, don't use it.
+- Never name the manuscript, chapters, or page numbers in the output.
 - No clichés, no hype words, no "journey" / "queen" / "slay".`;
 
 interface RequestBody {
@@ -54,6 +113,11 @@ Deno.serve(async (req) => {
 
     const body: RequestBody = await req.json();
     const userPayload = JSON.stringify(body);
+
+    const teachings = selectGoalTopics(body);
+    const systemPrompt = teachings.length > 0
+      ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}`
+      : baseSystemPrompt;
 
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",

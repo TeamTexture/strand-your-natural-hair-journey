@@ -16,7 +16,7 @@ export interface GoalTip {
  */
 export const useGoalTip = (goal: UserGoal | null) => {
   return useQuery({
-    queryKey: ["goal-tip", goal?.id, goal?.updated_at],
+    queryKey: ["goal-tip", "manuscript-v1", goal?.id, goal?.updated_at],
     enabled: !!goal && !!(goal.challenge || goal.target_text || goal.title),
     staleTime: 1000 * 60 * 60 * 6,
     gcTime: 1000 * 60 * 60 * 24,
