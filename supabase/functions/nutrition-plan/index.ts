@@ -219,6 +219,15 @@ Return JSON only via the return_nutrition_plan tool.`;
       "thyroid",
       "diagnosed-conditions",
     ],
+    rag_query: `nutrition food hair growth iron ferritin vitamin D B12 zinc thyroid ${
+      (Array.isArray(args.body.flaggedMarkers)
+        ? (args.body.flaggedMarkers as Array<Record<string, unknown>>)
+            .map((m) => m.marker ?? m.name ?? "")
+            .filter(Boolean)
+            .join(" ")
+        : "")
+    }`.trim(),
+    rag_k: 5,
     tool: {
       name: "return_nutrition_plan",
       description: "Return the personalised nutrition plan. Always invoke exactly once.",
