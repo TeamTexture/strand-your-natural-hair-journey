@@ -194,9 +194,9 @@ async function runLovable(args: {
 ${CHAPTER_WHITELIST_PROMPT}
 
 TASK
-Given a single wash day log + the user's profile, write ONE personalised observation as Paige (2-3 sentences max).
-- Reference SPECIFIC choices the user made (a product, scalp feel, breakage level, hair feel note) — not generic advice.
-- Tie at least one observation back to the user's hair profile (porosity, scalp condition, diagnosed conditions) or a flagged blood marker / medication when relevant.
+Given a single wash day log + the user's profile, return TWO fields via the tool:
+1) observation (2-3 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
+2) next_wash_tip (2-3 sentences): a CONCRETE tip for the next wash day. Name at least one specific product from context.shelf/wishlist OR a specific tool from context.tools. Tie to today's outcome and the user's goals. If suggesting heat, only reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
 - Encouraging, never preachy. Plain English. No medical advice.
 - Return JSON only via the provided tool.`;
 
@@ -219,13 +219,14 @@ Given a single wash day log + the user's profile, write ONE personalised observa
             type: "function",
             function: {
               name: "return_observation",
-              description: "Return the wash-day observation.",
+              description: "Return the wash-day observation + next-wash tip.",
               parameters: {
                 type: "object",
                 properties: {
-                  observation: { type: "string", description: "2-3 sentence personalised note." },
+                  observation: { type: "string", description: "2-3 sentence reflection on today." },
+                  next_wash_tip: { type: "string", description: "2-3 sentence concrete tip for the next wash day, naming a specific product/tool the user owns." },
                 },
-                required: ["observation"],
+                required: ["observation", "next_wash_tip"],
               },
             },
           },
