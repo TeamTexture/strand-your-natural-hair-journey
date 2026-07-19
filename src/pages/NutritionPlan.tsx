@@ -64,7 +64,7 @@ const LABELS = [
   "Try this",
   "Note",
 ];
-const LABEL_RE = new RegExp(`(?:^|\\s)(${LABELS.join("|")}):`, "g");
+const LABEL_RE = new RegExp(`\\*{0,2}\\b(${LABELS.join("|")})\\b\\*{0,2}\\s*:\\*{0,2}`, "gi");
 
 const LABEL_TONE: Record<string, { dot: string; label: string }> = {
   "your signal": { dot: "bg-primary", label: "text-primary" },
@@ -81,11 +81,9 @@ const LABEL_TONE: Record<string, { dot: string; label: string }> = {
 
 const normaliseText = (raw: string): string => {
   let t = String(raw ?? "");
-  // Convert literal "\n" sequences (as seen in "\n\nYour focus:") into real newlines.
-  t = t.replace(/\\n/g, "\n");
-  // Also handle stray leading "/n/n" typos from the model.
-  t = t.replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
-  // Force each known label onto its own paragraph.
+  // Convert literal "\n" sequences and "/n/n" typos into real newlines.
+  t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
+  // Strip any bold wrapping around labels, then force each label onto its own paragraph.
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
 };
