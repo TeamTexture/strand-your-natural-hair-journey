@@ -187,6 +187,150 @@ const AvoidCard = ({ c }: { c: AiCard }) => (
   </SurfaceCard>
 );
 
+// ── Meal cards ───────────────────────────────────────────────────────────
+
+interface AiMeal {
+  emoji: string;
+  name: string;
+  cuisine?: string;
+  time_minutes?: number;
+  summary?: string;
+  targets?: string[];
+  ingredients?: string[];
+  steps?: string[];
+}
+
+const MealCard = ({
+  meal,
+  saved,
+  onToggleSave,
+  onDelete,
+}: {
+  meal: AiMeal;
+  saved: boolean;
+  onToggleSave?: () => void;
+  onDelete?: () => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <SurfaceCard className="border-l-4 border-l-primary">
+      <div className="flex gap-3">
+        <IconBubble emoji={meal.emoji || "🍽️"} tone="gold" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-display text-[17px] leading-tight text-foreground truncate">
+                {meal.name}
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {meal.cuisine && (
+                  <span className="px-2 py-[2px] rounded-full bg-primary/10 text-primary text-[10px] uppercase tracking-[0.14em] font-semibold">
+                    {meal.cuisine}
+                  </span>
+                )}
+                {typeof meal.time_minutes === "number" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-body text-muted-foreground">
+                    <Clock className="size-3" /> {meal.time_minutes} min
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {onToggleSave && (
+                <button
+                  type="button"
+                  onClick={onToggleSave}
+                  aria-label={saved ? "Remove from saved meals" : "Save meal"}
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-primary/10 transition"
+                >
+                  <Heart
+                    className={`size-4 transition ${
+                      saved ? "fill-primary text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  aria-label="Delete saved meal"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-destructive/10 transition text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          {meal.summary && (
+            <p className="mt-2 text-xs text-foreground/85 font-body leading-relaxed">
+              {meal.summary}
+            </p>
+          )}
+          {meal.targets && meal.targets.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {meal.targets.map((t) => (
+                <span
+                  key={t}
+                  className="px-2 py-[2px] rounded-full bg-good/15 text-good text-[10px] font-medium font-body"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary"
+          >
+            {open ? "Hide recipe" : "View recipe"}
+            <ChevronDown
+              className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+          {open && (
+            <div className="mt-3 space-y-3 rounded-[12px] bg-secondary/40 border-t-2 border-primary/25 p-3">
+              {meal.ingredients && meal.ingredients.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                    Ingredients
+                  </p>
+                  <ul className="space-y-1">
+                    {meal.ingredients.map((ing, i) => (
+                      <li key={i} className="text-xs font-body text-foreground/85 leading-relaxed pl-3 relative before:content-['•'] before:absolute before:left-0 before:text-primary">
+                        {ing}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {meal.steps && meal.steps.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                    Method
+                  </p>
+                  <ol className="space-y-1.5">
+                    {meal.steps.map((s, i) => (
+                      <li key={i} className="text-xs font-body text-foreground/85 leading-relaxed flex gap-2">
+                        <span className="shrink-0 size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+};
+
 // ── Deterministic fallback supplements (only used if AI omits them) ─────
 
 const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
