@@ -637,16 +637,21 @@ const NutritionPlan = () => {
           </div>
         )}
 
-        <Tabs defaultValue="supplements">
-          <TabsList className="grid w-full grid-cols-3 bg-secondary">
-            <TabsTrigger value="supplements" className="gap-1.5">
-              <Pill className="size-3.5" /> Supplements
+        <Tabs defaultValue="supplements" onValueChange={(v) => {
+          if (v === "meals" && !meals && !mealsLoading) void fetchMeals();
+        }}>
+          <TabsList className="grid w-full grid-cols-4 bg-secondary gap-0.5 p-0.5">
+            <TabsTrigger value="supplements" className="gap-1 px-1 text-[11px]">
+              <Pill className="size-3" /> Supps
             </TabsTrigger>
-            <TabsTrigger value="diet" className="gap-1.5">
-              <Leaf className="size-3.5" /> Diet
+            <TabsTrigger value="diet" className="gap-1 px-1 text-[11px]">
+              <Leaf className="size-3" /> Diet
             </TabsTrigger>
-            <TabsTrigger value="avoid" className="gap-1.5">
-              <Ban className="size-3.5" /> Avoid
+            <TabsTrigger value="avoid" className="gap-1 px-1 text-[11px]">
+              <Ban className="size-3" /> Avoid
+            </TabsTrigger>
+            <TabsTrigger value="meals" className="gap-1 px-1 text-[11px]">
+              <ChefHat className="size-3" /> Meals
             </TabsTrigger>
           </TabsList>
 
