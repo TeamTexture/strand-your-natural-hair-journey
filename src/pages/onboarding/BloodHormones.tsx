@@ -7,9 +7,12 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import BloodInputRow from "@/components/BloodInputRow";
 import BloodSummaryBar from "@/components/BloodSummaryBar";
+import { Input } from "@/components/ui/input";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useBloodValues, persistBloodValues } from "@/hooks/useBloodValues";
+import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
+
 
 const MARKERS = [
   "Oestrogen / Oestradiol",
