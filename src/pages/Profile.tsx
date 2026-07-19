@@ -529,7 +529,7 @@ const Profile = () => {
       {/* Update after appointment CTA — go straight to the section being updated */}
       <div className="px-5 pb-3 grid grid-cols-3 gap-3">
         <button
-          onClick={() => navigate("/onboarding/profile-step-1")}
+          onClick={() => navigate("/profile/personal")}
           className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
           <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
@@ -543,7 +543,7 @@ const Profile = () => {
           </div>
         </button>
         <button
-          onClick={() => navigate("/onboarding/profile-step-3-hair")}
+          onClick={() => navigate("/profile/hair")}
           className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
           <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
