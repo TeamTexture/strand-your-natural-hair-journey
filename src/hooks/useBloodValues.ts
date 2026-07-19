@@ -117,11 +117,13 @@ export function summariseValues(values: BloodValues, markers: string[]) {
  *  Call when starting a brand-new blood-test entry. */
 export function clearBloodDraft() {
   localStorage.removeItem(KEY);
+  localStorage.removeItem(UNKNOWN_KEY);
   localStorage.removeItem(DRAFT_PANEL_KEY);
   localStorage.removeItem(DRAFT_PANEL_DATE_KEY);
   localStorage.removeItem("strand_blood_summary_fp");
   window.dispatchEvent(new Event("strand:blood-update"));
 }
+
 
 /** Set the panel date for the current draft (before persisting).
  *  If not set, today's date is used. */
