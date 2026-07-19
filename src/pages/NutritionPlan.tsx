@@ -6,13 +6,13 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingDot from "@/components/LoadingDot";
-import { Button } from "@/components/ui/button";
-
+import { Pill, Leaf, Ban, Sparkles, Info } from "lucide-react";
 
 import { evaluate } from "@/data/bloodRanges";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { toast } from "sonner";
+
 
 type Diet = "omnivore" | "vegetarian" | "vegan" | "unknown";
 type Alcohol = "none" | "light" | "moderate" | "heavy" | "unknown";
@@ -24,47 +24,144 @@ interface Profile {
 }
 
 interface AiCard { emoji: string; name: string; body: string; severity?: string }
-interface AiPlan { summary?: string; diet?: AiCard[]; avoid?: AiCard[] }
+interface AiSupplement { emoji: string; name: string; dose?: string; body: string; priority?: "high" | "medium" | "low" }
+interface AiPlan { summary?: string; supplements?: AiSupplement[]; diet?: AiCard[]; avoid?: AiCard[] }
 
 const SourceNote = ({ children }: { children?: React.ReactNode }) => (
-  <p className="text-[11px] italic text-muted-foreground font-body mt-1">
+  <p className="text-[11px] italic text-muted-foreground font-body mt-2 px-1 leading-relaxed">
     {children ?? "Based on How To Love Your Afro by Paige Lewin"}
   </p>
 );
 
-interface Card { title: string; meta?: string; body: string }
+// ── Aesthetic card primitives ────────────────────────────────────────────
 
-const SupplementCard = ({ c }: { c: Card }) => (
+const IconBubble = ({
+  emoji,
+  tone,
+}: {
+  emoji: string;
+  tone: "gold" | "good" | "destructive" | "warn";
+}) => {
+  const toneCls: Record<string, string> = {
+    gold: "bg-primary/15 ring-1 ring-primary/30",
+    good: "bg-good/15 ring-1 ring-good/30",
+    destructive: "bg-destructive/10 ring-1 ring-destructive/30",
+    warn: "bg-warn/15 ring-1 ring-warn/30",
+  };
+  return (
+    <div
+      className={`size-11 shrink-0 rounded-full flex items-center justify-center text-[22px] ${toneCls[tone]}`}
+    >
+      <span aria-hidden>{emoji}</span>
+    </div>
+  );
+};
+
+const PriorityChip = ({ level }: { level?: "high" | "medium" | "low" }) => {
+  if (!level) return null;
+  const map: Record<string, { cls: string; label: string }> = {
+    high: { cls: "bg-primary text-primary-foreground", label: "Priority" },
+    medium: { cls: "bg-primary/20 text-primary", label: "Recommended" },
+    low: { cls: "bg-secondary text-secondary-foreground", label: "Optional" },
+  };
+  const p = map[level];
+  return (
+    <span className={`inline-block px-2 py-[3px] rounded-full text-[10px] uppercase tracking-[0.14em] font-semibold ${p.cls}`}>
+      {p.label}
+    </span>
+  );
+};
+
+const SeverityChip = ({ level }: { level?: string }) => {
+  if (!level) return null;
+  const map: Record<string, { cls: string; label: string }> = {
+    high: { cls: "bg-destructive text-destructive-foreground", label: "Limit" },
+    medium: { cls: "bg-warn/20 text-warn", label: "Reduce" },
+    low: { cls: "bg-secondary text-secondary-foreground", label: "Watch" },
+  };
+  const p = map[level] ?? map.low;
+  return (
+    <span className={`inline-block px-2 py-[3px] rounded-full text-[10px] uppercase tracking-[0.14em] font-semibold ${p.cls}`}>
+      {p.label}
+    </span>
+  );
+};
+
+const SupplementCard = ({ s }: { s: AiSupplement }) => (
   <SurfaceCard className="border-l-4 border-l-primary">
-    <p className="font-body font-semibold text-sm">{c.title}</p>
-    {c.meta && <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-0.5">{c.meta}</p>}
-    <p className="text-xs text-foreground/85 font-body mt-1 leading-relaxed">{c.body}</p>
-  </SurfaceCard>
-);
-
-const FoodCard = ({ emoji, name, body }: AiCard) => (
-  <SurfaceCard>
     <div className="flex gap-3">
-      <span className="text-2xl shrink-0">{emoji}</span>
+      <IconBubble emoji={s.emoji || "💊"} tone="gold" />
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm">{name}</p>
-        <p className="text-xs text-foreground/85 font-body mt-0.5 leading-relaxed">{body}</p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-display text-[17px] leading-tight text-foreground">{s.name}</p>
+          <PriorityChip level={s.priority} />
+        </div>
+        {s.dose && (
+          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1">
+            <Pill className="size-3 text-primary" />
+            <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
+          </div>
+        )}
+        <p className="text-xs text-foreground/85 font-body mt-2 leading-relaxed">{s.body}</p>
       </div>
     </div>
   </SurfaceCard>
 );
 
-const AvoidCard = ({ emoji, name, body, severity }: AiCard) => (
-  <SurfaceCard className={`border-l-4 ${severity === "high" ? "border-l-destructive" : "border-l-destructive/50"}`}>
+const DietCard = ({ c }: { c: AiCard }) => (
+  <SurfaceCard className="border-l-4 border-l-good">
     <div className="flex gap-3">
-      <span className="text-2xl shrink-0">{emoji}</span>
+      <IconBubble emoji={c.emoji || "🥗"} tone="good" />
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm">{name}</p>
-        <p className="text-xs text-foreground/85 font-body mt-0.5 leading-relaxed">{body}</p>
+        <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
+        <p className="text-xs text-foreground/85 font-body mt-1.5 leading-relaxed">{c.body}</p>
       </div>
     </div>
   </SurfaceCard>
 );
+
+const AvoidCard = ({ c }: { c: AiCard }) => (
+  <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
+    <div className="flex gap-3">
+      <IconBubble emoji={c.emoji || "⚠️"} tone={c.severity === "high" ? "destructive" : "warn"} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
+          <SeverityChip level={c.severity} />
+        </div>
+        <p className="text-xs text-foreground/85 font-body mt-1.5 leading-relaxed">{c.body}</p>
+      </div>
+    </div>
+  </SurfaceCard>
+);
+
+// ── Deterministic fallback supplements (only used if AI omits them) ─────
+
+const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
+  const isVeg = p.diet === "vegan" || p.diet === "vegetarian";
+  const out: AiSupplement[] = [];
+  if (p.flagged.has("Ferritin")) out.push({
+    emoji: "🩸", name: "Iron", dose: "One 200 mg tablet with orange juice", priority: "high",
+    body: "Ferritin (your body's stored iron) is what your follicles draw on to build new hair, so when it runs low you tend to see more shedding. Take it with vitamin C to help absorption, and keep it away from tea, coffee and calcium for an hour either side.",
+  });
+  if (p.flagged.has("Vitamin D")) out.push({
+    emoji: "☀️", name: "Vitamin D3", dose: "1000–2000 IU daily with breakfast", priority: "high",
+    body: "Deeper skin tones make less vitamin D from UK sunlight, and vitamin D helps switch your follicles back into their growth phase. A daily dose taken with food (it's fat-soluble) is the simplest way to keep levels steady year-round.",
+  });
+  if (p.flagged.has("Vitamin B12") || isVeg) out.push({
+    emoji: "🌱", name: "Vitamin B12", dose: "Methylcobalamin 1000 mcg daily", priority: "high",
+    body: "B12 is what your blood cells use to carry oxygen to every follicle. On a plant-based diet it's the one nutrient you really can't skip — a small daily supplement covers you.",
+  });
+  if (p.flagged.has("Zinc")) out.push({
+    emoji: "⚙️", name: "Zinc", dose: "8–11 mg daily (never above 40 mg)", priority: "medium",
+    body: "Zinc helps your follicles build the proteins that make up each strand and keeps scalp oil in balance. A modest daily dose is enough — going higher can actually work against you.",
+  });
+  out.push({
+    emoji: "🐟", name: "Omega-3", dose: "1000 mg fish oil (or algae oil if plant-based) daily", priority: "medium",
+    body: "Omega-3s calm inflammation around the follicle and keep your scalp's oil layer supple, which helps hair stay flexible and shiny. Take it with a meal that has some fat in it for best absorption.",
+  });
+  return out;
+};
 
 const NutritionPlan = () => {
   const navigate = useNavigate();
@@ -157,7 +254,6 @@ const NutritionPlan = () => {
         const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
         const next = { diet, alcohol, flagged };
         setProfile(next);
-        // Kick off AI plan generation (cached after first run)
         void fetchPlan(false, next);
       } finally {
         setLoading(false);
@@ -175,75 +271,46 @@ const NutritionPlan = () => {
     );
   }
 
-  const isVeg = profile.diet === "vegan" || profile.diet === "vegetarian";
-  const f = profile.flagged;
+  // Supplements — prefer AI (personalised, layman's terms); fall back to
+  // deterministic list only if AI didn't return them.
+  const supplements: AiSupplement[] =
+    plan?.supplements && plan.supplements.length > 0
+      ? plan.supplements
+      : buildFallbackSupplements(profile);
 
-  // Supplements remain deterministic — these are clinical, not editorial.
-  const supplements: Card[] = [];
-  if (f.has("Ferritin")) supplements.push({
-    title: "Iron supplement",
-    meta: "Ferrous sulfate 200mg or ferrous fumarate",
-    body: "Take with vitamin C. Avoid with tea or coffee. Low ferritin is one of the most common causes of hair shedding.",
-  });
-  if (f.has("Vitamin D")) supplements.push({
-    title: "Vitamin D3",
-    meta: "1000–2000 IU daily",
-    body: "Darker skin tones produce less vitamin D from UK sunlight. Vitamin D deficiency affects the hair follicle cycle directly.",
-  });
-  if (f.has("Zinc")) supplements.push({
-    title: "Zinc",
-    meta: "8–11 mg daily — do not exceed 40 mg",
-    body: "Supports protein synthesis in the follicle and scalp oil regulation.",
-  });
-  if (f.has("Magnesium")) supplements.push({
-    title: "Magnesium glycinate",
-    meta: "200–400 mg daily",
-    body: "Supports over 300 enzymatic processes involved in hair growth.",
-  });
-  if (f.has("Vitamin B12") || isVeg) supplements.push({
-    title: "Vitamin B12",
-    meta: "Methylcobalamin 1000 mcg daily",
-    body: "Essential for plant-based diets. Deficiency limits oxygen to follicles.",
-  });
-  if (f.has("Folate")) supplements.push({
-    title: "Folate",
-    meta: "400 mcg daily",
-    body: "Critical for cell division in rapidly dividing follicle cells.",
-  });
-  supplements.push({
-    title: "Omega-3",
-    meta: "1000 mg fish oil or algae oil",
-    body: "Supports scalp moisture and reduces follicle inflammation.",
-  });
-
-  const renderAiSection = (cards: AiCard[] | undefined, kind: "diet" | "avoid") => {
-    if (aiLoading && !cards) {
-      const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
-      return (
-        <div className="px-2 pt-6 pb-4 flex flex-col items-center text-center">
-          <p className="font-display text-[20px] leading-tight text-foreground mb-5">
-            Personalising your plan…
-          </p>
-          <div
-            className="text-[40px] font-display text-primary tabular-nums mb-3"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pct}
-          >
-            {pct}%
-          </div>
-          <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
-            <div
-              className="h-full bg-primary transition-[width] duration-300 ease-out"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground font-body mt-4 leading-relaxed">
-            STRAND is tailoring your nutrition guidance to your bloods, hair and heritage profile.
-          </p>
+  const renderLoading = (label: string) => {
+    const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
+    return (
+      <div className="px-2 pt-6 pb-4 flex flex-col items-center text-center">
+        <p className="font-display text-[20px] leading-tight text-foreground mb-5">{label}</p>
+        <div
+          className="text-[40px] font-display text-primary tabular-nums mb-3"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+        >
+          {pct}%
         </div>
-      );
+        <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+          <div
+            className="h-full bg-primary transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground font-body mt-4 leading-relaxed">
+          STRAND is tailoring your nutrition guidance to your bloods, hair and heritage profile.
+        </p>
+      </div>
+    );
+  };
+
+  const renderAiSection = (
+    cards: AiCard[] | undefined,
+    kind: "diet" | "avoid",
+  ) => {
+    if (aiLoading && !cards) {
+      return renderLoading("Personalising your plan…");
     }
     if (!cards || cards.length === 0) {
       return (
@@ -256,43 +323,84 @@ const NutritionPlan = () => {
     }
     return cards.map((c, i) =>
       kind === "diet" ? (
-        <FoodCard key={`${c.name}-${i}`} {...c} />
+        <DietCard key={`${c.name}-${i}`} c={c} />
       ) : (
-        <AvoidCard key={`${c.name}-${i}`} {...c} />
+        <AvoidCard key={`${c.name}-${i}`} c={c} />
       ),
     );
   };
+
+  const flaggedList = Array.from(profile.flagged);
 
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Nutrition Plan" onBack={() => navigate(-1)} />
       <div className="px-5 pt-1 pb-8">
-        <h1 className="font-display text-[26px] leading-tight mb-4">Your Nutrition Plan</h1>
+        <h1 className="font-display text-[26px] leading-tight mb-1">Your Nutrition Plan</h1>
+        <p className="text-xs text-muted-foreground font-body mb-4">
+          Personalised to your blood work, heritage, life stage and hair goals.
+        </p>
 
         {plan?.summary && (
-          <SurfaceCard tone="gold" className="mb-3">
-            <p className="text-xs font-body leading-relaxed">{plan.summary}</p>
-          </SurfaceCard>
+          <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
+            <div className="flex items-start gap-2 mb-2">
+              <div className="size-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Sparkles className="size-3.5 text-primary" />
+              </div>
+              <p className="font-display text-[15px] leading-tight text-foreground pt-1">Why this plan</p>
+            </div>
+            <p className="text-xs font-body leading-relaxed text-foreground/85">{plan.summary}</p>
+          </div>
+        )}
+
+        {flaggedList.length > 0 && (
+          <div className="mb-4 rounded-[14px] bg-warn/10 border border-warn/25 p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Info className="size-3.5 text-warn" />
+              <p className="text-[11px] uppercase tracking-[0.15em] font-semibold text-warn">
+                Anchored to your flagged markers
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {flaggedList.map((m) => (
+                <span
+                  key={m}
+                  className="px-2 py-0.5 rounded-full bg-warn/20 text-warn text-[11px] font-medium font-body"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
 
         <Tabs defaultValue="supplements">
           <TabsList className="grid w-full grid-cols-3 bg-secondary">
-            <TabsTrigger value="supplements">Supplements</TabsTrigger>
-            <TabsTrigger value="diet">Diet</TabsTrigger>
-            <TabsTrigger value="avoid">Avoid</TabsTrigger>
+            <TabsTrigger value="supplements" className="gap-1.5">
+              <Pill className="size-3.5" /> Supplements
+            </TabsTrigger>
+            <TabsTrigger value="diet" className="gap-1.5">
+              <Leaf className="size-3.5" /> Diet
+            </TabsTrigger>
+            <TabsTrigger value="avoid" className="gap-1.5">
+              <Ban className="size-3.5" /> Avoid
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="supplements" className="space-y-3 mt-4">
-            {supplements.map((c) => <SupplementCard key={c.title} c={c} />)}
-            <SourceNote />
-            <SurfaceCard tone="gold">
-              <p className="text-[11px] font-body leading-relaxed">
-                These recommendations are based on your blood test results and the guidance in
-                <em> How To Love Your Afro</em> by Paige Lewin. They are not medical advice. Always
-                consult your GP before starting any new supplement, especially if you are pregnant,
-                breastfeeding, or on medication.
+            {aiLoading && (!plan?.supplements || plan.supplements.length === 0) ? (
+              renderLoading("Personalising your supplements…")
+            ) : (
+              supplements.map((s, i) => <SupplementCard key={`${s.name}-${i}`} s={s} />)
+            )}
+            <SourceNote>
+              Personalised by STRAND AI from your bloods, heritage and health profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
+            </SourceNote>
+            <div className="rounded-[14px] bg-alert-dark/8 border border-alert-dark/15 p-3">
+              <p className="text-[11px] font-body leading-relaxed text-foreground/80">
+                <strong className="font-semibold">Not medical advice.</strong> Always check with your GP before starting a new supplement — especially if you're pregnant, breastfeeding, on medication, or managing a health condition.
               </p>
-            </SurfaceCard>
+            </div>
           </TabsContent>
 
           <TabsContent value="diet" className="space-y-3 mt-4">

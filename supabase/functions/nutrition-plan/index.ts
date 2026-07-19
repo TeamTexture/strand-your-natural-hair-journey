@@ -42,8 +42,17 @@ interface NutritionCard {
   severity?: "high" | "medium" | "low";
 }
 
+interface SupplementCard {
+  emoji: string;
+  name: string;
+  dose?: string;
+  body: string;
+  priority?: "high" | "medium" | "low";
+}
+
 interface NutritionPlanPayload {
   summary: string;
+  supplements: SupplementCard[];
   diet: NutritionCard[];
   avoid: NutritionCard[];
 }
@@ -81,12 +90,33 @@ CRITICAL: Never produce generic text. If a card could apply to anyone, rewrite i
 const RETURN_PLAN_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["summary", "diet", "avoid"],
+  required: ["summary", "supplements", "diet", "avoid"],
   properties: {
     summary: {
       type: "string",
       description:
         "3-4 sentence overview of the plan's logic in Paige's voice, grounded in this user's specific data.",
+    },
+    supplements: {
+      type: "array",
+      minItems: 3,
+      maxItems: 8,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["emoji", "name", "body"],
+        properties: {
+          emoji: { type: "string" },
+          name: { type: "string", description: "Plain-English supplement name (e.g. 'Iron', 'Vitamin D3')." },
+          dose: { type: "string", description: "Plain-English dose guidance (e.g. '1000 IU daily with breakfast')." },
+          body: {
+            type: "string",
+            description:
+              "2-3 sentences in LAYMAN'S English. Explain in everyday words why THIS user needs it (their blood marker, age, heritage, medication, condition). No textbook jargon — translate any clinical term the first time it appears (e.g. 'ferritin (your body's stored iron)').",
+          },
+          priority: { type: "string", enum: ["high", "medium", "low"] },
+        },
+      },
     },
     diet: {
       type: "array",
@@ -102,7 +132,7 @@ const RETURN_PLAN_SCHEMA = {
           body: {
             type: "string",
             description:
-              "2-3 sentences. Lead with the mechanism in plain English, then connect ('which is why', 'so', 'this means') to THIS user's data: heritage, life stage, blood marker, goal, medication.",
+              "2-3 sentences in LAYMAN'S English. Lead with the mechanism in everyday words, then connect ('which is why', 'so', 'this means') to THIS user's data: heritage, life stage, blood marker, goal, medication.",
           },
         },
       },
@@ -121,7 +151,7 @@ const RETURN_PLAN_SCHEMA = {
           body: {
             type: "string",
             description:
-              "2-3 sentences. Mechanism first, then why it matters for THIS user specifically (medication, condition, alcohol level).",
+              "2-3 sentences in LAYMAN'S English. Mechanism first in plain words, then why it matters for THIS user (medication, condition, alcohol level).",
           },
           severity: { type: "string", enum: ["high", "medium", "low"] },
         },
@@ -153,35 +183,46 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Two parts: "diet" (6-10 foods to eat) and "avoid" (4-6 things to limit), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
+  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (3-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 things to limit), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
 
-Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud — start with the MECHANISM in plain English ("Iron stored as ferritin is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their heritage, their alcohol intake). "You", never "your hair". Translate any clinical term the FIRST time it appears in any field — "ferritin (your iron stores)", "biotin (a B-vitamin)", etc.
+CRITICAL LANGUAGE RULE — PLAIN ENGLISH FOR AMATEURS.
+Every card body must read like a knowledgeable friend explaining it, not a science textbook. Assume the reader has no clinical training. Translate every clinical term the FIRST time it appears — "ferritin (your body's stored iron)", "biotin (a B-vitamin your hair uses to build keratin)", "TSH (a thyroid hormone marker)". Prefer everyday words: "shedding" not "telogen effluvium", "hair strength" not "tensile integrity", "regrowth" not "anagen recovery". Short, warm, direct sentences. No lists inside cards. No jargon dumps.
+
+Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud in plain English — start with the MECHANISM in everyday words ("Iron is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their heritage, their alcohol intake). "You", never "your hair".
 
 OUTPUT RULES
 
-1. EXPLANATION-FIRST. Never lead a card with "Eat this" or "Avoid that." Lead with the mechanism, then connect to the user, then the food/limit lands as the obvious conclusion.
+1. EXPLANATION-FIRST. Never lead a card with "Eat this", "Take that", or "Avoid this". Lead with the plain-English mechanism, then connect to the user, then the food/supplement/limit lands as the obvious conclusion.
 
-2. Ground every card in the user's actual data: heritage, life_stage, medications, conditions, blood markers, goals, diet pattern, alcohol intake, recent wash signals if relevant. Never invent data — if a field is missing, don't reference it. If a card could apply to anyone, rewrite it.
+2. Ground every card in the user's actual data — heritage, age, life_stage, medications, diagnosed conditions, blood markers, goals, diet pattern, alcohol intake, recent wash signals. Never invent data — if a field is missing, don't reference it. If a card could apply to anyone, rewrite it.
 
-3. CULTURAL CONTEXT. If the user is UK-based (location.country, postcode) or African / Caribbean by heritage, prefer foods they likely already cook with — jollof base ingredients, scotch bonnet, plantain, callaloo, ackee, oxtail, mackerel, sardines, eddoes, ground provisions. Don't say "leafy greens" if you can say "callaloo" or "spring greens." For UK users default to UK supermarket / produce names.
+3. SUPPLEMENTS — PERSONALISED, NOT GENERIC.
+   - Every supplement card must be tied to something SPECIFIC about this user (a flagged marker, their heritage + UK sunlight for vitamin D, their medication depleting a nutrient, their diet pattern, their life stage). Never a generic "everyone should take X".
+   - Iron: only recommend if ferritin/iron is flagged low, or the user is menstruating heavily / vegetarian / vegan with known risk. Explain iron in plain English ("iron is what carries oxygen to every follicle").
+   - Vitamin D: recommend for African / Caribbean heritage or UK-based users, and specifically explain WHY in plain English (deeper skin makes less vitamin D from UK sun; UK winters have little UVB).
+   - B12: mandatory for vegan / vegetarian; also flag for anyone on metformin or long-term PPIs (explain the medication link in one line).
+   - Zinc, magnesium, folate, omega-3, biotin, collagen: include only where the data supports it. Explain what each does for hair in one plain-English sentence.
+   - Dose field: give a practical everyday dose with timing (e.g. "1000 IU daily with breakfast", "one 200 mg tablet with a glass of orange juice"). Never a range wider than 2x. Never medical prescribing.
+   - Priority: "high" if a flagged marker directly drives it; "medium" if lifestyle/heritage drives it; "low" if general support.
+   - Always finish supplement bodies with a soft check-with-GP nudge only when medication interaction or a condition (pregnancy, thyroid) is present — don't tack it onto every card.
 
-4. DIET PATTERN HARD RULE. Never recommend animal foods to a vegan. Never recommend pork or shellfish if the diet field excludes them. Always offer the culturally familiar plant alternative when needed.
+4. CULTURAL CONTEXT. If the user is UK-based or African / Caribbean by heritage, prefer foods they likely already cook with — jollof base ingredients, scotch bonnet, plantain, callaloo, ackee, oxtail, mackerel, sardines, eddoes, ground provisions. Don't say "leafy greens" if you can say "callaloo" or "spring greens." For UK users default to UK supermarket / produce names.
 
-5. BLOOD MARKERS. Every flagged low/high marker in flaggedMarkers / bloodResults MUST be addressed by at least one diet card with a targeted food + mechanism. Iron, vitamin D, B12, ferritin, zinc, omega-3, biotin, protein adequacy are the relevant levers.
+5. DIET PATTERN HARD RULE. Never recommend animal foods to a vegan. Never recommend pork or shellfish if the diet field excludes them. Always offer the culturally familiar plant alternative.
 
-6. CURRENT GOALS / STYLE. Reference current style or goals only when the mechanism connects (e.g. "a protective style coming up means your follicles are doing the heavy lifting under the wig — protein adequacy matters more this month, which is why…"). Don't reach back to past goals.
+6. BLOOD MARKERS. Every flagged low/high marker MUST be addressed by at least one supplement OR diet card with a targeted lever + plain-English mechanism.
 
-7. AVOID LIST. Each avoid card must be personalised — name the medication, marker, or habit it ties to. If a "consistently flagged" ingredient or pattern appeared in their history, you may reference it as "consistently flagged in your history" — never "avoid list" or "your avoids."
+7. MEDICATIONS & CONDITIONS. If the user lists medications or diagnosed conditions, at least one card (supplement, diet, or avoid) must reference the interaction explicitly (e.g. "metformin lowers your B12 over time, which is why…", "with your thyroid on levothyroxine, avoid taking iron within 4 hours…").
 
-8. SCOPE. Hair-health guidance only. Never medical advice, never diagnose. Iron, vitamin D, B12, omega-3, zinc, biotin, protein adequacy are fair game for hair. Anything beyond that — refer back to a clinician.
+8. AGE / LIFE STAGE. Reference perimenopause, menopause, postpartum, breastfeeding, or younger training-heavy life stages where relevant — nutrient needs shift materially at each.
 
-9. MOISTURE NUANCE. Moisture for hair comes from water against the cuticle, not food. But hydration-from-food (water content in fruit/veg/soup) is still a real lever for whole-body hydration — don't conflate the two. If you mention hydration, frame it as whole-body, not "hydrating the hair."
+9. AVOID LIST. Each avoid card must be personalised — name the medication, marker, or habit it ties to. Plain English.
 
-10. SUMMARY. One short paragraph (3-4 sentences) explaining the plan's overall logic in Paige's voice, naming the 1-2 user signals it's anchored to. No greeting, no sign-off.
+10. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
 
-11. NO chapter citations. NO "Read more — How To Love Your Afro" links.
+11. SUMMARY. One short paragraph (3-4 sentences) in Paige's voice, plain English, naming the 1-2 user signals the plan is anchored to. No greeting, no sign-off.
 
-12. Plain English, no jargon. Treat the user as a capable adult who knows their body.`;
+12. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead.`;
 }
 
 async function runClaude(args: {
@@ -292,6 +333,7 @@ Return JSON only via the return_nutrition_plan tool.`;
   }
   const payload = {
     summary: typeof p.summary === "string" ? p.summary : "",
+    supplements: Array.isArray(p.supplements) ? p.supplements : [],
     diet: Array.isArray(p.diet) ? p.diet : [],
     avoid: Array.isArray(p.avoid) ? p.avoid : [],
   };
@@ -346,6 +388,22 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
                   type: "object",
                   properties: {
                     summary: { type: "string" },
+                    supplements: {
+                      type: "array",
+                      minItems: 3,
+                      maxItems: 8,
+                      items: {
+                        type: "object",
+                        properties: {
+                          emoji: { type: "string" },
+                          name: { type: "string" },
+                          dose: { type: "string" },
+                          body: { type: "string" },
+                          priority: { type: "string", enum: ["high", "medium", "low"] },
+                        },
+                        required: ["emoji", "name", "body"],
+                      },
+                    },
                     diet: {
                       type: "array",
                       minItems: 6,
@@ -379,7 +437,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
                       },
                     },
                   },
-                  required: ["summary", "diet", "avoid"],
+                  required: ["summary", "supplements", "diet", "avoid"],
                 },
               },
             },
@@ -415,6 +473,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
   const parsed = JSON.parse(toolCall.function.arguments) as Partial<NutritionPlanPayload>;
   return {
     summary: typeof parsed.summary === "string" ? parsed.summary : "",
+    supplements: Array.isArray(parsed.supplements) ? parsed.supplements : [],
     diet: Array.isArray(parsed.diet) ? parsed.diet : [],
     avoid: Array.isArray(parsed.avoid) ? parsed.avoid : [],
   };
@@ -452,6 +511,7 @@ Deno.serve(async (req: Request) => {
     // Build a signature from the inputs that should invalidate cache.
     // Provider is included so flipping the flag forces a regen.
     const sigSource = JSON.stringify({
+      schema_version: "v2-supplements-layman",
       provider,
       diet: diet ?? null,
       alcohol: alcohol ?? null,
