@@ -9,14 +9,8 @@ import { useMemo, useState } from "react";
 import { Check, Plus, X, Loader2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
+import { useUserTools, type UserTool } from "@/hooks/useUserTools";
+
 import { cn } from "@/lib/utils";
 
 // Heat-related categories rise to the top so the relevant tools (heat hat,
@@ -44,12 +38,16 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
   const [category, setCategory] = useState<string>("Deep conditioning cap / heat hat");
   const [submitting, setSubmitting] = useState(false);
 
-  // Heat-relevant tools first, then everything else — keeps the picker short.
-  const sorted = useMemo(() => {
-    const heat = tools.filter((t) => t.category && HEAT_CATEGORIES.has(t.category));
-    const rest = tools.filter((t) => !t.category || !HEAT_CATEGORIES.has(t.category));
-    return [...heat, ...rest];
-  }, [tools]);
+  // Wash-day heat step is heat-hat only — filter everything else out so the
+  // picker doesn't surface straighteners, wands, etc.
+  const sorted = useMemo(
+    () =>
+      tools.filter(
+        (t) => t.category === "Deep conditioning cap / heat hat",
+      ),
+    [tools],
+  );
+
 
   const formatTool = (t: UserTool) =>
     t.brand ? `${t.name} — ${t.brand}` : t.name;
@@ -138,18 +136,10 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
             className="h-9 text-xs"
             autoFocus
           />
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {TOOL_CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c} className="text-xs">
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <p className="text-[10px] text-muted-foreground">
+            Category: Deep conditioning cap / heat hat
+          </p>
+
           <Button
             type="button"
             variant="gold"
