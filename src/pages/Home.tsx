@@ -204,12 +204,12 @@ const Home = () => {
     (async () => {
       const { data: panels } = await supabase
         .from("blood_panels")
-        .select("id, panel_date")
+        .select("id, panel_date, label")
         .eq("user_id", user.id)
         .eq("status", "logged")
         .order("panel_date", { ascending: false })
         .limit(1);
-      const panel = panels?.[0] as { id?: string; panel_date?: string } | undefined;
+      const panel = panels?.[0] as { id?: string; panel_date?: string; label?: string | null } | undefined;
       if (!panel?.id) {
         if (!cancelled) setBloodSummary(null);
         return;
@@ -224,6 +224,7 @@ const Home = () => {
       if (!cancelled) {
         setBloodSummary({
           panelDate: panel.panel_date ?? null,
+          label: panel.label ?? null,
           total: rows.length,
           flagged,
         });
