@@ -359,6 +359,10 @@ const WashStep1 = () => {
     const d = searchParams.get("date");
     if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
       localStorage.setItem("strand_wash_date", d);
+    } else {
+      // No explicit date param → user is logging "today". Clear any stale
+      // date left over from a previous calendar-tap so we don't back-date it.
+      localStorage.removeItem("strand_wash_date");
     }
   }, [searchParams]);
 
