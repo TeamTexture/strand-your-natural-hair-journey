@@ -160,14 +160,16 @@ Every tip you produce MUST be curated from the STRAND CORE TEACHINGS block appen
 
 Output:
 - "headline": max 9 words. Specific to this goal. No emoji.
-- "body": 1-2 sentences (max 40 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc) AND anchor the advice to a specific idea in the CORE TEACHINGS. No medical claims, no growth promises.
-- "actions": 2-3 items. Each item is an OBJECT with:
+- "body": 1-2 sentences (max 40 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc) AND anchor the advice to a specific idea in the RETRIEVED MANUSCRIPT PASSAGES. No medical claims, no growth promises.
+- "actions": exactly 3 items. Each item is an OBJECT with:
     * "action": one imperative next step (max 12 words) that fits into their current routine — wash-day adjustments, product choices, professional check-ins.
-    * "why": one short sentence (max 22 words) explaining WHY this step works, drawn from the CORE TEACHINGS or a specific profile signal. This is the teaching layer — succinct, plain English, no jargon without a translation, no lecture. Never repeat the action; explain the mechanism or the reason it matters for THIS user.
-  Every action must be consistent with the CORE TEACHINGS and doable in the app (wash day, products, journal, appointments).
+    * "why": one short sentence (max 22 words) explaining WHY this step works, drawn from the RETRIEVED MANUSCRIPT PASSAGES and tailored to a specific profile signal (their porosity, density, curl pattern, current style + duration, scalp condition, flagged blood marker, or life stage). No jargon without a translation. Never repeat the action; explain the mechanism or the reason it matters for THIS user.
+  Every action must be consistent with the passages and doable in the app (wash day, products, journal, appointments).
 
 Rules:
-- Every tip educates as well as instructs. If you can't justify an action with a clear "why", drop it.
+- The three actions MUST be the three most valuable, high-leverage moves for THIS goal + THIS profile — not generic hair advice. If the goal is length retention, all three tips must come from length-retention teachings (growth phase, moisture retention, high-manipulation styling, wash frequency); do NOT pad with unrelated topics.
+- Prefer the RETRIEVED MANUSCRIPT PASSAGES over the CORE TEACHINGS block when the two overlap — the passages are the chapter-scoped source of truth for this goal.
+- Every tip educates as well as instructs. If you can't justify an action with a clear "why", drop it and pick a better one from the passages.
 - Reference the actual challenge/target text the user wrote.
 - If target_date is present, factor in the time horizon (urgent vs long-term).
 - Never invent profile data. If a signal isn't in the payload, don't use it.
@@ -199,15 +201,22 @@ Deno.serve(async (req) => {
     const teachings = selectGoalTopics(body);
 
     // Retrieve manuscript passages grounded in the goal text + user signals.
+    // Scope retrieval to the chapters most relevant to this goal so the
+    // tips are drawn from the right part of the book (e.g. length → growth,
+    // moisture retention, high-manipulation styling, wash frequency).
     const goalText = [body.goal.challenge, body.goal.target_text].filter(Boolean).join(" ");
+    const chapterFilter = selectGoalChapters(goalText);
+    const ragQuery = buildRagQuery(body);
     let ragBlock = "";
     try {
-      const passages = await retrievePassages(
-        `${goalText} Afro hair goal advice retention breakage moisture scalp`,
-        4,
-      );
+      let passages = await retrievePassages(ragQuery, 6, chapterFilter);
+      // Fallback: if the chapter-scoped query returned nothing (e.g. missing
+      // embeddings for those chapters), fall back to the full corpus.
+      if (passages.length === 0) {
+        passages = await retrievePassages(ragQuery, 6);
+      }
       if (passages.length > 0) {
-        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (use these verbatim teachings):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all three tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
       }
     } catch (e) {
       console.warn("goal-tip RAG retrieval failed (continuing):", e);
@@ -253,7 +262,7 @@ Deno.serve(async (req) => {
                         required: ["action", "why"],
                         additionalProperties: false,
                       },
-                      minItems: 2,
+                      minItems: 3,
                       maxItems: 3,
                     },
                   },
