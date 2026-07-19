@@ -58,7 +58,6 @@ export default function BloodUpload() {
   const [panelDate, setPanelDate] = useState<string>(
     new Date().toISOString().slice(0, 10),
   );
-  const [documentTitle, setDocumentTitle] = useState<string | null>(null);
   const [testType, setTestType] = useState<string | null>(null);
   const [labName, setLabName] = useState<string | null>(null);
   const [panelLabel, setPanelLabel] = useState<string | null>(null);
