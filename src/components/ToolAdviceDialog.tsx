@@ -52,12 +52,30 @@ export function ToolAdviceDialog({
     typeof payload.routine_suggestion === "string" ? payload.routine_suggestion : "";
   const pairWith = Array.isArray(payload.pair_with)
     ? (payload.pair_with as Array<Record<string, unknown>>)
-        .map((p) => ({
-          item: typeof p?.item === "string" ? p.item : "",
-          why: typeof p?.why === "string" ? p.why : "",
-        }))
+        .map((p) => {
+          const rawSource = typeof p?.source === "string" ? p.source.toLowerCase() : "";
+          const source: "shelf" | "wishlist" | "suggested" =
+            rawSource === "wishlist" ? "wishlist" : rawSource === "suggested" ? "suggested" : "shelf";
+          return {
+            item: typeof p?.item === "string" ? p.item : "",
+            why: typeof p?.why === "string" ? p.why : "",
+            source,
+          };
+        })
         .filter((p) => p.item)
     : [];
+  const warnings = asStringArray(payload.warnings);
+
+  const copyAndOpenAmazon = async (name: string) => {
+    try {
+      await navigator.clipboard.writeText(name);
+      toast.success("Name copied — opening Amazon.co.uk");
+    } catch {
+      toast.message("Opening Amazon.co.uk", { description: name });
+    }
+    const q = encodeURIComponent(name);
+    window.open(`https://www.amazon.co.uk/s?k=${q}`, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
