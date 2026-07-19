@@ -1,9 +1,14 @@
 // Post-onboarding AI summary screen. Calls hair-strand-summary which writes
 // to hair_strand_summaries and returns overview + action plan + routine tips.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Sparkles, Loader2, Camera, Plus, X } from "lucide-react";
+import {
+  Sparkles, Loader2, Camera, Plus, X,
+  Droplets, Shield, Scissors, Flame, Moon, Sun, Wind, Leaf,
+  Pill, Apple, Activity, Calendar, Sparkle, Waves, HeartPulse,
+  ClipboardList, ListChecks, FileText, type LucideIcon,
+} from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
