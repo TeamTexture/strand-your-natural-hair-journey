@@ -232,13 +232,16 @@ async function runLovable(args: {
 ${CHAPTER_WHITELIST_PROMPT}
 
 TASK
-Given a single wash day log + the user's profile, return TWO fields via the tool:
-1) observation (2-3 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
+Given a single wash day log + the user's profile, return TWO fields via the tool. The client UI foregrounds next_wash_tip, so make that the most useful part.
+1) observation (1-2 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
 2) next_wash_tip: an object with { action, why }.
    - action: ONE clear imperative sentence (max 18 words) for the NEXT wash day. Starts with a verb. Names a specific product from context.shelf/wishlist OR a specific tool from context.tools. Never invent items the user doesn't have.
-   - why: 2-3 short sentences explaining the reasoning. MUST be grounded in the STRAND core teachings from How To Love Your Afro AND tied to at least ONE concrete signal from the user (porosity, scalp today, breakage today, style, goal, product outcome). Plain English, no chapter/page citations.
+   - Core rule: wash-day products need 3–4 wash cycles before judging them. If the product outcome is working, neutral, or only 1–3 cycles in, tell the user to keep the same product sequence and observe the pattern. Do NOT suggest changing products after two washes unless there is a clear negative reaction.
+   - why: 2-3 short sentences explaining the reasoning. MUST be grounded in the STRAND core teachings from How To Love Your Afro, especially the 3–4 wash-cycle rule, AND tied to at least ONE concrete signal from the user (porosity, scalp today, breakage today, style, goal, product outcome). Plain English, no chapter/page citations.
+   - For dryness/high porosity/humid weather, recommend moisture-first support such as a deep conditioning mask or improved conditioner technique when relevant; do not default to protein or product-hopping.
    - If suggesting heat, ONLY reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
    - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence — no weekly, fortnightly, monthly, or scheduled protein of any kind. Default to moisture. A protein step is only ever a one-off after fresh chemical processing or documented heat damage.
+   - ABSOLUTE: NEVER suggest scheduled pre-poo.
 - Direct, professional, no hedging. Plain English. No medical advice.
 - Return JSON only via the provided tool.`;
 
