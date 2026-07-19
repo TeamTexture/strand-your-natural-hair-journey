@@ -219,6 +219,25 @@ Deno.serve(async (req) => {
     const test_type = cleanStr(parsed.test_type);
     const lab_name = cleanStr(parsed.lab_name);
 
+    // Normalise logo bounding box — expects 0–1 fractions of the first image
+    // shown to the model. Reject nonsense (out-of-range, zero-size, missing).
+    const num01 = (v: unknown): number | null => {
+      const n = typeof v === "number" ? v : Number(v);
+      if (!Number.isFinite(n)) return null;
+      if (n < 0 || n > 1) return null;
+      return n;
+    };
+    let logo_bbox: { x: number; y: number; w: number; h: number } | null = null;
+    if (parsed.logo_bbox && typeof parsed.logo_bbox === "object") {
+      const x = num01(parsed.logo_bbox.x);
+      const y = num01(parsed.logo_bbox.y);
+      const w = num01(parsed.logo_bbox.w);
+      const h = num01(parsed.logo_bbox.h);
+      if (x !== null && y !== null && w !== null && h !== null && w > 0.01 && h > 0.01 && x + w <= 1.001 && y + h <= 1.001) {
+        logo_bbox = { x, y, w: Math.min(w, 1 - x), h: Math.min(h, 1 - y) };
+      }
+    }
+
     // Build a human-friendly label prioritising the document title printed at
     // the top of the report itself. Fall back to test type, then lab name,
     // then a date-stamped generic so panels are never left as "Blood test".
@@ -230,7 +249,7 @@ Deno.serve(async (req) => {
     if (!label && lab_name) label = `${lab_name} blood test`;
     if (!label && panel_date) label = `Blood test — ${panel_date}`;
 
-    return json(200, { panel_date, document_title, test_type, lab_name, label, results });
+    return json(200, { panel_date, document_title, test_type, lab_name, logo_bbox, label, results });
 
   } catch (err) {
     console.error("blood-extract fatal:", err);
