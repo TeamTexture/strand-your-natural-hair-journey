@@ -27,6 +27,7 @@ import {
   endOfMonth,
   endOfWeek,
   endOfYear,
+  differenceInDays,
   format,
   isSameDay,
   isSameMonth,
@@ -56,6 +57,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { clearBloodDraft } from "@/hooks/useBloodValues";
 import { useBloodPanelThumbs } from "@/hooks/useBloodPanelThumbs";
 import { BLOOD_RANGES } from "@/data/bloodRanges";
+import BloodChangeAnalysis from "@/components/BloodChangeAnalysis";
+import { AlertCircle } from "lucide-react";
+
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -170,21 +174,34 @@ const BloodHistory = () => {
       .map((r) => {
         const p = prevByMarker.get(r.marker);
         if (!p || p.value == null || r.value == null) return null;
-        const diff = Number(r.value) - Number(p.value);
         return {
           marker: r.marker,
           unit: r.unit ?? BLOOD_RANGES[r.marker]?.unit ?? "",
           previous: Number(p.value),
           current: Number(r.value),
-          diff,
-          prevStatus: p.status,
-          curStatus: r.status,
+          previous_status: p.status,
+          current_status: r.status,
         };
       })
-      .filter((x): x is NonNullable<typeof x> => x !== null)
-      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
-      .slice(0, 6);
+      .filter((x): x is NonNullable<typeof x> => x !== null);
   }, [latest, previous, rowsByPanel]);
+
+  const latestResults = useMemo(
+    () => (latest ? rowsByPanel.get(latest.id) ?? [] : []),
+    [latest, rowsByPanel],
+  );
+
+  // 3-month overdue detection — mirrors the Wash Day "7 days since last wash"
+  // reminder pattern. Uses the logged panel_date on the latest test.
+  const daysSinceLatest = useMemo(() => {
+    if (!latest?.panel_date) return null;
+    try {
+      return differenceInDays(new Date(), parseISO(latest.panel_date));
+    } catch {
+      return null;
+    }
+  }, [latest]);
+  const overdue = daysSinceLatest !== null && daysSinceLatest >= 90;
 
   const startNew = () => {
     clearBloodDraft();
@@ -261,6 +278,25 @@ const BloodHistory = () => {
           Log every blood test and schedule the next one so STRAND can track how
           your markers move over time.
         </p>
+
+        {overdue && (
+          <button
+            onClick={() => setScheduling(true)}
+            className="w-full flex items-start gap-3 rounded-[14px] border border-alert-dark/30 bg-alert-dark/10 p-3 text-left"
+          >
+            <div className="size-8 rounded-full bg-alert-dark/20 text-alert-dark flex items-center justify-center shrink-0">
+              <AlertCircle className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-body font-semibold text-foreground">
+                Time for a retest
+              </p>
+              <p className="text-xs text-foreground/75 font-body leading-relaxed mt-0.5">
+                It's been {daysSinceLatest} days since your last blood test. Book a follow-up so STRAND can keep guiding your hair care with current data.
+              </p>
+            </div>
+          </button>
+        )}
 
         <div className="flex flex-col gap-2 px-1">
           <Button variant="gold" size="pill" onClick={startNew} className="w-full">
@@ -380,44 +416,30 @@ const BloodHistory = () => {
           </>
         )}
 
-        {/* Movement */}
-        {deltas.length > 0 && (
-          <>
-            <SectionLabel>Movement since your last test</SectionLabel>
-            <SurfaceCard padded={false}>
-              <ul className="divide-y divide-border/60">
-                {deltas.map((d) => {
-                  const up = d.diff > 0;
-                  const flat = d.diff === 0;
-                  const Icon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
-                  const tone = flat
-                    ? "text-muted-foreground"
-                    : d.curStatus === "normal" && d.prevStatus !== "normal"
-                      ? "text-good"
-                      : d.curStatus && d.curStatus !== "normal" && d.prevStatus === "normal"
-                        ? "text-warn"
-                        : "text-foreground/80";
-                  return (
-                    <li key={d.marker} className="flex items-center gap-3 px-4 py-3">
-                      <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <FlaskConical className="size-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-body font-medium truncate">{d.marker}</p>
-                        <p className="text-xs text-muted-foreground font-body">
-                          {d.previous} → {d.current} {d.unit}
-                        </p>
-                      </div>
-                      <span className={`flex items-center gap-1 text-xs font-body ${tone}`}>
-                        <Icon className="size-4" />
-                        {flat ? "no change" : `${up ? "+" : ""}${d.diff.toFixed(1)}`}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </SurfaceCard>
-          </>
+        {/* AI Analysis on changes since last test */}
+        {latest && latestResults.length > 0 && (
+          <BloodChangeAnalysis
+            latestPanel={{
+              id: latest.id,
+              date: latest.panel_date ?? null,
+              label: latest.label ?? null,
+              lab_name: latest.lab_name ?? null,
+              test_type: latest.test_type ?? null,
+            }}
+            previousPanel={
+              previous
+                ? { id: previous.id, date: previous.panel_date ?? null }
+                : null
+            }
+            deltas={deltas}
+            latestResults={latestResults.map((r) => ({
+              marker: r.marker,
+              value: r.value == null ? null : Number(r.value),
+              unit: r.unit ?? BLOOD_RANGES[r.marker]?.unit ?? null,
+              status: r.status ?? null,
+              category: BLOOD_RANGES[r.marker]?.category ?? null,
+            }))}
+          />
         )}
 
         {/* All logged tests */}
