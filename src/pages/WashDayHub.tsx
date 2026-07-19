@@ -32,10 +32,6 @@ interface CalProps {
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 const isoFor = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
-const formatNextWashTip = (action: string, why: string) => [
-  action ? `Do this next wash: ${action}` : "",
-  why ? `Why it matters: ${why}` : "",
-].filter(Boolean).join("\n\n");
 
 const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, onPickDate, onLogDate }: CalProps) => {
   const first = new Date(year, month, 1);
