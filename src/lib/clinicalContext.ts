@@ -464,7 +464,7 @@ export async function loadClinicalContext(
         supabase
           .from("user_hair_profile")
           .select(
-            "diameter, surface_texture, density, porosity, elasticity, areas_of_concern",
+            "diameter, surface_texture, density, porosity, elasticity, areas_of_concern, length_inches, length_bucket",
           )
           .eq("user_id", userId)
           .maybeSingle(),
