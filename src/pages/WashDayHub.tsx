@@ -203,12 +203,7 @@ const WashDayHub = () => {
           </div>
         )}
         {latestTip && (
-          <SurfaceCard tone="gold">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
-              ✨ Tip for your next wash day
-            </p>
-            <RichBody text={formatNextWashTip(latestTip.action, latestTip.why)} />
-          </SurfaceCard>
+          <NextWashTipCard action={latestTip.action} why={latestTip.why} />
         )}
         <Calendar
           year={view.year}
