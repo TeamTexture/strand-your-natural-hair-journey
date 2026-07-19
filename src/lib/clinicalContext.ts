@@ -91,6 +91,9 @@ export interface ProfileBasicSlice {
   postcode: string | null;
   country: string | null;
   heritage: string[];
+  water_hardness_band: string | null;
+  water_hardness_mg_l: number | null;
+  water_supplier: string | null;
 }
 
 
