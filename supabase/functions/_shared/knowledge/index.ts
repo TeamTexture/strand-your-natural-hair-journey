@@ -24,6 +24,7 @@ import { HORMONES_AND_LIFE_STAGE } from "./topics/hormones-and-life-stage.ts";
 import { WASH_DAY_MECHANICS } from "./topics/wash-day-mechanics.ts";
 import { HEAT_AND_MOISTURE } from "./topics/heat-and-moisture.ts";
 import { PROTECTIVE_STYLING } from "./topics/protective-styling.ts";
+import { PROTEIN_AND_STRENGTHENING } from "./topics/protein-and-strengthening.ts";
 
 const REGISTRY: Record<TopicId, Topic> = {
   "porosity": POROSITY,
@@ -37,6 +38,7 @@ const REGISTRY: Record<TopicId, Topic> = {
   "wash-day-mechanics": WASH_DAY_MECHANICS,
   "heat-and-moisture": HEAT_AND_MOISTURE,
   "protective-styling": PROTECTIVE_STYLING,
+  "protein-and-strengthening": PROTEIN_AND_STRENGTHENING,
 };
 
 /** Subset of AiContext fields the selector uses. Intentionally narrow so
