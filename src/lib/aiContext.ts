@@ -79,6 +79,7 @@ export interface AiContext {
   }>;
   shelf: Array<Record<string, unknown>>;
   tools: Array<Record<string, unknown>>;
+  wishlist: Array<Record<string, unknown>>;
 }
 
 const safeParse = <T,>(key: string, fallback: T): T => {
