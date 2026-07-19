@@ -233,6 +233,7 @@ interface LegacyPro {
 interface LegacyBasic {
   name?: string;
   age?: string | number;
+  birth_year?: number | null;
   postcode?: string;
   country?: string;
   heritage?: string;
