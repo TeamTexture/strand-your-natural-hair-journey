@@ -43,6 +43,7 @@ import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
   callClaude,
   type ContentBlockInput,
@@ -635,7 +636,7 @@ Deno.serve(async (req: Request) => {
           : cached._provider !== "claude";
         const hashOk = cached._profile_snapshot_hash === profileHashEarly;
         if (versionOk && hashOk) {
-          return json(200, sanitiseChapterCitationsDeep(cached));
+          return json(200, await sanitiseAndLog(cached, "product-analyse-url"));
         }
       }
     }
@@ -721,7 +722,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify(sanitiseChapterCitationsDeep(analysis)),
+      JSON.stringify(await sanitiseAndLog(analysis, "product-analyse-url")),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

@@ -17,6 +17,7 @@ import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
@@ -485,7 +486,7 @@ Deno.serve(async (req: Request) => {
         console.log("[nutrition-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
           cached: true,
-          plan: sanitiseChapterCitationsDeep(existing.payload),
+          plan: await sanitiseAndLog(existing.payload, "nutrition-plan"),
         });
       }
     }
@@ -559,7 +560,7 @@ Deno.serve(async (req: Request) => {
     });
     return json(200, {
       cached: false,
-      plan: sanitiseChapterCitationsDeep(stamped),
+      plan: await sanitiseAndLog(stamped, "nutrition-plan"),
     });
   } catch (e) {
     console.log("[nutrition-debug] failed", { total_ms: Date.now() - t0 });

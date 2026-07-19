@@ -23,6 +23,7 @@ import {
   CHAPTER_WHITELIST_PROMPT,
   sanitiseChapterCitationsDeep,
 } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
@@ -419,7 +420,7 @@ Deno.serve(async (req: Request) => {
         console.log("[blood-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
           cached: true,
-          summary: sanitiseChapterCitationsDeep(existing.payload),
+          summary: await sanitiseAndLog(existing.payload, "blood-ai-summary"),
         });
       }
     }
@@ -590,7 +591,7 @@ Deno.serve(async (req: Request) => {
 
     return json(200, {
       cached: false,
-      summary: sanitiseChapterCitationsDeep(stamped),
+      summary: await sanitiseAndLog(stamped, "blood-ai-summary"),
     });
   } catch (e) {
     console.log("[blood-debug] failed", { total_ms: Date.now() - t0 });

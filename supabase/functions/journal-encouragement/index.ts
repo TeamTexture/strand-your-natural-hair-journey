@@ -11,6 +11,7 @@
 // - Two lines, tight word counts, modern voice.
 
 import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
@@ -167,7 +168,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ banner: sanitiseChapterCitationsDeep(banner) }), {
+    return new Response(JSON.stringify({ banner: await sanitiseAndLog(banner, "journal-encouragement") }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

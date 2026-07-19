@@ -8,6 +8,7 @@
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { sanitiseChapterCitationsDeep } from "../_shared/book-chapters.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
   KNOWLEDGE_REGISTRY,
   renderTopicBlock,
@@ -237,7 +238,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ tip: sanitiseChapterCitationsDeep(tip) }),
+      JSON.stringify({ tip: await sanitiseAndLog(tip, "goal-tip") }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
