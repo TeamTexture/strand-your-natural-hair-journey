@@ -4,7 +4,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const SUMMARY_PROMPT_VERSION = "professional-v3-second-person";
+const SUMMARY_PROMPT_VERSION = "manuscript-grounded-v4";
 
 function djb2Hex(s: string): string {
   let h = 5381;
