@@ -411,35 +411,79 @@ export default function BloodUpload() {
             </SurfaceCard>
 
             <SurfaceCard>
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-display text-lg">Review markers</p>
-                <p className="text-xs text-foreground/60 font-body">
-                  {selectedCount} of {rows.length} selected
+              <p className="font-display text-lg mb-1">We found {rows.length} marker{rows.length === 1 ? "" : "s"}</p>
+              <p className="text-xs text-foreground/60 font-body">
+                {known.length} matched to STRAND's panel · {unknown.length} extra
+                marker{unknown.length === 1 ? "" : "s"} we'll save alongside.
+                Tap Continue to walk through each category and confirm the values.
+              </p>
+            </SurfaceCard>
+
+            {(["iron", "vitamins", "minerals", "inflammation", "thyroid", "hormones"] as const).map((cat) => {
+              const list = grouped[cat];
+              if (!list || list.length === 0) return null;
+              return (
+                <SurfaceCard key={cat}>
+                  <p className="font-display text-base mb-2">{CATEGORY_LABELS[cat]}</p>
+                  <div className="space-y-2">
+                    {list.map((r) => {
+                      const ref = BLOOD_RANGES[r.marker];
+                      const status = evaluate(r.marker, r.value);
+                      return (
+                        <div
+                          key={r.marker}
+                          className="flex items-center gap-3 p-2.5 rounded-xl border border-primary/25 bg-primary/5"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-body font-medium truncate">{r.marker}</p>
+                            <p className="text-[11px] text-foreground/60 font-body truncate">
+                              As read: {r.raw_marker} · {r.raw_value}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={Number.isFinite(r.value) ? r.value : ""}
+                              onChange={(e) => updateValue(r.marker, e.target.value)}
+                              className="h-8 w-20 text-right text-sm"
+                            />
+                            <span className="text-[11px] text-foreground/60 font-body w-14">
+                              {ref?.unit ?? r.unit}
+                            </span>
+                          </div>
+                          <span
+                            className={cn(
+                              "text-[10px] px-2 py-0.5 rounded-full font-body font-medium uppercase tracking-wide shrink-0",
+                              status === "low" && "bg-warn/20 text-warn",
+                              status === "high" && "bg-alert-dark/20 text-alert-dark",
+                              status === "normal" && "bg-good/20 text-good",
+                              status === "untested" && "bg-muted text-foreground/60",
+                            )}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </SurfaceCard>
+              );
+            })}
+
+            {unknown.length > 0 && (
+              <SurfaceCard>
+                <p className="font-display text-base mb-1">Other markers from your report</p>
+                <p className="text-[11px] text-foreground/60 font-body mb-2">
+                  These aren't tracked with a reference range in STRAND, but they'll
+                  be saved with your panel for your records.
                 </p>
-              </div>
-              <div className="space-y-2">
-                {rows.map((r) => {
-                  const ref = BLOOD_RANGES[r.marker];
-                  const status = evaluate(r.marker, r.value);
-                  const isChecked = !!checked[r.marker];
-                  return (
+                <div className="space-y-2">
+                  {unknown.map((r) => (
                     <div
                       key={r.marker}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-xl border transition",
-                        isChecked ? "border-primary/40 bg-primary/5" : "border-border bg-muted/30",
-                      )}
+                      className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-muted/30"
                     >
-                      <button
-                        onClick={() => toggle(r.marker)}
-                        className={cn(
-                          "size-6 rounded-full flex items-center justify-center border transition shrink-0",
-                          isChecked ? "bg-primary border-primary" : "border-border bg-background",
-                        )}
-                        aria-label={isChecked ? "Deselect" : "Select"}
-                      >
-                        {isChecked && <Check className="size-4 text-primary-foreground" />}
-                      </button>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-body font-medium truncate">{r.marker}</p>
                         <p className="text-[11px] text-foreground/60 font-body truncate">
@@ -455,44 +499,41 @@ export default function BloodUpload() {
                           className="h-8 w-20 text-right text-sm"
                         />
                         <span className="text-[11px] text-foreground/60 font-body w-14">
-                          {ref?.unit ?? r.unit}
+                          {r.unit || "—"}
                         </span>
                       </div>
-                      <span
-                        className={cn(
-                          "text-[10px] px-2 py-0.5 rounded-full font-body font-medium uppercase tracking-wide shrink-0",
-                          status === "low" && "bg-warn/20 text-warn",
-                          status === "high" && "bg-alert-dark/20 text-alert-dark",
-                          status === "normal" && "bg-good/20 text-good",
-                          status === "untested" && "bg-muted text-foreground/60",
-                        )}
+                      <button
+                        onClick={() => removeRow(r.marker)}
+                        className="size-7 rounded-full hover:bg-muted flex items-center justify-center shrink-0"
+                        aria-label="Remove marker"
                       >
-                        {status}
-                      </span>
+                        <X className="size-4" />
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            </SurfaceCard>
+                  ))}
+                </div>
+              </SurfaceCard>
+            )}
 
             <Button
               variant="gold"
               size="pill"
               className="w-full"
-              onClick={save}
-              disabled={saving || selectedCount === 0}
+              onClick={continueToReview}
+              disabled={saving || rows.length === 0}
             >
               {saving ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Saving…
+                  Opening review…
                 </>
               ) : (
-                `Save ${selectedCount} marker${selectedCount === 1 ? "" : "s"}`
+                `Continue — review by category →`
               )}
             </Button>
           </>
         )}
+
       </div>
 
       <Dialog open={pwOpen} onOpenChange={(v) => { if (!v) cancelPassword(); }}>
