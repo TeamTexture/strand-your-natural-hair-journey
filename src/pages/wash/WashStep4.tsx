@@ -58,6 +58,9 @@ interface StylingSaved {
 const WashStep4 = () => {
   const navigate = useNavigate();
   const [observation, setObservation] = useState<string | null>(null);
+  const [nextTip, setNextTip] = useState<string | null>(null);
+  const [saveNextTip, setSaveNextTip] = useState(true);
+  const [showNextTip, setShowNextTip] = useState(false);
   const [obsLoading, setObsLoading] = useState(true);
   const [obsError, setObsError] = useState<string | null>(null);
 
