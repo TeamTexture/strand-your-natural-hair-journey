@@ -554,16 +554,30 @@ const Home = () => {
                           {renderRichText(goalTip.body)}
                         </p>
                         {goalTip.actions?.length > 0 && (
-                          <ul className="mt-2 space-y-1">
-                            {goalTip.actions.slice(0, 3).map((a, i) => (
-                              <li
-                                key={i}
-                                className="text-xs text-foreground/80 leading-snug flex gap-1.5"
-                              >
-                                <span className="text-primary">•</span>
-                                <span>{renderRichText(a)}</span>
-                              </li>
-                            ))}
+                          <ul className="mt-2 space-y-2">
+                            {goalTip.actions.slice(0, 3).map((a, i) => {
+                              const actionText = typeof a === "string" ? a : a.action;
+                              const why = typeof a === "string" ? "" : a.why;
+                              return (
+                                <li
+                                  key={i}
+                                  className="text-xs text-foreground/80 leading-snug flex gap-1.5"
+                                >
+                                  <span className="text-primary mt-0.5">•</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-foreground">
+                                      {renderRichText(actionText)}
+                                    </p>
+                                    {why && (
+                                      <p className="text-[11px] text-muted-foreground/90 leading-snug mt-0.5">
+                                        <span className="uppercase tracking-wider text-primary/70 text-[9px] font-semibold mr-1">Why</span>
+                                        {renderRichText(why)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
                           </ul>
                         )}
                       </>
