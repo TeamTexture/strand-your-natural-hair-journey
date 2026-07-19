@@ -41,6 +41,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { BLOOD_RANGES, statusLabel, type BloodStatus } from "@/data/bloodRanges";
+import { useBloodPanelThumb } from "@/hooks/useBloodPanelThumbs";
 import {
   MARKER_EXPLANATIONS,
   CATEGORY_META,
