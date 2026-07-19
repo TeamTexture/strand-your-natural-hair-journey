@@ -503,7 +503,7 @@ const Home = () => {
                       : "All results within normal range"}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {`Tracking ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"} · Last test ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+                    {`${bloodSummary.label ?? "Blood test"} · ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"}`}
                   </p>
 
                 </div>
