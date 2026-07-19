@@ -493,8 +493,22 @@ const WashStep1 = () => {
     }
   };
 
-  const removeFrom = (setter: (v: string[]) => void, ids: string[]) => (id: string) =>
+  // Track which step editors the user has actively touched, so the
+  // "pre-filled from your last wash day" hint disappears once they act on it.
+  type StepKey = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment";
+  const [touchedSteps, setTouchedSteps] = useState<Set<StepKey>>(new Set());
+  const markTouched = (k: StepKey) =>
+    setTouchedSteps((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  const hintFor = (k: StepKey, selectedCount: number): boolean =>
+    !!(lastWashProductIds && lastWashProductIds.length > 0)
+    && !touchedSteps.has(k)
+    && selectedCount > 0;
+
+  const removeFrom = (setter: (v: string[]) => void, ids: string[], key: StepKey) => (id: string) => {
+    markTouched(key);
     setter(ids.filter((x) => x !== id));
+  };
+
 
   return (
     <ScreenLayout>
