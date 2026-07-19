@@ -222,7 +222,7 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
    - action: ONE clear imperative sentence (max 18 words) for the NEXT wash day. Starts with a verb. Names a specific product from context.shelf/wishlist OR a specific tool from context.tools. Never invent items the user doesn't have.
    - why: 2-3 short sentences explaining the reasoning. MUST be grounded in the STRAND core teachings from How To Love Your Afro AND tied to at least ONE concrete signal from the user (porosity, scalp today, breakage today, style, goal, product outcome). Plain English, no chapter/page citations.
    - If suggesting heat, ONLY reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
-   - NEVER suggest weekly/fortnightly protein.
+   - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence — no weekly, fortnightly, monthly, or scheduled protein of any kind. Default to moisture. A protein step is only ever a one-off after fresh chemical processing or documented heat damage.
 - Direct, professional, no hedging. Plain English. No medical advice.
 - Return JSON only via the provided tool.`;
 
