@@ -14,7 +14,8 @@ export type TopicId =
   | "hormones-and-life-stage"
   | "wash-day-mechanics"
   | "heat-and-moisture"
-  | "protective-styling";
+  | "protective-styling"
+  | "protein-and-strengthening";
 
 export interface BookRef {
   chapter: number;
