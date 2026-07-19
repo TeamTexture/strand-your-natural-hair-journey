@@ -435,7 +435,7 @@ const Profile = () => {
       });
     }
 
-    // Blood test due / scheduled
+    // Blood test due / never uploaded / scheduled
     if (bloodTestAlert?.kind === "due") {
       const months = Math.floor(bloodTestAlert.days / 30);
       out.push({
@@ -443,7 +443,16 @@ const Profile = () => {
         icon: <FlaskConical className="size-5" />,
         label: "Blood test due",
         detail: `${months >= 1 ? `${months} month${months === 1 ? "" : "s"}` : `${bloodTestAlert.days} days`} since last test · book a new one`,
-        tone: "warn",
+        tone: "danger",
+        onClick: () => navigate("/blood-history"),
+      });
+    } else if (bloodTestAlert?.kind === "never") {
+      out.push({
+        key: "blood-first",
+        icon: <FlaskConical className="size-5" />,
+        label: "Book your first blood test",
+        detail: "Add recent bloods so STRAND can personalise your guidance",
+        tone: "danger",
         onClick: () => navigate("/blood-history"),
       });
     } else if (bloodTestAlert?.kind === "scheduled") {
