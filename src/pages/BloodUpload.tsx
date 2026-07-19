@@ -18,8 +18,10 @@ import {
   clearBloodDraft,
   setDraftPanelDate,
   setUnknownMarkers,
+  persistBloodValues,
   type UnknownMarker,
 } from "@/hooks/useBloodValues";
+
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
@@ -280,47 +282,58 @@ export default function BloodUpload() {
     hormones: "Hormones",
   };
 
-  const continueToReview = async () => {
+  const saveUpload = async () => {
     if (!user) {
       toast.error("Please sign in first");
       return;
     }
     const usable = rows.filter((r) => Number.isFinite(r.value));
     if (usable.length === 0) {
-      toast.error("No valid values to review yet.");
+      toast.error("No valid values to save yet.");
       return;
     }
     if (duplicatePanel && !dupConfirmed) {
       setDupConfirmed(true);
-      toast.warning("A panel for this date already exists. Tap Continue again to add another anyway, or change the test date above.");
+      toast.warning("A panel for this date already exists. Tap Save again to add another anyway, or change the test date above.");
       return;
     }
 
     setSaving(true);
     try {
-      // Start a fresh draft so we don't overwrite a prior in-progress panel.
+      // Fresh draft for this upload so we don't overwrite a prior in-progress panel.
       clearBloodDraft();
       setDraftPanelDate(panelDate);
 
-      // Hydrate the known-marker cache the onboarding pages read from.
+      // Seed the known-marker cache that persistBloodValues reads from.
       const values: Record<string, number> = {};
       known.forEach((r) => {
         if (Number.isFinite(r.value)) values[r.marker] = r.value;
       });
       localStorage.setItem("strand_blood_values", JSON.stringify(values));
 
-      // Stash unknown markers so the last onboarding step can display them.
+      // Include any extra markers that aren't in STRAND's reference set.
       const unknownList: UnknownMarker[] = unknown
         .filter((r) => Number.isFinite(r.value))
         .map((r) => ({ marker: r.marker, value: r.value, unit: r.unit || "" }));
       setUnknownMarkers(unknownList);
 
+      const res = await persistBloodValues();
+      if (!res.ok) {
+        console.error("persist failed:", res);
+        toast.error("Couldn't save your panel. Please try again.");
+        return;
+      }
+
+      // Clear the draft so the next upload starts clean.
+      clearBloodDraft();
       window.dispatchEvent(new Event("strand:blood-update"));
-      navigate("/onboarding/blood-iron-vitamins");
+      toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
+      navigate("/blood-history");
     } catch (err) {
-      console.error("hydrate failed:", err);
-      toast.error("Couldn't open review. Please try again.");
+      console.error("save failed:", err);
+      toast.error("Couldn't save your panel. Please try again.");
     } finally {
+
       setSaving(false);
     }
   };
@@ -575,16 +588,17 @@ export default function BloodUpload() {
               variant="gold"
               size="pill"
               className="w-full"
-              onClick={continueToReview}
+              onClick={saveUpload}
               disabled={saving || rows.length === 0}
             >
               {saving ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Opening review…
+                  Saving…
                 </>
               ) : (
-                `Continue — review by category →`
+                duplicatePanel && !dupConfirmed ? "Save anyway" : "Save to history"
+
               )}
             </Button>
           </>
