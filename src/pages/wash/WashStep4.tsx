@@ -196,9 +196,16 @@ const WashStep4 = () => {
         : null;
 
       const chosenDate = localStorage.getItem("strand_wash_date");
+      const todayLocal = (() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      })();
       const washDate = chosenDate && /^\d{4}-\d{2}-\d{2}$/.test(chosenDate)
         ? chosenDate
-        : new Date().toISOString().slice(0, 10);
+        : todayLocal;
 
       // Merge wash-step + styling product IDs so use_count + last_used_at
       // get bumped for everything actually used today.
