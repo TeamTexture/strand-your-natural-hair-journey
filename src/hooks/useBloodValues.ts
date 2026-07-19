@@ -167,15 +167,26 @@ export function setDraftPanelLabName(labName: string | null) {
   }
 }
 
+/** Storage path (bucket "blood-panel-thumbs") for the panel's source-doc thumbnail. */
+export function setDraftPanelThumbnail(path: string | null) {
+  if (path && path.trim()) {
+    localStorage.setItem(DRAFT_PANEL_THUMB_KEY, path.trim());
+  } else {
+    localStorage.removeItem(DRAFT_PANEL_THUMB_KEY);
+  }
+}
+
 async function ensureDraftPanel(userId: string): Promise<string | null> {
   const label = localStorage.getItem(DRAFT_PANEL_LABEL_KEY);
   const testType = localStorage.getItem(DRAFT_PANEL_TEST_TYPE_KEY);
   const labName = localStorage.getItem(DRAFT_PANEL_LAB_NAME_KEY);
+  const thumb = localStorage.getItem(DRAFT_PANEL_THUMB_KEY);
   const existing = localStorage.getItem(DRAFT_PANEL_KEY);
   const metaUpdate: Record<string, unknown> = {};
   if (label) metaUpdate.label = label;
   if (testType) metaUpdate.test_type = testType;
   if (labName) metaUpdate.lab_name = labName;
+  if (thumb) metaUpdate.thumbnail_path = thumb;
 
   if (existing) {
     const { data } = await supabase
