@@ -172,11 +172,17 @@ export function useHomeAlerts() {
       if (document.visibilityState === "visible") bump();
     };
     window.addEventListener("focus", bump);
+    window.addEventListener("strand:data-changed", bump);
     document.addEventListener("visibilitychange", onVisible);
+    // Belt-and-braces: recompute every 60s so the alert set never drifts
+    // if a realtime event was dropped (mobile background, flaky network).
+    const interval = window.setInterval(bump, 60_000);
     return () => {
       void supabase.removeChannel(channel);
       window.removeEventListener("focus", bump);
+      window.removeEventListener("strand:data-changed", bump);
       document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(interval);
     };
   }, [user]);
 
