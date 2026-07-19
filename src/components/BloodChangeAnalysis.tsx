@@ -299,9 +299,7 @@ export default function BloodChangeAnalysis({
                             {f.body}
                           </p>
                           {f.action && (
-                            <p className="text-xs font-body text-primary mt-1.5">
-                              → {f.action}
-                            </p>
+                            <ActionLink action={f.action} icon={f.icon} />
                           )}
                         </div>
                       </div>
