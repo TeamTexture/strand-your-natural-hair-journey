@@ -275,7 +275,7 @@ const ProfileStep1 = () => {
       heritage,
     };
     sessionStorage.setItem("strand_profile_step1", JSON.stringify(payload));
-    // Also persist to localStorage so the Profile page can derive identity & water hardness.
+    // Also persist to localStorage so the Profile page can derive identity.
     localStorage.setItem("strand_profile_basic", JSON.stringify(payload));
     // Persist heritage for AI summary / nutrition context
     localStorage.setItem("strand_heritage", JSON.stringify(heritageArr));
@@ -310,36 +310,6 @@ const ProfileStep1 = () => {
           );
       } catch (err) {
         console.warn("[strand] profiles upsert (step 1) failed", err);
-      }
-
-      // Fire-and-forget dynamic UK water-hardness lookup. Writes
-      // water_hardness_mg_l / _band / _supplier onto profiles so AI context
-      // and the Profile page can reflect the user's area.
-      if (country === "United Kingdom") {
-        supabase.functions
-          .invoke("water-hardness-lookup", { body: { postcode: trimmedPostcode } })
-          .then(async ({ data, error }) => {
-            if (error || !data) return;
-            const d = data as {
-              mg_l?: number; band?: string; supplier?: string;
-            };
-            try {
-              await supabase
-                .from("profiles")
-                .upsert(
-                  {
-                    user_id: user.id,
-                    water_hardness_mg_l: d.mg_l ?? null,
-                    water_hardness_band: d.band ?? null,
-                    water_supplier: d.supplier ?? null,
-                  },
-                  { onConflict: "user_id" },
-                );
-            } catch (e) {
-              console.warn("[strand] water hardness write failed", e);
-            }
-          })
-          .catch((e) => console.warn("[strand] water hardness lookup failed", e));
       }
     }
 

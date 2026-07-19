@@ -24,7 +24,7 @@ The user just saved a hair goal in STRAND. Write ONE short, personalised tip tha
 
 Output:
 - "headline": max 9 words. Specific to this goal. No emoji.
-- "body": 1-2 sentences (max 36 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, water hardness, a blood marker, a low-rated product, a chemical history flag, etc). No medical claims, no growth promises.
+- "body": 1-2 sentences (max 36 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc). No medical claims, no growth promises.
 - "actions": 2-3 imperative next steps (max 12 words each) that fit into their current routine — e.g. wash-day adjustments, product choices to favour or avoid, professional check-ins. Each action should be doable in the app (wash day, products, journal, appointments).
 
 Rules:

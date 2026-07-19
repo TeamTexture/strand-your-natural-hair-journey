@@ -62,7 +62,6 @@ interface RequestBody {
     hairProfile?: Record<string, unknown>;
     healthProfile?: Record<string, unknown>;
     bloodResults?: unknown[];
-    location?: { is_hard_water_area?: boolean | null };
   };
   force?: boolean;
 }
@@ -86,7 +85,6 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
       conditions: arr(hl.medical_conditions),
     },
     bloodResults: Array.isArray(ctx.bloodResults) ? ctx.bloodResults : [],
-    location: ctx.location ?? {},
   };
 }
 

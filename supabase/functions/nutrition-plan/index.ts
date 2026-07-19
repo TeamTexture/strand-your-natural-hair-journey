@@ -59,11 +59,11 @@ PERSONALISATION RULES — apply ALL of these together, not in isolation:
 1. Heritage: African / Caribbean diets often centre on starches, oily fish, leafy greens, plantain, beans, ground provisions. Reference culturally familiar foods where possible (e.g. callaloo for folate, ackee for protein, sardines, scotch bonnet, jollof base ingredients) — never generic "leafy greens" if you can name one she likely already cooks with.
 2. Age: factor in life stage. Perimenopausal/menopausal women (40s+) need more protein, calcium, omega-3 and B-vitamins for hormonal hair changes. Post-natal / breastfeeding women need extra iron, omega-3, choline. Younger women in heavy training or on contraception have different needs.
 3. Health profile: medications (e.g. metformin depletes B12; PPIs reduce iron absorption; SSRIs can affect zinc; oral contraceptives lower B6, folate, zinc), conditions (PCOS, thyroid, endometriosis, anaemia history), pregnancy / breastfeeding, smoker, alcohol intake.
-4. Lifestyle: stress level, sleep, training load, hard-water area (more reason to support antioxidants).
+4. Lifestyle: stress level, sleep, training load.
 5. Diet pattern: vegan / vegetarian / pescatarian / omnivore — never recommend animal foods to a vegan; always offer culturally relevant plant alternatives.
 6. Blood markers: every flagged low/high marker must be addressed in the diet section with at least one targeted food explanation.
 7. Hair goals: e.g. length retention needs steady protein + iron; thinning recovery needs zinc + biotin + omega-3; postpartum shedding needs ferritin + vitamin D rebuild.
-8. Avoid list MUST also be personalised — reference THEIR alcohol level, their medications (e.g. "with metformin, avoid X"), their hard-water area (more antioxidants), their actual habits if known.
+8. Avoid list MUST also be personalised — reference THEIR alcohol level, their medications (e.g. "with metformin, avoid X"), their actual habits if known.
 
 FORMAT
 Return JSON only via the provided tool. Each card has:
@@ -121,7 +121,7 @@ const RETURN_PLAN_SCHEMA = {
           body: {
             type: "string",
             description:
-              "2-3 sentences. Mechanism first, then why it matters for THIS user specifically (medication, condition, alcohol level, hard water).",
+              "2-3 sentences. Mechanism first, then why it matters for THIS user specifically (medication, condition, alcohol level).",
           },
           severity: { type: "string", enum: ["high", "medium", "low"] },
         },
@@ -155,13 +155,13 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 function buildClaudeTaskInstructions(): string {
   return `You're writing a deeply personalised hair-nutrition plan for THIS user. Two parts: "diet" (6-10 foods to eat) and "avoid" (4-6 things to limit), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
 
-Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud — start with the MECHANISM in plain English ("Iron stored as ferritin is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their heritage, their alcohol intake, their hard-water postcode). "You", never "your hair". Translate any clinical term the FIRST time it appears in any field — "ferritin (your iron stores)", "biotin (a B-vitamin)", etc.
+Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud — start with the MECHANISM in plain English ("Iron stored as ferritin is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their heritage, their alcohol intake). "You", never "your hair". Translate any clinical term the FIRST time it appears in any field — "ferritin (your iron stores)", "biotin (a B-vitamin)", etc.
 
 OUTPUT RULES
 
 1. EXPLANATION-FIRST. Never lead a card with "Eat this" or "Avoid that." Lead with the mechanism, then connect to the user, then the food/limit lands as the obvious conclusion.
 
-2. Ground every card in the user's actual data: heritage, life_stage, medications, conditions, blood markers, goals, diet pattern, alcohol intake, hard-water area, recent wash signals if relevant. Never invent data — if a field is missing, don't reference it. If a card could apply to anyone, rewrite it.
+2. Ground every card in the user's actual data: heritage, life_stage, medications, conditions, blood markers, goals, diet pattern, alcohol intake, recent wash signals if relevant. Never invent data — if a field is missing, don't reference it. If a card could apply to anyone, rewrite it.
 
 3. CULTURAL CONTEXT. If the user is UK-based (location.country, postcode) or African / Caribbean by heritage, prefer foods they likely already cook with — jollof base ingredients, scotch bonnet, plantain, callaloo, ackee, oxtail, mackerel, sardines, eddoes, ground provisions. Don't say "leafy greens" if you can say "callaloo" or "spring greens." For UK users default to UK supermarket / produce names.
 

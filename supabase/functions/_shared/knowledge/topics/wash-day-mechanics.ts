@@ -22,7 +22,7 @@ Expect 50–100 strands of shed hair per day, sometimes more. Seven days × 100 
 Shampoo strength selection:
 
 Shampoos exist on a spectrum from chelating (strongest) to co-wash (weakest). The book's hierarchy:
-— Chelating: removes mineral build-up from hard water and chlorine. Use sparingly, on professional advice.
+— Chelating: removes mineral and chlorine-related build-up. Use sparingly, on professional advice.
 — Clarifying: deep cleanse for product build-up and pollutants. As-needed; most people shouldn't need to clarify more than once a month. Weekly is generally too strong.
 — All-purpose: in-between strength. The book describes these as "cleansing about as much as they deposit" conditioning agents back into the hair (Aishia Strickland, Black Girl Curls). Most shampoos on the market.
 — Conditioning / moisturising: gentlest, with weaker surfactants, often containing humectants and emollients.

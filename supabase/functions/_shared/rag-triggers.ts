@@ -50,7 +50,7 @@ export const RAG_TRIGGER_INGREDIENTS: string[] = [
   "castor oil",
   "jamaican black castor oil",
   "shea butter",
-  // Chelators — relevant in hard-water postcodes
+  // Chelators — relevant to residue and clarifying chemistry
   "edta",
   "phytic acid",
   "citric acid",

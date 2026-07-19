@@ -12,7 +12,7 @@ export const SCALP_CONDITIONS: Topic = {
 
 Three common scalp situations to watch for, in Paige's framing:
 
-Dry scalp. Often felt as itch or tightness. The cause is usually one of three things: under-cleansing (not actually washing the scalp itself, just the lengths), over-cleansing with too-harsh a surfactant that strips sebum and lipids, or hard-water mineral deposit acting as a barrier so conditioning ingredients can't reach. The fix follows the cause — agitate the scalp with the pads of your fingertips during cleansing (not your nails), pick a shampoo whose strength matches your build-up, and consider chelating periodically if you live in a hard-water area.
+Dry scalp. Often felt as itch or tightness. The cause is usually one of three things: under-cleansing (not actually washing the scalp itself, just the lengths), over-cleansing with too-harsh a surfactant that strips sebum and lipids, or residue acting as a barrier so conditioning ingredients can't reach. The fix follows the cause — agitate the scalp with the pads of your fingertips during cleansing (not your nails) and pick a shampoo whose strength matches the level of build-up.
 
 Oily scalp. Most often a sign that the sebaceous glands are over-producing — frequently because the scalp microbiome has been disrupted. The most common disruption: oiling the scalp. Culturally, many people of colour have oiled the scalp from generation to generation. Over-oiling can disrupt natural balance and reduce the sebum your glands produce. Heavy oils, butters and greases can clog the scalp's pores, trapping dirt and bacteria, and potentially lead to scalp acne, irritation, inflammation and conditions like folliculitis or seborrheic dermatitis.
 

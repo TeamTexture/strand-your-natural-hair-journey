@@ -229,7 +229,7 @@ describe("buildAiContext", () => {
       bloodResults: expect.any(Array),
       goals: expect.any(Array),
       shelf: expect.any(Array),
-      location: { postcode: null, is_hard_water_area: null },
+      location: { postcode: null },
       history: {
         last_3_wash_days: expect.any(Array),
         flagged_ingredients: expect.any(Array),
