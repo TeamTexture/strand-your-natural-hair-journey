@@ -50,22 +50,22 @@ export default function BloodUpload() {
   const [saving, setSaving] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
+  // Password dialog state for encrypted PDFs
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwValue, setPwValue] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwUnlocking, setPwUnlocking] = useState(false);
+  const [pendingBytes, setPendingBytes] = useState<Uint8Array | null>(null);
+  const [pendingName, setPendingName] = useState<string>("");
+
   const pick = () => inputRef.current?.click();
 
-  const onFile = useCallback(async (f: File | null) => {
-    if (!f) return;
-    if (f.size > 15 * 1024 * 1024) {
-      toast.error("File is too large. Please upload under 15 MB.");
-      return;
-    }
-    setFile(f);
-    setRows([]);
-    setChecked({});
+  const runExtract = useCallback(async (payloadFile: File) => {
     setExtracting(true);
     try {
-      const b64 = await fileToBase64(f);
+      const b64 = await fileToBase64(payloadFile);
       const { data, error } = await supabase.functions.invoke("blood-extract", {
-        body: { file: { data: b64, mime: f.type || "application/pdf", name: f.name } },
+        body: { file: { data: b64, mime: payloadFile.type || "application/pdf", name: payloadFile.name } },
       });
       if (error) throw error;
       const results = (data?.results ?? []) as ExtractedRow[];
@@ -86,6 +86,65 @@ export default function BloodUpload() {
       setExtracting(false);
     }
   }, []);
+
+  const onFile = useCallback(async (f: File | null) => {
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) {
+      toast.error("File is too large. Please upload under 15 MB.");
+      return;
+    }
+    setFile(f);
+    setRows([]);
+    setChecked({});
+
+    // For PDFs: sniff for encryption. If encrypted, prompt for password
+    // and convert to image after unlock. Otherwise, send the PDF as-is.
+    if (f.type === "application/pdf") {
+      const buf = new Uint8Array(await f.arrayBuffer());
+      if (detectPdfEncrypted(buf)) {
+        setPendingBytes(buf);
+        setPendingName(f.name);
+        setPwValue("");
+        setPwError(null);
+        setPwOpen(true);
+        return;
+      }
+    }
+    await runExtract(f);
+  }, [runExtract]);
+
+  const submitPassword = async () => {
+    if (!pendingBytes) return;
+    setPwUnlocking(true);
+    setPwError(null);
+    try {
+      const image = await renderPdfToImage(pendingBytes, pwValue, { maxPages: 6 });
+      setPwOpen(false);
+      setPendingBytes(null);
+      // Swap the shown file to the unlocked image so downstream flow works
+      const shown = new File([image], pendingName.replace(/\.pdf$/i, "") + " (unlocked).jpg", { type: "image/jpeg" });
+      setFile(shown);
+      await runExtract(image);
+    } catch (err) {
+      if (err instanceof PdfPasswordRequiredError) {
+        setPwError(err.incorrect ? "Incorrect password — try again." : "Password required.");
+      } else {
+        console.error("pdf unlock failed:", err);
+        setPwError("Couldn't unlock this PDF. Please check the password.");
+      }
+    } finally {
+      setPwUnlocking(false);
+    }
+  };
+
+  const cancelPassword = () => {
+    setPwOpen(false);
+    setPendingBytes(null);
+    setPendingName("");
+    setPwValue("");
+    setPwError(null);
+    setFile(null);
+  };
 
   const toggle = (marker: string) =>
     setChecked((p) => ({ ...p, [marker]: !p[marker] }));
