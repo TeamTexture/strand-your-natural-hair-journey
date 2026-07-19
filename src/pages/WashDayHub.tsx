@@ -191,6 +191,7 @@ const WashDayHub = () => {
             </div>
           </div>
         )}
+        {latestTip && (
           <SurfaceCard tone="gold">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
               ✨ Tip for your next wash day
