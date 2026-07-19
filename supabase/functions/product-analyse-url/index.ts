@@ -205,6 +205,8 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       "scalp-conditions",
       "diagnosed-conditions",
     ],
+    rag_query: `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${args.url}`,
+    rag_k: 4,
     tool: {
       name: "return_product_analysis",
       description:
