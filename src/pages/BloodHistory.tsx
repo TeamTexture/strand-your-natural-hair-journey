@@ -265,7 +265,7 @@ const BloodHistory = () => {
         <div className="grid grid-cols-2 gap-2">
           <Button variant="gold" size="pill" onClick={startNew} className="w-full">
             <Plus className="size-4" />
-            Add test
+            Add test manually
           </Button>
           <Button
             variant="outline"
