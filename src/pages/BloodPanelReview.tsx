@@ -146,6 +146,7 @@ export default function BloodPanelReview() {
   });
 
   const panel = data?.panel ?? null;
+  const thumbUrl = useBloodPanelThumb(panel?.thumbnail_path);
   const results = data?.results ?? [];
 
   // Group results by category. Anything we don't know goes into "other".
