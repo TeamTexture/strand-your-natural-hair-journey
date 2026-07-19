@@ -566,6 +566,10 @@ export default function BloodUpload() {
                 placeholder="e.g. Advanced Thyroid Blood Test"
                 className="font-display text-base"
               />
+              <p className="text-[11px] text-foreground/55 font-body mt-1">
+                Auto-detected from the title printed on your report. Edit if
+                you'd like to rename it.
+              </p>
               {(testType || labName) && (
                 <p className="text-[11px] text-foreground/60 font-body mt-1.5">
                   {[testType, labName].filter(Boolean).join(" · ")}
