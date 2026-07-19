@@ -160,25 +160,32 @@ Deno.serve(async (req) => {
       return json(500, { error: "Model returned unparseable JSON" });
     }
 
-    // Normalise results against the whitelist
+    // Keep every extracted numeric row. Map to STRAND canonical name when the
+    // model matched it to the whitelist; otherwise pass the raw marker through
+    // so the client can surface it under "Other markers from your report".
     const whitelistSet = new Set(KNOWN_MARKERS.map((m) => m.marker));
     const results = (parsed.results ?? [])
       .map((r) => {
-        const canonical = String(r.canonical_marker ?? "").trim();
+        const canonicalRaw = r.canonical_marker == null ? "" : String(r.canonical_marker).trim();
+        const rawMarker = String(r.raw_marker ?? canonicalRaw ?? "").trim();
         const value = typeof r.value === "number" ? r.value : Number(r.value);
-        if (!whitelistSet.has(canonical)) return null;
         if (!Number.isFinite(value)) return null;
-        const known = KNOWN_MARKERS.find((m) => m.marker === canonical)!;
+        const isKnown = canonicalRaw && whitelistSet.has(canonicalRaw);
+        const known = isKnown ? KNOWN_MARKERS.find((m) => m.marker === canonicalRaw)! : null;
+        const marker = isKnown ? canonicalRaw : (rawMarker || canonicalRaw);
+        if (!marker) return null;
+        const unit = known ? known.unit : String(r.unit_reported ?? "").trim();
         return {
-          marker: canonical,
+          marker,
           value,
-          unit: known.unit,
-          unit_reported: String(r.unit_reported ?? known.unit),
-          raw_marker: String(r.raw_marker ?? canonical),
+          unit,
+          unit_reported: String(r.unit_reported ?? unit),
+          raw_marker: rawMarker || marker,
           raw_value: String(r.raw_value ?? value),
         };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
+
 
     const panel_date =
       typeof parsed.panel_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(parsed.panel_date)
