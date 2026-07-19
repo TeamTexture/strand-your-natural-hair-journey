@@ -64,7 +64,7 @@ const LABELS = [
   "Try this",
   "Note",
 ];
-const LABEL_RE = new RegExp(`(?:^|\\s)(${LABELS.join("|")}):`, "g");
+const LABEL_RE = new RegExp(`\\*{0,2}\\b(${LABELS.join("|")})\\b\\*{0,2}\\s*:\\*{0,2}`, "gi");
 
 const LABEL_TONE: Record<string, { dot: string; label: string }> = {
   "your signal": { dot: "bg-primary", label: "text-primary" },
@@ -81,16 +81,22 @@ const LABEL_TONE: Record<string, { dot: string; label: string }> = {
 
 const normaliseText = (raw: string): string => {
   let t = String(raw ?? "");
-  // Convert literal "\n" sequences (as seen in "\n\nYour focus:") into real newlines.
-  t = t.replace(/\\n/g, "\n");
-  // Also handle stray leading "/n/n" typos from the model.
-  t = t.replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
-  // Force each known label onto its own paragraph.
+  // Convert literal "\n" sequences and "/n/n" typos into real newlines.
+  t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
+  // Strip any bold wrapping around labels, then force each label onto its own paragraph.
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
 };
 
-const RichBody = ({ text, className = "" }: { text: string; className?: string }) => {
+const RichBody = ({
+  text,
+  className = "",
+  strandTipLast = false,
+}: {
+  text: string;
+  className?: string;
+  strandTipLast?: boolean;
+}) => {
   const raw = normaliseText(text);
   let paras = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   if (paras.length <= 1 && raw.length > 220) {
@@ -111,6 +117,21 @@ const RichBody = ({ text, className = "" }: { text: string; className?: string }
       return <span key={`${keyPrefix}-t-${i}`}>{part}</span>;
     });
   };
+
+  // Decide which paragraph, if any, becomes the Strand tip. When strandTipLast
+  // is on we pull the last unlabelled paragraph out so it can render as a gold
+  // outlined callout at the bottom of the card.
+  let tipPara: string | null = null;
+  if (strandTipLast && paras.length > 1) {
+    const lastIdx = paras.length - 1;
+    const last = paras[lastIdx];
+    const isLabelled = /^([A-Z][A-Za-z ]{2,24}):/.test(last);
+    if (!isLabelled && last.length <= 320) {
+      tipPara = last.replace(/^(?:Tip|Strand tip):\s*/i, "");
+      paras = paras.slice(0, lastIdx);
+    }
+  }
+
   return (
     <div className={`space-y-3 ${className}`}>
       {paras.map((p, i) => {
@@ -137,6 +158,19 @@ const RichBody = ({ text, className = "" }: { text: string; className?: string }
           </p>
         );
       })}
+      {tipPara && (
+        <div className="mt-1 rounded-lg border-2 border-primary/70 bg-primary/[0.06] px-3 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="size-3 text-primary" aria-hidden />
+            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-primary">
+              Strand tip
+            </p>
+          </div>
+          <p className="mt-1 text-xs text-foreground/90 font-body leading-relaxed">
+            {renderInline(tipPara, "tip")}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
@@ -211,7 +245,7 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => (
             <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
           </div>
         )}
-        <RichBody text={s.body} className="mt-2" />
+        <RichBody text={s.body} className="mt-2" strandTipLast />
       </div>
     </div>
   </SurfaceCard>
@@ -223,7 +257,8 @@ const DietCard = ({ c }: { c: AiCard }) => (
       <IconBubble emoji={c.emoji || "🥗"} tone="good" />
       <div className="flex-1 min-w-0">
         <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-        <RichBody text={c.body} className="mt-1.5" />
+        <RichBody text={c.body} className="mt-1.5" strandTipLast />
+
       </div>
     </div>
   </SurfaceCard>
@@ -238,7 +273,7 @@ const AvoidCard = ({ c }: { c: AiCard }) => (
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
           <SeverityChip level={c.severity} />
         </div>
-        <RichBody text={c.body} className="mt-1.5" />
+        <RichBody text={c.body} className="mt-1.5" strandTipLast />
       </div>
     </div>
   </SurfaceCard>
