@@ -100,6 +100,8 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
     usage_instructions: fresh.usage_instructions,
     use_cases: fresh.use_cases,
     tips: fresh.tips,
+    pair_with: fresh.pair_with,
+    routine_suggestion: fresh.routine_suggestion,
   };
 }
 
