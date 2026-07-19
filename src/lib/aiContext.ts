@@ -261,6 +261,9 @@ export async function buildAiContext(): Promise<AiContext> {
     location: {
       postcode: postcode ?? null,
       is_hard_water_area: isHardWater,
+      water_hardness_band: waterBand,
+      water_hardness_mg_l: clinical.basic?.water_hardness_mg_l ?? null,
+      water_supplier: clinical.basic?.water_supplier ?? null,
     },
     history: {
       last_3_wash_days: last3,
