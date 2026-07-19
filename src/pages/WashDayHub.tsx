@@ -136,10 +136,20 @@ const WashDayHub = () => {
   const goNext = () =>
     setView((v) => v.month === 11 ? { year: v.year + 1, month: 0 } : { ...v, month: v.month + 1 });
 
+  const latestTip = washDays.find((w) => w.next_wash_tip)?.next_wash_tip ?? null;
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} />
       <div className="px-5 space-y-4 pb-6">
+        {latestTip && (
+          <SurfaceCard tone="gold">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
+              ✨ Tip for your next wash day
+            </p>
+            <p className="text-sm leading-snug">{latestTip}</p>
+          </SurfaceCard>
+        )}
         <Calendar
           year={view.year}
           month={view.month}
@@ -159,6 +169,7 @@ const WashDayHub = () => {
           </p>
         </SurfaceCard>
       </div>
+
 
       <SectionLabel>Previous wash days</SectionLabel>
       <div className="px-5 space-y-3 pb-4">

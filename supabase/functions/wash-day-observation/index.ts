@@ -37,20 +37,27 @@ interface RequestBody {
 
 interface ObservationPayload {
   observation: string;
+  next_wash_tip?: string;
 }
 
 const RETURN_OBSERVATION_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["observation"],
+  required: ["observation", "next_wash_tip"],
   properties: {
     observation: {
       type: "string",
       description:
-        "2-3 sentence personalised wash-day observation in Paige's voice. Lead with one concrete next step. Reference the user's CURRENT style/goals/challenges only when mechanism-relevant. May reference specific past wash days by date if patterns are visible.",
+        "2-3 sentence personalised wash-day observation. REFLECTS on today only — no advice, no 'next time'.",
+    },
+    next_wash_tip: {
+      type: "string",
+      description:
+        "2-3 sentence CONCRETE, forward-looking tip for the user's NEXT wash day. Reference specific products on their shelf/wishlist, specific tools they own, and their stated goals. Name at least one specific product OR tool OR technique. This is where advice belongs.",
     },
   },
 } as const;
+
 
 function buildSelectorContext(body: RequestBody): SelectorContext {
   const ctx = body.context ?? {};
@@ -76,32 +83,39 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're writing ONE professional observation about the user's wash day (2-3 sentences MAX). Return JSON only via the return_observation tool.
+  return `You're writing TWO short professional pieces about the user's wash day. Return JSON only via the return_observation tool.
 
-Voice for this task: follow the VOICE PRINCIPLES from the system block. Explain the mechanism first ("the clarifying step lifted product film off the cuticle, which means…"), use connectives, talk to "you" not "your hair", translate any specialist term the first time it appears, and stay professional, direct, and never over-familiar.
+Voice: follow VOICE PRINCIPLES from the system block. Mechanism-first, talk to "you", translate any specialist term, professional and direct, never over-familiar.
 
-OUTPUT RULES
+=========================================
+PART 1 — OBSERVATION (field: observation)
+=========================================
+2-3 sentences MAX. REFLECT, do not advise. Describes what the user did today and how it compares to recent wash days.
 
-1. REFLECT, do not advise. The observation describes what the user did today and how it compares to recent wash days. NEVER tell the user what to do next, what to try next time, or what they should consider — those are banned framings.
+RULES:
+- Lead with a SPECIFIC choice the user made today (a product, technique, step skipped, heat treatment, styling decision) and what effect it had — using their reported scalp feel, breakage, hair feel note, and styling outcome.
+- Where possible, compare today to a SPECIFIC pattern in recent wash days. Cite by date/sequence ("3rd wash in past 4 weeks where X", "Last time you used [product] on [date], you reported [outcome]").
+- If a "consistently flagged" ingredient appeared in today's products, name it. NEVER say "avoid list" — say "consistently flagged in your history."
+- NEVER tell the user what to do next in this field. No "try X next time", "consider Y", "going forward" — that belongs in PART 2.
+- Hair-health observation only, never medical advice.
+- BANNED PHRASES in observation: "Great job!", "Keep it up!", "Nice work!", "Try [X] next time," "Consider," "I'd recommend."
 
-2. Lead with a SPECIFIC choice the user made today (a product they used, a technique they applied, a step they skipped, a heat treatment, a styling decision) and what effect it had — drawing on their reported scalp feel, breakage, hair feel note, and styling outcome.
+=========================================
+PART 2 — NEXT WASH DAY TIP (field: next_wash_tip)
+=========================================
+2-3 sentences MAX. Concrete, forward-looking advice for the user's NEXT wash day.
 
-3. Where possible, compare today's choice or outcome to a SPECIFIC pattern across the supplied recent wash days. Cite by date or sequence: "This is the 3rd wash in the past 4 weeks where X" or "Last time you used [product] on [date], you reported [outcome]" or "Three of your last 5 wash days where you skipped a clarifying step have come back with limp roots." Do NOT use vague summaries like "you sometimes report dryness."
-
-4. If a "consistently flagged" ingredient (from history.flagged_ingredients) appeared in today's products, name the ingredient and what it's flagged for. NEVER use the phrases "avoid list," "your avoids," or "ingredients to avoid" — use "consistently flagged in your history."
-
-5. Do NOT cite tension/styling concerns, lab values, sleep, cortisol, or dermatologist context unless they directly intersect today's wash mechanics.
-
-6. Hair-health observation only — never medical advice.
-
-7. Moisture comes from water. Products SEAL it, don't add it.
-
-8. BANNED PHRASES: "Great job!", "Keep it up!", "Nice work!", "Try [X] next time," "Consider [Y]," "Next wash, you might want to," "I'd recommend," "Going forward."
-
-9. NO chapter citations. NO "Read more — How To Love Your Afro" links. The observation stands alone.
-
-10. Plain English, no jargon. Treat the user as a capable adult who knows their hair.`;
+RULES:
+- Use context.shelf, context.wishlist, context.tools, context.goals, and today's outcome to design the tip.
+- Name at least ONE specific product from their shelf OR wishlist OR a specific tool they own — by name. Do not invent products they don't have.
+- Tie the tip to something concrete from today (e.g. "Because breakage was moderate today and your goal is length retention, next wash try leading with [Product X from shelf] before your co-wash…").
+- Give a mechanism ("this coats the cuticle before manipulation, which reduces mid-shaft snapping").
+- If they logged heat today, and heat is due next wash, ONLY reference the TT Heat Hat (link https://www.teamtexture.co.uk). Never suggest plastic caps, shower caps, warm towels, or steamers.
+- If there's a wishlist item that would genuinely help, you may suggest picking it up — but never sound salesy.
+- NO chapter citations. NO "Read more" links. Plain English.
+- BANNED in tip: "you might want to", "perhaps", "if you feel like it" — be direct and confident.`;
 }
+
 
 async function runClaude(args: {
   body: RequestBody;
@@ -180,9 +194,9 @@ async function runLovable(args: {
 ${CHAPTER_WHITELIST_PROMPT}
 
 TASK
-Given a single wash day log + the user's profile, write ONE personalised observation as Paige (2-3 sentences max).
-- Reference SPECIFIC choices the user made (a product, scalp feel, breakage level, hair feel note) — not generic advice.
-- Tie at least one observation back to the user's hair profile (porosity, scalp condition, diagnosed conditions) or a flagged blood marker / medication when relevant.
+Given a single wash day log + the user's profile, return TWO fields via the tool:
+1) observation (2-3 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
+2) next_wash_tip (2-3 sentences): a CONCRETE tip for the next wash day. Name at least one specific product from context.shelf/wishlist OR a specific tool from context.tools. Tie to today's outcome and the user's goals. If suggesting heat, only reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
 - Encouraging, never preachy. Plain English. No medical advice.
 - Return JSON only via the provided tool.`;
 
@@ -205,13 +219,14 @@ Given a single wash day log + the user's profile, write ONE personalised observa
             type: "function",
             function: {
               name: "return_observation",
-              description: "Return the wash-day observation.",
+              description: "Return the wash-day observation + next-wash tip.",
               parameters: {
                 type: "object",
                 properties: {
-                  observation: { type: "string", description: "2-3 sentence personalised note." },
+                  observation: { type: "string", description: "2-3 sentence reflection on today." },
+                  next_wash_tip: { type: "string", description: "2-3 sentence concrete tip for the next wash day, naming a specific product/tool the user owns." },
                 },
-                required: ["observation"],
+                required: ["observation", "next_wash_tip"],
               },
             },
           },
@@ -234,8 +249,8 @@ Given a single wash day log + the user's profile, write ONE personalised observa
   if (!toolCall?.function?.arguments) {
     throw new Error("Malformed AI output");
   }
-  const parsed = JSON.parse(toolCall.function.arguments) as { observation?: string };
-  return { observation: parsed.observation ?? "" };
+  const parsed = JSON.parse(toolCall.function.arguments) as { observation?: string; next_wash_tip?: string };
+  return { observation: parsed.observation ?? "", next_wash_tip: parsed.next_wash_tip ?? "" };
 }
 
 Deno.serve(async (req: Request) => {
