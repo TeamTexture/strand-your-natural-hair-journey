@@ -115,6 +115,25 @@ Deno.serve(async (req: Request) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json(500, { error: "LOVABLE_API_KEY not configured" });
 
+    // Select relevant manuscript topics for this user so action_plan / tips
+    // are rooted in the book's teachings, not generic AI advice.
+    const selectorCtx: SelectorContext = {
+      hair: (context.hairProfile ?? context.hair) as SelectorContext["hair"],
+      health: (context.healthProfile ?? context.health) as SelectorContext["health"],
+      bloodResults: Array.isArray(context.bloodResults)
+        ? (context.bloodResults as Array<{ marker?: string; status?: string | null }>)
+        : [],
+    };
+    // No dedicated function_kind for the strand summary — reuse
+    // wash-day-observation so wash-day-mechanics (moisture-first) is always
+    // pulled in, then let the selector add whatever the user's signals match.
+    const topics = selectTopicsForContext(selectorCtx, {
+      function_kind: "wash-day-observation",
+      force: ["wash-day-mechanics", "protein-and-strengthening"],
+    });
+    const knowledgeBlock = topics.map(renderTopicBlock).join("\n\n---\n\n");
+    const systemWithKnowledge = `${SYSTEM}\n\n${knowledgeBlock}`;
+
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -124,7 +143,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: systemWithKnowledge },
           {
             role: "user",
             content: `User onboarding context (currentStyle, goals, hairProfile, healthProfile, bloodResults, location, history):\n\n${JSON.stringify(context)}\n\nBefore-photo count: ${body.beforePhotoCount ?? 0}`,
