@@ -70,6 +70,9 @@ export default function BloodUpload() {
   // Source image we'll derive the panel thumbnail from (rendered PDF page or first photo).
   const [thumbSource, setThumbSource] = useState<Blob | null>(null);
   const [thumbPreview, setThumbPreview] = useState<string | null>(null);
+  // Normalised logo bounding box returned by blood-extract, used to crop the
+  // thumbnail down to the lab's actual logo/brand mark.
+  const [logoBbox, setLogoBbox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
   // Password dialog state for encrypted PDFs
   const [pwOpen, setPwOpen] = useState(false);
@@ -152,7 +155,19 @@ export default function BloodUpload() {
       setTestType(data?.test_type ?? null);
       setLabName(data?.lab_name ?? null);
       setPanelLabel(data?.label ?? null);
+      setLogoBbox(data?.logo_bbox ?? null);
       setRows(results);
+
+      // Refresh the thumbnail preview if we now know where the logo sits.
+      if (data?.logo_bbox && thumbSource) {
+        try {
+          const preview = await resizeToThumbnail(thumbSource, 320, 0.82, data.logo_bbox);
+          setThumbPreview((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(preview);
+          });
+        } catch { /* keep existing preview */ }
+      }
 
       if (results.length === 0) {
         toast.error("Couldn't read any results. Try clearer photos or the original PDF from your lab.");
@@ -172,7 +187,7 @@ export default function BloodUpload() {
     } finally {
       setExtracting(false);
     }
-  }, []);
+  }, [thumbSource]);
 
   const onFiles = useCallback(async (list: FileList | File[] | null) => {
     if (!list) return;
@@ -365,7 +380,7 @@ export default function BloodUpload() {
       // list shows a real preview of the report instead of a generic flask.
       if (thumbSource) {
         try {
-          const thumb = await resizeToThumbnail(thumbSource, 320, 0.82);
+          const thumb = await resizeToThumbnail(thumbSource, 320, 0.82, logoBbox);
           const path = `${user.id}/${crypto.randomUUID()}.jpg`;
           const { error: upErr } = await supabase.storage
             .from("blood-panel-thumbs")
@@ -490,6 +505,7 @@ export default function BloodUpload() {
                   setLabName(null);
                   setPanelLabel(null);
                   setThumbSource(null);
+                  setLogoBbox(null);
                   if (thumbPreview) URL.revokeObjectURL(thumbPreview);
                   setThumbPreview(null);
                 }}
