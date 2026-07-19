@@ -400,7 +400,7 @@ const Profile = () => {
       .sort()
       .reverse();
     const latest = logged[0];
-    if (!latest) return null;
+    if (!latest) return { kind: "never" as const };
     const days = Math.floor((Date.now() - new Date(latest).getTime()) / (1000 * 60 * 60 * 24));
     if (days >= 90) return { kind: "due" as const, days, lastDate: latest };
     return null;
