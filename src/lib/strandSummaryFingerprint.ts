@@ -4,6 +4,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+const SUMMARY_PROMPT_VERSION = "professional-v2";
+
 function djb2Hex(s: string): string {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
@@ -31,7 +33,7 @@ const TABLES: TableSpec[] = [
 ];
 
 export async function computeStrandSummaryFingerprint(userId: string): Promise<string> {
-  const parts: string[] = [];
+  const parts: string[] = [`prompt:${SUMMARY_PROMPT_VERSION}`];
   await Promise.all(
     TABLES.map(async ({ table, tsCol }) => {
       const { count } = await supabase
