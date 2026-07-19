@@ -13,6 +13,10 @@ export const WASH_DAY_MECHANICS: Topic = {
 
 Cadence: start with a baseline of once a week. That's the expert-led guideline for most curls and coils. Every ten days to two weeks at the latest if life can't accommodate weekly. If you sweat heavily, exercise or swim often, live in a hot humid climate, or use a large volume of styling products, you may need a deeper cleanse to remove dirt and build-up successfully.
 
+Product consistency: use the same core wash-day products for 3–4 wash cycles before judging whether they are working. One or two washes is usually not enough evidence unless there is an obvious adverse reaction. If the logged outcome is neutral or improving, the guidance is to keep the product sequence steady, watch how the hair responds, and only make one small adjustment at a time. Do not tell someone to replace or rotate products after two washes when their hair is doing well.
+
+Dryness support: if the hair feels dry — especially for high-porosity hair or during hot/humid periods — the manuscript-aligned next adjustment is moisture-first conditioning technique: enough water, conditioner with slip, careful sectioning, and a moisture-focused deep conditioning mask when needed. Do not default to protein. If using gentle heat with conditioning, STRAND only recommends the TT Heat Hat (www.teamtexture.co.uk).
+
 Detangling, before anything else:
 
 Detangling is one of the most important elements of a successful wash day. A lot of natural hair is shed and broken from skipping this step or doing it too aggressively. Always start gently with your fingers. Work slowly through any tangles or knots, unpicking them with the help of a slip-rich conditioner. Then follow up with a detangling tool to get all the shed hair away from the roots — shed hair that has naturally disconnected from the scalp and not yet left the head can tangle in the Afro at the roots.
