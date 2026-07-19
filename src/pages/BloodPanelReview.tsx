@@ -94,6 +94,68 @@ function fmtDate(iso: string | null): string {
   }
 }
 
+/** Title-case a brand/lab name so entries like "medichecks" or "THRIVA" render
+ *  consistently as "Medichecks" / "Thriva" in the header. Preserves short
+ *  connectors and known acronyms. */
+function titleCaseBrand(input: string | null): string | null {
+  if (!input) return input;
+  const trimmed = input.trim();
+  if (!trimmed) return trimmed;
+  const acronyms = new Set(["NHS", "GP", "UK", "US", "USA", "DNA", "MRI"]);
+  const small = new Set(["and", "of", "the", "for", "de", "la"]);
+  return trimmed
+    .split(/(\s+|-)/)
+    .map((tok, i) => {
+      if (/^\s+$/.test(tok) || tok === "-") return tok;
+      const upper = tok.toUpperCase();
+      if (acronyms.has(upper)) return upper;
+      const lower = tok.toLowerCase();
+      if (i > 0 && small.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join("");
+}
+
+/** Plain-English one-liner describing what a blood test was for, based on its
+ *  extracted test type / label. Helps people who've forgotten why they took
+ *  a specific test remember its purpose at a glance. */
+function describeTestPurpose(
+  testType: string | null,
+  label: string | null,
+): string | null {
+  const src = `${testType ?? ""} ${label ?? ""}`.toLowerCase();
+  if (!src.trim()) return null;
+  if (/thyroid|tsh|t3|t4/.test(src))
+    return "Checks how well your thyroid is working — a common driver of shedding, dryness and slow growth.";
+  if (/ferritin|iron|anaemia|anemia/.test(src))
+    return "Measures iron stores and transport — low levels are one of the most common causes of hair shedding in women.";
+  if (/hormone|oestrogen|estrogen|testosterone|dhea|prolactin|fsh|lh|cortisol/.test(src))
+    return "Looks at reproductive and stress hormones that influence hair density, texture and shedding patterns.";
+  if (/vitamin d/.test(src))
+    return "Vitamin D status — supports the hair follicle cycle and overall scalp health.";
+  if (/b12|folate|vitamin b/.test(src))
+    return "B-vitamin status — important for red blood cell production and healthy hair growth.";
+  if (/vitamin|nutrient|micronutrient/.test(src))
+    return "Screens key vitamins and micronutrients that underpin hair growth and strength.";
+  if (/mineral|zinc|magnesium|selenium|copper/.test(src))
+    return "Measures minerals essential for keratin production and follicle function.";
+  if (/inflammation|crp|esr|autoimmune|ana/.test(src))
+    return "Inflammation markers — chronic inflammation can affect the scalp and hair cycle.";
+  if (/glucose|hba1c|diabetes|insulin/.test(src))
+    return "Blood sugar control — long-term imbalances can affect scalp circulation and hair health.";
+  if (/cholesterol|lipid/.test(src))
+    return "Cholesterol and lipid profile — reflects overall cardiovascular and metabolic health.";
+  if (/liver/.test(src))
+    return "Liver function markers — the liver processes nutrients and hormones that impact hair.";
+  if (/kidney|renal/.test(src))
+    return "Kidney function markers — reflect how well your body clears waste and balances minerals.";
+  if (/full blood|complete blood|fbc|cbc/.test(src))
+    return "A general overview of your blood cells — useful baseline for spotting anaemia or infection.";
+  if (/wellness|general health|baseline|comprehensive/.test(src))
+    return "A general wellness screen covering the key markers that influence overall and hair health.";
+  return "A snapshot of the markers relevant to your overall health and hair.";
+
+
 function referenceText(marker: string): string | null {
   const r = BLOOD_RANGES[marker];
   if (!r) return null;
