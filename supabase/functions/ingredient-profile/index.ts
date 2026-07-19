@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
     ) {
       throw new Error("invalid tool args shape");
     }
-    parsed = {
+    parsed = await sanitiseAndLog({
       what_it_is: String(args.what_it_is).trim(),
       deep_dive: [],
       benefits: args.benefits.map((s: unknown) => String(s).trim()).filter(Boolean),
@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
           : undefined,
       _model_version: MODEL_VERSION,
       _generated_at: new Date().toISOString(),
-    };
+    }, "ingredient-profile");
   } catch (e) {
     console.error("ingredient-profile parse failed", e);
     return json(502, { error: "ai response could not be parsed" });
