@@ -8,6 +8,7 @@ import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
+import HairLengthPicker from "@/components/HairLengthPicker";
 import { toast } from "sonner";
 
 interface TGProps {
