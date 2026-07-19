@@ -230,9 +230,17 @@ export default function BloodPanelReview() {
             {/* Header card — test identity */}
             <SurfaceCard>
               <div className="flex items-start gap-3">
-                <div className="size-12 rounded-[14px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <FlaskConical className="size-5" />
-                </div>
+                {thumbUrl ? (
+                  <img
+                    src={thumbUrl}
+                    alt=""
+                    className="size-12 rounded-[14px] object-cover border border-border/60 shrink-0"
+                  />
+                ) : (
+                  <div className="size-12 rounded-[14px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <FlaskConical className="size-5" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <h1 className="font-display text-lg leading-tight text-foreground">
                     {panel.label ?? "Blood test"}
