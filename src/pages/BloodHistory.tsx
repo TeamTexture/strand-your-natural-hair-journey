@@ -54,6 +54,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearBloodDraft } from "@/hooks/useBloodValues";
+import { useBloodPanelThumbs } from "@/hooks/useBloodPanelThumbs";
 import { BLOOD_RANGES } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
