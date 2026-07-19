@@ -13,6 +13,7 @@ import {
   renderTopicBlock,
 } from "../_shared/knowledge/index.ts";
 import type { TopicId } from "../_shared/knowledge/types.ts";
+import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 
 /**
  * Select up to 4 manuscript topics relevant to this goal + user context.
@@ -119,9 +120,25 @@ Deno.serve(async (req) => {
     const userPayload = JSON.stringify(body);
 
     const teachings = selectGoalTopics(body);
+
+    // Retrieve manuscript passages grounded in the goal text + user signals.
+    const goalText = [body.goal.challenge, body.goal.target_text].filter(Boolean).join(" ");
+    let ragBlock = "";
+    try {
+      const passages = await retrievePassages(
+        `${goalText} Afro hair goal advice retention breakage moisture scalp`,
+        4,
+      );
+      if (passages.length > 0) {
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (use these verbatim teachings):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
+      }
+    } catch (e) {
+      console.warn("goal-tip RAG retrieval failed (continuing):", e);
+    }
+
     const systemPrompt = teachings.length > 0
-      ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}`
-      : baseSystemPrompt;
+      ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}${ragBlock}`
+      : `${baseSystemPrompt}${ragBlock}`;
 
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",

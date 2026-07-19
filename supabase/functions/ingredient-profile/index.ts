@@ -19,6 +19,7 @@ import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
+import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -189,6 +190,20 @@ Deno.serve(async (req) => {
 
   let aiResp: Response;
   try {
+  // Retrieve manuscript passages about this ingredient / its class.
+  let ragBlock = "";
+  try {
+    const passages = await retrievePassages(
+      `${body.ingredient} ingredient Afro hair porosity moisture scalp`,
+      3,
+    );
+    if (passages.length > 0) {
+      ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (use verbatim teachings):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
+    }
+  } catch (e) {
+    console.warn("ingredient-profile RAG retrieval failed (continuing):", e);
+  }
+
     aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -198,7 +213,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         messages: [
-          { role: "system", content: buildSystemPrompt() },
+          { role: "system", content: `${buildSystemPrompt()}${ragBlock}` },
           { role: "user", content: buildUserPrompt(body) },
         ],
         tools: [

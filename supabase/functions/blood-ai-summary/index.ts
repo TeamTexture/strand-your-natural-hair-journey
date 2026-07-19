@@ -197,6 +197,15 @@ Return JSON only via the return_summary tool.`;
       "hormones-and-life-stage",
       "diagnosed-conditions",
     ],
+    rag_query: `blood markers hair loss shedding ferritin iron vitamin D thyroid ${
+      (Array.isArray((args.body as Record<string, unknown>).flaggedMarkers)
+        ? ((args.body as Record<string, unknown>).flaggedMarkers as Array<Record<string, unknown>>)
+            .map((m) => m.marker ?? m.name ?? "")
+            .filter(Boolean)
+            .join(" ")
+        : "")
+    }`.trim(),
+    rag_k: 5,
     tool: {
       name: "return_summary",
       description: "Return the structured hair-health blood summary. Always invoke exactly once.",
