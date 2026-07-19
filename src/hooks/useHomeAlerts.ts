@@ -212,7 +212,8 @@ export function useHomeAlerts() {
         }
       }
 
-      const hardWater = waterBand === "hard" || waterBand === "very_hard";
+      const hardWater =
+        waterBand === "hard" || waterBand === "very_hard" || waterBand === "moderately_hard";
 
       // Water hardness informational alert — always surface once we've resolved
       // the user's postcode to a supplier / band so the impact on their routine
@@ -223,18 +224,25 @@ export function useHomeAlerts() {
             ? "Very hard water"
             : waterBand === "hard"
               ? "Hard water"
-              : waterBand === "moderate"
+              : waterBand === "moderately_hard"
                 ? "Moderately hard water"
-                : "Soft water";
+                : waterBand === "slightly_hard"
+                  ? "Slightly hard water"
+                  : "Soft water";
         const tone: "warning" | "good" = hardWater ? "warning" : "good";
         const emoji = hardWater ? "🚱" : "💧";
         const supplierBit = waterSupplier ? ` — ${waterSupplier}` : "";
         const mgBit = waterMgL != null ? ` · ${Math.round(waterMgL)} mg/L CaCO₃` : "";
-        const body = hardWater
-          ? `Mineral build-up risk${supplierBit}${mgBit}. Add a clarifier and chelating rinse.`
-          : waterBand === "moderate"
-            ? `Some mineral load${supplierBit}${mgBit}. Occasional clarifying still helps.`
-            : `Low mineral load${supplierBit}${mgBit}. Kind to your strands and colour.`;
+        const body =
+          waterBand === "very_hard"
+            ? `Heavy mineral build-up risk${supplierBit}${mgBit}. Clarify every 3–4 washes, chelate every 2–3 weeks and consider an in-shower filter.`
+            : waterBand === "hard"
+              ? `Mineral build-up risk${supplierBit}${mgBit}. Add a clarifier every 4–5 washes and a monthly chelating rinse.`
+              : waterBand === "moderately_hard"
+                ? `Moderate mineral load${supplierBit}${mgBit}. Clarify every 6–8 washes; chelate quarterly.`
+                : waterBand === "slightly_hard"
+                  ? `Light mineral load${supplierBit}${mgBit}. Clarify only when residue appears.`
+                  : `Very low mineral load${supplierBit}${mgBit}. Kind to your strands and colour.`;
         next.push({
           id: "water-hardness",
           emoji,
