@@ -511,6 +511,7 @@ Deno.serve(async (req: Request) => {
     // Build a signature from the inputs that should invalidate cache.
     // Provider is included so flipping the flag forces a regen.
     const sigSource = JSON.stringify({
+      schema_version: "v2-supplements-layman",
       provider,
       diet: diet ?? null,
       alcohol: alcohol ?? null,
