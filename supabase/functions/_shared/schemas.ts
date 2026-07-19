@@ -58,6 +58,25 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     },
     use_cases: { type: "array", items: { type: "string" } },
     tips: { type: "array", items: { type: "string" } },
+    pair_with: {
+      type: "array",
+      maxItems: 3,
+      description:
+        "Up to 3 concrete pairings that reference SPECIFIC items already on the user's shelf, favourites, or tools list by name. Each item names the product/tool and briefly says why it complements THIS product for THIS user. If no relevant items are on the shelf, return an empty array — do NOT invent generic pairings.",
+      items: {
+        type: "object",
+        properties: {
+          item: { type: "string", description: "Exact name (and brand if known) of a shelf/tool item to pair with." },
+          why: { type: "string", description: "One sentence: why this pairing helps THIS user's hair goals or challenges." },
+        },
+        required: ["item", "why"],
+      },
+    },
+    routine_suggestion: {
+      type: "string",
+      description:
+        "1–2 short sentences suggesting how to slot THIS product into the user's existing routine (wash-day step, frequency, layered before/after which items on their shelf). Empty string if nothing meaningful can be said from the user context.",
+    },
   },
   required: [
     "product_name",
@@ -99,6 +118,8 @@ export interface ProductAnalysisPayload {
   usage_instructions: string;
   use_cases: string[];
   tips: string[];
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
   // Provenance — added by the edge function, not part of the model output schema.
   _model_version?: string;
   _generated_at?: string;

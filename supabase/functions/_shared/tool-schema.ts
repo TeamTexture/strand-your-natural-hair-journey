@@ -83,6 +83,25 @@ export const RETURN_TOOL_ANALYSIS_SCHEMA = {
       description:
         "1–3 short sentences on HOW this specific user should use this tool given their hair (technique, section size, heat setting, frequency). Second person, plain English.",
     },
+    pair_with: {
+      type: "array",
+      maxItems: 3,
+      description:
+        "Up to 3 pairings that reference SPECIFIC products/tools already on the user's shelf, favourites, or tools list by name. Each item names the item and says why pairing it with THIS tool helps the user (e.g. deep conditioner + heat cap). Empty array if nothing on the user's shelf pairs meaningfully — do NOT invent generic pairings.",
+      items: {
+        type: "object",
+        properties: {
+          item: { type: "string" },
+          why: { type: "string" },
+        },
+        required: ["item", "why"],
+      },
+    },
+    routine_suggestion: {
+      type: "string",
+      description:
+        "1–2 short sentences suggesting where this tool slots into the user's routine given their current style, wash-day cadence, and goals. Empty string if nothing meaningful can be said.",
+    },
   },
   required: [
     "tool_name",
@@ -112,6 +131,8 @@ export interface ToolAnalysisPayload {
   personalisation_rationale: string;
   match_score: number;
   how_to_use: string;
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
   // Provenance (added by edge function)
   _model_version?: string;
   _generated_at?: string;

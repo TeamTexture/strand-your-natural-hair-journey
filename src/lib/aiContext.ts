@@ -78,6 +78,7 @@ export interface AiContext {
     status: string;
   }>;
   shelf: Array<Record<string, unknown>>;
+  tools: Array<Record<string, unknown>>;
 }
 
 const safeParse = <T,>(key: string, fallback: T): T => {
@@ -150,10 +151,11 @@ export async function buildAiContext(): Promise<AiContext> {
   let lowRated: Array<Record<string, unknown>> = [];
   let highRated: Array<Record<string, unknown>> = [];
   let goals: AiContext["goals"] = [];
+  let tools: Array<Record<string, unknown>> = [];
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, ratings, goalRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, ratings, goalRows, toolRows] = await Promise.all([
         supabase
           .from("blood_panels" as never)
           .select("id, panel_date, label")
@@ -183,6 +185,10 @@ export async function buildAiContext(): Promise<AiContext> {
         supabase
           .from("user_goals")
           .select("kind, title, challenge, target_text, target_value, target_date, unit, status")
+          .eq("user_id", userId),
+        supabase
+          .from("user_tools")
+          .select("name, brand, category, rating, match_score, on_favourite, use_count")
           .eq("user_id", userId),
       ]);
 
@@ -271,6 +277,7 @@ export async function buildAiContext(): Promise<AiContext> {
       lowRated = allRatings.filter((r) => Number(r.rating) <= 2);
       highRated = allRatings.filter((r) => Number(r.rating) >= 4);
       goals = (goalRows.data ?? []) as AiContext["goals"];
+      tools = (toolRows.data ?? []) as Array<Record<string, unknown>>;
     }
   } catch (e) {
     console.warn("buildAiContext: backend fetch failed", e);
@@ -370,6 +377,7 @@ export async function buildAiContext(): Promise<AiContext> {
     },
     goals,
     shelf,
+    tools,
   };
 
   // Diagnostic — confirms the freshly-built context the client is about to

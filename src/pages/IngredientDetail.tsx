@@ -54,6 +54,8 @@ interface Analysis {
   usage_instructions?: string;
   use_cases?: string[];
   tips?: string[];
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
 }
 
 // Shape returned by the product-analyse edge function (passed via route state
@@ -68,6 +70,8 @@ interface FreshAnalysisPayload {
   usage_instructions?: string;
   use_cases?: string[];
   tips?: string[];
+  pair_with?: Array<{ item: string; why: string }>;
+  routine_suggestion?: string;
 }
 
 /** Convert a fresh product-analyse payload into the local Analysis shape so
@@ -96,6 +100,8 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
     usage_instructions: fresh.usage_instructions,
     use_cases: fresh.use_cases,
     tips: fresh.tips,
+    pair_with: fresh.pair_with,
+    routine_suggestion: fresh.routine_suggestion,
   };
 }
 
@@ -914,6 +920,35 @@ const IngredientDetail = () => {
                 </SurfaceCard>
               </>
             )}
+
+            {analysis.pair_with && analysis.pair_with.length > 0 && (
+              <>
+                <SectionLabel>Pair with (from your shelf)</SectionLabel>
+                <SurfaceCard className="space-y-2">
+                  {analysis.pair_with.map((p, idx) => (
+                    <div key={`pair-${idx}`} className="flex items-start gap-2">
+                      <span className="text-primary shrink-0 mt-1">•</span>
+                      <p className="text-sm leading-relaxed text-foreground/85">
+                        <span className="font-medium">{p.item}</span>
+                        {p.why ? <span className="text-foreground/70"> — {p.why}</span> : null}
+                      </p>
+                    </div>
+                  ))}
+                </SurfaceCard>
+              </>
+            )}
+
+            {analysis.routine_suggestion && (
+              <>
+                <SectionLabel>Slot into your routine</SectionLabel>
+                <SurfaceCard>
+                  <p className="text-sm leading-relaxed text-foreground/85">
+                    {analysis.routine_suggestion}
+                  </p>
+                </SurfaceCard>
+              </>
+            )}
+
 
           </>
         )}
