@@ -131,6 +131,8 @@ export type Database = {
           label: string | null
           notes: string | null
           panel_date: string
+          scheduled_at: string | null
+          status: string
           updated_at: string
           user_id: string
         }
@@ -140,6 +142,8 @@ export type Database = {
           label?: string | null
           notes?: string | null
           panel_date?: string
+          scheduled_at?: string | null
+          status?: string
           updated_at?: string
           user_id: string
         }
@@ -149,6 +153,8 @@ export type Database = {
           label?: string | null
           notes?: string | null
           panel_date?: string
+          scheduled_at?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
