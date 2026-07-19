@@ -152,11 +152,14 @@ export async function buildAiContext(): Promise<AiContext> {
 
   try {
     if (userId) {
-      const [blood, ingLists, washes, shelfRows, ratings, goalRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, ratings, goalRows] = await Promise.all([
         supabase
-          .from("blood_results")
-          .select("marker, value, unit, status, category")
-          .eq("user_id", userId),
+          .from("blood_panels" as never)
+          .select("id, panel_date, label")
+          .eq("user_id", userId)
+          .order("panel_date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(3),
         supabase
           .from("ingredient_lists")
           .select("ingredient, list_kind, reason, product_count")
@@ -181,7 +184,82 @@ export async function buildAiContext(): Promise<AiContext> {
           .select("kind, title, challenge, target_text, target_value, target_date, unit, status")
           .eq("user_id", userId),
       ]);
-      bloodResults = (blood.data ?? []) as Array<Record<string, unknown>>;
+
+      // Load rows for the returned panels; also fetch legacy rows with NULL panel_id
+      // as a fallback for accounts that pre-date the panels migration.
+      const panelRows = ((panels as { data?: Array<{ id: string; panel_date: string | null; label: string | null }> }).data) ?? [];
+      const panelIds = panelRows.map((p) => p.id);
+      let allBloodRows: Array<Record<string, unknown>> = [];
+      if (panelIds.length > 0) {
+        const { data: br } = await supabase
+          .from("blood_results")
+          .select("marker, value, unit, status, category, panel_id")
+          .eq("user_id", userId)
+          .in("panel_id" as never, panelIds as never);
+        allBloodRows = (br ?? []) as Array<Record<string, unknown>>;
+      } else {
+        const { data: br } = await supabase
+          .from("blood_results")
+          .select("marker, value, unit, status, category")
+          .eq("user_id", userId);
+        allBloodRows = (br ?? []) as Array<Record<string, unknown>>;
+      }
+
+      // Latest-panel rows drive the primary `bloodResults` slice so existing
+      // prompts continue to see one flat list of the current test.
+      const latestPanelId = panelRows[0]?.id ?? null;
+      bloodResults = latestPanelId
+        ? allBloodRows.filter((r) => r.panel_id === latestPanelId)
+        : allBloodRows;
+
+      // Build the panels array with per-marker deltas vs the previous panel.
+      const rowsByPanel = new Map<string, Array<Record<string, unknown>>>();
+      for (const r of allBloodRows) {
+        const pid = String(r.panel_id ?? "");
+        if (!rowsByPanel.has(pid)) rowsByPanel.set(pid, []);
+        rowsByPanel.get(pid)!.push(r);
+      }
+      const panelsOut = panelRows.map((p, idx) => {
+        const rows = rowsByPanel.get(p.id) ?? [];
+        const prior = panelRows[idx + 1];
+        const priorRows = prior ? (rowsByPanel.get(prior.id) ?? []) : [];
+        const priorByMarker = new Map<string, Record<string, unknown>>();
+        for (const r of priorRows) priorByMarker.set(String(r.marker), r);
+        const deltas = rows
+          .map((r) => {
+            const prev = priorByMarker.get(String(r.marker));
+            const curVal = r.value == null ? null : Number(r.value);
+            const prevVal = prev && prev.value != null ? Number(prev.value) : null;
+            if (curVal == null || prevVal == null) return null;
+            const diff = curVal - prevVal;
+            const direction: "up" | "down" | "unchanged" =
+              diff > 0 ? "up" : diff < 0 ? "down" : "unchanged";
+            return {
+              marker: String(r.marker),
+              previous_value: prevVal,
+              current_value: curVal,
+              direction,
+              previous_status: (prev?.status as string | null) ?? null,
+              current_status: (r.status as string | null) ?? null,
+            };
+          })
+          .filter((d): d is NonNullable<typeof d> => d !== null);
+        return {
+          panel_id: p.id,
+          panel_date: p.panel_date,
+          label: p.label,
+          results: rows.map((r) => ({
+            marker: String(r.marker),
+            value: r.value == null ? null : Number(r.value),
+            unit: (r.unit as string | null) ?? null,
+            status: (r.status as string | null) ?? null,
+            category: (r.category as string | null) ?? null,
+          })),
+          deltas,
+        };
+      });
+      // Stash for assignment after the try-block.
+      (bloodResults as unknown as { __panels?: typeof panelsOut }).__panels = panelsOut;
       const lists = ingLists.data ?? [];
       // Single unified flag list — appears in 3+ of the user's products.
       flaggedIngredients = lists
