@@ -638,7 +638,7 @@ export default function BloodUpload() {
                   Saving…
                 </>
               ) : (
-                duplicatePanel && !dupConfirmed ? "Save anyway" : "Save to history"
+                duplicatePanel ? (dupConfirmed ? "Save duplicate" : "Save as duplicate") : "Save to history"
 
               )}
             </Button>
