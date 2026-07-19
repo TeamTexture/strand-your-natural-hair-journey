@@ -252,9 +252,15 @@ const ProfileStep1 = () => {
     if (!canContinue) return;
     const trimmedPostcode = postcode.trim().toUpperCase();
     const heritageArr = heritage ? [heritage] : [];
+    const ageNumForPayload = age === "" ? null : parseInt(String(age), 10);
+    const birthYearForPayload =
+      ageNumForPayload != null && Number.isFinite(ageNumForPayload) && ageNumForPayload >= 1 && ageNumForPayload <= 120
+        ? new Date().getFullYear() - ageNumForPayload
+        : null;
     const payload = {
       name: name.trim(),
       age,
+      birth_year: birthYearForPayload,
       postcode: trimmedPostcode,
       country,
       heritage,
