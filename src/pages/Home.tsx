@@ -17,11 +17,11 @@ import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
 import { Ruler, Sparkles } from "lucide-react";
 import {
-import BrandLink from "@/components/BrandLink";
   loadClinicalContext,
   loadClinicalContextLocal,
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
+import BrandLink from "@/components/BrandLink";
 
 // Render text with "TT Heat Hat" turned into a link to Team Texture.
 const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
