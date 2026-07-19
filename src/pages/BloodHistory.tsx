@@ -126,7 +126,7 @@ const BloodHistory = () => {
     queryFn: async () => {
       const { data: panels } = await supabase
         .from("blood_panels" as never)
-        .select("id, panel_date, scheduled_at, status, label, test_type, lab_name, notes")
+        .select("id, panel_date, scheduled_at, status, label, test_type, lab_name, thumbnail_path, notes")
         .eq("user_id", user!.id)
         .order("panel_date", { ascending: false })
         .order("created_at", { ascending: false });
