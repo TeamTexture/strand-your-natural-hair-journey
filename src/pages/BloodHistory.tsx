@@ -462,7 +462,7 @@ const BloodHistory = () => {
             {logged.map((p, idx) => {
               const rows = rowsByPanel.get(p.id) ?? [];
               const flagged = rows.filter((r) => r.status === "low" || r.status === "high");
-              const preview = flagged.length > 0 ? flagged.slice(0, 3) : rows.slice(0, 3);
+              const insight = buildPanelInsight(rows, flagged);
               return (
                 <div
                   key={p.id}
@@ -490,33 +490,21 @@ const BloodHistory = () => {
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground font-body mt-0.5 truncate">
-                        {[p.lab_name, p.test_type].filter(Boolean).join(" · ") ||
+                        {[titleCaseBrand(p.lab_name), p.test_type].filter(Boolean).join(" · ") ||
                           "Blood panel"}
                       </p>
                       <p className="text-xs text-muted-foreground font-body mt-0.5">
                         {displayDate(p)} · {rows.length} markers
                         {flagged.length > 0 ? ` · ${flagged.length} flagged` : ""}
                       </p>
-                      {preview.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {preview.map((r) => (
-                            <span
-                              key={r.marker}
-                              className={cn(
-                                "text-[10px] font-body px-2 py-0.5 rounded-full border",
-                                r.status === "low" || r.status === "high"
-                                  ? "border-warn/40 bg-warn/10 text-warn"
-                                  : "border-border bg-muted text-foreground/70",
-                              )}
-                            >
-                              {r.marker} {r.value ?? "–"}
-                              {r.unit ? ` ${r.unit}` : ""}
-                            </span>
-                          ))}
-                        </div>
+                      {insight && (
+                        <p className="text-xs font-body text-foreground/80 mt-2 leading-relaxed">
+                          {insight}
+                        </p>
                       )}
                     </div>
                   </div>
+
                   <Button
                     variant="gold"
                     size="pill"
