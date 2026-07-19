@@ -123,6 +123,8 @@ export default function BloodPanelReview() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [labelDraft, setLabelDraft] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["blood-panel", id, user?.id ?? "anon"],
