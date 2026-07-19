@@ -257,6 +257,9 @@ const WashStep4 = () => {
       localStorage.removeItem("strand_wash_step3");
       localStorage.removeItem("strand_wash_styling");
       localStorage.removeItem("strand_wash_date");
+      // Notify Home + any other screen relying on wash-day data so alerts
+      // (e.g. "wash overdue") clear immediately without waiting on realtime.
+      window.dispatchEvent(new Event("strand:data-changed"));
 
       toast("💧 Wash day saved!");
       navigate("/wash-day");
