@@ -158,7 +158,13 @@ Deno.serve(async (req) => {
 
     const gwJson = await gwRes.json();
     const content = gwJson?.choices?.[0]?.message?.content;
-    let parsed: { panel_date?: string | null; results?: Array<Record<string, unknown>> } = {};
+    let parsed: {
+      panel_date?: string | null;
+      document_title?: string | null;
+      test_type?: string | null;
+      lab_name?: string | null;
+      results?: Array<Record<string, unknown>>;
+    } = {};
     try {
       parsed = typeof content === "string" ? JSON.parse(content) : content ?? {};
     } catch (e) {
@@ -198,7 +204,26 @@ Deno.serve(async (req) => {
         ? parsed.panel_date
         : null;
 
-    return json(200, { panel_date, results });
+    const cleanStr = (v: unknown): string | null => {
+      if (typeof v !== "string") return null;
+      const s = v.trim();
+      if (!s || s.toLowerCase() === "null" || s.toLowerCase() === "unknown") return null;
+      return s.slice(0, 120);
+    };
+    const document_title = cleanStr(parsed.document_title);
+    const test_type = cleanStr(parsed.test_type);
+    const lab_name = cleanStr(parsed.lab_name);
+
+    // Build a human-friendly label prioritising the document title from the
+    // report itself, falling back to test type + lab.
+    let label: string | null = document_title;
+    if (!label && test_type) label = lab_name ? `${test_type} — ${lab_name}` : test_type;
+    else if (label && lab_name && !label.toLowerCase().includes(lab_name.toLowerCase())) {
+      label = `${label} — ${lab_name}`;
+    }
+
+    return json(200, { panel_date, document_title, test_type, lab_name, label, results });
+
   } catch (err) {
     console.error("blood-extract fatal:", err);
     return json(500, { error: (err as Error).message ?? "Unknown error" });
