@@ -83,7 +83,7 @@ Return JSON only via the provided tool. Each card has:
 OUTPUT REQUIREMENTS:
 - diet: 6–10 cards covering protein, iron-support, fat-soluble vitamins, omega-3, antioxidants, B-vitamins. Heavily weighted toward addressing flagged deficiencies first.
 - avoid: 4–6 cards, each genuinely personalised. Don't just list "sugar" — say WHY it matters for HER (e.g. inflammation worsens androgenic thinning if PCOS).
-- summary: one short paragraph (3–4 sentences) explaining the overall logic of the plan in Paige's voice, referencing the user's specific situation.
+- summary: TWO ultra-short paragraphs (see SUMMARY FORMATTING). One sentence each, max 22 words. Translate the blood work into plain English — no preamble, no "this plan will…".
 
 CRITICAL: Never produce generic text. If a card could apply to anyone, rewrite it to reference at least one specific data point about THIS user.`;
 
