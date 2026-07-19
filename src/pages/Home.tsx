@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle, Heart, Droplet } from "lucide-react";
+import { HelpCircle, Heart, Droplet, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -78,7 +79,13 @@ const Home = () => {
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
   const { last: lastWash, daysSinceLast } = useWashDays();
   const { lengthGoal } = useGoals();
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
+  const { data: goalTip, isLoading: tipLoading, isFetching: tipFetching, refetch: refetchTip } = useGoalTip(lengthGoal);
+  const queryClient = useQueryClient();
+  const regenerateTip = async () => {
+    if (!lengthGoal) return;
+    await queryClient.invalidateQueries({ queryKey: ["goal-tip"] });
+    await refetchTip();
+  };
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
   const [bloodSummary, setBloodSummary] = useState<{
@@ -458,11 +465,23 @@ const Home = () => {
                       the user's full profile. Cached per goal id+updated_at
                       so it loads instantly after the first generation. */}
                   <div className="mt-3 rounded-[12px] bg-primary/10 border border-primary/20 p-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Sparkles className="size-3.5 text-primary" />
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-medium">
-                        Strand tip
-                      </p>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-primary" />
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-medium">
+                          Strand tip
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={regenerateTip}
+                        disabled={tipFetching}
+                        aria-label="Regenerate tip"
+                        className="flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-primary/80 hover:text-primary disabled:opacity-50 transition-colors"
+                      >
+                        <RefreshCw className={`size-3 ${tipFetching ? "animate-spin" : ""}`} />
+                        Refresh
+                      </button>
                     </div>
                     {tipLoading && !goalTip ? (
                       <p className="text-xs text-muted-foreground italic">
