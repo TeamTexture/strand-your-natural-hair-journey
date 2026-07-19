@@ -387,7 +387,7 @@ export async function buildAiContext(): Promise<AiContext> {
     goals,
     shelf,
     tools,
-    wishlist: [],
+    wishlist,
   };
 
   // Diagnostic — confirms the freshly-built context the client is about to
