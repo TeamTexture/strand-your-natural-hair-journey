@@ -186,29 +186,40 @@ function buildClaudeTaskInstructions(): string {
   return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (3-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 things to limit), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
 
 CRITICAL LANGUAGE RULE — PLAIN ENGLISH FOR AMATEURS.
-Every card body must read like a knowledgeable friend explaining it, not a science textbook. Assume the reader has no clinical training. Translate every clinical term the FIRST time it appears — "ferritin (your body's stored iron)", "biotin (a B-vitamin your hair uses to build keratin)", "TSH (a thyroid hormone marker)". Prefer everyday words: "shedding" not "telogen effluvium", "hair strength" not "tensile integrity", "regrowth" not "anagen recovery". Short, warm, direct sentences. No lists inside cards. No jargon dumps.
+Every card body must read like a knowledgeable friend explaining it, not a science textbook. Assume the reader has no clinical training. Translate every clinical term the FIRST time it appears — "ferritin (your body's stored iron)", "biotin (a B-vitamin your hair uses to build keratin)", "TSH (a thyroid hormone marker)". Prefer everyday words: "shedding" not "telogen effluvium", "hair strength" not "tensile integrity", "regrowth" not "anagen recovery". Short, warm, direct sentences. No jargon dumps.
 
-Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud in plain English — start with the MECHANISM in everyday words ("Iron is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their heritage, their alcohol intake). "You", never "your hair".
+Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud in plain English — start with the MECHANISM in everyday words ("Iron is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their alcohol intake). "You", never "your hair".
+
+FORMATTING — SCANNABLE, NOT WALL-OF-TEXT.
+Every "body" field MUST be structured as TWO short paragraphs separated by a blank line ("\\n\\n"). Each paragraph is ONE or TWO short sentences max. Each paragraph MUST open with a 2-4 word bold lead phrase wrapped in markdown asterisks, followed by a colon, then the sentence — for example: "**Why it matters:** iron is what your follicles draw on for new growth."
+
+Use these bold lead phrases (pick whichever fit the card — never invent long headers):
+- For DIET & SUPPLEMENTS: "**Why it matters:**", "**Your signal:**", "**How to use it:**", "**Best paired with:**", "**Watch out for:**"
+- For AVOID: "**Why it matters:**", "**Your signal:**", "**Easier swap:**", "**Watch out for:**"
+
+Never write a wall of prose. Never omit the bold lead. Never use more than two paragraphs per body.
+
+SUMMARY FORMATTING. The top-level "summary" field must ALSO be two short paragraphs separated by "\\n\\n", each opening with a bold lead phrase. Suggested leads: "**Your signal:**" (name the 1-2 user data points this plan is anchored to) then "**Your focus:**" (name the 1-2 levers to pull first). Two short sentences per paragraph, max.
 
 OUTPUT RULES
 
 1. EXPLANATION-FIRST. Never lead a card with "Eat this", "Take that", or "Avoid this". Lead with the plain-English mechanism, then connect to the user, then the food/supplement/limit lands as the obvious conclusion.
 
-2. Ground every card in the user's actual data — heritage, age, life_stage, medications, diagnosed conditions, blood markers, goals, diet pattern, alcohol intake, recent wash signals. Never invent data — if a field is missing, don't reference it. If a card could apply to anyone, rewrite it.
+2. Ground every card in the user's actual data — age, life_stage, medications, diagnosed conditions, blood markers, goals, diet pattern, alcohol intake, recent wash signals. Never invent data — if a field is missing, don't reference it. If a card could apply to anyone, rewrite it.
 
 3. SUPPLEMENTS — PERSONALISED, NOT GENERIC.
-   - Every supplement card must be tied to something SPECIFIC about this user (a flagged marker, their heritage + UK sunlight for vitamin D, their medication depleting a nutrient, their diet pattern, their life stage). Never a generic "everyone should take X".
+   - Every supplement card must be tied to something SPECIFIC about this user (a flagged marker, their medication depleting a nutrient, their diet pattern, their life stage). Never a generic "everyone should take X".
    - Iron: only recommend if ferritin/iron is flagged low, or the user is menstruating heavily / vegetarian / vegan with known risk. Explain iron in plain English ("iron is what carries oxygen to every follicle").
-   - Vitamin D: recommend for African / Caribbean heritage or UK-based users, and specifically explain WHY in plain English (deeper skin makes less vitamin D from UK sun; UK winters have little UVB).
+   - Vitamin D: recommend if a marker is flagged, if the user has limited sun exposure, or if life stage / diet pattern warrants it. Explain WHY in plain English.
    - B12: mandatory for vegan / vegetarian; also flag for anyone on metformin or long-term PPIs (explain the medication link in one line).
    - Zinc, magnesium, folate, omega-3, biotin, collagen: include only where the data supports it. Explain what each does for hair in one plain-English sentence.
    - Dose field: give a practical everyday dose with timing (e.g. "1000 IU daily with breakfast", "one 200 mg tablet with a glass of orange juice"). Never a range wider than 2x. Never medical prescribing.
-   - Priority: "high" if a flagged marker directly drives it; "medium" if lifestyle/heritage drives it; "low" if general support.
+   - Priority: "high" if a flagged marker directly drives it; "medium" if lifestyle drives it; "low" if general support.
    - Always finish supplement bodies with a soft check-with-GP nudge only when medication interaction or a condition (pregnancy, thyroid) is present — don't tack it onto every card.
 
-4. CULTURAL CONTEXT. If the user is UK-based or African / Caribbean by heritage, prefer foods they likely already cook with — jollof base ingredients, scotch bonnet, plantain, callaloo, ackee, oxtail, mackerel, sardines, eddoes, ground provisions. Don't say "leafy greens" if you can say "callaloo" or "spring greens." For UK users default to UK supermarket / produce names.
+4. FOOD NAMES. Use specific everyday food names available in most UK supermarkets (e.g. "mackerel", "spinach", "eggs", "lentils", "pumpkin seeds"). DO NOT tie food recommendations to the user's location, city, region, culture, or heritage — never write "because you're in the UK", "as an African / Caribbean woman", "your heritage foods", "jollof base", "callaloo", "ackee", "plantain", or any other location- or ethnicity-anchored food framing. Recommend food purely based on the NUTRIENT it delivers and how it lands against this user's blood markers, life stage, medications and diet pattern.
 
-5. DIET PATTERN HARD RULE. Never recommend animal foods to a vegan. Never recommend pork or shellfish if the diet field excludes them. Always offer the culturally familiar plant alternative.
+5. DIET PATTERN HARD RULE. Never recommend animal foods to a vegan. Never recommend pork or shellfish if the diet field excludes them. Always offer a plant alternative when the user is plant-based.
 
 6. BLOOD MARKERS. Every flagged low/high marker MUST be addressed by at least one supplement OR diet card with a targeted lever + plain-English mechanism.
 
@@ -220,9 +231,7 @@ OUTPUT RULES
 
 10. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
 
-11. SUMMARY. One short paragraph (3-4 sentences) in Paige's voice, plain English, naming the 1-2 user signals the plan is anchored to. No greeting, no sign-off.
-
-12. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead.`;
+11. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
 }
 
 async function runClaude(args: {
