@@ -30,6 +30,7 @@ import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
+import BrandLink from "@/components/BrandLink";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
