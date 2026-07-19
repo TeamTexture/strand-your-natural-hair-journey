@@ -921,6 +921,35 @@ const IngredientDetail = () => {
               </>
             )}
 
+            {analysis.pair_with && analysis.pair_with.length > 0 && (
+              <>
+                <SectionLabel>Pair with (from your shelf)</SectionLabel>
+                <SurfaceCard className="space-y-2">
+                  {analysis.pair_with.map((p, idx) => (
+                    <div key={`pair-${idx}`} className="flex items-start gap-2">
+                      <span className="text-primary shrink-0 mt-1">•</span>
+                      <p className="text-sm leading-relaxed text-foreground/85">
+                        <span className="font-medium">{p.item}</span>
+                        {p.why ? <span className="text-foreground/70"> — {p.why}</span> : null}
+                      </p>
+                    </div>
+                  ))}
+                </SurfaceCard>
+              </>
+            )}
+
+            {analysis.routine_suggestion && (
+              <>
+                <SectionLabel>Slot into your routine</SectionLabel>
+                <SurfaceCard>
+                  <p className="text-sm leading-relaxed text-foreground/85">
+                    {analysis.routine_suggestion}
+                  </p>
+                </SurfaceCard>
+              </>
+            )}
+
+
           </>
         )}
 
