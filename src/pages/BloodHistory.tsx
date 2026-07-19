@@ -278,6 +278,25 @@ const BloodHistory = () => {
           your markers move over time.
         </p>
 
+        {overdue && (
+          <button
+            onClick={() => setScheduling(true)}
+            className="w-full flex items-start gap-3 rounded-[14px] border border-alert-dark/30 bg-alert-dark/10 p-3 text-left"
+          >
+            <div className="size-8 rounded-full bg-alert-dark/20 text-alert-dark flex items-center justify-center shrink-0">
+              <AlertCircle className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-body font-semibold text-foreground">
+                Time for a retest
+              </p>
+              <p className="text-xs text-foreground/75 font-body leading-relaxed mt-0.5">
+                It's been {daysSinceLatest} days since your last blood test. Book a follow-up so STRAND can keep guiding your hair care with current data.
+              </p>
+            </div>
+          </button>
+        )}
+
         <div className="flex flex-col gap-2 px-1">
           <Button variant="gold" size="pill" onClick={startNew} className="w-full">
             <Plus className="size-4" />
