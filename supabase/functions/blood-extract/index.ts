@@ -57,8 +57,11 @@ RULES:
 - If a value cannot be parsed as a number (e.g. "Negative", "<5"), skip that ONE row but keep going with the rest.
 - If the report shows only a reference range with no measured value, skip that row.
 - If you find a panel date (collection date, report date, sample date), return it as panel_date in YYYY-MM-DD format. If uncertain, return null.
+- Identify the DOCUMENT TITLE / test name as printed at the top of the report (e.g. "Advanced Thyroid Blood Test", "Menopause Health Panel", "Full Blood Count", "Iron Studies"). Return it as document_title. If nothing suitable is printed, set to null. Do NOT invent a title.
+- Identify the TEST TYPE — a short category label describing what kind of test it is (e.g. "Thyroid function", "Full blood count", "Female hormones", "Iron studies", "General wellness"). Return it as test_type. If unsure, set to null.
+- Identify the LAB / PROVIDER name if printed on the report (e.g. "Medichecks", "Thriva", "Quest Diagnostics", "The Doctors Laboratory"). Return it as lab_name. If not visible, null.
 - Never invent values. Only include markers where you actually see a numeric result on the report.
-- If the image is not a blood test at all, return an empty results array.
+- If the image is not a blood test at all, return an empty results array and null for all metadata.
 
 STRAND whitelist (for canonical_marker matching only — do NOT restrict extraction to these):
 ${MARKER_LIST_FOR_PROMPT}
@@ -66,6 +69,9 @@ ${MARKER_LIST_FOR_PROMPT}
 Return ONLY valid JSON matching:
 {
   "panel_date": "YYYY-MM-DD" | null,
+  "document_title": string | null,
+  "test_type": string | null,
+  "lab_name": string | null,
   "results": [
     { "canonical_marker": string | null, "raw_marker": string, "value": number, "unit_reported": string, "raw_value": string }
   ]
@@ -152,7 +158,13 @@ Deno.serve(async (req) => {
 
     const gwJson = await gwRes.json();
     const content = gwJson?.choices?.[0]?.message?.content;
-    let parsed: { panel_date?: string | null; results?: Array<Record<string, unknown>> } = {};
+    let parsed: {
+      panel_date?: string | null;
+      document_title?: string | null;
+      test_type?: string | null;
+      lab_name?: string | null;
+      results?: Array<Record<string, unknown>>;
+    } = {};
     try {
       parsed = typeof content === "string" ? JSON.parse(content) : content ?? {};
     } catch (e) {
@@ -192,7 +204,26 @@ Deno.serve(async (req) => {
         ? parsed.panel_date
         : null;
 
-    return json(200, { panel_date, results });
+    const cleanStr = (v: unknown): string | null => {
+      if (typeof v !== "string") return null;
+      const s = v.trim();
+      if (!s || s.toLowerCase() === "null" || s.toLowerCase() === "unknown") return null;
+      return s.slice(0, 120);
+    };
+    const document_title = cleanStr(parsed.document_title);
+    const test_type = cleanStr(parsed.test_type);
+    const lab_name = cleanStr(parsed.lab_name);
+
+    // Build a human-friendly label prioritising the document title from the
+    // report itself, falling back to test type + lab.
+    let label: string | null = document_title;
+    if (!label && test_type) label = lab_name ? `${test_type} — ${lab_name}` : test_type;
+    else if (label && lab_name && !label.toLowerCase().includes(lab_name.toLowerCase())) {
+      label = `${label} — ${lab_name}`;
+    }
+
+    return json(200, { panel_date, document_title, test_type, lab_name, label, results });
+
   } catch (err) {
     console.error("blood-extract fatal:", err);
     return json(500, { error: (err as Error).message ?? "Unknown error" });

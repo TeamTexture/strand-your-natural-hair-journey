@@ -452,16 +452,16 @@ const BloodHistory = () => {
                       <FlaskConical className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-body font-semibold flex items-center gap-2">
-                        {displayDate(p)}
+                      <p className="text-sm font-body font-semibold flex items-center gap-2 truncate">
+                        <span className="truncate">{p.label ?? "Blood test"}</span>
                         {idx === 0 && (
-                          <span className="text-[10px] tracking-[0.2em] uppercase text-primary">
+                          <span className="text-[10px] tracking-[0.2em] uppercase text-primary shrink-0">
                             Latest
                           </span>
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground font-body mt-0.5">
-                        {p.label ?? "Blood test"} · {rows.length} markers
+                        {displayDate(p)} · {rows.length} markers
                         {flagged.length > 0 ? ` · ${flagged.length} flagged` : ""}
                       </p>
                       {preview.length > 0 && (

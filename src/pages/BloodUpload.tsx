@@ -17,6 +17,7 @@ import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import {
   clearBloodDraft,
   setDraftPanelDate,
+  setDraftPanelLabel,
   setUnknownMarkers,
   persistBloodValues,
   type UnknownMarker,
@@ -57,6 +58,9 @@ export default function BloodUpload() {
   const [panelDate, setPanelDate] = useState<string>(
     new Date().toISOString().slice(0, 10),
   );
+  const [testType, setTestType] = useState<string | null>(null);
+  const [labName, setLabName] = useState<string | null>(null);
+  const [panelLabel, setPanelLabel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -138,6 +142,9 @@ export default function BloodUpload() {
       if (error) throw error;
       const results = (data?.results ?? []) as ExtractedRow[];
       if (data?.panel_date) setPanelDate(data.panel_date);
+      setTestType(data?.test_type ?? null);
+      setLabName(data?.lab_name ?? null);
+      setPanelLabel(data?.label ?? null);
       setRows(results);
 
       if (results.length === 0) {
@@ -328,6 +335,7 @@ export default function BloodUpload() {
       // Fresh draft for this upload so we don't overwrite a prior in-progress panel.
       clearBloodDraft();
       setDraftPanelDate(panelDate);
+      setDraftPanelLabel(panelLabel);
 
       // Seed the known-marker cache that persistBloodValues reads from.
       const values: Record<string, number> = {};
@@ -427,6 +435,9 @@ export default function BloodUpload() {
                 onClick={() => {
                   setFiles([]);
                   setRows([]);
+                  setTestType(null);
+                  setLabName(null);
+                  setPanelLabel(null);
                 }}
                 className="text-xs text-foreground/60 hover:text-foreground font-body underline"
               >
@@ -475,7 +486,21 @@ export default function BloodUpload() {
         {rows.length > 0 && (
           <>
             <SurfaceCard>
-              <Label htmlFor="panel-date" className="text-xs font-body text-foreground/70">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
+                Test name
+              </p>
+              <Input
+                value={panelLabel ?? ""}
+                onChange={(e) => setPanelLabel(e.target.value || null)}
+                placeholder="e.g. Advanced Thyroid Blood Test"
+                className="font-display text-base"
+              />
+              {(testType || labName) && (
+                <p className="text-[11px] text-foreground/60 font-body mt-1.5">
+                  {[testType, labName].filter(Boolean).join(" · ")}
+                </p>
+              )}
+              <Label htmlFor="panel-date" className="text-xs font-body text-foreground/70 mt-3 block">
                 Test date
               </Label>
               <Input
