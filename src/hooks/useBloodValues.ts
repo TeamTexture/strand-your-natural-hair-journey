@@ -124,6 +124,8 @@ export function clearBloodDraft() {
   localStorage.removeItem(DRAFT_PANEL_KEY);
   localStorage.removeItem(DRAFT_PANEL_DATE_KEY);
   localStorage.removeItem(DRAFT_PANEL_LABEL_KEY);
+  localStorage.removeItem(DRAFT_PANEL_TEST_TYPE_KEY);
+  localStorage.removeItem(DRAFT_PANEL_LAB_NAME_KEY);
   localStorage.removeItem("strand_blood_summary_fp");
   window.dispatchEvent(new Event("strand:blood-update"));
 }
