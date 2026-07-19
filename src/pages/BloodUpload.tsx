@@ -449,6 +449,23 @@ export default function BloodUpload() {
               />
             </SurfaceCard>
 
+            {duplicatePanel && (
+              <SurfaceCard className="border-alert-dark/40 bg-alert-dark/5">
+                <div className="flex gap-3">
+                  <AlertTriangle className="size-5 text-alert-dark shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-display text-sm text-alert-dark">Already uploaded</p>
+                    <p className="text-xs text-foreground/70 font-body mt-1 leading-relaxed">
+                      A blood panel for <strong>{new Date(panelDate).toLocaleDateString()}</strong> is already saved
+                      {duplicatePanel.created_at ? ` (added ${new Date(duplicatePanel.created_at).toLocaleDateString()})` : ""}.
+                      Change the test date above, or continue to add another panel for the same day.
+                    </p>
+                  </div>
+                </div>
+              </SurfaceCard>
+            )}
+
+
             <SurfaceCard>
               <p className="font-display text-lg mb-1">We found {rows.length} marker{rows.length === 1 ? "" : "s"}</p>
               <p className="text-xs text-foreground/60 font-body">
