@@ -83,7 +83,7 @@ Return JSON only via the provided tool. Each card has:
 OUTPUT REQUIREMENTS:
 - diet: 6–10 cards covering protein, iron-support, fat-soluble vitamins, omega-3, antioxidants, B-vitamins. Heavily weighted toward addressing flagged deficiencies first.
 - avoid: 4–6 cards, each genuinely personalised. Don't just list "sugar" — say WHY it matters for HER (e.g. inflammation worsens androgenic thinning if PCOS).
-- summary: one short paragraph (3–4 sentences) explaining the overall logic of the plan in Paige's voice, referencing the user's specific situation.
+- summary: TWO ultra-short paragraphs (see SUMMARY FORMATTING). One sentence each, max 22 words. Translate the blood work into plain English — no preamble, no "this plan will…".
 
 CRITICAL: Never produce generic text. If a card could apply to anyone, rewrite it to reference at least one specific data point about THIS user.`;
 
@@ -95,7 +95,7 @@ const RETURN_PLAN_SCHEMA = {
     summary: {
       type: "string",
       description:
-        "3-4 sentence overview of the plan's logic in Paige's voice, grounded in this user's specific data.",
+        "Exactly two short paragraphs separated by \\n\\n. Each paragraph is ONE sentence, max 22 words. Paragraph 1 opens '**Your signal:**' and translates a flagged blood marker or key data point into plain English (e.g. 'ferritin (stored iron)'). Paragraph 2 opens '**Your focus:**' and names the 1-2 levers this plan pulls, in everyday words. No jargon, no doses, no food names.",
     },
     supplements: {
       type: "array",
@@ -199,7 +199,13 @@ Use these bold lead phrases (pick whichever fit the card — never invent long h
 
 Never write a wall of prose. Never omit the bold lead. Never use more than two paragraphs per body.
 
-SUMMARY FORMATTING. The top-level "summary" field must ALSO be two short paragraphs separated by "\\n\\n", each opening with a bold lead phrase. Suggested leads: "**Your signal:**" (name the 1-2 user data points this plan is anchored to) then "**Your focus:**" (name the 1-2 levers to pull first). Two short sentences per paragraph, max.
+SUMMARY FORMATTING — SHORT, EDUCATIONAL, SCANNABLE.
+The top-level "summary" field is the "Why this plan" block at the top of the page. It must be BRIEF and read like a friend translating the blood work into plain English — not a preamble to the cards below.
+- Exactly TWO short paragraphs separated by "\\n\\n".
+- Each paragraph is ONE sentence, max 22 words. No second sentence. No commas stacked into a list.
+- Paragraph 1 opens "**Your signal:**" — name 1-2 specific data points (a flagged marker with its everyday meaning in brackets, a medication, or a life stage) and what it means for hair in the simplest words possible. Example: "**Your signal:** your ferritin (stored iron) is low, which is what your follicles pull from to grow new strands."
+- Paragraph 2 opens "**Your focus:**" — name the 1-2 levers this plan pulls (e.g. "rebuild iron stores", "steady blood sugar", "top up vitamin D") in everyday language. No jargon, no supplement doses, no food names here — those live in the cards.
+- Never repeat the same marker in both paragraphs. Never write "this plan will…" or "we recommend…". Speak directly to her.
 
 OUTPUT RULES
 
