@@ -71,8 +71,29 @@ export function useUserProducts(filter: Filter = "all") {
   useEffect(() => {
     const handler = () => { void load(); };
     window.addEventListener("user-products-updated", handler);
-    return () => window.removeEventListener("user-products-updated", handler);
+    window.addEventListener("strand:data-changed", handler);
+    return () => {
+      window.removeEventListener("user-products-updated", handler);
+      window.removeEventListener("strand:data-changed", handler);
+    };
   }, [load]);
+
+  // Realtime — the DB trigger bumps use_count / last_used_at whenever a wash
+  // day is inserted, updated or deleted. Subscribe so "Times used" and
+  // "Last used" refresh immediately across every screen without a manual
+  // reload.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`user_products:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_products", filter: `user_id=eq.${user.id}` },
+        () => { void load(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [user, load]);
 
   const filtered = (() => {
     switch (filter) {
