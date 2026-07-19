@@ -37,20 +37,27 @@ interface RequestBody {
 
 interface ObservationPayload {
   observation: string;
+  next_wash_tip?: string;
 }
 
 const RETURN_OBSERVATION_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["observation"],
+  required: ["observation", "next_wash_tip"],
   properties: {
     observation: {
       type: "string",
       description:
-        "2-3 sentence personalised wash-day observation in Paige's voice. Lead with one concrete next step. Reference the user's CURRENT style/goals/challenges only when mechanism-relevant. May reference specific past wash days by date if patterns are visible.",
+        "2-3 sentence personalised wash-day observation. REFLECTS on today only — no advice, no 'next time'.",
+    },
+    next_wash_tip: {
+      type: "string",
+      description:
+        "2-3 sentence CONCRETE, forward-looking tip for the user's NEXT wash day. Reference specific products on their shelf/wishlist, specific tools they own, and their stated goals. Name at least one specific product OR tool OR technique. This is where advice belongs.",
     },
   },
 } as const;
+
 
 function buildSelectorContext(body: RequestBody): SelectorContext {
   const ctx = body.context ?? {};
