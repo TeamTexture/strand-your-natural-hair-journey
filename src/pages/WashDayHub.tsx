@@ -298,6 +298,31 @@ const WashDayHub = () => {
     return { diffDays, lastDate, goalTitles: activeGoalTitles };
   }, [washDays, goals, today]);
 
+  const [clinical, setClinical] = useState<ClinicalContext | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadClinicalContext()
+      .then((ctx) => { if (!cancelled) setClinical(ctx); })
+      .catch(() => { /* non-fatal — encouragement falls back to generic copy */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const educational = useMemo(() => {
+    const lastIso = washDays[0]?.wash_date ?? null;
+    const activeGoalTitles = (goals ?? [])
+      .filter((g) => g.status !== "complete" && g.status !== "archived")
+      .map((g) => g.title)
+      .filter(Boolean) as string[];
+    return buildEducationalNote({
+      porosity: (clinical?.hair?.porosity ?? [])[0] ?? null,
+      density: (clinical?.hair?.density ?? [])[0] ?? null,
+      scalp: (clinical?.hair?.scalp ?? [])[0] ?? null,
+      goalTitles: activeGoalTitles,
+      lastWash: lastIso ? new Date(lastIso) : null,
+      today,
+    });
+  }, [clinical, washDays, goals, today]);
+
   const overdueReason = (() => {
     if (!overdue) return "";
     const base = "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
