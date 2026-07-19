@@ -199,6 +199,12 @@ const StepCard = ({
           (which itself supports photo / upload / link with auto-save to shelf). */}
       {isEditing && (
         <div className="mt-3 space-y-2">
+          {showLastWashHint && selectedProducts.length > 0 && (
+            <div className="px-3 py-2 rounded-[10px] bg-primary/5 border border-primary/20 text-[11px] text-foreground/80 leading-snug">
+              Pre-filled from your last wash day. Used these again? Remove any you didn't, or add a new one below.
+            </div>
+          )}
+
           {selectedProducts.map((p) => (
             <div
               key={p.id}
