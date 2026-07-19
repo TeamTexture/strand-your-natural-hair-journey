@@ -388,14 +388,14 @@ export function useHomeAlerts() {
         });
       }
 
-      // 5. Blood retest due — 3 months since last test, OR never uploaded one
-      if (lastBloodIso && daysSinceBlood !== null && daysSinceBlood >= 90) {
-        const months = Math.max(3, Math.floor(daysSinceBlood / 30));
+      // 5. Blood retest due — ~3 months since last test, OR never uploaded one
+      if (lastBloodIso && daysSinceBlood !== null && daysSinceBlood >= 85) {
+        const months = Math.max(3, Math.round(daysSinceBlood / 30));
         next.push({
           id: "blood-retest",
           emoji: "🧪",
           title: "Time to book a blood test",
-          body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair guidance stays current.`,
+          body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair, nutrition and supplement guidance stays accurate.`,
           to: "/blood-history",
           tone: "danger",
           signature: `blood:${lastBloodIso}`,
