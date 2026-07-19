@@ -198,12 +198,13 @@ const Home = () => {
         style_set_at: ctx.style?.style_set_at ?? undefined,
         planned_next_style: ctx.style?.planned_next_style ?? undefined,
       });
-      setWater({
+      setWater((prev) => ({
+        ...prev,
         band: ctx.basic?.water_hardness_band ?? null,
         mg_l: ctx.basic?.water_hardness_mg_l ?? null,
         supplier: ctx.basic?.water_supplier ?? null,
         postcode: ctx.basic?.postcode ?? null,
-      });
+      }));
     };
     // Initial mount: use the (possibly cached) edge-function result so
     // navigations back to Home don't pay a full decrypt round-trip.
