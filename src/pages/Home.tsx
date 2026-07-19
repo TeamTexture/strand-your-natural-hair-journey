@@ -14,7 +14,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
-import { Ruler, Sparkles } from "lucide-react";
+import { Ruler, Sparkles, Droplet } from "lucide-react";
 import {
   loadClinicalContext,
   loadClinicalContextLocal,
@@ -66,6 +66,16 @@ const Home = () => {
       planned_next_style: local.style?.planned_next_style ?? undefined,
     };
   });
+  const [water, setWater] = useState<{
+    band: string | null; mg_l: number | null; supplier: string | null;
+  }>(() => {
+    const local = loadClinicalContextLocal();
+    return {
+      band: local.basic?.water_hardness_band ?? null,
+      mg_l: local.basic?.water_hardness_mg_l ?? null,
+      supplier: local.basic?.water_supplier ?? null,
+    };
+  });
 
   // Re-fetch style from DB (with localStorage fallback) whenever the user
   // lands on Home, regains focus, the tab becomes visible again, OR an
@@ -82,6 +92,11 @@ const Home = () => {
         current_hairstyle: ctx.style?.current_hairstyle ?? undefined,
         style_set_at: ctx.style?.style_set_at ?? undefined,
         planned_next_style: ctx.style?.planned_next_style ?? undefined,
+      });
+      setWater({
+        band: ctx.basic?.water_hardness_band ?? null,
+        mg_l: ctx.basic?.water_hardness_mg_l ?? null,
+        supplier: ctx.basic?.water_supplier ?? null,
       });
     };
     // Initial mount: use the (possibly cached) edge-function result so
@@ -190,7 +205,25 @@ const Home = () => {
           <h1 className="font-display text-[24px] font-bold leading-tight">
             {firstName || "there"}
           </h1>
+          {water.band && (
+            <button
+              onClick={() => navigate("/profile")}
+              title={`${water.supplier ?? "Your area"} · ${water.mg_l ?? "?"} mg/L CaCO₃`}
+              aria-label={`Water in your area is ${water.band.replace("_", " ")}`}
+              className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] border ${
+                water.band === "very_hard" || water.band === "hard"
+                  ? "bg-alert-dark/10 text-alert-dark border-alert-dark/30"
+                  : water.band === "moderate"
+                    ? "bg-warn/10 text-warn border-warn/30"
+                    : "bg-good/10 text-good border-good/30"
+              }`}
+            >
+              <Droplet className="size-3" />
+              {water.band.replace("_", " ")} water
+            </button>
+          )}
         </div>
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate("/help")}
