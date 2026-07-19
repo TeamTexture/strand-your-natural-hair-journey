@@ -361,6 +361,26 @@ export default function BloodUpload() {
       setDraftPanelTestType(testType);
       setDraftPanelLabName(labName);
 
+      // Build & upload a thumbnail from the source document so the blood-work
+      // list shows a real preview of the report instead of a generic flask.
+      if (thumbSource) {
+        try {
+          const thumb = await resizeToThumbnail(thumbSource, 320, 0.82);
+          const path = `${user.id}/${crypto.randomUUID()}.jpg`;
+          const { error: upErr } = await supabase.storage
+            .from("blood-panel-thumbs")
+            .upload(path, thumb, {
+              contentType: "image/jpeg",
+              upsert: false,
+              cacheControl: "3600",
+            });
+          if (!upErr) setDraftPanelThumbnail(path);
+          else console.warn("thumbnail upload failed:", upErr);
+        } catch (err) {
+          console.warn("thumbnail build failed:", err);
+        }
+      }
+
       // Seed the known-marker cache that persistBloodValues reads from.
       const values: Record<string, number> = {};
       known.forEach((r) => {
