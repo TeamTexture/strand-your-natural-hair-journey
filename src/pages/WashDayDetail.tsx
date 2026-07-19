@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
-import RichBody from "@/components/RichBody";
+import { NextWashTipCard } from "@/components/NextWashTipCard";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
