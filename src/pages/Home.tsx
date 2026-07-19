@@ -371,37 +371,43 @@ const Home = () => {
                 </button>
               </div>
 
-              {/* Photo + next planned */}
-              <div className="flex items-center gap-4 mb-6">
-                <button
-                  onClick={() => navigate("/onboarding/strand-summary")}
-                  aria-label="See My Strand Summary"
-                  className="relative shrink-0"
-                >
-                  <div className="absolute -inset-1 border border-[#C5A059]/40 rounded-2xl rotate-3" />
-                  <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-[#3A2B1F] flex items-center justify-center text-[#C5A059]/40 border border-white/5">
-                    {beforePhotoUrl ? (
-                      <img src={beforePhotoUrl} alt="Your hair" className="w-full h-full object-cover" />
-                    ) : (
-                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
+              {/* Hero photo */}
+              <button
+                onClick={() => navigate("/onboarding/strand-summary")}
+                aria-label="See My Strand Summary"
+                className="relative block w-full mb-5"
+              >
+                <div className="absolute -inset-1.5 border border-[#C5A059]/40 rounded-[26px] rotate-1" />
+                <div className="relative w-full aspect-square rounded-3xl overflow-hidden bg-[#3A2B1F] flex items-center justify-center text-[#C5A059]/40 border border-white/5 shadow-2xl">
+                  {beforePhotoUrl ? (
+                    <img
+                      src={beforePhotoUrl}
+                      alt="Your hair"
+                      loading="eager"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                      style={{ imageRendering: "auto" }}
+                    />
+                  ) : (
+                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </div>
+              </button>
 
-                <button
-                  onClick={() => navigate("/home/style")}
-                  className="flex-1 min-w-0 text-left bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-md hover:bg-white/10 transition-colors"
-                >
-                  <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.2em] mb-1 font-bold font-body">
-                    Next planned
-                  </p>
-                  <p className="font-display text-white text-base leading-snug italic break-words">
-                    {style.planned_next_style || "Tap to plan"}
-                  </p>
-                </button>
-              </div>
+              {/* Next planned */}
+              <button
+                onClick={() => navigate("/home/style")}
+                className="w-full text-left bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-md hover:bg-white/10 transition-colors mb-6"
+              >
+                <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.2em] mb-1 font-bold font-body">
+                  Next planned
+                </p>
+                <p className="font-display text-white text-base leading-snug italic break-words">
+                  {style.planned_next_style || "Tap to plan"}
+                </p>
+              </button>
 
               {/* Divider */}
               <div className="relative flex items-center mb-4">
