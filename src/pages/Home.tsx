@@ -471,6 +471,53 @@ const Home = () => {
             </button>
           )}
         </SurfaceCard>
+
+        {/* My Blood Work */}
+        <SurfaceCard>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              My Blood Work
+            </p>
+            <button
+              onClick={() => navigate("/blood-history")}
+              className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+            >
+              Review
+            </button>
+          </div>
+          {bloodSummary ? (
+            <button
+              onClick={() => navigate("/blood-history")}
+              className="w-full text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
+                  <FlaskConical className="size-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-display text-base font-semibold leading-snug">
+                    {bloodSummary.total} marker{bloodSummary.total === 1 ? "" : "s"} on file
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {bloodSummary.flagged > 0
+                      ? `${bloodSummary.flagged} flagged — last updated ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                      : `Last updated ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate("/blood-history")}
+              className="text-left w-full"
+            >
+              <p className="text-sm text-muted-foreground">
+                No blood work logged yet. Tap to add your first panel.
+              </p>
+            </button>
+          )}
+        </SurfaceCard>
+
         <SurfaceCard tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
