@@ -28,6 +28,8 @@ const MARKERS = [
 const BloodHormones = () => {
   const navigate = useNavigate();
   const { values, setValue } = useBloodValues();
+  const { unknown, setUnknown } = useUnknownMarkers();
+
 
   const onContinue = async () => {
     const res = await persistBloodValues();
