@@ -1,8 +1,9 @@
 // Upload a blood test PDF or photo — AI extracts marker values, user reviews
 // and confirms, then saves as a new blood panel + results.
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff } from "lucide-react";
+import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -65,6 +66,31 @@ export default function BloodUpload() {
   const [pwVisible, setPwVisible] = useState(false);
   const [pendingBytes, setPendingBytes] = useState<Uint8Array | null>(null);
   const [pendingName, setPendingName] = useState<string>("");
+
+  // Duplicate detection — existing panel already logged for this user/date.
+  const [duplicatePanel, setDuplicatePanel] = useState<{ id: string; created_at: string } | null>(null);
+  const [dupConfirmed, setDupConfirmed] = useState(false);
+
+  useEffect(() => {
+    if (!user || !panelDate) { setDuplicatePanel(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("blood_panels")
+        .select("id, created_at")
+        .eq("user_id", user.id)
+        .eq("panel_date", panelDate)
+        .eq("status", "logged")
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) {
+        setDuplicatePanel(data ?? null);
+        setDupConfirmed(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, panelDate]);
+
 
 
   const pick = () => inputRef.current?.click();
@@ -264,6 +290,12 @@ export default function BloodUpload() {
       toast.error("No valid values to review yet.");
       return;
     }
+    if (duplicatePanel && !dupConfirmed) {
+      setDupConfirmed(true);
+      toast.warning("A panel for this date already exists. Tap Continue again to add another anyway, or change the test date above.");
+      return;
+    }
+
     setSaving(true);
     try {
       // Start a fresh draft so we don't overwrite a prior in-progress panel.
@@ -416,6 +448,23 @@ export default function BloodUpload() {
                 className="mt-1"
               />
             </SurfaceCard>
+
+            {duplicatePanel && (
+              <SurfaceCard className="border-alert-dark/40 bg-alert-dark/5">
+                <div className="flex gap-3">
+                  <AlertTriangle className="size-5 text-alert-dark shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-display text-sm text-alert-dark">Already uploaded</p>
+                    <p className="text-xs text-foreground/70 font-body mt-1 leading-relaxed">
+                      A blood panel for <strong>{new Date(panelDate).toLocaleDateString()}</strong> is already saved
+                      {duplicatePanel.created_at ? ` (added ${new Date(duplicatePanel.created_at).toLocaleDateString()})` : ""}.
+                      Change the test date above, or continue to add another panel for the same day.
+                    </p>
+                  </div>
+                </div>
+              </SurfaceCard>
+            )}
+
 
             <SurfaceCard>
               <p className="font-display text-lg mb-1">We found {rows.length} marker{rows.length === 1 ? "" : "s"}</p>
