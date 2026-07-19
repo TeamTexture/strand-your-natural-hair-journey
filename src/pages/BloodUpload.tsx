@@ -2,18 +2,20 @@
 // and confirms, then saves as a new blood panel + results.
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, ImageIcon, Loader2, Check, X } from "lucide-react";
+import { Upload, FileText, ImageIcon, Loader2, Check, X, Lock } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { detectPdfEncrypted, renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 
 interface ExtractedRow {
   marker: string;
@@ -48,22 +50,22 @@ export default function BloodUpload() {
   const [saving, setSaving] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
+  // Password dialog state for encrypted PDFs
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwValue, setPwValue] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwUnlocking, setPwUnlocking] = useState(false);
+  const [pendingBytes, setPendingBytes] = useState<Uint8Array | null>(null);
+  const [pendingName, setPendingName] = useState<string>("");
+
   const pick = () => inputRef.current?.click();
 
-  const onFile = useCallback(async (f: File | null) => {
-    if (!f) return;
-    if (f.size > 15 * 1024 * 1024) {
-      toast.error("File is too large. Please upload under 15 MB.");
-      return;
-    }
-    setFile(f);
-    setRows([]);
-    setChecked({});
+  const runExtract = useCallback(async (payloadFile: File) => {
     setExtracting(true);
     try {
-      const b64 = await fileToBase64(f);
+      const b64 = await fileToBase64(payloadFile);
       const { data, error } = await supabase.functions.invoke("blood-extract", {
-        body: { file: { data: b64, mime: f.type || "application/pdf", name: f.name } },
+        body: { file: { data: b64, mime: payloadFile.type || "application/pdf", name: payloadFile.name } },
       });
       if (error) throw error;
       const results = (data?.results ?? []) as ExtractedRow[];
@@ -84,6 +86,65 @@ export default function BloodUpload() {
       setExtracting(false);
     }
   }, []);
+
+  const onFile = useCallback(async (f: File | null) => {
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) {
+      toast.error("File is too large. Please upload under 15 MB.");
+      return;
+    }
+    setFile(f);
+    setRows([]);
+    setChecked({});
+
+    // For PDFs: sniff for encryption. If encrypted, prompt for password
+    // and convert to image after unlock. Otherwise, send the PDF as-is.
+    if (f.type === "application/pdf") {
+      const buf = new Uint8Array(await f.arrayBuffer());
+      if (detectPdfEncrypted(buf)) {
+        setPendingBytes(buf);
+        setPendingName(f.name);
+        setPwValue("");
+        setPwError(null);
+        setPwOpen(true);
+        return;
+      }
+    }
+    await runExtract(f);
+  }, [runExtract]);
+
+  const submitPassword = async () => {
+    if (!pendingBytes) return;
+    setPwUnlocking(true);
+    setPwError(null);
+    try {
+      const image = await renderPdfToImage(pendingBytes, pwValue, { maxPages: 6 });
+      setPwOpen(false);
+      setPendingBytes(null);
+      // Swap the shown file to the unlocked image so downstream flow works
+      const shown = new File([image], pendingName.replace(/\.pdf$/i, "") + " (unlocked).jpg", { type: "image/jpeg" });
+      setFile(shown);
+      await runExtract(image);
+    } catch (err) {
+      if (err instanceof PdfPasswordRequiredError) {
+        setPwError(err.incorrect ? "Incorrect password — try again." : "Password required.");
+      } else {
+        console.error("pdf unlock failed:", err);
+        setPwError("Couldn't unlock this PDF. Please check the password.");
+      }
+    } finally {
+      setPwUnlocking(false);
+    }
+  };
+
+  const cancelPassword = () => {
+    setPwOpen(false);
+    setPendingBytes(null);
+    setPendingName("");
+    setPwValue("");
+    setPwError(null);
+    setFile(null);
+  };
 
   const toggle = (marker: string) =>
     setChecked((p) => ({ ...p, [marker]: !p[marker] }));
@@ -324,6 +385,40 @@ export default function BloodUpload() {
           </>
         )}
       </div>
+
+      <Dialog open={pwOpen} onOpenChange={(v) => { if (!v) cancelPassword(); }}>
+        <DialogContent className="max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Lock className="size-4 text-primary" /> Password-protected PDF
+            </DialogTitle>
+            <DialogDescription className="font-body text-xs">
+              This lab report is locked. Enter the password from your lab email so STRAND can read your results.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="pdf-pw" className="text-xs font-body">Password</Label>
+            <Input
+              id="pdf-pw"
+              type="password"
+              autoFocus
+              value={pwValue}
+              onChange={(e) => { setPwValue(e.target.value); setPwError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") submitPassword(); }}
+              disabled={pwUnlocking}
+            />
+            {pwError && <p className="text-xs text-alert-dark font-body">{pwError}</p>}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="pill" onClick={cancelPassword} disabled={pwUnlocking}>
+              Cancel
+            </Button>
+            <Button variant="gold" size="pill" onClick={submitPassword} disabled={pwUnlocking || !pwValue}>
+              {pwUnlocking ? (<><Loader2 className="size-4 animate-spin" /> Unlocking…</>) : "Unlock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 }
