@@ -150,7 +150,15 @@ Deno.serve(async (req) => {
                     body: { type: "string" },
                     actions: {
                       type: "array",
-                      items: { type: "string" },
+                      items: {
+                        type: "object",
+                        properties: {
+                          action: { type: "string" },
+                          why: { type: "string" },
+                        },
+                        required: ["action", "why"],
+                        additionalProperties: false,
+                      },
                       minItems: 2,
                       maxItems: 3,
                     },
