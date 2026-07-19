@@ -1231,6 +1231,7 @@ export type Database = {
           hair_feel_voice_url: string | null
           heat_treatment: Json | null
           id: string
+          next_wash_tip: string | null
           product_ids: string[]
           scalp_feel: string | null
           steps: Json
@@ -1249,6 +1250,7 @@ export type Database = {
           hair_feel_voice_url?: string | null
           heat_treatment?: Json | null
           id?: string
+          next_wash_tip?: string | null
           product_ids?: string[]
           scalp_feel?: string | null
           steps?: Json
@@ -1267,6 +1269,7 @@ export type Database = {
           hair_feel_voice_url?: string | null
           heat_treatment?: Json | null
           id?: string
+          next_wash_tip?: string | null
           product_ids?: string[]
           scalp_feel?: string | null
           steps?: Json
