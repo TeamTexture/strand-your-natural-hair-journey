@@ -65,6 +65,7 @@ import Profile from "./pages/Profile";
 import NutritionPlan from "./pages/NutritionPlan";
 import Help from "./pages/Help";
 import Contact from "./pages/Contact";
+import OAuthConsent from "./pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
