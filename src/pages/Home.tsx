@@ -76,7 +76,15 @@ const Home = () => {
     };
   });
   const [water, setWater] = useState<{
-    band: string | null; mg_l: number | null; supplier: string | null; postcode: string | null;
+    band: string | null;
+    mg_l: number | null;
+    supplier: string | null;
+    postcode: string | null;
+    calcium_mg_l: number | null;
+    magnesium_mg_l: number | null;
+    ph_min: number | null;
+    ph_max: number | null;
+    chlorine_note: string | null;
   }>(() => {
     const local = loadClinicalContextLocal();
     return {
@@ -84,6 +92,11 @@ const Home = () => {
       mg_l: local.basic?.water_hardness_mg_l ?? null,
       supplier: local.basic?.water_supplier ?? null,
       postcode: local.basic?.postcode ?? null,
+      calcium_mg_l: null,
+      magnesium_mg_l: null,
+      ph_min: null,
+      ph_max: null,
+      chlorine_note: null,
     };
   });
   const [waterDialogOpen, setWaterDialogOpen] = useState(false);
