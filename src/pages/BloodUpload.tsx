@@ -489,7 +489,21 @@ export default function BloodUpload() {
         {rows.length > 0 && (
           <>
             <SurfaceCard>
-              <Label htmlFor="panel-date" className="text-xs font-body text-foreground/70">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
+                Test name
+              </p>
+              <Input
+                value={panelLabel ?? ""}
+                onChange={(e) => setPanelLabel(e.target.value || null)}
+                placeholder="e.g. Advanced Thyroid Blood Test"
+                className="font-display text-base"
+              />
+              {(testType || labName) && (
+                <p className="text-[11px] text-foreground/60 font-body mt-1.5">
+                  {[testType, labName].filter(Boolean).join(" · ")}
+                </p>
+              )}
+              <Label htmlFor="panel-date" className="text-xs font-body text-foreground/70 mt-3 block">
                 Test date
               </Label>
               <Input
