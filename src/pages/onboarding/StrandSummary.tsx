@@ -18,6 +18,34 @@ import { toast } from "sonner";
 
 const MAX_PHOTOS = 12;
 
+const bannedSummaryPatterns = [
+  /\bit[’']s a pleasure to connect with you[.!]?\s*/gi,
+  /\bpleasure to connect with you[.!]?\s*/gi,
+  /\bthanks for sharing[.!]?\s*/gi,
+  /\byour hair is naturally gorgeous[.!]?\s*/gi,
+  /\bnaturally gorgeous[.!]?\s*/gi,
+  /\bgorgeous\b/gi,
+  /\bbeautiful\b/gi,
+  /\bamazing\b/gi,
+  /\bqueen\b/gi,
+];
+
+const cleanSummaryText = (text: string) =>
+  bannedSummaryPatterns
+    .reduce((next, pattern) => next.replace(pattern, ""), text)
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+const normaliseSummary = (value: Partial<Summary> | null | undefined): Summary => ({
+  overview: cleanSummaryText(value?.overview ?? ""),
+  action_plan: Array.isArray(value?.action_plan)
+    ? value.action_plan.map((item) => cleanSummaryText(String(item))).filter(Boolean)
+    : [],
+  routine_tips: Array.isArray(value?.routine_tips)
+    ? value.routine_tips.map((item) => cleanSummaryText(String(item))).filter(Boolean)
+    : [],
+});
+
 interface PhotoItem {
   id: string;
   path: string;
@@ -153,11 +181,11 @@ const StrandSummary = () => {
 
         // Paint cached immediately for perceived speed.
         if (!cancelled && cached?.overview) {
-          setSummary({
+          setSummary(normaliseSummary({
             overview: cached.overview,
             action_plan: (cached.action_plan as string[] | null) ?? [],
             routine_tips: (cached.routine_tips as string[] | null) ?? [],
-          });
+          }));
         }
 
         // If the fingerprint matches, the cached copy is authoritative — stop.
@@ -179,11 +207,11 @@ const StrandSummary = () => {
         if (cancelled) return;
         if (fnErr) throw fnErr;
         if (data?.error) throw new Error(data.error);
-        setSummary({
+        setSummary(normaliseSummary({
           overview: data?.overview ?? "",
           action_plan: data?.action_plan ?? [],
           routine_tips: data?.routine_tips ?? [],
-        });
+        }));
       } catch (e: unknown) {
         if (cancelled) return;
         const msg = e instanceof Error ? e.message : "Could not generate summary";
@@ -288,7 +316,7 @@ const StrandSummary = () => {
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground mb-3 leading-snug">
-            Add photos over time to see your strand journey. Each is timestamped so you can track real progress.
+            Add photos over time to compare changes. Each is timestamped so progress can be reviewed clearly.
           </p>
 
           <div className="grid grid-cols-2 gap-2.5">
