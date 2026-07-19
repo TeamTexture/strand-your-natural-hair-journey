@@ -259,8 +259,7 @@ export async function buildAiContext(): Promise<AiContext> {
           deltas,
         };
       });
-      // Stash for assignment after the try-block.
-      (bloodResults as unknown as { __panels?: typeof panelsOut }).__panels = panelsOut;
+      bloodPanels = panelsOut;
       const lists = ingLists.data ?? [];
       // Single unified flag list — appears in 3+ of the user's products.
       flaggedIngredients = lists
