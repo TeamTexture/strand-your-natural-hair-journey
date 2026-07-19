@@ -218,8 +218,12 @@ ${CHAPTER_WHITELIST_PROMPT}
 TASK
 Given a single wash day log + the user's profile, return TWO fields via the tool:
 1) observation (2-3 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
-2) next_wash_tip (2-3 sentences): a CONCRETE tip for the next wash day. Name at least one specific product from context.shelf/wishlist OR a specific tool from context.tools. Tie to today's outcome and the user's goals. If suggesting heat, only reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
-- Encouraging, never preachy. Plain English. No medical advice.
+2) next_wash_tip: an object with { action, why }.
+   - action: ONE clear imperative sentence (max 18 words) for the NEXT wash day. Starts with a verb. Names a specific product from context.shelf/wishlist OR a specific tool from context.tools. Never invent items the user doesn't have.
+   - why: 2-3 short sentences explaining the reasoning. MUST be grounded in the STRAND core teachings from How To Love Your Afro AND tied to at least ONE concrete signal from the user (porosity, scalp today, breakage today, style, goal, product outcome). Plain English, no chapter/page citations.
+   - If suggesting heat, ONLY reference the TT Heat Hat (https://www.teamtexture.co.uk) — never plastic caps, shower caps, warm towels, or steamers.
+   - NEVER suggest weekly/fortnightly protein.
+- Direct, professional, no hedging. Plain English. No medical advice.
 - Return JSON only via the provided tool.`;
 
   const aiResp = await fetch(
@@ -246,7 +250,14 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
                 type: "object",
                 properties: {
                   observation: { type: "string", description: "2-3 sentence reflection on today." },
-                  next_wash_tip: { type: "string", description: "2-3 sentence concrete tip for the next wash day, naming a specific product/tool the user owns." },
+                  next_wash_tip: {
+                    type: "object",
+                    properties: {
+                      action: { type: "string", description: "One imperative sentence, max 18 words." },
+                      why: { type: "string", description: "2-3 sentence explanation grounded in HTLA teachings + a user-specific signal." },
+                    },
+                    required: ["action", "why"],
+                  },
                 },
                 required: ["observation", "next_wash_tip"],
               },
@@ -271,8 +282,17 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
   if (!toolCall?.function?.arguments) {
     throw new Error("Malformed AI output");
   }
-  const parsed = JSON.parse(toolCall.function.arguments) as { observation?: string; next_wash_tip?: string };
-  return { observation: parsed.observation ?? "", next_wash_tip: parsed.next_wash_tip ?? "" };
+  const parsed = JSON.parse(toolCall.function.arguments) as {
+    observation?: string;
+    next_wash_tip?: NextWashTip | string;
+  };
+  return {
+    observation: parsed.observation ?? "",
+    next_wash_tip:
+      typeof parsed.next_wash_tip === "string"
+        ? { action: parsed.next_wash_tip, why: "" }
+        : parsed.next_wash_tip ?? { action: "", why: "" },
+  };
 }
 
 Deno.serve(async (req: Request) => {
