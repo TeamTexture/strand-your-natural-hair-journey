@@ -25,10 +25,13 @@ export const useGoalTip = (goal: UserGoal | null) => {
   // days, appointments, blood work, hair/health profile changes).
   const today = new Date().toISOString().slice(0, 10);
   return useQuery({
-    queryKey: ["goal-tip", "manuscript-v5-daily", today, goal?.id, goal?.updated_at],
+    queryKey: ["goal-tip", "manuscript-v5-daily", today, goal?.id],
     enabled: !!goal && !!(goal.challenge || goal.target_text || goal.title),
-    staleTime: 1000 * 60 * 60 * 12,
+    staleTime: Infinity,
     gcTime: 1000 * 60 * 60 * 36,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: 1,
     queryFn: async (): Promise<GoalTip | null> => {
       if (!goal) return null;
