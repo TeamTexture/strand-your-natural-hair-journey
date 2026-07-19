@@ -37,8 +37,7 @@ import type {
   Tool,
 } from "./anthropic-client.ts";
 
-/** Function-id used to pick the default model. `claude-smoke` is the Step-0
- *  smoke test; deleted at Phase 2 close-out per audit §8 Step 25/29. */
+/** Function-id used to pick the default model. */
 export type FunctionKind =
   | "ingredient-analysis"
   | "product-analyse"
@@ -48,8 +47,7 @@ export type FunctionKind =
   | "heat-treatment-rationale"
   | "nutrition-plan"
   | "blood-ai-summary"
-  | "journal-encouragement"
-  | "claude-smoke";
+  | "journal-encouragement";
 
 /** Default model per function. Phase 2 §5. Override per-call via
  *  BuildPromptInput.model when needed (e.g. cheaper tier for a force-refresh). */
