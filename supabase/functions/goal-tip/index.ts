@@ -13,6 +13,7 @@ import {
   renderTopicBlock,
 } from "../_shared/knowledge/index.ts";
 import type { TopicId } from "../_shared/knowledge/types.ts";
+import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 
 /**
  * Select up to 4 manuscript topics relevant to this goal + user context.
