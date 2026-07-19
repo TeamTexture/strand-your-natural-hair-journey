@@ -100,18 +100,12 @@ export default function BloodUpload() {
 
     // PDFs: always convert to an image before sending. The AI gateway's
     // Gemini path doesn't accept raw PDF file parts, so we render the first
-    // few pages client-side and send as JPEG. If the PDF is encrypted, prompt
-    // for the password first.
+    // few pages client-side and send as JPEG. Try opening with an empty
+    // password first — many "encrypted" lab PDFs have a blank user password
+    // (permissions-only). Only prompt for a password if pdf.js actually
+    // refuses to open the document.
     if (f.type === "application/pdf") {
       const buf = new Uint8Array(await f.arrayBuffer());
-      if (detectPdfEncrypted(buf)) {
-        setPendingBytes(buf);
-        setPendingName(f.name);
-        setPwValue("");
-        setPwError(null);
-        setPwOpen(true);
-        return;
-      }
       try {
         setExtracting(true);
         const image = await renderPdfToImage(buf, "", { maxPages: 6 });
@@ -125,6 +119,14 @@ export default function BloodUpload() {
         await runExtract(image);
       } catch (err) {
         setExtracting(false);
+        if (err instanceof PdfPasswordRequiredError) {
+          setPendingBytes(buf);
+          setPendingName(f.name);
+          setPwValue("");
+          setPwError(null);
+          setPwOpen(true);
+          return;
+        }
         console.error("pdf render failed:", err);
         toast.error("Couldn't open that PDF. Try a photo or a different file.");
       }
