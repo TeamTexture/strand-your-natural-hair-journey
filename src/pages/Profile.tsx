@@ -562,6 +562,25 @@ const Profile = () => {
         </button>
       </div>
 
+      {/* App Walkthrough — re-runnable tour of the main screens */}
+      <div className="px-5 pb-4">
+        <button
+          onClick={() => navigate("/walkthrough", { state: { returnTo: "/profile" } })}
+          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
+        >
+          <div className="size-10 rounded-full bg-secondary text-foreground/80 flex items-center justify-center shrink-0">
+            <Compass className="size-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight">App Walkthrough</p>
+            <p className="text-[11px] text-foreground/70 mt-0.5">
+              A quick tour of the main STRAND screens.
+            </p>
+          </div>
+          <span className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
+        </button>
+      </div>
+
       {/* Accessibility — global text size */}
       <SectionLabel>Accessibility</SectionLabel>
       <div className="px-5 pb-4">
