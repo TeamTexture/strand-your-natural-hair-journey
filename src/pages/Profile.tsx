@@ -149,11 +149,11 @@ const Profile = () => {
   // Quick-jump destinations for the edit picker.
   const editTargets = useMemo(
     () => [
-      { key: "basic", label: "Basic details", hint: "Name, age, postcode", icon: User, route: "/onboarding/profile-step-1" },
-      { key: "health", label: "Health & lifestyle", hint: "Conditions, diet, habits", icon: Heart, route: "/onboarding/profile-step-2" },
-      { key: "hair", label: "Hair profile", hint: "Diameter, porosity, density", icon: Activity, route: "/onboarding/profile-step-3-hair" },
-      { key: "colour", label: "Colour & styling", hint: "Treatments & products", icon: Palette, route: "/onboarding/profile-step-4-colour" },
-      { key: "meds", label: "Medications", hint: "Prescriptions & supplements", icon: Pill, route: "/onboarding/profile-step-2" },
+      { key: "basic", label: "Basic details", hint: "Name, age, postcode", icon: User, route: "/profile/personal" },
+      { key: "health", label: "Health & lifestyle", hint: "Conditions, diet, habits", icon: Heart, route: "/profile/health" },
+      { key: "hair", label: "Hair profile", hint: "Diameter, porosity, density", icon: Activity, route: "/profile/hair" },
+      { key: "colour", label: "Colour & styling", hint: "Treatments & products", icon: Palette, route: "/profile/colour" },
+      { key: "meds", label: "Medications", hint: "Prescriptions & supplements", icon: Pill, route: "/profile/health" },
       { key: "blood-iv", label: "Iron & vitamins", hint: "Ferritin, B12, vit D", icon: Droplet, route: "/onboarding/blood-iron-vitamins" },
       { key: "blood-thy", label: "Thyroid", hint: "TSH, T3, T4", icon: FlaskConical, route: "/onboarding/blood-thyroid" },
       { key: "blood-min", label: "Minerals", hint: "Zinc, magnesium", icon: FlaskConical, route: "/onboarding/blood-minerals" },
@@ -529,7 +529,7 @@ const Profile = () => {
       {/* Update after appointment CTA — go straight to the section being updated */}
       <div className="px-5 pb-3 grid grid-cols-3 gap-3">
         <button
-          onClick={() => navigate("/onboarding/profile-step-1")}
+          onClick={() => navigate("/profile/personal")}
           className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
           <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
@@ -543,7 +543,7 @@ const Profile = () => {
           </div>
         </button>
         <button
-          onClick={() => navigate("/onboarding/profile-step-3-hair")}
+          onClick={() => navigate("/profile/hair")}
           className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
         >
           <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
