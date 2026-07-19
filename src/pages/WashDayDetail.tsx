@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
+import RichBody from "@/components/RichBody";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -37,6 +38,11 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="text-sm">{value}</div>
   </div>
 );
+
+const formatNextWashTip = (action: string, why: string) => [
+  action ? `Do this next wash: ${action}` : "",
+  why ? `Why it matters: ${why}` : "",
+].filter(Boolean).join("\n\n");
 
 interface EditDraft {
   wash_date: string;
@@ -380,15 +386,6 @@ const WashDayDetail = () => {
           </SurfaceCard>
         )}
 
-        {wd.ai_insight && (
-          <SurfaceCard tone="gold">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
-              ✨ AI Insight
-            </p>
-            <p className="text-sm leading-snug">{wd.ai_insight}</p>
-          </SurfaceCard>
-        )}
-
         {wd.next_wash_tip && (() => {
           let action = wd.next_wash_tip;
           let why = "";
@@ -404,18 +401,7 @@ const WashDayDetail = () => {
               <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
                 ✨ Tip for next wash day
               </p>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mb-1">
-                Do this next wash
-              </p>
-              <p className="text-sm leading-snug font-medium">{action}</p>
-              {why && (
-                <>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mt-3 mb-1 pt-2 border-t border-primary/15">
-                    Why
-                  </p>
-                  <p className="text-xs leading-relaxed text-foreground/80">{why}</p>
-                </>
-              )}
+              <RichBody text={formatNextWashTip(action, why)} />
             </SurfaceCard>
           );
         })()}
