@@ -50,6 +50,9 @@ const ProfileStep3Hair = () => {
   const [scalp, setScalp] = useState(["Dry"]);
   const [diagnosed, setDiagnosed] = useState(["Traction alopecia"]);
   const [areas, setAreas] = useState(["Edges / hairline"]);
+  const [lengthInches, setLengthInches] = useState("");
+  const [lengthBucket, setLengthBucket] = useState("");
+
 
   return (
     <ScreenLayout>
