@@ -33,13 +33,32 @@ const SourceNote = ({ children }: { children?: React.ReactNode }) => (
   </p>
 );
 
-// Render "**bold**" segments and "\n\n" as scannable paragraphs so long
-// bodies read like a note from a friend, not a wall of text.
+// Render "**bold**" segments and "\n\n" as scannable paragraphs. If the AI
+// returned one long block (older cached plans), auto-chunk it into short
+// paragraphs of ~2 sentences so it never reads as a wall of text.
+const chunkSentences = (text: string, perChunk = 2): string[] => {
+  const sentences = text
+    .replace(/\s+/g, " ")
+    .trim()
+    .match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g);
+  if (!sentences) return [text];
+  const chunks: string[] = [];
+  for (let i = 0; i < sentences.length; i += perChunk) {
+    chunks.push(sentences.slice(i, i + perChunk).join(" ").trim());
+  }
+  return chunks.filter(Boolean);
+};
+
 const RichBody = ({ text, className = "" }: { text: string; className?: string }) => {
-  const paras = String(text ?? "")
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const raw = String(text ?? "").trim();
+  let paras = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  // If the model returned one long paragraph, break it into readable chunks.
+  if (paras.length <= 1 && raw.length > 220) {
+    paras = chunkSentences(raw, 2);
+  } else {
+    // Also split any individual paragraph that's still very long.
+    paras = paras.flatMap((p) => (p.length > 260 ? chunkSentences(p, 2) : [p]));
+  }
   const renderInline = (line: string, keyPrefix: string) => {
     const parts = line.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
@@ -54,7 +73,7 @@ const RichBody = ({ text, className = "" }: { text: string; className?: string }
     });
   };
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       {paras.map((p, i) => (
         <p key={i} className="text-xs text-foreground/85 font-body leading-relaxed">
           {renderInline(p, `p${i}`)}
