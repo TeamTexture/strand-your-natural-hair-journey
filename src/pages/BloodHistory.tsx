@@ -157,6 +157,7 @@ const BloodHistory = () => {
 
   const scheduled = panels.filter((p) => p.status === "scheduled");
   const logged = panels.filter((p) => p.status !== "scheduled");
+  const thumbUrls = useBloodPanelThumbs(logged.map((p) => p.thumbnail_path));
   const latest = logged[0];
   const previous = logged[1];
 
