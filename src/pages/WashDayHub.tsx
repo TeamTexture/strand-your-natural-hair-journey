@@ -372,12 +372,33 @@ const WashDayHub = () => {
           onLogDate={(iso) => navigate(`/wash/step-1?date=${iso}`)}
         />
         <SurfaceCard tone="gold">
-          <p className="text-sm font-medium">
-            💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month
-          </p>
-          <p className="font-body text-sm text-muted-foreground mt-1">
-            {encouragement(currentMonthCount)}
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
+              <Droplets className="size-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
+                Wash rhythm
+              </p>
+              <p className="font-display text-[15px] leading-snug mt-1 break-words">
+                {educational.headline}
+              </p>
+              <p className="font-body text-[12.5px] leading-relaxed text-foreground/80 mt-2 break-words">
+                Why this matters — {educational.why}
+              </p>
+              <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
+                  Next wash reminder
+                </p>
+                <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
+                  {educational.reminder}
+                </p>
+              </div>
+              <p className="font-body text-[11.5px] text-muted-foreground mt-3">
+                💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
+              </p>
+            </div>
+          </div>
         </SurfaceCard>
       </div>
 
