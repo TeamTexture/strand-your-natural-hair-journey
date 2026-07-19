@@ -155,7 +155,7 @@ export async function buildAiContext(): Promise<AiContext> {
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, ratings, goalRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, ratings, goalRows, toolRows] = await Promise.all([
         supabase
           .from("blood_panels" as never)
           .select("id, panel_date, label")
@@ -185,6 +185,10 @@ export async function buildAiContext(): Promise<AiContext> {
         supabase
           .from("user_goals")
           .select("kind, title, challenge, target_text, target_value, target_date, unit, status")
+          .eq("user_id", userId),
+        supabase
+          .from("user_tools")
+          .select("name, brand, category, rating, match_score, on_favourite, use_count")
           .eq("user_id", userId),
       ]);
 
