@@ -32,6 +32,7 @@ import SuccessScreen from "./pages/onboarding/SuccessScreen";
 import ProfileStepPhotos from "./pages/onboarding/ProfileStepPhotos";
 import StrandSummary from "./pages/onboarding/StrandSummary";
 import MilestoneGallery from "./pages/MilestoneGallery";
+import BloodHistory from "./pages/BloodHistory";
 
 // Main app
 import Home from "./pages/Home";
@@ -143,6 +144,7 @@ const App = () => (
               <Route path="/directory" element={<Protected><Directory /></Protected>} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/profile/milestones" element={<Protected><MilestoneGallery /></Protected>} />
+              <Route path="/blood-history" element={<Protected><BloodHistory /></Protected>} />
               <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />

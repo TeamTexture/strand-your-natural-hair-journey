@@ -124,11 +124,42 @@ export type Database = {
         }
         Relationships: []
       }
+      blood_panels: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          notes: string | null
+          panel_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          panel_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          panel_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       blood_results: {
         Row: {
           category: string | null
           id: string
           marker: string
+          panel_id: string | null
           status: string | null
           unit: string | null
           unit_enc: string | null
@@ -141,6 +172,7 @@ export type Database = {
           category?: string | null
           id?: string
           marker: string
+          panel_id?: string | null
           status?: string | null
           unit?: string | null
           unit_enc?: string | null
@@ -153,6 +185,7 @@ export type Database = {
           category?: string | null
           id?: string
           marker?: string
+          panel_id?: string | null
           status?: string | null
           unit?: string | null
           unit_enc?: string | null
@@ -161,7 +194,15 @@ export type Database = {
           value?: number | null
           value_enc?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "blood_results_panel_id_fkey"
+            columns: ["panel_id"]
+            isOneToOne: false
+            referencedRelation: "blood_panels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_messages: {
         Row: {

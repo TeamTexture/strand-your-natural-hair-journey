@@ -6,7 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
-import { useBloodValues } from "@/hooks/useBloodValues";
+import { useBloodValues, clearBloodDraft } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
@@ -53,7 +53,7 @@ const BloodAiSummary = () => {
       }))
       .sort((a, b) => a.marker.localeCompare(b.marker));
     // Bump promptVersion when the server-side prompt changes to bust the cache.
-    const promptVersion = "v2-full-coverage";
+    const promptVersion = "v3-trend-analysis";
     return {
       payload: { bloodResults, hairProfile, healthProfile, heritage },
       fingerprint: JSON.stringify({ bloodResults, hairProfile, healthProfile, heritage, promptVersion }),
@@ -241,14 +241,20 @@ const BloodAiSummary = () => {
           <Button
             variant="gold"
             size="pill"
-            onClick={() => navigate("/nutrition-plan")}
+            onClick={() => {
+              clearBloodDraft();
+              navigate("/nutrition-plan");
+            }}
             className="whitespace-normal leading-tight px-5 py-3 h-auto min-h-[48px] text-[11px]"
           >
             See Your Personalised Nutrition Plan →
           </Button>
           <button
             className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => navigate("/onboarding/photos")}
+            onClick={() => {
+              clearBloodDraft();
+              navigate("/onboarding/photos");
+            }}
           >
             Continue to app →
           </button>

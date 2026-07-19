@@ -1,10 +1,17 @@
-// Local-cache store for blood values during onboarding.
+// Local-cache store for blood values during onboarding / a new blood-test entry.
 // Persists to localStorage immediately, then flushed to Supabase on Continue.
+//
+// Every completed entry becomes a new row in `blood_panels` so users can build
+// a history of tests over time. A single onboarding pass writes to the SAME
+// panel (via the "draft panel id" cache) even though multiple sub-screens
+// (iron, thyroid, minerals, hormones) each call persistBloodValues().
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { evaluate, BLOOD_RANGES } from "@/data/bloodRanges";
 
 const KEY = "strand_blood_values";
+const DRAFT_PANEL_KEY = "strand_blood_draft_panel_id";
+const DRAFT_PANEL_DATE_KEY = "strand_blood_draft_panel_date";
 
 export type BloodValues = Record<string, number | null>;
 
@@ -62,6 +69,48 @@ export function summariseValues(values: BloodValues, markers: string[]) {
   return { entered, normal, flagged };
 }
 
+/** Clear both the working values AND the draft-panel pointer.
+ *  Call when starting a brand-new blood-test entry. */
+export function clearBloodDraft() {
+  localStorage.removeItem(KEY);
+  localStorage.removeItem(DRAFT_PANEL_KEY);
+  localStorage.removeItem(DRAFT_PANEL_DATE_KEY);
+  localStorage.removeItem("strand_blood_summary_fp");
+  window.dispatchEvent(new Event("strand:blood-update"));
+}
+
+/** Set the panel date for the current draft (before persisting).
+ *  If not set, today's date is used. */
+export function setDraftPanelDate(isoDate: string) {
+  localStorage.setItem(DRAFT_PANEL_DATE_KEY, isoDate);
+}
+
+async function ensureDraftPanel(userId: string): Promise<string | null> {
+  const existing = localStorage.getItem(DRAFT_PANEL_KEY);
+  if (existing) {
+    // Verify the panel still exists & belongs to this user
+    const { data } = await supabase
+      .from("blood_panels" as never)
+      .select("id")
+      .eq("id", existing)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data) return existing;
+  }
+  const panelDate =
+    localStorage.getItem(DRAFT_PANEL_DATE_KEY) ??
+    new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("blood_panels" as never)
+    .insert({ user_id: userId, panel_date: panelDate } as never)
+    .select("id")
+    .single();
+  if (error || !data) return null;
+  const id = (data as { id: string }).id;
+  localStorage.setItem(DRAFT_PANEL_KEY, id);
+  return id;
+}
+
 export async function persistBloodValues() {
   const values = read();
   const { data: userData } = await supabase.auth.getUser();
@@ -83,13 +132,23 @@ export async function persistBloodValues() {
     });
   if (rows.length === 0) return { ok: true, count: 0 };
 
-  // Replace existing for these markers (simple approach: delete then insert)
+  const panelId = await ensureDraftPanel(user.id);
+  if (!panelId) return { ok: false, reason: "panel_create_failed" as const };
+
+  // Within the CURRENT draft panel, replace the markers we're about to write
+  // (idempotent when the user re-visits a sub-step). Prior panels are left
+  // untouched so history is preserved.
   await supabase
     .from("blood_results")
     .delete()
     .eq("user_id", user.id)
-    .in("marker", rows.map((r) => r.marker));
-  const { error } = await supabase.from("blood_results").insert(rows);
+    .eq("panel_id" as never, panelId as never)
+    .in(
+      "marker",
+      rows.map((r) => r.marker),
+    );
+  const rowsWithPanel = rows.map((r) => ({ ...r, panel_id: panelId } as never));
+  const { error } = await supabase.from("blood_results").insert(rowsWithPanel);
   if (error) return { ok: false, reason: "insert_failed" as const, error };
-  return { ok: true, count: rows.length };
+  return { ok: true, count: rows.length, panelId };
 }
