@@ -96,12 +96,21 @@ const ProfileStep1 = () => {
         const p = JSON.parse(cached) as Partial<{
           name: string;
           age: string | number;
+          birth_year: number | null;
           postcode: string;
           country: string;
           heritage: string;
         }>;
         if (p.name) setName((c) => (c.trim() ? c : p.name!));
-        if (p.age != null && p.age !== "") setAge((c) => (c ? c : String(p.age)));
+        // Prefer birth_year so age auto-increments each year on birthday rollover.
+        if (p.birth_year && Number.isFinite(p.birth_year)) {
+          const derived = new Date().getFullYear() - Number(p.birth_year);
+          if (derived >= 16 && derived <= 100) {
+            setAge((c) => (c ? c : String(derived)));
+          }
+        } else if (p.age != null && p.age !== "") {
+          setAge((c) => (c ? c : String(p.age)));
+        }
         if (p.postcode) setPostcode((c) => (c ? c : String(p.postcode).toUpperCase()));
         if (p.country) setCountry(p.country);
         if (p.heritage) setHeritage((c) => (c ? c : p.heritage!));
