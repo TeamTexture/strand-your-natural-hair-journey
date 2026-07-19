@@ -82,6 +82,16 @@ const ProfileStep3Hair = () => {
           value={areas} onChange={setAreas}
         />
 
+        <HairLengthPicker
+          inches={lengthInches}
+          bucket={lengthBucket}
+          onChange={({ inches, bucket }) => {
+            setLengthInches(inches);
+            setLengthBucket(bucket);
+          }}
+        />
+
+
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           localStorage.setItem("strand_hair_profile", JSON.stringify({
             diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas,
