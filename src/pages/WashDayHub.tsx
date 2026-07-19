@@ -10,6 +10,8 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useWashDays } from "@/hooks/useWashDays";
+import { useGoals } from "@/hooks/useGoals";
+import { AlertTriangle } from "lucide-react";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -114,6 +116,7 @@ const fmtCardDate = (iso: string) => {
 const WashDayHub = () => {
   const navigate = useNavigate();
   const { washDays, loading } = useWashDays();
+  const { goals } = useGoals();
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
 
@@ -138,10 +141,56 @@ const WashDayHub = () => {
 
   const latestTip = washDays.find((w) => w.next_wash_tip)?.next_wash_tip ?? null;
 
+  const overdue = useMemo(() => {
+    if (!washDays.length) return null;
+    const last = washDays[0]?.wash_date;
+    if (!last) return null;
+    const lastDate = new Date(last);
+    const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / 86400000);
+    if (diffDays <= 7) return null;
+    const activeGoalTitles = (goals ?? [])
+      .filter((g) => g.status !== "complete" && g.status !== "archived")
+      .map((g) => g.title)
+      .filter(Boolean)
+      .slice(0, 2);
+    return { diffDays, lastDate, goalTitles: activeGoalTitles };
+  }, [washDays, goals, today]);
+
+  const overdueReason = (() => {
+    if (!overdue) return "";
+    const base = "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
+    if (overdue.goalTitles.length) {
+      return `${base} That directly works against your goal${overdue.goalTitles.length > 1 ? "s" : ""}: ${overdue.goalTitles.join(" and ")}. Log a wash day to keep the scalp environment on track.`;
+    }
+    return `${base} Log a wash day to reset your scalp environment.`;
+  })();
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} />
       <div className="px-5 space-y-4 pb-6">
+        {overdue && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 flex gap-3"
+          >
+            <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-destructive font-body">
+                {overdue.diffDays} days since your last wash day
+              </p>
+              <p className="text-[12px] leading-snug text-destructive/90 font-body">
+                {overdueReason}
+              </p>
+              <button
+                onClick={() => navigate("/wash/step-1")}
+                className="text-[12px] font-semibold text-destructive underline underline-offset-2 mt-1"
+              >
+                Log a wash day now →
+              </button>
+            </div>
+          </div>
+        )}
         {latestTip && (
           <SurfaceCard tone="gold">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
