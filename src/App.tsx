@@ -33,6 +33,7 @@ import ProfileStepPhotos from "./pages/onboarding/ProfileStepPhotos";
 import StrandSummary from "./pages/onboarding/StrandSummary";
 import MilestoneGallery from "./pages/MilestoneGallery";
 import BloodHistory from "./pages/BloodHistory";
+import BloodUpload from "./pages/BloodUpload";
 import PersonalDetailsReview from "./pages/profile-review/PersonalDetails";
 import HealthReview from "./pages/profile-review/HealthReview";
 import HairReview from "./pages/profile-review/HairReview";
@@ -153,6 +154,8 @@ const App = () => (
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/profile/milestones" element={<Protected><MilestoneGallery /></Protected>} />
               <Route path="/blood-history" element={<Protected><BloodHistory /></Protected>} />
+              <Route path="/blood-upload" element={<Protected><BloodUpload /></Protected>} />
+
               <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
