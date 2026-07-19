@@ -239,16 +239,14 @@ const MyToolsSection = () => {
                     <div className="flex items-center gap-2 mt-0.5">
                       <Stars
                         n={
-                          t.rating ??
-                          (typeof t.match_score === "number"
-                            ? Math.max(1, Math.round(t.match_score / 20))
-                            : 0)
+                          typeof t.match_score === "number"
+                            ? Math.max(1, Math.min(5, Math.round(t.match_score / 20)))
+                            : 0
                         }
-                        onChange={(n) => updateTool(t.id, { rating: n || null })}
                       />
-                      {t.rating == null && typeof t.match_score === "number" && (
+                      {typeof t.match_score === "number" && (
                         <span className="text-[9px] uppercase tracking-wider text-primary/80">
-                          AI fit
+                          Strand
                         </span>
                       )}
                       {noteCount > 0 && (
