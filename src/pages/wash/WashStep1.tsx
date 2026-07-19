@@ -529,6 +529,7 @@ const WashStep1 = () => {
           setState={setPrePoo}
           selectedProducts={prePooSelected}
           onRemoveProduct={removeFrom(setPrePooIds, prePooIds, "prepoo")}
+          showLastWashHint={hintFor("prepoo", prePooSelected.length)}
           onOpenPicker={() => openPicker("prepoo")}
         />
         <StepCard
@@ -537,6 +538,7 @@ const WashStep1 = () => {
           setState={setCleanse}
           selectedProducts={cleanseSelected}
           onRemoveProduct={removeFrom(setCleanseIds, cleanseIds, "cleanse")}
+          showLastWashHint={hintFor("cleanse", cleanseSelected.length)}
           onOpenPicker={() => openPicker("cleanse")}
         />
         <StepCard
@@ -545,6 +547,7 @@ const WashStep1 = () => {
           setState={setCoWash}
           selectedProducts={coWashSelected}
           onRemoveProduct={removeFrom(setCoWashIds, coWashIds, "cowash")}
+          showLastWashHint={hintFor("cowash", coWashSelected.length)}
           onOpenPicker={() => openPicker("cowash")}
         />
         {/* Science-grounded caution: cationic surfactants in co-washes (e.g.
@@ -578,6 +581,7 @@ const WashStep1 = () => {
           setState={setCondition}
           selectedProducts={conditionSelected}
           onRemoveProduct={removeFrom(setConditionIds, conditionIds, "condition")}
+          showLastWashHint={hintFor("condition", conditionSelected.length)}
           onOpenPicker={() => openPicker("condition")}
           // Once Done, surface the conditioner(s) the user picked + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
@@ -730,6 +734,7 @@ const WashStep1 = () => {
           setState={setTreatment}
           selectedProducts={treatmentSelected}
           onRemoveProduct={removeFrom(setTreatmentIds, treatmentIds, "treatment")}
+          showLastWashHint={hintFor("treatment", treatmentSelected.length)}
           onOpenPicker={() => openPicker("treatment")}
           // Show the treatment type tags the user picked, plus the products they selected
           // so the collapsed card reflects what they actually captured.
