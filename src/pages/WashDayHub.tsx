@@ -169,7 +169,28 @@ const WashDayHub = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} />
       <div className="px-5 space-y-4 pb-6">
-        {latestTip && (
+        {overdue && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 flex gap-3"
+          >
+            <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-destructive font-body">
+                {overdue.diffDays} days since your last wash day
+              </p>
+              <p className="text-[12px] leading-snug text-destructive/90 font-body">
+                {overdueReason}
+              </p>
+              <button
+                onClick={() => navigate("/wash/step-1")}
+                className="text-[12px] font-semibold text-destructive underline underline-offset-2 mt-1"
+              >
+                Log a wash day now →
+              </button>
+            </div>
+          </div>
+        )}
           <SurfaceCard tone="gold">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-1">
               ✨ Tip for your next wash day
