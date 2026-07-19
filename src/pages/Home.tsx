@@ -126,7 +126,7 @@ const Home = () => {
               water_hardness_band: band,
               water_hardness_mg_l: mg,
               water_supplier: supplier,
-            })
+            } as never)
             .eq("user_id", user.id);
         }
       } catch {
