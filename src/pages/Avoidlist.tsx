@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
+import BrandLink from "@/components/BrandLink";
 
 const Avoidlist = () => {
   const [exporting, setExporting] = useState(false);
@@ -282,7 +283,7 @@ const IngredientRow = ({
                     <p className="text-xs font-medium truncate">{p.name}</p>
                     {p.brand && (
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {p.brand}
+                        <BrandLink brand={p.brand} />
                       </p>
                     )}
                   </div>

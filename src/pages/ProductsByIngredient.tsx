@@ -10,6 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { cn } from "@/lib/utils";
+import BrandLink from "@/components/BrandLink";
 
 const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }) => {
   if (p.on_shelf) return { label: "On shelf", tone: "text-good" };
@@ -77,7 +78,7 @@ const ProductsByIngredient = () => {
                       <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
                       {p.brand && (
                         <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5 truncate">
-                          {p.brand}
+                          <BrandLink brand={p.brand} />
                         </p>
                       )}
                       <span

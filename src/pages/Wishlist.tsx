@@ -22,6 +22,7 @@ import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
+import BrandLink from "@/components/BrandLink";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -119,7 +120,7 @@ const Wishlist = () => {
                     className="flex-1 min-w-0 text-left"
                   >
                     <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                    <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                     {noteCount > 0 && (
                       <span className="inline-flex items-center gap-1 mt-1 text-[10px] text-primary font-medium">
                         <Mic className="size-3" /> {noteCount} note{noteCount === 1 ? "" : "s"}

@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildAiContext } from "@/lib/aiContext";
+import BrandLink from "@/components/BrandLink";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
 interface IngredientFlag {
@@ -314,7 +315,7 @@ const ProductProfile = () => {
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-xl font-bold leading-tight">{product.name}</h1>
-            {product.brand && <p className="text-sm text-muted-foreground">{product.brand}</p>}
+            {product.brand && <p className="text-sm text-muted-foreground"><BrandLink brand={product.brand} /></p>}
           </div>
         </div>
 
@@ -495,7 +496,7 @@ const ProductProfile = () => {
                             <div className="flex-1 min-w-0">
                               <p className="text-[13px] font-medium leading-tight truncate">{m.name}</p>
                               {m.brand && (
-                                <p className="text-[11px] text-muted-foreground truncate">{m.brand}</p>
+                                <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={m.brand} /></p>
                               )}
                             </div>
                           </button>

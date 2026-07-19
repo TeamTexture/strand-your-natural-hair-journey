@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
+import BrandLink from "@/components/BrandLink";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
@@ -111,7 +112,7 @@ const OffShelf = () => {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                      <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Stars n={stars} />
                         {noteCount > 0 && (
