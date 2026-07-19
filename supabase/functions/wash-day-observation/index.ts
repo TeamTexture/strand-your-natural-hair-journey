@@ -105,6 +105,12 @@ function buildClaudeTaskInstructions(): string {
 
 Voice: follow VOICE PRINCIPLES from the system block. Mechanism-first, talk to "you", translate any specialist term, professional and direct, never over-familiar.
 
+NON-NEGOTIABLE MANUSCRIPT RULES:
+- Wash-day products need 3–4 wash cycles before judging them. If the user's products are working, neutral, or only used 1–3 cycles, the advice is to KEEP the same product sequence and observe the pattern — do not suggest changing products.
+- Only suggest changing/replacing/rotating a product early when the user's own data shows a clear negative reaction: irritation, persistent dryness, build-up, stiffness, increased breakage, or a repeated poor outcome tied to that product/ingredient.
+- If hair feels dry, high porosity is present, or the season/humidity could be drying the hair, use moisture-first guidance: water, conditioner slip, sectioning, and a moisture-focused deep conditioning mask when needed. Do not default to protein.
+- NEVER recommend scheduled protein, keratin, strengthening, bond-repair, or scheduled pre-poo.
+
 =========================================
 PART 1 — OBSERVATION (field: observation)
 =========================================
@@ -124,17 +130,20 @@ PART 2 — NEXT WASH DAY TIP (field: next_wash_tip — object with { action, why
 This is the primary value the user reads. Do NOT re-analyse today. Focus 100% on what to DO next wash day.
 
 FIELD: action
-- ONE clear, imperative sentence. Max 18 words. Starts with a verb ("Lead with…", "Swap…", "Skip…", "Deep-condition under…").
+- ONE clear, imperative sentence. Max 18 words. Starts with a verb ("Keep…", "Lead with…", "Skip…", "Deep-condition under…").
 - Concrete and doable in one wash session.
 - Name at least ONE specific product from context.shelf/wishlist OR a specific tool from context.tools, by name. Never invent items they don't have.
+- If today's product outcome is working, neutral, or under 4 wash cycles, prefer "Keep using…" or "Repeat…" over changing products.
+- Do not use "Swap…" unless the user's own data shows a clear negative reaction or repeated poor outcome.
 - If suggesting heat, ONLY the TT Heat Hat (https://www.teamtexture.co.uk). Never plastic caps, shower caps, warm towels, or steamers.
 - ABSOLUTE: NEVER recommend a protein, keratin, bond-repair or "strengthening" treatment on any cadence (no weekly, fortnightly, monthly, "every X washes", or scheduled protein of any kind). Afro hair is protein-rich (keratin); default to moisture. Only mention a protein step as a one-off if the user's own data shows fresh chemical processing or documented heat damage — never as part of a routine.
 - No hedging ("you might want to", "perhaps", "if you feel like it").
 
 FIELD: why
 - 2-3 short sentences explaining the reasoning.
-- MUST be grounded in the STRAND core teachings from the CORE TEACHINGS block (drawn from How To Love Your Afro). Reason from the manuscript's framework — do not import outside hair-care lore.
+- MUST be grounded in the STRAND core teachings from the CORE TEACHINGS block (drawn from How To Love Your Afro), especially the 3–4 wash-cycle consistency rule. Reason from the manuscript's framework — do not import outside hair-care lore.
 - MUST tie the reasoning to at least ONE concrete signal from the user (porosity, density, scalp condition today, breakage today, style choice, a specific product outcome, a goal, a chemical history flag, a blood marker). Say WHY it matters for THIS user.
+- If recommending a deep conditioning mask, explain it as a moisture response to dryness/high porosity/humidity and not as a routine product change.
 - Plain English. Never name the manuscript, chapters, or page numbers.
 - Never medical advice.`;
 }
