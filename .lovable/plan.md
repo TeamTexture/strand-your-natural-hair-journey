@@ -1,93 +1,39 @@
-# Plan — 9 Feature Bundle
+# Review-first edit pattern across the app
 
-This is a large bundle. I'll group it into 4 sequential phases so each PR is reviewable and you can sign off before the next. Tell me if you want to reorder, drop, or fast-track any phase.
+Right now, when you tap "Personal details", "Health & lifestyle", "Hair profile", or "Colour & styling" on the Profile page, you land straight into an onboarding-style form and have to click through every step again. This changes the pattern so you first see a read-only summary of what's already saved, then choose exactly which field to edit, edit only that field, save it, and stay on the summary.
 
----
+## What changes
 
-## Phase A — Auth UX hardening (items 1, 2, 5)
+Four new "review" screens sit in front of the existing onboarding steps, one per profile section:
 
-**1. Password visibility toggle**
-- Build a small `<PasswordInput />` wrapper around the shadcn `Input` that adds a right-aligned eye / eye-off button (lucide `Eye` / `EyeOff`), toggling `type` between `password` and `text`.
-- Replace every password field with it: `SplashScreen.tsx`, `Auth.tsx` (sign in + sign up), and any reset-password screen (none exists yet — flagged in Phase A scope below).
+1. **Personal details review** — name, birth year/age, postcode, hard-water status, profile photos.
+2. **Health & lifestyle review** — life stage, diet balance, stress, sleep, conditions, medications.
+3. **Hair profile review** — texture, density, porosity, diameter, scalp, length, breakage/shedding.
+4. **Colour & styling review** — natural/current colour, treatments, current style, plans.
 
-**2. Confirm Password on signup**
-- Add a second password field on `Auth.tsx` when `mode === "signup"`, using the same `<PasswordInput />`.
-- Real-time match check: show "Passwords don't match" helper text under the field; disable the submit button until they match and both meet the 6-char minimum.
+Each review screen shows the saved values as read-only cards. Every card has a pencil "Edit" button. Tapping edit expands only that one card into an inline editor with a Save button and a Cancel button. Saving writes just that field to the database, collapses the card back to read-only with the new value, and stays on the same page. No forced march through the other steps.
 
-**5. Persistent login / never re-onboard**
-- Audit issue: today `/auth` defaults `next` to `/onboarding/profile-step-1`, and `SplashScreen` defaults to `/home`. A signed-in user landing on `/auth` with no `next` is sent to onboarding.
-- Fix:
-  - Add an `onboarding_completed_at` column to `profiles` (migration). Set it the first time the user finishes the onboarding success screen, and backfill `true` for any profile that already has a hair profile row.
-  - `Index.tsx` already routes signed-in users to `/home` — extend it to read `onboarding_completed_at` and only send to onboarding when null.
-  - `RequireAuth` for onboarding routes: if `onboarding_completed_at` is set, redirect to `/home` (prevents the loop).
-  - Default `next` in `Auth.tsx` becomes `/home`.
+An "Update personal details" tile (and the other three) continues to open from the Profile page, but now opens the review page, not the form.
 
-**Reset password page** — not in your list but required for item 1 to be meaningful. I'll skip building reset unless you confirm.
+Existing onboarding routes stay exactly as they are for first-time users. Nothing in the first-time flow changes.
 
----
+## Screens affected
 
-## Phase B — Accessibility: global font scale (item 3)
+- Profile → "Personal details", "Health & lifestyle", "Hair profile", "Colour & styling" tiles now route to the new review pages instead of the raw onboarding step.
+- Home page "Update postcode" (from the water hardness dialog) already edits inline and stays as-is.
+- Blood results and goal editing already use per-item edit sheets — unchanged.
 
-- Introduce a `--font-scale` CSS variable on `:root` (default `1`).
-- Refactor Tailwind base sizes to use `calc(... * var(--font-scale))` via a small CSS layer override, so existing `text-sm` / `text-base` / etc. scale together — no per-component edits needed.
-- Add a "Text Size" section to `Profile.tsx` (Settings) with 4 options: Small (0.9), Default (1), Large (1.15), Extra Large (1.3). Persist in `localStorage` (`strand_font_scale`) and on `profiles.font_scale` (migration) so it follows the account.
-- Apply on app boot from a new `useFontScale()` hook mounted in `App.tsx`.
+## Technical details
 
----
+- New routes: `/profile/personal`, `/profile/health`, `/profile/hair`, `/profile/colour`.
+- New pages under `src/pages/profile-review/` — each renders a stack of field cards. Each card has view mode and edit mode (local state). Save calls the appropriate Supabase upsert for just the changed field (using `profiles`, `user_hair_profile`, `user_health_profile`, `user_style_profile`, `user_medications` as they are today).
+- Hydration on load: single React Query per page pulling from the relevant table(s). Optimistic update on save, invalidate on success.
+- Unsaved-changes guard: if the user tries to leave a card in edit mode with a dirty value, show the existing save-first / discard / cancel prompt pattern.
+- Back button returns to `/profile`, not through onboarding.
+- Deep-link behaviour: `?edit=<fieldKey>` opens directly with that one card expanded (used by alerts like "Update postcode").
 
-## Phase C — Wash Day overhaul (items 4, 8, 9)
+## Out of scope
 
-**4. Calendar — tap any past/today date to log**
-- `WashDayHub.tsx` calendar: enable past dates, keep future dates disabled. Tapping a date opens the wash day form pre-filled with that `wash_date`.
-- Propagate the chosen date through the `wash/WashStep1 → 4` flow via route state.
-
-**8. "Why do a heat treatment?" accordion**
-- Add a shadcn `<Accordion>` under the heat-treatment question in the wash flow.
-- Body text is generated by a new edge function `heat-education` that uses the existing `aiContext` (hair profile + goals) — cached per-user for 24h to control cost. Falls back to a static paragraph if AI fails.
-
-**9. End-to-end wash day flow**
-- Restructure `wash/WashStep1..4` into a 6-step single-record flow:
-  1. Pre-poo, 2. Shampoo, 3. Conditioner/Treatment, 4. Heat treatment (w/ accordion), 5. Leave-in/Styling, 6. Final style + notes.
-- Add columns to `wash_days`: `prepoo jsonb`, `shampoo jsonb`, `conditioner jsonb`, `leave_in jsonb`. Existing `steps` array is kept for backward compatibility and populated from the new fields on save.
-- One submit at the end writes a single `wash_days` row.
-
----
-
-## Phase D — Photos + AI Summary (items 6, 7)
-
-**7a. Before photos in onboarding**
-- New onboarding screen `ProfileStepPhotos.tsx` after the existing profile steps: upload 1–4 "before" photos to a new `before-photos` storage bucket; rows in a new `user_before_photos` table.
-
-**7b. Milestone photos (every 6 weeks)**
-- New table `user_milestone_photos` (timestamped). New `MilestoneGallery.tsx` page reachable from Profile + Home alert.
-- `useHomeAlerts.ts` adds a check: if `now - last_milestone_photo > 42 days`, surface a "Time for your 6-week progress photos" card on Home.
-
-**7c. Appointment photos**
-- Extend `appointments` table with an attached-photos JSON array OR a child `appointment_photos` table (I'll use a child table to keep RLS clean).
-- Upload control on `LogAppointment.tsx` and `Appointments.tsx` detail.
-
-**6. Post-onboarding photos → goals → AI summary**
-- After `ProfileStepPhotos`, route to a new `OnboardingGoals.tsx` (reusing the existing `GoalEditorSheet` logic) requiring at least one goal.
-- On submit, call a new edge function `hair-strand-summary` that takes the full `aiContext` + goals + before-photos and returns: { overview, action_plan, routine_tips }.
-- The prompt includes a contextual mention of gentle weekly Heat Hat treatments from www.teamtexture.co.uk **only when scientifically relevant** (heat-friendly goals, low-porosity / moisture retention issues, etc.) — enforced via a guarded prompt rule.
-- Save to a new `hair_strand_summaries` table (one-to-many, timestamped). New `MyStrandSummary.tsx` section in `Profile.tsx` listing all summaries with full re-read view.
-
----
-
-## Technical notes
-
-- All new tables get `GRANT` + RLS policies per project rules.
-- New storage buckets: `before-photos`, `milestone-photos`, `appointment-photos` — private, RLS scoped to `auth.uid()`.
-- All AI edge functions follow the existing dual-path / persona pattern.
-- No mobile layout breaks: every new screen stays inside `PhoneShell` (375px).
-
----
-
-## What I need from you before starting
-
-1. **Confirm phase order** (A → B → C → D) or reshuffle.
-2. **Reset password page** — build now alongside Phase A, or skip?
-3. **Milestone cadence** — keep at 6 weeks, or configurable per user?
-4. **Heat Hat mention** — always include, or only when AI judges it relevant (current plan)?
-
-Once you confirm, I'll start with Phase A.
+- Redesigning the onboarding form itself.
+- Restructuring blood results (already per-panel) or goals (already per-goal).
+- Changing what fields exist or their validation rules.
