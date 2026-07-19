@@ -1137,6 +1137,48 @@ export type Database = {
           },
         ]
       }
+      user_saved_meals: {
+        Row: {
+          created_at: string
+          cuisine: string | null
+          emoji: string | null
+          id: string
+          ingredients: Json
+          name: string
+          steps: Json
+          summary: string | null
+          targets: Json
+          time_minutes: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cuisine?: string | null
+          emoji?: string | null
+          id?: string
+          ingredients?: Json
+          name: string
+          steps?: Json
+          summary?: string | null
+          targets?: Json
+          time_minutes?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cuisine?: string | null
+          emoji?: string | null
+          id?: string
+          ingredients?: Json
+          name?: string
+          steps?: Json
+          summary?: string | null
+          targets?: Json
+          time_minutes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_style_profile: {
         Row: {
           chemical_history: string[]
