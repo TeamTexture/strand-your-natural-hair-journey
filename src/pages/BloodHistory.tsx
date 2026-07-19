@@ -188,7 +188,7 @@ const BloodHistory = () => {
 
   const startNew = () => {
     clearBloodDraft();
-    navigate("/onboarding/blood-timing");
+    navigate("/onboarding/blood-iron-vitamins");
   };
 
   const logScheduled = (p: PanelRow) => {
@@ -265,7 +265,7 @@ const BloodHistory = () => {
         <div className="grid grid-cols-2 gap-2">
           <Button variant="gold" size="pill" onClick={startNew} className="w-full">
             <Plus className="size-4" />
-            Add test
+            Add test manually
           </Button>
           <Button
             variant="outline"
@@ -429,7 +429,7 @@ const BloodHistory = () => {
         ) : logged.length === 0 ? (
           <SurfaceCard>
             <p className="text-sm font-body">
-              No blood tests logged yet. Tap <em>Add test</em> to add your first one.
+              No blood tests logged yet. Tap <em>Add test manually</em> to add your first one.
             </p>
           </SurfaceCard>
         ) : (
