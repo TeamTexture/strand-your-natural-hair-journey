@@ -202,7 +202,7 @@ export function useHomeAlerts() {
                 water_hardness_mg_l: mgl,
                 water_supplier: supplier,
               })
-              .eq("id", user.id);
+              .eq("user_id", user.id);
             waterBand = band;
             waterMgL = mgl;
             waterSupplier = supplier;
