@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { AlertTriangle } from "lucide-react";
-import RichBody from "@/components/RichBody";
+import { NextWashTipCard } from "@/components/NextWashTipCard";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
