@@ -142,7 +142,6 @@ export default function BloodUpload() {
       if (error) throw error;
       const results = (data?.results ?? []) as ExtractedRow[];
       if (data?.panel_date) setPanelDate(data.panel_date);
-      setDocumentTitle(data?.document_title ?? null);
       setTestType(data?.test_type ?? null);
       setLabName(data?.lab_name ?? null);
       setPanelLabel(data?.label ?? null);
@@ -436,7 +435,6 @@ export default function BloodUpload() {
                 onClick={() => {
                   setFiles([]);
                   setRows([]);
-                  setDocumentTitle(null);
                   setTestType(null);
                   setLabName(null);
                   setPanelLabel(null);
