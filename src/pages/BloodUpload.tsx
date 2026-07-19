@@ -49,6 +49,7 @@ export default function BloodUpload() {
   );
   const [saving, setSaving] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [dragOver, setDragOver] = useState(false);
 
   // Password dialog state for encrypted PDFs
   const [pwOpen, setPwOpen] = useState(false);
@@ -245,18 +246,37 @@ export default function BloodUpload() {
 
         {!file && (
           <SurfaceCard>
-            <button
+            <div
               onClick={pick}
-              className="w-full flex flex-col items-center justify-center gap-3 py-8 rounded-xl border-2 border-dashed border-primary/40 hover:border-primary/70 transition"
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const dropped = e.dataTransfer.files?.[0];
+                if (dropped) onFile(dropped);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") pick(); }}
+              className={cn(
+                "w-full flex flex-col items-center justify-center gap-3 py-8 rounded-xl border-2 border-dashed cursor-pointer transition",
+                dragOver
+                  ? "border-primary bg-primary/10"
+                  : "border-primary/40 hover:border-primary/70",
+              )}
             >
-              <Upload className="size-8 text-primary" />
+              <Upload className={cn("size-8 text-primary transition", dragOver && "scale-110")} />
               <div className="text-center">
-                <p className="font-display text-lg">Upload results</p>
+                <p className="font-display text-lg">
+                  {dragOver ? "Drop to upload" : "Upload results"}
+                </p>
                 <p className="text-xs text-foreground/60 font-body">
-                  PDF or photo · up to 15 MB
+                  Drag & drop, or tap to choose · PDF or photo · up to 15 MB
                 </p>
               </div>
-            </button>
+            </div>
             <input
               ref={inputRef}
               type="file"
@@ -266,6 +286,7 @@ export default function BloodUpload() {
             />
           </SurfaceCard>
         )}
+
 
         {file && (
           <SurfaceCard>
