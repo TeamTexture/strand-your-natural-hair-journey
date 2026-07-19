@@ -33,6 +33,10 @@ import ProfileStepPhotos from "./pages/onboarding/ProfileStepPhotos";
 import StrandSummary from "./pages/onboarding/StrandSummary";
 import MilestoneGallery from "./pages/MilestoneGallery";
 import BloodHistory from "./pages/BloodHistory";
+import PersonalDetailsReview from "./pages/profile-review/PersonalDetails";
+import HealthReview from "./pages/profile-review/HealthReview";
+import HairReview from "./pages/profile-review/HairReview";
+import ColourReview from "./pages/profile-review/ColourReview";
 
 // Main app
 import Home from "./pages/Home";
