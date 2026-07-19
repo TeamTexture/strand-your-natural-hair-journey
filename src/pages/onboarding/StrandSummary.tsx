@@ -1,7 +1,7 @@
 // Post-onboarding AI summary screen. Calls hair-strand-summary which writes
 // to hair_strand_summaries and returns overview + action plan + routine tips.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sparkles, Loader2, Camera, Plus, X,
