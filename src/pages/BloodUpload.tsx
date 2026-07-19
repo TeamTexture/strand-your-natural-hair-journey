@@ -337,6 +337,7 @@ export default function BloodUpload() {
       // Fresh draft for this upload so we don't overwrite a prior in-progress panel.
       clearBloodDraft();
       setDraftPanelDate(panelDate);
+      setDraftPanelLabel(panelLabel);
 
       // Seed the known-marker cache that persistBloodValues reads from.
       const values: Record<string, number> = {};
