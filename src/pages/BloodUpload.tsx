@@ -21,7 +21,7 @@ import {
 } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { detectPdfEncrypted, renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
+import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 
 
 interface ExtractedRow {
