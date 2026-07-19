@@ -262,10 +262,10 @@ const BloodHistory = () => {
           your markers move over time.
         </p>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-2 px-1">
           <Button variant="gold" size="pill" onClick={startNew} className="w-full">
             <Plus className="size-4" />
-            Add test manually
+            Add Test Manually
           </Button>
           <Button
             variant="outline"
@@ -280,10 +280,10 @@ const BloodHistory = () => {
             variant="outline"
             size="pill"
             onClick={() => navigate("/blood-upload")}
-            className="w-full col-span-2"
+            className="w-full"
           >
             <Upload className="size-4" />
-            Upload PDF or photo
+            Upload PDF or Photo
           </Button>
         </div>
 
