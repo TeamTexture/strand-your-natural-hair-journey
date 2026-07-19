@@ -133,7 +133,30 @@ Deno.serve(async (req: Request) => {
       force: ["wash-day-mechanics", "protein-and-strengthening"],
     });
     const knowledgeBlock = topics.map(renderTopicBlock).join("\n\n---\n\n");
-    const systemWithKnowledge = `${SYSTEM}\n\n${knowledgeBlock}`;
+
+    // Retrieve manuscript passages tailored to this user's key signals so
+    // the summary is grounded in the actual book text, not just KB summaries.
+    const hair = (context.hairProfile ?? {}) as Record<string, unknown>;
+    const ragQuery = `Afro hair porosity ${hair.porosity ?? ""} density ${hair.density ?? ""} ${
+      hair.hair_type ?? ""
+    } routine wash day moisture retention scalp ${
+      Array.isArray(context.bloodResults)
+        ? (context.bloodResults as Array<Record<string, unknown>>)
+            .filter((b) => b.status && b.status !== "normal")
+            .map((b) => b.marker ?? "")
+            .join(" ")
+        : ""
+    }`.trim();
+    let ragBlock = "";
+    try {
+      const passages = await retrievePassages(ragQuery, 5);
+      if (passages.length > 0) {
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
+      }
+    } catch (e) {
+      console.warn("hair-strand-summary RAG retrieval failed (continuing without):", e);
+    }
+    const systemWithKnowledge = `${SYSTEM}\n\n${knowledgeBlock}${ragBlock}`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
