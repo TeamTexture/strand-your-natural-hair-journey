@@ -388,14 +388,14 @@ export function useHomeAlerts() {
         });
       }
 
-      // 5. Blood retest due
-      if (lastBloodIso && daysSinceBlood >= 85) {
+      // 5. Blood retest due — 3 months since last test
+      if (lastBloodIso && daysSinceBlood >= 90) {
         next.push({
           id: "blood-retest",
           emoji: "🧪",
-          title: "Blood retest due — STRAND20",
-          body: `Last test ${daysSinceBlood} days ago. Order your Daye kit with code STRAND20.`,
-          to: "/onboarding/blood-iron-vitamins",
+          title: "Time to book a blood test",
+          body: `It's been ${daysSinceBlood} days since your last blood test. Book a retest so your hair guidance stays current.`,
+          to: "/blood-history",
           tone: "warning",
           signature: `blood:${lastBloodIso}`,
         });
