@@ -132,7 +132,7 @@ export async function buildClaudeRequest(
     kbBlocks = input.knowledge_blocks.filter((s) => typeof s === "string" && s.length > 0);
   } else if (input.selector_context || input.force_topic_ids) {
     const topics = selectTopicsForContext(input.selector_context ?? {}, {
-      function_kind: input.function_kind === "claude-smoke" ? "ingredient-analysis" : input.function_kind,
+      function_kind: input.function_kind,
       force: input.force_topic_ids,
     });
     kbBlocks = topics.map(renderTopicBlock);
