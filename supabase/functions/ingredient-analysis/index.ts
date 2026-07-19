@@ -32,7 +32,7 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v8-single-tip";
+const MODEL_VERSION = "claude-sonnet-4-6@v9-this-product-only";
 
 interface IngredientCard {
   name: string;
