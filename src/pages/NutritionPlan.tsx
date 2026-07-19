@@ -276,7 +276,7 @@ const MealCard = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-display text-[17px] leading-tight text-foreground truncate">
+              <p className="font-display text-[17px] leading-tight text-foreground break-words">
                 {meal.name}
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
