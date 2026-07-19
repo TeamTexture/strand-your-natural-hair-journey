@@ -346,19 +346,19 @@ const Home = () => {
           </h1>
           {water.band && (
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => setWaterDialogOpen(true)}
               title={`${water.supplier ?? "Your area"} · ${water.mg_l ?? "?"} mg/L CaCO₃`}
-              aria-label={`Water in your area is ${water.band.replace("_", " ")}`}
+              aria-label={`Water in your area is ${water.band.replace(/_/g, " ")}`}
               className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] border ${
                 water.band === "very_hard" || water.band === "hard"
                   ? "bg-alert-dark/10 text-alert-dark border-alert-dark/30"
-                  : water.band === "moderate"
+                  : water.band === "moderately_hard"
                     ? "bg-warn/10 text-warn border-warn/30"
                     : "bg-good/10 text-good border-good/30"
               }`}
             >
               <Droplet className="size-3" />
-              {water.band.replace("_", " ")} water
+              {water.band.replace(/_/g, " ")} water
             </button>
           )}
         </div>
