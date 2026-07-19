@@ -55,7 +55,6 @@ export default function BloodUpload() {
     new Date().toISOString().slice(0, 10),
   );
   const [saving, setSaving] = useState(false);
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [dragOver, setDragOver] = useState(false);
 
   // Password dialog state for encrypted PDFs
@@ -66,6 +65,7 @@ export default function BloodUpload() {
   const [pwVisible, setPwVisible] = useState(false);
   const [pendingBytes, setPendingBytes] = useState<Uint8Array | null>(null);
   const [pendingName, setPendingName] = useState<string>("");
+
 
   const pick = () => inputRef.current?.click();
 
