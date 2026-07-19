@@ -18,6 +18,8 @@ import {
   clearBloodDraft,
   setDraftPanelDate,
   setDraftPanelLabel,
+  setDraftPanelTestType,
+  setDraftPanelLabName,
   setUnknownMarkers,
   persistBloodValues,
   type UnknownMarker,
