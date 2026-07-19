@@ -61,7 +61,6 @@ export const FUNCTION_MODEL_MAP: Record<FunctionKind, ClaudeModel> = {
   "nutrition-plan": "claude-sonnet-4-6",
   "blood-ai-summary": "claude-opus-4-7",
   "journal-encouragement": "claude-haiku-4-5-20251001",
-  "claude-smoke": "claude-sonnet-4-6",
 };
 
 export interface BuildPromptInput {
