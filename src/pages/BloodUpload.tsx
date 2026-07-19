@@ -17,6 +17,7 @@ import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import {
   clearBloodDraft,
   setDraftPanelDate,
+  setDraftPanelLabel,
   setUnknownMarkers,
   persistBloodValues,
   type UnknownMarker,
