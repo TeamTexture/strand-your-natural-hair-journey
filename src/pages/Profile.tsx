@@ -149,11 +149,11 @@ const Profile = () => {
   // Quick-jump destinations for the edit picker.
   const editTargets = useMemo(
     () => [
-      { key: "basic", label: "Basic details", hint: "Name, age, postcode", icon: User, route: "/onboarding/profile-step-1" },
-      { key: "health", label: "Health & lifestyle", hint: "Conditions, diet, habits", icon: Heart, route: "/onboarding/profile-step-2" },
-      { key: "hair", label: "Hair profile", hint: "Diameter, porosity, density", icon: Activity, route: "/onboarding/profile-step-3-hair" },
-      { key: "colour", label: "Colour & styling", hint: "Treatments & products", icon: Palette, route: "/onboarding/profile-step-4-colour" },
-      { key: "meds", label: "Medications", hint: "Prescriptions & supplements", icon: Pill, route: "/onboarding/profile-step-2" },
+      { key: "basic", label: "Basic details", hint: "Name, age, postcode", icon: User, route: "/profile/personal" },
+      { key: "health", label: "Health & lifestyle", hint: "Conditions, diet, habits", icon: Heart, route: "/profile/health" },
+      { key: "hair", label: "Hair profile", hint: "Diameter, porosity, density", icon: Activity, route: "/profile/hair" },
+      { key: "colour", label: "Colour & styling", hint: "Treatments & products", icon: Palette, route: "/profile/colour" },
+      { key: "meds", label: "Medications", hint: "Prescriptions & supplements", icon: Pill, route: "/profile/health" },
       { key: "blood-iv", label: "Iron & vitamins", hint: "Ferritin, B12, vit D", icon: Droplet, route: "/onboarding/blood-iron-vitamins" },
       { key: "blood-thy", label: "Thyroid", hint: "TSH, T3, T4", icon: FlaskConical, route: "/onboarding/blood-thyroid" },
       { key: "blood-min", label: "Minerals", hint: "Zinc, magnesium", icon: FlaskConical, route: "/onboarding/blood-minerals" },
