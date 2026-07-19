@@ -187,7 +187,7 @@ export default function BloodUpload() {
     } finally {
       setExtracting(false);
     }
-  }, []);
+  }, [thumbSource]);
 
   const onFiles = useCallback(async (list: FileList | File[] | null) => {
     if (!list) return;
