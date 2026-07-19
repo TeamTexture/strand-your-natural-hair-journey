@@ -67,6 +67,31 @@ export default function BloodUpload() {
   const [pendingBytes, setPendingBytes] = useState<Uint8Array | null>(null);
   const [pendingName, setPendingName] = useState<string>("");
 
+  // Duplicate detection — existing panel already logged for this user/date.
+  const [duplicatePanel, setDuplicatePanel] = useState<{ id: string; created_at: string } | null>(null);
+  const [dupConfirmed, setDupConfirmed] = useState(false);
+
+  useEffect(() => {
+    if (!user || !panelDate) { setDuplicatePanel(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("blood_panels")
+        .select("id, created_at")
+        .eq("user_id", user.id)
+        .eq("panel_date", panelDate)
+        .eq("status", "logged")
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) {
+        setDuplicatePanel(data ?? null);
+        setDupConfirmed(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, panelDate]);
+
+
 
   const pick = () => inputRef.current?.click();
 
