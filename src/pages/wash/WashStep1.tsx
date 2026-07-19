@@ -526,7 +526,7 @@ const WashStep1 = () => {
           state={prePoo}
           setState={setPrePoo}
           selectedProducts={prePooSelected}
-          onRemoveProduct={removeFrom(setPrePooIds, prePooIds)}
+          onRemoveProduct={removeFrom(setPrePooIds, prePooIds, "prepoo")}
           onOpenPicker={() => openPicker("prepoo")}
         />
         <StepCard
@@ -534,7 +534,7 @@ const WashStep1 = () => {
           state={cleanse}
           setState={setCleanse}
           selectedProducts={cleanseSelected}
-          onRemoveProduct={removeFrom(setCleanseIds, cleanseIds)}
+          onRemoveProduct={removeFrom(setCleanseIds, cleanseIds, "cleanse")}
           onOpenPicker={() => openPicker("cleanse")}
         />
         <StepCard
@@ -542,7 +542,7 @@ const WashStep1 = () => {
           state={coWash}
           setState={setCoWash}
           selectedProducts={coWashSelected}
-          onRemoveProduct={removeFrom(setCoWashIds, coWashIds)}
+          onRemoveProduct={removeFrom(setCoWashIds, coWashIds, "cowash")}
           onOpenPicker={() => openPicker("cowash")}
         />
         {/* Science-grounded caution: cationic surfactants in co-washes (e.g.
@@ -575,7 +575,7 @@ const WashStep1 = () => {
           state={condition}
           setState={setCondition}
           selectedProducts={conditionSelected}
-          onRemoveProduct={removeFrom(setConditionIds, conditionIds)}
+          onRemoveProduct={removeFrom(setConditionIds, conditionIds, "condition")}
           onOpenPicker={() => openPicker("condition")}
           // Once Done, surface the conditioner(s) the user picked + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
@@ -727,7 +727,7 @@ const WashStep1 = () => {
           state={treatment}
           setState={setTreatment}
           selectedProducts={treatmentSelected}
-          onRemoveProduct={removeFrom(setTreatmentIds, treatmentIds)}
+          onRemoveProduct={removeFrom(setTreatmentIds, treatmentIds, "treatment")}
           onOpenPicker={() => openPicker("treatment")}
           // Show the treatment type tags the user picked, plus the products they selected
           // so the collapsed card reflects what they actually captured.
