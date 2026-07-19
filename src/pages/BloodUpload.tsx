@@ -70,6 +70,9 @@ export default function BloodUpload() {
   // Source image we'll derive the panel thumbnail from (rendered PDF page or first photo).
   const [thumbSource, setThumbSource] = useState<Blob | null>(null);
   const [thumbPreview, setThumbPreview] = useState<string | null>(null);
+  // Normalised logo bounding box returned by blood-extract, used to crop the
+  // thumbnail down to the lab's actual logo/brand mark.
+  const [logoBbox, setLogoBbox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
   // Password dialog state for encrypted PDFs
   const [pwOpen, setPwOpen] = useState(false);
