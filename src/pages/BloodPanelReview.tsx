@@ -14,13 +14,16 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarDays,
+  Check,
   ChevronDown,
   ChevronUp,
   FlaskConical,
   Info,
+  Pencil,
   Trash2,
   Building2,
   BadgeCheck,
+  X,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -28,6 +31,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,6 +123,8 @@ export default function BloodPanelReview() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [labelDraft, setLabelDraft] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["blood-panel", id, user?.id ?? "anon"],
@@ -199,6 +205,26 @@ export default function BloodPanelReview() {
     },
     onError: () => toast.error("Couldn't delete — try again"),
   });
+  const renamePanel = useMutation({
+    mutationFn: async (nextLabel: string) => {
+      if (!id) return;
+      const clean = nextLabel.trim().slice(0, 120) || null;
+      const { error } = await supabase
+        .from("blood_panels" as never)
+        .update({ label: clean } as never)
+        .eq("id", id);
+      if (error) throw error;
+      return clean;
+    },
+    onSuccess: () => {
+      toast.success("Name updated");
+      qc.invalidateQueries({ queryKey: ["blood-panel", id] });
+      qc.invalidateQueries({ queryKey: ["blood-history"] });
+      setEditingLabel(false);
+    },
+    onError: () => toast.error("Couldn't rename — try again"),
+  });
+
 
   const toggle = (marker: string) => {
     setExpanded((s) => {
@@ -249,9 +275,52 @@ export default function BloodPanelReview() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <h1 className="font-display text-lg leading-tight text-foreground">
-                    {panel.label ?? "Blood test"}
-                  </h1>
+                  {editingLabel ? (
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        autoFocus
+                        value={labelDraft}
+                        onChange={(e) => setLabelDraft(e.target.value)}
+                        placeholder="e.g. Advanced Thyroid Blood Test"
+                        className="font-display text-base h-9"
+                        maxLength={120}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => renamePanel.mutate(labelDraft)}
+                        disabled={renamePanel.isPending}
+                        className="size-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-60"
+                        aria-label="Save name"
+                      >
+                        <Check className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingLabel(false)}
+                        className="size-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0"
+                        aria-label="Cancel"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-1.5">
+                      <h1 className="font-display text-lg leading-tight text-foreground flex-1 min-w-0 break-words">
+                        {panel.label ?? "Blood test"}
+                      </h1>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLabelDraft(panel.label ?? "");
+                          setEditingLabel(true);
+                        }}
+                        className="size-7 rounded-full text-foreground/60 hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0"
+                        aria-label="Rename blood test"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
                   <div className="mt-2 space-y-1.5 text-xs font-body text-foreground/70">
                     {panel.test_type && (
                       <div className="flex items-center gap-2">
