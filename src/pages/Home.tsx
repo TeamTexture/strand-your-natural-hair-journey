@@ -668,7 +668,7 @@ const Home = () => {
             <Button
               onClick={() => {
                 setWaterDialogOpen(false);
-                navigate("/profile");
+                navigate("/onboarding/profile-step-1#postcode");
               }}
               className="rounded-pill"
             >
