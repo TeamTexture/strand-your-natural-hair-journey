@@ -5,6 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
+import RichBody from "@/components/RichBody";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +57,11 @@ interface StylingSaved {
 }
 
 interface NextWashTip { action: string; why: string }
+
+const tipText = (tip: NextWashTip) => [
+  tip.action ? `Do this next wash: ${tip.action}` : "",
+  tip.why ? `Why it matters: ${tip.why}` : "",
+].filter(Boolean).join("\n\n");
 
 const WashStep4 = () => {
   const navigate = useNavigate();
@@ -298,27 +304,19 @@ const WashStep4 = () => {
           to="/wash/step-styling" navigate={navigate}
         />
 
-        <SurfaceCard tone="green">
+        <SurfaceCard tone="gold">
           {obsLoading ? (
             <p className="text-sm leading-snug text-foreground/70">
-              <span className="font-semibold">🤖 </span>
-              Analysing your wash day…
+              <span className="font-semibold">✨ </span>
+              Creating your next wash-day tip…
             </p>
-          ) : obsError ? (
+          ) : obsError || !nextTip ? (
             <p className="text-sm leading-snug text-foreground/70">
-              <span className="font-semibold">🤖 </span>
-              Couldn't generate an observation right now — your wash day is still saved.
+              <span className="font-semibold">✨ </span>
+              Couldn't create a tip right now — your wash day is still saved.
             </p>
           ) : (
-            <p className="text-sm leading-snug">
-              <span className="font-semibold">🤖 </span>
-              {observation}
-            </p>
-          )}
-        </SurfaceCard>
-
-        {!obsLoading && !obsError && nextTip && (
-          <SurfaceCard tone="gold">
+            <>
             <div className="flex items-center justify-between mb-3">
               <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-medium">
                 ✨ Tip for next wash day
@@ -332,22 +330,7 @@ const WashStep4 = () => {
               </button>
             </div>
             {showNextTip && (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mb-1">
-                    Do this next wash
-                  </p>
-                  <p className="text-sm leading-snug font-medium">{nextTip.action}</p>
-                </div>
-                {nextTip.why && (
-                  <div className="pt-2 border-t border-primary/15">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-primary/70 font-medium mb-1">
-                      Why
-                    </p>
-                    <p className="text-xs leading-relaxed text-foreground/80">{nextTip.why}</p>
-                  </div>
-                )}
-              </div>
+              <RichBody text={tipText(nextTip)} />
             )}
             <label className="mt-3 flex items-center gap-2 text-xs text-foreground/80 cursor-pointer">
               <input
@@ -358,8 +341,9 @@ const WashStep4 = () => {
               />
               Save this tip to my wash day
             </label>
-          </SurfaceCard>
-        )}
+            </>
+          )}
+        </SurfaceCard>
 
 
         <Button variant="gold" size="pill" className="mt-4" onClick={save} disabled={saving}>
