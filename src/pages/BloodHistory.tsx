@@ -114,7 +114,9 @@ const BloodHistory = () => {
   const [cursor, setCursor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<PanelRow | null>(null);
   const [scheduling, setScheduling] = useState<boolean>(false);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Kept for backwards compatibility with any earlier UI paths, but the new
+  // thumbnail routes to /blood-panel/:id via a "Review results" button.
+  const [, setExpanded] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
     queryKey: ["blood-history", user?.id ?? "anon"],
