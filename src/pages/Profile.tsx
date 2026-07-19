@@ -159,6 +159,7 @@ const Profile = () => {
       { key: "blood-min", label: "Minerals", hint: "Zinc, magnesium", icon: FlaskConical, route: "/onboarding/blood-minerals" },
       { key: "blood-horm", label: "Hormones", hint: "Oestrogen, testosterone", icon: FlaskConical, route: "/onboarding/blood-hormones" },
       { key: "blood-sum", label: "Blood AI summary", hint: "View interpretation", icon: Sparkles, route: "/onboarding/blood-ai-summary" },
+      { key: "blood-hist", label: "Blood test history", hint: "Previous tests & trends", icon: Droplet, route: "/blood-history" },
     ],
     [],
   );
