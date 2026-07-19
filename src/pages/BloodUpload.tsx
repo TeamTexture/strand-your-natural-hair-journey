@@ -290,6 +290,12 @@ export default function BloodUpload() {
       toast.error("No valid values to review yet.");
       return;
     }
+    if (duplicatePanel && !dupConfirmed) {
+      setDupConfirmed(true);
+      toast.warning("A panel for this date already exists. Tap Continue again to add another anyway, or change the test date above.");
+      return;
+    }
+
     setSaving(true);
     try {
       // Start a fresh draft so we don't overwrite a prior in-progress panel.
