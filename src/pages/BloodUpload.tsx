@@ -350,12 +350,12 @@ export default function BloodUpload() {
                 onClick={() => {
                   setFiles([]);
                   setRows([]);
-                  setChecked({});
                 }}
                 className="text-xs text-foreground/60 hover:text-foreground font-body underline"
               >
                 Remove all
               </button>
+
             </div>
             <div className="space-y-2">
               {files.map((f, i) => (
