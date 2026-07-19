@@ -4,7 +4,7 @@
 //
 // Sections (in order):
 //   1.  Cover
-//   2.  Basic details + water hardness
+//   2.  Basic details
 //   3.  Hair profile
 //   4.  Style & colour
 //   5.  Health & lifestyle

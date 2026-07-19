@@ -21,7 +21,6 @@ import { IRON_AND_SHEDDING } from "./topics/iron-and-shedding.ts";
 import { VITS_AND_MINERALS } from "./topics/vits-and-minerals.ts";
 import { THYROID } from "./topics/thyroid.ts";
 import { HORMONES_AND_LIFE_STAGE } from "./topics/hormones-and-life-stage.ts";
-import { HARD_WATER } from "./topics/hard-water.ts";
 import { WASH_DAY_MECHANICS } from "./topics/wash-day-mechanics.ts";
 import { HEAT_AND_MOISTURE } from "./topics/heat-and-moisture.ts";
 import { PROTECTIVE_STYLING } from "./topics/protective-styling.ts";
@@ -35,7 +34,6 @@ const REGISTRY: Record<TopicId, Topic> = {
   "vits-and-minerals": VITS_AND_MINERALS,
   "thyroid": THYROID,
   "hormones-and-life-stage": HORMONES_AND_LIFE_STAGE,
-  "hard-water": HARD_WATER,
   "wash-day-mechanics": WASH_DAY_MECHANICS,
   "heat-and-moisture": HEAT_AND_MOISTURE,
   "protective-styling": PROTECTIVE_STYLING,
@@ -56,7 +54,6 @@ export interface SelectorContext {
     conditions?: string[];
   } | null;
   bloodResults?: Array<{ marker?: string; status?: string | null }>;
-  location?: { is_hard_water_area?: boolean | null };
 }
 
 export interface SelectorIntent {
@@ -118,10 +115,6 @@ function topicMatches(
       .map((b) => (b.marker ?? "").toLowerCase());
     for (const m of flagged) if (target.has(m)) return true;
   }
-  if (a.location?.hard_water === true && ctx.location?.is_hard_water_area === true) {
-    return true;
-  }
-
   // No match on any axis. If function_kinds gated us in but no content
   // matched, return false (the function-kind alone is not enough — we
   // want topical relevance). EXCEPTION: if a topic ONLY has function_kinds
@@ -131,7 +124,7 @@ function topicMatches(
     const hasClinicalFilters =
       !!(a.hair?.porosity || a.hair?.density || a.hair?.scalp ||
          a.health?.life_stage || a.health?.conditions ||
-         a.blood_markers || a.location);
+         a.blood_markers);
     if (!hasClinicalFilters) return true;
   }
 

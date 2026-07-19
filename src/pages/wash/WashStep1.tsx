@@ -503,7 +503,7 @@ const WashStep1 = () => {
               <div className="flex-1">
                 <p className="text-[12px] font-semibold mb-1">Co-wash isn't a deep cleanse</p>
                 <p className="text-[11.5px] leading-snug text-muted-foreground">
-                  Co-washes use <strong>cationic</strong> conditioning surfactants — they smooth and lift light dirt, but they can't emulsify oily build-up (sebum, butters, silicones, hard-water minerals). Only <strong>anionic</strong> surfactants in a true shampoo can lift that residue from the scalp and strands.
+                  Co-washes use <strong>cationic</strong> conditioning surfactants — they smooth and lift light dirt, but they can't emulsify oily build-up (sebum, butters, silicones, mineral residue). Only <strong>anionic</strong> surfactants in a true shampoo can lift that residue from the scalp and strands.
                 </p>
                 <p className="text-[11.5px] leading-snug text-muted-foreground mt-1.5">
                   Pair co-washes with a proper cleanse <strong>at least every 2–3 weeks</strong> to prevent build-up, flakes and scalp inflammation.

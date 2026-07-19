@@ -63,7 +63,7 @@ interface PhotoItem {
 const pickIcon = (text: string): LucideIcon => {
   const t = text.toLowerCase();
   if (/tt heat hat|heat hat|blow.?dry|flat.?iron|straight|thermal|heat/.test(t)) return Flame;
-  if (/clarif|chelat|hard water|mineral|build.?up|shampoo/.test(t)) return Waves;
+  if (/clarif|chelat|mineral|build.?up|shampoo/.test(t)) return Waves;
   if (/moistur|hydrat|water|conditioner|leave.?in|lco|lok/.test(t)) return Droplets;
   if (/protein|bond|keratin|strength/.test(t)) return Shield;
   if (/trim|scissor|split end|cut/.test(t)) return Scissors;

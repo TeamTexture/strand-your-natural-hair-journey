@@ -12,7 +12,6 @@ export type TopicId =
   | "vits-and-minerals"
   | "thyroid"
   | "hormones-and-life-stage"
-  | "hard-water"
   | "wash-day-mechanics"
   | "heat-and-moisture"
   | "protective-styling";
@@ -51,7 +50,6 @@ export interface AppliesTo {
     conditions?: string[];
   };
   blood_markers?: string[];
-  location?: { hard_water?: boolean };
   function_kinds?: FunctionKind[];
 }
 
