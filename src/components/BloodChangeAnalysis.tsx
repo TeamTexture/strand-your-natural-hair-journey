@@ -4,6 +4,7 @@
 // latest and previous panel ids exist; falls back gracefully otherwise.
 
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Droplets,
