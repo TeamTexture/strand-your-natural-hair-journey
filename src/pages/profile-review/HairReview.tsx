@@ -133,6 +133,43 @@ const HairReview = () => {
           kind={{ type: "chip-multi", options: AREAS }}
           onSave={(v) => upsertHair({ areas_of_concern: v as string[] })}
         />
+        <ReviewField
+          label="Hair length (band)"
+          value={hair?.length_bucket ?? ""}
+          hint="Where your hair falls when pulled straight — coily hair shrinks a lot, so measure stretched."
+          kind={{ type: "chip-single", options: LENGTH_BUCKETS }}
+          onSave={(v) => {
+            const label = String(v);
+            const band = HAIR_LENGTH_BUCKETS.find((b) => b.label === label);
+            const midpoint = band
+              ? Number.isFinite(band.maxIn)
+                ? Math.round(((band.minIn + Math.min(band.maxIn, band.minIn + 6)) / 2) * 10) / 10
+                : band.minIn + 2
+              : null;
+            return upsertHair({
+              length_bucket: label || null,
+              // Only auto-fill inches if the user hasn't set an exact value.
+              ...(hair?.length_inches == null && midpoint != null
+                ? { length_inches: midpoint }
+                : {}),
+            });
+          }}
+        />
+        <ReviewField
+          label="Exact length (inches, stretched)"
+          value={hair?.length_inches ?? ""}
+          hint="Optional. Type the pulled-straight length in inches."
+          kind={{ type: "number", min: 0, max: 60, placeholder: "e.g. 8" }}
+          onSave={(v) => {
+            const n = Number(v);
+            const inches = Number.isFinite(n) && n > 0 ? n : null;
+            const label = inches != null ? bucketFromInches(inches) : null;
+            return upsertHair({
+              length_inches: inches,
+              length_bucket: label ?? hair?.length_bucket ?? null,
+            });
+          }}
+        />
       </div>
     </ScreenLayout>
   );
