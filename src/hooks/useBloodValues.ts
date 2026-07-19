@@ -10,8 +10,52 @@ import { supabase } from "@/integrations/supabase/client";
 import { evaluate, BLOOD_RANGES } from "@/data/bloodRanges";
 
 const KEY = "strand_blood_values";
+const UNKNOWN_KEY = "strand_blood_unknown";
 const DRAFT_PANEL_KEY = "strand_blood_draft_panel_id";
 const DRAFT_PANEL_DATE_KEY = "strand_blood_draft_panel_date";
+
+export interface UnknownMarker {
+  marker: string;
+  value: number | null;
+  unit: string;
+}
+
+function readUnknown(): UnknownMarker[] {
+  try {
+    const raw = localStorage.getItem(UNKNOWN_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getUnknownMarkers(): UnknownMarker[] {
+  return readUnknown();
+}
+
+export function setUnknownMarkers(list: UnknownMarker[]) {
+  localStorage.setItem(UNKNOWN_KEY, JSON.stringify(list));
+  window.dispatchEvent(new Event("strand:blood-update"));
+}
+
+export function useUnknownMarkers() {
+  const [list, setList] = useState<UnknownMarker[]>(() => readUnknown());
+  useEffect(() => {
+    const handler = () => setList(readUnknown());
+    window.addEventListener("storage", handler);
+    window.addEventListener("strand:blood-update", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("strand:blood-update", handler);
+    };
+  }, []);
+  const update = useCallback((next: UnknownMarker[]) => {
+    setUnknownMarkers(next);
+    setList(next);
+  }, []);
+  return { unknown: list, setUnknown: update };
+}
+
 
 export type BloodValues = Record<string, number | null>;
 
