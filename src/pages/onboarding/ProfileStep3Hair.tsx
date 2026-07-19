@@ -95,6 +95,7 @@ const ProfileStep3Hair = () => {
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           localStorage.setItem("strand_hair_profile", JSON.stringify({
             diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas,
+            length_inches: lengthInches, length_bucket: lengthBucket,
           }));
           // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
           try {
@@ -104,6 +105,7 @@ const ProfileStep3Hair = () => {
                 { id: "scalp", plaintext: scalp[0] ?? "" },
                 { id: "diagnosed", plaintext: JSON.stringify(diagnosed) },
               ]);
+              const inchesNum = Number(lengthInches);
               const { error } = await supabase
                 .from("user_hair_profile")
                 .upsert(
@@ -117,7 +119,9 @@ const ProfileStep3Hair = () => {
                     scalp_condition_enc: enc.scalp,
                     diagnosed_conditions_enc: enc.diagnosed,
                     areas_of_concern: areas,
-                  },
+                    length_inches: Number.isFinite(inchesNum) && inchesNum > 0 ? inchesNum : null,
+                    length_bucket: lengthBucket || null,
+                  } as never,
                   { onConflict: "user_id" },
                 );
               if (error) throw error;
