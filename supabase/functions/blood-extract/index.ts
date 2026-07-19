@@ -60,6 +60,7 @@ RULES:
 - Identify the DOCUMENT TITLE / test name AS PRINTED INSIDE THE REPORT ITSELF — usually the largest heading at the top of the first page, or the product/panel name printed near the lab's logo (e.g. "Advanced Thyroid Blood Test", "Menopause Health Panel", "Full Blood Count", "Iron Studies"). Return it as document_title. IMPORTANT: do NOT use the uploaded file's filename, upload metadata, or any text outside the actual report content — read the visible title on the page. If no suitable title is printed inside the document, set to null. Do NOT invent a title.
 - Identify the TEST TYPE — a short category label describing what kind of test it is (e.g. "Thyroid function", "Full blood count", "Female hormones", "Iron studies", "General wellness"). Return it as test_type. If unsure, set to null.
 - Identify the LAB / PROVIDER name if printed on the report (e.g. "Medichecks", "Thriva", "Quest Diagnostics", "The Doctors Laboratory"). Return it as lab_name. If not visible, null.
+- Locate the LAB'S LOGO / BRAND MARK on the first page — this is usually a coloured icon or wordmark near the top of the report (often top-left or top-centre alongside the lab name). Return a bounding box for it as logo_bbox with fields x, y, w, h — all NORMALISED numbers between 0 and 1 relative to the FIRST image you were shown (x/y = top-left corner, w/h = width/height). Add roughly 3–5% padding on each side so the logo isn't clipped. If no obvious logo is visible on the first page, set logo_bbox to null. Do NOT invent one.
 - Never invent values. Only include markers where you actually see a numeric result on the report.
 - If the image is not a blood test at all, return an empty results array and null for all metadata.
 
@@ -72,6 +73,7 @@ Return ONLY valid JSON matching:
   "document_title": string | null,
   "test_type": string | null,
   "lab_name": string | null,
+  "logo_bbox": { "x": number, "y": number, "w": number, "h": number } | null,
   "results": [
     { "canonical_marker": string | null, "raw_marker": string, "value": number, "unit_reported": string, "raw_value": string }
   ]
