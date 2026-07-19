@@ -349,6 +349,7 @@ export async function buildAiContext(): Promise<AiContext> {
     currentStyle,
     healthProfile,
     bloodResults,
+    bloodPanels,
     professional,
     location: {
       postcode: postcode ?? null,
