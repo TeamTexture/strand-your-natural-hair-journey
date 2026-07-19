@@ -132,9 +132,15 @@ function fallbackSupplierByCountry(country: string | null, region: string | null
 }
 
 function bandFor(mg_l: number): { band: string; is_hard: boolean } {
+  // Thresholds aligned with the widely-published UK water-supplier scale
+  // (used by Aqua Cure and most UK softener retailers):
+  //   soft:      <100 mg/L CaCO3
+  //   moderate:  100–199
+  //   hard:      200–275
+  //   very_hard: 276+
   if (mg_l < 100) return { band: "soft", is_hard: false };
   if (mg_l < 200) return { band: "moderate", is_hard: false };
-  if (mg_l < 300) return { band: "hard", is_hard: true };
+  if (mg_l < 276) return { band: "hard", is_hard: true };
   return { band: "very_hard", is_hard: true };
 }
 
