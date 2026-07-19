@@ -716,7 +716,7 @@ const IngredientDetail = () => {
           )}
 
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">AI Rating</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Rating</p>
             {(() => {
               if (!analysis) {
                 return (
