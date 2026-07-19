@@ -221,7 +221,7 @@ const JournalEntry = () => {
   // Anything that is neither "new" nor a UUID is treated as a mock-catalog id.
   const isDbEntry = !isNew && UUID_RE.test(rawId);
   const id = isNew ? newEntryIdRef.current : rawId;
-  const catalogEntry = getJournalEntry(rawId);
+  const catalogEntry = undefined;
 
   // DB-backed entry hydration. When we land on /journal/entry/<uuid>, fetch
   // the row, then synthesise the `entry` shape the rest of the screen expects.
