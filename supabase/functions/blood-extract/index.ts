@@ -48,27 +48,29 @@ const MARKER_LIST_FOR_PROMPT = KNOWN_MARKERS
   .map((m) => `- "${m.marker}" (target unit: ${m.unit}; also called: ${m.aliases.join(", ")})`)
   .join("\n");
 
-const SYSTEM_PROMPT = `You are a clinical data extraction assistant. The user uploads a blood test report (PDF, scan, or photo). Extract every recognisable blood marker result and return them as structured JSON.
+const SYSTEM_PROMPT = `You are a clinical data extraction assistant. The user uploads a blood test report (PDF, scan, or photo). Extract EVERY blood marker result you can see on the report — do not filter anything out. All data helps guide the user, even markers we don't formally track.
 
 RULES:
-- ONLY extract markers from the whitelist below. If a marker on the report is not in the whitelist, IGNORE it.
-- For each match, return: canonical_marker (exact string from the whitelist), value (number), unit_reported (string as printed on the report), raw_marker (string as printed on the report), raw_value (string as printed).
-- If the report shows a range like "5-10", return the numeric value only if it is a single measurement — never guess from a reference range.
-- If a value cannot be parsed as a number, skip it.
+- Extract every numeric marker result on the report. Do NOT skip markers because they seem unfamiliar or unusual.
+- For each result, also try to match it to the STRAND whitelist below. If the marker on the report matches one of these (by name or alias, case-insensitive), set canonical_marker to the exact whitelist string. If it does NOT match anything on the whitelist, set canonical_marker to null and put the marker name as it appears on the report in raw_marker.
+- Return for each row: canonical_marker (string from whitelist OR null), raw_marker (string as printed), value (number), unit_reported (string as printed, or empty string if none), raw_value (string as printed).
+- If a value cannot be parsed as a number (e.g. "Negative", "<5"), skip that ONE row but keep going with the rest.
+- If the report shows only a reference range with no measured value, skip that row.
 - If you find a panel date (collection date, report date, sample date), return it as panel_date in YYYY-MM-DD format. If uncertain, return null.
 - Never invent values. Only include markers where you actually see a numeric result on the report.
-- If the image is not a blood test, return an empty results array.
+- If the image is not a blood test at all, return an empty results array.
 
-Whitelist:
+STRAND whitelist (for canonical_marker matching only — do NOT restrict extraction to these):
 ${MARKER_LIST_FOR_PROMPT}
 
 Return ONLY valid JSON matching:
 {
   "panel_date": "YYYY-MM-DD" | null,
   "results": [
-    { "canonical_marker": string, "value": number, "unit_reported": string, "raw_marker": string, "raw_value": string }
+    { "canonical_marker": string | null, "raw_marker": string, "value": number, "unit_reported": string, "raw_value": string }
   ]
 }`;
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
