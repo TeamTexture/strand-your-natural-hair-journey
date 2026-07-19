@@ -217,8 +217,56 @@ const MyToolsSection = () => {
             return (
               <div
                 key={t.id}
-                className="bg-card border border-border rounded-[14px] overflow-hidden shadow-sm"
+                className="relative bg-card border border-border rounded-[14px] overflow-hidden shadow-sm"
               >
+                {/* Icons pinned to the top-right so they never obstruct text. */}
+                <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
+                  {t.ai_analysis && (
+                    <button
+                      onClick={() => setViewAdvice(t)}
+                      aria-label="View STRAND advice"
+                      className="size-7 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center"
+                    >
+                      <Sparkles className="size-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setFavourite(t.id, !t.on_favourite)}
+                    aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                    aria-pressed={t.on_favourite}
+                    className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center"
+                  >
+                    <Heart
+                      className={cn(
+                        "size-3.5 transition-colors",
+                        t.on_favourite
+                          ? "text-primary fill-primary"
+                          : "text-muted-foreground",
+                      )}
+                    />
+                  </button>
+                  <button
+                    onClick={() => setPendingDelete(t)}
+                    aria-label="Delete tool"
+                    className="size-7 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setExpanded(isOpen ? null : t.tool_key)}
+                    className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center"
+                    aria-label={isOpen ? "Hide notes" : "Show notes"}
+                    aria-expanded={isOpen}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "size-3.5 text-muted-foreground transition-transform",
+                        isOpen && "rotate-180",
+                      )}
+                    />
+                  </button>
+                </div>
+
                 <div className="p-3 flex items-start gap-3">
                   <div className="size-14 rounded-[10px] overflow-hidden bg-secondary shrink-0">
                     {t.image_url ? (
@@ -230,62 +278,15 @@ const MyToolsSection = () => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[14px] font-display font-semibold leading-snug text-foreground break-words">
-                          {t.name}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground/90 font-medium tracking-wide mt-0.5 break-words">
-                          {[t.brand, t.category].filter(Boolean).join(" · ") || "Tool"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-0.5 shrink-0 -mr-1 -mt-1">
-                        {t.ai_analysis && (
-                          <button
-                            onClick={() => setViewAdvice(t)}
-                            aria-label="View STRAND advice"
-                            className="size-7 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center"
-                          >
-                            <Sparkles className="size-3.5" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setFavourite(t.id, !t.on_favourite)}
-                          aria-label={t.on_favourite ? "Remove from favourites" : "Add to favourites"}
-                          aria-pressed={t.on_favourite}
-                          className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center"
-                        >
-                          <Heart
-                            className={cn(
-                              "size-3.5 transition-colors",
-                              t.on_favourite
-                                ? "text-primary fill-primary"
-                                : "text-muted-foreground",
-                            )}
-                          />
-                        </button>
-                        <button
-                          onClick={() => setPendingDelete(t)}
-                          aria-label="Delete tool"
-                          className="size-7 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setExpanded(isOpen ? null : t.tool_key)}
-                          className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center"
-                          aria-label={isOpen ? "Hide notes" : "Show notes"}
-                          aria-expanded={isOpen}
-                        >
-                          <ChevronDown
-                            className={cn(
-                              "size-3.5 text-muted-foreground transition-transform",
-                              isOpen && "rotate-180",
-                            )}
-                          />
-                        </button>
-                      </div>
-                    </div>
+                    {/* Reserve space on the first line for the pinned icon row
+                        so the title doesn't slide under it. Subsequent lines
+                        wrap to the full width of the card. */}
+                    <p className="text-[14px] font-display font-semibold leading-snug text-foreground break-words pr-[120px]">
+                      {t.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/90 font-medium tracking-wide mt-0.5 break-words">
+                      {[t.brand, t.category].filter(Boolean).join(" · ") || "Tool"}
+                    </p>
                     {(() => {
                       const aiScoreRaw = (t.ai_analysis as Record<string, unknown> | null)?.match_score;
                       const aiScore = typeof aiScoreRaw === "number" ? aiScoreRaw : null;
@@ -311,6 +312,7 @@ const MyToolsSection = () => {
                     })()}
                   </div>
                 </div>
+
 
                 {isOpen && (
                   <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
