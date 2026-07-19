@@ -127,7 +127,7 @@ export default function BloodPanelReview() {
       const { data: panel } = await supabase
         .from("blood_panels" as never)
         .select(
-          "id, user_id, panel_date, scheduled_at, status, label, test_type, lab_name, notes, created_at",
+          "id, user_id, panel_date, scheduled_at, status, label, test_type, lab_name, thumbnail_path, notes, created_at",
         )
         .eq("id", id!)
         .eq("user_id", user!.id)
