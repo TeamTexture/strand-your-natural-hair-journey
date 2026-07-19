@@ -732,39 +732,92 @@ const Profile = () => {
         </>
       )}
 
-      {/* Blood Results — only if user entered any */}
-      {flaggedBlood.length > 0 ? (
+      {/* Blood Tests — full history hub */}
+      {(bloodPanels.length > 0 ||
+        Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v))) && (
         <>
-          <EditableSectionLabel onEdit={() => navigate("/onboarding/blood-iron-vitamins")} editLabel="Update">
-            Flagged Blood Results
+          <EditableSectionLabel
+            onEdit={() => navigate("/blood-history")}
+            editLabel="Manage"
+          >
+            Blood Tests
           </EditableSectionLabel>
-          <div className="px-5 pb-4">
-            <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {flaggedBlood.map((b) => (
-                <ProfileRow
-                  key={b.marker}
-                  icon={b.status === "low" ? "🩸" : "⚠️"}
-                  label={b.marker}
-                  value={`${b.value} ${b.unit} — ${statusLabel(b.status)}`}
-                  tone="warn"
-                />
-              ))}
-            </SurfaceCard>
-          </div>
-        </>
-      ) : Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v)) ? (
-        <>
-          <EditableSectionLabel onEdit={() => navigate("/onboarding/blood-iron-vitamins")} editLabel="Update">
-            Blood Results
-          </EditableSectionLabel>
-          <div className="px-5 pb-4">
-            <div className="p-4 rounded-[14px] bg-good/10 border border-good/30 flex items-center gap-3">
-              <Sparkles className="size-5 text-good shrink-0" />
-              <p className="text-base">All blood markers in normal range</p>
+          <div className="px-5 pb-4 space-y-2">
+            {bloodPanels.slice(0, 3).map((p) => {
+              const iso = p.status === "scheduled" ? p.scheduled_at ?? p.panel_date : p.panel_date;
+              const dateLabel = iso
+                ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+                : "Undated";
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => navigate("/blood-history")}
+                  className="w-full flex items-center gap-3 p-3 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors text-left"
+                >
+                  <div
+                    className={cn(
+                      "size-10 rounded-[10px] flex items-center justify-center shrink-0",
+                      p.status === "scheduled"
+                        ? "bg-warn/15 text-warn"
+                        : "bg-primary/15 text-primary",
+                    )}
+                  >
+                    <FlaskConical className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-body font-semibold truncate">
+                      {dateLabel}
+                      {p.status === "scheduled" && (
+                        <span className="ml-2 text-[10px] tracking-[0.15em] uppercase text-warn">
+                          Scheduled
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-body truncate">
+                      {p.label ?? (p.status === "scheduled" ? "Upcoming test" : "Blood test")}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                </button>
+              );
+            })}
+
+            {flaggedBlood.length > 0 && (
+              <SurfaceCard padded={false} className="divide-y divide-border/60">
+                {flaggedBlood.slice(0, 4).map((b) => (
+                  <ProfileRow
+                    key={b.marker}
+                    icon={b.status === "low" ? "🩸" : "⚠️"}
+                    label={b.marker}
+                    value={`${b.value} ${b.unit} — ${statusLabel(b.status)}`}
+                    tone="warn"
+                  />
+                ))}
+              </SurfaceCard>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full"
+                onClick={() => navigate("/blood-history")}
+              >
+                Add / edit tests
+              </Button>
+              <Button
+                variant="outline"
+                size="pill"
+                className="w-full"
+                onClick={() => navigate("/blood-history")}
+              >
+                View calendar
+              </Button>
             </div>
           </div>
         </>
-      ) : null}
+      )}
+
 
       {/* Medications — only if user added any */}
       {Array.isArray(health.medications) && health.medications.length > 0 && (
