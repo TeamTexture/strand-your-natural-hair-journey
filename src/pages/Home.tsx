@@ -337,60 +337,103 @@ const Home = () => {
       </header>
 
       <div className="px-5 space-y-4 pb-6">
-        {/* current style */}
-        <SurfaceCard>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Current style</p>
-          {style.current_hairstyle ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-display text-base font-semibold leading-tight">
-                    {style.current_hairstyle}
+        {/* current style — editorial terra card */}
+        {style.current_hairstyle ? (
+          <div className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
+            {/* Decorative glows / rings */}
+            <div className="pointer-events-none absolute top-0 right-0 w-48 h-48 bg-[#C5A059]/10 rounded-full -mr-20 -mt-20 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-24 left-0 w-32 h-32 border border-[#C5A059]/10 rounded-full -ml-16" />
+            <div className="pointer-events-none absolute -bottom-6 -right-6 opacity-5">
+              <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#C5A059" strokeWidth="0.5">
+                <path d="M12 2C12 2 12 10 4 12C12 14 12 22 12 22C12 22 12 14 20 12C12 10 12 2 12 2Z" />
+              </svg>
+            </div>
+
+            <div className="relative z-10 p-6">
+              {/* Header row */}
+              <div className="flex justify-between items-start mb-6">
+                <div className="min-w-0 pr-3">
+                  <p className="text-[#C5A059] uppercase tracking-[0.25em] text-[10px] font-semibold font-body">
+                    Current style
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {daysInStyle != null ? `Day ${daysInStyle}` : "Just set"}
-                    {style.planned_next_style && ` · Next: ${style.planned_next_style}`}
+                  <h2 className="font-display text-white text-[26px] leading-tight mt-1 break-words">
+                    {style.current_hairstyle}
+                  </h2>
+                  <p className="text-[#E0D7CC]/80 text-xs font-body mt-1">
+                    {daysInStyle != null ? `Day ${daysInStyle} in rotation` : "Just set"}
                   </p>
                 </div>
-                {beforePhotoUrl && (
-                  <button
-                    onClick={() => navigate("/onboarding/strand-summary")}
-                    aria-label="See My Strand Summary"
-                    className="size-24 rounded-md overflow-hidden border border-border shrink-0 bg-muted"
-                  >
-                    <img
-                      src={beforePhotoUrl}
-                      alt="Your hair"
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                )}
                 <button
                   onClick={() => navigate("/home/style")}
-                  className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+                  className="shrink-0 text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
                 >
                   Edit
                 </button>
               </div>
+
+              {/* Photo + next planned */}
+              <div className="flex items-center gap-4 mb-6">
+                <button
+                  onClick={() => navigate("/onboarding/strand-summary")}
+                  aria-label="See My Strand Summary"
+                  className="relative shrink-0"
+                >
+                  <div className="absolute -inset-1 border border-[#C5A059]/40 rounded-2xl rotate-3" />
+                  <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-[#3A2B1F] flex items-center justify-center text-[#C5A059]/40 border border-white/5">
+                    {beforePhotoUrl ? (
+                      <img src={beforePhotoUrl} alt="Your hair" className="w-full h-full object-cover" />
+                    ) : (
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate("/home/style")}
+                  className="flex-1 min-w-0 text-left bg-white/5 border border-white/10 rounded-2xl p-3.5 backdrop-blur-md hover:bg-white/10 transition-colors"
+                >
+                  <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.2em] mb-1 font-bold font-body">
+                    Next planned
+                  </p>
+                  <p className="font-display text-white text-base leading-snug italic break-words">
+                    {style.planned_next_style || "Tap to plan"}
+                  </p>
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="relative flex items-center mb-4">
+                <div className="flex-grow h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                <div className="mx-3 w-1 h-1 bg-[#C5A059] rounded-full shadow-[0_0_8px_#C5A059]" />
+                <div className="flex-grow h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              </div>
+
+              {/* Action link */}
               <button
                 onClick={() => navigate("/onboarding/strand-summary")}
-                className="mt-3 w-full flex items-center justify-between text-xs uppercase tracking-[0.15em] text-primary font-medium border-t border-border pt-2"
+                className="group w-full flex items-center justify-between py-1"
               >
-                <span>See My Strand Summary</span>
-                <span aria-hidden>→</span>
+                <span className="text-[#C5A059] text-[11px] font-semibold uppercase tracking-[0.2em] group-hover:text-white transition-colors font-body">
+                  See my strand summary
+                </span>
+                <svg className="w-5 h-5 text-[#C5A059] group-hover:translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
               </button>
-            </>
-          ) : (
-            <button
-              onClick={() => navigate("/home/style")}
-              className="text-left w-full"
-            >
+            </div>
+          </div>
+        ) : (
+          <SurfaceCard>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Current style</p>
+            <button onClick={() => navigate("/home/style")} className="text-left w-full">
               <p className="text-sm text-muted-foreground">
                 No style logged yet. Tap to add your current style.
               </p>
             </button>
-          )}
-        </SurfaceCard>
+          </SurfaceCard>
+        )}
 
         {/* length goal — populated from the user's primary length-retention
             goal so the home screen reflects what they actually committed to.
