@@ -113,12 +113,12 @@ function buildToolSchema(ingredientCount: number) {
         type: "array",
         minItems: 1,
         maxItems: 1,
-        description: "Exactly ONE concrete tip — the single highest-impact, science-rooted way this user can get the most out of THIS product, drawing on the manufacturer's intended use, the actual key ingredients, the STRAND manuscript guidance, and the user's hair data. Pick the one that delivers the clearest benefit; do not pad with a second tip.",
+        description: "Exactly ONE tip on how the user gets maximum benefit FROM THIS PRODUCT ALONE. The tip must describe how to USE this exact product — technique, amount, section pattern, water/temperature, dwell time, rinse, frequency, dilution, distribution, where on the head. It must NEVER reference, name, pair with, layer with, follow with, or suggest ANY other product, product type, product category or routine step (no 'deep conditioner', 'leave-in', 'mask', 'oil', 'conditioner', 'styler', 'pre-poo', 'clarifying wash', 'protein treatment', 'heat cap', 'hat', 'towel', etc.). Do NOT mention the TT Heat Hat or any brand accessory here. If you would otherwise recommend another step, replace it with a technique-only lever on THIS product.",
         items: {
           type: "object",
           properties: {
-            title: { type: "string", description: "Short label, max 6 words (e.g. 'Apply on damp hair', 'Layer under your leave-in')." },
-            body: { type: "string", description: "1-2 sentences, max 35 words. Reference the product's intended purpose and at least one of the user's hair traits (porosity, density, type, length, surface texture, hair challenge, hair goal). Cite the active/key ingredient mechanism where it helps." },
+            title: { type: "string", description: "Short imperative label about applying/using THIS product, max 6 words. Must be an action performed on THIS product itself. GOOD examples: 'Emulsify before it touches ends', 'Focus on the scalp only', 'Rinse with cooler water', 'Double-cleanse dense sections', 'Work through soaking-wet hair'. FORBIDDEN examples (never write these or anything similar): 'Pair with deep conditioning', 'Layer under your leave-in', 'Follow with a mask', 'Use with an oil'." },
+            body: { type: "string", description: "1-2 sentences, max 35 words. Describe HOW to use THIS product to get the most from it, tied to at least one of the user's hair traits (porosity, density, type, length, current style, hair challenge, or a signal from last_3_wash_days). Cite the mechanism of THIS product's key ingredient if helpful. Do NOT reference any other product, product type, brand, accessory, or wash-day step." },
           },
           required: ["title", "body"],
         },
