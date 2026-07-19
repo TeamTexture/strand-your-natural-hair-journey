@@ -151,6 +151,7 @@ export async function buildAiContext(): Promise<AiContext> {
   let lowRated: Array<Record<string, unknown>> = [];
   let highRated: Array<Record<string, unknown>> = [];
   let goals: AiContext["goals"] = [];
+  let tools: Array<Record<string, unknown>> = [];
 
   try {
     if (userId) {
