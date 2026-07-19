@@ -165,6 +165,12 @@ Return JSON only via the return_observation tool.`;
     user_context: args.body.context ?? null,
     selector_context: args.selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions"],
+    rag_query: `wash day routine cleanse condition moisture scalp ${
+      (args.body.results as Record<string, unknown> | undefined)?.scalpFeel ?? ""
+    } ${(args.body.results as Record<string, unknown> | undefined)?.hairFeel ?? ""} ${
+      args.body.hairFeelNote ?? ""
+    }`.trim(),
+    rag_k: 4,
     tool: {
       name: "return_observation",
       description: "Return the wash-day observation. Always invoke exactly once.",
