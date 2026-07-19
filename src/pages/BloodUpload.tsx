@@ -361,11 +361,18 @@ export default function BloodUpload() {
         return;
       }
 
+      // Grab the panel id before we clear the draft so we can send the user
+      // straight to the curated review page for the panel they just uploaded.
+      const savedPanelId = localStorage.getItem("strand_blood_draft_panel_id");
       // Clear the draft so the next upload starts clean.
       clearBloodDraft();
       window.dispatchEvent(new Event("strand:blood-update"));
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
-      navigate("/blood-history");
+      if (savedPanelId) {
+        navigate(`/blood-panel/${savedPanelId}`);
+      } else {
+        navigate("/blood-history");
+      }
     } catch (err) {
       console.error("save failed:", err);
       toast.error("Couldn't save your panel. Please try again.");
