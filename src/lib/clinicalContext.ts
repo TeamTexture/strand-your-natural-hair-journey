@@ -525,6 +525,8 @@ export async function loadClinicalContext(
     // ── hair ──
     const hairRow = hairRes.data;
     if (hairRow) {
+      const hairRowAny = hairRow as Record<string, unknown>;
+      const li = Number(hairRowAny.length_inches);
       ctx.hair = {
         diameter: wrap(hairRow.diameter),
         texture: wrap(hairRow.surface_texture),
@@ -534,6 +536,8 @@ export async function loadClinicalContext(
         scalp: wrap(decrypted?.hair?.scalp_condition ?? null),
         diagnosed: decrypted?.hair?.diagnosed_conditions ?? [],
         areas: hairRow.areas_of_concern ?? [],
+        length_inches: Number.isFinite(li) && li > 0 ? li : null,
+        length_bucket: typeof hairRowAny.length_bucket === "string" && hairRowAny.length_bucket ? (hairRowAny.length_bucket as string) : null,
       };
     }
 
