@@ -36,6 +36,50 @@ const GOAL_KEYWORD_TOPICS: Array<{ re: RegExp; topics: TopicId[] }> = [
   { re: /menopause|perimenopause|pregnan|postpartum|contracept|pill|coil|iud/i, topics: ["hormones-and-life-stage", "thyroid"] },
 ];
 
+/**
+ * Map the goal text to the specific manuscript chapters most relevant to that
+ * outcome. Length-retention goals must draw from the growth + moisture retention
+ * + high-manipulation styling + wash-frequency chapters; breakage from moisture
+ * retention + ingredient reading + DIY; scalp from scalp-layers + trichology;
+ * etc. Falls back to the core hair-craft chapters if nothing matches.
+ */
+function selectGoalChapters(goalText: string): number[] {
+  const t = (goalText ?? "").toLowerCase();
+  const picks = new Set<number>();
+  if (/length|grow|retention|retain|longer/.test(t)) {
+    // HOW YOUR HAIR GROWS, MOISTURE RETENTION, HIGH-MANIPULATION STYLING,
+    // HOW OFTEN TO WASH YOUR HAIR — the length-retention canon.
+    [16, 14, 11, 13].forEach((c) => picks.add(c));
+  }
+  if (/break|snap|split|damage/.test(t)) {
+    [14, 15, 17, 11].forEach((c) => picks.add(c));
+  }
+  if (/moisture|hydrat|dry|dryness|porosity/.test(t)) {
+    [14, 15, 17].forEach((c) => picks.add(c));
+  }
+  if (/scalp|itch|flake|dandruff|seborr|folliculitis/.test(t)) {
+    [12, 9, 10].forEach((c) => picks.add(c));
+  }
+  if (/shed|thinning|fall/.test(t)) {
+    [16, 9, 10].forEach((c) => picks.add(c));
+  }
+  if (/heat|straighten|blow[- ]?dry|silk press/.test(t)) {
+    [14, 11].forEach((c) => picks.add(c));
+  }
+  if (/protective|braid|twist|wig|weave/.test(t)) {
+    [11, 13].forEach((c) => picks.add(c));
+  }
+  if (/colour|color|dye|bleach|highlight/.test(t)) {
+    [18, 15].forEach((c) => picks.add(c));
+  }
+  if (/volume|density|thicker|fuller/.test(t)) {
+    [16, 11].forEach((c) => picks.add(c));
+  }
+  // Sensible defaults so the query always has something on-topic.
+  if (picks.size === 0) [16, 14, 11, 13].forEach((c) => picks.add(c));
+  return Array.from(picks);
+}
+
 function selectGoalTopics(body: RequestBody): string[] {
   const picks = new Set<TopicId>();
   const goalText = [body.goal.challenge, body.goal.target_text]
@@ -63,6 +107,39 @@ function selectGoalTopics(body: RequestBody): string[] {
 
   return Array.from(picks).slice(0, 4)
     .map((id) => renderTopicBlock(KNOWLEDGE_REGISTRY[id]));
+}
+
+/**
+ * Build a specific RAG query from the goal text PLUS the user's hair
+ * characteristics so the retrieved manuscript passages are tuned to THIS
+ * person, not the generic goal keyword. Length + high porosity + fine density
+ * retrieves different passages than length + low porosity + coarse.
+ */
+function buildRagQuery(body: RequestBody): string {
+  const goalText = [body.goal.challenge, body.goal.target_text].filter(Boolean).join(" ");
+  const ctx = body.context as {
+    hair?: {
+      curl_pattern?: string; porosity?: string[]; density?: string[];
+      scalp?: string[]; diagnosed?: string[]; chemical_history?: string[];
+      current_style?: string;
+    };
+    health?: { lifeStage?: string[]; conditions?: string[] };
+    bloodResults?: Array<{ marker?: string; status?: string | null }>;
+  };
+  const bits: string[] = [goalText];
+  if (ctx.hair?.curl_pattern) bits.push(ctx.hair.curl_pattern);
+  if (ctx.hair?.porosity?.length) bits.push(`${ctx.hair.porosity.join(" ")} porosity`);
+  if (ctx.hair?.density?.length) bits.push(`${ctx.hair.density.join(" ")} density`);
+  if (ctx.hair?.scalp?.length) bits.push(`scalp ${ctx.hair.scalp.join(" ")}`);
+  if (ctx.hair?.diagnosed?.length) bits.push(ctx.hair.diagnosed.join(" "));
+  if (ctx.hair?.chemical_history?.length) bits.push(ctx.hair.chemical_history.join(" "));
+  if (ctx.hair?.current_style) bits.push(`currently wearing ${ctx.hair.current_style}`);
+  if (ctx.health?.lifeStage?.length) bits.push(ctx.health.lifeStage.join(" "));
+  const flagged = (ctx.bloodResults ?? [])
+    .filter((b) => b.status && !["normal", "untested"].includes((b.status ?? "").toLowerCase()))
+    .map((b) => `${b.status} ${b.marker}`);
+  if (flagged.length) bits.push(flagged.join(" "));
+  return bits.filter(Boolean).join(" — ");
 }
 
 const corsHeaders = {
