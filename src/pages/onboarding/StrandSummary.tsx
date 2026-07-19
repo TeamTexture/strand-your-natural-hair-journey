@@ -3,7 +3,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Sparkles, Loader2, Camera, Plus, X } from "lucide-react";
+import {
+  Sparkles, Loader2, Camera, Plus, X,
+  Droplets, Shield, Scissors, Flame, Moon, Sun, Wind, Leaf,
+  Pill, Apple, Activity, Calendar, Sparkle, Waves, HeartPulse,
+  ClipboardList, ListChecks, FileText, type LucideIcon,
+} from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -52,6 +57,53 @@ interface PhotoItem {
   url: string;
   createdAt: string;
 }
+
+
+// Pick a topical icon based on keywords in the tip text
+const pickIcon = (text: string): LucideIcon => {
+  const t = text.toLowerCase();
+  if (/tt heat hat|heat hat|blow.?dry|flat.?iron|straight|thermal|heat/.test(t)) return Flame;
+  if (/clarif|chelat|hard water|mineral|build.?up|shampoo/.test(t)) return Waves;
+  if (/moistur|hydrat|water|conditioner|leave.?in|lco|lok/.test(t)) return Droplets;
+  if (/protein|bond|keratin|strength/.test(t)) return Shield;
+  if (/trim|scissor|split end|cut/.test(t)) return Scissors;
+  if (/night|sleep|bonnet|satin|silk|pillow/.test(t)) return Moon;
+  if (/sun|uv|spf|summer/.test(t)) return Sun;
+  if (/scalp|massage|follicle|circulation/.test(t)) return HeartPulse;
+  if (/oil|seal|jbco|castor|jojoba|argan/.test(t)) return Leaf;
+  if (/wind|air.?dry|diffus/.test(t)) return Wind;
+  if (/supplement|vitamin|iron|ferritin|biotin|zinc/.test(t)) return Pill;
+  if (/diet|nutrition|protein.?rich|food|eat|omega/.test(t)) return Apple;
+  if (/exercise|activity|stress|cortisol/.test(t)) return Activity;
+  if (/week|month|day|schedule|routine|frequency/.test(t)) return Calendar;
+  return Sparkle;
+};
+
+// Render text with "TT Heat Hat" turned into a link and stray URLs cleaned up
+const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
+const renderRichText = (text: string) => {
+  // Strip parenthetical/plain URL mentions of teamtexture so we don't double up
+  const cleaned = text
+    .replace(/\s*\(https?:\/\/(?:www\.)?teamtexture\.co\.uk[^)]*\)/gi, "")
+    .replace(/\s*—\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "")
+    .replace(/\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "");
+  const parts = cleaned.split(/(TT Heat Hat)/gi);
+  return parts.map((part, i) =>
+    /^tt heat hat$/i.test(part) ? (
+      <a
+        key={i}
+        href={HEAT_HAT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+};
 
 
 interface Summary {
@@ -270,40 +322,80 @@ const StrandSummary = () => {
 
         {summary && (
           <>
+            {/* Overview — split long paragraph into readable sentences */}
             <SurfaceCard>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-medium mb-2">Overview</p>
-              <p className="text-sm leading-relaxed text-foreground/90">{summary.overview}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="size-7 rounded-full bg-primary/15 flex items-center justify-center">
+                  <FileText className="size-3.5 text-primary" />
+                </span>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Overview</p>
+              </div>
+              <div className="space-y-2">
+                {summary.overview
+                  .split(/(?<=[.!?])\s+(?=[A-Z])/)
+                  .filter(Boolean)
+                  .map((sentence, i) => (
+                    <p key={i} className="text-[13.5px] leading-relaxed text-foreground/90">
+                      {renderRichText(sentence)}
+                    </p>
+                  ))}
+              </div>
             </SurfaceCard>
 
             {summary.action_plan.length > 0 && (
               <SurfaceCard>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-medium mb-2">Action plan</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="size-7 rounded-full bg-primary/15 flex items-center justify-center">
+                    <ListChecks className="size-3.5 text-primary" />
+                  </span>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Action plan</p>
+                </div>
                 <ul className="space-y-2">
-                  {summary.action_plan.map((b, i) => (
-                    <li key={i} className="flex gap-2 text-sm">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span className="flex-1 leading-snug">{b}</span>
-                    </li>
-                  ))}
+                  {summary.action_plan.map((b, i) => {
+                    const Icon = pickIcon(b);
+                    return (
+                      <li key={i} className="flex gap-2.5 items-start rounded-[12px] bg-primary/5 px-3 py-2.5">
+                        <span className="mt-0.5 size-7 rounded-full bg-background border border-primary/25 flex items-center justify-center shrink-0">
+                          <Icon className="size-3.5 text-primary" />
+                        </span>
+                        <span className="flex-1 text-[13px] leading-snug text-foreground/90">
+                          {renderRichText(b)}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </SurfaceCard>
             )}
 
             {summary.routine_tips.length > 0 && (
               <SurfaceCard>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-medium mb-2">Routine tips</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="size-7 rounded-full bg-primary/15 flex items-center justify-center">
+                    <ClipboardList className="size-3.5 text-primary" />
+                  </span>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Routine tips</p>
+                </div>
                 <ul className="space-y-2">
-                  {summary.routine_tips.map((b, i) => (
-                    <li key={i} className="flex gap-2 text-sm">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span className="flex-1 leading-snug">{b}</span>
-                    </li>
-                  ))}
+                  {summary.routine_tips.map((b, i) => {
+                    const Icon = pickIcon(b);
+                    return (
+                      <li key={i} className="flex gap-2.5 items-start rounded-[12px] bg-secondary/40 px-3 py-2.5">
+                        <span className="mt-0.5 size-7 rounded-full bg-background border border-primary/20 flex items-center justify-center shrink-0">
+                          <Icon className="size-3.5 text-primary" />
+                        </span>
+                        <span className="flex-1 text-[13px] leading-snug text-foreground/90">
+                          {renderRichText(b)}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </SurfaceCard>
             )}
           </>
         )}
+
 
         {/* Progress photos with timestamps */}
         <SurfaceCard>
