@@ -91,7 +91,11 @@ export interface ProfileBasicSlice {
   postcode: string | null;
   country: string | null;
   heritage: string[];
+  water_hardness_mg_l: number | null;
+  water_hardness_band: string | null;
+  water_supplier: string | null;
 }
+
 
 export interface ClinicalContext {
   hair: HairSlice | null;
@@ -327,8 +331,12 @@ function basicFromLocal(): ProfileBasicSlice | null {
     postcode: raw?.postcode ?? null,
     country: raw?.country ?? null,
     heritage: heritageArr.length > 0 ? heritageArr : raw?.heritage ? [raw.heritage] : [],
+    water_hardness_mg_l: null,
+    water_hardness_band: null,
+    water_supplier: null,
   };
 }
+
 
 // ─────────────────── Encrypt helper (write side) ───────────────────
 
@@ -433,9 +441,10 @@ export async function loadClinicalContext(
       await Promise.all([
         supabase
           .from("profiles")
-          .select("display_name, postcode, country, heritage, birth_year")
+          .select("display_name, postcode, country, heritage, birth_year, water_hardness_mg_l, water_hardness_band, water_supplier")
           .eq("user_id", userId)
           .maybeSingle(),
+
         supabase
           .from("user_hair_profile")
           .select(
@@ -485,6 +494,9 @@ export async function loadClinicalContext(
         country: profileRow.country ?? ctx.basic?.country ?? null,
         heritage:
           heritage.length > 0 ? heritage : (ctx.basic?.heritage ?? []),
+        water_hardness_mg_l: (profileRow as { water_hardness_mg_l?: number | null }).water_hardness_mg_l ?? null,
+        water_hardness_band: (profileRow as { water_hardness_band?: string | null }).water_hardness_band ?? null,
+        water_supplier: (profileRow as { water_supplier?: string | null }).water_supplier ?? null,
       };
     }
 
