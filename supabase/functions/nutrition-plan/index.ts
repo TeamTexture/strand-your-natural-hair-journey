@@ -333,6 +333,7 @@ Return JSON only via the return_nutrition_plan tool.`;
   }
   const payload = {
     summary: typeof p.summary === "string" ? p.summary : "",
+    supplements: Array.isArray(p.supplements) ? p.supplements : [],
     diet: Array.isArray(p.diet) ? p.diet : [],
     avoid: Array.isArray(p.avoid) ? p.avoid : [],
   };
