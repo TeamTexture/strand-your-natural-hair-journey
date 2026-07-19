@@ -240,6 +240,12 @@ Return JSON only via the return_product_analysis tool.`;
       "scalp-conditions",
       "diagnosed-conditions",
     ],
+    rag_query: `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${
+      (args.context as Record<string, unknown> | undefined)?.hairProfile
+        ? JSON.stringify((args.context as Record<string, unknown>).hairProfile).slice(0, 200)
+        : ""
+    }`,
+    rag_k: 4,
     tool: {
       name: "return_product_analysis",
       description:
