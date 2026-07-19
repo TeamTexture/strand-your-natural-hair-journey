@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Droplets } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -13,6 +13,7 @@ import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { AlertTriangle } from "lucide-react";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
+import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
