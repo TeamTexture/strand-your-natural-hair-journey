@@ -230,31 +230,35 @@ const MyToolsSection = () => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium font-body leading-tight truncate">
+                    <p className="text-sm font-medium font-body leading-tight break-words">
                       {t.name}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-[11px] text-muted-foreground break-words">
                       {[t.brand, t.category].filter(Boolean).join(" · ") || "Tool"}
                     </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Stars
-                        n={
-                          typeof t.match_score === "number"
-                            ? Math.max(1, Math.min(5, Math.round(t.match_score / 20)))
-                            : 0
-                        }
-                      />
-                      {typeof t.match_score === "number" && (
-                        <span className="text-[9px] uppercase tracking-wider text-primary/80">
-                          Strand
-                        </span>
-                      )}
-                      {noteCount > 0 && (
-                        <span className="text-[10px] text-primary font-medium">
-                          🎙 {noteCount}
-                        </span>
-                      )}
-                    </div>
+                    {(() => {
+                      const aiScoreRaw = (t.ai_analysis as Record<string, unknown> | null)?.match_score;
+                      const aiScore = typeof aiScoreRaw === "number" ? aiScoreRaw : null;
+                      const score =
+                        typeof t.match_score === "number" ? t.match_score : aiScore;
+                      const stars =
+                        score != null ? Math.max(1, Math.min(5, Math.round(score / 20))) : 0;
+                      return (
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <Stars n={stars} />
+                          {score != null && (
+                            <span className="text-[9px] uppercase tracking-wider text-primary/80">
+                              Strand
+                            </span>
+                          )}
+                          {noteCount > 0 && (
+                            <span className="text-[10px] text-primary font-medium">
+                              🎙 {noteCount}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   {t.ai_analysis && (
                     <button
