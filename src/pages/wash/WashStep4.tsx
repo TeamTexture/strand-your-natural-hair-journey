@@ -143,7 +143,14 @@ const WashStep4 = () => {
         if (data?.error) throw new Error(data.error);
         if (!cancelled) {
           setObservation(data?.observation ?? "");
-          setNextTip(data?.next_wash_tip ?? "");
+          const raw = data?.next_wash_tip;
+          if (raw && typeof raw === "object" && (raw.action || raw.why)) {
+            setNextTip({ action: raw.action ?? "", why: raw.why ?? "" });
+          } else if (typeof raw === "string" && raw.trim()) {
+            setNextTip({ action: raw.trim(), why: "" });
+          } else {
+            setNextTip(null);
+          }
         }
       } catch (e: unknown) {
         if (!cancelled) {
