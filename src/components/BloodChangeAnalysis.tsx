@@ -119,6 +119,27 @@ interface Props {
   latestResults: LatestResult[];
 }
 
+function ActionLink({ action, icon }: { action: string; icon: string }) {
+  const navigate = useNavigate();
+  const isDiet =
+    icon === "nutrition" ||
+    /diet|nutrition|supplement|eat|food/i.test(action);
+  if (!isDiet) {
+    return (
+      <p className="text-xs font-body text-primary mt-1.5">→ {action}</p>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => navigate("/nutrition-plan")}
+      className="mt-1.5 inline-flex items-center gap-1 text-xs font-body text-primary underline underline-offset-2"
+    >
+      → {action}
+    </button>
+  );
+}
+
 export default function BloodChangeAnalysis({
   latestPanel,
   previousPanel,
