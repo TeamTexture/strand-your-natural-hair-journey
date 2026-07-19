@@ -127,7 +127,7 @@ FIELD: action
 - Concrete and doable in one wash session.
 - Name at least ONE specific product from context.shelf/wishlist OR a specific tool from context.tools, by name. Never invent items they don't have.
 - If suggesting heat, ONLY the TT Heat Hat (https://www.teamtexture.co.uk). Never plastic caps, shower caps, warm towels, or steamers.
-- NEVER recommend weekly/fortnightly protein — Afro hair is protein-rich (keratin). Protein is occasional and targeted only.
+- ABSOLUTE: NEVER recommend a protein, keratin, bond-repair or "strengthening" treatment on any cadence (no weekly, fortnightly, monthly, "every X washes", or scheduled protein of any kind). Afro hair is protein-rich (keratin); default to moisture. Only mention a protein step as a one-off if the user's own data shows fresh chemical processing or documented heat damage — never as part of a routine.
 - No hedging ("you might want to", "perhaps", "if you feel like it").
 
 FIELD: why
