@@ -269,7 +269,17 @@ const BloodHistory = () => {
             <CalendarPlus className="size-4" />
             Schedule
           </Button>
+          <Button
+            variant="outline"
+            size="pill"
+            onClick={() => navigate("/blood-upload")}
+            className="w-full col-span-2"
+          >
+            <Upload className="size-4" />
+            Upload PDF or photo
+          </Button>
         </div>
+
 
         {/* Calendar */}
         <SurfaceCard>
