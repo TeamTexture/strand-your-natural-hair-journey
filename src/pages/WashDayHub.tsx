@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Droplets } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -13,6 +13,7 @@ import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { AlertTriangle } from "lucide-react";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
+import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -102,10 +103,140 @@ const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, on
   );
 };
 
+const fmtDayLong = (d: Date) =>
+  d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
+const startCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+interface EducationalNoteInput {
+  porosity: string | null;
+  density: string | null;
+  scalp: string | null;
+  goalTitles: string[];
+  lastWash: Date | null;
+  today: Date;
+}
+
+interface EducationalNote {
+  headline: string;
+  window: string;
+  why: string;
+  reminder: string;
+}
+
+const buildEducationalNote = ({
+  porosity,
+  density,
+  scalp,
+  goalTitles,
+  lastWash,
+  today,
+}: EducationalNoteInput): EducationalNote => {
+  // Personalise the ideal cadence inside the 7–10 day window based on scalp + porosity.
+  const p = (porosity ?? "").toLowerCase();
+  const s = (scalp ?? "").toLowerCase();
+  const d = (density ?? "").toLowerCase();
+
+  let idealDays = 7;
+  let cadenceLabel = "every 7 days";
+
+  if (s.includes("oily")) {
+    idealDays = 7;
+    cadenceLabel = "every 7 days";
+  } else if (s.includes("dry") || p.includes("high")) {
+    idealDays = 10;
+    cadenceLabel = "every 10 days";
+  } else if (p.includes("low")) {
+    idealDays = 8;
+    cadenceLabel = "every 7–8 days";
+  } else {
+    idealDays = 9;
+    cadenceLabel = "every 7–10 days";
+  }
+
+  // Why it matters — grounded in porosity, density and goals.
+  const reasons: string[] = [];
+  if (p.includes("high")) {
+    reasons.push(
+      "your high-porosity hair loses moisture quickly, so a consistent wash rhythm followed by a moisture-rich conditioner keeps your strands hydrated between washes",
+    );
+  } else if (p.includes("low")) {
+    reasons.push(
+      "your low-porosity hair struggles to let moisture in, so regular cleansing removes the buildup that would otherwise block conditioner from absorbing",
+    );
+  } else {
+    reasons.push(
+      "regular cleansing clears the sebum, product residue and pollution that build up on the scalp between washes",
+    );
+  }
+
+  if (s.includes("oily")) {
+    reasons.push(
+      "your scalp runs on the oilier side, so leaving it too long between washes lets follicles clog and can slow growth",
+    );
+  } else if (s.includes("flaky") || s.includes("itchy")) {
+    reasons.push(
+      "your scalp is prone to flaking or itch, and a steady wash rhythm keeps that inflammation calm",
+    );
+  } else if (s.includes("dry")) {
+    reasons.push(
+      "your scalp tends to dryness, so an over-long gap lets it get tight and irritated — cleansing gently and re-moisturising resets it",
+    );
+  }
+
+  if (d.includes("high") || d.includes("thick")) {
+    reasons.push(
+      "with your denser hair, product and shed strands sit close to the scalp and need consistent washing to lift out",
+    );
+  }
+
+  const activeGoals = goalTitles.slice(0, 2);
+  if (activeGoals.length) {
+    reasons.push(
+      `a healthy, clean scalp is the foundation for your goal${activeGoals.length > 1 ? "s" : ""} — ${activeGoals.join(" and ")}`,
+    );
+  }
+
+  const why = reasons.slice(0, 3).join("; ") + ".";
+
+  // Next-wash reminder — anchored to the actual last wash date.
+  let reminder: string;
+  if (!lastWash) {
+    reminder = "Log your first wash day so we can time your next one for you.";
+  } else {
+    const nextDate = new Date(lastWash);
+    nextDate.setDate(nextDate.getDate() + idealDays);
+    const outerDate = new Date(lastWash);
+    outerDate.setDate(outerDate.getDate() + 10);
+    const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / 86400000);
+    const overdue = daysUntil < 0;
+
+    if (overdue) {
+      const overdueBy = Math.abs(daysUntil);
+      reminder = `Your ideal window (${fmtDayLong(nextDate)}) has passed by ${overdueBy} day${overdueBy === 1 ? "" : "s"} — aim to wash today or tomorrow to stay within the 7–10 day rhythm.`;
+    } else if (daysUntil === 0) {
+      reminder = `That means today, ${fmtDayLong(today)}, is your ideal next wash day.`;
+    } else if (daysUntil === 1) {
+      reminder = `That puts your next wash tomorrow, ${fmtDayLong(nextDate)} — no later than ${fmtDayLong(outerDate)}.`;
+    } else {
+      reminder = `That points to ${fmtDayLong(nextDate)} (in ${daysUntil} days) as your ideal next wash, and no later than ${fmtDayLong(outerDate)}.`;
+    }
+  }
+
+  return {
+    headline: p || d
+      ? `A ${cadenceLabel} rhythm suits your ${[p && `${p} porosity`, d && `${d} density`].filter(Boolean).map(startCase).join(", ")} hair.`
+      : `Aim to wash ${cadenceLabel} for a healthy scalp and strong strands.`,
+    window: cadenceLabel,
+    why,
+    reminder,
+  };
+};
+
 const encouragement = (count: number) => {
   if (count === 0) return "No wash days logged this month yet. Consistency is key to healthy hair.";
   if (count <= 2) return "Good start — keep going this month.";
-  if (count <= 4) return "Great consistency — washing weekly keeps your scalp clean and your hair hydrated.";
+  if (count <= 4) return "Great consistency — a steady rhythm is what your scalp and strands need.";
   return "Excellent — your scalp and hair will thank you for this routine.";
 };
 
@@ -167,6 +298,31 @@ const WashDayHub = () => {
     return { diffDays, lastDate, goalTitles: activeGoalTitles };
   }, [washDays, goals, today]);
 
+  const [clinical, setClinical] = useState<ClinicalContext | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadClinicalContext()
+      .then((ctx) => { if (!cancelled) setClinical(ctx); })
+      .catch(() => { /* non-fatal — encouragement falls back to generic copy */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const educational = useMemo(() => {
+    const lastIso = washDays[0]?.wash_date ?? null;
+    const activeGoalTitles = (goals ?? [])
+      .filter((g) => g.status !== "complete" && g.status !== "archived")
+      .map((g) => g.title)
+      .filter(Boolean) as string[];
+    return buildEducationalNote({
+      porosity: (clinical?.hair?.porosity ?? [])[0] ?? null,
+      density: (clinical?.hair?.density ?? [])[0] ?? null,
+      scalp: (clinical?.hair?.scalp ?? [])[0] ?? null,
+      goalTitles: activeGoalTitles,
+      lastWash: lastIso ? new Date(lastIso) : null,
+      today,
+    });
+  }, [clinical, washDays, goals, today]);
+
   const overdueReason = (() => {
     if (!overdue) return "";
     const base = "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
@@ -216,12 +372,33 @@ const WashDayHub = () => {
           onLogDate={(iso) => navigate(`/wash/step-1?date=${iso}`)}
         />
         <SurfaceCard tone="gold">
-          <p className="text-sm font-medium">
-            💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month
-          </p>
-          <p className="font-body text-sm text-muted-foreground mt-1">
-            {encouragement(currentMonthCount)}
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
+              <Droplets className="size-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
+                Wash rhythm
+              </p>
+              <p className="font-display text-[15px] leading-snug mt-1 break-words">
+                {educational.headline}
+              </p>
+              <p className="font-body text-[12.5px] leading-relaxed text-foreground/80 mt-2 break-words">
+                Why this matters — {educational.why}
+              </p>
+              <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
+                  Next wash reminder
+                </p>
+                <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
+                  {educational.reminder}
+                </p>
+              </div>
+              <p className="font-body text-[11.5px] text-muted-foreground mt-3">
+                💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
+              </p>
+            </div>
+          </div>
         </SurfaceCard>
       </div>
 
