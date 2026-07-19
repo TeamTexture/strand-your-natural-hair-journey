@@ -95,6 +95,7 @@ const App = () => (
         <AuthProvider>
           <GlobalEffects />
           <PhoneShell>
+            <GlobalMenu />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
