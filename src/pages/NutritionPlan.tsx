@@ -50,14 +50,52 @@ const chunkSentences = (text: string, perChunk = 2): string[] => {
   return chunks.filter(Boolean);
 };
 
+// Known "eyebrow" labels the AI uses to introduce a paragraph. When we spot one
+// mid-paragraph we split so each becomes its own visually distinct block.
+const LABELS = [
+  "Your signal",
+  "Your focus",
+  "Why it matters",
+  "Why this matters",
+  "How to use",
+  "How it helps",
+  "Watch for",
+  "Best sources",
+  "Try this",
+  "Note",
+];
+const LABEL_RE = new RegExp(`(?:^|\\s)(${LABELS.join("|")}):`, "g");
+
+const LABEL_TONE: Record<string, { dot: string; label: string }> = {
+  "your signal": { dot: "bg-primary", label: "text-primary" },
+  "your focus": { dot: "bg-primary", label: "text-primary" },
+  "why it matters": { dot: "bg-good", label: "text-good" },
+  "why this matters": { dot: "bg-good", label: "text-good" },
+  "how to use": { dot: "bg-good", label: "text-good" },
+  "how it helps": { dot: "bg-good", label: "text-good" },
+  "watch for": { dot: "bg-destructive", label: "text-destructive" },
+  "best sources": { dot: "bg-good", label: "text-good" },
+  "try this": { dot: "bg-primary", label: "text-primary" },
+  note: { dot: "bg-muted-foreground", label: "text-muted-foreground" },
+};
+
+const normaliseText = (raw: string): string => {
+  let t = String(raw ?? "");
+  // Convert literal "\n" sequences (as seen in "\n\nYour focus:") into real newlines.
+  t = t.replace(/\\n/g, "\n");
+  // Also handle stray leading "/n/n" typos from the model.
+  t = t.replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
+  // Force each known label onto its own paragraph.
+  t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
+  return t.replace(/\n{3,}/g, "\n\n").trim();
+};
+
 const RichBody = ({ text, className = "" }: { text: string; className?: string }) => {
-  const raw = String(text ?? "").trim();
+  const raw = normaliseText(text);
   let paras = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
-  // If the model returned one long paragraph, break it into readable chunks.
   if (paras.length <= 1 && raw.length > 220) {
     paras = chunkSentences(raw, 2);
   } else {
-    // Also split any individual paragraph that's still very long.
     paras = paras.flatMap((p) => (p.length > 260 ? chunkSentences(p, 2) : [p]));
   }
   const renderInline = (line: string, keyPrefix: string) => {
@@ -75,11 +113,30 @@ const RichBody = ({ text, className = "" }: { text: string; className?: string }
   };
   return (
     <div className={`space-y-3 ${className}`}>
-      {paras.map((p, i) => (
-        <p key={i} className="text-xs text-foreground/85 font-body leading-relaxed">
-          {renderInline(p, `p${i}`)}
-        </p>
-      ))}
+      {paras.map((p, i) => {
+        // Detect leading label like "Your signal:" and render as a labelled block.
+        const m = p.match(/^([A-Z][A-Za-z ]{2,24}):\s*([\s\S]*)$/);
+        const key = m?.[1]?.toLowerCase().trim();
+        const tone = key ? LABEL_TONE[key] : undefined;
+        if (m && tone) {
+          return (
+            <div key={i} className="relative pl-3">
+              <span className={`absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+              <p className={`text-[10px] uppercase tracking-[0.16em] font-semibold ${tone.label}`}>
+                {m[1]}
+              </p>
+              <p className="mt-1 text-xs text-foreground/85 font-body leading-relaxed">
+                {renderInline(m[2], `p${i}`)}
+              </p>
+            </div>
+          );
+        }
+        return (
+          <p key={i} className="text-xs text-foreground/85 font-body leading-relaxed">
+            {renderInline(p, `p${i}`)}
+          </p>
+        );
+      })}
     </div>
   );
 };
