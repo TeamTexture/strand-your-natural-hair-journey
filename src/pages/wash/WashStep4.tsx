@@ -216,7 +216,7 @@ const WashStep4 = () => {
         hair_feel_note: step3.note?.trim() ? step3.note.trim() : null,
         hair_feel_voice_url: step3.audioPath ?? null,
         ai_insight: observation,
-        next_wash_tip: saveNextTip && nextTip ? nextTip : null,
+        next_wash_tip: saveNextTip && nextTip ? JSON.stringify(nextTip) : null,
       };
 
       const { error } = await supabase.from("wash_days").insert(payload);
