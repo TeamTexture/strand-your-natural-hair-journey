@@ -18,8 +18,10 @@ import {
   clearBloodDraft,
   setDraftPanelDate,
   setUnknownMarkers,
+  persistBloodValues,
   type UnknownMarker,
 } from "@/hooks/useBloodValues";
+
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
