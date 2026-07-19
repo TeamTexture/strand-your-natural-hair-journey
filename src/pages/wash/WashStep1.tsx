@@ -288,27 +288,48 @@ const WashStep1 = () => {
   const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
   const { tools: allTools } = useUserTools();
 
+  // Products used on the user's most recent wash day. We only pre-populate
+  // steps from this list — never a broader category match — so today's log
+  // starts with exactly what the user reached for last time.
+  const [lastWashProductIds, setLastWashProductIds] = useState<string[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("wash_days")
+        .select("product_ids")
+        .order("wash_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const ids = Array.isArray(data?.product_ids) ? (data!.product_ids as string[]) : [];
+      setLastWashProductIds(ids);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Restore any in-progress draft (e.g. user came back from the scan flow
   // after adding a new product). Run once shelfProducts is available so we
   // can also auto-merge any newly-shelved products into the right step.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (hydrated) return;
-    // Wait for the shelf to finish loading before seeding category-based
-    // suggestions. Otherwise we lock in empty arrays before products arrive,
-    // and the wash day saves with product_ids=[] (no trigger bump).
+    // Wait for the shelf AND the last-wash lookup before seeding — otherwise
+    // we lock in empty arrays and lose the pre-fill.
     if (shelfLoading) return;
+    if (lastWashProductIds === null) return;
     let draft: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem("strand_wash_step1_draft");
       if (raw) draft = JSON.parse(raw) as Record<string, unknown>;
     } catch { /* ignore */ }
     const arr = (k: string) => (Array.isArray(draft[k]) ? (draft[k] as string[]) : []);
-    setPrePooIds(arr("prePooIds").length ? arr("prePooIds") : suggestStepProductIds(shelfProducts, "prepoo"));
-    setCleanseIds(arr("cleanseIds").length ? arr("cleanseIds") : suggestStepProductIds(shelfProducts, "cleanse"));
+    const lastIds = lastWashProductIds;
+    setPrePooIds(arr("prePooIds").length ? arr("prePooIds") : suggestStepProductIds(shelfProducts, "prepoo", lastIds));
+    setCleanseIds(arr("cleanseIds").length ? arr("cleanseIds") : suggestStepProductIds(shelfProducts, "cleanse", lastIds));
     setCoWashIds(arr("coWashIds"));
-    setConditionIds(arr("conditionIds").length ? arr("conditionIds") : suggestStepProductIds(shelfProducts, "condition"));
-    setTreatmentIds(arr("treatmentIds").length ? arr("treatmentIds") : suggestStepProductIds(shelfProducts, "treatment"));
+    setConditionIds(arr("conditionIds").length ? arr("conditionIds") : suggestStepProductIds(shelfProducts, "condition", lastIds));
+    setTreatmentIds(arr("treatmentIds").length ? arr("treatmentIds") : suggestStepProductIds(shelfProducts, "treatment", lastIds));
     if (typeof draft.prePoo === "string") setPrePoo(draft.prePoo as StepState);
     if (typeof draft.cleanse === "string") setCleanse(draft.cleanse as StepState);
     if (typeof draft.coWash === "string") setCoWash(draft.coWash as StepState);
@@ -319,7 +340,8 @@ const WashStep1 = () => {
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
     if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
     setHydrated(true);
-  }, [shelfProducts, shelfLoading, hydrated]);
+  }, [shelfProducts, shelfLoading, hydrated, lastWashProductIds]);
+
 
   // If user tapped a specific calendar date on the hub, persist it so WashStep4
   // saves the wash_day with that date rather than today.
