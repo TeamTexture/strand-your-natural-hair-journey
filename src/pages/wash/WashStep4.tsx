@@ -308,6 +308,40 @@ const WashStep4 = () => {
           )}
         </SurfaceCard>
 
+        {!obsLoading && !obsError && nextTip && (
+          <SurfaceCard tone="gold">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-medium">
+                ✨ Tip for next wash day
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowNextTip((s) => !s)}
+                className="text-[11px] uppercase tracking-[0.15em] text-primary"
+              >
+                {showNextTip ? "Hide" : "Preview"}
+              </button>
+            </div>
+            {showNextTip ? (
+              <p className="text-sm leading-snug">{nextTip}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                A tailored suggestion based on your shelf, tools, and goals. Tap Preview to see it.
+              </p>
+            )}
+            <label className="mt-3 flex items-center gap-2 text-xs text-foreground/80 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={saveNextTip}
+                onChange={(e) => setSaveNextTip(e.target.checked)}
+                className="size-4 accent-primary"
+              />
+              Save this tip to my wash day
+            </label>
+          </SurfaceCard>
+        )}
+
+
         <Button variant="gold" size="pill" className="mt-4" onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save Wash Day"}
         </Button>
