@@ -338,6 +338,8 @@ export default function BloodUpload() {
       clearBloodDraft();
       setDraftPanelDate(panelDate);
       setDraftPanelLabel(panelLabel);
+      setDraftPanelTestType(testType);
+      setDraftPanelLabName(labName);
 
       // Seed the known-marker cache that persistBloodValues reads from.
       const values: Record<string, number> = {};
