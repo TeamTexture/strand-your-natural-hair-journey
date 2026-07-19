@@ -196,6 +196,41 @@ const Home = () => {
     return () => { cancelled = true; };
   }, [user]);
 
+  // Latest blood panel summary for the "My Blood Work" home section.
+  useEffect(() => {
+    if (!user) { setBloodSummary(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: panels } = await supabase
+        .from("blood_panels")
+        .select("id, panel_date")
+        .eq("user_id", user.id)
+        .eq("status", "logged")
+        .order("panel_date", { ascending: false })
+        .limit(1);
+      const panel = panels?.[0] as { id?: string; panel_date?: string } | undefined;
+      if (!panel?.id) {
+        if (!cancelled) setBloodSummary(null);
+        return;
+      }
+      const { data: results } = await supabase
+        .from("blood_results")
+        .select("status")
+        .eq("user_id", user.id)
+        .eq("panel_id", panel.id);
+      const rows = (results ?? []) as Array<{ status: string | null }>;
+      const flagged = rows.filter((r) => r.status === "low" || r.status === "high").length;
+      if (!cancelled) {
+        setBloodSummary({
+          panelDate: panel.panel_date ?? null,
+          total: rows.length,
+          flagged,
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   // Days in style
   const daysInStyle = style.style_set_at
     ? Math.max(0, Math.floor((Date.now() - new Date(style.style_set_at).getTime()) / 86_400_000))
