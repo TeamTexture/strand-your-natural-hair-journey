@@ -606,50 +606,48 @@ const Profile = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Update after appointment CTA — go straight to the section being updated */}
-      <div className="px-5 pb-3 grid grid-cols-3 gap-3">
-        <button
-          onClick={() => navigate("/profile/personal")}
-          className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
-        >
-          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-            <User className="size-4" />
-          </div>
-          <div className="min-w-0 w-full">
-            <p className="text-[13px] font-semibold leading-tight">Personal details</p>
-            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
-              Name, age, postcode &amp; photo
-            </p>
-          </div>
-        </button>
-        <button
-          onClick={() => navigate("/profile/hair")}
-          className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
-        >
-          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-            <Sparkles className="size-4" />
-          </div>
-          <div className="min-w-0 w-full">
-            <p className="text-[13px] font-semibold leading-tight">Hair details</p>
-            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
-              Diameter, porosity &amp; scalp
-            </p>
-          </div>
-        </button>
-        <button
-          onClick={() => navigate("/blood-history")}
-          className="flex flex-col items-center justify-between gap-2 p-3 rounded-[14px] bg-primary/10 border border-primary/30 hover:bg-primary/15 transition-colors min-h-[110px] text-center w-full"
-        >
-          <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-            <Droplet className="size-4" />
-          </div>
-          <div className="min-w-0 w-full">
-            <p className="text-[13px] font-semibold leading-tight">Blood results</p>
-            <p className="text-[11px] text-foreground/70 mt-0.5 leading-snug">
-              Review &amp; edit tests
-            </p>
-          </div>
-        </button>
+      {/* Quick jumps to editable profile sections — full-width stacked buttons
+          so titles + subtitles can breathe across the row without wrapping. */}
+      <div className="px-5 pb-3 space-y-2.5">
+        {[
+          {
+            to: "/profile/personal",
+            icon: User,
+            title: "Personal details",
+            sub: "Name, age, postcode & photo",
+          },
+          {
+            to: "/profile/hair",
+            icon: Sparkles,
+            title: "Hair details",
+            sub: "Diameter, porosity & scalp",
+          },
+          {
+            to: "/blood-history",
+            icon: Droplet,
+            title: "Blood results",
+            sub: "Review & edit tests",
+          },
+        ].map(({ to, icon: Icon, title, sub }) => (
+          <button
+            key={to}
+            onClick={() => navigate(to)}
+            className="group w-full flex items-center gap-3.5 pl-3.5 pr-4 py-3.5 rounded-[16px] bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/25 hover:border-primary/50 hover:shadow-[0_4px_18px_-8px_hsl(var(--primary)/0.35)] transition-all text-left"
+          >
+            <div className="size-11 rounded-[13px] bg-gradient-to-br from-primary/30 to-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/20 group-hover:scale-[1.03] transition-transform">
+              <Icon className="size-[18px]" strokeWidth={1.75} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-[15px] font-semibold leading-tight whitespace-nowrap">
+                {title}
+              </p>
+              <p className="text-[12px] text-foreground/65 mt-1 leading-snug whitespace-nowrap overflow-hidden text-ellipsis">
+                {sub}
+              </p>
+            </div>
+            <ChevronRight className="size-4 text-primary/70 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        ))}
       </div>
 
       {/* Help & Support — always-visible entry point */}
