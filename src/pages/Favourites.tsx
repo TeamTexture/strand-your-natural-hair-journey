@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
+import BrandLink from "@/components/BrandLink";
 
 const Favourites = () => {
   const navigate = useNavigate();

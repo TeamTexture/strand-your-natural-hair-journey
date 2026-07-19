@@ -22,6 +22,7 @@ import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
+import BrandLink from "@/components/BrandLink";
 
 const Wishlist = () => {
   const navigate = useNavigate();

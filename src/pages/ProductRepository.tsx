@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import ProductThumb from "@/components/ProductThumb";
 import { useUserProducts, UserProduct } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
+import BrandLink from "@/components/BrandLink";
 
 type Tab = "shelf" | "wishlist" | "off-shelf";
 

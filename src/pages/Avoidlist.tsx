@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
+import BrandLink from "@/components/BrandLink";
 
 const Avoidlist = () => {
   const [exporting, setExporting] = useState(false);

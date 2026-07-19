@@ -17,6 +17,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
 import { Ruler, Sparkles } from "lucide-react";
 import {
+import BrandLink from "@/components/BrandLink";
   loadClinicalContext,
   loadClinicalContextLocal,
   invalidateClinicalContextCache,

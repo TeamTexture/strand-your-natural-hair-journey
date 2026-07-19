@@ -10,6 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { cn } from "@/lib/utils";
+import BrandLink from "@/components/BrandLink";
 
 const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }) => {
   if (p.on_shelf) return { label: "On shelf", tone: "text-good" };

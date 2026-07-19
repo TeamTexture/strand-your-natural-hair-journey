@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildAiContext } from "@/lib/aiContext";
+import BrandLink from "@/components/BrandLink";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
 interface IngredientFlag {
