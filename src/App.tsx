@@ -120,6 +120,10 @@ const App = () => (
 
               {/* Main app */}
               <Route path="/home" element={<Protected><Home /></Protected>} />
+              <Route path="/profile/personal" element={<Protected><PersonalDetailsReview /></Protected>} />
+              <Route path="/profile/health" element={<Protected><HealthReview /></Protected>} />
+              <Route path="/profile/hair" element={<Protected><HairReview /></Protected>} />
+              <Route path="/profile/colour" element={<Protected><ColourReview /></Protected>} />
               <Route path="/home/style" element={<Protected><SetCurrentStyle /></Protected>} />
               <Route path="/wash-day" element={<Protected><WashDayHub /></Protected>} />
               <Route path="/wash-day/:id" element={<Protected><WashDayDetail /></Protected>} />
