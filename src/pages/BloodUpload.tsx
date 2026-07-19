@@ -505,6 +505,7 @@ export default function BloodUpload() {
                   setLabName(null);
                   setPanelLabel(null);
                   setThumbSource(null);
+                  setLogoBbox(null);
                   if (thumbPreview) URL.revokeObjectURL(thumbPreview);
                   setThumbPreview(null);
                 }}
