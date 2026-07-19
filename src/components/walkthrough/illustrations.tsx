@@ -172,8 +172,8 @@ export const HomeIllustration = () => (
       >
         <span className="size-5 rounded-full bg-warn/30 text-warn flex items-center justify-center text-[10px]">⚠</span>
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-semibold leading-tight">Hard water + low ferritin</div>
-          <div className="text-[8px] text-foreground/60">Filter rec · iron-rich plan</div>
+          <div className="text-[10px] font-semibold leading-tight">Low ferritin flagged</div>
+          <div className="text-[8px] text-foreground/60">Iron-rich meal plan queued</div>
         </div>
       </div>
 
