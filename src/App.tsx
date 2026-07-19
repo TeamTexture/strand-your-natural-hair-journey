@@ -32,6 +32,7 @@ import SuccessScreen from "./pages/onboarding/SuccessScreen";
 import ProfileStepPhotos from "./pages/onboarding/ProfileStepPhotos";
 import StrandSummary from "./pages/onboarding/StrandSummary";
 import MilestoneGallery from "./pages/MilestoneGallery";
+import BloodHistory from "./pages/BloodHistory";
 
 // Main app
 import Home from "./pages/Home";
