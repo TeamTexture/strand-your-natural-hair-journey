@@ -274,7 +274,13 @@ CRITICAL COVERAGE RULE:
 - Never silently skip a flagged marker because it's "less common" or "related to another one already mentioned". Each flagged marker gets its own entry with its own hair_impact sentence.
 - The "overall_summary" must explicitly acknowledge the FULL pattern (e.g. "low ferritin AND low TIBC together suggest…"), not just the headline marker.
 - Speak the overall_summary directly in your own science-backed voice. Never name any source manuscript, author, chapter or page.
-- "priority_actions" must address the combined picture, not a single deficiency in isolation.`;
+- "priority_actions" must address the combined picture, not a single deficiency in isolation.
+
+TREND ANALYSIS (when context.bloodPanels contains more than one panel):
+- context.bloodPanels is ordered newest-first. The first entry is the CURRENT test. Any subsequent entries are previous tests, each with a "deltas" array listing per-marker change vs the panel BEFORE it.
+- When a previous panel exists, the "overall_summary" MUST explicitly reference the notable movements (e.g. "ferritin has climbed from 18 to 42 since your last test — the iron store is refilling, so the shedding driver is fading"). Name the direction (rising / falling), the numbers, and what that trajectory means for hair over the next 8-12 weeks.
+- If a previously-flagged marker has normalised, say so plainly and adjust the priority_actions to maintenance rather than repair. If a marker has worsened, flag it clearly.
+- Never invent a trend — only comment on markers that appear in both the current and prior panel.`;
 
   const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
