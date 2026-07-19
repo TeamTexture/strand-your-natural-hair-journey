@@ -204,9 +204,6 @@ export default function BloodUpload() {
   };
 
 
-  const toggle = (marker: string) =>
-    setChecked((p) => ({ ...p, [marker]: !p[marker] }));
-
   const updateValue = (marker: string, value: string) =>
     setRows((prev) =>
       prev.map((r) =>
@@ -214,64 +211,81 @@ export default function BloodUpload() {
       ),
     );
 
-  const selectedCount = useMemo(
-    () => rows.filter((r) => checked[r.marker]).length,
-    [rows, checked],
+  const removeRow = (marker: string) =>
+    setRows((prev) => prev.filter((r) => r.marker !== marker));
+
+  // Split extracted rows into markers STRAND tracks (matched to BLOOD_RANGES)
+  // vs "other" markers the report contained but we don't have a reference range
+  // for. Both get saved — the tracked ones drive the categorized review pages,
+  // and the "other" ones show up on the last page so nothing is lost.
+  const known = useMemo(
+    () => rows.filter((r) => BLOOD_RANGES[r.marker]),
+    [rows],
+  );
+  const unknown = useMemo(
+    () => rows.filter((r) => !BLOOD_RANGES[r.marker]),
+    [rows],
   );
 
-  const save = async () => {
+  const grouped = useMemo(() => {
+    const g: Record<string, ExtractedRow[]> = {
+      iron: [], vitamins: [], minerals: [], inflammation: [], thyroid: [], hormones: [],
+    };
+    known.forEach((r) => {
+      const cat = BLOOD_RANGES[r.marker]?.category;
+      if (cat && g[cat]) g[cat].push(r);
+    });
+    return g;
+  }, [known]);
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    iron: "Iron & Storage",
+    vitamins: "Vitamins",
+    minerals: "Minerals",
+    inflammation: "Inflammation & General",
+    thyroid: "Thyroid",
+    hormones: "Hormones",
+  };
+
+  const continueToReview = async () => {
     if (!user) {
       toast.error("Please sign in first");
       return;
     }
-    const chosen = rows.filter((r) => checked[r.marker] && Number.isFinite(r.value));
-    if (chosen.length === 0) {
-      toast.error("Select at least one marker to save");
+    const usable = rows.filter((r) => Number.isFinite(r.value));
+    if (usable.length === 0) {
+      toast.error("No valid values to review yet.");
       return;
     }
     setSaving(true);
     try {
-      // Create a new panel row
-      const { data: panel, error: panelErr } = await supabase
-        .from("blood_panels" as never)
-        .insert({
-          user_id: user.id,
-          panel_date: panelDate,
-          status: "logged",
-          label: files[0]?.name?.slice(0, 60) ?? null,
-        } as never)
-        .select("id")
-        .single();
-      if (panelErr || !panel) throw panelErr ?? new Error("panel insert failed");
-      const panelId = (panel as { id: string }).id;
+      // Start a fresh draft so we don't overwrite a prior in-progress panel.
+      clearBloodDraft();
+      setDraftPanelDate(panelDate);
 
-      const resultRows = chosen.map((r) => {
-        const ref = BLOOD_RANGES[r.marker];
-        return {
-          user_id: user.id,
-          panel_id: panelId,
-          marker: r.marker,
-          value: r.value,
-          unit: ref?.unit ?? r.unit,
-          category: ref?.category ?? null,
-          status: evaluate(r.marker, r.value),
-        };
+      // Hydrate the known-marker cache the onboarding pages read from.
+      const values: Record<string, number> = {};
+      known.forEach((r) => {
+        if (Number.isFinite(r.value)) values[r.marker] = r.value;
       });
+      localStorage.setItem("strand_blood_values", JSON.stringify(values));
 
-      const { error: resErr } = await supabase
-        .from("blood_results")
-        .insert(resultRows as never);
-      if (resErr) throw resErr;
+      // Stash unknown markers so the last onboarding step can display them.
+      const unknownList: UnknownMarker[] = unknown
+        .filter((r) => Number.isFinite(r.value))
+        .map((r) => ({ marker: r.marker, value: r.value, unit: r.unit || "" }));
+      setUnknownMarkers(unknownList);
 
-      toast.success(`Saved ${chosen.length} marker${chosen.length === 1 ? "" : "s"}`);
-      navigate("/blood-history");
+      window.dispatchEvent(new Event("strand:blood-update"));
+      navigate("/onboarding/blood-iron-vitamins");
     } catch (err) {
-      console.error("save failed:", err);
-      toast.error("Couldn't save results. Please try again.");
+      console.error("hydrate failed:", err);
+      toast.error("Couldn't open review. Please try again.");
     } finally {
       setSaving(false);
     }
   };
+
 
   return (
     <ScreenLayout>
