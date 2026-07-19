@@ -469,7 +469,7 @@ const Home = () => {
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="size-3.5 text-primary" />
                         <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-medium">
-                          Strand tip
+                          Strand tip of the day
                         </p>
                       </div>
                       <button
