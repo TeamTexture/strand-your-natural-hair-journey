@@ -45,9 +45,9 @@ export interface HomeAlert {
   title: string;
   body: string;
   to: string;
-  /** "warning" = cautionary; "good" = positive/encouraging. Used by the UI
-   *  if it wants to style alerts differently — Home renders both today. */
-  tone?: "warning" | "good";
+  /** "warning" = cautionary; "good" = positive/encouraging; "danger" = urgent (red).
+   *  Used by the UI if it wants to style alerts differently. */
+  tone?: "warning" | "good" | "danger";
   /** Stable signature representing the underlying state. If this changes, the
    *  alert is treated as new and any previous dismissal is ignored. */
   signature: string;
