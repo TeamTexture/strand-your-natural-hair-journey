@@ -179,6 +179,13 @@ export default function BloodPanelReview() {
   const deletePanel = useMutation({
     mutationFn: async () => {
       if (!id) return;
+      // Best-effort remove the source-doc thumbnail before deleting the row.
+      if (panel?.thumbnail_path) {
+        await supabase.storage
+          .from("blood-panel-thumbs")
+          .remove([panel.thumbnail_path])
+          .catch(() => {});
+      }
       const { error } = await supabase
         .from("blood_panels" as never)
         .delete()
