@@ -14,7 +14,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
-import { Ruler, Sparkles } from "lucide-react";
+import { Ruler, Sparkles, Droplet } from "lucide-react";
 import {
   loadClinicalContext,
   loadClinicalContextLocal,
