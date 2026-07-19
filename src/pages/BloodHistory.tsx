@@ -68,6 +68,7 @@ interface PanelRow {
   label: string | null;
   test_type: string | null;
   lab_name: string | null;
+  thumbnail_path: string | null;
   notes: string | null;
 }
 interface ResultRow {
