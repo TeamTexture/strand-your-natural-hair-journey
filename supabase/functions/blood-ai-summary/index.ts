@@ -156,7 +156,9 @@ OUTPUT RULES
 
 8. NO chapter citations. NO "Read more — How To Love Your Afro" links.
 
-9. Plain English, no jargon without immediate translation. Treat the user as a capable adult who knows her body.`;
+9. Plain English, no jargon without immediate translation. Treat the user as a capable adult who knows her body.
+
+10. TREND ANALYSIS. When context.bloodPanels contains more than one panel (newest first), the overall_summary MUST reference notable movements between the current panel and the previous one. Each prior panel includes a "deltas" array listing per-marker change vs the panel before it — cite direction (rising/falling), the actual numbers, and the hair implication over the next 8-12 weeks. If a previously-flagged marker has normalised, say so and shift priority_actions toward maintenance. Never invent a trend for markers that don't appear in both panels.`;
 }
 
 async function runClaude(args: {
