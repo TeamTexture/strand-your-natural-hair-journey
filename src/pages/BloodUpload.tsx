@@ -41,7 +41,7 @@ export default function BloodUpload() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [rows, setRows] = useState<ExtractedRow[]>([]);
   const [panelDate, setPanelDate] = useState<string>(
@@ -61,12 +61,18 @@ export default function BloodUpload() {
 
   const pick = () => inputRef.current?.click();
 
-  const runExtract = useCallback(async (payloadFile: File) => {
+  const runExtract = useCallback(async (payloadFiles: File[]) => {
     setExtracting(true);
     try {
-      const b64 = await fileToBase64(payloadFile);
+      const encoded = await Promise.all(
+        payloadFiles.map(async (f) => ({
+          data: await fileToBase64(f),
+          mime: f.type || "application/octet-stream",
+          name: f.name,
+        })),
+      );
       const { data, error } = await supabase.functions.invoke("blood-extract", {
-        body: { file: { data: b64, mime: payloadFile.type || "application/pdf", name: payloadFile.name } },
+        body: { files: encoded },
       });
       if (error) throw error;
       const results = (data?.results ?? []) as ExtractedRow[];
@@ -76,63 +82,86 @@ export default function BloodUpload() {
       results.forEach((r) => { initialChecked[r.marker] = true; });
       setChecked(initialChecked);
       if (results.length === 0) {
-        toast.error("No markers found. Try a clearer photo or the PDF from your lab.");
+        toast.error("No markers found. Try clearer photos or the PDF from your lab.");
       } else {
         toast.success(`Found ${results.length} marker${results.length === 1 ? "" : "s"}`);
       }
     } catch (err) {
       console.error("blood-extract failed:", err);
-      toast.error("Couldn't read that file. Try again with a clearer photo or PDF.");
+      toast.error("Couldn't read that file. Try again with clearer photos or a PDF.");
     } finally {
       setExtracting(false);
     }
   }, []);
 
-  const onFile = useCallback(async (f: File | null) => {
-    if (!f) return;
-    if (f.size > 15 * 1024 * 1024) {
-      toast.error("File is too large. Please upload under 15 MB.");
+  const onFiles = useCallback(async (list: FileList | File[] | null) => {
+    if (!list) return;
+    const arr = Array.from(list);
+    if (arr.length === 0) return;
+
+    const pdfs = arr.filter((f) => f.type === "application/pdf");
+    const imgs = arr.filter((f) => f.type.startsWith("image/"));
+    const other = arr.filter((f) => !pdfs.includes(f) && !imgs.includes(f));
+    if (other.length > 0) {
+      toast.error("Only PDF or image files are supported.");
       return;
     }
-    setFile(f);
+    if (pdfs.length > 1) {
+      toast.error("You can upload 1 PDF at a time.");
+      return;
+    }
+    if (pdfs.length === 1 && imgs.length > 0) {
+      toast.error("Upload either 1 PDF or photos — not both.");
+      return;
+    }
+    if (imgs.length > 10) {
+      toast.error("Up to 10 photos allowed.");
+      return;
+    }
+    const tooBig = arr.find((f) => f.size > 15 * 1024 * 1024);
+    if (tooBig) {
+      toast.error(`"${tooBig.name}" is over 15 MB. Please choose a smaller file.`);
+      return;
+    }
+
     setRows([]);
     setChecked({});
 
-    // PDFs: always convert to an image before sending. The AI gateway's
-    // Gemini path doesn't accept raw PDF file parts, so we render the first
-    // few pages client-side and send as JPEG. Try opening with an empty
-    // password first — many "encrypted" lab PDFs have a blank user password
-    // (permissions-only). Only prompt for a password if pdf.js actually
-    // refuses to open the document.
-    if (f.type === "application/pdf") {
-      const buf = new Uint8Array(await f.arrayBuffer());
+    // Single PDF path — render to images client-side (gateway won't accept raw PDFs).
+    if (pdfs.length === 1) {
+      const pdf = pdfs[0];
+      setFiles([pdf]);
+      const buf = new Uint8Array(await pdf.arrayBuffer());
       try {
         setExtracting(true);
         const image = await renderPdfToImage(buf, "", { maxPages: 6 });
         const shown = new File(
           [image],
-          f.name.replace(/\.pdf$/i, "") + ".jpg",
+          pdf.name.replace(/\.pdf$/i, "") + ".jpg",
           { type: "image/jpeg" },
         );
-        setFile(shown);
+        setFiles([shown]);
         setExtracting(false);
-        await runExtract(image);
+        await runExtract([image]);
       } catch (err) {
         setExtracting(false);
         if (err instanceof PdfPasswordRequiredError) {
           setPendingBytes(buf);
-          setPendingName(f.name);
+          setPendingName(pdf.name);
           setPwValue("");
           setPwError(null);
           setPwOpen(true);
           return;
         }
         console.error("pdf render failed:", err);
-        toast.error("Couldn't open that PDF. Try a photo or a different file.");
+        toast.error("Couldn't open that PDF. Try photos instead.");
       }
       return;
     }
-    await runExtract(f);
+
+    // Photos path — up to 10.
+    setFiles(imgs);
+    await runExtract(imgs);
   }, [runExtract]);
 
   const submitPassword = async () => {
@@ -143,10 +172,9 @@ export default function BloodUpload() {
       const image = await renderPdfToImage(pendingBytes, pwValue, { maxPages: 6 });
       setPwOpen(false);
       setPendingBytes(null);
-      // Swap the shown file to the unlocked image so downstream flow works
       const shown = new File([image], pendingName.replace(/\.pdf$/i, "") + " (unlocked).jpg", { type: "image/jpeg" });
-      setFile(shown);
-      await runExtract(image);
+      setFiles([shown]);
+      await runExtract([image]);
     } catch (err) {
       if (err instanceof PdfPasswordRequiredError) {
         setPwError(err.incorrect ? "Incorrect password — try again." : "Password required.");
@@ -165,8 +193,9 @@ export default function BloodUpload() {
     setPendingName("");
     setPwValue("");
     setPwError(null);
-    setFile(null);
+    setFiles([]);
   };
+
 
   const toggle = (marker: string) =>
     setChecked((p) => ({ ...p, [marker]: !p[marker] }));
@@ -202,7 +231,7 @@ export default function BloodUpload() {
           user_id: user.id,
           panel_date: panelDate,
           status: "logged",
-          label: file?.name?.slice(0, 60) ?? null,
+          label: files[0]?.name?.slice(0, 60) ?? null,
         } as never)
         .select("id")
         .single();
@@ -246,7 +275,7 @@ export default function BloodUpload() {
           and pre-fill your panel — check them, then save.
         </p>
 
-        {!file && (
+        {files.length === 0 && (
           <SurfaceCard>
             <div
               onClick={pick}
@@ -256,8 +285,7 @@ export default function BloodUpload() {
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOver(false);
-                const dropped = e.dataTransfer.files?.[0];
-                if (dropped) onFile(dropped);
+                onFiles(e.dataTransfer.files);
               }}
               role="button"
               tabIndex={0}
@@ -275,7 +303,7 @@ export default function BloodUpload() {
                   {dragOver ? "Drop to upload" : "Upload results"}
                 </p>
                 <p className="text-xs text-foreground/60 font-body">
-                  Drag & drop, or tap to choose · PDF or photo · up to 15 MB
+                  Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 15 MB each
                 </p>
               </div>
             </div>
@@ -283,38 +311,56 @@ export default function BloodUpload() {
               ref={inputRef}
               type="file"
               accept="application/pdf,image/*"
+              multiple
               className="hidden"
-              onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => onFiles(e.target.files)}
             />
           </SurfaceCard>
         )}
 
 
-        {file && (
+        {files.length > 0 && (
           <SurfaceCard>
-            <div className="flex items-center gap-3">
-              {file.type === "application/pdf" ? (
-                <FileText className="size-6 text-primary shrink-0" />
-              ) : (
-                <ImageIcon className="size-6 text-primary shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-body font-medium truncate">{file.name}</p>
-                <p className="text-xs text-foreground/60 font-body">
-                  {(file.size / 1024).toFixed(0)} KB
-                </p>
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-foreground/60 font-body">
+                {files.length === 1 ? "1 file" : `${files.length} photos`}
+              </p>
               <button
                 onClick={() => {
-                  setFile(null);
+                  setFiles([]);
                   setRows([]);
                   setChecked({});
                 }}
-                className="size-8 rounded-full hover:bg-muted flex items-center justify-center"
-                aria-label="Remove file"
+                className="text-xs text-foreground/60 hover:text-foreground font-body underline"
               >
-                <X className="size-4" />
+                Remove all
               </button>
+            </div>
+            <div className="space-y-2">
+              {files.map((f, i) => (
+                <div key={`${f.name}-${i}`} className="flex items-center gap-3">
+                  {f.type === "application/pdf" ? (
+                    <FileText className="size-6 text-primary shrink-0" />
+                  ) : (
+                    <ImageIcon className="size-6 text-primary shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-body font-medium truncate">{f.name}</p>
+                    <p className="text-xs text-foreground/60 font-body">
+                      {(f.size / 1024).toFixed(0)} KB
+                    </p>
+                  </div>
+                  {files.length > 1 && (
+                    <button
+                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="size-8 rounded-full hover:bg-muted flex items-center justify-center"
+                      aria-label="Remove file"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </SurfaceCard>
         )}

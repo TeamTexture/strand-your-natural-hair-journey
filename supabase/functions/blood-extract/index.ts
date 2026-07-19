@@ -76,37 +76,54 @@ Deno.serve(async (req) => {
     const auth = req.headers.get("Authorization");
     if (!auth) return json(401, { error: "Missing authorization" });
 
+    type InFile = { data?: string; mime?: string; name?: string };
     const body = await req.json().catch(() => null) as
-      | { file?: { data?: string; mime?: string; name?: string } }
+      | { file?: InFile; files?: InFile[] }
       | null;
-    const file = body?.file;
-    if (!file?.data || !file?.mime) {
-      return json(400, { error: "file.data (base64) and file.mime are required" });
+    const files: InFile[] = body?.files && Array.isArray(body.files) && body.files.length > 0
+      ? body.files
+      : body?.file
+      ? [body.file]
+      : [];
+    if (files.length === 0) {
+      return json(400, { error: "file(s) required" });
+    }
+    if (files.length > 10) {
+      return json(400, { error: "Up to 10 files allowed" });
+    }
+    for (const f of files) {
+      if (!f?.data || !f?.mime) {
+        return json(400, { error: "each file needs data (base64) and mime" });
+      }
+      const isPdf = f.mime === "application/pdf";
+      const isImage = f.mime.startsWith("image/");
+      if (!isPdf && !isImage) {
+        return json(400, { error: `Unsupported file type: ${f.mime}. Upload a PDF or image.` });
+      }
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json(500, { error: "LOVABLE_API_KEY not configured" });
 
-    const isPdf = file.mime === "application/pdf";
-    const isImage = file.mime.startsWith("image/");
-    if (!isPdf && !isImage) {
-      return json(400, { error: `Unsupported file type: ${file.mime}. Upload a PDF or image.` });
-    }
-
-    const dataUrl = `data:${file.mime};base64,${file.data}`;
     const userContent: Array<Record<string, unknown>> = [
-      { type: "text", text: "Extract blood test markers from this report. Return JSON only." },
+      {
+        type: "text",
+        text: files.length > 1
+          ? `Extract blood test markers from these ${files.length} report pages/photos. Merge results across all images (deduplicate by marker, keep the clearest reading). Return JSON only.`
+          : "Extract blood test markers from this report. Return JSON only.",
+      },
     ];
-    if (isImage) {
-      userContent.push({ type: "image_url", image_url: { url: dataUrl } });
-    } else {
-      userContent.push({
-        type: "file",
-        file: {
-          filename: file.name ?? "blood-test.pdf",
-          file_data: dataUrl,
-        },
-      });
+    for (const f of files) {
+      const dataUrl = `data:${f.mime};base64,${f.data}`;
+      const isImage = (f.mime ?? "").startsWith("image/");
+      if (isImage) {
+        userContent.push({ type: "image_url", image_url: { url: dataUrl } });
+      } else {
+        userContent.push({
+          type: "file",
+          file: { filename: f.name ?? "blood-test.pdf", file_data: dataUrl },
+        });
+      }
     }
 
     const gwRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
