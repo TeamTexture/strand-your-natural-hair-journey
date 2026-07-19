@@ -59,6 +59,53 @@ interface PhotoItem {
 }
 
 
+// Pick a topical icon based on keywords in the tip text
+const pickIcon = (text: string): LucideIcon => {
+  const t = text.toLowerCase();
+  if (/tt heat hat|heat hat|blow.?dry|flat.?iron|straight|thermal|heat/.test(t)) return Flame;
+  if (/clarif|chelat|hard water|mineral|build.?up|shampoo/.test(t)) return Waves;
+  if (/moistur|hydrat|water|conditioner|leave.?in|lco|lok/.test(t)) return Droplets;
+  if (/protein|bond|keratin|strength/.test(t)) return Shield;
+  if (/trim|scissor|split end|cut/.test(t)) return Scissors;
+  if (/night|sleep|bonnet|satin|silk|pillow/.test(t)) return Moon;
+  if (/sun|uv|spf|summer/.test(t)) return Sun;
+  if (/scalp|massage|follicle|circulation/.test(t)) return HeartPulse;
+  if (/oil|seal|jbco|castor|jojoba|argan/.test(t)) return Leaf;
+  if (/wind|air.?dry|diffus/.test(t)) return Wind;
+  if (/supplement|vitamin|iron|ferritin|biotin|zinc/.test(t)) return Pill;
+  if (/diet|nutrition|protein.?rich|food|eat|omega/.test(t)) return Apple;
+  if (/exercise|activity|stress|cortisol/.test(t)) return Activity;
+  if (/week|month|day|schedule|routine|frequency/.test(t)) return Calendar;
+  return Sparkle;
+};
+
+// Render text with "TT Heat Hat" turned into a link and stray URLs cleaned up
+const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
+const renderRichText = (text: string) => {
+  // Strip parenthetical/plain URL mentions of teamtexture so we don't double up
+  const cleaned = text
+    .replace(/\s*\(https?:\/\/(?:www\.)?teamtexture\.co\.uk[^)]*\)/gi, "")
+    .replace(/\s*—\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "")
+    .replace(/\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "");
+  const parts = cleaned.split(/(TT Heat Hat)/gi);
+  return parts.map((part, i) =>
+    /^tt heat hat$/i.test(part) ? (
+      <a
+        key={i}
+        href={HEAT_HAT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+};
+
+
 interface Summary {
   overview: string;
   action_plan: string[];
