@@ -279,34 +279,11 @@ const PersonalDetailsReview = () => {
         <ReviewField
           label="Postcode"
           value={profile?.postcode ?? ""}
-          hint="Used to look up your area's water hardness."
           kind={{ type: "text", placeholder: "e.g. SW6 3BX", uppercase: true, maxLength: 8 }}
           autoEdit={editKey === "postcode"}
           onSave={async (v) => {
             const pc = String(v).trim().toUpperCase();
             await saveField({ postcode: pc });
-            // Refresh water hardness in the background.
-            if ((profile?.country ?? "United Kingdom") === "United Kingdom") {
-              supabase.functions
-                .invoke("water-hardness-lookup", { body: { postcode: pc } })
-                .then(async ({ data }) => {
-                  const d = (data ?? {}) as {
-                    mg_l?: number;
-                    band?: string;
-                    supplier?: string;
-                  };
-                  await supabase
-                    .from("profiles")
-                    .update({
-                      water_hardness_mg_l: d.mg_l ?? null,
-                      water_hardness_band: d.band ?? null,
-                      water_supplier: d.supplier ?? null,
-                    } as never)
-                    .eq("user_id", user!.id);
-                  invalidate();
-                })
-                .catch(() => undefined);
-            }
           }}
         />
 
