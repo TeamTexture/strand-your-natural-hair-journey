@@ -245,8 +245,13 @@ export default function BloodUpload() {
       return;
     }
 
-    // Photos path — up to 10.
+    // Photos path — up to 10. First photo becomes the panel thumbnail source.
     setFiles(imgs);
+    setThumbSource(imgs[0]);
+    setThumbPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(imgs[0]);
+    });
     await runExtract(imgs);
   }, [runExtract]);
 
