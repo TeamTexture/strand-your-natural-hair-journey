@@ -188,7 +188,7 @@ const BloodHistory = () => {
 
   const startNew = () => {
     clearBloodDraft();
-    navigate("/onboarding/blood-timing");
+    navigate("/onboarding/blood-iron-vitamins");
   };
 
   const logScheduled = (p: PanelRow) => {
