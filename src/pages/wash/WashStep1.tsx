@@ -37,9 +37,19 @@ type StepKind = "prepoo" | "cleanse" | "condition" | "treatment";
  * Pick product IDs from the user's shelf that look like they belong to a wash-day step.
  * Used only as a starter suggestion — the user can add or remove inline.
  */
-const suggestStepProductIds = (shelf: UserProduct[], kind: StepKind): string[] =>
-  shelf
+const suggestStepProductIds = (
+  shelf: UserProduct[],
+  kind: StepKind,
+  lastWashIds: string[],
+): string[] => {
+  // Only pre-populate a step with products the user actually used on their
+  // last wash day. First-ever wash days (or steps with no matching product
+  // from the last log) start empty — the user has to add products manually.
+  if (!lastWashIds.length) return [];
+  const lastSet = new Set(lastWashIds);
+  return shelf
     .filter((p) => {
+      if (!lastSet.has(p.id)) return false;
       const cat = (p.category ?? "").toLowerCase();
       const name = (p.name ?? "").toLowerCase();
       if (kind === "cleanse") return /shampoo|cleans|co-?wash/.test(cat) || /shampoo|cleans|co-?wash/.test(name);
@@ -49,6 +59,8 @@ const suggestStepProductIds = (shelf: UserProduct[], kind: StepKind): string[] =
       return false;
     })
     .map((p) => p.id);
+};
+
 
 
 interface Step {
@@ -84,6 +96,8 @@ const StepCard = ({
    * If omitted we just show the products captured for this step.
    */
   summaryChips,
+  /** Show a "from your last wash day" hint above the picked list. */
+  showLastWashHint = false,
 }: {
   step: Step;
   state: StepState;
@@ -93,7 +107,9 @@ const StepCard = ({
   onOpenPicker: () => void;
   editor?: React.ReactNode;
   summaryChips?: string[];
+  showLastWashHint?: boolean;
 }) => {
+
   const isEditing = state === "editing";
   const isDone = state === "done";
   const isSkipped = state === "skipped";
@@ -183,6 +199,12 @@ const StepCard = ({
           (which itself supports photo / upload / link with auto-save to shelf). */}
       {isEditing && (
         <div className="mt-3 space-y-2">
+          {showLastWashHint && selectedProducts.length > 0 && (
+            <div className="px-3 py-2 rounded-[10px] bg-primary/5 border border-primary/20 text-[11px] text-foreground/80 leading-snug">
+              Pre-filled from your last wash day. Used these again? Remove any you didn't, or add a new one below.
+            </div>
+          )}
+
           {selectedProducts.map((p) => (
             <div
               key={p.id}
@@ -276,27 +298,48 @@ const WashStep1 = () => {
   const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
   const { tools: allTools } = useUserTools();
 
+  // Products used on the user's most recent wash day. We only pre-populate
+  // steps from this list — never a broader category match — so today's log
+  // starts with exactly what the user reached for last time.
+  const [lastWashProductIds, setLastWashProductIds] = useState<string[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("wash_days")
+        .select("product_ids")
+        .order("wash_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const ids = Array.isArray(data?.product_ids) ? (data!.product_ids as string[]) : [];
+      setLastWashProductIds(ids);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Restore any in-progress draft (e.g. user came back from the scan flow
   // after adding a new product). Run once shelfProducts is available so we
   // can also auto-merge any newly-shelved products into the right step.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (hydrated) return;
-    // Wait for the shelf to finish loading before seeding category-based
-    // suggestions. Otherwise we lock in empty arrays before products arrive,
-    // and the wash day saves with product_ids=[] (no trigger bump).
+    // Wait for the shelf AND the last-wash lookup before seeding — otherwise
+    // we lock in empty arrays and lose the pre-fill.
     if (shelfLoading) return;
+    if (lastWashProductIds === null) return;
     let draft: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem("strand_wash_step1_draft");
       if (raw) draft = JSON.parse(raw) as Record<string, unknown>;
     } catch { /* ignore */ }
     const arr = (k: string) => (Array.isArray(draft[k]) ? (draft[k] as string[]) : []);
-    setPrePooIds(arr("prePooIds").length ? arr("prePooIds") : suggestStepProductIds(shelfProducts, "prepoo"));
-    setCleanseIds(arr("cleanseIds").length ? arr("cleanseIds") : suggestStepProductIds(shelfProducts, "cleanse"));
+    const lastIds = lastWashProductIds;
+    setPrePooIds(arr("prePooIds").length ? arr("prePooIds") : suggestStepProductIds(shelfProducts, "prepoo", lastIds));
+    setCleanseIds(arr("cleanseIds").length ? arr("cleanseIds") : suggestStepProductIds(shelfProducts, "cleanse", lastIds));
     setCoWashIds(arr("coWashIds"));
-    setConditionIds(arr("conditionIds").length ? arr("conditionIds") : suggestStepProductIds(shelfProducts, "condition"));
-    setTreatmentIds(arr("treatmentIds").length ? arr("treatmentIds") : suggestStepProductIds(shelfProducts, "treatment"));
+    setConditionIds(arr("conditionIds").length ? arr("conditionIds") : suggestStepProductIds(shelfProducts, "condition", lastIds));
+    setTreatmentIds(arr("treatmentIds").length ? arr("treatmentIds") : suggestStepProductIds(shelfProducts, "treatment", lastIds));
     if (typeof draft.prePoo === "string") setPrePoo(draft.prePoo as StepState);
     if (typeof draft.cleanse === "string") setCleanse(draft.cleanse as StepState);
     if (typeof draft.coWash === "string") setCoWash(draft.coWash as StepState);
@@ -307,7 +350,8 @@ const WashStep1 = () => {
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
     if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
     setHydrated(true);
-  }, [shelfProducts, shelfLoading, hydrated]);
+  }, [shelfProducts, shelfLoading, hydrated, lastWashProductIds]);
+
 
   // If user tapped a specific calendar date on the hub, persist it so WashStep4
   // saves the wash_day with that date rather than today.
@@ -377,11 +421,13 @@ const WashStep1 = () => {
   };
   const handleTogglePicked = (productId: string) => {
     if (!pickerTarget) return;
+    markTouched(pickerTarget);
     const current = targetIds[pickerTarget];
     targetSetters[pickerTarget](
       current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
     );
   };
+
 
   // When the user adds a brand new product via the picker (auto_save) they
   // get bounced through the scan/detail flow and back to this URL. We watch
@@ -449,8 +495,22 @@ const WashStep1 = () => {
     }
   };
 
-  const removeFrom = (setter: (v: string[]) => void, ids: string[]) => (id: string) =>
+  // Track which step editors the user has actively touched, so the
+  // "pre-filled from your last wash day" hint disappears once they act on it.
+  type StepKey = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment";
+  const [touchedSteps, setTouchedSteps] = useState<Set<StepKey>>(new Set());
+  const markTouched = (k: StepKey) =>
+    setTouchedSteps((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  const hintFor = (k: StepKey, selectedCount: number): boolean =>
+    !!(lastWashProductIds && lastWashProductIds.length > 0)
+    && !touchedSteps.has(k)
+    && selectedCount > 0;
+
+  const removeFrom = (setter: (v: string[]) => void, ids: string[], key: StepKey) => (id: string) => {
+    markTouched(key);
     setter(ids.filter((x) => x !== id));
+  };
+
 
   return (
     <ScreenLayout>
@@ -468,7 +528,8 @@ const WashStep1 = () => {
           state={prePoo}
           setState={setPrePoo}
           selectedProducts={prePooSelected}
-          onRemoveProduct={removeFrom(setPrePooIds, prePooIds)}
+          onRemoveProduct={removeFrom(setPrePooIds, prePooIds, "prepoo")}
+          showLastWashHint={hintFor("prepoo", prePooSelected.length)}
           onOpenPicker={() => openPicker("prepoo")}
         />
         <StepCard
@@ -476,7 +537,8 @@ const WashStep1 = () => {
           state={cleanse}
           setState={setCleanse}
           selectedProducts={cleanseSelected}
-          onRemoveProduct={removeFrom(setCleanseIds, cleanseIds)}
+          onRemoveProduct={removeFrom(setCleanseIds, cleanseIds, "cleanse")}
+          showLastWashHint={hintFor("cleanse", cleanseSelected.length)}
           onOpenPicker={() => openPicker("cleanse")}
         />
         <StepCard
@@ -484,7 +546,8 @@ const WashStep1 = () => {
           state={coWash}
           setState={setCoWash}
           selectedProducts={coWashSelected}
-          onRemoveProduct={removeFrom(setCoWashIds, coWashIds)}
+          onRemoveProduct={removeFrom(setCoWashIds, coWashIds, "cowash")}
+          showLastWashHint={hintFor("cowash", coWashSelected.length)}
           onOpenPicker={() => openPicker("cowash")}
         />
         {/* Science-grounded caution: cationic surfactants in co-washes (e.g.
@@ -517,7 +580,8 @@ const WashStep1 = () => {
           state={condition}
           setState={setCondition}
           selectedProducts={conditionSelected}
-          onRemoveProduct={removeFrom(setConditionIds, conditionIds)}
+          onRemoveProduct={removeFrom(setConditionIds, conditionIds, "condition")}
+          showLastWashHint={hintFor("condition", conditionSelected.length)}
           onOpenPicker={() => openPicker("condition")}
           // Once Done, surface the conditioner(s) the user picked + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
@@ -669,7 +733,8 @@ const WashStep1 = () => {
           state={treatment}
           setState={setTreatment}
           selectedProducts={treatmentSelected}
-          onRemoveProduct={removeFrom(setTreatmentIds, treatmentIds)}
+          onRemoveProduct={removeFrom(setTreatmentIds, treatmentIds, "treatment")}
+          showLastWashHint={hintFor("treatment", treatmentSelected.length)}
           onOpenPicker={() => openPicker("treatment")}
           // Show the treatment type tags the user picked, plus the products they selected
           // so the collapsed card reflects what they actually captured.
