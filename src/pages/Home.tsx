@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle, Heart, FlaskConical } from "lucide-react";
+import { HelpCircle, Heart, Droplet } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -86,6 +86,7 @@ const Home = () => {
     label: string | null;
     total: number;
     flagged: number;
+    insights: string[];
   } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(() => {
     // Hydrate instantly from the local snapshot so the Home card never
@@ -208,25 +209,75 @@ const Home = () => {
         .eq("user_id", user.id)
         .eq("status", "logged")
         .order("panel_date", { ascending: false })
-        .limit(1);
-      const panel = panels?.[0] as { id?: string; panel_date?: string; label?: string | null } | undefined;
+        .limit(2);
+      const panelRows = (panels ?? []) as Array<{ id: string; panel_date: string | null; label: string | null }>;
+      const panel = panelRows[0];
+      const prevPanel = panelRows[1];
       if (!panel?.id) {
         if (!cancelled) setBloodSummary(null);
         return;
       }
+      const panelIds = panelRows.map((p) => p.id);
       const { data: results } = await supabase
         .from("blood_results")
-        .select("status")
+        .select("marker, value, status, panel_id")
         .eq("user_id", user.id)
-        .eq("panel_id", panel.id);
-      const rows = (results ?? []) as Array<{ status: string | null }>;
-      const flagged = rows.filter((r) => r.status === "low" || r.status === "high").length;
+        .in("panel_id", panelIds);
+      const rows = (results ?? []) as Array<{ marker: string; value: number | null; status: string | null; panel_id: string }>;
+      const current = rows.filter((r) => r.panel_id === panel.id);
+      const previous = prevPanel ? rows.filter((r) => r.panel_id === prevPanel.id) : [];
+      const prevByMarker = new Map(previous.map((r) => [r.marker, r]));
+
+      const prettyMarker = (m: string) => m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      const insights: string[] = [];
+
+      // 1) Positive: markers that moved from flagged → normal since last test
+      for (const r of current) {
+        const p = prevByMarker.get(r.marker);
+        if (!p) continue;
+        const wasFlagged = p.status === "low" || p.status === "high";
+        const nowNormal = r.status === "normal" || r.status === "ok" || r.status === null;
+        if (wasFlagged && nowNormal) {
+          insights.push(`${prettyMarker(r.marker)} back in range vs last test`);
+        }
+      }
+
+      // 2) Negative: currently flagged markers (prioritise ones that worsened)
+      const flaggedRows = current.filter((r) => r.status === "low" || r.status === "high");
+      const worsened = flaggedRows.filter((r) => {
+        const p = prevByMarker.get(r.marker);
+        return !p || p.status === "normal" || p.status === "ok" || p.status == null;
+      });
+      const orderedFlagged = [...worsened, ...flaggedRows.filter((r) => !worsened.includes(r))];
+      for (const r of orderedFlagged) {
+        const dir = r.status === "low" ? "Low" : "High";
+        insights.push(`${dir} ${prettyMarker(r.marker)}`);
+      }
+
+      // 3) Fallback: notable movement in a normal marker
+      if (insights.length === 0 && previous.length > 0) {
+        for (const r of current) {
+          const p = prevByMarker.get(r.marker);
+          if (!p || r.value == null || p.value == null || p.value === 0) continue;
+          const pct = ((Number(r.value) - Number(p.value)) / Number(p.value)) * 100;
+          if (Math.abs(pct) >= 15) {
+            insights.push(`${prettyMarker(r.marker)} ${pct > 0 ? "up" : "down"} ${Math.round(Math.abs(pct))}% vs last test`);
+            if (insights.length >= 3) break;
+          }
+        }
+      }
+
+      if (insights.length === 0) {
+        insights.push("All results within normal range");
+      }
+
       if (!cancelled) {
         setBloodSummary({
           panelDate: panel.panel_date ?? null,
           label: panel.label ?? null,
-          total: rows.length,
-          flagged,
+          total: current.length,
+          flagged: flaggedRows.length,
+          insights: insights.slice(0, 3),
         });
       }
     })();
@@ -492,20 +543,37 @@ const Home = () => {
               onClick={() => navigate("/blood-history")}
               className="w-full text-left"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
-                  <FlaskConical className="size-5 text-primary" />
+                  <Droplet className="size-5 text-primary fill-primary/40" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-base font-semibold leading-snug">
-                    {bloodSummary.flagged > 0
-                      ? `${bloodSummary.flagged} result${bloodSummary.flagged === 1 ? "" : "s"} outside normal range`
-                      : "All results within normal range"}
+                    {bloodSummary.label ?? "Blood test"}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {`${bloodSummary.label ?? "Blood test"} · ${new Date(bloodSummary.panelDate ?? "").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"}`}
+                  <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mt-0.5">
+                    {bloodSummary.panelDate
+                      ? new Date(bloodSummary.panelDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                      : ""}
+                    {` · ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"}`}
                   </p>
-
+                  <ul className="mt-2 space-y-1">
+                    {bloodSummary.insights.map((line, i) => {
+                      const isNegative = /^(low|high)\b/i.test(line);
+                      const isPositive = /back in range|within normal/i.test(line);
+                      const dotClass = isNegative
+                        ? "bg-destructive"
+                        : isPositive
+                          ? "bg-good"
+                          : "bg-primary";
+                      return (
+                        <li key={i} className="flex items-start gap-2 text-xs text-foreground/85 leading-snug">
+                          <span className={`mt-1.5 size-1.5 rounded-full shrink-0 ${dotClass}`} />
+                          <span className="min-w-0">{line}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </div>
             </button>
