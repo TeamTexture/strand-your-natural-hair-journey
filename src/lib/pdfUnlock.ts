@@ -42,8 +42,13 @@ export async function renderPdfToImage(
   const maxPages = opts.maxPages ?? 6;
   const maxWidth = opts.maxWidth ?? 1400;
 
+  // pdf.js may transfer/detach the underlying ArrayBuffer. Clone the bytes
+  // so callers can safely retry with a different password.
+  const dataCopy = new Uint8Array(bytes.byteLength);
+  dataCopy.set(bytes);
+
   const loadingTask = pdfjs.getDocument({
-    data: bytes,
+    data: dataCopy,
     password: password ?? undefined,
     isEvalSupported: false,
   });

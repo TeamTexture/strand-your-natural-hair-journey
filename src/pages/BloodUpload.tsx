@@ -2,7 +2,7 @@
 // and confirms, then saves as a new blood panel + results.
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, ImageIcon, Loader2, Check, X, Lock } from "lucide-react";
+import { Upload, FileText, ImageIcon, Loader2, Check, X, Lock, Eye, EyeOff } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -56,6 +56,7 @@ export default function BloodUpload() {
   const [pwValue, setPwValue] = useState("");
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwUnlocking, setPwUnlocking] = useState(false);
+  const [pwVisible, setPwVisible] = useState(false);
   const [pendingBytes, setPendingBytes] = useState<Uint8Array | null>(null);
   const [pendingName, setPendingName] = useState<string>("");
 
@@ -486,15 +487,27 @@ export default function BloodUpload() {
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="pdf-pw" className="text-xs font-body">Password</Label>
-            <Input
-              id="pdf-pw"
-              type="password"
-              autoFocus
-              value={pwValue}
-              onChange={(e) => { setPwValue(e.target.value); setPwError(null); }}
-              onKeyDown={(e) => { if (e.key === "Enter") submitPassword(); }}
-              disabled={pwUnlocking}
-            />
+            <div className="relative">
+              <Input
+                id="pdf-pw"
+                type={pwVisible ? "text" : "password"}
+                autoFocus
+                value={pwValue}
+                onChange={(e) => { setPwValue(e.target.value); setPwError(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") submitPassword(); }}
+                disabled={pwUnlocking}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setPwVisible((v) => !v)}
+                className="absolute inset-y-0 right-2 flex items-center text-foreground/60 hover:text-foreground"
+                aria-label={pwVisible ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {pwVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
             {pwError && <p className="text-xs text-alert-dark font-body">{pwError}</p>}
           </div>
           <DialogFooter className="gap-2">
