@@ -231,7 +231,7 @@ export default function BloodUpload() {
           user_id: user.id,
           panel_date: panelDate,
           status: "logged",
-          label: file?.name?.slice(0, 60) ?? null,
+          label: files[0]?.name?.slice(0, 60) ?? null,
         } as never)
         .select("id")
         .single();
