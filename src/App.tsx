@@ -65,6 +65,7 @@ import Profile from "./pages/Profile";
 import NutritionPlan from "./pages/NutritionPlan";
 import Help from "./pages/Help";
 import Contact from "./pages/Contact";
+import OAuthConsent from "./pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,7 @@ const App = () => (
           <PhoneShell>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/setup" element={<Protected><SetupGuide /></Protected>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/walkthrough" element={<Protected><Walkthrough /></Protected>} />
