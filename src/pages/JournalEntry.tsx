@@ -308,13 +308,17 @@ const JournalEntry = () => {
 
   const coverUrl = photoPaths[0] ? photoUrls[photoPaths[0]] ?? null : null;
 
-  // Hydrate the reflection state. For DB entries we use the row's parsed
-  // note + products_used. For new / catalog entries we fall back to
-  // localStorage so a freshly-saved-but-not-reloaded session still works.
+  // Hydrate the reflection state exactly once per entry id. We track the
+  // hydrated id in a ref so that re-renders (which re-create the inline
+  // `entry` object above) don't re-run this effect and clobber whatever
+  // the user is currently typing into the reflection fields.
+  const hydratedIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!id) return;
     if (isDbEntry) {
       if (!dbEntry) return;
+      if (hydratedIdRef.current === dbEntry.id) return;
+      hydratedIdRef.current = dbEntry.id;
       const parsed = parseReflectionNote(dbEntry.note);
       setState({
         how: parsed.how,
@@ -328,6 +332,8 @@ const JournalEntry = () => {
       setPhotoPaths(dbEntry.photo_paths ?? []);
       return;
     }
+    if (hydratedIdRef.current === id) return;
+    hydratedIdRef.current = id;
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
@@ -356,7 +362,10 @@ const JournalEntry = () => {
       nextAudio: null,
       productIds: [],
     });
-  }, [id, storageKey, entry, isDbEntry, dbEntry]);
+    // Intentionally omit `entry` from deps — it's a fresh object each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, storageKey, isDbEntry, dbEntry]);
+
 
   // Hydrate the editable title. Prefer localStorage draft (unsaved edits),
   // then the DB / catalog title. Default to a friendly placeholder for new entries.
