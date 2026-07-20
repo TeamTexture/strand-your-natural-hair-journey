@@ -63,6 +63,7 @@ const normalise = (raw: string) => {
   let t = String(raw ?? "");
   t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
   t = normaliseHeatLanguage(t);
+  t = humaniseTraits(t);
   // Force each known label onto a new paragraph.
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
@@ -80,6 +81,44 @@ const normaliseHeatLanguage = (raw: string) => {
   t = t.replace(/\b(?:the\s+)?TT\s+Heat\s+Hat\s+(?:TT\s+Heat\s+Hat\s*)+/gi, "the TT Heat Hat");
   t = t.replace(/\bthe\s+the\s+TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat");
   return t.replace(/[ \t]{2,}/g, " ");
+};
+
+/**
+ * Strips trait-stacked, AI-sounding noun phrases (e.g. "your high-raised
+ * cuticle porosity hair", "your high porosity, low density hair") back down
+ * to natural "your hair". Applied to both the action header and the body so
+ * old cached tips read like a human wrote them.
+ */
+const humaniseTraits = (raw: string) => {
+  let t = String(raw ?? "");
+  // "your high-raised cuticle porosity, low density hair" → "your hair"
+  t = t.replace(
+    /\byour\s+(?:(?:high|low|medium|mid|fine|coarse|thick|dense|raised|open|closed|tight|loose|dry|oily|balanced|normal)[- ]?)+(?:cuticle|porosity|density|texture|strand|curl|coil|pattern|type)?(?:[,\s]+(?:(?:high|low|medium|mid|fine|coarse|thick|dense|raised|open|closed|tight|loose|dry|oily|balanced|normal)[- ]?)+(?:cuticle|porosity|density|texture|strand|curl|coil|pattern|type)?)*\s+hair\b/gi,
+    "your hair",
+  );
+  // "high-porosity hair" (no leading "your") → "your hair"
+  t = t.replace(
+    /\b(?:high|low|medium)[- ]porosity\s+hair\b/gi,
+    "your hair",
+  );
+  return t.replace(/[ \t]{2,}/g, " ");
+};
+
+/**
+ * Turns any string into a short, header-shaped label. Existing wash-day rows
+ * were saved with long full-sentence "actions" before the prompt fix, so we
+ * defensively condense them at render time.
+ */
+const condenseHeader = (raw: string) => {
+  const cleaned = humaniseTraits(String(raw ?? "").replace(/\s+/g, " ").trim())
+    .replace(/[.!?]+\s*$/, "");
+  if (!cleaned) return "";
+  const words = cleaned.split(" ");
+  if (words.length <= 8) return cleaned;
+  // Try to cut at the first natural clause boundary (— , : ;) inside the first ~8 words.
+  const cutMatch = cleaned.match(/^[^—,:;]{1,60}?(?=[\s]*[—,:;])/);
+  if (cutMatch) return cutMatch[0].trim().replace(/[.!?]+\s*$/, "");
+  return words.slice(0, 8).join(" ") + "…";
 };
 
 const chunkSentences = (text: string, perChunk = 2): string[] => {
@@ -355,7 +394,20 @@ export function NextWashTipCard({
   collapsed = false,
 }: NextWashTipCardProps) {
   const { products } = useUserProducts("all");
-  const sections = buildTipSections(why);
+
+  // If a legacy tip crammed everything into `action`, condense the header and
+  // push the leftover into `why` so it becomes body copy rather than a
+  // 3-line "title".
+  const rawAction = String(action ?? "").trim();
+  const rawWhy = String(why ?? "").trim();
+  const condensedAction = condenseHeader(rawAction);
+  const overflow =
+    rawAction && condensedAction &&
+    rawAction.replace(/\s+/g, " ").length > condensedAction.replace(/[…]$/, "").length + 2
+      ? rawAction
+      : "";
+  const effectiveWhy = [overflow, rawWhy].filter(Boolean).join("\n\n");
+  const sections = buildTipSections(effectiveWhy);
 
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
@@ -382,9 +434,9 @@ export function NextWashTipCard({
 
         {!collapsed && (
           <>
-            {action && (
+            {condensedAction && (
               <h3 className="font-display text-white text-[22px] leading-tight tracking-tight break-words">
-                {renderInline(action.replace(/[.!]+\s*$/, ""), "action", products)}
+                {renderInline(condensedAction, "action", products)}
               </h3>
             )}
 
