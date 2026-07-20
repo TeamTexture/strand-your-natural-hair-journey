@@ -315,7 +315,7 @@ const StrandSummary = () => {
                   .filter(Boolean)
                   .map((sentence, i) => (
                     <p key={i} className="text-[13.5px] leading-relaxed text-foreground/90">
-                      {renderRichText(sentence)}
+                      {renderRichText(sentence, `ov-${i}`)}
                     </p>
                   ))}
               </div>
