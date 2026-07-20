@@ -173,6 +173,10 @@ const WashDayDetail = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [products, setProducts] = useState<ProductLookup[]>([]);
+  const [styling, setStyling] = useState<StylingSnapshot | null>(null);
+  const [stylingProducts, setStylingProducts] = useState<ProductLookup[]>([]);
+  const [stylingPhotoUrls, setStylingPhotoUrls] = useState<string[]>([]);
+  const [stylingAudioUrl, setStylingAudioUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !id) return;
