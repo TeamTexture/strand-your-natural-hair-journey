@@ -6,6 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import RichBody from "@/components/RichBody";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
 import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2 } from "lucide-react";
 
@@ -313,6 +314,7 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
 
 const NutritionPlan = () => {
   const navigate = useNavigate();
+  const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
@@ -548,8 +550,8 @@ const NutritionPlan = () => {
   const flaggedList = Array.from(profile.flagged);
 
   return (
-    <ScreenLayout bottomNav>
-      <TitleBar title="Nutrition Plan" onBack={() => navigate(-1)} />
+    <ScreenLayout bottomNav={!isOnboarding}>
+      <TitleBar title="Nutrition Plan" onBack={() => isOnboarding ? navigate("/onboarding/blood-ai-summary") : navigate(-1)} />
       <div className="px-5 pt-1 pb-8">
         <h1 className="font-display text-[26px] leading-tight mb-1">Your Nutrition Plan</h1>
         <p className="text-xs text-muted-foreground font-body mb-4">
@@ -740,6 +742,19 @@ const NutritionPlan = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {isOnboarding && (
+          <div className="pt-6">
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/onboarding/photos")}
+            >
+              Continue to STRAND →
+            </Button>
+          </div>
+        )}
       </div>
     </ScreenLayout>
   );

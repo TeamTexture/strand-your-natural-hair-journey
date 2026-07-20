@@ -243,21 +243,12 @@ const BloodAiSummary = () => {
             size="pill"
             onClick={() => {
               clearBloodDraft();
-              navigate("/nutrition-plan");
+              navigate("/nutrition-plan?onboarding=1");
             }}
             className="whitespace-normal leading-tight px-5 py-3 h-auto min-h-[48px] text-[11px]"
           >
             See Your Personalised Nutrition Plan →
           </Button>
-          <button
-            className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              clearBloodDraft();
-              navigate("/onboarding/photos");
-            }}
-          >
-            Continue to app →
-          </button>
         </div>
       </div>
     </ScreenLayout>

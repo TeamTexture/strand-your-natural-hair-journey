@@ -18,10 +18,13 @@ const SuccessScreen = () => {
       .eq("user_id", user.id);
   }, [user]);
 
-  // Primary CTA — always go straight into the app. The walkthrough is now
-  // opt-in via the secondary link below (and re-reachable from Profile).
+  // Primary CTA — go into the app and trigger the guided home tour on arrival.
   const handleContinue = () => {
     localStorage.setItem("strand_walkthrough_complete", "true");
+    // Clear old + new tour flags so returning users also get the refreshed tour once.
+    localStorage.removeItem("strand_home_tour_seen_v1");
+    localStorage.removeItem("strand_home_tour_seen_v2");
+    localStorage.setItem("strand_home_tour_pending", "1");
     navigate("/home", { replace: true });
   };
 

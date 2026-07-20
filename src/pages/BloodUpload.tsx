@@ -88,6 +88,26 @@ export default function BloodUpload() {
   const [dupConfirmed, setDupConfirmed] = useState(false);
   const [deletingDup, setDeletingDup] = useState(false);
 
+  // Onboarding-only: after a save, show an inline "add another / continue" panel
+  // instead of navigating away, so users can upload every test they have.
+  const [savedInOnboarding, setSavedInOnboarding] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
+
+  const resetForNextUpload = () => {
+    setFiles([]);
+    setRows([]);
+    setTestType(null);
+    setLabName(null);
+    setPanelLabel(null);
+    setThumbSource(null);
+    setLogoBbox(null);
+    setDuplicatePanel(null);
+    setDupConfirmed(false);
+    if (thumbPreview) URL.revokeObjectURL(thumbPreview);
+    setThumbPreview(null);
+    setPanelDate(new Date().toISOString().slice(0, 10));
+  };
+
   const deleteDuplicate = async () => {
     if (!duplicatePanel || !user) return;
     if (!window.confirm("Delete the existing panel for this date? This can't be undone.")) return;
@@ -425,7 +445,10 @@ export default function BloodUpload() {
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
-        navigate("/onboarding/blood-ai-summary");
+        // Stay on the upload screen so the user can add more tests before moving on.
+        setSavedCount((n) => n + 1);
+        setSavedInOnboarding(true);
+        resetForNextUpload();
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
@@ -453,7 +476,37 @@ export default function BloodUpload() {
           and pre-fill your panel — check them, then save.
         </p>
 
-        {isOnboarding && files.length === 0 && (
+        {isOnboarding && savedInOnboarding && files.length === 0 && (
+          <SurfaceCard tone="gold">
+            <p className="font-display text-base mb-1">
+              {savedCount === 1 ? "Blood test saved" : `${savedCount} blood tests saved`} ✓
+            </p>
+            <p className="text-sm font-body leading-snug mb-3 text-foreground/80">
+              Upload another test if you have one — older panels help STRAND track your trends.
+              When you're done, continue to your analysis.
+            </p>
+            <div className="space-y-2">
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full"
+                onClick={() => navigate("/onboarding/blood-ai-summary")}
+              >
+                Continue to Analysis →
+              </Button>
+              <Button
+                variant="goldOutline"
+                size="pill"
+                className="w-full"
+                onClick={() => setSavedInOnboarding(false)}
+              >
+                Upload Another Test
+              </Button>
+            </div>
+          </SurfaceCard>
+        )}
+
+        {isOnboarding && !savedInOnboarding && files.length === 0 && (
           <SurfaceCard tone="gold">
             <p className="text-sm font-body leading-snug">
               <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
@@ -462,7 +515,7 @@ export default function BloodUpload() {
           </SurfaceCard>
         )}
 
-        {files.length === 0 && (
+        {!savedInOnboarding && files.length === 0 && (
           <SurfaceCard>
             <div
               onClick={pick}
@@ -505,7 +558,7 @@ export default function BloodUpload() {
           </SurfaceCard>
         )}
 
-        {isOnboarding && files.length === 0 && (
+        {isOnboarding && !savedInOnboarding && files.length === 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
