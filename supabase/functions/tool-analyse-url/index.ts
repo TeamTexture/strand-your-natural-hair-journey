@@ -215,7 +215,7 @@ const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 const LOVABLE_SYSTEM = `${STRAND_PERSONA}
 
 TASK
-You are identifying a hair-care TOOL (brushes, combs, clips, hair dryers, diffusers, steamers, curlers, wands, bonnets, scarves, satin pillowcases, microfibre towels, deep-conditioning / heat caps, etc.) from a product page, in Paige's voice.
+You are identifying a hair-care TOOL (brushes, combs, clips, hair dryers, diffusers, curlers, wands, bonnets, scarves, satin pillowcases, microfibre towels, TT Heat Hat pages, etc.) from a product page, in Paige's voice.
 
 ABSOLUTE RULES
 1. READ the product directly from the page text. The brand and product title
