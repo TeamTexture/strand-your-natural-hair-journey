@@ -31,6 +31,32 @@ const MoodboardBoard = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [sharing, setSharing] = useState<MoodboardImage | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragDepthRef = useRef(0);
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!e.dataTransfer?.types?.includes("Files")) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragging(true);
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!e.dataTransfer?.types?.includes("Files")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDragging(false);
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length) handleFiles(files);
+  };
 
   // Resolve "favourites" alias to the user's actual Favourites board UUID
   useEffect(() => {
@@ -200,11 +226,29 @@ const MoodboardBoard = () => {
         }}
       />
 
-      <p className="text-[11px] text-muted-foreground text-center pb-3 px-5">
+      <div
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="relative"
+      >
+        {isDragging && (
+          <div className="absolute inset-0 z-30 rounded-[16px] border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm flex items-center justify-center pointer-events-none mx-3">
+            <div className="text-center">
+              <ImagePlus className="size-8 mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium text-primary">Drop photos to add</p>
+              <p className="text-[11px] text-muted-foreground">JPG, PNG or HEIC · up to 8MB</p>
+            </div>
+          </div>
+        )}
+
+        <p className="text-[11px] text-muted-foreground text-center pb-3 px-5">
         {images.length} {images.length === 1 ? "image" : "images"}
         {board.is_favourites
           ? " · Tap ♥ to remove from Favourites"
           : " · Tap ♡ to add to Favourites"}
+        <span className="hidden sm:inline"> · Drag &amp; drop photos anywhere</span>
       </p>
 
       {/* Image grid */}
@@ -306,6 +350,8 @@ const MoodboardBoard = () => {
           <Loader2 className="size-3.5 animate-spin" /> Uploading…
         </p>
       )}
+      </div>
+
 
       <div className="px-5 pb-6">
         <Button variant="goldGhost" size="pill" onClick={handleShare}>
