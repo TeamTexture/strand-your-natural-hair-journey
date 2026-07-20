@@ -165,6 +165,29 @@ export async function buildClaudeRequest(
   // Conversational clinician voice. Single source of truth in voice.ts.
   systemBlocks.push({ type: "text", text: VOICE_PRINCIPLES });
 
+  // ── STYLE PLAYBOOK — manuscript-derived, per-style ──────────────
+  // When the user has a current style on file, inject the exact HTLA
+  // protocol for that style (wear window, tension, scalp, moisture,
+  // takedown) + transition guidance for their planned next style +
+  // a status line comparing time-in-style against the recommended
+  // wear ceiling. Every advice function reasons FROM this block for
+  // style-touching guidance. See style-playbook.ts for the source.
+  {
+    const ctx = (input.user_context ?? {}) as Record<string, unknown>;
+    const cs = (ctx.currentStyle ?? null) as Record<string, unknown> | null;
+    if (cs) {
+      const styleBlock = buildStylePlaybookBlock({
+        current_hairstyle: (cs.current_hairstyle as string | null) ?? null,
+        planned_next_style: (cs.planned_next_style as string | null) ?? null,
+        days_in_style:
+          typeof cs.days_in_style === "number" ? (cs.days_in_style as number) : null,
+      });
+      if (styleBlock) {
+        systemBlocks.push({ type: "text", text: styleBlock });
+      }
+    }
+  }
+
   // ── Personalisation anchor (product flows) ───────────────────────
   // Same anchor as before (CURRENT style / goals / challenges) but voiced
   // as the clinician thinking out loud, not as a directive list.
