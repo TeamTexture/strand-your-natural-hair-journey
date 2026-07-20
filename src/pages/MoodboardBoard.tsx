@@ -18,6 +18,7 @@ interface BoardMeta {
   name: string;
   emoji: string;
   is_favourites: boolean;
+  gradient: string;
 }
 
 const MoodboardBoard = () => {
@@ -69,7 +70,7 @@ const MoodboardBoard = () => {
       if (id === "favourites") {
         const { data } = await supabase
           .from("moodboards")
-          .select("id, name, emoji, is_favourites")
+          .select("id, name, emoji, is_favourites, gradient")
           .eq("user_id", user.id)
           .eq("is_favourites", true)
           .maybeSingle();
@@ -84,7 +85,7 @@ const MoodboardBoard = () => {
       } else {
         const { data } = await supabase
           .from("moodboards")
-          .select("id, name, emoji, is_favourites")
+          .select("id, name, emoji, is_favourites, gradient")
           .eq("id", id)
           .maybeSingle();
         if (cancelled) return;
@@ -178,8 +179,12 @@ const MoodboardBoard = () => {
   }
 
   return (
-    <ScreenLayout bottomNav>
+    <ScreenLayout
+      bottomNav
+      backgroundClassName={`bg-gradient-to-br ${board.gradient ?? "from-[#C8B89A] to-[#D4B96A]"}`}
+    >
       <TitleBar title={board.name} onBack={() => navigate("/journal/moodboards")} />
+
 
       {/* Hidden file inputs */}
       <input
