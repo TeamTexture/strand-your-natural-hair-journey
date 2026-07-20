@@ -37,6 +37,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
+import BrandLink from "@/components/BrandLink";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -472,7 +473,7 @@ const WashDayDetail = () => {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium leading-tight break-words">{p.name}</p>
                   {p.brand && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{p.brand}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5"><BrandLink brand={p.brand} /></p>
                   )}
                 </div>
                 <span className="text-primary text-xs">›</span>
@@ -530,7 +531,7 @@ const WashDayDetail = () => {
                     <Link key={p.id} to={`/products/${p.id}`} className="flex items-center gap-3 p-3 hover:bg-primary/5 transition">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium leading-tight break-words">{p.name}</p>
-                        {p.brand && <p className="text-[11px] text-muted-foreground mt-0.5">{p.brand}</p>}
+                        {p.brand && <p className="text-[11px] text-muted-foreground mt-0.5"><BrandLink brand={p.brand} /></p>}
                       </div>
                       <span className="text-primary text-xs">›</span>
                     </Link>
