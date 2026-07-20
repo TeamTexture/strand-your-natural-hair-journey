@@ -109,26 +109,27 @@ export const useMoodboards = () => {
       // If a cover image was supplied, upload it as the board's first image so it
       // becomes the cover automatically (cover = most recent image).
       if (data && input.coverFile) {
-        try {
-          const file = input.coverFile;
-          const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-          const path = `${user.id}/${data.id}/${uuid()}.${ext}`;
-          const { error: upErr } = await supabase.storage
-            .from(BUCKET)
-            .upload(path, file, { contentType: file.type, upsert: false });
-          if (!upErr) {
-            await supabase.from("moodboard_images").insert({
-              user_id: user.id,
-              board_id: data.id,
-              storage_path: path,
-              caption: null,
-              is_favourite: false,
-            });
-          } else {
-            console.error("Cover upload failed:", upErr);
-          }
-        } catch (e) {
-          console.error("Cover upload error:", e);
+        const file = input.coverFile;
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `${user.id}/${data.id}/${uuid()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
+        if (upErr) {
+          console.error("Cover upload failed:", upErr);
+          throw upErr;
+        }
+        const { error: insErr } = await supabase.from("moodboard_images").insert({
+          user_id: user.id,
+          board_id: data.id,
+          storage_path: path,
+          caption: null,
+          is_favourite: false,
+        });
+        if (insErr) {
+          console.error("Cover insert failed:", insErr);
+          await supabase.storage.from(BUCKET).remove([path]);
+          throw insErr;
         }
       }
 
