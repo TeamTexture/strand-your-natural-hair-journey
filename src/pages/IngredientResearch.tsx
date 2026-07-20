@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FlaskConical, Leaf, PackageSearch, Sparkles } from "lucide-react";
+import { FlaskConical, Leaf, PackageSearch, Sparkles, type LucideIcon } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -12,7 +12,7 @@ import ProductThumb from "@/components/ProductThumb";
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { useUserProducts } from "@/hooks/useUserProducts";
 
-const SectionHeader = ({ icon: Icon, label }: { icon: typeof FlaskConical; label: string }) => (
+const SectionHeader = ({ icon: Icon, label }: { icon: LucideIcon; label: string }) => (
   <div className="flex items-center gap-2">
     <span className="inline-flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
       <Icon className="size-4" />
