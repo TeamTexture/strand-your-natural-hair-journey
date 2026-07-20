@@ -92,13 +92,39 @@ function normalisePinterestPinUrl(raw: string): string {
   return raw;
 }
 
+async function scrapePageForImages(pageUrl: string): Promise<string[]> {
+  try {
+    const res = await fetch(pageUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      redirect: "follow",
+    });
+    if (!res.ok) return [];
+    const type = (res.headers.get("content-type") ?? "").toLowerCase();
+    if (!type.includes("text/html") && !type.includes("xml")) {
+      await res.body?.cancel().catch(() => undefined);
+      return [];
+    }
+    const html = await res.text();
+    return extractImgUrls(html, res.url || pageUrl);
+  } catch {
+    return [];
+  }
+}
+
 async function imageCandidates(rawUrl: string): Promise<string[]> {
   const parsed = new URL(rawUrl);
-  const candidates = new Set<string>([rawUrl]);
+  const candidates = new Set<string>();
+  const pageUrls = new Set<string>();
+
+  if (isLikelyImage(rawUrl)) candidates.add(rawUrl);
+  pageUrls.add(rawUrl);
 
   if (isPinterestUrl(parsed)) {
     const resolved = normalisePinterestPinUrl(await resolvePinterestUrl(parsed));
-    candidates.add(resolved);
+    pageUrls.add(resolved);
     const pinUrl = new URL(resolved);
     const oembed = new URL("https://www.pinterest.com/oembed.json");
     oembed.searchParams.set("url", pinUrl.toString());
@@ -116,6 +142,17 @@ async function imageCandidates(rawUrl: string): Promise<string[]> {
     }
   }
 
+  // Fall back to scraping the page for og:image / <img> tags so pasted page
+  // links (Pinterest, Google, blogs) resolve to a real image server-side.
+  if (candidates.size === 0) {
+    for (const page of pageUrls) {
+      const found = await scrapePageForImages(page);
+      for (const img of found) candidates.add(img);
+      if (candidates.size > 0) break;
+    }
+  }
+
+  if (candidates.size === 0) candidates.add(rawUrl);
   return Array.from(candidates);
 }
 
