@@ -313,6 +313,7 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
 
 const NutritionPlan = () => {
   const navigate = useNavigate();
+  const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
