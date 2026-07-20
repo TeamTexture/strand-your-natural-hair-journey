@@ -364,6 +364,19 @@ const LogAppointment = () => {
           autoComplete="off"
         />
 
+        {status === "completed" && (
+          <VoiceNoteField
+            label="How did it go?"
+            placeholder="Type or record how the visit went — outcome, mood, anything the professional said…"
+            value={outcomeNotes}
+            onChange={setOutcomeNotes}
+            audioPath={outcomeAudio}
+            onAudioPathChange={setOutcomeAudio}
+            folder="appointments/outcome"
+            rows={4}
+          />
+        )}
+
         <VoiceNoteField
           label="Notes"
           placeholder="Diagnosis, treatment plan, recommendations..."
