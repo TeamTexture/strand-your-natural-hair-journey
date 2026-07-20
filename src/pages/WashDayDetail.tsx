@@ -606,10 +606,10 @@ const WashDayDetail = () => {
             </div>
 
             <div className="flex gap-2 pt-1">
-              <Button variant="gold" size="pill" onClick={handleSave} disabled={saving} className="flex-1">
+              <Button variant="gold" size="pill" onClick={handleSave} disabled={saving} className="flex-1 min-w-0">
                 {saving ? "Saving…" : "Save changes"}
               </Button>
-              <Button variant="goldOutline" size="pill" onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(false); }} disabled={saving}>
+              <Button variant="goldOutline" size="pill" onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(false); }} disabled={saving} className="flex-1 min-w-0">
                 Cancel
               </Button>
             </div>
