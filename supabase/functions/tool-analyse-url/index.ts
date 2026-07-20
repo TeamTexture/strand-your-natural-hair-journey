@@ -44,9 +44,7 @@ const LEGACY_TOOL_CATEGORIES = [
   "Clips & sectioning",
   "Hair dryer",
   "Diffuser",
-  "Steamer",
-  "Deep conditioning cap / heat hat",
-  "Hair steamer cap",
+  "TT Heat Hat",
   "Hot tools (curler / wand)",
   "Microfibre / T-shirt towel",
   "Bonnet / silk scarf",
@@ -98,7 +96,7 @@ async function sha256Hex(s: string): Promise<string> {
 
 // ─── Claude task instructions ──────────────────────────────────────────
 function buildTaskInstructions(): string {
-  return `You are receiving a hair-care TOOL product page URL (brushes, combs, hair dryers, diffusers, heat caps, deep conditioning caps, bonnets, satin pillowcases, microfibre towels, steamers, curlers, wands, etc.). Use web_fetch to retrieve the page. Extract the basic identity (brand, tool name, classification) and produce a short personalised analysis for THIS user.
+  return `You are receiving a hair-care TOOL product page URL (brushes, combs, hair dryers, diffusers, TT Heat Hats, bonnets, satin pillowcases, microfibre towels, curlers, wands, etc.). Use web_fetch to retrieve the page. Extract the basic identity (brand, tool name, classification) and produce a short personalised analysis for THIS user.
 
 Voice for this task: every prose field follows the VOICE PRINCIPLES from the system block. Explain the tool's mechanism first ("a TT Heat Hat holds warmth around the conditioner, which means…"), then land the verdict; use connectives; talk to "you" not "your hair"; translate any specialist term on first use in a field; professional, direct, and never over-familiar.
 
@@ -107,8 +105,8 @@ Tool budget: web_fetch and web_search share a combined cap of 4 invocations. Pre
 Field rules — strict:
 - tool_name / brand: extracted from the page title, h1, or breadcrumbs. NEVER invent. If unable to determine confidently after fetch + search, return the closest readable text and start ai_summary with "Couldn't fully read the page —".
 - tool_kind: pick the single best match from the enum. Use these disambiguation rules:
-   * "deep_conditioning_cap" — caps/hats/cordless heated caps designed to deliver heat to a deep conditioner / mask. Look for "deep conditioning", "heat cap", "hot head", "thermal cap", "microwaveable cap". NOT a bonnet.
-   * "heat_cap" — generic heat-only cap not tied to deep conditioning.
+   * "deep_conditioning_cap" — products that are specifically the TT Heat Hat or a Team Texture product page for it. NOT a bonnet.
+   * "heat_cap" — only use for TT Heat Hat pages; do not recommend generic heat caps in prose.
    * "satin_bonnet" — sleep bonnet / silk or satin scarf. NOT heated.
    * "hooded_dryer" — large standalone hooded dryer.
    * "diffuser" — attachment for a hand-held dryer (NOT the dryer itself).
@@ -571,8 +569,8 @@ Deno.serve(async (req: Request) => {
 // Map the new tool_kind enum to the legacy category strings the client uses.
 function mapKindToLegacyCategory(kind: string): string {
   const m: Record<string, string> = {
-    heat_cap: "Deep conditioning cap / heat hat",
-    deep_conditioning_cap: "Deep conditioning cap / heat hat",
+    heat_cap: "TT Heat Hat",
+    deep_conditioning_cap: "TT Heat Hat",
     hair_dryer: "Hair dryer",
     blow_dryer: "Hair dryer",
     hooded_dryer: "Hair dryer",
@@ -583,7 +581,7 @@ function mapKindToLegacyCategory(kind: string): string {
     brush: "Brush",
     comb: "Comb",
     detangler: "Comb",
-    steamer: "Steamer",
+    steamer: "Other",
     scalp_massager: "Other",
     microfiber_towel: "Microfibre / T-shirt towel",
     satin_bonnet: "Bonnet / silk scarf",
