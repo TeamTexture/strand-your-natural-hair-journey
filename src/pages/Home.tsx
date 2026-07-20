@@ -546,11 +546,7 @@ const Home = () => {
                         Strand tip of the day
                       </p>
                     </div>
-                    {tipLoading && !goalTip ? (
-                      <p className="text-xs text-muted-foreground italic">
-                        Personalising a tip for this goal…
-                      </p>
-                    ) : goalTip ? (
+                    {goalTip ? (
                       <>
                         <p className="text-sm font-medium leading-snug">
                           {renderRichText(goalTip.headline)}
@@ -587,9 +583,12 @@ const Home = () => {
                         )}
                       </>
                     ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Tip will appear once your profile has a little more detail.
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="block size-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
+                        <p className="text-xs text-muted-foreground italic">
+                          Loading your Strand tip…
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>
