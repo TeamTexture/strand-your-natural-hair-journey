@@ -13,6 +13,8 @@ import setProductStatus from "./tools/set-product-status";
 import createGoal from "./tools/create-goal";
 import updateGoalProgress from "./tools/update-goal-progress";
 import createAppointment from "./tools/create-appointment";
+import addWishlistItem from "./tools/add-wishlist-item";
+import listWishlistItems from "./tools/list-wishlist-items";
 
 // Build issuer from the Supabase project ref (inlined at build time).
 // Never derive from SUPABASE_URL — Cloud proxies use `.lovable.cloud` which
@@ -49,5 +51,7 @@ export default defineMcp({
     updateGoalProgress,
     createAppointment,
     createJournalEntry,
+    addWishlistItem,
+    listWishlistItems,
   ],
 });

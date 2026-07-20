@@ -619,6 +619,120 @@ var create_appointment_default = defineTool14({
   }
 });
 
+// src/lib/mcp/tools/add-wishlist-item.ts
+import { createClient as createClient15 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z11 } from "npm:zod@^3.25.76";
+function supabaseForUser15(ctx) {
+  return createClient15(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+function keyOf2(brand, name) {
+  return `${(brand ?? "").trim().toLowerCase()}::${name.trim().toLowerCase()}`;
+}
+var add_wishlist_item_default = defineTool15({
+  name: "add_wishlist_item",
+  title: "Add wishlist item",
+  description: "Add a product to the signed-in user's wishlist (stored in `user_products` with on_wishlist=true). The `reason` is saved into `ai_summary` so the user sees why you recommended it.",
+  inputSchema: {
+    name: z11.string().trim().min(1).describe("Product name."),
+    brand: z11.string().trim().optional().describe("Brand name."),
+    category: z11.string().trim().optional().describe("Category, e.g. 'leave-in', 'oil', 'mask', 'supplement'."),
+    reason: z11.string().trim().optional().describe("Why this is recommended for the user."),
+    priority: z11.number().int().optional().describe("Optional priority ranking; stored as match_score.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser15(ctx);
+      const product_key = keyOf2(input.brand, input.name);
+      const { data: existing } = await sb.from("user_products").select("id, on_wishlist, on_shelf").eq("user_id", ctx.getUserId()).eq("product_key", product_key).maybeSingle();
+      if (existing) {
+        const { data: data2, error: error2 } = await sb.from("user_products").update({
+          on_wishlist: true,
+          ai_summary: input.reason ?? void 0,
+          match_score: input.priority ?? void 0,
+          category: input.category ?? void 0
+        }).eq("id", existing.id).select("id, name, brand, on_wishlist, on_shelf").single();
+        if (error2) return { content: [{ type: "text", text: error2.message }], isError: true };
+        return {
+          content: [{ type: "text", text: `Updated wishlist entry for ${data2.brand ? data2.brand + " " : ""}${data2.name}.` }],
+          structuredContent: { item: data2 }
+        };
+      }
+      const { data, error } = await sb.from("user_products").insert({
+        user_id: ctx.getUserId(),
+        name: input.name,
+        brand: input.brand ?? null,
+        category: input.category ?? null,
+        product_key,
+        on_wishlist: true,
+        on_shelf: false,
+        ai_summary: input.reason ?? null,
+        match_score: input.priority ?? null
+      }).select("id, name, brand, category, ai_summary, match_score, on_wishlist").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Added ${data.brand ? data.brand + " " : ""}${data.name} to wishlist.` }],
+        structuredContent: { item: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
+// src/lib/mcp/tools/list-wishlist-items.ts
+import { createClient as createClient16 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z12 } from "npm:zod@^3.25.76";
+function supabaseForUser16(ctx) {
+  return createClient16(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var list_wishlist_items_default = defineTool16({
+  name: "list_wishlist_items",
+  title: "List wishlist items",
+  description: "Return the signed-in user's active wishlist items (rows in `user_products` where on_wishlist=true).",
+  inputSchema: {
+    limit: z12.number().int().min(1).max(200).optional().describe("Max items to return (default 100).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser16(ctx);
+      const { data, error } = await sb.from("user_products").select("id, name, brand, category, ai_summary, match_score, created_at, on_shelf").eq("user_id", ctx.getUserId()).eq("on_wishlist", true).order("match_score", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }).limit(input.limit ?? 100);
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      const items = (data ?? []).map((r) => ({
+        id: r.id,
+        name: r.name,
+        brand: r.brand,
+        category: r.category,
+        reason: r.ai_summary,
+        priority: r.match_score,
+        moved_to_shelf: r.on_shelf,
+        created_at: r.created_at
+      }));
+      return {
+        content: [{ type: "text", text: JSON.stringify(items, null, 2) }],
+        structuredContent: { items }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
 // src/lib/mcp/index.ts
 var projectRef = "wibimeglifveruvtvaxe";
 var mcp_default = defineMcp({
@@ -646,7 +760,9 @@ var mcp_default = defineMcp({
     create_goal_default,
     update_goal_progress_default,
     create_appointment_default,
-    create_journal_entry_default
+    create_journal_entry_default,
+    add_wishlist_item_default,
+    list_wishlist_items_default
   ]
 });
 
