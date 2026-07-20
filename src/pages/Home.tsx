@@ -820,6 +820,7 @@ const Home = () => {
       </div>
 
       <HomeTour />
+      <AppointmentFollowUpDialog />
     </ScreenLayout>
 
   );
