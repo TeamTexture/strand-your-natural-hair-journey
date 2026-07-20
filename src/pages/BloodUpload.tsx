@@ -445,13 +445,22 @@ export default function BloodUpload() {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Upload blood test" onBack={() => navigate(isOnboarding ? "/onboarding/blood-timing" : "/blood-history")} />
+      <TitleBar title="Upload blood test" onBack={() => navigate(isOnboarding ? "/onboarding/profile-step-4-colour" : "/blood-history")} />
 
       <div className="px-5 pt-2 pb-10 space-y-4">
         <p className="text-sm text-foreground/80 font-body leading-relaxed">
           Upload a PDF or photo of your lab report. STRAND will read the results
           and pre-fill your panel — check them, then save.
         </p>
+
+        {isOnboarding && files.length === 0 && (
+          <SurfaceCard tone="gold">
+            <p className="text-sm font-body leading-snug">
+              <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
+              Drag &amp; drop your lab report below and we'll pre-fill your panel — or enter results manually.
+            </p>
+          </SurfaceCard>
+        )}
 
         {files.length === 0 && (
           <SurfaceCard>
@@ -495,6 +504,26 @@ export default function BloodUpload() {
             />
           </SurfaceCard>
         )}
+
+        {isOnboarding && files.length === 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[11px] tracking-[0.2em] uppercase text-foreground/50 font-body">or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/onboarding/blood-iron-vitamins")}
+            >
+              Add Test Manually
+            </Button>
+          </div>
+        )}
+
+
 
 
         {files.length > 0 && (
