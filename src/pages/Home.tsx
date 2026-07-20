@@ -334,17 +334,6 @@ const Home = () => {
         </div>
       </header>
 
-      {/* pinned "take the tour" pill — always available from Home */}
-      <div className="px-5 pb-3">
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary text-[11px] uppercase tracking-[0.2em] font-body font-semibold py-2 transition-colors"
-        >
-          <Sparkles className="size-3.5" />
-          Take the tour
-        </button>
-      </div>
 
       <div className="px-5 space-y-4 pb-6">
         {/* current style — editorial terra card */}
