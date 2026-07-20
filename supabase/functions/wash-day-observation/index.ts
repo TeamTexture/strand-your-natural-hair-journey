@@ -245,6 +245,12 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
    - why: THE BODY that explains the header. 2 to 4 short sentences (~55 words max), plain English. May use short labelled sub-paragraphs: "Why it matters:", "Technique:", "Moisture:", "Product consistency:", "Goal focus:", "Scalp signal:", "Watch for:".
      • Tie to a concrete pattern in the user's own data — a recent wash day (name the date or "last wash"), a repeated signal, a product outcome they've logged, OR their active goal by title. Do not invent history.
      • Ground the reasoning in an explicit How To Love Your Afro teaching (3–4 wash-cycle consistency; moisture-first for high porosity/humidity; low-manipulation + ends-tucking for length retention; scalp-first for growth). Never name the book, chapters, or pages.
+   - HEADER↔BODY ALIGNMENT (STRICT): the \`action\` header MUST summarise the SAME core move that \`why\` explains. Draft \`why\` first, then write the header from it.
+     • If the body's real recommendation is a deep-conditioning mask under a TT Heat Hat, the header is about that mask/heat step — not the cleanse.
+     • If the body says keep the same shampoo/conditioner sequence, the header is about repeating that sequence — not a mask.
+     • If the body is about protecting ends / low manipulation, the header names that move.
+     • Never name cleanse products in the header when the body centres on a mask/heat step. Never name a mask in the header when the body centres on the cleanse.
+     • Before returning: reread. If a reader can't guess the header from the body's central instruction, rewrite the header so they can.
    - For dryness/high porosity/humid weather, recommend moisture-first support (deep conditioning mask, conditioner slip) — never default to protein or product-hopping.
    - If suggesting heat, ONLY write [TT Heat Hat](https://www.teamtexture.co.uk) — never generic "heat hat", "heat cap", plastic caps, shower caps, warm towels, steamers, or the raw website as visible text.
    - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence. ABSOLUTE: NEVER suggest scheduled pre-poo.
