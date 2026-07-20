@@ -32,24 +32,28 @@ const TitleBar = ({ title, right, back = true, onBack }: Props) => {
   };
 
   return (
-    <div className="h-12 px-4 flex items-center justify-between gap-2 shrink-0">
-      <div className="w-12 flex-shrink-0 flex items-center">
-        {back && (
-          <button
-            onClick={handleBack}
-            aria-label="Back"
-            className="-ml-2 p-2 text-foreground/80 hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-        )}
+    <div className="relative px-4 pt-2 pb-1 shrink-0">
+      <div className="h-10 flex items-center">
+        <div className="flex-1 flex items-center">
+          {back && (
+            <button
+              onClick={handleBack}
+              aria-label="Back"
+              className="-ml-2 p-2 text-foreground/80 hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+          )}
+        </div>
+        <div className="flex-shrink-0 flex items-center justify-end text-xs text-muted-foreground font-body">
+          {right}
+        </div>
       </div>
-      <h1 className="flex-1 min-w-0 text-center font-display text-base text-foreground truncate px-2">
-        {title}
-      </h1>
-      <div className="flex-shrink-0 flex items-center justify-end text-xs text-muted-foreground font-body">
-        {right}
-      </div>
+      {title && (
+        <h1 className="text-center font-display text-2xl font-semibold text-foreground px-2 leading-tight">
+          {title}
+        </h1>
+      )}
     </div>
   );
 };
