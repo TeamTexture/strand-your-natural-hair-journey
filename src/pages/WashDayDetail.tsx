@@ -37,7 +37,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
-import { NextWashTipCard } from "@/components/NextWashTipCard";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -642,18 +641,7 @@ const WashDayDetail = () => {
         )}
 
 
-        {wd.next_wash_tip && (() => {
-          let action = wd.next_wash_tip;
-          let why = "";
-          try {
-            const parsed = JSON.parse(wd.next_wash_tip);
-            if (parsed && typeof parsed === "object" && (parsed.action || parsed.why)) {
-              action = parsed.action ?? "";
-              why = parsed.why ?? "";
-            }
-          } catch { /* legacy plain text */ }
-          return <NextWashTipCard action={action} why={why} />;
-        })()}
+
 
         {!editing && (
           <>
