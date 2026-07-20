@@ -139,16 +139,6 @@ const StrandTipBox = ({ text }: { text: string }) => {
     </div>
   );
 };
-  if (!m || m.index === undefined) return { rest: text.trim(), howToUse: null };
-  const before = text.slice(0, m.index);
-  const after = text.slice(m.index + m[0].length);
-  // Stop the tip at the next known label so we don't swallow later sections.
-  const nextLabel = after.match(/\n{1,}\s*\*{0,2}\b(Your signal|Your focus|Why it matters|Why this matters|Watch for|Best sources|Try this|The action|The rationale|Note|Strand tip)\b/i);
-  const tip = (nextLabel ? after.slice(0, nextLabel.index) : after).trim();
-  const trailing = nextLabel ? after.slice(nextLabel.index) : "";
-  const rest = (before + "\n\n" + trailing).replace(/\n{3,}/g, "\n\n").trim();
-  return { rest, howToUse: tip || null };
-};
 
 const SupplementCard = ({ s }: { s: AiSupplement }) => {
   const { rest, howToUse } = splitHowToUse(s.body);
@@ -168,52 +158,47 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
             </div>
           )}
           {rest && <RichBody text={rest} className="mt-2" strandTipLast={!howToUse} />}
-          {howToUse && (
-            <div className="mt-3 rounded-lg border-2 border-primary/70 bg-primary/[0.06] px-3 py-2.5">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="size-3 text-primary" aria-hidden />
-                <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-primary">
-                  Strand tip
-                </p>
-              </div>
-              <p className="mt-1 text-xs text-foreground/90 font-body leading-relaxed">
-                {howToUse}
-              </p>
-            </div>
-          )}
+          {howToUse && <StrandTipBox text={howToUse} />}
         </div>
       </div>
     </SurfaceCard>
   );
 };
 
-const DietCard = ({ c }: { c: AiCard }) => (
-  <SurfaceCard className="border-l-4 border-l-good">
-    <div className="flex gap-3">
-      <IconBubble emoji={c.emoji || "🥗"} tone="good" />
-      <div className="flex-1 min-w-0">
-        <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-        <RichBody text={c.body} className="mt-1.5" strandTipLast />
-
-      </div>
-    </div>
-  </SurfaceCard>
-);
-
-const AvoidCard = ({ c }: { c: AiCard }) => (
-  <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
-    <div className="flex gap-3">
-      <IconBubble emoji={c.emoji || "⚠️"} tone={c.severity === "high" ? "destructive" : "warn"} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
+const DietCard = ({ c }: { c: AiCard }) => {
+  const { rest, howToUse } = splitHowToUse(c.body);
+  return (
+    <SurfaceCard className="border-l-4 border-l-good">
+      <div className="flex gap-3">
+        <IconBubble emoji={c.emoji || "🥗"} tone="good" />
+        <div className="flex-1 min-w-0">
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-          <SeverityChip level={c.severity} />
+          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={!howToUse} />}
+          {howToUse && <StrandTipBox text={howToUse} />}
         </div>
-        <RichBody text={c.body} className="mt-1.5" strandTipLast />
       </div>
-    </div>
-  </SurfaceCard>
-);
+    </SurfaceCard>
+  );
+};
+
+const AvoidCard = ({ c }: { c: AiCard }) => {
+  const { rest, howToUse } = splitHowToUse(c.body);
+  return (
+    <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
+      <div className="flex gap-3">
+        <IconBubble emoji={c.emoji || "⚠️"} tone={c.severity === "high" ? "destructive" : "warn"} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
+            <SeverityChip level={c.severity} />
+          </div>
+          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={!howToUse} />}
+          {howToUse && <StrandTipBox text={howToUse} />}
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+};
 
 // ── Meal cards ───────────────────────────────────────────────────────────
 
