@@ -28,6 +28,29 @@ function isLikelyImage(url: string): boolean {
   return /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(url) || /(images|img|cdn|media|photo|assets)\./i.test(url);
 }
 
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function maybePinterestOriginal(url: string): string[] {
+  const out = [url];
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("pinimg.com")) {
+      const original = parsed.toString().replace(/\/\d+x\//, "/originals/");
+      if (original !== url) out.unshift(original);
+    }
+  } catch {
+    // Ignore malformed candidate variants.
+  }
+  return out;
+}
+
 function toAbsolute(src: string, base: string): string | null {
   try {
     return new URL(src, base).toString();
@@ -40,22 +63,39 @@ function extractImgUrls(html: string, base: string): string[] {
   const found = new Set<string>();
   const imgRe = /<img\b[^>]*?>/gi;
   const attrRe = /(?:src|data-src|data-original|data-lazy-src|srcset)\s*=\s*(?:"([^"]+)"|'([^']+)')/gi;
-  const metaRe = /<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/gi;
+  const metaTagRe = /<meta\b[^>]*>/gi;
+  const metaAttrRe = /(property|name|content)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
   const push = (raw: string) => {
-    const parts = raw.split(",").map((p) => p.trim().split(/\s+/)[0]);
+    const parts = decodeHtml(raw).split(",").map((p) => p.trim().split(/\s+/)[0]);
     for (const part of parts) {
       const abs = toAbsolute(part, base);
-      if (abs && isLikelyImage(abs)) found.add(abs);
+      if (abs && isLikelyImage(abs)) {
+        for (const candidate of maybePinterestOriginal(abs)) found.add(candidate);
+      }
     }
   };
   let match: RegExpExecArray | null;
-  while ((match = metaRe.exec(html))) push(match[1]);
+  while ((match = metaTagRe.exec(html))) {
+    const attrs: Record<string, string> = {};
+    let attr: RegExpExecArray | null;
+    metaAttrRe.lastIndex = 0;
+    while ((attr = metaAttrRe.exec(match[0]))) attrs[attr[1].toLowerCase()] = attr[2] ?? attr[3] ?? "";
+    const kind = (attrs.property || attrs.name || "").toLowerCase();
+    if ((kind === "og:image" || kind === "og:image:url" || kind === "twitter:image") && attrs.content) {
+      push(attrs.content);
+    }
+  }
   while ((match = imgRe.exec(html))) {
     const tag = match[0];
     let attr: RegExpExecArray | null;
     attrRe.lastIndex = 0;
     while ((attr = attrRe.exec(tag))) push(attr[1] ?? attr[2] ?? "");
   }
+
+  // Pinterest and Google often hydrate image data inside JSON rather than tags.
+  const escapedImageRe = /https?:\\\/\\\/[^"'\\]+?\.(?:jpe?g|png|webp|gif|avif)(?:\?[^"'\\]*)?/gi;
+  while ((match = escapedImageRe.exec(html))) push(match[0].replace(/\\\//g, "/"));
+
   return Array.from(found);
 }
 
@@ -76,7 +116,8 @@ async function resolvePinterestUrl(input: URL): Promise<string> {
     current = new URL(location, current).toString();
     const next = new URL(current);
     if (PINTEREST_PIN_RE.test(next.pathname)) return current;
-    if (next.hostname.toLowerCase() !== "pin.it") return current;
+    const host = next.hostname.toLowerCase();
+    if (host !== "pin.it" && host !== "api.pinterest.com") return current;
   }
   return current;
 }
@@ -137,19 +178,17 @@ async function imageCandidates(rawUrl: string): Promise<string[]> {
     if (embedRes?.ok) {
       const payload = await embedRes.json().catch(() => null) as { thumbnail_url?: string; url?: string; html?: string } | null;
       if (payload?.thumbnail_url) candidates.add(payload.thumbnail_url);
-      if (payload?.url) candidates.add(payload.url);
+      if (payload?.url && isLikelyImage(payload.url)) candidates.add(payload.url);
       if (payload?.html) for (const img of extractImgUrls(payload.html, pinUrl.toString())) candidates.add(img);
     }
   }
 
   // Fall back to scraping the page for og:image / <img> tags so pasted page
   // links (Pinterest, Google, blogs) resolve to a real image server-side.
-  if (candidates.size === 0) {
-    for (const page of pageUrls) {
-      const found = await scrapePageForImages(page);
-      for (const img of found) candidates.add(img);
-      if (candidates.size > 0) break;
-    }
+  for (const page of pageUrls) {
+    const found = await scrapePageForImages(page);
+    for (const img of found) candidates.add(img);
+    if (candidates.size > 0 && !isPinterestUrl(parsed)) break;
   }
 
   if (candidates.size === 0) candidates.add(rawUrl);
@@ -235,10 +274,13 @@ Deno.serve(async (req) => {
         }
 
         const candidates = await imageCandidates(u.toString());
+        const queue = [...candidates];
+        const seen = new Set(queue);
         let imgRes: Response | null = null;
         let fetchedUrl = u.toString();
         let lastError = "Could not fetch image";
-        for (const candidate of candidates) {
+        for (let i = 0; i < queue.length && i < 80; i += 1) {
+          const candidate = queue[i];
           const res = await fetch(candidate, {
           headers: {
             // Some CDNs (Google, Pinterest) block empty UAs.
@@ -259,6 +301,18 @@ Deno.serve(async (req) => {
             continue;
           }
           const candidateType = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+          if (candidateType.includes("text/html") || candidateType.includes("xml")) {
+            const html = await res.text().catch(() => "");
+            const pageImages = html ? extractImgUrls(html, res.url || candidate) : [];
+            for (const image of pageImages) {
+              if (!seen.has(image)) {
+                seen.add(image);
+                queue.push(image);
+              }
+            }
+            lastError = pageImages.length ? "Resolved page to image candidates" : `Unsupported type (${candidateType || "unknown"})`;
+            continue;
+          }
           if (!ALLOWED.includes(candidateType)) {
             lastError = `Unsupported type (${candidateType || "unknown"})`;
             await res.body?.cancel().catch(() => undefined);
