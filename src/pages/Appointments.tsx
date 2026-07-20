@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ChevronRight } from "lucide-react";
+import { Shield, ChevronRight, Pencil } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -160,7 +160,16 @@ const Appointments = () => {
                         Soon
                       </span>
                     </div>
-                    <div className="mt-3 flex justify-end">
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body hover:bg-muted/40 transition-colors min-h-[36px]"
+                        aria-label="Edit appointment"
+                      >
+                        <Pencil className="size-3.5" />
+                        Edit
+                      </button>
                       <AddToCalendarButton
                         event={{
                           title: `${a.professional_type ?? "Appointment"} — ${a.professional_name}`,
@@ -212,6 +221,17 @@ const Appointments = () => {
                         {a.notes}
                       </p>
                     )}
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body hover:bg-muted/40 transition-colors min-h-[36px]"
+                        aria-label="Edit appointment"
+                      >
+                        <Pencil className="size-3.5" />
+                        Edit
+                      </button>
+                    </div>
                     <ApptPhotos appointmentId={a.id} />
                   </SurfaceCard>
                 ))}
