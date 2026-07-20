@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { useSmartInline, normaliseHeatLanguage } from "@/lib/smartInline";
 
 const chunkSentences = (text: string, perChunk = 2): string[] => {
   const sentences = text
@@ -69,6 +70,7 @@ const DISPLAY_LABEL: Record<string, string> = {
 const normaliseText = (raw: string): string => {
   let t = String(raw ?? "");
   t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
+  t = normaliseHeatLanguage(t);
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
 };
@@ -80,6 +82,7 @@ interface RichBodyProps {
 }
 
 const RichBody = ({ text, className = "", strandTipLast = false }: RichBodyProps) => {
+  const smartInline = useSmartInline();
   const raw = normaliseText(text);
   let paras = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   if (paras.length <= 1 && raw.length > 220) {
@@ -88,19 +91,7 @@ const RichBody = ({ text, className = "", strandTipLast = false }: RichBodyProps
     paras = paras.flatMap((p) => (p.length > 260 ? chunkSentences(p, 2) : [p]));
   }
 
-  const renderInline = (line: string, keyPrefix: string) => {
-    const parts = line.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (/^\*\*[^*]+\*\*$/.test(part)) {
-        return (
-          <strong key={`${keyPrefix}-b-${i}`} className="font-semibold text-foreground">
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      return <span key={`${keyPrefix}-t-${i}`}>{part}</span>;
-    });
-  };
+  const renderInline = (line: string, keyPrefix: string) => smartInline(line, keyPrefix);
 
   let tipPara: string | null = null;
   if (strandTipLast && paras.length > 1) {

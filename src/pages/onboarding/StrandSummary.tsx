@@ -20,6 +20,7 @@ import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { buildAiContext } from "@/lib/aiContext";
 import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
+import { useSmartInline } from "@/lib/smartInline";
 
 const MAX_PHOTOS = 5;
 
@@ -79,31 +80,8 @@ const pickIcon = (text: string): LucideIcon => {
   return Sparkle;
 };
 
-// Render text with "TT Heat Hat" turned into a link and stray URLs cleaned up
-const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
-const renderRichText = (text: string) => {
-  // Strip parenthetical/plain URL mentions of teamtexture so we don't double up
-  const cleaned = text
-    .replace(/\s*\(https?:\/\/(?:www\.)?teamtexture\.co\.uk[^)]*\)/gi, "")
-    .replace(/\s*—\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "")
-    .replace(/\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "");
-  const parts = cleaned.split(/(TT Heat Hat)/gi);
-  return parts.map((part, i) =>
-    /^tt heat hat$/i.test(part) ? (
-      <a
-        key={i}
-        href={HEAT_HAT_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
-      >
-        {part}
-      </a>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  );
-};
+// Legacy signature kept for callers; product/ingredient/heat-hat linking is
+// now delegated to the shared smart-inline renderer via `useSmartInline()`.
 
 
 interface Summary {
@@ -113,6 +91,7 @@ interface Summary {
 }
 
 const StrandSummary = () => {
+  const renderRichText = useSmartInline();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -336,7 +315,7 @@ const StrandSummary = () => {
                   .filter(Boolean)
                   .map((sentence, i) => (
                     <p key={i} className="text-[13.5px] leading-relaxed text-foreground/90">
-                      {renderRichText(sentence)}
+                      {renderRichText(sentence, `ov-${i}`)}
                     </p>
                   ))}
               </div>
@@ -360,7 +339,7 @@ const StrandSummary = () => {
                           <Icon className="size-3.5 text-primary" />
                         </span>
                         <span className="flex-1 text-[13px] leading-snug text-foreground/90">
-                          {renderRichText(b)}
+                          {renderRichText(b, `rt-${i}`)}
                         </span>
                       </li>
                     );

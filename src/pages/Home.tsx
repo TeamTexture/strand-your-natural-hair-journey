@@ -23,32 +23,11 @@ import {
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
 import HomeTour from "@/components/HomeTour";
+import { useSmartInline } from "@/lib/smartInline";
 
 
-// Render text with "TT Heat Hat" turned into a link to Team Texture.
-const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
-const renderRichText = (text: string) => {
-  const cleaned = text
-    .replace(/\s*\(https?:\/\/(?:www\.)?teamtexture\.co\.uk[^)]*\)/gi, "")
-    .replace(/\s*—\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "")
-    .replace(/\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "");
-  const parts = cleaned.split(/(TT Heat Hat)/gi);
-  return parts.map((part, i) =>
-    /^tt heat hat$/i.test(part) ? (
-      <a
-        key={i}
-        href={HEAT_HAT_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
-      >
-        {part}
-      </a>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  );
-};
+// Rich text rendering is delegated to useSmartInline() inside the component
+// so product/ingredient/heat-hat links resolve against the user's shelf.
 
 
 const Stars = ({ n }: { n: number }) => (
@@ -74,6 +53,7 @@ interface ProfileStyle {
 
 const Home = () => {
   const navigate = useNavigate();
+  const renderRichText = useSmartInline();
   const location = useLocation();
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
