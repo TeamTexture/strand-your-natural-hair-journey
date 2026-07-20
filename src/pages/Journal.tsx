@@ -285,15 +285,15 @@ const Journal = () => {
               className="w-full text-left cursor-pointer"
             >
               <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
-                <div className={`relative h-40 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
+                <div className={`relative h-64 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
                   {s.coverUrl ? (
                     isVideoPath(s.photo_paths?.[0] ?? "") ? (
                       <>
-                        <video src={s.coverUrl} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover bg-black" />
+                        <video src={s.coverUrl} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover object-top bg-black" />
                         <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
                       </>
                     ) : (
-                      <img src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                      <img src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover object-top" loading="lazy" />
                     )
                   ) : (
                     <span className="text-[10px] uppercase tracking-[0.2em] text-white/80 font-medium">
