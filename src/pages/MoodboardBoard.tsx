@@ -350,6 +350,8 @@ const MoodboardBoard = () => {
           <Loader2 className="size-3.5 animate-spin" /> Uploading…
         </p>
       )}
+      </div>
+
 
       <div className="px-5 pb-6">
         <Button variant="goldGhost" size="pill" onClick={handleShare}>
