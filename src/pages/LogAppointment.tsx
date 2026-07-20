@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Check } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -28,6 +28,8 @@ const LogAppointment = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { pros } = useDirectoryProfessionals();
+  const [searchParams] = useSearchParams();
+  const fromId = searchParams.get("fromId");
 
   const [query, setQuery] = useState("");
   const [pickedFromDirectory, setPickedFromDirectory] = useState<Professional | null>(null);
@@ -43,6 +45,38 @@ const LogAppointment = () => {
   const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
   const [followUp, setFollowUp] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Prefill from an existing appointment (e.g. from the "did you have your
+  // appointment?" home alert). We load the booking, populate every field we
+  // can, and default the status to "completed" since the user is logging it.
+  useEffect(() => {
+    if (!fromId || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, follow_up_needed")
+        .eq("id", fromId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      setProName(data.professional_name ?? "");
+      if (data.professional_type) setProType(data.professional_type);
+      setClinic(data.clinic_name ?? "");
+      if (data.appointment_date) setDate(data.appointment_date);
+      setTime(data.appointment_time ?? "");
+      setReason(data.reason ?? "");
+      setNotes(data.notes ?? "");
+      setFollowUp(!!data.follow_up_needed);
+      setStatus("completed");
+      setPrefilled(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fromId, user]);
+
 
   // Local-only list of File objects awaiting upload; uploaded after the
   // appointment row is created so we can FK them to its id.
@@ -87,35 +121,57 @@ const LogAppointment = () => {
     }
     if (!canSave) return;
     setSaving(true);
-    const { data: inserted, error } = await supabase
-      .from("appointments")
-      .insert({
-        user_id: user.id,
-        professional_name: proName.trim(),
-        professional_type: proType,
-        clinic_name: clinic.trim() || null,
-        appointment_date: date,
-        appointment_time: time.trim() || null,
-        reason: reason.trim() || null,
-        notes: notes.trim() || null,
-        status,
-        follow_up_needed: followUp,
-      })
-      .select("id")
-      .single();
-    if (error || !inserted) {
-      setSaving(false);
-      console.error("Appointment save failed:", error);
-      toast.error("Could not save appointment");
-      return;
+    const payload = {
+      user_id: user.id,
+      professional_name: proName.trim(),
+      professional_type: proType,
+      clinic_name: clinic.trim() || null,
+      appointment_date: date,
+      appointment_time: time.trim() || null,
+      reason: reason.trim() || null,
+      notes: notes.trim() || null,
+      status,
+      follow_up_needed: followUp,
+    };
+    let savedId: string | null = null;
+    if (fromId) {
+      // Updating the pre-existing booking (came from the home alert).
+      const { data: updated, error } = await supabase
+        .from("appointments")
+        .update(payload)
+        .eq("id", fromId)
+        .eq("user_id", user.id)
+        .select("id")
+        .single();
+      if (error || !updated) {
+        setSaving(false);
+        console.error("Appointment update failed:", error);
+        toast.error("Could not save appointment");
+        return;
+      }
+      savedId = updated.id;
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("appointments")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error || !inserted) {
+        setSaving(false);
+        console.error("Appointment save failed:", error);
+        toast.error("Could not save appointment");
+        return;
+      }
+      savedId = inserted.id;
     }
+
 
     // Upload any pending photos in parallel and link them to the new appointment.
     if (pendingPhotos.length > 0) {
       const uploaded = await Promise.all(pendingPhotos.map((p) => uploadApptPhoto(p.file)));
       const rows = uploaded
         .filter((path): path is string => !!path)
-        .map((path) => ({ appointment_id: inserted.id, user_id: user.id, storage_path: path }));
+        .map((path) => ({ appointment_id: savedId!, user_id: user.id, storage_path: path }));
       if (rows.length > 0) {
         const { error: photoErr } = await supabase.from("appointment_photos").insert(rows);
         if (photoErr) console.error("appointment_photos insert failed", photoErr);
@@ -132,6 +188,13 @@ const LogAppointment = () => {
       <TitleBar title="Log Appointment" onBack={() => navigate("/appointments")} />
 
       <div className="px-5 pb-8 space-y-4">
+        {prefilled && (
+          <div className="px-3.5 py-2.5 bg-primary/10 border border-primary/30 rounded-[10px]">
+            <p className="text-xs text-foreground leading-snug">
+              Pre-filled from your booking. Update anything that changed, add notes/photos, then save.
+            </p>
+          </div>
+        )}
         {/* Directory search */}
         <div>
           <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
