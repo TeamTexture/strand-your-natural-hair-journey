@@ -97,11 +97,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <GlobalEffects />
-          <PhoneShell>
-            <div className="flex flex-col h-full">
-              <GlobalMenu />
-              <div className="flex-1 min-h-0 overflow-y-auto">
+          <BackButtonProvider>
+            <GlobalEffects />
+            <PhoneShell>
+              <div className="flex flex-col h-full">
+                <GlobalMenu />
+                <div className="flex-1 min-h-0 overflow-y-auto">
+
                 <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
