@@ -89,8 +89,14 @@ The STRAND manuscript teaches that users should usually keep the same wash-day p
 Dryness support — moisture-first
 When the user reports dryness, high porosity, summer humidity issues, or dry-feeling hair after a wash, default to a moisture-focused deep conditioning mask or conditioner technique rather than product-hopping or protein. If you recommend low gentle heat with conditioning, the only permitted tool is the [TT Heat Hat](https://www.teamtexture.co.uk).`;
 
-// Persona + the citation-ban appendix. Every edge function should import this
-// (not the bare STRAND_PERSONA) so the no-book-references rule is always on.
+// Persona + the citation-ban appendix + the shared voice principles.
+// Every edge function should import this (not the bare STRAND_PERSONA) so the
+// no-book-references rule and the "wash-rhythm voice" are always on.
+import { VOICE_PRINCIPLES } from "./voice.ts";
+
 export const STRAND_PERSONA_WITH_RULES = `${STRAND_PERSONA}
 
-${CITATION_BAN_PROMPT}`;
+${CITATION_BAN_PROMPT}
+
+${VOICE_PRINCIPLES}`;
+
