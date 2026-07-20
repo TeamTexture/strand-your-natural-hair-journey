@@ -178,17 +178,7 @@ const MoodboardBoard = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar
-        title={board.name}
-        right={
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
-          >
-            + Add
-          </button>
-        }
-      />
+      <TitleBar title={board.name} />
 
       {/* Hidden file inputs */}
       <input
