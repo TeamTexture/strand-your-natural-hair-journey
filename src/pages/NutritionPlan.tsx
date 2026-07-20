@@ -111,7 +111,7 @@ const splitStrandTips = (raw: string): { rest: string; tips: string[] } => {
     .replace(/\\n/g, "\n")
     .replace(/\/n\/n/g, "\n\n")
     .replace(/\/n/g, "\n");
-  const labelRe = new RegExp(`\\*{0,2}\\b(${ALL_CARD_LABELS.join("|")})\\b\\*{0,2}\\s*:\\*{0,2}\\s*`, "gi");
+  const labelRe = new RegExp(`\\*{0,2}\\b(${ALL_CARD_LABELS.join("|")})\\b\\s*(?::\\s*\\*{0,2}|\\*{0,2}\\s*:)\\*{0,2}\\s*`, "gi");
   const matches = Array.from(text.matchAll(labelRe));
   if (matches.length === 0) return { rest: text.trim(), tips: [] };
 
