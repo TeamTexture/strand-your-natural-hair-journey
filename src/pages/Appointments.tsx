@@ -112,14 +112,6 @@ const Appointments = () => {
     <ScreenLayout bottomNav>
       <TitleBar
         title="Appointments"
-        right={
-          <button
-            onClick={goLog}
-            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
-          >
-            + Log
-          </button>
-        }
         onBack={() => navigate("/profile")}
       />
 
