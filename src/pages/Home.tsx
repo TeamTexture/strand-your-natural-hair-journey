@@ -22,6 +22,8 @@ import {
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
+import HomeTour from "@/components/HomeTour";
+
 
 // Render text with "TT Heat Hat" turned into a link to Team Texture.
 const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
