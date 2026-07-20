@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Check, Camera, ImagePlus, Link2, Loader2 } from "lucide-react";
+import { Check, Camera, ImagePlus, Link2, Loader2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
@@ -9,6 +9,7 @@ import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
+import ProductThumb from "@/components/ProductThumb";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +22,25 @@ interface Props {
   onToggle: (productId: string) => void;
 }
 
+const RatingStars = ({ value }: { value: number | null }) => {
+  if (!value) return null;
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={`Rated ${value} of 5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={cn(
+            "size-2.5",
+            n <= Math.round(value)
+              ? "fill-primary text-primary"
+              : "text-muted-foreground/40",
+          )}
+        />
+      ))}
+    </span>
+  );
+};
+
 const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onClick: () => void }) => (
   <button
     onClick={onClick}
@@ -29,16 +49,21 @@ const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onCl
       selected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40",
     )}
   >
-    <div className="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0">
-      {p.image_url ? (
-        <img src={p.image_url} alt="" className="size-full object-cover" />
-      ) : (
-        <div className="size-full flex items-center justify-center text-lg bg-primary/15">🧴</div>
-      )}
-    </div>
+    <ProductThumb
+      imageUrl={p.image_url}
+      storagePath={p.storage_path}
+      alt={p.name}
+      cover
+      wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+    />
     <div className="flex-1 min-w-0">
       <p className="text-sm font-medium truncate">{p.name}</p>
-      <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+      <div className="flex items-center gap-2 min-w-0">
+        {p.brand && (
+          <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+        )}
+        <RatingStars value={p.rating} />
+      </div>
     </div>
     {selected && (
       <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
@@ -47,6 +72,7 @@ const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onCl
     )}
   </button>
 );
+
 
 const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) => {
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
