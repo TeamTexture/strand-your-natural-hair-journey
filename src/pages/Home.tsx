@@ -440,22 +440,47 @@ const Home = () => {
         )}
 
 
-        {/* length goal — populated from the user's primary length-retention
-            goal so the home screen reflects what they actually committed to.
-            Falls back to a CTA when no goal exists yet. */}
+        {/* primary goal — the label adapts to whatever the user actually
+            committed to (length retention, moisture, scalp health, a custom
+            challenge, etc.) so the home screen never mislabels their goal. */}
         <SurfaceCard data-tour="length-goal">
 
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Length goal
-            </p>
-            <button
-              onClick={() => navigate("/journal")}
-              className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
-            >
-              {lengthGoal ? "Edit" : "Set"}
-            </button>
-          </div>
+          {(() => {
+            const goalLabel = (() => {
+              if (!lengthGoal) return "Your goal";
+              const kindMap: Record<string, string> = {
+                length_retention: "Length goal",
+                moisture: "Moisture goal",
+                scalp_health: "Scalp goal",
+                breakage: "Breakage goal",
+                definition: "Definition goal",
+                protective_styling: "Protective styling goal",
+                growth: "Growth goal",
+                thickness: "Thickness goal",
+                challenge: "Your goal",
+              };
+              if (lengthGoal.kind && kindMap[lengthGoal.kind]) return kindMap[lengthGoal.kind];
+              const title = lengthGoal.title?.trim();
+              if (title && title.toLowerCase() !== "hair goal") {
+                const words = title.split(/\s+/).slice(0, 4).join(" ");
+                return words.length > 32 ? words.slice(0, 32) + "…" : words;
+              }
+              return "Your goal";
+            })();
+            return (
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
+                  {goalLabel}
+                </p>
+                <button
+                  onClick={() => navigate("/journal")}
+                  className="text-xs uppercase tracking-[0.15em] text-primary font-medium shrink-0 ml-2"
+                >
+                  {lengthGoal ? "Edit" : "Set"}
+                </button>
+              </div>
+            );
+          })()}
           {lengthGoal ? (
             (() => {
               const unit = lengthGoal.unit || "inches";
