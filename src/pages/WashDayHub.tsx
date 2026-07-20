@@ -476,7 +476,15 @@ const WashDayHub = () => {
                   <div className="mt-3 flex flex-col gap-2">
                     <button
                       type="button"
-                      onClick={() => navigate(`/wash/step-1?date=${educational.nextDateIso}`)}
+                      onClick={() => {
+                        const iso = educational.nextDateIso!;
+                        const [y, m] = iso.split("-").map(Number);
+                        setView({ year: y, month: m - 1 });
+                        openScheduleDialog(iso);
+                        setTimeout(() => {
+                          document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }, 50);
+                      }}
                       className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold font-body px-4 py-2.5 shadow-sm hover:opacity-95 transition"
                     >
                       <CalendarClock className="size-4" />
