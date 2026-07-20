@@ -52,6 +52,7 @@ interface ProfileStyle {
 
 const Home = () => {
   const navigate = useNavigate();
+  const renderRichText = useSmartInline();
   const location = useLocation();
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
