@@ -1,5 +1,6 @@
 import { Package, Clock, Mic, ListChecks, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { stripStaleDates } from "@/lib/stripStaleDates";
 import type { WashDay } from "@/hooks/useWashDays";
 
 interface Props {
