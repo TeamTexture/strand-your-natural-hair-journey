@@ -423,7 +423,10 @@ export default function BloodUpload() {
       clearBloodDraft();
       window.dispatchEvent(new Event("strand:blood-update"));
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
-      if (savedPanelId) {
+      const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
+      if (isOnboarding) {
+        navigate("/onboarding/blood-ai-summary");
+      } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
         navigate("/blood-history");
@@ -438,9 +441,12 @@ export default function BloodUpload() {
   };
 
 
+  const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
+
   return (
     <ScreenLayout>
-      <TitleBar title="Upload blood test" onBack={() => navigate("/blood-history")} />
+      <TitleBar title="Upload blood test" onBack={() => navigate(isOnboarding ? "/onboarding/blood-timing" : "/blood-history")} />
+
       <div className="px-5 pt-2 pb-10 space-y-4">
         <p className="text-sm text-foreground/80 font-body leading-relaxed">
           Upload a PDF or photo of your lab report. STRAND will read the results
