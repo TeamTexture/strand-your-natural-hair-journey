@@ -401,15 +401,84 @@ const LogAppointment = () => {
           </div>
         </div>
 
-        <label className="flex items-center gap-3 cursor-pointer min-h-[44px]">
-          <input
-            type="checkbox"
-            checked={followUp}
-            onChange={(e) => setFollowUp(e.target.checked)}
-            className="size-5 rounded border-border accent-primary"
-          />
-          <span className="text-sm font-body">Follow-up needed</span>
-        </label>
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer min-h-[44px]">
+            <input
+              type="checkbox"
+              checked={followUp}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setFollowUp(on);
+                // First tick: default the follow-up date to 6 weeks after the
+                // appointment date — a sensible starting point for most
+                // trichology / dermatology follow-ups. The user can override.
+                if (on && !followUpDate && date) {
+                  const base = new Date(`${date}T00:00:00`);
+                  base.setDate(base.getDate() + 42);
+                  const y = base.getFullYear();
+                  const m = (base.getMonth() + 1).toString().padStart(2, "0");
+                  const d = base.getDate().toString().padStart(2, "0");
+                  setFollowUpDate(`${y}-${m}-${d}`);
+                }
+              }}
+              className="size-5 rounded border-border accent-primary"
+            />
+            <span className="text-sm font-body">Follow-up needed</span>
+          </label>
+
+          {followUp && (
+            <div className="px-3.5 py-3 bg-primary/5 border border-primary/25 rounded-[12px] space-y-3">
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                Schedule the follow-up now so it lives on your calendar and in
+                your STRAND diary.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="block text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+                    Follow-up Date
+                  </span>
+                  <input
+                    type="date"
+                    value={followUpDate}
+                    onChange={(e) => setFollowUpDate(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+                    Time
+                  </span>
+                  <input
+                    type="time"
+                    value={followUpTime}
+                    onChange={(e) => setFollowUpTime(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
+                  />
+                </label>
+              </div>
+              {followUpDate && proName.trim().length > 0 && (
+                <AddToCalendarButton
+                  variant="full"
+                  label="Add follow-up to Calendar"
+                  event={{
+                    title: `Follow-up: ${proType} — ${proName.trim()}`,
+                    date: followUpDate,
+                    time: followUpTime || null,
+                    durationMinutes: 60,
+                    location: clinic.trim() || null,
+                    description: [
+                      reason ? `Original reason: ${reason}` : null,
+                      "Follow-up from your STRAND appointment log.",
+                    ]
+                      .filter(Boolean)
+                      .join("\n\n"),
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
 
         <Button
           variant="gold"
