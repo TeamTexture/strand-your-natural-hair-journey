@@ -51,29 +51,40 @@ export function UrlScanProgressButton({
   }, [busy]);
 
   return (
-    <Button
-      variant="gold"
-      size="pill"
-      onClick={onClick}
-      disabled={disabled}
-      className={`relative overflow-hidden ${className ?? ""}`}
-    >
+    <div className={`flex flex-col gap-2 ${className ?? ""}`}>
       {busy && (
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 bg-[hsl(38_70%_28%/0.55)] transition-[width] duration-150 ease-linear"
-          style={{ width: `${progress}%` }}
-        />
+        <div
+          className="w-full h-3 bg-secondary rounded-full overflow-hidden border border-border"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
+          aria-label="Analysis progress"
+        >
+          <span
+            aria-hidden
+            className="block h-full bg-primary rounded-full transition-[width] duration-150 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       )}
-      <span className="relative z-10 flex items-center justify-center">
-        {busy ? (
-          <>
-            <Loader2 className="size-4 mr-2 animate-spin" /> Reading page…
-          </>
-        ) : (
-          "Analyse this link"
-        )}
-      </span>
-    </Button>
+      <Button
+        variant="gold"
+        size="pill"
+        onClick={onClick}
+        disabled={disabled}
+        className="w-full relative overflow-hidden"
+      >
+        <span className="relative z-10 flex items-center justify-center">
+          {busy ? (
+            <>
+              <Loader2 className="size-4 mr-2 animate-spin" /> Reading page…
+            </>
+          ) : (
+            "Analyse this link"
+          )}
+        </span>
+      </Button>
+    </div>
   );
 }
