@@ -81,6 +81,7 @@ const Appointments = () => {
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
+  const [search, setSearch] = useState("");
 
   const handleDelete = async () => {
     if (!user || !deleteTarget) return;
