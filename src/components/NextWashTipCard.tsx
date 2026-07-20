@@ -70,13 +70,15 @@ const normalise = (raw: string) => {
 
 const normaliseHeatLanguage = (raw: string) => {
   let t = String(raw ?? "");
+  t = t.replace(/\[\s*TT\s+Heat\s+Hat\s*\]\(\s*(?:https?:\/\/)?(?:www\.)?teamtexture\.co\.uk\/?\s*\)/gi, "TT Heat Hat");
   t = t.replace(/TT\s+Heat\s+Hat\s*\(\s*(?:https?:\/\/)?(?:www\.)?teamtexture\.co\.uk\/?\s*\)/gi, "TT Heat Hat");
   t = t.replace(/(?:https?:\/\/)?(?:www\.)?teamtexture\.co\.uk\/?/gi, "TT Heat Hat");
   t = t.replace(
-    /\b(?:a\s+|the\s+)?(?:generic\s+)?(?:heat\s*hat|heated\s+cap|heat\s+cap|thermal\s+cap|deep-conditioning\s+cap|deep\s+conditioning\s+cap|plastic\s+cap|shower\s+cap|warm\s+towel|steamer|steamers)\b/gi,
+    /\b(?:a\s+|the\s+)?(?:generic\s+)?(?:heat\s*hat|heat\s*aht|heated\s+cap|heat\s+cap|thermal\s+cap|deep-conditioning\s+cap|deep\s+conditioning\s+cap|plastic\s+cap|shower\s+cap|warm\s+towel|steamer|steamers)\b/gi,
     "the TT Heat Hat",
   );
   t = t.replace(/\b(?:the\s+)?TT\s+Heat\s+Hat\s+(?:TT\s+Heat\s+Hat\s*)+/gi, "the TT Heat Hat");
+  t = t.replace(/\bthe\s+the\s+TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat");
   return t.replace(/\s{2,}/g, " ");
 };
 
@@ -270,6 +272,11 @@ const renderInline = (
     "low tension",
     "tuck your ends",
     "deep conditioning mask",
+    "conditioner slip",
+    "flagged ingredient",
+    "consistently flagged",
+    "same products",
+    "mask",
     "scalp",
     "breakage",
     "dryness",
