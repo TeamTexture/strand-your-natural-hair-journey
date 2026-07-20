@@ -20,6 +20,7 @@ const buttonVariants = cva(
         gold: "bg-primary text-primary-foreground hover:bg-primary/90 uppercase tracking-button text-xs font-medium shadow-sm",
         goldOutline: "border border-primary bg-transparent text-primary hover:bg-primary/5 uppercase tracking-button text-xs font-medium",
         goldGhost: "bg-transparent text-primary hover:bg-primary/5 uppercase tracking-button text-xs font-medium",
+        brown: "bg-brown text-brown-foreground hover:bg-brown/90 uppercase tracking-button text-xs font-medium shadow-sm",
       },
       size: {
         default: "min-h-[44px] px-6 py-2",

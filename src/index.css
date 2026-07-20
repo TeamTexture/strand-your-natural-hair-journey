@@ -37,6 +37,10 @@
     --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 100%;
 
+    /* Dark brown #5C3A1E */
+    --brown: 28 52% 24%;
+    --brown-foreground: 36 67% 97%;
+
     /* Cream border #DDD0B8 */
     --border: 38 32% 79%;
     --input: 38 32% 79%;
