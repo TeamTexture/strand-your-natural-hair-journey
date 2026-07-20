@@ -362,7 +362,34 @@ export function useHomeAlerts() {
           tone: "warning",
           signature: `wash:${lastWashDate}:${Math.min(daysSinceWash, 60)}`,
         });
+      } else if (
+        Number.isFinite(daysSinceWash) &&
+        daysSinceWash >= 1 &&
+        daysSinceWash < 7 &&
+        lastWashDate
+      ) {
+        // 1b. Wash countdown — day after logging, remind them the next wash is due in 7 days.
+        const daysUntil = 7 - daysSinceWash;
+        const title =
+          daysUntil === 1
+            ? "Wash day due tomorrow"
+            : `Wash day due in ${daysUntil} days`;
+        const body =
+          daysUntil <= 2
+            ? "Tap to schedule your next cleanse and keep your 7-day rhythm."
+            : "Stay on your 7-day rhythm — tap to schedule your next wash.";
+        next.push({
+          id: "wash-countdown",
+          emoji: "🗓️",
+          title,
+          body,
+          to: "/wash-day",
+          tone: "good",
+          signature: `wash-countdown:${lastWashDate}:${daysUntil}`,
+        });
       }
+
+
 
       // 2. Style worn 42+ days
       const daysInStyle = daysSince(styleStartDate);
