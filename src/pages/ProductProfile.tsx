@@ -430,9 +430,12 @@ const ProductProfile = () => {
                 const matches = isClickable
                   ? allProducts.filter(p =>
                       p.id !== product.id &&
+                      (p.on_shelf || p.on_wishlist) &&
                       (p.ingredients ?? []).some(ing => ing.toLowerCase().trim() === lower),
                     )
                   : [];
+                const shelfMatches = matches.filter(p => p.on_shelf);
+                const wishMatches = matches.filter(p => !p.on_shelf && p.on_wishlist);
                 const RowEl = isClickable ? "button" : "div";
                 return (
                   <div key={i}>
