@@ -220,17 +220,35 @@ const IngredientDetail = () => {
     },
   );
 
-  // For "Used in N other products" lookup: index user's products by lowercased
-  // ingredient name. Excludes the current product.
+  // For the ingredient popup: index the user's shelf/wishlist products by
+  // lowercased ingredient name. Excludes the current product so the dialog can
+  // show where else this ingredient appears.
   const productsByIngredient = useMemo(() => {
-    const map = new Map<string, Array<{ id: string; key: string; name: string; brand: string | null }>>();
+    const map = new Map<string, Array<{
+      id: string;
+      key: string;
+      name: string;
+      brand: string | null;
+      imageUrl: string | null;
+      onShelf: boolean;
+      onWishlist: boolean;
+    }>>();
     for (const p of allProducts) {
       if (p.product_key === productKey) continue;
+      if (!p.on_shelf && !p.on_wishlist) continue;
       for (const ing of p.ingredients ?? []) {
         const k = ing.toLowerCase().trim();
         if (!k) continue;
         if (!map.has(k)) map.set(k, []);
-        map.get(k)!.push({ id: p.id, key: p.product_key, name: p.name, brand: p.brand });
+        map.get(k)!.push({
+          id: p.id,
+          key: p.product_key,
+          name: p.name,
+          brand: p.brand,
+          imageUrl: p.image_url ?? null,
+          onShelf: !!p.on_shelf,
+          onWishlist: !!p.on_wishlist,
+        });
       }
     }
     return map;
