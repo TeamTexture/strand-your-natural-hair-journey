@@ -166,7 +166,7 @@ const MoodboardBoard = () => {
   if (!board) {
     return (
       <ScreenLayout bottomNav>
-        <TitleBar title="Board" />
+        <TitleBar title="Board" onBack={() => navigate("/journal/moodboards")} />
         <div className="px-5 py-10 text-center">
           <p className="text-sm text-muted-foreground mb-4">Board not found.</p>
           <Button variant="goldOutline" size="pill" onClick={() => navigate("/journal/moodboards")}>
