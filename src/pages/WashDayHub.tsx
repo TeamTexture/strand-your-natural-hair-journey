@@ -408,35 +408,20 @@ const WashDayHub = () => {
             hint="Tap the button below to log your first wash day."
           />
         ) : (
-          washDays.map((wd) => (
-            <button
-              key={wd.id}
-              onClick={() => navigate(`/wash-day/${wd.id}`)}
-              className="w-full text-left"
-            >
-              <SurfaceCard className="hover:border-primary/50 transition-colors">
-                <p className="text-sm font-semibold font-body leading-tight">{fmtCardDate(wd.wash_date)}</p>
-                {wd.steps?.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {wd.steps.map((s) => s.name).join(" · ")}
-                  </p>
-                )}
-                <div className="flex items-center gap-3 mt-2 text-[11px]">
-                  {wd.scalp_feel && (
-                    <span className={cn(
-                      "font-medium",
-                      /clean|good|fresh|✓/i.test(wd.scalp_feel) ? "text-good" : "text-warn",
-                    )}>
-                      {wd.scalp_feel}
-                    </span>
-                  )}
-                  {wd.breakage && (
-                    <span className="text-muted-foreground">· Breakage: {wd.breakage}</span>
-                  )}
-                </div>
-              </SurfaceCard>
-            </button>
-          ))
+          washDays.map((wd, i) => {
+            // washDays is sorted desc — the next-older wash is at i+1.
+            const previous = washDays[i + 1] ?? null;
+            const sequenceNumber = washDays.length - i;
+            return (
+              <WashDayCard
+                key={wd.id}
+                washDay={wd}
+                sequenceNumber={sequenceNumber}
+                previousWashDate={previous?.wash_date ?? null}
+                onClick={() => navigate(`/wash-day/${wd.id}`)}
+              />
+            );
+          })
         )}
       </div>
 
