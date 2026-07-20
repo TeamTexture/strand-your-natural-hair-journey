@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import ProAvatar from "@/components/ProAvatar";
-import AddToCalendarButton from "@/components/AddToCalendarButton";
+import AppointmentCard from "@/components/AppointmentCard";
+import type { AppointmentCardData } from "@/components/AppointmentCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,18 +24,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface Appointment {
-  id: string;
-  professional_name: string;
-  professional_type: string | null;
-  clinic_name: string | null;
-  appointment_date: string;
-  appointment_time: string | null;
-  reason: string | null;
-  notes: string | null;
-  status: string;
-  follow_up_needed: boolean;
-}
+
+type Appointment = AppointmentCardData;
+
+
 
 const formatDate = (iso: string): string => {
   try {
@@ -166,121 +157,40 @@ const Appointments = () => {
               <SectionLabel>Upcoming</SectionLabel>
               <div className="px-5 pb-4 space-y-3">
                 {upcoming.map((a) => (
-                  <SurfaceCard key={a.id}>
-                    <p className="text-[11px] text-muted-foreground mb-2">
-                      {a.professional_type ?? "Appointment"} · {formatDate(a.appointment_date)}
-                      {a.appointment_time ? ` · ${a.appointment_time}` : ""}
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <ProAvatar name={a.professional_name} size="size-10" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display text-base font-semibold leading-tight truncate">
-                          {a.professional_name}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {[a.clinic_name, a.reason].filter(Boolean).join(" · ") || "—"}
-                        </p>
-                      </div>
-                      <span className="bg-primary/15 text-primary text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded shrink-0">
-                        Soon
-                      </span>
-                    </div>
-                    <div className="mt-3 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(a)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"
-                        aria-label="Delete appointment"
-                      >
-                        <Trash2 className="size-3.5" />
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body hover:bg-muted/40 transition-colors min-h-[36px]"
-                        aria-label="Edit appointment"
-                      >
-                        <Pencil className="size-3.5" />
-                        Edit
-                      </button>
-                      <AddToCalendarButton
-                        event={{
-                          title: `${a.professional_type ?? "Appointment"} — ${a.professional_name}`,
-                          date: a.appointment_date,
-                          time: a.appointment_time,
-                          durationMinutes: 60,
-                          location: a.clinic_name,
-                          description: [a.reason, a.notes].filter(Boolean).join("\n\n") || undefined,
-                          uid: `appt-${a.id}@strand.app`,
-                        }}
-                      />
-                    </div>
+                  <AppointmentCard
+                    key={a.id}
+                    appointment={a}
+                    variant="upcoming"
+                    onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                    onDelete={() => setDeleteTarget(a)}
+                  >
                     <ApptPhotos appointmentId={a.id} />
-                  </SurfaceCard>
+                  </AppointmentCard>
                 ))}
               </div>
             </>
           )}
+
 
           {past.length > 0 && (
             <>
               <SectionLabel>Past</SectionLabel>
               <div className="px-5 space-y-3 pb-4">
                 {past.map((a) => (
-                  <SurfaceCard key={a.id}>
-                    <p className="text-[11px] text-muted-foreground mb-2">
-                      {a.professional_type ?? "Appointment"} · {formatDate(a.appointment_date)}
-                    </p>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="size-10 rounded-[10px] bg-good/15 flex items-center justify-center shrink-0">
-                        <Shield className="size-5 text-good" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display text-sm font-semibold truncate">
-                          {a.professional_name}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {[a.clinic_name, a.reason].filter(Boolean).join(" · ") || "—"}
-                        </p>
-                      </div>
-                      {a.follow_up_needed && (
-                        <span className="bg-warn/15 text-warn text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0">
-                          Follow-up
-                        </span>
-                      )}
-                    </div>
-                    {a.notes && (
-                      <p className="text-[11px] text-foreground/80 leading-relaxed border-t border-border pt-2">
-                        {a.notes}
-                      </p>
-                    )}
-                    <div className="mt-3 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(a)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"
-                        aria-label="Delete appointment"
-                      >
-                        <Trash2 className="size-3.5" />
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body hover:bg-muted/40 transition-colors min-h-[36px]"
-                        aria-label="Edit appointment"
-                      >
-                        <Pencil className="size-3.5" />
-                        Edit
-                      </button>
-                    </div>
+                  <AppointmentCard
+                    key={a.id}
+                    appointment={a}
+                    variant="past"
+                    onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                    onDelete={() => setDeleteTarget(a)}
+                  >
                     <ApptPhotos appointmentId={a.id} />
-                  </SurfaceCard>
+                  </AppointmentCard>
                 ))}
               </div>
             </>
           )}
+
 
           <div className="px-5 pb-4">
             <Button variant="goldOutline" size="pill" onClick={goLog}>
