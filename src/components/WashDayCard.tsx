@@ -1,21 +1,20 @@
-import { Package, Clock, Mic } from "lucide-react";
+import { Package, Clock, Mic, ListChecks, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WashDay } from "@/hooks/useWashDays";
 
 interface Props {
   washDay: WashDay;
   sequenceNumber: number;
-  previousWashDate: string | null; // ISO date of the older wash immediately before this one
+  previousWashDate: string | null;
   onClick: () => void;
 }
 
 /**
- * "Rhythm-focused data card" — the selected prototype direction for Previous wash days.
- * Surfaces at-a-glance signals the user actually benefits from: wash #, date, style,
- * product count, duration, voice-note pin, scalp/breakage health chips, and a
- * 7-dot rhythm indicator anchored to the STRAND 7-day wash cadence.
+ * Wash day card — surfaces the signals the user actually benefits from:
+ * date, style, products used, steps taken, duration, health chips, and a
+ * one-line key insight distilled from the AI observation / next-wash tip.
  */
-export const WashDayCard = ({ washDay, sequenceNumber, previousWashDate, onClick }: Props) => {
+export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
   // ---------- Relative time ----------
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -34,49 +33,14 @@ export const WashDayCard = ({ washDay, sequenceNumber, previousWashDate, onClick
   const day = washDate.getDate();
   const dateLabel = `${weekday}, ${month} ${day}`;
 
-  // ---------- Rhythm (7-day cadence) ----------
-  let gap: number | null = null;
-  if (previousWashDate) {
-    const [py, pm, pd] = previousWashDate.split("-").map(Number);
-    const prev = new Date(py, (pm ?? 1) - 1, pd ?? 1);
-    gap = Math.round((washDate.getTime() - prev.getTime()) / 86_400_000);
-  }
-  let rhythmLabel = "First wash";
-  let rhythmTone: "gold" | "warn" | "alert" | "muted" = "muted";
-  if (gap !== null) {
-    if (gap >= 6 && gap <= 8) {
-      rhythmLabel = "On rhythm";
-      rhythmTone = "gold";
-    } else if (gap < 6) {
-      rhythmLabel = "Early";
-      rhythmTone = "warn";
-    } else if (gap <= 10) {
-      rhythmLabel = "A little late";
-      rhythmTone = "warn";
-    } else {
-      rhythmLabel = "Overdue";
-      rhythmTone = "alert";
-    }
-  }
-  // 7 dots, filled up to min(gap, 7); if first wash, fill 1.
-  const filledDots = gap === null ? 1 : Math.min(Math.max(gap, 0), 7);
-
-  const rhythmColor =
-    rhythmTone === "gold"
-      ? "text-primary"
-      : rhythmTone === "warn"
-        ? "text-warn"
-        : rhythmTone === "alert"
-          ? "text-destructive"
-          : "text-muted-foreground";
-
-  // ---------- Products count ----------
+  // ---------- Counts ----------
   const productCount = (() => {
     if (Array.isArray(washDay.product_ids) && washDay.product_ids.length > 0) {
       return washDay.product_ids.length;
     }
     return (washDay.steps ?? []).filter((s) => s.product_id || s.product_name).length;
   })();
+  const stepCount = (washDay.steps ?? []).filter((s) => s.name?.trim()).length;
 
   // ---------- Duration ----------
   const durationLabel = (() => {
@@ -93,6 +57,29 @@ export const WashDayCard = ({ washDay, sequenceNumber, previousWashDate, onClick
     washDay.style_after && washDay.style_after.trim().length > 0
       ? washDay.style_after
       : (washDay.steps ?? []).map((s) => s.name).filter(Boolean).join(" · ") || "Wash & condition";
+
+  // ---------- Key insight ----------
+  const stripMd = (s: string) =>
+    s.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[#>_`]/g, "").trim();
+  const firstSentence = (s: string) => {
+    const cleaned = stripMd(s);
+    const match = cleaned.match(/^[^.!?\n]+[.!?]?/);
+    return (match ? match[0] : cleaned).trim();
+  };
+  const insightRaw = (() => {
+    if (washDay.ai_insight) return washDay.ai_insight;
+    if (washDay.next_wash_tip) {
+      try {
+        const parsed = JSON.parse(washDay.next_wash_tip);
+        if (parsed && typeof parsed === "object") {
+          return parsed.action || parsed.why || null;
+        }
+      } catch { /* plain text */ }
+      return washDay.next_wash_tip;
+    }
+    return washDay.hair_feel_note || null;
+  })();
+  const insight = insightRaw ? firstSentence(insightRaw) : null;
 
   // ---------- Health chips ----------
   const scalpTone = (() => {
@@ -153,72 +140,74 @@ export const WashDayCard = ({ washDay, sequenceNumber, previousWashDate, onClick
         </p>
       </div>
 
-      {/* Metadata row */}
-      {(productCount > 0 || durationLabel || hasVoiceNote) && (
-        <div className="flex items-center gap-3 mb-4 text-[13px] text-foreground/70 font-body">
-          {productCount > 0 && (
-            <div className="flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5" strokeWidth={2} />
-              <span>
-                {productCount} product{productCount === 1 ? "" : "s"}
+      {/* Stat grid: products / steps / duration */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
+          <div className="flex items-center gap-1 text-primary">
+            <Package className="w-3.5 h-3.5" strokeWidth={2} />
+            <span className="font-display text-[18px] leading-none">{productCount}</span>
+          </div>
+          <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
+            Product{productCount === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
+          <div className="flex items-center gap-1 text-primary">
+            <ListChecks className="w-3.5 h-3.5" strokeWidth={2} />
+            <span className="font-display text-[18px] leading-none">{stepCount}</span>
+          </div>
+          <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
+            Step{stepCount === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
+          <div className="flex items-center gap-1 text-primary">
+            <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+            <span className="font-display text-[15px] leading-none">
+              {durationLabel ?? "—"}
+            </span>
+          </div>
+          <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
+            Duration
+          </span>
+        </div>
+      </div>
+
+      {/* Key insight */}
+      {insight && (
+        <div className="rounded-xl bg-gradient-to-br from-primary/[0.09] to-primary/[0.03] border border-primary/20 px-3 py-2.5 mb-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Sparkles className="w-3 h-3 text-primary" strokeWidth={2.5} />
+            <span className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-primary font-body">
+              Key insight
+            </span>
+          </div>
+          <p className="text-[12.5px] leading-snug text-foreground/85 font-body break-words line-clamp-2">
+            {insight}
+          </p>
+        </div>
+      )}
+
+      {/* Health chips + voice note */}
+      {(scalpTone || breakageTone || hasVoiceNote) && (
+        <div className="flex items-center justify-between border-t border-foreground/[0.06] pt-3 gap-3">
+          <div className="flex flex-wrap gap-2 flex-1 min-w-0">
+            {scalpTone && (
+              <span className={chipClass(scalpTone)}>Scalp: {washDay.scalp_feel}</span>
+            )}
+            {breakageTone && (
+              <span className={chipClass(breakageTone)}>
+                {/^(none|no)/i.test(washDay.breakage || "") ? "No breakage" : `Breakage: ${washDay.breakage}`}
               </span>
-            </div>
-          )}
-          {productCount > 0 && durationLabel && (
-            <div className="w-1 h-1 rounded-full bg-primary/30" />
-          )}
-          {durationLabel && (
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" strokeWidth={2} />
-              <span>{durationLabel}</span>
-            </div>
-          )}
+            )}
+          </div>
           {hasVoiceNote && (
-            <div className="ml-auto flex items-center gap-1 text-primary" aria-label="Voice note attached">
+            <div className="shrink-0 flex items-center gap-1 text-primary" aria-label="Voice note attached">
               <Mic className="w-4 h-4" strokeWidth={2} />
             </div>
           )}
         </div>
       )}
-
-      {/* Health chips + rhythm */}
-      <div className="flex items-end justify-between border-t border-foreground/[0.06] pt-4 gap-3">
-        <div className="flex flex-wrap gap-2 flex-1 min-w-0">
-          {scalpTone && (
-            <span className={chipClass(scalpTone)}>Scalp: {washDay.scalp_feel}</span>
-          )}
-          {breakageTone && (
-            <span className={chipClass(breakageTone)}>
-              {/^(none|no)/i.test(washDay.breakage || "") ? "No breakage" : `Breakage: ${washDay.breakage}`}
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <span className={cn("text-[9px] font-bold uppercase tracking-[0.15em] font-body", rhythmColor)}>
-            {rhythmLabel}
-          </span>
-          <div className="flex gap-1" aria-hidden="true">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full transition-colors",
-                  i < filledDots
-                    ? rhythmTone === "gold"
-                      ? "bg-primary"
-                      : rhythmTone === "warn"
-                        ? "bg-warn"
-                        : rhythmTone === "alert"
-                          ? "bg-destructive"
-                          : "bg-primary/60"
-                    : "bg-foreground/10",
-                )}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
     </button>
   );
 };
