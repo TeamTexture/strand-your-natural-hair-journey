@@ -85,7 +85,7 @@ export function useUserProducts(filter: Filter = "all") {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`user_products:${user.id}`)
+      .channel(`user_products:${user.id}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_products", filter: `user_id=eq.${user.id}` },
