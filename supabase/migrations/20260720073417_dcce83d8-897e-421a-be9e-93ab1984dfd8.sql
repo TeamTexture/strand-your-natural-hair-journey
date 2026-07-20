@@ -1,0 +1,1 @@
+ALTER TABLE public.wash_days ADD COLUMN IF NOT EXISTS styling jsonb;
