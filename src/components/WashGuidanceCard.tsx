@@ -3,6 +3,29 @@ import { Sparkles } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 
+const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
+
+const renderTip = (text: string) => {
+  const cleaned = text
+    .replace(/\s*\(https?:\/\/(?:www\.)?teamtexture\.co\.uk[^)]*\)/gi, "")
+    .replace(/\s*https?:\/\/(?:www\.)?teamtexture\.co\.uk\S*/gi, "");
+  return cleaned.split(/(TT Heat Hat)/gi).map((part, index) =>
+    /^tt heat hat$/i.test(part) ? (
+      <a
+        key={index}
+        href={TEAM_TEXTURE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary font-semibold underline underline-offset-2"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={index}>{part}</span>
+    ),
+  );
+};
+
 interface HairProfile {
   porosity?: string[];
   density?: string[];
@@ -100,7 +123,7 @@ const WashGuidanceCard = () => {
           {tips.map((t, i) => (
             <li key={i} className="flex gap-2 text-[12px] leading-snug">
               <span className="text-primary mt-0.5 shrink-0">•</span>
-              <span className="flex-1">{t}</span>
+              <span className="flex-1">{renderTip(t)}</span>
             </li>
           ))}
         </ul>
