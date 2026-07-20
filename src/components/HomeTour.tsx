@@ -255,14 +255,24 @@ const HomeTour = () => {
             />
           )}
 
-          <button
-            onClick={() => finish(true)}
-            aria-label="Skip tour"
-            className="absolute top-4 right-4 inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-white/85 hover:text-white bg-black/50 backdrop-blur px-3 py-2 rounded-full"
-          >
-            Skip tour
-            <X className="size-3.5" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <button
+              onClick={() => setActive(false)}
+              aria-label="Minimise tour"
+              className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-white/85 hover:text-white bg-black/50 backdrop-blur px-3 py-2 rounded-full"
+            >
+              Minimise
+              <Minus className="size-3.5" />
+            </button>
+            <button
+              onClick={() => finish(true)}
+              aria-label="Skip tour"
+              className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-white/85 hover:text-white bg-black/50 backdrop-blur px-3 py-2 rounded-full"
+            >
+              Skip tour
+              <X className="size-3.5" />
+            </button>
+          </div>
 
           <div
             className="absolute left-1/2 -translate-x-1/2 w-[88%] max-w-[340px] rounded-[20px] bg-background border border-primary/30 shadow-2xl p-5"
