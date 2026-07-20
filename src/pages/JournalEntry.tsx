@@ -514,6 +514,33 @@ const JournalEntry = () => {
     };
   }, [user, id, photoPathKey, photosKey]);
 
+  // Safety net: any path in photoPaths that has no signed URL yet gets one
+  // fetched here. Covers upload responses that came back with an empty URL and
+  // reorder/remove cases where a stale map is missing keys.
+  useEffect(() => {
+    if (!user || photoPaths.length === 0) return;
+    const missing = photoPaths.filter((p) => !photoUrls[p]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        missing.map(async (p) => {
+          const { data, error } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(p, 3600);
+          if (error) console.error("Journal photo signed URL refresh failed:", error, { path: p });
+          return [p, data?.signedUrl ?? ""] as const;
+        }),
+      );
+      if (cancelled) return;
+      setPhotoUrls((prev) => {
+        const next = { ...prev };
+        entries.forEach(([p, url]) => { if (url) next[p] = url; });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [photoPaths, photoUrls, user]);
+
+
   const handlePhotoUpload = async (files: FileList | File[]) => {
     if (!user) {
       toast.error("Please sign in to add photos");
