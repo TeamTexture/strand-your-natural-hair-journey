@@ -384,7 +384,7 @@ export function useHomeAlerts() {
           title,
           body,
           to: "/wash-day",
-          tone: "info",
+          tone: "good",
           signature: `wash-countdown:${lastWashDate}:${daysUntil}`,
         });
       }
