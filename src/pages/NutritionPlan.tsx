@@ -91,26 +91,62 @@ const SeverityChip = ({ level }: { level?: string }) => {
   );
 };
 
-const SupplementCard = ({ s }: { s: AiSupplement }) => (
-  <SurfaceCard className="border-l-4 border-l-primary">
-    <div className="flex gap-3">
-      <IconBubble emoji={s.emoji || "💊"} tone="gold" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="font-display text-[17px] leading-tight text-foreground">{s.name}</p>
-          <PriorityChip level={s.priority} />
-        </div>
-        {s.dose && (
-          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1">
-            <Pill className="size-3 text-primary" />
-            <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
+// Split "How to use" out of the supplement body so it ALWAYS renders in
+// a dedicated Strand tip box, regardless of how the model formatted it.
+const splitHowToUse = (raw: string): { rest: string; howToUse: string | null } => {
+  const text = String(raw ?? "")
+    .replace(/\\n/g, "\n")
+    .replace(/\/n\/n/g, "\n\n")
+    .replace(/\/n/g, "\n");
+  const re = /\*{0,2}\b(?:How to use|How to take|How it helps)\b\*{0,2}\s*:\*{0,2}\s*/i;
+  const m = text.match(re);
+  if (!m || m.index === undefined) return { rest: text.trim(), howToUse: null };
+  const before = text.slice(0, m.index);
+  const after = text.slice(m.index + m[0].length);
+  // Stop the tip at the next known label so we don't swallow later sections.
+  const nextLabel = after.match(/\n{1,}\s*\*{0,2}\b(Your signal|Your focus|Why it matters|Why this matters|Watch for|Best sources|Try this|The action|The rationale|Note|Strand tip)\b/i);
+  const tip = (nextLabel ? after.slice(0, nextLabel.index) : after).trim();
+  const trailing = nextLabel ? after.slice(nextLabel.index) : "";
+  const rest = (before + "\n\n" + trailing).replace(/\n{3,}/g, "\n\n").trim();
+  return { rest, howToUse: tip || null };
+};
+
+const SupplementCard = ({ s }: { s: AiSupplement }) => {
+  const { rest, howToUse } = splitHowToUse(s.body);
+  return (
+    <SurfaceCard className="border-l-4 border-l-primary">
+      <div className="flex gap-3">
+        <IconBubble emoji={s.emoji || "💊"} tone="gold" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-display text-[17px] leading-tight text-foreground">{s.name}</p>
+            <PriorityChip level={s.priority} />
           </div>
-        )}
-        <RichBody text={s.body} className="mt-2" strandTipLast />
+          {s.dose && (
+            <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1">
+              <Pill className="size-3 text-primary" />
+              <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
+            </div>
+          )}
+          {rest && <RichBody text={rest} className="mt-2" strandTipLast={!howToUse} />}
+          {howToUse && (
+            <div className="mt-3 rounded-lg border-2 border-primary/70 bg-primary/[0.06] px-3 py-2.5">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="size-3 text-primary" aria-hidden />
+                <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-primary">
+                  Strand tip
+                </p>
+              </div>
+              <p className="mt-1 text-xs text-foreground/90 font-body leading-relaxed">
+                {howToUse}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  </SurfaceCard>
-);
+    </SurfaceCard>
+  );
+};
 
 const DietCard = ({ c }: { c: AiCard }) => (
   <SurfaceCard className="border-l-4 border-l-good">
