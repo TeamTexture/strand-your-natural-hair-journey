@@ -40,11 +40,25 @@ const formatDate = (iso: string): string => {
 const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: Props) => {
   const isUpcoming = variant === "upcoming";
 
+  const rawReason = appointment.reason ?? "";
+  const isFollowUp = /^follow-?up\b/i.test(rawReason.trim());
+  const upcomingReason = isFollowUp
+    ? rawReason.replace(/^follow-?up\s*[:\-–]?\s*/i, "").trim() || "Follow-up"
+    : rawReason.trim();
+
+  // Extract "Previous reason: ..." carried forward in notes when the follow-up was scheduled.
+  const previousReasonMatch = isFollowUp
+    ? (appointment.notes ?? "").match(/Previous reason:\s*([^\n]+)/i)
+    : null;
+  const previousReason = previousReasonMatch?.[1]?.trim() || null;
+
   const dateTime = `${appointment.professional_type ?? "Appointment"} · ${formatDate(
     appointment.appointment_date,
   )}${appointment.appointment_time ? ` · ${appointment.appointment_time}` : ""}`;
 
-  const subtitle = [appointment.clinic_name, appointment.reason].filter(Boolean).join(" · ") || "—";
+  const subtitle =
+    [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
+    (isFollowUp ? appointment.clinic_name || "—" : "—");
 
   const calendarEvent: CalendarEvent = {
     title: `${appointment.professional_type ?? "Appointment"} — ${appointment.professional_name}`,
