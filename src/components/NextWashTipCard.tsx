@@ -64,9 +64,68 @@ const normalise = (raw: string) => {
   t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
   t = normaliseHeatLanguage(t);
   t = humaniseTraits(t);
+  t = simplifyLanguage(t);
   // Force each known label onto a new paragraph.
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
+};
+
+/**
+ * Client-side plain-language pass. The AI is instructed (voice.ts rule 13) to
+ * write for a ~14-year-old reader, but older cached tips can still contain
+ * jargon like "cumulative", "holistic", "regimen", "utilise". Swap them for
+ * the plain-English equivalent at render time.
+ */
+const PLAIN_LANGUAGE_SWAPS: Array<[RegExp, string]> = [
+  [/\bcumulatively\b/gi, "over time"],
+  [/\bcumulative\b/gi, "building"],
+  [/\bholistically\b/gi, "overall"],
+  [/\bholistic\b/gi, "whole-picture"],
+  [/\bregimens?\b/gi, "routine"],
+  [/\butili[sz]e\b/gi, "use"],
+  [/\butili[sz]ing\b/gi, "using"],
+  [/\bleverage\b/gi, "use"],
+  [/\bleveraging\b/gi, "using"],
+  [/\boptimi[sz]e\b/gi, "fine-tune"],
+  [/\boptimi[sz]ing\b/gi, "fine-tuning"],
+  [/\bfacilitate\b/gi, "help"],
+  [/\bfacilitates\b/gi, "helps"],
+  [/\bmitigate\b/gi, "reduce"],
+  [/\bmitigates\b/gi, "reduces"],
+  [/\bexacerbate\b/gi, "make worse"],
+  [/\bexacerbates\b/gi, "makes worse"],
+  [/\bsynergistic(?:ally)?\b/gi, "work well together"],
+  [/\befficacious\b/gi, "effective"],
+  [/\bmodality\b/gi, "method"],
+  [/\bproliferate\b/gi, "grow"],
+  [/\bproliferation\b/gi, "growth"],
+  [/\bcommence\b/gi, "start"],
+  [/\bcommences\b/gi, "starts"],
+  [/\bcommencing\b/gi, "starting"],
+  [/\bin order to\b/gi, "to"],
+  [/\bprior to\b/gi, "before"],
+  [/\bsubsequently\b/gi, "then"],
+  [/\bmoreover\b/gi, "also"],
+  [/\bfurthermore\b/gi, "also"],
+  [/\baforementioned\b/gi, "that"],
+  [/\bmyriad\b/gi, "many"],
+  [/\bparamount\b/gi, "most important"],
+  [/\bpredominantly\b/gi, "mostly"],
+  [/\bcircumvent\b/gi, "avoid"],
+];
+
+const simplifyLanguage = (raw: string) => {
+  let t = String(raw ?? "");
+  for (const [re, replacement] of PLAIN_LANGUAGE_SWAPS) {
+    t = t.replace(re, (match) => {
+      // Preserve leading capitalisation.
+      if (match[0] === match[0].toUpperCase() && match[0] !== match[0].toLowerCase()) {
+        return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+      }
+      return replacement;
+    });
+  }
+  return t.replace(/[ \t]{2,}/g, " ");
 };
 
 const normaliseHeatLanguage = (raw: string) => {
