@@ -157,6 +157,12 @@ const Appointments = () => {
         onBack={() => navigate("/profile")}
       />
 
+      <div className="px-5 pt-3 pb-2">
+        <Button variant="gold" size="pill" onClick={goLog} className="w-full">
+          + Log Appointment
+        </Button>
+      </div>
+
       {loading ? (
         <LoadingDot label="Loading appointments…" fullScreen={false} />
       ) : appts.length === 0 ? (
@@ -248,11 +254,6 @@ const Appointments = () => {
           )}
 
 
-          <div className="px-5 pb-4">
-            <Button variant="goldOutline" size="pill" onClick={goLog}>
-              + Log Appointment
-            </Button>
-          </div>
         </>
       )}
 
