@@ -1,18 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowUpFromLine, Trash2 } from "lucide-react";
-import {
-  useBatchSelection,
-  SelectCheckbox,
-  SelectToggleButton,
-  BatchActionBar,
-} from "@/components/BatchSelect";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-
+import { ChevronDown, Mic, Link as LinkIcon, ArrowUpFromLine, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -26,14 +14,25 @@ import ProductsHeader, {
   applyProductFilters,
   useProductsFilterState,
 } from "@/components/ProductsHeader";
+import {
+  useBatchSelection,
+  SelectCheckbox,
+  SelectToggleButton,
+  BatchActionBar,
+} from "@/components/BatchSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
+import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 
 const Wishlist = () => {
@@ -43,10 +42,12 @@ const Wishlist = () => {
   const [linkValue, setLinkValue] = useState("");
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
   const [scanPreferCamera, setScanPreferCamera] = useState(true);
-  const { products, loading } = useUserProducts("wishlist");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { products, loading, bulkSetShelf, bulkRemove } = useUserProducts("wishlist");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
+  const batch = useBatchSelection();
 
   const filterState = useProductsFilterState();
   const filteredProducts = useMemo(
@@ -60,9 +61,35 @@ const Wishlist = () => {
     setLinkValue("");
   };
 
+  const handleMoveToShelf = async () => {
+    const n = batch.count;
+    await bulkSetShelf(batch.ids, true);
+    toast.success(`Moved ${n} product${n === 1 ? "" : "s"} to your shelf`);
+    batch.exit();
+  };
+
+  const handleBulkDelete = async () => {
+    const n = batch.count;
+    await bulkRemove(batch.ids);
+    setConfirmDelete(false);
+    toast.success(`Removed ${n} product${n === 1 ? "" : "s"}`);
+    batch.exit();
+  };
+
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Wishlist" />
+      <TitleBar
+        title="Wishlist"
+        right={
+          products.length > 0 ? (
+            <SelectToggleButton
+              selectMode={batch.selectMode}
+              onEnter={() => batch.enter()}
+              onExit={batch.exit}
+            />
+          ) : undefined
+        }
+      />
 
       <ProductsHeader
         active="wishlist"
@@ -71,37 +98,36 @@ const Wishlist = () => {
         state={filterState}
       />
 
-      <div className="px-5 pb-5 space-y-3">
-        <Button
-          variant="gold"
-          size="pill"
-          disabled={busy || urlBusy}
-          onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
-          className="w-full"
-        >
-          {busy ? "Preparing photos…" : "+ Scan a New Product"}
-        </Button>
-        {/* The "Scan a New Product" sheet already lets users either take photos
-            or pick from their library, so a separate "Upload" button would be
-            redundant. */}
-        <Button
-          variant="goldOutline"
-          size="pill"
-          disabled={busy || urlBusy}
-          onClick={() => setLinkSheetOpen(true)}
-          className="w-full"
-        >
-          <LinkIcon className="size-4 mr-1.5" />
-          {urlBusy ? "Reading link…" : "Paste Web Link"}
-        </Button>
-        <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
-          Tip: snap the bottle, upload a screenshot, or paste a product page
-          link — the AI reads the label and matches ingredients to your hair
-          profile.
-        </p>
-      </div>
+      {!batch.selectMode && (
+        <div className="px-5 pb-5 space-y-3">
+          <Button
+            variant="gold"
+            size="pill"
+            disabled={busy || urlBusy}
+            onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
+            className="w-full"
+          >
+            {busy ? "Preparing photos…" : "+ Scan a New Product"}
+          </Button>
+          <Button
+            variant="goldOutline"
+            size="pill"
+            disabled={busy || urlBusy}
+            onClick={() => setLinkSheetOpen(true)}
+            className="w-full"
+          >
+            <LinkIcon className="size-4 mr-1.5" />
+            {urlBusy ? "Reading link…" : "Paste Web Link"}
+          </Button>
+          <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
+            Tip: snap the bottle, upload a screenshot, or paste a product page
+            link — the AI reads the label and matches ingredients to your hair
+            profile.
+          </p>
+        </div>
+      )}
 
-      <div className="px-5 space-y-3 pb-4">
+      <div className={cn("px-5 space-y-3 pb-4", batch.selectMode && "pb-40")}>
         {loading ? (
           <LoadingDot label="Loading your wishlist…" />
         ) : products.length === 0 ? (
@@ -118,9 +144,26 @@ const Wishlist = () => {
           filteredProducts.map((p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
+            const isSelected = batch.selected.has(p.id);
             return (
-              <SurfaceCard key={p.id} padded={false} className="overflow-hidden">
+              <SurfaceCard
+                key={p.id}
+                padded={false}
+                className={cn(
+                  "overflow-hidden transition-colors",
+                  batch.selectMode && isSelected && "ring-2 ring-primary",
+                )}
+              >
                 <div className="p-3.5 flex items-center gap-3">
+                  {batch.selectMode && (
+                    <button
+                      onClick={() => batch.toggle(p.id)}
+                      className="shrink-0"
+                      aria-label={isSelected ? "Deselect" : "Select"}
+                    >
+                      <SelectCheckbox checked={isSelected} />
+                    </button>
+                  )}
                   <ProductThumb
                     imageUrl={p.image_url}
                     storagePath={p.storage_path}
@@ -128,7 +171,11 @@ const Wishlist = () => {
                     cover={!!p.storage_path}
                   />
                   <button
-                    onClick={() => navigate(`/products/profile/${p.id}`)}
+                    onClick={() =>
+                      batch.selectMode
+                        ? batch.toggle(p.id)
+                        : navigate(`/products/profile/${p.id}`)
+                    }
                     className="flex-1 min-w-0 text-left"
                   >
                     <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
@@ -139,22 +186,24 @@ const Wishlist = () => {
                       </span>
                     )}
                   </button>
-                  <button
-                    onClick={() => setExpanded(isOpen ? null : p.product_key)}
-                    className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                    aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
-                    aria-expanded={isOpen}
-                  >
-                    <ChevronDown
-                      className={cn(
-                        "size-4 text-muted-foreground transition-transform",
-                        isOpen && "rotate-180",
-                      )}
-                    />
-                  </button>
+                  {!batch.selectMode && (
+                    <button
+                      onClick={() => setExpanded(isOpen ? null : p.product_key)}
+                      className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                      aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
+                      aria-expanded={isOpen}
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "size-4 text-muted-foreground transition-transform",
+                          isOpen && "rotate-180",
+                        )}
+                      />
+                    </button>
+                  )}
                 </div>
 
-                {isOpen && (
+                {!batch.selectMode && isOpen && (
                   <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60">
                     <ProductVoicenotes
                       productKey={p.product_key}
@@ -168,6 +217,50 @@ const Wishlist = () => {
           })
         )}
       </div>
+
+      {batch.selectMode && (
+        <BatchActionBar
+          count={batch.count}
+          totalVisible={filteredProducts.length}
+          onSelectAll={() => batch.selectAll(filteredProducts.map((p) => p.id))}
+          onClear={batch.clear}
+          actions={[
+            {
+              key: "shelf",
+              label: "Move to shelf",
+              icon: <ArrowUpFromLine className="size-4" />,
+              onClick: handleMoveToShelf,
+            },
+            {
+              key: "delete",
+              label: "Delete",
+              icon: <Trash2 className="size-4" />,
+              destructive: true,
+              onClick: () => setConfirmDelete(true),
+            },
+          ]}
+        />
+      )}
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {batch.count} product{batch.count === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the selected products and all their history from your wishlist.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Sheet open={linkSheetOpen} onOpenChange={(o) => !urlBusy && setLinkSheetOpen(o)}>
         <SheetContent side="bottom" className="rounded-t-[24px] pb-8">

@@ -11,6 +11,12 @@ import ProductsHeader, {
   applyProductFilters,
   useProductsFilterState,
 } from "@/components/ProductsHeader";
+import {
+  useBatchSelection,
+  SelectCheckbox,
+  SelectToggleButton,
+  BatchActionBar,
+} from "@/components/BatchSelect";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -33,8 +39,12 @@ const OffShelf = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [restoreId, setRestoreId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const { products, loading, setShelf, remove } = useUserProducts("off-shelf");
+  const [confirmBulkRestore, setConfirmBulkRestore] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const { products, loading, setShelf, remove, bulkSetShelf, bulkRemove } =
+    useUserProducts("off-shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
+  const batch = useBatchSelection();
 
   const filterState = useProductsFilterState();
   const filteredProducts = useMemo(
@@ -56,9 +66,37 @@ const OffShelf = () => {
     toast.success("Removed from your records");
   };
 
+  const handleBulkRestore = async () => {
+    const n = batch.count;
+    await bulkSetShelf(batch.ids, true);
+    setConfirmBulkRestore(false);
+    toast.success(`Moved ${n} product${n === 1 ? "" : "s"} back to shelf`);
+    batch.exit();
+  };
+
+  const handleBulkDelete = async () => {
+    const n = batch.count;
+    await bulkRemove(batch.ids);
+    setConfirmBulkDelete(false);
+    toast.success(`Deleted ${n} record${n === 1 ? "" : "s"}`);
+    batch.exit();
+  };
+
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Off The Shelf" back />
+      <TitleBar
+        title="Off The Shelf"
+        back
+        right={
+          products.length > 0 ? (
+            <SelectToggleButton
+              selectMode={batch.selectMode}
+              onEnter={() => batch.enter()}
+              onExit={batch.exit}
+            />
+          ) : undefined
+        }
+      />
 
       <ProductsHeader
         active="off-shelf"
@@ -74,7 +112,7 @@ const OffShelf = () => {
         </p>
       </div>
 
-      <div className="px-5 space-y-3 pb-8">
+      <div className={cn("px-5 space-y-3 pb-8", batch.selectMode && "pb-40")}>
         {loading ? (
           <LoadingDot label="Loading off-shelf products…" />
         ) : products.length === 0 ? (
@@ -92,12 +130,25 @@ const OffShelf = () => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
             const stars = p.rating ?? 0;
+            const isSelected = batch.selected.has(p.id);
             return (
               <div
                 key={p.id}
-                className="bg-card border border-border rounded-[14px] overflow-hidden opacity-90"
+                className={cn(
+                  "bg-card border border-border rounded-[14px] overflow-hidden opacity-90 transition-colors",
+                  batch.selectMode && isSelected && "ring-2 ring-primary opacity-100",
+                )}
               >
                 <div className="p-3.5 flex items-center gap-3">
+                  {batch.selectMode && (
+                    <button
+                      onClick={() => batch.toggle(p.id)}
+                      className="shrink-0"
+                      aria-label={isSelected ? "Deselect" : "Select"}
+                    >
+                      <SelectCheckbox checked={isSelected} />
+                    </button>
+                  )}
                   <div className="grayscale">
                     <ProductThumb
                       imageUrl={p.image_url}
@@ -107,7 +158,11 @@ const OffShelf = () => {
                     />
                   </div>
                   <button
-                    onClick={() => navigate(`/products/profile/${p.id}`)}
+                    onClick={() =>
+                      batch.selectMode
+                        ? batch.toggle(p.id)
+                        : navigate(`/products/profile/${p.id}`)
+                    }
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
                     <div className="flex-1 min-w-0">
@@ -126,22 +181,24 @@ const OffShelf = () => {
                       </div>
                     </div>
                   </button>
-                  <button
-                    onClick={() => setExpanded(isOpen ? null : p.product_key)}
-                    className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                    aria-label={isOpen ? "Hide details" : "Show details"}
-                    aria-expanded={isOpen}
-                  >
-                    <ChevronDown
-                      className={cn(
-                        "size-4 text-muted-foreground transition-transform",
-                        isOpen && "rotate-180",
-                      )}
-                    />
-                  </button>
+                  {!batch.selectMode && (
+                    <button
+                      onClick={() => setExpanded(isOpen ? null : p.product_key)}
+                      className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                      aria-label={isOpen ? "Hide details" : "Show details"}
+                      aria-expanded={isOpen}
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "size-4 text-muted-foreground transition-transform",
+                          isOpen && "rotate-180",
+                        )}
+                      />
+                    </button>
+                  )}
                 </div>
 
-                {isOpen && (
+                {!batch.selectMode && isOpen && (
                   <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
                     {p.ai_summary && (
                       <p className="text-[12px] text-muted-foreground leading-snug">
@@ -181,6 +238,30 @@ const OffShelf = () => {
         )}
       </div>
 
+      {batch.selectMode && (
+        <BatchActionBar
+          count={batch.count}
+          totalVisible={filteredProducts.length}
+          onSelectAll={() => batch.selectAll(filteredProducts.map((p) => p.id))}
+          onClear={batch.clear}
+          actions={[
+            {
+              key: "restore",
+              label: "Back to shelf",
+              icon: <RotateCcw className="size-4" />,
+              onClick: () => setConfirmBulkRestore(true),
+            },
+            {
+              key: "delete",
+              label: "Delete",
+              icon: <Trash2 className="size-4" />,
+              destructive: true,
+              onClick: () => setConfirmBulkDelete(true),
+            },
+          ]}
+        />
+      )}
+
       <AlertDialog open={!!restoreId} onOpenChange={(o) => !o && setRestoreId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -210,6 +291,41 @@ const OffShelf = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmBulkRestore} onOpenChange={setConfirmBulkRestore}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move {batch.count} back to shelf?</AlertDialogTitle>
+            <AlertDialogDescription>
+              These products will return to your active shelf with all their history intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkRestore}>Move to shelf</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {batch.count} record{batch.count === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the selected products, voicenotes and ratings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
