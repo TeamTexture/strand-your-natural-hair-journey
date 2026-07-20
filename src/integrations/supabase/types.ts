@@ -114,6 +114,8 @@ export type Database = {
           follow_up_time: string | null
           id: string
           notes: string | null
+          outcome_audio_path: string | null
+          outcome_notes: string | null
           professional_name: string
           professional_type: string | null
           reason: string | null
@@ -131,6 +133,8 @@ export type Database = {
           follow_up_time?: string | null
           id?: string
           notes?: string | null
+          outcome_audio_path?: string | null
+          outcome_notes?: string | null
           professional_name: string
           professional_type?: string | null
           reason?: string | null
@@ -148,6 +152,8 @@ export type Database = {
           follow_up_time?: string | null
           id?: string
           notes?: string | null
+          outcome_audio_path?: string | null
+          outcome_notes?: string | null
           professional_name?: string
           professional_type?: string | null
           reason?: string | null

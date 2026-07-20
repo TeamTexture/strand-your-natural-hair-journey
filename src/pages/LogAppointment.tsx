@@ -42,6 +42,8 @@ const LogAppointment = () => {
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [notesAudio, setNotesAudio] = useState<string | null>(null);
+  const [outcomeNotes, setOutcomeNotes] = useState("");
+  const [outcomeAudio, setOutcomeAudio] = useState<string | null>(null);
   const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
   const [followUp, setFollowUp] = useState(false);
   const [followUpDate, setFollowUpDate] = useState("");
@@ -59,7 +61,7 @@ const LogAppointment = () => {
     (async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, follow_up_needed, follow_up_date, follow_up_time")
+        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, status, follow_up_needed, follow_up_date, follow_up_time, outcome_notes, outcome_audio_path")
         .eq("id", fromId)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -71,13 +73,19 @@ const LogAppointment = () => {
       setTime(data.appointment_time ?? "");
       setReason(data.reason ?? "");
       setNotes(data.notes ?? "");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setOutcomeNotes(((data as any).outcome_notes ?? "") as string);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setOutcomeAudio(((data as any).outcome_audio_path ?? null) as string | null);
       setFollowUp(!!data.follow_up_needed);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setFollowUpDate(((data as any).follow_up_date ?? "") as string);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setFollowUpTime(((data as any).follow_up_time ?? "") as string);
 
-      setStatus("completed");
+      // Default to "completed" for follow-ups from the home alert, but keep
+      // the actual saved status if the user is editing an existing record.
+      setStatus((data.status as "upcoming" | "completed") ?? "completed");
       setPrefilled(true);
     })();
     return () => {
@@ -142,6 +150,8 @@ const LogAppointment = () => {
       follow_up_needed: followUp,
       follow_up_date: followUp && followUpDate ? followUpDate : null,
       follow_up_time: followUp && followUpTime.trim() ? followUpTime.trim() : null,
+      outcome_notes: status === "completed" && outcomeNotes.trim() ? outcomeNotes.trim() : null,
+      outcome_audio_path: status === "completed" ? outcomeAudio : null,
     };
 
     let savedId: string | null = null;
@@ -189,18 +199,18 @@ const LogAppointment = () => {
       }
     }
 
-    // If the user scheduled a follow-up, mirror it as its own upcoming
-    // appointment so it shows up in the Upcoming list and on the calendar.
-    // We de-dupe by (user, professional, date) so re-saving an existing
-    // appointment doesn't create duplicates.
+    // If the user scheduled a follow-up, create a brand-new upcoming
+    // appointment for it. We carry forward the professional / clinic and
+    // seed its notes with a fresh summary of the visit just completed so
+    // context is preserved without mutating the original record.
     if (followUp && followUpDate) {
-      const { data: existing } = await supabase
-        .from("appointments")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("professional_name", proName.trim())
-        .eq("appointment_date", followUpDate)
-        .maybeSingle();
+      const carryNotes = [
+        reason.trim() ? `Previous reason: ${reason.trim()}` : null,
+        outcomeNotes.trim() ? `Previous visit outcome: ${outcomeNotes.trim()}` : null,
+        notes.trim() ? `Previous notes: ${notes.trim()}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
       const followPayload = {
         user_id: user.id,
         professional_name: proName.trim(),
@@ -209,21 +219,14 @@ const LogAppointment = () => {
         appointment_date: followUpDate,
         appointment_time: followUpTime.trim() || null,
         reason: reason.trim() ? `Follow-up: ${reason.trim()}` : "Follow-up",
-        notes: null,
+        notes: carryNotes || null,
         status: "upcoming",
         follow_up_needed: false,
         follow_up_date: null,
         follow_up_time: null,
       };
-      if (existing?.id) {
-        await supabase
-          .from("appointments")
-          .update(followPayload)
-          .eq("id", existing.id)
-          .eq("user_id", user.id);
-      } else {
-        await supabase.from("appointments").insert(followPayload);
-      }
+      const { error: followErr } = await supabase.from("appointments").insert(followPayload);
+      if (followErr) console.error("Follow-up insert failed", followErr);
     }
 
     setSaving(false);
@@ -360,6 +363,19 @@ const LogAppointment = () => {
           placeholder="Hair loss assessment, scalp consult..."
           autoComplete="off"
         />
+
+        {status === "completed" && (
+          <VoiceNoteField
+            label="How did it go?"
+            placeholder="Type or record how the visit went — outcome, mood, anything the professional said…"
+            value={outcomeNotes}
+            onChange={setOutcomeNotes}
+            audioPath={outcomeAudio}
+            onAudioPathChange={setOutcomeAudio}
+            folder="appointments/outcome"
+            rows={4}
+          />
+        )}
 
         <VoiceNoteField
           label="Notes"
