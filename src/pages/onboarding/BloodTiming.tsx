@@ -135,12 +135,22 @@ const BloodTiming = () => {
             </SurfaceCard>
 
             <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/blood-upload?onboarding=1")}
+            >
+              <Upload className="size-4 mr-1.5" />
+              Upload PDF or Photo
+            </Button>
+            <Button
               variant="goldGhost"
               size="pill"
               onClick={() => navigate("/onboarding/blood-iron-vitamins")}
             >
               Skip for now — input what I have
             </Button>
+
           </>
         ) : (
           <div className="space-y-3 mt-4">
