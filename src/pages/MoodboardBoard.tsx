@@ -151,6 +151,16 @@ const MoodboardBoard = () => {
     }
   };
 
+  const handleSetCover = async (img: MoodboardImage) => {
+    try {
+      await setBoardCover(img);
+      toast.success("Cover updated");
+    } catch (e) {
+      console.error("Set cover failed:", e);
+      toast.error("Could not set cover");
+    }
+  };
+
 
   if (boardLoading) {
     return (
