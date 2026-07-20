@@ -241,7 +241,7 @@ const WashStep4 = () => {
         styling: Object.keys(styling).length ? styling : null,
       };
 
-      const { error } = await supabase.from("wash_days").insert(payload);
+      const { error } = await supabase.from("wash_days").insert(payload as never);
       if (error) throw error;
 
       // Optionally create a Style Journal entry to document this style.
