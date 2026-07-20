@@ -174,6 +174,40 @@ const Appointments = () => {
         </div>
       ) : (
         <>
+          <div className="px-5 pt-2 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name, clinic, type, notes…"
+                className="w-full pl-10 pr-9 py-2.5 rounded-full border border-border bg-secondary/60 text-sm font-body placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                aria-label="Search appointments"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {filteredAppts.length === 0 && (
+            <div className="px-5 py-8">
+              <EmptyState
+                icon="🔍"
+                message="No matches"
+                hint={`Nothing found for "${search.trim()}". Try a different keyword.`}
+              />
+            </div>
+          )}
+
           {upcoming.length > 0 && (
             <>
               <SectionLabel>Upcoming</SectionLabel>
