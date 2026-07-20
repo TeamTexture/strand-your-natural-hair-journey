@@ -638,7 +638,7 @@ const WashDayDetail = () => {
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2 flex items-center gap-1.5">
               <Sparkles className="size-3" /> Strand observation
             </p>
-            <p className="text-sm leading-relaxed whitespace-pre-line">{wd.ai_insight}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line">{stripStaleDates(wd.ai_insight)}</p>
           </SurfaceCard>
         )}
 
