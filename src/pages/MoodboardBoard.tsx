@@ -378,6 +378,15 @@ const MoodboardBoard = () => {
         caption={`From my ${board.name} mood board ✨\n\n#STRAND #naturalhair #moodboard`}
         filename={`${board.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.jpg`}
       />
+
+      {board && (
+        <MoodboardLinkImportDialog
+          open={linkDialogOpen}
+          onOpenChange={setLinkDialogOpen}
+          boardId={board.id}
+          onImported={() => reload()}
+        />
+      )}
     </ScreenLayout>
   );
 };
