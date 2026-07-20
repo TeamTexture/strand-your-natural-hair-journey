@@ -121,6 +121,57 @@ const condenseHeader = (raw: string) => {
   return words.slice(0, 8).join(" ") + "…";
 };
 
+/**
+ * If the saved `action` header only names ONE step (e.g. "Cleanse With The
+ * Dove Shampoo") but the `why` body prescribes a multi-step arc (cleanse +
+ * condition + mask + heat + moisture etc.), rewrite the header so it reflects
+ * the whole arc. Fixes legacy tips saved with narrow single-product headers.
+ */
+const holisticiseHeader = (rawAction: string, rawWhy: string): string => {
+  const a = String(rawAction ?? "").trim();
+  const w = String(rawWhy ?? "").toLowerCase();
+  if (!a || !w) return a;
+  const al = a.toLowerCase();
+
+  const covers = {
+    cleanse: /(cleanse|shampoo|wash)/.test(al),
+    condition: /(condition|conditioner)/.test(al) && !/conditioning shampoo/.test(al),
+    mask: /(mask|deep.?condition)/.test(al),
+    heat: /(heat hat|under heat|steam)/.test(al),
+    moisture: /(moistur|hydrat|leave.?in|seal)/.test(al),
+    ends: /(ends|protect|tuck|low.?manipulation)/.test(al),
+  };
+  const bodyMoves = {
+    cleanse: /(cleanse|shampoo|wash)/.test(w),
+    condition: /(rinse.?out conditioner|\bconditioner\b|conditioning step)/.test(w),
+    mask: /(deep.?condition|\bmask\b|treatment)/.test(w),
+    heat: /(tt heat hat|heat hat|under heat|steam)/.test(w),
+    moisture: /(leave.?in|midweek moistur|refresh moistur|seal|hydrat|moisture top.?up|moisture spritz)/.test(w),
+    ends: /(protect (?:your )?ends|tuck (?:your )?ends|low.?manipulation)/.test(w),
+  };
+  const bodyMoveCount = Object.values(bodyMoves).filter(Boolean).length;
+  const headerMoveCount = Object.values(covers).filter(Boolean).length;
+
+  // Only rewrite if the body clearly covers multiple moves AND the header
+  // covers strictly fewer of them (i.e. the header is narrower than the body).
+  if (bodyMoveCount < 2 || headerMoveCount >= bodyMoveCount) return a;
+
+  const parts: string[] = [];
+  if (bodyMoves.cleanse) parts.push("Double Cleanse");
+  if (bodyMoves.mask && bodyMoves.heat) parts.push("Deep-Condition Under Heat");
+  else if (bodyMoves.mask) parts.push("Deep-Condition");
+  else if (bodyMoves.condition) parts.push("Condition");
+  if (bodyMoves.moisture && !parts.some((p) => /Moist|Condition/.test(p))) parts.push("Seal Moisture");
+  else if (bodyMoves.moisture && parts.length < 3) parts.push("Lock In Moisture");
+  if (bodyMoves.ends && parts.length < 3) parts.push("Protect Your Ends");
+
+  if (parts.length < 2) return a;
+  const trimmed = parts.slice(0, 3);
+  if (trimmed.length === 2) return `${trimmed[0]} & ${trimmed[1]}`;
+  return `${trimmed[0]}, ${trimmed[1]} & ${trimmed[2]}`;
+};
+
+
 const chunkSentences = (text: string, perChunk = 2): string[] => {
   const sentences = text
     .replace(/\s+/g, " ")
