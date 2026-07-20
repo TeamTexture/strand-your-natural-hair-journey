@@ -1,5 +1,6 @@
 import { Package, Clock, Mic, ListChecks, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { stripStaleDates } from "@/lib/stripStaleDates";
 import type { WashDay } from "@/hooks/useWashDays";
 
 interface Props {
@@ -74,7 +75,7 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
     }
     return washDay.hair_feel_note || null;
   })();
-  const insight = insightRaw ? stripMd(insightRaw) : null;
+  const insight = insightRaw ? stripStaleDates(stripMd(insightRaw)) : null;
 
 
   // ---------- Health chips ----------
