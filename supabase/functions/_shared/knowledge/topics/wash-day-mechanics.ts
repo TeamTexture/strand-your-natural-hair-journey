@@ -9,9 +9,13 @@ import type { Topic } from "../types.ts";
 export const WASH_DAY_MECHANICS: Topic = {
  id: "wash-day-mechanics",
  title: "Wash Day — The Mechanics That Actually Matter",
- body: `A well-executed wash day is at the heart of every healthy hair-care regime. The book's framing: get this right, and most other things stop being a problem.
+  body: `A well-executed wash day is at the heart of every healthy hair-care regime. The manuscript's framing: get this right, and most other things stop being a problem.
 
-Cadence: start with a baseline of once a week. That's the expert-led guideline for most curls and coils. Every ten days to two weeks at the latest if life can't accommodate weekly. If you sweat heavily, exercise or swim often, live in a hot humid climate, or use a large volume of styling products, you may need a deeper cleanse to remove dirt and build-up successfully.
+Cadence: start with a baseline of once a week — a 7-day rhythm. If you sweat heavily, exercise or swim often, live in a hot humid climate, or use a large volume of styling products, you may need a deeper first cleanse to remove dirt and build-up successfully, but the baseline rhythm stays weekly.
+
+Core Chapter 13 wash-day sequence: be prepared to do at least TWO shampoo cleanses before conditioning. Cleanse 1 is for the scalp: use an appropriate cleansing/all-purpose shampoo, apply in sections, emulsify in wet hands first, and agitate the scalp with the pads of the fingertips — not nails — to lift dirt, sebum and build-up. Cleanse 2 is for the hair: follow with a conditioning/moisturising shampoo through the hair so the lengths are properly clean and receive conditioning agents before conditioner. Always follow shampoo with conditioner; choose rinse-out conditioner or deep conditioner based on the hair's dryness, porosity, density and recent wash-day signals.
+
+Adapt the two-cleanse baseline without abandoning it. Heavy product use, sweat, swimming, hard-water residue, tacky/greasy curls, or hair that takes longer than usual to wet can justify a stronger first cleanse or a sparing clarifying reset. Sensitive or dry scalps need a gentler cleanser and calmer technique, not skipped cleansing. Protective styles with restricted scalp access need diluted shampoo/nozzle application or an appropriate scalp cleanser so the scalp is still cleaned during the install. Co-washing can be an occasional in-between support, but it must never replace shampoo cleansing as the main wash-day cleanse.
 
 Product consistency: use the same core wash-day products for 3–4 wash cycles before judging whether they are working. One or two washes is usually not enough evidence unless there is an obvious adverse reaction. If the logged outcome is neutral or improving, the guidance is to keep the product sequence steady, watch how the hair responds, and only make one small adjustment at a time. Do not tell someone to replace or rotate products after two washes when their hair is doing well.
 
@@ -31,15 +35,17 @@ Shampoos exist on a spectrum from chelating (strongest) to co-wash (weakest). Th
 — All-purpose: in-between strength. The book describes these as "cleansing about as much as they deposit" conditioning agents back into the hair (Aishia Strickland, Black Girl Curls). Most shampoos on the market.
 — Conditioning / moisturising: gentlest, with weaker surfactants, often containing humectants and emollients.
 
+Weekly staple logic: an all-purpose shampoo can be used as the regular cleansing shampoo, followed by a moisturising/conditioning shampoo to deposit conditioning agents back into the hair after it has been thoroughly cleansed and before conditioner.
+
 Note: "clarifying" and "detox" are marketing terms used interchangeably and aren't defined industry terms (Gaia Tonanzi, Tootilab). Read what the bottle says it actually does.
 
 The shampoo → conditioner mechanism (this matters):
 
 Shampoo removes sebum, lifts the cuticle and allows water to swell the hair strand for cleansing. Conditioner does the opposite — reduces this swelling, lowers the cuticle, smooths it by filling in any gaps in the cuticle layer, leaving a protective layer around the strand. ALWAYS follow shampoo with conditioner. No exceptions, regardless of the strength of cleanser used.
 
-Paige's actual habits, named:
+Practical cleansing habits:
 
-— Sometimes shampoo two or even three times in one wash, depending on what the Afro is communicating that week.
+— Be prepared to shampoo at least twice in one wash: scalp-focused cleanse first, conditioning/moisturising cleanse through the hair second. Sometimes a third shampoo is justified when the hair and scalp are carrying heavier build-up.
 — Agitate the scalp with the pads of your fingertips — NOT your nails — to firmly rub and lift dirt and build-up.
 — Emulsify conditioner in your hands first before applying — even distribution, slight warming, better absorption.
 — Keep adding water as you work conditioner through; create a lather that gives slip for detangling.
