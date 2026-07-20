@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Link as LinkIcon, ImagePlus, Check } from "lucide-react";
 import {
   Dialog,
@@ -27,6 +27,41 @@ const MoodboardLinkImportDialog = ({ open, onOpenChange, boardId, onImported }: 
   const [images, setImages] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sourceLabel, setSourceLabel] = useState<string | null>(null);
+  const [scrapeProgress, setScrapeProgress] = useState(0);
+  const progressTimerRef = useRef<number | null>(null);
+
+  // Simulated progress that stays slightly ahead of the actual scrape so the
+  // user has a visual guideline of how long they need to wait. Caps at 92%
+  // until the request resolves, then snaps to 100%.
+  useEffect(() => {
+    if (scraping) {
+      setScrapeProgress(6);
+      const start = Date.now();
+      progressTimerRef.current = window.setInterval(() => {
+        const elapsed = Date.now() - start;
+        // Ease toward 92% over ~9s.
+        const target = Math.min(92, 6 + (elapsed / 9000) * 86);
+        setScrapeProgress((p) => (p < target ? target : p));
+      }, 120);
+    } else {
+      if (progressTimerRef.current) {
+        window.clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      if (scrapeProgress > 0) {
+        setScrapeProgress(100);
+        const t = window.setTimeout(() => setScrapeProgress(0), 400);
+        return () => window.clearTimeout(t);
+      }
+    }
+    return () => {
+      if (progressTimerRef.current) {
+        window.clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scraping]);
 
   const reset = () => {
     setUrl("");
@@ -130,6 +165,21 @@ const MoodboardLinkImportDialog = ({ open, onOpenChange, boardId, onImported }: 
         </DialogHeader>
 
         <div className="mt-3 space-y-3">
+          {(scraping || scrapeProgress > 0) && (
+            <div
+              className="h-3 w-full rounded-full bg-secondary overflow-hidden"
+              role="progressbar"
+              aria-label="Scanning link"
+              aria-valuenow={Math.round(scrapeProgress)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full bg-gradient-to-r from-primary to-[#8B6914] transition-[width] duration-200 ease-out"
+                style={{ width: `${scrapeProgress}%` }}
+              />
+            </div>
+          )}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
