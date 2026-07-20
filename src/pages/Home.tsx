@@ -23,6 +23,7 @@ import {
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
 import HomeTour from "@/components/HomeTour";
+import AppointmentFollowUpDialog from "@/components/AppointmentFollowUpDialog";
 import { useSmartInline } from "@/lib/smartInline";
 
 
@@ -819,6 +820,7 @@ const Home = () => {
       </div>
 
       <HomeTour />
+      <AppointmentFollowUpDialog />
     </ScreenLayout>
 
   );
