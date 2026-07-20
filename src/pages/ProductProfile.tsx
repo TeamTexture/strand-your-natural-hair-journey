@@ -91,16 +91,54 @@ const ProductProfile = () => {
   }, [aiFlags]);
 
   const appearances = useMemo(() => {
-    if (!product) return [] as Array<{ id: string; date: string; stepName?: string }>;
+    if (!product) return [] as Array<{
+      id: string;
+      date: string;
+      stepName?: string;
+      scalpFeel?: string | null;
+      breakage?: string | null;
+      styleAfter?: string | null;
+      insight?: string | null;
+      thumbPath?: string | null;
+    }>;
     return washDays
       .filter(wd => wd.product_ids?.includes(product.id))
       .map(wd => {
         const step = (wd.steps ?? []).find(s => s.product_id === product.id);
-        return { id: wd.id, date: wd.wash_date, stepName: step?.name };
+        const styling = (wd as unknown as { styling?: { photoPaths?: string[] } | null }).styling ?? null;
+        return {
+          id: wd.id,
+          date: wd.wash_date,
+          stepName: step?.name,
+          scalpFeel: wd.scalp_feel,
+          breakage: wd.breakage,
+          styleAfter: wd.style_after,
+          insight: wd.next_wash_tip ?? wd.ai_insight ?? wd.hair_feel_note,
+          thumbPath: styling?.photoPaths?.[0] ?? null,
+        };
       });
   }, [washDays, product]);
 
   const lastUse = appearances[0] ?? null;
+
+  // Sign the first styling photo per appearance for use as a thumbnail.
+  const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const paths = appearances.filter(a => a.thumbPath).map(a => ({ id: a.id, p: a.thumbPath! }));
+    if (paths.length === 0) { setThumbUrls({}); return; }
+    (async () => {
+      const entries = await Promise.all(paths.map(async ({ id, p }) => {
+        const { data } = await supabase.storage.from("journal-photos").createSignedUrl(p, 3600);
+        return [id, data?.signedUrl] as const;
+      }));
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      entries.forEach(([id, url]) => { if (url) map[id] = url; });
+      setThumbUrls(map);
+    })();
+    return () => { cancelled = true; };
+  }, [appearances]);
 
   // Personalised analysis is "sticky": once a product has been analysed for
   // this user we keep showing that result and DO NOT re-call the AI on every
