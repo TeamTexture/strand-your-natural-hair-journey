@@ -1,0 +1,1 @@
+ALTER TABLE public.moodboards ADD COLUMN IF NOT EXISTS cover_storage_path text;

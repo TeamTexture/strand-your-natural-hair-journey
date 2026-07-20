@@ -235,19 +235,22 @@ const MoodboardList = () => {
         <div className="px-5 pb-4">
           <button
             onClick={() => navigate(`/journal/moodboards/${favourites.id}`)}
-            className={`w-full h-32 rounded-[14px] bg-gradient-to-br ${favourites.gradient} text-primary-foreground p-4 flex flex-col justify-between text-left overflow-hidden relative`}
+            className={`w-full aspect-[4/5] rounded-[16px] bg-gradient-to-br ${favourites.gradient} text-primary-foreground flex flex-col justify-end text-left overflow-hidden relative shadow-lg`}
           >
             {favourites.coverUrl && (
               <img
                 src={favourites.coverUrl}
                 alt=""
-                className="absolute inset-0 size-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-            <div className="relative">
-              <p className="font-display text-lg font-semibold">{favourites.name}</p>
-              <p className="text-xs opacity-90">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="relative p-5">
+              <p className="font-display text-2xl font-semibold drop-shadow">{favourites.name}</p>
+              <p className="text-sm opacity-95">
                 {favourites.imageCount ?? 0} {favourites.imageCount === 1 ? "image" : "images"}
               </p>
             </div>

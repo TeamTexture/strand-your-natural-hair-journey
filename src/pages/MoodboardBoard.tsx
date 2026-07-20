@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Heart, Trash2, Loader2, ImagePlus, Camera, Share2, Link as LinkIcon } from "lucide-react";
+import { Heart, Trash2, Loader2, ImagePlus, Camera, Share2, Link as LinkIcon, Star } from "lucide-react";
 import MoodboardLinkImportDialog from "@/components/MoodboardLinkImportDialog";
 import { useNavigate, useParams } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -98,7 +98,7 @@ const MoodboardBoard = () => {
     };
   }, [id, user, navigate]);
 
-  const { images, loading, uploadImage, toggleFavourite, deleteImage, reload } = useMoodboardImages(
+  const { images, loading, uploadImage, toggleFavourite, deleteImage, setBoardCover, reload } = useMoodboardImages(
     board?.id,
     { isFavouritesBoard: !!board?.is_favourites },
   );
@@ -148,6 +148,16 @@ const MoodboardBoard = () => {
       toast.success("Image deleted");
     } catch {
       toast.error("Could not delete");
+    }
+  };
+
+  const handleSetCover = async (img: MoodboardImage) => {
+    try {
+      await setBoardCover(img);
+      toast.success("Cover updated");
+    } catch (e) {
+      console.error("Set cover failed:", e);
+      toast.error("Could not set cover");
     }
   };
 
@@ -302,6 +312,16 @@ const MoodboardBoard = () => {
               >
                 <Trash2 className="size-4" />
               </button>
+              {!board.is_favourites && (
+                <button
+                  onClick={() => handleSetCover(img)}
+                  aria-label="Set as board cover"
+                  title="Set as cover"
+                  className="absolute bottom-2 left-2 size-9 rounded-full bg-white/85 text-primary hover:bg-white flex items-center justify-center shadow"
+                >
+                  <Star className="size-4" />
+                </button>
+              )}
               <button
                 onClick={() => setSharing(img)}
                 aria-label="Share image"

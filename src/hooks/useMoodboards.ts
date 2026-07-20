@@ -45,7 +45,7 @@ export const useMoodboards = () => {
     setLoading(true);
     const { data: rows, error } = await supabase
       .from("moodboards")
-      .select("id, name, emoji, gradient, is_favourites")
+      .select("id, name, emoji, gradient, is_favourites, cover_storage_path")
       .eq("user_id", user.id)
       .order("is_favourites", { ascending: false })
       .order("created_at", { ascending: true });
@@ -55,13 +55,12 @@ export const useMoodboards = () => {
       return;
     }
 
-    // Image counts + cover (most recent image).
+    // Image counts + cover. Cover priority: user-chosen `cover_storage_path` → most recent image.
     // The Favourites board is special: it does NOT own its own images. Instead it shows
-    // every image the user has favourited from any of their other boards. So for the
-    // Favourites tile we count and pick a cover from `is_favourite = true` rows scoped
-    // to the user, not by board_id.
+    // every image the user has favourited from any of their other boards.
     const enriched: Moodboard[] = await Promise.all(
       (rows ?? []).map(async (b) => {
+        const chosen = (b as { cover_storage_path?: string | null }).cover_storage_path ?? null;
         if (b.is_favourites) {
           const { data: favs } = await supabase
             .from("moodboard_images")
@@ -69,7 +68,7 @@ export const useMoodboards = () => {
             .eq("user_id", user.id)
             .eq("is_favourite", true)
             .order("created_at", { ascending: false });
-          const cover = favs?.[0]?.storage_path ?? null;
+          const cover = chosen ?? favs?.[0]?.storage_path ?? null;
           const coverUrl = cover ? await signUrl(cover) : null;
           return { ...b, imageCount: favs?.length ?? 0, coverPath: cover, coverUrl };
         }
@@ -78,7 +77,7 @@ export const useMoodboards = () => {
           .select("storage_path, created_at")
           .eq("board_id", b.id)
           .order("created_at", { ascending: false });
-        const cover = imgs?.[0]?.storage_path ?? null;
+        const cover = chosen ?? imgs?.[0]?.storage_path ?? null;
         const coverUrl = cover ? await signUrl(cover) : null;
         return { ...b, imageCount: imgs?.length ?? 0, coverPath: cover, coverUrl };
       }),
@@ -269,5 +268,17 @@ export const useMoodboardImages = (
     [images],
   );
 
-  return { images, loading, reload: load, uploadImage, toggleFavourite, deleteImage };
+  const setBoardCover = useCallback(
+    async (img: MoodboardImage) => {
+      if (!user || !boardId) throw new Error("Sign in required");
+      const { error } = await supabase
+        .from("moodboards")
+        .update({ cover_storage_path: img.storage_path })
+        .eq("id", boardId);
+      if (error) throw error;
+    },
+    [user, boardId],
+  );
+
+  return { images, loading, reload: load, uploadImage, toggleFavourite, deleteImage, setBoardCover };
 };
