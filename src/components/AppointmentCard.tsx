@@ -80,9 +80,13 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
               {dateTime}
             </p>
             <div className="flex items-center gap-1.5 shrink-0">
-              {isFollowUp && (
+              {isFollowUp ? (
                 <span className="bg-[#C5A059] text-[#2C2416] text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full">
                   Follow-up
+                </span>
+              ) : (
+                <span className="bg-emerald-500/90 text-white text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full">
+                  New
                 </span>
               )}
               <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full">
