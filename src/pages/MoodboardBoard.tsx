@@ -154,7 +154,8 @@ const MoodboardBoard = () => {
   if (boardLoading) {
     return (
       <ScreenLayout bottomNav>
-        <TitleBar title="Loading…" />
+        <TitleBar title="Loading…" onBack={() => navigate("/journal/moodboards")} />
+
         <div className="px-5 py-10 flex justify-center">
           <Loader2 className="size-5 animate-spin text-primary" />
         </div>
