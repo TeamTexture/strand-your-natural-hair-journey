@@ -286,7 +286,12 @@ const JournalEntry = () => {
   const photoPathKey = `strand_journal_photo_${id}`;
   // New ordered list of up to 10 photo paths.
   const photosKey = `strand_journal_photos_${id}`;
+  const titleKey = `strand_journal_title_${id}`;
   const MAX_PHOTOS = 10;
+
+  // User-editable entry title. Hydrated from the DB row / catalog / localStorage
+  // and persisted back on save so users can rename entries at any time.
+  const [titleDraft, setTitleDraft] = useState<string>("");
 
   const [state, setState] = useState<ReflectionState>(emptyReflection);
   const [pickerOpen, setPickerOpen] = useState(false);
