@@ -214,6 +214,7 @@ RULES — STRICT:
    ABSOLUTE SCOPE — HARD BAN on referencing anything outside THIS product:
    - Do NOT recommend, name, pair with, "follow with", "layer with", "use alongside", "then apply", or otherwise suggest ANY other product, product type, or step (no "deep conditioner", "leave-in", "oil", "mask", "clarifying wash", "protein treatment", "styler", etc.). Even generic categories are banned.
    - Do NOT suggest a routine, regimen, wash-day structure, or multi-step process. The tip is ONLY about how to apply/use THIS product itself to get maximum benefit.
+    - Exception for shampoo/cleanser category only: you may identify whether THIS product belongs as the scalp-focused first cleanse or the hair-focused second cleanse. Keep the tip about THIS product's role and technique; do not recommend a named second product.
    - Allowed levers ONLY: application technique on THIS product (dry vs damp vs soaking-wet hair, sectioning, emulsifying in palms, scalp-only vs lengths, contact/dwell time, water temperature, rinse pressure, frequency of use of THIS product, amount used, whether to double-cleanse with it, whether to dilute it, how to distribute it for this user's density/porosity, how to work it through their current style safely).
 
    How to choose the tip — weigh in this order:
