@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, ExternalLink, Stethoscope } from "lucide-react";
+import { Copy, ExternalLink, Stethoscope, Upload } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -135,23 +135,45 @@ const BloodTiming = () => {
             </SurfaceCard>
 
             <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/blood-upload?onboarding=1")}
+            >
+              <Upload className="size-4 mr-1.5" />
+              Upload PDF or Photo
+            </Button>
+            <Button
               variant="goldGhost"
               size="pill"
               onClick={() => navigate("/onboarding/blood-iron-vitamins")}
             >
               Skip for now — input what I have
             </Button>
+
           </>
         ) : (
-          <Button
-            variant="gold"
-            size="pill"
-            className="mt-4"
-            onClick={() => navigate("/onboarding/blood-iron-vitamins")}
-          >
-            Input My Results →
-          </Button>
+          <div className="space-y-3 mt-4">
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/blood-upload?onboarding=1")}
+            >
+              <Upload className="size-4 mr-1.5" />
+              Upload PDF or Photo
+            </Button>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/onboarding/blood-iron-vitamins")}
+            >
+              Input Manually →
+            </Button>
+          </div>
         )}
+
       </div>
     </ScreenLayout>
   );
