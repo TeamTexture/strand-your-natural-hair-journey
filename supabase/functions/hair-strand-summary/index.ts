@@ -19,6 +19,7 @@ import {
   type SelectorContext,
 } from "../_shared/knowledge/index.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 
 declare const Deno: {
