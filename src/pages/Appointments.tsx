@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
-interface Appointment extends AppointmentCardData {}
+type Appointment = AppointmentCardData;
+
 
 
 const formatDate = (iso: string): string => {
