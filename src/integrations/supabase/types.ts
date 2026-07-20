@@ -109,7 +109,9 @@ export type Database = {
           appointment_time: string | null
           clinic_name: string | null
           created_at: string
+          follow_up_date: string | null
           follow_up_needed: boolean
+          follow_up_time: string | null
           id: string
           notes: string | null
           professional_name: string
@@ -124,7 +126,9 @@ export type Database = {
           appointment_time?: string | null
           clinic_name?: string | null
           created_at?: string
+          follow_up_date?: string | null
           follow_up_needed?: boolean
+          follow_up_time?: string | null
           id?: string
           notes?: string | null
           professional_name: string
@@ -139,7 +143,9 @@ export type Database = {
           appointment_time?: string | null
           clinic_name?: string | null
           created_at?: string
+          follow_up_date?: string | null
           follow_up_needed?: boolean
+          follow_up_time?: string | null
           id?: string
           notes?: string | null
           professional_name?: string
