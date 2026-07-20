@@ -199,18 +199,18 @@ const LogAppointment = () => {
       }
     }
 
-    // If the user scheduled a follow-up, mirror it as its own upcoming
-    // appointment so it shows up in the Upcoming list and on the calendar.
-    // We de-dupe by (user, professional, date) so re-saving an existing
-    // appointment doesn't create duplicates.
+    // If the user scheduled a follow-up, create a brand-new upcoming
+    // appointment for it. We carry forward the professional / clinic and
+    // seed its notes with a fresh summary of the visit just completed so
+    // context is preserved without mutating the original record.
     if (followUp && followUpDate) {
-      const { data: existing } = await supabase
-        .from("appointments")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("professional_name", proName.trim())
-        .eq("appointment_date", followUpDate)
-        .maybeSingle();
+      const carryNotes = [
+        reason.trim() ? `Previous reason: ${reason.trim()}` : null,
+        outcomeNotes.trim() ? `Previous visit outcome: ${outcomeNotes.trim()}` : null,
+        notes.trim() ? `Previous notes: ${notes.trim()}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
       const followPayload = {
         user_id: user.id,
         professional_name: proName.trim(),
@@ -219,21 +219,14 @@ const LogAppointment = () => {
         appointment_date: followUpDate,
         appointment_time: followUpTime.trim() || null,
         reason: reason.trim() ? `Follow-up: ${reason.trim()}` : "Follow-up",
-        notes: null,
+        notes: carryNotes || null,
         status: "upcoming",
         follow_up_needed: false,
         follow_up_date: null,
         follow_up_time: null,
       };
-      if (existing?.id) {
-        await supabase
-          .from("appointments")
-          .update(followPayload)
-          .eq("id", existing.id)
-          .eq("user_id", user.id);
-      } else {
-        await supabase.from("appointments").insert(followPayload);
-      }
+      const { error: followErr } = await supabase.from("appointments").insert(followPayload);
+      if (followErr) console.error("Follow-up insert failed", followErr);
     }
 
     setSaving(false);
