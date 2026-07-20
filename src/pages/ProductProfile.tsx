@@ -474,36 +474,74 @@ const ProductProfile = () => {
                         {isClickable && (
                           <p className="text-[10px] text-primary/70 uppercase tracking-[0.15em] mt-1">
                             {matches.length === 0
-                              ? "No other products with this"
+                              ? "Not in your shelf or wishlist"
                               : isExpanded
                                 ? "Hide products"
-                                : `Used in ${matches.length} other product${matches.length === 1 ? "" : "s"} ›`}
+                                : `Also in ${matches.length} of your product${matches.length === 1 ? "" : "s"} ›`}
                           </p>
                         )}
                       </div>
                     </RowEl>
                     {isExpanded && matches.length > 0 && (
-                      <div className="bg-secondary/40 divide-y divide-border/40">
-                        {matches.map(m => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => navigate(`/products/ingredient?key=${encodeURIComponent(m.product_key)}&name=${encodeURIComponent(m.name)}&brand=${encodeURIComponent(m.brand ?? "")}`)}
-                            className="w-full pl-9 pr-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-primary/5"
-                          >
-                            <div className="size-7 rounded-md overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center text-sm">
-                              {m.image_url ? (
-                                <img src={m.image_url} alt={m.name} className="size-full object-cover" />
-                              ) : "🧴"}
+                      <div className="bg-secondary/40">
+                        {shelfMatches.length > 0 && (
+                          <>
+                            <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                              On your shelf
+                            </p>
+                            <div className="divide-y divide-border/40">
+                              {shelfMatches.map(m => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => navigate(`/products/${m.id}`)}
+                                  className="w-full pl-9 pr-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-primary/5"
+                                >
+                                  <div className="size-7 rounded-md overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center text-sm">
+                                    {m.image_url ? (
+                                      <img src={m.image_url} alt={m.name} className="size-full object-cover" />
+                                    ) : "🧴"}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-medium leading-tight truncate">{m.name}</p>
+                                    {m.brand && (
+                                      <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={m.brand} /></p>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-medium leading-tight truncate">{m.name}</p>
-                              {m.brand && (
-                                <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={m.brand} /></p>
-                              )}
+                          </>
+                        )}
+                        {wishMatches.length > 0 && (
+                          <>
+                            <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                              On your wishlist
+                            </p>
+                            <div className="divide-y divide-border/40">
+                              {wishMatches.map(m => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => navigate(`/products/${m.id}`)}
+                                  className="w-full pl-9 pr-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-primary/5"
+                                >
+                                  <div className="size-7 rounded-md overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center text-sm">
+                                    {m.image_url ? (
+                                      <img src={m.image_url} alt={m.name} className="size-full object-cover" />
+                                    ) : "🧴"}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-medium leading-tight truncate">{m.name}</p>
+                                    {m.brand && (
+                                      <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={m.brand} /></p>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
                             </div>
-                          </button>
-                        ))}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
