@@ -25,18 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
-interface Appointment {
-  id: string;
-  professional_name: string;
-  professional_type: string | null;
-  clinic_name: string | null;
-  appointment_date: string;
-  appointment_time: string | null;
-  reason: string | null;
-  notes: string | null;
-  status: string;
-  follow_up_needed: boolean;
-}
+interface Appointment extends AppointmentCardData {}
+
 
 const formatDate = (iso: string): string => {
   try {
