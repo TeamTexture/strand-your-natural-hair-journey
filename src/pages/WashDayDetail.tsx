@@ -126,6 +126,18 @@ interface HeatTreatment {
 }
 interface ProductLookup { id: string; name: string; brand: string | null }
 
+interface StylingSnapshot {
+  style?: string[];
+  productIds?: string[];
+  productNames?: string[];
+  duration?: string[];
+  stress?: string[];
+  note?: string;
+  audioPath?: string | null;
+  photoPaths?: string[];
+  saveAsJournal?: boolean;
+}
+
 
 
 interface EditDraft {
@@ -161,6 +173,10 @@ const WashDayDetail = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [products, setProducts] = useState<ProductLookup[]>([]);
+  const [styling, setStyling] = useState<StylingSnapshot | null>(null);
+  const [stylingProducts, setStylingProducts] = useState<ProductLookup[]>([]);
+  const [stylingPhotoUrls, setStylingPhotoUrls] = useState<string[]>([]);
+  const [stylingAudioUrl, setStylingAudioUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -194,6 +210,41 @@ const WashDayDetail = () => {
         } else {
           setProducts([]);
         }
+
+        // Styling snapshot (photos, styling products, note, voicenote)
+        const s = ((data as unknown as { styling?: StylingSnapshot | null })?.styling) ?? null;
+        setStyling(s);
+        if (s?.productIds?.length) {
+          const { data: sp } = await supabase
+            .from("user_products")
+            .select("id, name, brand")
+            .in("id", s.productIds);
+          if (!cancelled) setStylingProducts((sp as ProductLookup[]) ?? []);
+        } else {
+          setStylingProducts([]);
+        }
+        if (s?.photoPaths?.length) {
+          const signed = await Promise.all(
+            s.photoPaths.map(async (p) => {
+              const { data: sig } = await supabase.storage
+                .from("journal-photos")
+                .createSignedUrl(p, 3600);
+              return sig?.signedUrl ?? null;
+            }),
+          );
+          if (!cancelled) setStylingPhotoUrls(signed.filter((u): u is string => !!u));
+        } else {
+          setStylingPhotoUrls([]);
+        }
+        if (s?.audioPath) {
+          const { data: sig } = await supabase.storage
+            .from("voicenotes")
+            .createSignedUrl(s.audioPath, 3600);
+          if (!cancelled) setStylingAudioUrl(sig?.signedUrl ?? null);
+        } else {
+          setStylingAudioUrl(null);
+        }
+
         setLoading(false);
       }
     })();
@@ -430,6 +481,83 @@ const WashDayDetail = () => {
             ))}
           </SurfaceCard>
         )}
+
+        {/* ── Styling ────────────────────────── */}
+        {!editing && styling && (
+          styling.style?.length ||
+          styling.duration?.length ||
+          styling.stress?.length ||
+          styling.note?.trim() ||
+          stylingPhotoUrls.length > 0 ||
+          stylingProducts.length > 0 ||
+          stylingAudioUrl
+        ) ? (
+          <SurfaceCard className="space-y-3">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
+              <Scissors className="size-3" /> Styling
+            </p>
+
+            {(styling.style?.length || styling.duration?.length || styling.stress?.length) && (
+              <div className="flex flex-wrap gap-1.5">
+                {styling.style?.map((s) => (
+                  <Chip key={`st-${s}`}>{s}</Chip>
+                ))}
+                {styling.duration?.map((d) => (
+                  <Chip key={`d-${d}`}><Clock className="size-3" /> {d}</Chip>
+                ))}
+                {styling.stress?.map((v) => (
+                  <Chip key={`s-${v}`} tone={v === "Low" ? "good" : v === "High" ? "alert" : "warn"}>
+                    <Gauge className="size-3" /> Stress: {v}
+                  </Chip>
+                ))}
+              </div>
+            )}
+
+            {stylingPhotoUrls.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {stylingPhotoUrls.map((url) => (
+                  <a key={url} href={url} target="_blank" rel="noreferrer" className="block aspect-square overflow-hidden rounded-xl bg-muted">
+                    <img src={url} alt="Style" className="w-full h-full object-cover" loading="lazy" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {stylingProducts.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">Products used to style</p>
+                <div className="rounded-2xl border border-border/60 divide-y divide-border/60 overflow-hidden">
+                  {stylingProducts.map((p) => (
+                    <Link key={p.id} to={`/products/${p.id}`} className="flex items-center gap-3 p-3 hover:bg-primary/5 transition">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-tight break-words">{p.name}</p>
+                        {p.brand && <p className="text-[11px] text-muted-foreground mt-0.5">{p.brand}</p>}
+                      </div>
+                      <span className="text-primary text-xs">›</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {styling.note?.trim() && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Styling note</p>
+                <p className="text-sm leading-relaxed whitespace-pre-line">{styling.note}</p>
+              </div>
+            )}
+
+            {stylingAudioUrl && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1 flex items-center gap-1.5">
+                  <Mic className="size-3" /> Styling voice note
+                </p>
+                <audio controls src={stylingAudioUrl} className="w-full" />
+              </div>
+            )}
+          </SurfaceCard>
+        ) : null}
+
 
         {/* ── Edit form ──────────────────────── */}
         {editing && draft && (
