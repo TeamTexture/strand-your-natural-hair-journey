@@ -165,6 +165,21 @@ const MoodboardLinkImportDialog = ({ open, onOpenChange, boardId, onImported }: 
         </DialogHeader>
 
         <div className="mt-3 space-y-3">
+          {(scraping || scrapeProgress > 0) && (
+            <div
+              className="h-3 w-full rounded-full bg-secondary overflow-hidden"
+              role="progressbar"
+              aria-label="Scanning link"
+              aria-valuenow={Math.round(scrapeProgress)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full bg-gradient-to-r from-primary to-[#8B6914] transition-[width] duration-200 ease-out"
+                style={{ width: `${scrapeProgress}%` }}
+              />
+            </div>
+          )}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
