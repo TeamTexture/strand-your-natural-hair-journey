@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
+import { useBackButtonContext } from "@/components/BackButtonContext";
+
 
 const NAV: { label: string; to: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { label: "Home", to: "/home", icon: HomeIcon },
@@ -43,6 +45,7 @@ const GlobalMenu = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { hasPageBackButton } = useBackButtonContext();
 
   const hidden =
     !session ||
@@ -56,7 +59,10 @@ const GlobalMenu = () => {
     navigate(to);
   };
 
-  const canGoBack = location.pathname !== "/home";
+  // Only show the menu's back button when the page itself hasn't already
+  // rendered one (e.g. via TitleBar), so the user never sees two back buttons.
+  const canGoBack = location.pathname !== "/home" && !hasPageBackButton;
+
 
   return (
     <div

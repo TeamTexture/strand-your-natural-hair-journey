@@ -1,6 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useBackButtonContext } from "@/components/BackButtonContext";
 
 interface Props {
   /** Centre title text */
@@ -15,10 +16,21 @@ interface Props {
 
 const TitleBar = ({ title, right, back = true, onBack }: Props) => {
   const navigate = useNavigate();
+  const { register, unregister } = useBackButtonContext();
+
+  // Tell the global menu that this page already has a back button so it
+  // doesn't render a duplicate.
+  useEffect(() => {
+    if (!back) return;
+    register();
+    return () => unregister();
+  }, [back, register, unregister]);
+
   const handleBack = () => {
     if (onBack) onBack();
     else navigate(-1);
   };
+
   return (
     <div className="h-12 px-4 flex items-center justify-between gap-2 shrink-0">
       <div className="w-12 flex items-center">

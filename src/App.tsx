@@ -7,7 +7,9 @@ import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
 import RequireAuth from "@/components/RequireAuth";
 import GlobalMenu from "@/components/GlobalMenu";
+import { BackButtonProvider } from "@/components/BackButtonContext";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
+
 
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -95,11 +97,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <GlobalEffects />
-          <PhoneShell>
-            <div className="flex flex-col h-full">
-              <GlobalMenu />
-              <div className="flex-1 min-h-0 overflow-y-auto">
+          <BackButtonProvider>
+            <GlobalEffects />
+            <PhoneShell>
+              <div className="flex flex-col h-full">
+                <GlobalMenu />
+                <div className="flex-1 min-h-0 overflow-y-auto">
+
                 <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
@@ -174,6 +178,7 @@ const App = () => (
               </div>
             </div>
           </PhoneShell>
+        </BackButtonProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
