@@ -106,20 +106,17 @@ const MoodboardList = () => {
   };
 
   const handlePickLinkImage = async (src: string) => {
-    try {
-      const res = await fetch(src);
-      if (!res.ok) throw new Error("Could not download image");
-      const blob = await res.blob();
-      const ext = (blob.type.split("/")[1] || "jpg").split(";")[0];
-      const file = new File([blob], `cover.${ext}`, { type: blob.type || "image/jpeg" });
-      await handlePickCover(file);
-      setLinkOpen(false);
-      setLinkUrl("");
-      setLinkImages([]);
-    } catch (e) {
-      console.error(e);
-      toast.error("Could not use that image — try another");
-    }
+    // Don't fetch client-side — cross-origin CDNs (Pinterest, Google) block it.
+    // Stash the URL and let moodboard-import-image download it server-side after
+    // the board is created. Show a preview from the same URL (may 404 if hotlink
+    // protected but that's cosmetic — the server-side fetch still works).
+    setCoverFile(null);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(src);
+    setCoverLinkUrl(src);
+    setLinkOpen(false);
+    setLinkUrl("");
+    setLinkImages([]);
   };
 
 
