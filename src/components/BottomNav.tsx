@@ -17,6 +17,7 @@ const tabs = [
 const BottomNav = () => (
   <nav
     aria-label="Primary"
+    data-tour="bottom-nav"
     className="shrink-0 border-t border-border bg-card/95 backdrop-blur-sm grid grid-cols-5 select-none"
     style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
   >
@@ -26,6 +27,7 @@ const BottomNav = () => (
         to={to}
         end
         onClick={() => tap()}
+        data-tour={to === "/profile" ? "bottom-nav-profile" : undefined}
         className={({ isActive }) =>
           `min-h-[56px] py-2 flex flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.12em] font-body transition-colors ${
             isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
