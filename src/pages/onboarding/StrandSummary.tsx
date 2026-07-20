@@ -21,7 +21,7 @@ import { buildAiContext } from "@/lib/aiContext";
 import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
 
-const MAX_PHOTOS = 12;
+const MAX_PHOTOS = 5;
 
 const bannedSummaryPatterns = [
   /\bit[’']s a pleasure to connect with you[.!]?\s*/gi,
@@ -443,8 +443,7 @@ const StrandSummary = () => {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="image/*,.heic,.heif"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
