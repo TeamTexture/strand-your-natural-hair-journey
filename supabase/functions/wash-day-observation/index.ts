@@ -131,19 +131,19 @@ PART 2 — NEXT WASH DAY TIP (field: next_wash_tip — object with { action, why
 This is the primary value the user reads on the home screen. Be SUCCINCT. Do not re-analyse today.
 
 FIELD: action  (this is the CARD HEADER, not the tip itself)
-- SHORT header only: 2 to 6 words, Title Case, NO trailing period.
-- Names the core move so a reader instantly grasps the direction. Examples: "Repeat Your Current Sequence", "Deep-Condition Under TT Heat Hat", "Lead With Moisture", "Protect Your Ends This Week", "Keep Using Your Lola Mask".
-- May include ONE specific product or tool name from context.shelf / context.tools when that IS the core move. Never invent items.
-- If suggesting heat, write exactly "TT Heat Hat" — never generic "heat cap", plastic cap, shower cap, warm towel, or steamer.
+- SHORT header only: 3 to 7 words, Title Case, NO trailing period.
+- HOLISTIC: the header must capture or allude to the WHOLE direction of the tip, not just one step. If the body covers a cleanse + mask + heat step, the header signals the overall arc (e.g. "Reset, Mask And Seal Moisture", "Cleanse Gently, Deep-Condition Under Heat", "Repeat Sequence, Add Midweek Moisture"). A reader should not finish the body thinking "the header only told me half of that".
+- May pair two linked moves with a comma or "and" ("Cleanse And Deep-Condition", "Protect Ends, Lead With Moisture"). Group thematically rather than listing three separate moves.
+- May include ONE specific product or tool name from context.shelf / context.tools when it is central to the overall move. Never invent items.
+- If suggesting heat anywhere in the tip, write exactly "TT Heat Hat" — never generic "heat cap", plastic cap, shower cap, warm towel, or steamer.
 - ABSOLUTE: never a protein, keratin, or bond-repair treatment on any cadence.
-- Do NOT write a full imperative sentence here. Do NOT append a comma explaining WHY — the explanation goes in \`why\`.
-- HEADER↔BODY ALIGNMENT (STRICT): the header MUST name the SAME single core move the \`why\` body explains. Write \`why\` first internally, then choose an action header that summarises it.
-  • If \`why\` centres on a deep-conditioning mask + TT Heat Hat, the header is about that mask/heat step — NOT the cleanse step.
-  • If \`why\` tells them to keep the same shampoo/conditioner sequence for another cycle, the header is about repeating the sequence — NOT a mask.
-  • If \`why\` is about protecting ends / low manipulation, the header names that move.
-  • Never mention cleansing products in the header when the body's real recommendation is a mid-week or mask/heat treatment.
-  • Never mention a mask in the header when the body is about a cleanse step.
-  Before returning, reread your header and body: if a reader could not guess the header from the body's central instruction, rewrite the header.
+- Do NOT write a full imperative sentence. Do NOT append a "because…" clause — the explanation lives in \`why\`.
+- HEADER↔BODY ALIGNMENT (STRICT + HOLISTIC): draft \`why\` first, then write a header that covers ALL the moves \`why\` recommends, weighted toward the primary one.
+  • If \`why\` centres on a mask + TT Heat Hat after a gentle cleanse, the header names the mask/heat arc AND hints at the cleanse ("Cleanse Then Deep-Condition Under Heat").
+  • If \`why\` says keep the same shampoo/conditioner sequence and add a midweek moisture top-up, the header reflects both ("Repeat Sequence, Add Midweek Moisture").
+  • If \`why\` is only about protecting ends / low manipulation, the header names that single move.
+  • Never mention only the cleanse in the header when the body's real emphasis is a mask/heat step (or vice versa). Never leave the primary move out of the header.
+  Before returning, reread: could a reader summarise the body from just the header? If not, rewrite the header so it covers the whole arc.
 
 FIELD: why  (this is the BODY that explains the header)
 - 2 to 4 short sentences, ~55 words max. Plain, conversational English.
