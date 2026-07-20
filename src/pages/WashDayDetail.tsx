@@ -126,6 +126,18 @@ interface HeatTreatment {
 }
 interface ProductLookup { id: string; name: string; brand: string | null }
 
+interface StylingSnapshot {
+  style?: string[];
+  productIds?: string[];
+  productNames?: string[];
+  duration?: string[];
+  stress?: string[];
+  note?: string;
+  audioPath?: string | null;
+  photoPaths?: string[];
+  saveAsJournal?: boolean;
+}
+
 
 
 interface EditDraft {
