@@ -383,8 +383,8 @@ export function NextWashTipCard({
         {!collapsed && (
           <>
             {action && (
-              <h3 className="font-display text-white text-[20px] leading-snug break-words">
-                {renderInline(action, "action", products)}
+              <h3 className="font-display text-white text-[22px] leading-tight tracking-tight break-words">
+                {renderInline(action.replace(/[.!]+\s*$/, ""), "action", products)}
               </h3>
             )}
 
