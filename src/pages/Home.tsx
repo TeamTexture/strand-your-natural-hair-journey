@@ -308,7 +308,7 @@ const Home = () => {
   return (
     <ScreenLayout bottomNav>
       {/* greeting */}
-      <header className="px-5 pt-3 pb-4 flex items-start justify-between">
+      <header className="px-5 pt-3 pb-2 flex items-start justify-between">
         <div>
           <p className="font-body text-sm text-muted-foreground">{greeting},</p>
           <h1 className="font-display text-[24px] font-bold leading-tight">
@@ -333,6 +333,18 @@ const Home = () => {
           </button>
         </div>
       </header>
+
+      {/* pinned "take the tour" pill — always available from Home */}
+      <div className="px-5 pb-3">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary text-[11px] uppercase tracking-[0.2em] font-body font-semibold py-2 transition-colors"
+        >
+          <Sparkles className="size-3.5" />
+          Take the tour
+        </button>
+      </div>
 
       <div className="px-5 space-y-4 pb-6">
         {/* current style — editorial terra card */}
@@ -742,6 +754,7 @@ const Home = () => {
       <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-3">
 
         <button
+          data-tour="qa-wash"
           onClick={() => navigate("/wash-day")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -750,6 +763,7 @@ const Home = () => {
           <p className="text-[11px] text-muted-foreground mt-0.5">{lastWashSub}</p>
         </button>
         <button
+          data-tour="qa-product"
           onClick={() => navigate("/products")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -758,6 +772,7 @@ const Home = () => {
           <p className="text-[11px] text-muted-foreground mt-0.5">Scan or screenshot</p>
         </button>
         <button
+          data-tour="qa-journal"
           onClick={() => navigate("/journal")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -766,6 +781,7 @@ const Home = () => {
           <p className="text-[11px] text-muted-foreground mt-0.5">Document your favourite styles</p>
         </button>
         <button
+          data-tour="qa-appt"
           onClick={() => navigate("/appointments")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
