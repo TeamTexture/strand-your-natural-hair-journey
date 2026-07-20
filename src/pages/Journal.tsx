@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { Pencil, Plus, Sparkles, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
