@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ChevronRight, Pencil } from "lucide-react";
+import { Shield, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -13,6 +13,17 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Appointment {
   id: string;
@@ -78,6 +89,24 @@ const Appointments = () => {
   const { user } = useAuth();
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
+
+  const handleDelete = async () => {
+    if (!user || !deleteTarget) return;
+    const { error } = await supabase
+      .from("appointments")
+      .delete()
+      .eq("id", deleteTarget.id)
+      .eq("user_id", user.id);
+    if (error) {
+      console.error("Appointment delete failed:", error);
+      toast.error("Could not delete appointment");
+    } else {
+      setAppts((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+      toast.success("Appointment deleted");
+    }
+    setDeleteTarget(null);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -159,6 +188,15 @@ const Appointments = () => {
                     <div className="mt-3 flex justify-end gap-2">
                       <button
                         type="button"
+                        onClick={() => setDeleteTarget(a)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"
+                        aria-label="Delete appointment"
+                      >
+                        <Trash2 className="size-3.5" />
+                        Delete
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body hover:bg-muted/40 transition-colors min-h-[36px]"
                         aria-label="Edit appointment"
@@ -217,7 +255,16 @@ const Appointments = () => {
                         {a.notes}
                       </p>
                     )}
-                    <div className="mt-3 flex justify-end">
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(a)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"
+                        aria-label="Delete appointment"
+                      >
+                        <Trash2 className="size-3.5" />
+                        Delete
+                      </button>
                       <button
                         type="button"
                         onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
@@ -257,6 +304,27 @@ const Appointments = () => {
           <ChevronRight className="size-5 text-primary shrink-0" />
         </button>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete appointment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove your appointment with <strong>{deleteTarget?.professional_name}</strong> on{" "}
+              {deleteTarget ? formatDate(deleteTarget.appointment_date) : ""}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
