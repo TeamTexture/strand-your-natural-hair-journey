@@ -226,11 +226,29 @@ const MoodboardBoard = () => {
         }}
       />
 
-      <p className="text-[11px] text-muted-foreground text-center pb-3 px-5">
+      <div
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="relative"
+      >
+        {isDragging && (
+          <div className="absolute inset-0 z-30 rounded-[16px] border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm flex items-center justify-center pointer-events-none mx-3">
+            <div className="text-center">
+              <ImagePlus className="size-8 mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium text-primary">Drop photos to add</p>
+              <p className="text-[11px] text-muted-foreground">JPG, PNG or HEIC · up to 8MB</p>
+            </div>
+          </div>
+        )}
+
+        <p className="text-[11px] text-muted-foreground text-center pb-3 px-5">
         {images.length} {images.length === 1 ? "image" : "images"}
         {board.is_favourites
           ? " · Tap ♥ to remove from Favourites"
           : " · Tap ♡ to add to Favourites"}
+        <span className="hidden sm:inline"> · Drag &amp; drop photos anywhere</span>
       </p>
 
       {/* Image grid */}
