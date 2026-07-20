@@ -451,10 +451,12 @@ export function NextWashTipCard({
   // 3-line "title".
   const rawAction = String(action ?? "").trim();
   const rawWhy = String(why ?? "").trim();
-  const condensedAction = condenseHeader(rawAction);
+  const holisticAction = holisticiseHeader(rawAction, rawWhy);
+  const condensedAction = condenseHeader(holisticAction);
   const overflow =
     rawAction && condensedAction &&
-    rawAction.replace(/\s+/g, " ").length > condensedAction.replace(/[…]$/, "").length + 2
+    rawAction.replace(/\s+/g, " ").length > condensedAction.replace(/[…]$/, "").length + 2 &&
+    holisticAction === rawAction
       ? rawAction
       : "";
   const effectiveWhy = [overflow, rawWhy].filter(Boolean).join("\n\n");
