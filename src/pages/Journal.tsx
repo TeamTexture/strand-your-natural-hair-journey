@@ -323,9 +323,9 @@ const Journal = () => {
                       No photo
                     </span>
                   )}
-                  {/* Soft bottom gradient so the title overlay stays legible on any cover. */}
+                  {/* Soft bottom gradient so the date pill stays legible on any cover. */}
                   {s.coverUrl && (
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
                   )}
                   <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full backdrop-blur-sm">
                     {dateLabel}
@@ -341,20 +341,30 @@ const Journal = () => {
                   >
                     <Trash2 className="size-4" />
                   </button>
-                  {/* Style title sits directly on the cover for magazine-style presentation. */}
-                  <div className="absolute inset-x-0 bottom-0 p-3">
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-white/80 font-medium">Style</p>
-                    <p className="font-display text-lg font-semibold text-white leading-tight drop-shadow">
+                </div>
+                {/* Labelled data block: name, date, hairstyle, products used. */}
+                <div className="p-3.5 space-y-2.5">
+                  <div>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Name</p>
+                    <p className="font-display text-base font-semibold leading-tight text-foreground">
                       {displayTitle}
                     </p>
                   </div>
-                </div>
-                <div className="p-3 space-y-2">
-                  {productNames.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <p className="text-[9px] uppercase tracking-[0.2em] text-primary/80 font-medium mb-1.5 flex items-center gap-1">
-                        <Sparkles className="size-3" /> Products used
-                      </p>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Date logged</p>
+                      <p className="font-body text-[12px] text-foreground mt-0.5">{dateLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Hairstyle</p>
+                      <p className="font-body text-[12px] text-foreground mt-0.5 truncate">{displayTitle}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-primary/80 font-medium mb-1.5 flex items-center gap-1">
+                      <Sparkles className="size-3" /> Products used
+                    </p>
+                    {productNames.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {productNames.slice(0, 2).map((n) => (
                           <span
@@ -370,14 +380,11 @@ const Journal = () => {
                           </span>
                         )}
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground italic">
-                      No products logged yet
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] text-muted-foreground">{dateLabel}</span>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground italic">None logged yet</p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end pt-0.5">
                     <button
                       type="button"
                       onClick={(e) => {
