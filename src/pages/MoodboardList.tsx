@@ -478,11 +478,11 @@ const MoodboardList = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="goldGhost" size="pill" onClick={() => setOpen(false)} disabled={saving}>
+          <DialogFooter className="flex-row justify-between gap-2 sm:justify-between sm:space-x-0">
+            <Button variant="goldGhost" size="pill" onClick={() => setOpen(false)} disabled={saving} className="flex-1">
               Cancel
             </Button>
-            <Button variant="gold" size="pill" onClick={handleCreate} disabled={saving}>
+            <Button variant="gold" size="pill" onClick={handleCreate} disabled={saving} className="flex-1">
               {saving ? "Creating…" : "Create Board"}
             </Button>
           </DialogFooter>
