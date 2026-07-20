@@ -29,18 +29,19 @@ interface CalProps {
   month: number; // 0-11
   washDates: Set<string>; // YYYY-MM-DD
   washDayIdsByDate: Record<string, string>;
+  scheduledDates: Set<string>;
   onPrev: () => void;
   onNext: () => void;
   onPickDate: (iso: string) => void;
   onLogDate: (iso: string) => void;
+  onScheduleDate: (iso: string) => void;
 }
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 const isoFor = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 
-const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, onPickDate, onLogDate }: CalProps) => {
+const Calendar = ({ year, month, washDates, washDayIdsByDate, scheduledDates, onPrev, onNext, onPickDate, onLogDate, onScheduleDate }: CalProps) => {
   const first = new Date(year, month, 1);
-  // Mon-Sun grid: shift Sunday (0) -> 6
   const startOffset = (first.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -72,40 +73,53 @@ const Calendar = ({ year, month, washDates, washDayIdsByDate, onPrev, onNext, on
           if (c === null) return <span key={i} />;
           const iso = isoFor(year, month, c);
           const isWash = washDates.has(iso);
+          const isScheduled = !isWash && scheduledDates.has(iso);
           const isToday = iso === todayIso;
           const wdId = washDayIdsByDate[iso];
           const isPastOrToday = iso <= todayIso;
-          const isTappable = isWash || isPastOrToday;
-          const Tag = isTappable ? "button" : "span";
+          const isFuture = iso > todayIso;
           const handleClick = isWash && wdId
             ? () => onPickDate(wdId)
-            : isPastOrToday
-              ? () => onLogDate(iso)
-              : undefined;
+            : isFuture
+              ? () => onScheduleDate(iso)
+              : isPastOrToday
+                ? () => onLogDate(iso)
+                : undefined;
+          const ariaLabel = isWash
+            ? `View wash day on ${iso}`
+            : isScheduled
+              ? `Scheduled wash day on ${iso} — tap to manage`
+              : isFuture
+                ? `Schedule a wash day on ${iso}`
+                : `Log wash day on ${iso}`;
           return (
-            <Tag
+            <button
               key={i}
-              {...(isTappable ? { onClick: handleClick, "aria-label": isWash ? `View wash day on ${iso}` : `Log wash day on ${iso}` } : {})}
+              onClick={handleClick}
+              aria-label={ariaLabel}
               className={cn(
                 "h-9 flex items-center justify-center rounded-full font-body transition-colors",
                 isWash && "bg-primary text-primary-foreground font-medium hover:bg-primary/90 cursor-pointer",
-                isToday && !isWash && "border border-primary text-primary font-medium rounded-md hover:bg-primary/10",
-                !isWash && !isToday && isPastOrToday && "text-foreground/70 hover:bg-primary/10 cursor-pointer",
-                !isWash && !isToday && !isPastOrToday && "text-foreground/30",
+                isScheduled && "bg-[hsl(var(--secondary-foreground))] text-primary font-semibold hover:opacity-90 cursor-pointer",
+                isToday && !isWash && !isScheduled && "border border-primary text-primary font-medium rounded-md hover:bg-primary/10",
+                !isWash && !isScheduled && !isToday && isPastOrToday && "text-foreground/70 hover:bg-primary/10 cursor-pointer",
+                !isWash && !isScheduled && !isToday && isFuture && "text-foreground/60 hover:bg-primary/10 cursor-pointer",
               )}
             >
               {c}
-            </Tag>
+            </button>
           );
         })}
       </div>
-      <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-primary" /> Wash day</span>
+      <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-primary" /> Logged</span>
+        <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-[hsl(var(--secondary-foreground))]" /> Scheduled</span>
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-md border border-primary" /> Today</span>
       </div>
     </SurfaceCard>
   );
 };
+
 
 const fmtDayLong = (d: Date) =>
   d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
