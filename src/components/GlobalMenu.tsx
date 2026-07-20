@@ -91,15 +91,36 @@ const GlobalMenu = () => {
       ) : (
         <span className="size-9" aria-hidden />
       )}
-      <button
-        type="button"
-        aria-label="Open menu"
-        data-tour="global-menu"
-        onClick={() => setOpen(true)}
-        className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
-      >
-        <Menu className="size-5" />
-      </button>
+      <div className="flex items-center gap-1">
+        {location.pathname === "/home" && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Take the tour"
+                  onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
+                  className="size-9 rounded-full flex items-center justify-center text-primary bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors"
+                >
+                  <Star className="size-[18px] fill-current" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={6}>
+                <span>Take the tour</span>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        <button
+          type="button"
+          aria-label="Open menu"
+          data-tour="global-menu"
+          onClick={() => setOpen(true)}
+          className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
+        >
+          <Menu className="size-5" />
+        </button>
+      </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
