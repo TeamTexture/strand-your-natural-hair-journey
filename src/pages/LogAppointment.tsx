@@ -189,6 +189,43 @@ const LogAppointment = () => {
       }
     }
 
+    // If the user scheduled a follow-up, mirror it as its own upcoming
+    // appointment so it shows up in the Upcoming list and on the calendar.
+    // We de-dupe by (user, professional, date) so re-saving an existing
+    // appointment doesn't create duplicates.
+    if (followUp && followUpDate) {
+      const { data: existing } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("professional_name", proName.trim())
+        .eq("appointment_date", followUpDate)
+        .maybeSingle();
+      const followPayload = {
+        user_id: user.id,
+        professional_name: proName.trim(),
+        professional_type: proType,
+        clinic_name: clinic.trim() || null,
+        appointment_date: followUpDate,
+        appointment_time: followUpTime.trim() || null,
+        reason: reason.trim() ? `Follow-up: ${reason.trim()}` : "Follow-up",
+        notes: null,
+        status: "upcoming",
+        follow_up_needed: false,
+        follow_up_date: null,
+        follow_up_time: null,
+      };
+      if (existing?.id) {
+        await supabase
+          .from("appointments")
+          .update(followPayload)
+          .eq("id", existing.id)
+          .eq("user_id", user.id);
+      } else {
+        await supabase.from("appointments").insert(followPayload);
+      }
+    }
+
     setSaving(false);
     toast.success("Appointment logged");
     navigate("/appointments");

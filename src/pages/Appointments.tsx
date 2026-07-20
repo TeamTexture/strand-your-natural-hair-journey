@@ -99,8 +99,12 @@ const Appointments = () => {
   }, [user]);
 
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = appts.filter((a) => a.appointment_date >= today);
-  const past = appts.filter((a) => a.appointment_date < today);
+  // Status is the source of truth: anything marked "completed" belongs in Past
+  // regardless of date; anything else is Upcoming unless its date has already
+  // slipped into the past (in which case we still show it under Past so it
+  // doesn't hang around the top of the list forever).
+  const upcoming = appts.filter((a) => a.status !== "completed" && a.appointment_date >= today);
+  const past = appts.filter((a) => a.status === "completed" || a.appointment_date < today);
 
   const goLog = () => navigate("/appointments/log");
 
