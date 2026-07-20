@@ -1141,6 +1141,37 @@ const IngredientDetail = () => {
             const benefits = profile?.benefits ?? [];
             const profileLoading = ingredientProfile.isLoading || ingredientProfile.isFetching;
             const profileError = ingredientProfile.isError;
+            const alsoInProducts = productsByIngredient.get(lower) ?? [];
+            const shelfMatches = alsoInProducts.filter((p) => p.onShelf);
+            const wishlistMatches = alsoInProducts.filter((p) => !p.onShelf && p.onWishlist);
+            const renderProductMatch = (p: (typeof alsoInProducts)[number]) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setSelectedIngredient(null);
+                  navigate(`/products/${p.id}`);
+                }}
+                className="w-full rounded-lg border border-border/60 bg-background/60 p-2.5 flex items-center gap-2.5 text-left hover:bg-primary/5 transition-colors"
+              >
+                <div className="size-9 rounded-md overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center text-base">
+                  {p.imageUrl ? (
+                    <img src={p.imageUrl} alt="" className="size-full object-cover" loading="lazy" />
+                  ) : (
+                    <span aria-hidden="true">🧴</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold leading-tight truncate">{p.name}</p>
+                  {p.brand && (
+                    <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                  )}
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.12em] text-primary shrink-0">
+                  Review
+                </span>
+              </button>
+            );
             return (
               <>
                 <DialogHeader>
@@ -1227,6 +1258,37 @@ const IngredientDetail = () => {
                       </p>
                     </div>
                   )}
+
+                  <div className="rounded-lg bg-muted/35 border border-border/60 p-3 space-y-2.5">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold">
+                        Also in your products
+                      </p>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground mt-1">
+                        {alsoInProducts.length > 0
+                          ? "Other shelf or wishlist products that include this ingredient."
+                          : "No other shelf or wishlist products include this ingredient yet."}
+                      </p>
+                    </div>
+
+                    {shelfMatches.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          On your shelf
+                        </p>
+                        {shelfMatches.map(renderProductMatch)}
+                      </div>
+                    )}
+
+                    {wishlistMatches.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          On your wishlist
+                        </p>
+                        {wishlistMatches.map(renderProductMatch)}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             );
