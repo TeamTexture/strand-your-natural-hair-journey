@@ -286,7 +286,12 @@ const JournalEntry = () => {
   const photoPathKey = `strand_journal_photo_${id}`;
   // New ordered list of up to 10 photo paths.
   const photosKey = `strand_journal_photos_${id}`;
+  const titleKey = `strand_journal_title_${id}`;
   const MAX_PHOTOS = 10;
+
+  // User-editable entry title. Hydrated from the DB row / catalog / localStorage
+  // and persisted back on save so users can rename entries at any time.
+  const [titleDraft, setTitleDraft] = useState<string>("");
 
   const [state, setState] = useState<ReflectionState>(emptyReflection);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -352,6 +357,34 @@ const JournalEntry = () => {
       productIds: [],
     });
   }, [id, storageKey, entry, isDbEntry, dbEntry]);
+
+  // Hydrate the editable title. Prefer localStorage draft (unsaved edits),
+  // then the DB / catalog title. Default to a friendly placeholder for new entries.
+  useEffect(() => {
+    if (!id || !entry) return;
+    try {
+      const cached = localStorage.getItem(titleKey);
+      if (cached && cached.trim()) {
+        setTitleDraft(cached);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    const initial = entry.title && entry.title !== "New journal entry" ? entry.title : "";
+    setTitleDraft(initial);
+  }, [id, titleKey, entry]);
+
+  const commitTitle = (value: string) => {
+    setTitleDraft(value);
+    try {
+      if (value.trim()) localStorage.setItem(titleKey, value);
+      else localStorage.removeItem(titleKey);
+    } catch {
+      /* ignore */
+    }
+  };
+
 
   const { allProducts } = useUserProducts("all");
   const selectedProducts = useMemo(
@@ -435,7 +468,7 @@ const JournalEntry = () => {
 
     const payload = {
       user_id: user.id,
-      title: `${tag} ${entry?.title ?? "Journal entry"}`.trim(),
+      title: `${tag} ${(titleDraft.trim() || entry?.title || "Journal entry")}`.trim(),
       note: noteBody || null,
       photo_paths: photoPaths,
       products_used: state.productIds,
@@ -832,7 +865,15 @@ const JournalEntry = () => {
           </div>
           <div className="p-4 flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="font-display text-xl font-semibold leading-tight">{entry.title}</p>
+              <input
+                type="text"
+                value={titleDraft}
+                onChange={(e) => commitTitle(e.target.value)}
+                placeholder={entry.title && entry.title !== "New journal entry" ? entry.title : "Name this entry"}
+                aria-label="Journal entry title"
+                maxLength={80}
+                className="w-full font-display text-xl font-semibold leading-tight bg-transparent border-0 border-b border-transparent focus:border-primary/40 focus:outline-none px-0 py-0.5 placeholder:text-muted-foreground/60"
+              />
               <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">
                 {entry.date}
               </p>
