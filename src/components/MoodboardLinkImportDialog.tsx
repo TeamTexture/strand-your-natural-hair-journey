@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Link as LinkIcon, ImagePlus, Check } from "lucide-react";
+import { Link as LinkIcon, ImagePlus, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -165,9 +165,25 @@ const MoodboardLinkImportDialog = ({ open, onOpenChange, boardId, onImported }: 
         </DialogHeader>
 
         <div className="mt-3 space-y-3">
-          {(scraping || scrapeProgress > 0) && (
+          <div className="relative w-full">
+            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Paste image or page link"
+              className="h-12 w-full pl-9 pr-3 text-[13px]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (!scraping) handleScrape();
+                }
+              }}
+            />
+          </div>
+
+          <div className="space-y-2">
             <div
-              className="h-3 w-full rounded-full bg-secondary overflow-hidden"
+              className="h-3 w-full overflow-hidden rounded-full bg-secondary"
               role="progressbar"
               aria-label="Scanning link"
               aria-valuenow={Math.round(scrapeProgress)}
@@ -175,25 +191,8 @@ const MoodboardLinkImportDialog = ({ open, onOpenChange, boardId, onImported }: 
               aria-valuemax={100}
             >
               <div
-                className="h-full bg-gradient-to-r from-primary to-[#8B6914] transition-[width] duration-200 ease-out"
+                className="h-full bg-primary transition-[width] duration-200 ease-out"
                 style={{ width: `${scrapeProgress}%` }}
-              />
-            </div>
-          )}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://…"
-                className="pl-8 h-10 text-[13px]"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (!scraping) handleScrape();
-                  }
-                }}
               />
             </div>
             <Button
@@ -201,9 +200,9 @@ const MoodboardLinkImportDialog = ({ open, onOpenChange, boardId, onImported }: 
               size="pill"
               onClick={handleScrape}
               disabled={scraping || !url.trim()}
-              className="h-10 px-4 text-[12px]"
+              className="h-12 w-full text-[12px]"
             >
-              {scraping ? <Loader2 className="size-3.5 animate-spin" /> : "Scan"}
+              {scraping ? "Scanning" : "Scan"}
             </Button>
           </div>
 
