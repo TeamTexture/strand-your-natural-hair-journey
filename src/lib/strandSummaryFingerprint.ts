@@ -4,7 +4,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const SUMMARY_PROMPT_VERSION = "routine-tips-only-v6";
+const SUMMARY_PROMPT_VERSION = "routine-guardrails-v7";
 
 function djb2Hex(s: string): string {
   let h = 5381;

@@ -21,6 +21,10 @@ import {
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import {
+  applyRoutineTipGuardrails,
+  CORE_ROUTINE_GUARDRAILS_PROMPT,
+} from "../_shared/routine-guidance.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -74,7 +78,10 @@ Each item MUST be a single sentence that follows this shape:
 - BANNED phrases (too vague): "manage", "maintain", "look after", "take care of", "keep an eye on", "be mindful of", "focus on moisture", "prioritise hydration", "monitor", "consider", "try to". Rewrite any item that drifts this way.
 - BANNED — pre-poo scheduling: NEVER prescribe pre-poo as a recurring routine step. Do NOT say "pre-poo every wash", "pre-poo weekly", "pre-poo before every wash", "add a pre-poo step", or any scheduled pre-poo instruction. Pre-poo is not part of the STRAND wash-day protocol as a scheduled ritual. Only mention pre-poo if the user's data explicitly shows they already pre-poo and it's serving them — otherwise omit the concept entirely.
 - CORE WASH-DAY BASELINE: at least one routine tip must preserve the Chapter 13 structure whenever routine_tips include wash-day guidance: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. Adapt for protective styles, scalp sensitivity or build-up, but never replace shampoo cleansing with co-washing and never skip conditioner.
+- REQUIRED ROUTINE COVERAGE: routine_tips MUST include the core two-cleanse baseline, the 3–4 wash-cycle product consistency rule, and style-specific guidance when currentStyle or planned_next_style exists. If blood/health markers are flagged, include how that changes the routine without replacing the baseline.
 - Every tip MUST be grounded in the manuscript teachings provided below. Do not invent guidance outside them. If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one tip must reference it directly.
+
+${CORE_ROUTINE_GUARDRAILS_PROMPT}
 
 BLOOD & HEALTH INTEGRATION — REQUIRED:
 The overview and routine tips MUST weave in the user's blood work and health profile when data is present. Specifically:
@@ -219,10 +226,11 @@ Deno.serve(async (req: Request) => {
       seen.add(key);
       mergedTips.push(t.trim());
     }
+    const guardedTips = applyRoutineTipGuardrails(mergedTips, context, 6);
     const payload: SummaryPayload = await sanitiseAndLog({
       overview: (parsed.overview ?? "").toString().trim(),
       action_plan: [], // deprecated — always empty going forward
-      routine_tips: mergedTips.slice(0, 6),
+      routine_tips: guardedTips,
     }, "hair-strand-summary");
 
 
