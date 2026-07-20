@@ -359,6 +359,9 @@ const MoodboardList = () => {
               />
               {coverPreview ? (
                 <div className={`relative h-28 rounded-[12px] overflow-hidden bg-gradient-to-br ${gradient}`}>
+                  <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-xs font-semibold text-primary-foreground bg-black/35">
+                    Cover selected from link
+                  </div>
                   <img
                     src={coverPreview}
                     alt="Cover preview"
@@ -367,9 +370,6 @@ const MoodboardList = () => {
                       e.currentTarget.style.opacity = "0";
                     }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-xs font-semibold text-primary-foreground bg-black/35">
-                    Cover selected from link
-                  </div>
                   <button
                     type="button"
                     onClick={clearCover}
@@ -477,6 +477,9 @@ const MoodboardList = () => {
                               "relative aspect-square rounded-[10px] overflow-hidden border-2 border-transparent bg-secondary",
                             )}
                           >
+                            <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-[10px] font-semibold leading-tight text-primary bg-secondary">
+                              Use image
+                            </span>
                             <img
                               src={src}
                               alt=""
@@ -486,9 +489,6 @@ const MoodboardList = () => {
                                 e.currentTarget.style.opacity = "0";
                               }}
                             />
-                            <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-[10px] font-semibold leading-tight text-primary bg-secondary">
-                              Use image
-                            </span>
                             <span className="absolute top-1 right-1 size-5 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center opacity-0 hover:opacity-100">
                               <Check className="size-3" />
                             </span>
