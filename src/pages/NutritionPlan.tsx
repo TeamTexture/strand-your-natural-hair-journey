@@ -381,23 +381,23 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
   const out: AiSupplement[] = [];
   if (p.flagged.has("Ferritin")) out.push({
     emoji: "🩸", name: "Iron", dose: "One 200 mg tablet with orange juice", priority: "high",
-    body: "Ferritin (your body's stored iron) is what your follicles draw on to build new hair, so when it runs low you tend to see more shedding. Take it with vitamin C to help absorption, and keep it away from tea, coffee and calcium for an hour either side.",
+    body: "**Why it matters:** Ferritin (your body's stored iron) is what your follicles draw on to build new hair, so when it runs low you tend to see more shedding.\n\n**How to use it:** Take it with vitamin C to help absorption.\n\n**Watch out for:** Keep it away from tea, coffee and calcium for an hour either side.",
   });
   if (p.flagged.has("Vitamin D")) out.push({
     emoji: "☀️", name: "Vitamin D3", dose: "1000–2000 IU daily with breakfast", priority: "high",
-    body: "Deeper skin tones make less vitamin D from UK sunlight, and vitamin D helps switch your follicles back into their growth phase. A daily dose taken with food (it's fat-soluble) is the simplest way to keep levels steady year-round.",
+    body: "**Why it matters:** Vitamin D helps switch your follicles back into their growth phase and supports scalp health.\n\n**How to use it:** Take it daily with breakfast or another meal that contains some fat, because vitamin D absorbs better that way.\n\n**Watch out for:** If you already take a high-dose vitamin D prescription, check your dose before adding another supplement.",
   });
   if (p.flagged.has("Vitamin B12") || isVeg) out.push({
     emoji: "🌱", name: "Vitamin B12", dose: "Methylcobalamin 1000 mcg daily", priority: "high",
-    body: "B12 is what your blood cells use to carry oxygen to every follicle. On a plant-based diet it's the one nutrient you really can't skip — a small daily supplement covers you.",
+    body: "**Why it matters:** B12 is what your blood cells use to carry oxygen to every follicle.\n\n**How to use it:** Take a small daily supplement consistently, especially if you eat little or no animal food.\n\n**Watch out for:** If you take metformin or long-term reflux medication, B12 can run low more easily, so it is worth tracking.",
   });
   if (p.flagged.has("Zinc")) out.push({
     emoji: "⚙️", name: "Zinc", dose: "8–11 mg daily (never above 40 mg)", priority: "medium",
-    body: "Zinc helps your follicles build the proteins that make up each strand and keeps scalp oil in balance. A modest daily dose is enough — going higher can actually work against you.",
+    body: "**Why it matters:** Zinc helps your follicles build the proteins that make up each strand and keeps scalp oil in balance.\n\n**How to use it:** Keep the dose modest and take it with food if it makes you feel nauseous.\n\n**Watch out for:** Going too high can work against you, so avoid stacking multiple zinc supplements.",
   });
   out.push({
     emoji: "🐟", name: "Omega-3", dose: "1000 mg fish oil (or algae oil if plant-based) daily", priority: "medium",
-    body: "Omega-3s calm inflammation around the follicle and keep your scalp's oil layer supple, which helps hair stay flexible and shiny. Take it with a meal that has some fat in it for best absorption.",
+    body: "**Why it matters:** Omega-3s help calm inflammation around the follicle and keep your scalp's oil layer supple, which supports flexible strands.\n\n**How to use it:** Take it with a main meal that already contains fat so your body absorbs it well.\n\n**Best paired with:** Oily fish, eggs, pumpkin seeds, walnuts or an algae oil option if you are plant-based.\n\n**Watch out for:** If you take blood-thinning medication or have surgery planned, check with your GP before starting.",
   });
   return out;
 };
