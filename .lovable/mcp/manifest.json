@@ -12,7 +12,7 @@
   "mcp": {
     "server": {
       "name": "strand-mcp",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "title": "STRAND"
     },
     "tools": [
@@ -123,6 +123,348 @@
               "description": "How many entries to return (default 10)."
             }
           },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_appointments",
+        "title": "List appointments",
+        "description": "Return the signed-in user's hair appointments (upcoming and past).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "How many to return (default 20)."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "scheduled",
+                "completed",
+                "cancelled"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "log_wash_day",
+        "title": "Log wash day",
+        "description": "Create a wash-day entry for the signed-in user. Use to record how a wash went: scalp feel, breakage, stress, duration, and any note. Product IDs must come from `list_shelf_products`.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "wash_date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "ISO date (YYYY-MM-DD). Defaults to today."
+            },
+            "scalp_feel": {
+              "type": "string",
+              "description": "e.g. 'clean', 'itchy', 'oily'."
+            },
+            "breakage": {
+              "type": "string",
+              "description": "e.g. 'none', 'light', 'moderate', 'heavy'."
+            },
+            "stress_level": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "description": "1–10 stress this week."
+            },
+            "duration_min": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 720,
+              "description": "Wash duration in minutes."
+            },
+            "style_after": {
+              "type": "string",
+              "description": "Style worn after the wash."
+            },
+            "hair_feel_note": {
+              "type": "string",
+              "description": "Free-text note on how the hair felt."
+            },
+            "product_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "Array of user_products.id used during this wash."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "add_product",
+        "title": "Add product to shelf or wishlist",
+        "description": "Add a product for the signed-in user. Defaults to the shelf; set `destination` to 'wishlist' to save it for later. Ingredient analysis happens later inside the app.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Product name, e.g. 'Ultimate Moisture Hair Mask'."
+            },
+            "brand": {
+              "type": "string",
+              "description": "Brand name, e.g. 'Lola'."
+            },
+            "category": {
+              "type": "string",
+              "description": "Product category, e.g. 'mask', 'shampoo'."
+            },
+            "source_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Product page URL, if known."
+            },
+            "ingredients": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ingredient list if already known."
+            },
+            "destination": {
+              "type": "string",
+              "enum": [
+                "shelf",
+                "wishlist"
+              ],
+              "description": "Where to save it. Default 'shelf'."
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "set_product_status",
+        "title": "Set product shelf status",
+        "description": "Move a product on/off the shelf, into/out of the wishlist, or favourite it. Pass only the flags you want to change. Use `list_shelf_products` first to get the product id.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "user_products.id for the product to update."
+            },
+            "on_shelf": {
+              "type": "boolean"
+            },
+            "on_wishlist": {
+              "type": "boolean"
+            },
+            "on_favourite": {
+              "type": "boolean"
+            },
+            "off_shelf_reason": {
+              "type": "string",
+              "description": "Reason when taking a product off the shelf."
+            }
+          },
+          "required": [
+            "product_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_goal",
+        "title": "Create hair goal",
+        "description": "Create a new hair goal for the signed-in user (e.g. length retention, moisture, breakage reduction). Length goals should route through the journal in-app, but any measurable target is fine.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Short goal title."
+            },
+            "kind": {
+              "type": "string",
+              "description": "Category, e.g. 'length', 'moisture', 'breakage', 'scalp'."
+            },
+            "start_value": {
+              "type": "number",
+              "description": "Baseline measurement."
+            },
+            "current_value": {
+              "type": "number",
+              "description": "Current measurement."
+            },
+            "target_value": {
+              "type": "number",
+              "description": "Target measurement."
+            },
+            "unit": {
+              "type": "string",
+              "description": "Unit, e.g. 'inches', 'cm', '%'."
+            },
+            "target_date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "ISO date (YYYY-MM-DD)."
+            },
+            "target_text": {
+              "type": "string",
+              "description": "Free-text target when a number doesn't apply."
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_goal_progress",
+        "title": "Update goal progress",
+        "description": "Update `current_value`, `status`, or `notes` on a hair goal. Use `list_goals` first to get the goal id.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "goal_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "current_value": {
+              "type": "number"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "active",
+                "paused",
+                "achieved",
+                "abandoned"
+              ]
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "goal_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_appointment",
+        "title": "Create appointment",
+        "description": "Schedule or log an appointment with a hair professional (trichologist, dermatologist, curl specialist) for the signed-in user.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "professional_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "professional_type": {
+              "type": "string",
+              "description": "e.g. 'Trichologist', 'Dermatologist', 'Curl Specialist'."
+            },
+            "clinic_name": {
+              "type": "string"
+            },
+            "appointment_date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "ISO date (YYYY-MM-DD)."
+            },
+            "appointment_time": {
+              "type": "string",
+              "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$",
+              "description": "24h time HH:MM."
+            },
+            "reason": {
+              "type": "string"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "scheduled",
+                "completed",
+                "cancelled"
+              ]
+            },
+            "follow_up_needed": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "professional_name",
+            "appointment_date"
+          ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"
         },

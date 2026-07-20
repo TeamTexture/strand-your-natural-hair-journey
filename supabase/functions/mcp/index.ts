@@ -211,7 +211,7 @@ var list_journal_entries_default = defineTool6({
   }
 });
 
-// src/lib/mcp/tools/create-journal-entry.ts
+// src/lib/mcp/tools/list-appointments.ts
 import { createClient as createClient7 } from "npm:@supabase/supabase-js@^2.104.1";
 import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.23.0";
 import { z as z3 } from "npm:zod@^3.25.76";
@@ -221,22 +221,63 @@ function supabaseForUser7(ctx) {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 }
-var create_journal_entry_default = defineTool7({
+var list_appointments_default = defineTool7({
+  name: "list_appointments",
+  title: "List appointments",
+  description: "Return the signed-in user's hair appointments (upcoming and past).",
+  inputSchema: {
+    limit: z3.number().int().min(1).max(50).optional().describe("How many to return (default 20)."),
+    status: z3.enum(["scheduled", "completed", "cancelled"]).optional()
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ limit, status }, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser7(ctx);
+      let q = sb.from("appointments").select(
+        "id, professional_name, professional_type, clinic_name, appointment_date, appointment_time, status, reason, notes, follow_up_needed"
+      ).eq("user_id", ctx.getUserId()).order("appointment_date", { ascending: false }).limit(limit ?? 20);
+      if (status) q = q.eq("status", status);
+      const { data, error } = await q;
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: JSON.stringify(data ?? [], null, 2) }],
+        structuredContent: { appointments: data ?? [] }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
+// src/lib/mcp/tools/create-journal-entry.ts
+import { createClient as createClient8 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z4 } from "npm:zod@^3.25.76";
+function supabaseForUser8(ctx) {
+  return createClient8(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var create_journal_entry_default = defineTool8({
   name: "create_journal_entry",
   title: "Create style journal entry",
   description: "Create a new style journal entry for the signed-in user.",
   inputSchema: {
-    title: z3.string().trim().min(1).describe("Short title for the entry."),
-    note: z3.string().optional().describe("Free-text note about the style, feel, or observations."),
-    mood: z3.string().optional().describe("Optional mood tag."),
-    entry_date: z3.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("ISO date (YYYY-MM-DD). Defaults to today.")
+    title: z4.string().trim().min(1).describe("Short title for the entry."),
+    note: z4.string().optional().describe("Free-text note about the style, feel, or observations."),
+    mood: z4.string().optional().describe("Optional mood tag."),
+    entry_date: z4.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("ISO date (YYYY-MM-DD). Defaults to today.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ title, note, mood, entry_date }, ctx) => {
     try {
       if (!ctx.isAuthenticated())
         return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-      const sb = supabaseForUser7(ctx);
+      const sb = supabaseForUser8(ctx);
       const { data, error } = await sb.from("journal_entries").insert({
         user_id: ctx.getUserId(),
         title,
@@ -256,24 +297,355 @@ var create_journal_entry_default = defineTool7({
   }
 });
 
+// src/lib/mcp/tools/log-wash-day.ts
+import { createClient as createClient9 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z5 } from "npm:zod@^3.25.76";
+function supabaseForUser9(ctx) {
+  return createClient9(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var log_wash_day_default = defineTool9({
+  name: "log_wash_day",
+  title: "Log wash day",
+  description: "Create a wash-day entry for the signed-in user. Use to record how a wash went: scalp feel, breakage, stress, duration, and any note. Product IDs must come from `list_shelf_products`.",
+  inputSchema: {
+    wash_date: z5.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("ISO date (YYYY-MM-DD). Defaults to today."),
+    scalp_feel: z5.string().optional().describe("e.g. 'clean', 'itchy', 'oily'."),
+    breakage: z5.string().optional().describe("e.g. 'none', 'light', 'moderate', 'heavy'."),
+    stress_level: z5.number().int().min(1).max(10).optional().describe("1\u201310 stress this week."),
+    duration_min: z5.number().int().min(1).max(720).optional().describe("Wash duration in minutes."),
+    style_after: z5.string().optional().describe("Style worn after the wash."),
+    hair_feel_note: z5.string().optional().describe("Free-text note on how the hair felt."),
+    product_ids: z5.array(z5.string().uuid()).optional().describe("Array of user_products.id used during this wash.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser9(ctx);
+      const { data, error } = await sb.from("wash_days").insert({
+        user_id: ctx.getUserId(),
+        wash_date: input.wash_date ?? (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+        scalp_feel: input.scalp_feel ?? null,
+        breakage: input.breakage ?? null,
+        stress_level: input.stress_level ?? null,
+        duration_min: input.duration_min ?? null,
+        style_after: input.style_after ?? null,
+        hair_feel_note: input.hair_feel_note ?? null,
+        product_ids: input.product_ids ?? []
+      }).select("id, wash_date").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Logged wash day ${data.id} on ${data.wash_date}` }],
+        structuredContent: { wash_day: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
+// src/lib/mcp/tools/add-product.ts
+import { createClient as createClient10 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z6 } from "npm:zod@^3.25.76";
+function supabaseForUser10(ctx) {
+  return createClient10(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+function keyOf(brand, name) {
+  return `${(brand ?? "").trim().toLowerCase()}::${name.trim().toLowerCase()}`;
+}
+var add_product_default = defineTool10({
+  name: "add_product",
+  title: "Add product to shelf or wishlist",
+  description: "Add a product for the signed-in user. Defaults to the shelf; set `destination` to 'wishlist' to save it for later. Ingredient analysis happens later inside the app.",
+  inputSchema: {
+    name: z6.string().trim().min(1).describe("Product name, e.g. 'Ultimate Moisture Hair Mask'."),
+    brand: z6.string().trim().optional().describe("Brand name, e.g. 'Lola'."),
+    category: z6.string().trim().optional().describe("Product category, e.g. 'mask', 'shampoo'."),
+    source_url: z6.string().url().optional().describe("Product page URL, if known."),
+    ingredients: z6.array(z6.string()).optional().describe("Ingredient list if already known."),
+    destination: z6.enum(["shelf", "wishlist"]).optional().describe("Where to save it. Default 'shelf'.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser10(ctx);
+      const toShelf = (input.destination ?? "shelf") === "shelf";
+      const { data, error } = await sb.from("user_products").insert({
+        user_id: ctx.getUserId(),
+        name: input.name,
+        brand: input.brand ?? null,
+        category: input.category ?? null,
+        source_url: input.source_url ?? null,
+        ingredients: input.ingredients ?? [],
+        product_key: keyOf(input.brand, input.name),
+        on_shelf: toShelf,
+        on_wishlist: !toShelf,
+        added_to_shelf_at: toShelf ? (/* @__PURE__ */ new Date()).toISOString() : null
+      }).select("id, name, brand, on_shelf, on_wishlist").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Added ${data.brand ? data.brand + " " : ""}${data.name} to ${toShelf ? "shelf" : "wishlist"}.`
+          }
+        ],
+        structuredContent: { product: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
+// src/lib/mcp/tools/set-product-status.ts
+import { createClient as createClient11 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z7 } from "npm:zod@^3.25.76";
+function supabaseForUser11(ctx) {
+  return createClient11(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var set_product_status_default = defineTool11({
+  name: "set_product_status",
+  title: "Set product shelf status",
+  description: "Move a product on/off the shelf, into/out of the wishlist, or favourite it. Pass only the flags you want to change. Use `list_shelf_products` first to get the product id.",
+  inputSchema: {
+    product_id: z7.string().uuid().describe("user_products.id for the product to update."),
+    on_shelf: z7.boolean().optional(),
+    on_wishlist: z7.boolean().optional(),
+    on_favourite: z7.boolean().optional(),
+    off_shelf_reason: z7.string().optional().describe("Reason when taking a product off the shelf.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser11(ctx);
+      const patch = {};
+      if (input.on_shelf !== void 0) {
+        patch.on_shelf = input.on_shelf;
+        if (!input.on_shelf) patch.previously_on_shelf = true;
+        if (input.on_shelf) patch.added_to_shelf_at = (/* @__PURE__ */ new Date()).toISOString();
+      }
+      if (input.on_wishlist !== void 0) patch.on_wishlist = input.on_wishlist;
+      if (input.on_favourite !== void 0) patch.on_favourite = input.on_favourite;
+      if (input.off_shelf_reason !== void 0) patch.off_shelf_reason = input.off_shelf_reason;
+      if (Object.keys(patch).length === 0)
+        return { content: [{ type: "text", text: "No changes provided." }], isError: true };
+      const { data, error } = await sb.from("user_products").update(patch).eq("id", input.product_id).eq("user_id", ctx.getUserId()).select("id, name, brand, on_shelf, on_wishlist, on_favourite").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Updated ${data.name}.` }],
+        structuredContent: { product: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
+// src/lib/mcp/tools/create-goal.ts
+import { createClient as createClient12 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z8 } from "npm:zod@^3.25.76";
+function supabaseForUser12(ctx) {
+  return createClient12(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var create_goal_default = defineTool12({
+  name: "create_goal",
+  title: "Create hair goal",
+  description: "Create a new hair goal for the signed-in user (e.g. length retention, moisture, breakage reduction). Length goals should route through the journal in-app, but any measurable target is fine.",
+  inputSchema: {
+    title: z8.string().trim().min(1).describe("Short goal title."),
+    kind: z8.string().optional().describe("Category, e.g. 'length', 'moisture', 'breakage', 'scalp'."),
+    start_value: z8.number().optional().describe("Baseline measurement."),
+    current_value: z8.number().optional().describe("Current measurement."),
+    target_value: z8.number().optional().describe("Target measurement."),
+    unit: z8.string().optional().describe("Unit, e.g. 'inches', 'cm', '%'."),
+    target_date: z8.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("ISO date (YYYY-MM-DD)."),
+    target_text: z8.string().optional().describe("Free-text target when a number doesn't apply."),
+    notes: z8.string().optional()
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser12(ctx);
+      const { data, error } = await sb.from("user_goals").insert({
+        user_id: ctx.getUserId(),
+        title: input.title,
+        kind: input.kind ?? "general",
+        start_value: input.start_value ?? 0,
+        current_value: input.current_value ?? input.start_value ?? 0,
+        target_value: input.target_value ?? null,
+        unit: input.unit ?? "",
+        target_date: input.target_date ?? null,
+        target_text: input.target_text ?? null,
+        notes: input.notes ?? null
+      }).select("id, title, kind, current_value, target_value, unit, target_date").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Created goal ${data.id}: ${data.title}` }],
+        structuredContent: { goal: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
+// src/lib/mcp/tools/update-goal-progress.ts
+import { createClient as createClient13 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z9 } from "npm:zod@^3.25.76";
+function supabaseForUser13(ctx) {
+  return createClient13(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var update_goal_progress_default = defineTool13({
+  name: "update_goal_progress",
+  title: "Update goal progress",
+  description: "Update `current_value`, `status`, or `notes` on a hair goal. Use `list_goals` first to get the goal id.",
+  inputSchema: {
+    goal_id: z9.string().uuid(),
+    current_value: z9.number().optional(),
+    status: z9.enum(["active", "paused", "achieved", "abandoned"]).optional(),
+    notes: z9.string().optional()
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser13(ctx);
+      const patch = {};
+      if (input.current_value !== void 0) patch.current_value = input.current_value;
+      if (input.status !== void 0) patch.status = input.status;
+      if (input.notes !== void 0) patch.notes = input.notes;
+      if (Object.keys(patch).length === 0)
+        return { content: [{ type: "text", text: "No changes provided." }], isError: true };
+      const { data, error } = await sb.from("user_goals").update(patch).eq("id", input.goal_id).eq("user_id", ctx.getUserId()).select("id, title, current_value, target_value, unit, status").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Updated goal ${data.title}.` }],
+        structuredContent: { goal: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
+// src/lib/mcp/tools/create-appointment.ts
+import { createClient as createClient14 } from "npm:@supabase/supabase-js@^2.104.1";
+import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z10 } from "npm:zod@^3.25.76";
+function supabaseForUser14(ctx) {
+  return createClient14(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var create_appointment_default = defineTool14({
+  name: "create_appointment",
+  title: "Create appointment",
+  description: "Schedule or log an appointment with a hair professional (trichologist, dermatologist, curl specialist) for the signed-in user.",
+  inputSchema: {
+    professional_name: z10.string().trim().min(1),
+    professional_type: z10.string().optional().describe("e.g. 'Trichologist', 'Dermatologist', 'Curl Specialist'."),
+    clinic_name: z10.string().optional(),
+    appointment_date: z10.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("ISO date (YYYY-MM-DD)."),
+    appointment_time: z10.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional().describe("24h time HH:MM."),
+    reason: z10.string().optional(),
+    notes: z10.string().optional(),
+    status: z10.enum(["scheduled", "completed", "cancelled"]).optional(),
+    follow_up_needed: z10.boolean().optional()
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    try {
+      if (!ctx.isAuthenticated())
+        return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      const sb = supabaseForUser14(ctx);
+      const { data, error } = await sb.from("appointments").insert({
+        user_id: ctx.getUserId(),
+        professional_name: input.professional_name,
+        professional_type: input.professional_type ?? null,
+        clinic_name: input.clinic_name ?? null,
+        appointment_date: input.appointment_date,
+        appointment_time: input.appointment_time ?? null,
+        reason: input.reason ?? null,
+        notes: input.notes ?? null,
+        status: input.status ?? "scheduled",
+        follow_up_needed: input.follow_up_needed ?? false
+      }).select("id, professional_name, appointment_date, appointment_time, status").single();
+      if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+      return {
+        content: [
+          { type: "text", text: `Created appointment ${data.id} with ${data.professional_name} on ${data.appointment_date}.` }
+        ],
+        structuredContent: { appointment: data }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { content: [{ type: "text", text: `Tool error: ${msg}` }], isError: true };
+    }
+  }
+});
+
 // src/lib/mcp/index.ts
 var projectRef = "wibimeglifveruvtvaxe";
 var mcp_default = defineMcp({
   name: "strand-mcp",
   title: "STRAND",
-  version: "0.1.0",
-  instructions: "STRAND is a hair journal and clinical companion. Tools return data for the signed-in user only, scoped by row-level security. Use `get_hair_profile` and `list_flagged_blood_markers` for clinical context; `list_wash_days`, `list_shelf_products`, and `list_journal_entries` for care history; `list_goals` for active hair goals; and `create_journal_entry` to log a new style journal entry.",
+  version: "0.2.0",
+  instructions: "STRAND is a hair journal and clinical companion. All tools are scoped to the signed-in user via row-level security. Read tools: `get_hair_profile`, `list_flagged_blood_markers` for clinical context; `list_shelf_products`, `list_wash_days`, `list_journal_entries`, `list_appointments` for care history; `list_goals` for active hair goals. Write tools (use to update the user's STRAND app): `log_wash_day` to record a wash session, `add_product` to add products to the shelf or wishlist, `set_product_status` to move products on/off the shelf or favourite them, `create_goal` and `update_goal_progress` to manage goals, `create_appointment` to schedule a hair appointment, `create_journal_entry` to log a style journal entry. Always cross-reference the user's hair profile, flagged blood markers, and recent wash history before recommending or writing changes.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
   }),
   tools: [
+    // Read
     get_hair_profile_default,
     list_wash_days_default,
     list_shelf_products_default,
     list_goals_default,
     list_flagged_blood_markers_default,
     list_journal_entries_default,
+    list_appointments_default,
+    // Write
+    log_wash_day_default,
+    add_product_default,
+    set_product_status_default,
+    create_goal_default,
+    update_goal_progress_default,
+    create_appointment_default,
     create_journal_entry_default
   ]
 });
