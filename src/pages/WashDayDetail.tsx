@@ -1,6 +1,20 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  Pencil,
+  Trash2,
+  Droplets,
+  Scissors,
+  Flame,
+  Heart,
+  Gauge,
+  Clock,
+  Package,
+  ListOrdered,
+  Sparkles,
+  Mic,
+  CalendarDays,
+} from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -32,12 +46,86 @@ const fmtDate = (iso: string) => {
   });
 };
 
+const daysAgoLabel = (iso: string) => {
+  const then = new Date(iso).setHours(0, 0, 0, 0);
+  const now = new Date().setHours(0, 0, 0, 0);
+  const diff = Math.round((now - then) / 86_400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff > 0) return `${diff} days ago`;
+  if (diff === -1) return "Tomorrow";
+  return `In ${-diff} days`;
+};
+
+const Stat = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <div className="flex-1 min-w-0 rounded-2xl bg-primary/5 border border-primary/10 px-3 py-2.5 text-center">
+    <Icon className="size-4 text-primary mx-auto mb-1" />
+    <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">{label}</p>
+    <p className="text-sm font-semibold leading-tight truncate">{value}</p>
+  </div>
+);
+
+const Chip = ({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "good" | "warn" | "alert" }) => {
+  const tones: Record<string, string> = {
+    neutral: "bg-muted text-foreground",
+    good: "bg-[hsl(var(--good))]/15 text-[hsl(var(--good))]",
+    warn: "bg-[hsl(var(--warn))]/15 text-[hsl(var(--warn))]",
+    alert: "bg-destructive/15 text-destructive",
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium ${tones[tone]}`}>
+      {children}
+    </span>
+  );
+};
+
+const scalpTone = (v: string | null): "good" | "warn" | "alert" | "neutral" => {
+  if (!v) return "neutral";
+  const s = v.toLowerCase();
+  if (["clean", "balanced"].some((k) => s.includes(k))) return "good";
+  if (["itchy", "tender", "dry", "flaky", "greasy"].some((k) => s.includes(k))) return "warn";
+  return "neutral";
+};
+const breakageTone = (v: string | null): "good" | "warn" | "alert" | "neutral" => {
+  if (!v) return "neutral";
+  const s = v.toLowerCase();
+  if (s.includes("none")) return "good";
+  if (s.includes("minimal")) return "good";
+  if (s.includes("moderate")) return "warn";
+  if (s.includes("lot") || s.includes("concerned")) return "alert";
+  return "neutral";
+};
+const stressTone = (v: number | null): "good" | "warn" | "alert" | "neutral" => {
+  if (v == null) return "neutral";
+  if (v <= 1) return "good";
+  if (v <= 3) return "warn";
+  return "alert";
+};
+
 const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div>
     <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">{label}</p>
     <div className="text-sm">{value}</div>
   </div>
 );
+
+interface HeatTreatment {
+  used?: boolean;
+  product?: string;
+  duration_min?: number;
+  tools?: string[];
+  tool_ids?: string[];
+}
+interface ProductLookup { id: string; name: string; brand: string | null }
+
 
 
 interface EditDraft {
