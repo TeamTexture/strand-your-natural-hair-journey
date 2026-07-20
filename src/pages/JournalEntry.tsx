@@ -801,7 +801,7 @@ const JournalEntry = () => {
       />
 
       {/* Cover image — first photo is the cover; falls back to entry gradient/emoji. */}
-      <div className="px-5 pb-3">
+      <div className="px-5 pt-2 pb-3">
         <SurfaceCard padded={false} className="overflow-hidden">
           <div
             className={`relative h-56 ${
