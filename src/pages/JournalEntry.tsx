@@ -568,14 +568,20 @@ const JournalEntry = () => {
           .from(PHOTO_BUCKET)
           .upload(path, file, { contentType: file.type || (isVideoFile ? "video/mp4" : undefined), upsert: false });
         if (upErr) {
-          console.error("Upload failed:", upErr);
-          toast.error(`${file.name}: upload failed`);
+          console.error("Journal photo upload failed:", upErr, { path, size: file.size, type: file.type });
+          toast.error(`${file.name}: ${upErr.message || "upload failed"}`);
           continue;
         }
-        const { data: sig } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .createSignedUrl(path, 3600);
-        uploaded.push({ path, url: sig?.signedUrl ?? "" });
+        // Sign URL — retry once if it comes back empty so the tile actually renders.
+        let signedUrl = "";
+        for (let attempt = 0; attempt < 2 && !signedUrl; attempt++) {
+          const { data: sig, error: sigErr } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(path, 3600);
+          if (sigErr) console.error("Journal photo signed URL failed:", sigErr, { path });
+          signedUrl = sig?.signedUrl ?? "";
+        }
+        uploaded.push({ path, url: signedUrl });
       }
       if (uploaded.length === 0) return;
       const nextPaths = [...photoPaths, ...uploaded.map((u) => u.path)];
