@@ -21,6 +21,23 @@ function isLikelyImage(url: string): boolean {
   return false;
 }
 
+async function isRemoteImage(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+        Accept: "image/*,*/*;q=0.8",
+      },
+    });
+    const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+    return res.ok && contentType.startsWith("image/");
+  } catch {
+    return false;
+  }
+}
+
 function toAbsolute(src: string, base: string): string | null {
   try {
     return new URL(src, base).toString();
@@ -162,7 +179,7 @@ Deno.serve(async (req) => {
     }
 
     // Direct image URL? Skip scraping — just echo it back.
-    if (isLikelyImage(target.toString())) {
+    if (isLikelyImage(target.toString()) || await isRemoteImage(target.toString())) {
       return new Response(
         JSON.stringify({ source: target.toString(), images: [target.toString()] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
