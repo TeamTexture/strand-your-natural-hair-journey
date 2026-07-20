@@ -55,7 +55,7 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
 
   const dateTime = `${appointment.professional_type ?? "Appointment"} · ${formatDate(
     appointment.appointment_date,
-  )}${appointment.appointment_time ? ` · ${appointment.appointment_time}` : ""}`;
+  )}${appointment.appointment_time ? ` · ${formatTime12h(appointment.appointment_time)}` : ""}`;
 
   const subtitle =
     [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
