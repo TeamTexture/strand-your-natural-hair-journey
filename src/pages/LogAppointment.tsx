@@ -121,28 +121,50 @@ const LogAppointment = () => {
     }
     if (!canSave) return;
     setSaving(true);
-    const { data: inserted, error } = await supabase
-      .from("appointments")
-      .insert({
-        user_id: user.id,
-        professional_name: proName.trim(),
-        professional_type: proType,
-        clinic_name: clinic.trim() || null,
-        appointment_date: date,
-        appointment_time: time.trim() || null,
-        reason: reason.trim() || null,
-        notes: notes.trim() || null,
-        status,
-        follow_up_needed: followUp,
-      })
-      .select("id")
-      .single();
-    if (error || !inserted) {
-      setSaving(false);
-      console.error("Appointment save failed:", error);
-      toast.error("Could not save appointment");
-      return;
+    const payload = {
+      user_id: user.id,
+      professional_name: proName.trim(),
+      professional_type: proType,
+      clinic_name: clinic.trim() || null,
+      appointment_date: date,
+      appointment_time: time.trim() || null,
+      reason: reason.trim() || null,
+      notes: notes.trim() || null,
+      status,
+      follow_up_needed: followUp,
+    };
+    let savedId: string | null = null;
+    if (fromId) {
+      // Updating the pre-existing booking (came from the home alert).
+      const { data: updated, error } = await supabase
+        .from("appointments")
+        .update(payload)
+        .eq("id", fromId)
+        .eq("user_id", user.id)
+        .select("id")
+        .single();
+      if (error || !updated) {
+        setSaving(false);
+        console.error("Appointment update failed:", error);
+        toast.error("Could not save appointment");
+        return;
+      }
+      savedId = updated.id;
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("appointments")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error || !inserted) {
+        setSaving(false);
+        console.error("Appointment save failed:", error);
+        toast.error("Could not save appointment");
+        return;
+      }
+      savedId = inserted.id;
     }
+
 
     // Upload any pending photos in parallel and link them to the new appointment.
     if (pendingPhotos.length > 0) {
