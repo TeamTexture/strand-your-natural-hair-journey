@@ -35,6 +35,7 @@ const MoodboardList = () => {
   const [gradient, setGradient] = useState(GRADIENTS[0]);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverLinkUrl, setCoverLinkUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,20 +106,17 @@ const MoodboardList = () => {
   };
 
   const handlePickLinkImage = async (src: string) => {
-    try {
-      const res = await fetch(src);
-      if (!res.ok) throw new Error("Could not download image");
-      const blob = await res.blob();
-      const ext = (blob.type.split("/")[1] || "jpg").split(";")[0];
-      const file = new File([blob], `cover.${ext}`, { type: blob.type || "image/jpeg" });
-      await handlePickCover(file);
-      setLinkOpen(false);
-      setLinkUrl("");
-      setLinkImages([]);
-    } catch (e) {
-      console.error(e);
-      toast.error("Could not use that image — try another");
-    }
+    // Don't fetch client-side — cross-origin CDNs (Pinterest, Google) block it.
+    // Stash the URL and let moodboard-import-image download it server-side after
+    // the board is created. Show a preview from the same URL (may 404 if hotlink
+    // protected but that's cosmetic — the server-side fetch still works).
+    setCoverFile(null);
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(src);
+    setCoverLinkUrl(src);
+    setLinkOpen(false);
+    setLinkUrl("");
+    setLinkImages([]);
   };
 
 
@@ -136,6 +134,7 @@ const MoodboardList = () => {
     try {
       const prepped = await convertHeicToJpeg(file);
       setCoverFile(prepped);
+      setCoverLinkUrl(null);
       if (coverPreview) URL.revokeObjectURL(coverPreview);
       setCoverPreview(URL.createObjectURL(prepped));
     } catch (e) {
@@ -144,12 +143,17 @@ const MoodboardList = () => {
     }
   };
 
+  const clearCover = () => {
+    setCoverFile(null);
+    setCoverLinkUrl(null);
+    if (coverPreview && coverPreview.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(null);
+  };
+
   const resetForm = () => {
     setName("");
     setGradient(GRADIENTS[0]);
-    setCoverFile(null);
-    if (coverPreview) URL.revokeObjectURL(coverPreview);
-    setCoverPreview(null);
+    clearCover();
   };
 
   const handleCreate = async () => {
@@ -160,6 +164,23 @@ const MoodboardList = () => {
     setSaving(true);
     try {
       const board = await createBoard({ name: name.trim(), gradient, coverFile: coverFile ?? undefined });
+      // If the cover came from a link (not a File), download it server-side and
+      // add it as the board's first image so it becomes the cover.
+      if (board && coverLinkUrl && !coverFile) {
+        try {
+          const { data, error } = await supabase.functions.invoke("moodboard-import-image", {
+            body: { board_id: board.id, image_urls: [coverLinkUrl] },
+          });
+          if (error) throw error;
+          if (!data?.imported) {
+            const reason = data?.results?.[0]?.error || "Could not use that image";
+            toast.error(`Cover image skipped — ${reason}`);
+          }
+        } catch (e) {
+          console.error("Cover import failed:", e);
+          toast.error("Board created, but the cover image couldn't be saved");
+        }
+      }
       toast.success(`${name.trim()} created`);
       setOpen(false);
       resetForm();
@@ -331,11 +352,7 @@ const MoodboardList = () => {
                   <img src={coverPreview} alt="Cover preview" className="absolute inset-0 size-full object-cover" />
                   <button
                     type="button"
-                    onClick={() => {
-                      setCoverFile(null);
-                      if (coverPreview) URL.revokeObjectURL(coverPreview);
-                      setCoverPreview(null);
-                    }}
+                    onClick={clearCover}
                     className="absolute top-1.5 right-1.5 size-7 rounded-full bg-black/55 text-white flex items-center justify-center"
                     aria-label="Remove cover"
                   >
