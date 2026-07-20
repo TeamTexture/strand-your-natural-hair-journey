@@ -25,8 +25,8 @@ const STEPS: Step[] = [
   },
   {
     target: "length-goal",
-    title: "Length Goal",
-    body: "Track your growth journey. Set a target length and STRAND will guide every wash-day tip toward it.",
+    title: "Your Goal",
+    body: "Track whatever you're working toward — length, moisture, scalp health, or your own challenge. STRAND tailors every tip to it.",
   },
   {
     target: "blood-work",
