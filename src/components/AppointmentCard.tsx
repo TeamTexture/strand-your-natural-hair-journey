@@ -40,11 +40,25 @@ const formatDate = (iso: string): string => {
 const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: Props) => {
   const isUpcoming = variant === "upcoming";
 
+  const rawReason = appointment.reason ?? "";
+  const isFollowUp = /^follow-?up\b/i.test(rawReason.trim());
+  const upcomingReason = isFollowUp
+    ? rawReason.replace(/^follow-?up\s*[:\-–]?\s*/i, "").trim() || "Follow-up"
+    : rawReason.trim();
+
+  // Extract "Previous reason: ..." carried forward in notes when the follow-up was scheduled.
+  const previousReasonMatch = isFollowUp
+    ? (appointment.notes ?? "").match(/Previous reason:\s*([^\n]+)/i)
+    : null;
+  const previousReason = previousReasonMatch?.[1]?.trim() || null;
+
   const dateTime = `${appointment.professional_type ?? "Appointment"} · ${formatDate(
     appointment.appointment_date,
   )}${appointment.appointment_time ? ` · ${appointment.appointment_time}` : ""}`;
 
-  const subtitle = [appointment.clinic_name, appointment.reason].filter(Boolean).join(" · ") || "—";
+  const subtitle =
+    [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
+    (isFollowUp ? appointment.clinic_name || "—" : "—");
 
   const calendarEvent: CalendarEvent = {
     title: `${appointment.professional_type ?? "Appointment"} — ${appointment.professional_name}`,
@@ -65,9 +79,16 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
             <p className="text-[#C5A059] text-[10px] uppercase tracking-[0.2em] font-semibold font-body leading-relaxed">
               {dateTime}
             </p>
-            <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full shrink-0">
-              Soon
-            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isFollowUp && (
+                <span className="bg-[#C5A059] text-[#2C2416] text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full">
+                  Follow-up
+                </span>
+              )}
+              <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full">
+                Soon
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 mb-4">
@@ -84,7 +105,28 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
             </div>
           </div>
 
-          {appointment.notes && (
+          {isFollowUp && (previousReason || upcomingReason) && (
+            <div className="border-t border-white/10 pt-3 mb-4 space-y-1.5">
+              {previousReason && (
+                <p className="text-[#E0D7CC]/85 text-[11px] leading-relaxed font-body">
+                  <span className="text-[#C5A059] font-semibold uppercase tracking-[0.12em] text-[10px]">
+                    Previous reason·
+                  </span>{" "}
+                  {previousReason}
+                </p>
+              )}
+              {upcomingReason && (
+                <p className="text-white/95 text-[12px] leading-relaxed font-body">
+                  <span className="text-[#C5A059] font-semibold uppercase tracking-[0.12em] text-[10px]">
+                    This visit·
+                  </span>{" "}
+                  {upcomingReason}
+                </p>
+              )}
+            </div>
+          )}
+
+          {appointment.notes && !isFollowUp && (
             <p className="text-[#E0D7CC]/90 text-[12px] leading-relaxed border-t border-white/10 pt-3 mb-4 font-body">
               {appointment.notes}
             </p>
