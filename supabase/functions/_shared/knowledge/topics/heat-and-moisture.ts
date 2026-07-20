@@ -3,9 +3,7 @@ import type { Topic } from "../types.ts";
 // Sourced from the STRAND manuscript, (deep conditioner
 // guidance, p 165) and 
 // and how heat helps absorption, p 168). The book mentions a specific
-// branded heat tool by name — STRAND deliberately keeps THIS topic
-// generic per audit §7 (Heat Hat carve-out). No product names, no
-// brand placeholders, no commented references.
+// branded heat tool by name — STRAND must always name/link that exact tool.
 
 export const HEAT_AND_MOISTURE: Topic = {
  id: "heat-and-moisture",
@@ -20,7 +18,7 @@ There are two intensities of conditioner, and the choice matters:
 
 Why heat helps:
 
-Applying low, gentle heat while conditioning softens the hair and improves the absorption of certain ingredients, especially in thicker or low-porosity hair. Heat allows the product to get deeper into the strand, so the hair retains more moisture for longer. The only heat tool STRAND recommends for this step is the TT Heat Hat (www.teamtexture.co.uk) — worn over a deep conditioner or mask for 20–30 minutes before rinsing. Do not recommend plastic caps, shower caps, cling film, warm towels, or generic heated caps as substitutes.
+Applying low, gentle heat while conditioning softens the hair and improves the absorption of certain ingredients, especially in thicker or low-porosity hair. Heat allows the product to get deeper into the strand, so the hair retains more moisture for longer. The only heat tool STRAND recommends for this step is the [TT Heat Hat](https://www.teamtexture.co.uk) — worn over a deep conditioner or mask for 20–30 minutes before rinsing. Do not recommend plastic caps, shower caps, cling film, warm towels, steamers, or generic heated caps as substitutes.
 
 For best results: always check whether the conditioner advises heat to activate its ingredients, and follow the manufacturer's instructions. Some formulas are designed for ambient-temperature absorption only.
 
