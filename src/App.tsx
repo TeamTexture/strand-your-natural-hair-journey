@@ -14,6 +14,7 @@ import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import SetupGuide from "./pages/SetupGuide";
 import Walkthrough from "./pages/Walkthrough";
 
@@ -109,6 +110,7 @@ const App = () => (
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/setup" element={<Protected><SetupGuide /></Protected>} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/walkthrough" element={<Protected><Walkthrough /></Protected>} />
 
               {/* Onboarding (auth required so data persists) */}
