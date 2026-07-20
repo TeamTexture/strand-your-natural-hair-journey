@@ -18,6 +18,7 @@ interface BoardMeta {
   name: string;
   emoji: string;
   is_favourites: boolean;
+  gradient: string;
 }
 
 const MoodboardBoard = () => {
