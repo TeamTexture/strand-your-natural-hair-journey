@@ -161,7 +161,7 @@ const renderInline = (
   keyPrefix: string,
   products: UserProduct[],
 ) => {
-  const safeLine = normaliseHeatLanguage(line);
+  const safeLine = normaliseHeatLanguage(line).replace(/\*\*([^*]+)\*\*/g, "$1");
   // Build a match list of { start, end, kind, product? }
   type Match = {
     start: number;
@@ -177,7 +177,6 @@ const renderInline = (
     matches.some((x) => !(end <= x.start || start >= x.end));
 
   const addRegexMatches = (
-    label: string,
     re: RegExp,
     factory: (text: string) => Omit<Match, "start" | "end" | "text">,
   ) => {
@@ -223,7 +222,7 @@ const renderInline = (
     .sort((a, b) => b.length - a.length);
   for (const brand of brands) {
     const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    addRegexMatches("brand", new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
+    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
       kind: "brand",
       href: `/products/brand/${encodeURIComponent(brand)}`,
     }));
@@ -237,13 +236,13 @@ const renderInline = (
     .slice(0, 250);
   for (const ingredient of ingredients) {
     const escaped = ingredient.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    addRegexMatches("ingredient", new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
+    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
       kind: "ingredient",
       href: `/products/ingredient-research?ingredient=${encodeURIComponent(ingredient)}`,
     }));
   }
 
-  addRegexMatches("heat", /\bTT\s+Heat\s+Hat\b/gi, () => ({
+  addRegexMatches(/\bTT\s+Heat\s+Hat\b/gi, () => ({
     kind: "heat",
     href: TEAM_TEXTURE_URL,
   }));
@@ -278,7 +277,7 @@ const renderInline = (
     "product sequence",
   ].forEach((phrase) => {
     const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    addRegexMatches("autoBold", new RegExp(`\\b${escaped}\\b`, "gi"), () => ({ kind: "autoBold" }));
+    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({ kind: "autoBold" }));
   });
 
   matches.sort((a, b) => a.start - b.start);
