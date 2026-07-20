@@ -103,6 +103,18 @@ const BloodAiSummary = () => {
       setSummary(data.summary as Summary);
       localStorage.setItem("strand_blood_summary_fp", fingerprint);
       stopProgress(100);
+
+      // Fire-and-forget: pre-warm the nutrition plan while the user reads
+      // their blood summary. Claude/Opus can take 30-50s cold, and the
+      // result is cached in ai_summaries — so by the time the user taps
+      // "See Your Personalised Nutrition Plan" it's typically instant.
+      void supabase.functions
+        .invoke("nutrition-plan", { body: { context, force: shouldForce } })
+        .catch((err) => {
+          // Silent — NutritionPlan.tsx will retry on its own if this fails.
+          console.warn("[nutrition-plan prewarm] skipped", err);
+        });
+
       // Hold 100% visible for a moment before unmounting the loader.
       await new Promise((r) => setTimeout(r, 400));
     } catch (e: unknown) {
