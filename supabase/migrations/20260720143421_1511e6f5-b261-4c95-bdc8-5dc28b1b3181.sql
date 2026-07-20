@@ -1,0 +1,1 @@
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS outcome_notes TEXT; ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS outcome_audio_path TEXT;
