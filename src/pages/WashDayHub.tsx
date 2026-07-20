@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Droplets } from "lucide-react";
+import { ChevronLeft, ChevronRight, Droplets, CalendarPlus, CalendarClock } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -123,6 +123,7 @@ interface EducationalNote {
   window: string;
   why: string;
   reminder: string;
+  nextDateIso: string | null;
 }
 
 const buildEducationalNote = ({
@@ -195,6 +196,7 @@ const buildEducationalNote = ({
 
   // Next-wash reminder — anchored to the actual last wash date, always the 7th day.
   let reminder: string;
+  let nextDateIso: string | null = null;
   if (!lastWash) {
     reminder = "Log your first wash day and we'll time the next one for you.";
   } else {
@@ -202,6 +204,9 @@ const buildEducationalNote = ({
     nextDate.setDate(nextDate.getDate() + idealDays);
     const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / 86400000);
     const overdue = daysUntil < 0;
+    // Anchor the scheduling CTA to today if overdue, otherwise the ideal date.
+    const anchorDate = overdue ? today : nextDate;
+    nextDateIso = `${anchorDate.getFullYear()}-${pad(anchorDate.getMonth() + 1)}-${pad(anchorDate.getDate())}`;
 
     if (overdue) {
       const overdueBy = Math.abs(daysUntil);
@@ -223,6 +228,7 @@ const buildEducationalNote = ({
     window: cadenceLabel,
     why,
     reminder,
+    nextDateIso,
   };
 };
 
@@ -231,6 +237,23 @@ const encouragement = (count: number) => {
   if (count <= 2) return "Good start — keep going this month.";
   if (count <= 4) return "Great consistency — a steady rhythm is what your scalp and strands need.";
   return "Excellent — your scalp and hair will thank you for this routine.";
+};
+
+// Build a Google Calendar "Add event" URL for an all-day wash-day reminder.
+const buildGoogleCalendarUrl = (iso: string) => {
+  const compact = iso.replace(/-/g, "");
+  const start = new Date(iso);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const endCompact = `${end.getFullYear()}${pad(end.getMonth() + 1)}${pad(end.getDate())}`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: "Wash day — STRAND",
+    dates: `${compact}/${endCompact}`,
+    details:
+      "Your STRAND weekly wash day. Double-cleanse the scalp, then hydrate the lengths. Open the app to log it when done.",
+  });
+  return `https://www.google.com/calendar/render?${params.toString()}`;
 };
 
 const fmtCardDate = (iso: string) => {
@@ -386,6 +409,27 @@ const WashDayHub = () => {
                 <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
                   {educational.reminder}
                 </p>
+                {educational.nextDateIso && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/wash/step-1?date=${educational.nextDateIso}`)}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold font-body px-4 py-2.5 shadow-sm hover:opacity-95 transition"
+                    >
+                      <CalendarClock className="size-4" />
+                      Schedule this wash day
+                    </button>
+                    <a
+                      href={buildGoogleCalendarUrl(educational.nextDateIso)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
+                    >
+                      <CalendarPlus className="size-4" />
+                      Add to Google Calendar
+                    </a>
+                  </div>
+                )}
               </div>
               <p className="font-body text-[11.5px] text-muted-foreground mt-3">
                 💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
