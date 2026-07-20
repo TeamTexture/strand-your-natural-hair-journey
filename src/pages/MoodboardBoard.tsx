@@ -350,11 +350,6 @@ const MoodboardBoard = () => {
       </div>
 
 
-      <div className="px-5 pb-6">
-        <Button variant="goldGhost" size="pill" onClick={handleShare}>
-          Share Board
-        </Button>
-      </div>
 
       <ShareSheet
         open={sharing !== null}
