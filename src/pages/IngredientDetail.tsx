@@ -507,6 +507,21 @@ const IngredientDetail = () => {
     }
   };
 
+  // Send the user back to whichever page they came from before opening
+  // this product (Shelf, Wishlist, Off-shelf, Favourites, brand page, etc.)
+  // rather than defaulting them to Shelf.
+  const goBackToOrigin = () => {
+    if (returnTo) {
+      navigate(returnTo, { replace: true });
+      return;
+    }
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate("/products");
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!productRow) return;
     setShelfBusy(true);
@@ -514,11 +529,12 @@ const IngredientDetail = () => {
       await remove(productRow.id);
       ctaChosenRef.current = true;
       toast.success("Product removed");
-      navigate("/products");
+      goBackToOrigin();
     } finally {
       setShelfBusy(false);
     }
   };
+
 
   const onShelfReasonComplete = async () => {
     await reload();
