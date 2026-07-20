@@ -749,7 +749,8 @@ const Home = () => {
       </div>
 
       <SectionLabel>My shelf</SectionLabel>
-      <div className="px-5 pb-6">
+      <div data-tour="my-shelf" className="px-5 pb-6">
+
         <SurfaceCard padded={false} className="divide-y divide-border/60">
           {shelfLoading ? (
             <div className="p-4 text-[11px] text-muted-foreground">Loading…</div>
