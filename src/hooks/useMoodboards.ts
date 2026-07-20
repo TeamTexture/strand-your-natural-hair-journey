@@ -268,5 +268,17 @@ export const useMoodboardImages = (
     [images],
   );
 
-  return { images, loading, reload: load, uploadImage, toggleFavourite, deleteImage };
+  const setBoardCover = useCallback(
+    async (img: MoodboardImage) => {
+      if (!user || !boardId) throw new Error("Sign in required");
+      const { error } = await supabase
+        .from("moodboards")
+        .update({ cover_storage_path: img.storage_path })
+        .eq("id", boardId);
+      if (error) throw error;
+    },
+    [user, boardId],
+  );
+
+  return { images, loading, reload: load, uploadImage, toggleFavourite, deleteImage, setBoardCover };
 };
