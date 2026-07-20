@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic, Link as LinkIcon, Loader2, ArrowDownToLine, Trash2, Heart } from "lucide-react";
+import { ChevronDown, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
@@ -17,6 +17,12 @@ import ProductsHeader, {
   categoryBucket,
   useProductsFilterState,
 } from "@/components/ProductsHeader";
+import {
+  useBatchSelection,
+  SelectCheckbox,
+  SelectToggleButton,
+  BatchActionBar,
+} from "@/components/BatchSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -47,21 +53,24 @@ const Products = () => {
   const [scanPreferCamera, setScanPreferCamera] = useState(true);
   const [offShelfTarget, setOffShelfTarget] = useState<{ id: string; key: string; name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const { products, loading, remove, reload, setFavourite } = useUserProducts("shelf");
+  const [confirmBulkOffShelf, setConfirmBulkOffShelf] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const {
+    products, loading, remove, reload, setFavourite,
+    bulkSetShelf, bulkSetFavourite, bulkRemove,
+  } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
+  const batch = useBatchSelection();
 
-  // Search + filter state (shared component)
   const filterState = useProductsFilterState();
 
-  // Apply search + filters before grouping
   const filteredProducts = useMemo(
     () => applyProductFilters(products, filterState),
     [products, filterState.search, filterState.categoryFilter, filterState.brandFilter, filterState.ratingFilter],
   );
 
-  // Group filtered shelf products by category for the wash-day-style layout.
   const groups = useMemo(() => {
     const buckets = new Map<string, { label: string; items: UserProduct[] }>();
     for (const p of filteredProducts) {
@@ -79,8 +88,6 @@ const Products = () => {
     return ordered;
   }, [filteredProducts]);
 
-
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     await remove(deleteTarget.id);
@@ -94,8 +101,30 @@ const Products = () => {
     toast.success(next ? `${p.name} added to favourites` : `${p.name} removed from favourites`);
   };
 
-  const goWishlist = () => navigate("/products/wishlist");
-  const goIntel = () => navigate("/products/avoidlist");
+  const handleBulkFavourite = async (on: boolean) => {
+    const n = batch.count;
+    await bulkSetFavourite(batch.ids, on);
+    toast.success(on
+      ? `Added ${n} to favourites`
+      : `Removed ${n} from favourites`);
+    batch.exit();
+  };
+
+  const handleBulkOffShelf = async () => {
+    const n = batch.count;
+    await bulkSetShelf(batch.ids, false);
+    setConfirmBulkOffShelf(false);
+    toast.success(`Took ${n} product${n === 1 ? "" : "s"} off the shelf`);
+    batch.exit();
+  };
+
+  const handleBulkDelete = async () => {
+    const n = batch.count;
+    await bulkRemove(batch.ids);
+    setConfirmBulkDelete(false);
+    toast.success(`Removed ${n} product${n === 1 ? "" : "s"}`);
+    batch.exit();
+  };
 
   const handleLinkSubmit = async () => {
     await startUrlScan(linkValue, "shelf");
@@ -103,15 +132,36 @@ const Products = () => {
     setLinkValue("");
   };
 
+  // Does the current selection already include any favourites? Used to
+  // decide whether the batch bar shows "Favourite" or "Unfavourite".
+  const anySelectedFavourite = useMemo(
+    () => filteredProducts.some((p) => batch.selected.has(p.id) && p.on_favourite),
+    [filteredProducts, batch.selected],
+  );
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar
         title="My Products"
         back={false}
         right={
-          <button onClick={() => navigate("/products/repository")} className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]">
-            All Products
-          </button>
+          <div className="flex items-center">
+            {products.length > 0 && (
+              <SelectToggleButton
+                selectMode={batch.selectMode}
+                onEnter={() => batch.enter()}
+                onExit={batch.exit}
+              />
+            )}
+            {!batch.selectMode && (
+              <button
+                onClick={() => navigate("/products/repository")}
+                className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
+              >
+                All Products
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -122,7 +172,7 @@ const Products = () => {
         state={filterState}
       />
 
-      <div className="px-5 space-y-3 pb-4">
+      <div className={cn("px-5 space-y-3 pb-4", batch.selectMode && "pb-40")}>
         {loading ? (
           <LoadingDot label="Loading your shelf…" />
         ) : products.length === 0 ? (
@@ -154,48 +204,67 @@ const Products = () => {
                   ? Math.max(1, Math.min(5, Math.round(p.match_score / 20)))
                   : 0;
                 const stars = p.rating ?? aiStars;
+                const isSelected = batch.selected.has(p.id);
 
                 return (
                   <div
                     key={p.id}
-                    className="bg-card border border-border rounded-[14px] overflow-hidden"
+                    className={cn(
+                      "bg-card border border-border rounded-[14px] overflow-hidden transition-colors",
+                      batch.selectMode && isSelected && "ring-2 ring-primary",
+                    )}
                   >
                     <div className="p-3.5 space-y-2">
                       <div className="flex items-start gap-2">
+                        {batch.selectMode && (
+                          <button
+                            onClick={() => batch.toggle(p.id)}
+                            className="shrink-0 mt-0.5"
+                            aria-label={isSelected ? "Deselect" : "Select"}
+                          >
+                            <SelectCheckbox checked={isSelected} />
+                          </button>
+                        )}
                         <button
-                          onClick={() => navigate(`/products/profile/${p.id}`)}
+                          onClick={() =>
+                            batch.selectMode
+                              ? batch.toggle(p.id)
+                              : navigate(`/products/profile/${p.id}`)
+                          }
                           className="flex-1 min-w-0 text-left"
                         >
                           <p className="text-sm font-medium font-body leading-snug break-words">{p.name}</p>
                         </button>
-                        <div className="flex items-center shrink-0 -mt-1">
-                          <button
-                            onClick={() => handleToggleFavourite(p)}
-                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                            aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
-                            aria-pressed={p.on_favourite}
-                          >
-                            <Heart
-                              className={cn(
-                                "size-4 transition-colors",
-                                p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
-                              )}
-                            />
-                          </button>
-                          <button
-                            onClick={() => setExpanded(isOpen ? null : p.product_key)}
-                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                            aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
-                            aria-expanded={isOpen}
-                          >
-                            <ChevronDown
-                              className={cn(
-                                "size-4 text-muted-foreground transition-transform",
-                                isOpen && "rotate-180",
-                              )}
-                            />
-                          </button>
-                        </div>
+                        {!batch.selectMode && (
+                          <div className="flex items-center shrink-0 -mt-1">
+                            <button
+                              onClick={() => handleToggleFavourite(p)}
+                              className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                              aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                              aria-pressed={p.on_favourite}
+                            >
+                              <Heart
+                                className={cn(
+                                  "size-4 transition-colors",
+                                  p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
+                                )}
+                              />
+                            </button>
+                            <button
+                              onClick={() => setExpanded(isOpen ? null : p.product_key)}
+                              className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                              aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
+                              aria-expanded={isOpen}
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  "size-4 text-muted-foreground transition-transform",
+                                  isOpen && "rotate-180",
+                                )}
+                              />
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -206,7 +275,11 @@ const Products = () => {
                           cover={!!p.storage_path}
                         />
                         <button
-                          onClick={() => navigate(`/products/profile/${p.id}`)}
+                          onClick={() =>
+                            batch.selectMode
+                              ? batch.toggle(p.id)
+                              : navigate(`/products/profile/${p.id}`)
+                          }
                           className="flex-1 min-w-0 text-left"
                         >
                           <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
@@ -222,7 +295,7 @@ const Products = () => {
                       </div>
                     </div>
 
-                    {isOpen && (
+                    {!batch.selectMode && isOpen && (
                       <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
                         <ProductVoicenotes
                           productKey={p.product_key}
@@ -259,37 +332,68 @@ const Products = () => {
         )}
       </div>
 
-      <div className="px-5 pb-6 space-y-3">
-        <Button
-          variant="gold"
-          size="pill"
-          disabled={busy || urlBusy}
-          onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
-          className="w-full"
-        >
-          {busy ? "Preparing photos…" : "+ Scan a New Product"}
-        </Button>
-        {/* The "Scan a New Product" sheet already lets users either take photos
-            or pick from their library, so a separate "Upload" button would be
-            redundant. */}
-        <Button
-          variant="goldOutline"
-          size="pill"
-          disabled={busy || urlBusy}
-          onClick={() => setLinkSheetOpen(true)}
-          className="w-full"
-        >
-          <LinkIcon className="size-4 mr-1.5" />
-          {urlBusy ? "Reading link…" : "Paste Web Link"}
-        </Button>
-        <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
-          Tip: snap the bottle, upload a screenshot, or paste a product page
-          link — the AI reads the label and matches ingredients to your hair
-          profile.
-        </p>
-      </div>
+      {!batch.selectMode && (
+        <>
+          <div className="px-5 pb-6 space-y-3">
+            <Button
+              variant="gold"
+              size="pill"
+              disabled={busy || urlBusy}
+              onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
+              className="w-full"
+            >
+              {busy ? "Preparing photos…" : "+ Scan a New Product"}
+            </Button>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              disabled={busy || urlBusy}
+              onClick={() => setLinkSheetOpen(true)}
+              className="w-full"
+            >
+              <LinkIcon className="size-4 mr-1.5" />
+              {urlBusy ? "Reading link…" : "Paste Web Link"}
+            </Button>
+            <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
+              Tip: snap the bottle, upload a screenshot, or paste a product page
+              link — the AI reads the label and matches ingredients to your hair
+              profile.
+            </p>
+          </div>
 
-      <MyToolsSection />
+          <MyToolsSection />
+        </>
+      )}
+
+      {batch.selectMode && (
+        <BatchActionBar
+          count={batch.count}
+          totalVisible={filteredProducts.length}
+          onSelectAll={() => batch.selectAll(filteredProducts.map((p) => p.id))}
+          onClear={batch.clear}
+          actions={[
+            {
+              key: "offshelf",
+              label: "Off shelf",
+              icon: <ArrowDownToLine className="size-4" />,
+              onClick: () => setConfirmBulkOffShelf(true),
+            },
+            {
+              key: "favourite",
+              label: anySelectedFavourite ? "Unfavourite" : "Favourite",
+              icon: <Heart className={cn("size-4", anySelectedFavourite && "fill-current text-destructive")} />,
+              onClick: () => handleBulkFavourite(!anySelectedFavourite),
+            },
+            {
+              key: "delete",
+              label: "Delete",
+              icon: <Trash2 className="size-4" />,
+              destructive: true,
+              onClick: () => setConfirmBulkDelete(true),
+            },
+          ]}
+        />
+      )}
 
       <DualPhotoCaptureSheet
         open={scanSheetOpen}
@@ -366,6 +470,41 @@ const Products = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmBulkOffShelf} onOpenChange={setConfirmBulkOffShelf}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Take {batch.count} off the shelf?</AlertDialogTitle>
+            <AlertDialogDescription>
+              These products will move to your Off Shelf list. Their voicenotes and history stay attached — you can restore them later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkOffShelf}>Take off shelf</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {batch.count} product{batch.count === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the selected products and all their history from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete

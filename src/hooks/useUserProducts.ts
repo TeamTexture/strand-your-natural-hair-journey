@@ -169,5 +169,72 @@ export function useUserProducts(filter: Filter = "all") {
     await recomputeIngredientFlags();
   };
 
-  return { products: filtered, allProducts: products, loading, upsert, setShelf, setWishlist, setFavourite, remove, reload: load };
+  // ---------- Batch operations ----------
+  // All batch helpers accept an array of user_product row IDs and run a
+  // single Supabase call. They mirror the semantics of the single-item
+  // helpers (including favourite-cleanup when leaving the shelf) so that
+  // downstream side effects — ingredient flags, realtime events — stay in
+  // sync regardless of which entry point the user takes.
+  const bulkSetShelf = async (ids: string[], on: boolean) => {
+    if (!ids.length) return;
+    const updates = on
+      ? { on_shelf: true, on_wishlist: false, added_to_shelf_at: new Date().toISOString() }
+      : { on_shelf: false, previously_on_shelf: true, on_favourite: false };
+    const { error } = await supabase.from("user_products").update(updates).in("id", ids);
+    if (error) { toast.error("Could not update products"); return; }
+    await load();
+    await recomputeIngredientFlags();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+    }
+  };
+
+  const bulkSetWishlist = async (ids: string[], on: boolean) => {
+    if (!ids.length) return;
+    const { error } = await supabase
+      .from("user_products")
+      .update({ on_wishlist: on, on_shelf: false })
+      .in("id", ids);
+    if (error) { toast.error("Could not update wishlist"); return; }
+    await load();
+  };
+
+  const bulkSetFavourite = async (ids: string[], on: boolean) => {
+    if (!ids.length) return;
+    const { error } = await supabase
+      .from("user_products")
+      .update({ on_favourite: on })
+      .in("id", ids);
+    if (error) { toast.error("Could not update favourites"); return; }
+    await load();
+    await recomputeIngredientFlags();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-products-updated"));
+    }
+  };
+
+  const bulkRemove = async (ids: string[]) => {
+    if (!ids.length) return;
+    const { error } = await supabase.from("user_products").delete().in("id", ids);
+    if (error) { toast.error("Could not delete products"); return; }
+    await load();
+    await recomputeIngredientFlags();
+  };
+
+  return {
+    products: filtered,
+    allProducts: products,
+    loading,
+    upsert,
+    setShelf,
+    setWishlist,
+    setFavourite,
+    remove,
+    reload: load,
+    bulkSetShelf,
+    bulkSetWishlist,
+    bulkSetFavourite,
+    bulkRemove,
+  };
 }
+
