@@ -62,6 +62,7 @@ import ProductProfileRedirect from "./pages/ProductProfileRedirect";
 import ProductRepository from "./pages/ProductRepository";
 import BrandProducts from "./pages/BrandProducts";
 import ProductsByIngredient from "./pages/ProductsByIngredient";
+import IngredientResearch from "./pages/IngredientResearch";
 import Journal from "./pages/Journal";
 import JournalEntry from "./pages/JournalEntry";
 import MoodboardList from "./pages/MoodboardList";
@@ -149,6 +150,7 @@ const App = () => (
               <Route path="/products/profile/:id" element={<Protected><ProductProfileRedirect /></Protected>} />
               <Route path="/products/brand/:brand" element={<Protected><BrandProducts /></Protected>} />
               <Route path="/products/by-ingredient" element={<Protected><ProductsByIngredient /></Protected>} />
+              <Route path="/products/ingredient-research" element={<Protected><IngredientResearch /></Protected>} />
               <Route path="/journal" element={<Protected><Journal /></Protected>} />
               <Route path="/journal/entry/:id" element={<Protected><JournalEntry /></Protected>} />
               <Route path="/journal/moodboards" element={<Protected><MoodboardList /></Protected>} />

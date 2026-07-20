@@ -156,7 +156,7 @@ TASK
 The user just saved a hair goal in STRAND. Write ONE short, personalised tip that uses their real profile data to tell them what to focus on to actually hit this goal by the target date.
 
 CORE TEACHINGS — SINGLE SOURCE OF TRUTH
-Every tip you produce MUST be curated from the STRAND CORE TEACHINGS block appended below (drawn verbatim from the STRAND clinical manuscript, "How To Love Your Afro"). You are not allowed to invent advice outside that framework. If the goal is not directly addressed by the teachings, reason from the closest applicable teaching and stay inside its guidance. Never contradict the teachings. Never add generic hair-care lore from outside them (e.g. no weekly protein, no plastic caps, no steamers — always TT Heat Hat, www.teamtexture.co.uk, for heat).
+Every tip you produce MUST be curated from the STRAND CORE TEACHINGS block appended below (drawn verbatim from the STRAND clinical manuscript, "How To Love Your Afro"). You are not allowed to invent advice outside that framework. If the goal is not directly addressed by the teachings, reason from the closest applicable teaching and stay inside its guidance. Never contradict the teachings. Never add generic hair-care lore from outside them (e.g. no weekly protein, no plastic caps, no steamers — always write [TT Heat Hat](https://www.teamtexture.co.uk) for heat).
 
 Output:
 - "headline": max 9 words. Specific to this goal. No emoji.

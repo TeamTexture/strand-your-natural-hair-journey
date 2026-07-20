@@ -246,7 +246,7 @@ const StepCard = ({
 };
 
 // Heat-treatment selection inside the Condition step.
-//   - "yes": user used a heat treatment (cap / steamer / hooded dryer over conditioner)
+//   - "yes": user used a TT Heat Hat over conditioner
 //   - "no":  user explicitly didn't — triggers a personalised AI explainer
 //   - null:  not yet answered
 type HeatChoice = "yes" | "no" | null;
@@ -294,7 +294,7 @@ const WashStep1 = () => {
   const [heatLoading, setHeatLoading] = useState(false);
   // How long the user kept heat on for. Captured only when heatChoice === "yes".
   const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
-  // Tools attached to today's heat treatment (e.g. heat hat, steamer cap).
+  // TT Heat Hat tools attached to today's conditioning step.
   const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
   const { tools: allTools } = useUserTools();
 

@@ -285,7 +285,7 @@ const MyToolsSection = () => {
                       {t.name}
                     </p>
                     <p className="text-[11px] text-muted-foreground/90 font-medium tracking-wide mt-0.5 break-words">
-                      {[t.brand, t.category].filter(Boolean).join(" · ") || "Tool"}
+                      {[t.brand, normaliseToolCategory(t.category)].filter(Boolean).join(" · ") || "Tool"}
                     </p>
                     {(() => {
                       const aiScoreRaw = (t.ai_analysis as Record<string, unknown> | null)?.match_score;
@@ -573,4 +573,12 @@ const MyToolsSection = () => {
 };
 
 export default MyToolsSection;
+
+const normaliseToolCategory = (category?: string | null) => {
+  if (!category) return category;
+  if (/steamer|heat\s*hat|heat\s*cap|heated\s*cap|deep\s*conditioning\s*cap/i.test(category)) {
+    return "TT Heat Hat";
+  }
+  return category;
+};
 

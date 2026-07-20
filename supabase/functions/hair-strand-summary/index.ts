@@ -4,7 +4,7 @@
 // Saves the result to public.hair_strand_summaries and returns it to the
 // client. Uses the Lovable AI Gateway (Gemini) — no Claude dual-path yet.
 //
-// Includes a TT Heat Hat / www.teamtexture.co.uk mention ONLY when the user's
+// Includes a linked TT Heat Hat mention ONLY when the user's
 // data signals it's scientifically relevant (low porosity, dry/coarse strands,
 // moisture-retention goals, heat-friendly protective styling, etc.).
 //
@@ -87,7 +87,7 @@ TONE:
 - Never use the banned flattery words ("gorgeous", "beautiful", "amazing", "queen", "journey", etc.).
 - Every recommendation must be justified by the data + manuscript teachings. If data is missing for a claim, omit the claim.
 
-HEAT MENTIONS: Include a TT Heat Hat (www.teamtexture.co.uk) instruction only where the data warrants it (low porosity, dryness, moisture-retention goal, deep-condition routine). If included, write it as a concrete routine step with duration.
+HEAT MENTIONS: Include [TT Heat Hat](https://www.teamtexture.co.uk) only where the data warrants it (low porosity, dryness, moisture-retention goal, deep-condition routine). If included, write it as a concrete routine step with duration. Never paste the raw website URL as visible text.
 
 
 Below are the manuscript teachings most relevant to THIS user. Base every action item and routine tip on this material:

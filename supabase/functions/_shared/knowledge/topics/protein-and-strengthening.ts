@@ -33,7 +33,7 @@ Signs of protein overload the assistant should recognise and steer against:
 
 Practical rule: default to moisture at every wash. Never suggest "add a protein step", "weekly keratin mask", "fortnightly bond repair", "monthly protein", "protein day", or any scheduled protein/strengthening treatment. If a product on the user's shelf is protein-heavy and they are already showing signs of overload, flag it and suggest spacing it out or replacing it with a moisture-focused conditioner.
 
-Deep conditioning, when heat is used to help absorption, is a moisture step — the ONLY heat tool for that is the TT Heat Hat (www.teamtexture.co.uk). Heat should not be used to "push protein in".`,
+Deep conditioning, when heat is used to help absorption, is a moisture step — the ONLY heat tool for that is the [TT Heat Hat](https://www.teamtexture.co.uk). Heat should not be used to "push protein in".`,
   applies_to: {
     function_kinds: [
       "ingredient-analysis",

@@ -9,6 +9,9 @@ import {
   Droplets,
   Target,
   Lightbulb,
+  FlaskConical,
+  Scissors,
+  type LucideIcon,
 } from "lucide-react";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 
@@ -27,10 +30,16 @@ interface NextWashTipCardProps {
  *  — longer / more specific labels first so "Product consistency" wins over
  *  "Product tip", etc. Matched case-insensitively at the start of a paragraph
  *  followed by a colon. */
-const LABEL_ICONS: Array<{ label: string; Icon: typeof Sparkles }> = [
+const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
+
+const LABEL_ICONS: Array<{ label: string; Icon: LucideIcon }> = [
   { label: "Why it matters", Icon: HeartPulse },
   { label: "Why this matters", Icon: HeartPulse },
   { label: "Product consistency", Icon: Repeat },
+  { label: "Ingredient note", Icon: FlaskConical },
+  { label: "Goal focus", Icon: Target },
+  { label: "Scalp signal", Icon: Sparkles },
+  { label: "Technique", Icon: Scissors },
   { label: "Do this next wash", Icon: Target },
   { label: "The action", Icon: Target },
   { label: "The rationale", Icon: HeartPulse },
@@ -53,9 +62,24 @@ const LABEL_RE = new RegExp(
 const normalise = (raw: string) => {
   let t = String(raw ?? "");
   t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
+  t = normaliseHeatLanguage(t);
   // Force each known label onto a new paragraph.
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
+};
+
+const normaliseHeatLanguage = (raw: string) => {
+  let t = String(raw ?? "");
+  t = t.replace(/\[\s*TT\s+Heat\s+Hat\s*\]\(\s*(?:https?:\/\/)?(?:www\.)?teamtexture\.co\.uk\/?\s*\)/gi, "TT Heat Hat");
+  t = t.replace(/TT\s+Heat\s+Hat\s*\(\s*(?:https?:\/\/)?(?:www\.)?teamtexture\.co\.uk\/?\s*\)/gi, "TT Heat Hat");
+  t = t.replace(/(?:https?:\/\/)?(?:www\.)?teamtexture\.co\.uk\/?/gi, "TT Heat Hat");
+  t = t.replace(
+    /\b(?:a\s+|the\s+)?(?:generic\s+)?(?:heat\s*hat|heat\s*aht|heated\s+cap|heat\s+cap|thermal\s+cap|deep-conditioning\s+cap|deep\s+conditioning\s+cap|plastic\s+cap|shower\s+cap|warm\s+towel|steamer|steamers)\b/gi,
+    "the TT Heat Hat",
+  );
+  t = t.replace(/\b(?:the\s+)?TT\s+Heat\s+Hat\s+(?:TT\s+Heat\s+Hat\s*)+/gi, "the TT Heat Hat");
+  t = t.replace(/\bthe\s+the\s+TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat");
+  return t.replace(/[ \t]{2,}/g, " ");
 };
 
 const chunkSentences = (text: string, perChunk = 2): string[] => {
@@ -80,6 +104,57 @@ const findLabel = (para: string) => {
   return { label: entry.label, Icon: entry.Icon, body: m[2] };
 };
 
+const inferLabel = (text: string, index: number) => {
+  const lower = text.toLowerCase();
+  if (/\b(ingredient|glycerin|aqua|water|oil|butter|aloe|honey|silicone|sulfate|sulphate|alcohol|protein|keratin)\b/.test(lower)) {
+    return LABEL_ICONS.find((l) => l.label === "Ingredient note")!;
+  }
+  if (/\b(3\s*[–-]\s*4|three\s+to\s+four|wash cycles|same product|keep using|consistency|sequence)\b/.test(lower)) {
+    return LABEL_ICONS.find((l) => l.label === "Product consistency")!;
+  }
+  if (/\b(tt heat hat|deep.?condition|mask|slip|section|detangle|rinse)\b/.test(lower)) {
+    return LABEL_ICONS.find((l) => l.label === "Technique")!;
+  }
+  if (/\b(scalp|itch|flake|cleanse|circulation)\b/.test(lower)) {
+    return LABEL_ICONS.find((l) => l.label === "Scalp signal")!;
+  }
+  if (/\b(length|retention|ends|breakage|low manipulation|low tension|protective)\b/.test(lower)) {
+    return LABEL_ICONS.find((l) => l.label === "Goal focus")!;
+  }
+  if (/\b(dry|dryness|moisture|hydration|high porosity|humidity|porous)\b/.test(lower)) {
+    return LABEL_ICONS.find((l) => l.label === "Moisture")!;
+  }
+  if (/\b(watch|avoid|irritation|build.?up|stiff|snap|reaction)\b/.test(lower)) {
+    return LABEL_ICONS.find((l) => l.label === "Watch for")!;
+  }
+  return index === 0
+    ? LABEL_ICONS.find((l) => l.label === "Why it matters")!
+    : LABEL_ICONS.find((l) => l.label === "Strand tip")!;
+};
+
+const buildTipSections = (why?: string) => {
+  if (!why) return [];
+  const raw = normalise(why);
+  const paragraphs = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const sections: Array<{ label: string; Icon: LucideIcon; body: string }> = [];
+
+  paragraphs.forEach((paragraph) => {
+    const labelled = findLabel(paragraph);
+    if (labelled) {
+      const chunks = chunkSentences(labelled.body, 1);
+      chunks.forEach((body) => sections.push({ label: labelled.label, Icon: labelled.Icon, body }));
+      return;
+    }
+
+    chunkSentences(paragraph, 1).forEach((body) => {
+      const { label, Icon } = inferLabel(body, sections.length);
+      sections.push({ label, Icon, body });
+    });
+  });
+
+  return sections;
+};
+
 /** Split a line by **bold** markdown and by known product-name occurrences,
  *  emitting <strong> and <Link> nodes for each. Product matches take priority
  *  over bold when they overlap. */
@@ -88,9 +163,34 @@ const renderInline = (
   keyPrefix: string,
   products: UserProduct[],
 ) => {
+  const safeLine = normaliseHeatLanguage(line).replace(/\*\*([^*]+)\*\*/g, "$1");
   // Build a match list of { start, end, kind, product? }
-  type Match = { start: number; end: number; kind: "bold" | "product"; text: string; product?: UserProduct };
+  type Match = {
+    start: number;
+    end: number;
+    kind: "bold" | "product" | "brand" | "ingredient" | "heat" | "autoBold";
+    text: string;
+    product?: UserProduct;
+    href?: string;
+  };
   const matches: Match[] = [];
+
+  const hasOverlap = (start: number, end: number) =>
+    matches.some((x) => !(end <= x.start || start >= x.end));
+
+  const addRegexMatches = (
+    re: RegExp,
+    factory: (text: string) => Omit<Match, "start" | "end" | "text">,
+  ) => {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(safeLine))) {
+      const start = m.index;
+      const end = start + m[0].length;
+      if (hasOverlap(start, end)) continue;
+      matches.push({ start, end, text: m[0], ...factory(m[0]) });
+      if (m[0].length === 0) re.lastIndex += 1;
+    }
+  };
 
   // Products: longest names first to prefer full matches.
   const sorted = [...products]
@@ -100,26 +200,92 @@ const renderInline = (
     const escaped = p.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(`\\b${escaped}\\b`, "gi");
     let m: RegExpExecArray | null;
-    while ((m = re.exec(line))) {
+    while ((m = re.exec(safeLine))) {
       const start = m.index;
       const end = start + m[0].length;
       // Skip if this range overlaps an existing product match.
-      if (matches.some((x) => x.kind === "product" && !(end <= x.start || start >= x.end))) {
-        continue;
-      }
+      if (hasOverlap(start, end)) continue;
       matches.push({ start, end, kind: "product", text: m[0], product: p });
     }
+
+    if (/lola/i.test(`${p.name} ${p.brand ?? ""}`) && /mask|condition/i.test(`${p.name} ${p.category ?? ""}`)) {
+      const aliasRe = /\blola\s+mask\b/gi;
+      let alias: RegExpExecArray | null;
+      while ((alias = aliasRe.exec(safeLine))) {
+        const start = alias.index;
+        const end = start + alias[0].length;
+        if (hasOverlap(start, end)) continue;
+        matches.push({ start, end, kind: "product", text: alias[0], product: p });
+      }
+    }
   }
+
+  const brands = Array.from(new Set(products.map((p) => p.brand?.trim()).filter((b): b is string => Boolean(b && b.length >= 2))))
+    .sort((a, b) => b.length - a.length);
+  for (const brand of brands) {
+    const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
+      kind: "brand",
+      href: `/products/brand/${encodeURIComponent(brand)}`,
+    }));
+  }
+
+  const ingredients = Array.from(new Set(products.flatMap((p) => [
+    ...(p.ingredients ?? []),
+    ...(p.key_ingredients ?? []).map((i) => i.name),
+  ]).map((i) => i?.trim()).filter((i): i is string => Boolean(i && i.length >= 4))))
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 250);
+  for (const ingredient of ingredients) {
+    const escaped = ingredient.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
+      kind: "ingredient",
+      href: `/products/ingredient-research?ingredient=${encodeURIComponent(ingredient)}`,
+    }));
+  }
+
+  addRegexMatches(/\bTT\s+Heat\s+Hat\b/gi, () => ({
+    kind: "heat",
+    href: TEAM_TEXTURE_URL,
+  }));
 
   // Bold matches — skip any that overlap a product hyperlink.
   const boldRe = /\*\*([^*]+)\*\*/g;
   let bm: RegExpExecArray | null;
-  while ((bm = boldRe.exec(line))) {
+  while ((bm = boldRe.exec(safeLine))) {
     const start = bm.index;
     const end = start + bm[0].length;
-    if (matches.some((x) => !(end <= x.start || start >= x.end))) continue;
+    if (hasOverlap(start, end)) continue;
     matches.push({ start, end, kind: "bold", text: bm[1] });
   }
+
+  [
+    "every 7 days",
+    "weekly rhythm",
+    "once a week",
+    "3–4 wash cycles",
+    "3-4 wash cycles",
+    "moisture-first",
+    "high porosity",
+    "length retention",
+    "low manipulation",
+    "low tension",
+    "tuck your ends",
+    "deep conditioning mask",
+    "conditioner slip",
+    "flagged ingredient",
+    "consistently flagged",
+    "same products",
+    "mask",
+    "scalp",
+    "breakage",
+    "dryness",
+    "humidity",
+    "product sequence",
+  ].forEach((phrase) => {
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({ kind: "autoBold" }));
+  });
 
   matches.sort((a, b) => a.start - b.start);
 
@@ -127,7 +293,7 @@ const renderInline = (
   let cursor = 0;
   matches.forEach((m, i) => {
     if (m.start > cursor) {
-      nodes.push(<span key={`${keyPrefix}-t-${i}`}>{line.slice(cursor, m.start)}</span>);
+      nodes.push(<span key={`${keyPrefix}-t-${i}`}>{safeLine.slice(cursor, m.start)}</span>);
     }
     if (m.kind === "product" && m.product) {
       nodes.push(
@@ -139,6 +305,28 @@ const renderInline = (
           {m.text}
         </Link>,
       );
+    } else if (m.kind === "brand" || m.kind === "ingredient") {
+      nodes.push(
+        <Link
+          key={`${keyPrefix}-${m.kind}-${i}`}
+          to={m.href ?? "#"}
+          className="font-bold text-[#E8C87A] underline decoration-[#C5A059]/50 decoration-1 underline-offset-2 hover:decoration-[#E8C87A] transition"
+        >
+          {m.text}
+        </Link>,
+      );
+    } else if (m.kind === "heat") {
+      nodes.push(
+        <a
+          key={`${keyPrefix}-heat-${i}`}
+          href={TEAM_TEXTURE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="font-bold text-[#E8C87A] underline decoration-[#C5A059]/50 decoration-1 underline-offset-2 hover:decoration-[#E8C87A] transition"
+        >
+          TT Heat Hat
+        </a>,
+      );
     } else {
       nodes.push(
         <strong key={`${keyPrefix}-b-${i}`} className="font-semibold text-white">
@@ -148,8 +336,8 @@ const renderInline = (
     }
     cursor = m.end;
   });
-  if (cursor < line.length) {
-    nodes.push(<span key={`${keyPrefix}-t-end`}>{line.slice(cursor)}</span>);
+  if (cursor < safeLine.length) {
+    nodes.push(<span key={`${keyPrefix}-t-end`}>{safeLine.slice(cursor)}</span>);
   }
   return nodes;
 };
@@ -167,18 +355,7 @@ export function NextWashTipCard({
   collapsed = false,
 }: NextWashTipCardProps) {
   const { products } = useUserProducts("all");
-
-  // Split `why` into paragraphs; auto-chunk long unbroken text.
-  let paras: string[] = [];
-  if (why) {
-    const raw = normalise(why);
-    paras = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
-    if (paras.length <= 1 && raw.length > 220) {
-      paras = chunkSentences(raw, 2);
-    } else {
-      paras = paras.flatMap((p) => (p.length > 260 ? chunkSentences(p, 2) : [p]));
-    }
-  }
+  const sections = buildTipSections(why);
 
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
@@ -207,11 +384,11 @@ export function NextWashTipCard({
           <>
             {action && (
               <h3 className="font-display text-white text-[20px] leading-snug break-words">
-                {action}
+                {renderInline(action, "action", products)}
               </h3>
             )}
 
-            {paras.length > 0 && (
+            {sections.length > 0 && (
               <>
                 {/* Divider — dot + gradient rules, same motif as Home */}
                 <div className="relative flex items-center my-4">
@@ -220,56 +397,22 @@ export function NextWashTipCard({
                   <div className="flex-grow h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                 </div>
 
-                <div className="space-y-4">
-                  {paras.map((p, i) => {
-                    const labelled = findLabel(p);
-                    if (labelled) {
-                      const { label, Icon, body } = labelled;
-                      return (
-                        <div key={i} className="space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center justify-center size-6 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/30">
-                              <Icon className="size-3 text-[#C5A059]" />
-                            </span>
-                            <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.22em] font-bold font-body">
-                              {label}
-                            </p>
-                          </div>
-                          <p className="text-[#E0D7CC]/90 text-[13px] leading-relaxed font-body break-words pl-8">
-                            {renderInline(body, `p${i}`, products)}
-                          </p>
-                        </div>
-                      );
-                    }
-                    // Unlabelled paragraph — plain body copy, but the first
-                    // one gets a subtle "Why it matters" tag so the block
-                    // always reads with a clear hierarchy.
-                    if (i === 0) {
-                      return (
-                        <div key={i} className="space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center justify-center size-6 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/30">
-                              <HeartPulse className="size-3 text-[#C5A059]" />
-                            </span>
-                            <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.22em] font-bold font-body">
-                              Why it matters
-                            </p>
-                          </div>
-                          <p className="text-[#E0D7CC]/90 text-[13px] leading-relaxed font-body break-words pl-8">
-                            {renderInline(p, `p${i}`, products)}
-                          </p>
-                        </div>
-                      );
-                    }
-                    return (
-                      <p
-                        key={i}
-                        className="text-[#E0D7CC]/90 text-[13px] leading-relaxed font-body break-words pl-8"
-                      >
-                        {renderInline(p, `p${i}`, products)}
+                <div className="space-y-3">
+                  {sections.map(({ label, Icon, body }, i) => (
+                    <div key={`${label}-${i}`} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 space-y-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center size-7 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/30 shrink-0">
+                          <Icon className="size-3.5 text-[#C5A059]" />
+                        </span>
+                        <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.22em] font-bold font-body">
+                          {label}
+                        </p>
+                      </div>
+                      <p className="text-[#E0D7CC]/90 text-[13px] leading-relaxed font-body break-words pl-9">
+                        {renderInline(body, `p${i}`, products)}
                       </p>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </>
             )}

@@ -15,7 +15,7 @@ Cadence: start with a baseline of once a week. That's the expert-led guideline f
 
 Product consistency: use the same core wash-day products for 3–4 wash cycles before judging whether they are working. One or two washes is usually not enough evidence unless there is an obvious adverse reaction. If the logged outcome is neutral or improving, the guidance is to keep the product sequence steady, watch how the hair responds, and only make one small adjustment at a time. Do not tell someone to replace or rotate products after two washes when their hair is doing well.
 
-Dryness support: if the hair feels dry — especially for high-porosity hair or during hot/humid periods — the manuscript-aligned next adjustment is moisture-first conditioning technique: enough water, conditioner with slip, careful sectioning, and a moisture-focused deep conditioning mask when needed. Do not default to protein. If using gentle heat with conditioning, STRAND only recommends the TT Heat Hat (www.teamtexture.co.uk).
+Dryness support: if the hair feels dry — especially for high-porosity hair or during hot/humid periods — the manuscript-aligned next adjustment is moisture-first conditioning technique: enough water, conditioner with slip, careful sectioning, and a moisture-focused deep conditioning mask when needed. Do not default to protein. If using gentle heat with conditioning, STRAND only recommends the [TT Heat Hat](https://www.teamtexture.co.uk).
 
 Detangling, before anything else:
 
@@ -43,7 +43,7 @@ Paige's actual habits, named:
 — Agitate the scalp with the pads of your fingertips — NOT your nails — to firmly rub and lift dirt and build-up.
 — Emulsify conditioner in your hands first before applying — even distribution, slight warming, better absorption.
 — Keep adding water as you work conditioner through; create a lather that gives slip for detangling.
-— Apply low, gentle heat when conditioning if hair is thick or low-porosity — STRAND only recommends the TT Heat Hat (www.teamtexture.co.uk) for this step. (See heat-and-moisture for the mechanics.)`,
+— Apply low, gentle heat when conditioning if hair is thick or low-porosity — STRAND only recommends the [TT Heat Hat](https://www.teamtexture.co.uk) for this step. (See heat-and-moisture for the mechanics.)`,
  applies_to: {
  function_kinds: [
  "wash-day-observation",
