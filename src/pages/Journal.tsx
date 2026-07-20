@@ -370,7 +370,7 @@ const Journal = () => {
                 ))}
               </div>
             )}
-            <Button variant="goldOutline" size="pill" onClick={() => navigate("/journal/moodboards")}>
+            <Button variant="brown" size="pill" onClick={() => navigate("/journal/moodboards")}>
               View Mood Boards
             </Button>
           </div>
