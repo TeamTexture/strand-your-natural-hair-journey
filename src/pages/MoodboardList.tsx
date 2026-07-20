@@ -39,6 +39,89 @@ const MoodboardList = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Add-from-link state (for the cover image)
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkImages, setLinkImages] = useState<string[]>([]);
+  const [linkScraping, setLinkScraping] = useState(false);
+  const [linkProgress, setLinkProgress] = useState(0);
+  const linkTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (linkScraping) {
+      setLinkProgress(6);
+      const start = Date.now();
+      linkTimerRef.current = window.setInterval(() => {
+        const elapsed = Date.now() - start;
+        const target = Math.min(92, 6 + (elapsed / 9000) * 86);
+        setLinkProgress((p) => (p < target ? target : p));
+      }, 120);
+    } else {
+      if (linkTimerRef.current) {
+        window.clearInterval(linkTimerRef.current);
+        linkTimerRef.current = null;
+      }
+      if (linkProgress > 0) {
+        setLinkProgress(100);
+        const t = window.setTimeout(() => setLinkProgress(0), 400);
+        return () => window.clearTimeout(t);
+      }
+    }
+    return () => {
+      if (linkTimerRef.current) {
+        window.clearInterval(linkTimerRef.current);
+        linkTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkScraping]);
+
+  const handleScrapeLink = async () => {
+    const trimmed = linkUrl.trim();
+    if (!trimmed) {
+      toast.error("Paste a link to scan");
+      return;
+    }
+    setLinkScraping(true);
+    setLinkImages([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("moodboard-scrape-url", {
+        body: { url: trimmed },
+      });
+      if (error) throw error;
+      const list: string[] = Array.isArray(data?.images) ? data.images : [];
+      if (list.length === 0) {
+        toast.error("No images found on that page");
+      } else {
+        setLinkImages(list);
+        toast.success(`Found ${list.length} image${list.length === 1 ? "" : "s"}`);
+      }
+    } catch (e) {
+      console.error("Scrape failed:", e);
+      toast.error(e instanceof Error ? e.message : "Could not scan that link");
+    } finally {
+      setLinkScraping(false);
+    }
+  };
+
+  const handlePickLinkImage = async (src: string) => {
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error("Could not download image");
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "jpg").split(";")[0];
+      const file = new File([blob], `cover.${ext}`, { type: blob.type || "image/jpeg" });
+      await handlePickCover(file);
+      setLinkOpen(false);
+      setLinkUrl("");
+      setLinkImages([]);
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not use that image — try another");
+    }
+  };
+
+
   const handlePickCover = async (file: File | undefined) => {
     if (!file) return;
     const isHeic = /\.(heic|heif)$/i.test(file.name) || /heic|heif/i.test(file.type);
