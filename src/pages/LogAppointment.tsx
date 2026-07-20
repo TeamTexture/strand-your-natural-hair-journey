@@ -188,6 +188,13 @@ const LogAppointment = () => {
       <TitleBar title="Log Appointment" onBack={() => navigate("/appointments")} />
 
       <div className="px-5 pb-8 space-y-4">
+        {prefilled && (
+          <div className="px-3.5 py-2.5 bg-primary/10 border border-primary/30 rounded-[10px]">
+            <p className="text-xs text-foreground leading-snug">
+              Pre-filled from your booking. Update anything that changed, add notes/photos, then save.
+            </p>
+          </div>
+        )}
         {/* Directory search */}
         <div>
           <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
