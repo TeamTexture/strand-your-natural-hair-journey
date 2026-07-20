@@ -44,6 +44,9 @@ const LogAppointment = () => {
   const [notesAudio, setNotesAudio] = useState<string | null>(null);
   const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
   const [followUp, setFollowUp] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpTime, setFollowUpTime] = useState("");
+
   const [saving, setSaving] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
