@@ -82,6 +82,44 @@ const normaliseHeatLanguage = (raw: string) => {
   return t.replace(/[ \t]{2,}/g, " ");
 };
 
+/**
+ * Strips trait-stacked, AI-sounding noun phrases (e.g. "your high-raised
+ * cuticle porosity hair", "your high porosity, low density hair") back down
+ * to natural "your hair". Applied to both the action header and the body so
+ * old cached tips read like a human wrote them.
+ */
+const humaniseTraits = (raw: string) => {
+  let t = String(raw ?? "");
+  // "your high-raised cuticle porosity, low density hair" → "your hair"
+  t = t.replace(
+    /\byour\s+(?:(?:high|low|medium|mid|fine|coarse|thick|dense|raised|open|closed|tight|loose|dry|oily|balanced|normal)[- ]?)+(?:cuticle|porosity|density|texture|strand|curl|coil|pattern|type)?(?:[,\s]+(?:(?:high|low|medium|mid|fine|coarse|thick|dense|raised|open|closed|tight|loose|dry|oily|balanced|normal)[- ]?)+(?:cuticle|porosity|density|texture|strand|curl|coil|pattern|type)?)*\s+hair\b/gi,
+    "your hair",
+  );
+  // "high-porosity hair" (no leading "your") → "your hair"
+  t = t.replace(
+    /\b(?:high|low|medium)[- ]porosity\s+hair\b/gi,
+    "your hair",
+  );
+  return t.replace(/[ \t]{2,}/g, " ");
+};
+
+/**
+ * Turns any string into a short, header-shaped label. Existing wash-day rows
+ * were saved with long full-sentence "actions" before the prompt fix, so we
+ * defensively condense them at render time.
+ */
+const condenseHeader = (raw: string) => {
+  const cleaned = humaniseTraits(String(raw ?? "").replace(/\s+/g, " ").trim())
+    .replace(/[.!?]+\s*$/, "");
+  if (!cleaned) return "";
+  const words = cleaned.split(" ");
+  if (words.length <= 8) return cleaned;
+  // Try to cut at the first natural clause boundary (— , : ;) inside the first ~8 words.
+  const cutMatch = cleaned.match(/^[^—,:;]{1,60}?(?=[\s]*[—,:;])/);
+  if (cutMatch) return cutMatch[0].trim().replace(/[.!?]+\s*$/, "");
+  return words.slice(0, 8).join(" ") + "…";
+};
+
 const chunkSentences = (text: string, perChunk = 2): string[] => {
   const sentences = text
     .replace(/\s+/g, " ")
