@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import ProAvatar from "@/components/ProAvatar";
-import AddToCalendarButton from "@/components/AddToCalendarButton";
+import AppointmentCard from "@/components/AppointmentCard";
+import type { AppointmentCardData } from "@/components/AppointmentCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
 
 interface Appointment {
   id: string;
