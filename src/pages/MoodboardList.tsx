@@ -224,17 +224,7 @@ const MoodboardList = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar
-        title="Mood Boards"
-        right={
-          <button
-            onClick={() => setOpen(true)}
-            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
-          >
-            + New
-          </button>
-        }
-      />
+      <TitleBar title="Mood Boards" />
 
       <p className="text-[11px] text-muted-foreground px-5 pb-3">
         Save inspiration. Tap any image's heart to add it to your Favourites board.
