@@ -72,6 +72,11 @@ const LogAppointment = () => {
       setReason(data.reason ?? "");
       setNotes(data.notes ?? "");
       setFollowUp(!!data.follow_up_needed);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setFollowUpDate(((data as any).follow_up_date ?? "") as string);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setFollowUpTime(((data as any).follow_up_time ?? "") as string);
+
       setStatus("completed");
       setPrefilled(true);
     })();
