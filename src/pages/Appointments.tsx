@@ -221,6 +221,17 @@ const Appointments = () => {
                         {a.notes}
                       </p>
                     )}
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body hover:bg-muted/40 transition-colors min-h-[36px]"
+                        aria-label="Edit appointment"
+                      >
+                        <Pencil className="size-3.5" />
+                        Edit
+                      </button>
+                    </div>
                     <ApptPhotos appointmentId={a.id} />
                   </SurfaceCard>
                 ))}
