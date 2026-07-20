@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { useSmartInline, normaliseHeatLanguage } from "@/lib/smartInline";
 
 const chunkSentences = (text: string, perChunk = 2): string[] => {
   const sentences = text
