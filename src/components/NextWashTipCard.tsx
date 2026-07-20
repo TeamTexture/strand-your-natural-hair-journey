@@ -63,6 +63,7 @@ const normalise = (raw: string) => {
   let t = String(raw ?? "");
   t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
   t = normaliseHeatLanguage(t);
+  t = humaniseTraits(t);
   // Force each known label onto a new paragraph.
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
