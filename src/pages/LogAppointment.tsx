@@ -130,6 +130,17 @@ const LogAppointment = () => {
 
   const canSave = proName.trim().length > 0 && date.trim().length > 0 && !saving;
 
+  // When editing an existing appointment, don't offer to add the original
+  // event to the calendar if it has already passed — only the follow-up
+  // should be calendar-actionable.
+  const isPastAppointment = useMemo(() => {
+    if (!fromId || !date) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(`${date}T00:00:00`);
+    return selected < today;
+  }, [fromId, date]);
+
   const onSave = async () => {
     if (!user) {
       toast.error("Please sign in to log appointments");
@@ -543,7 +554,7 @@ const LogAppointment = () => {
           {saving ? "Saving…" : "Save Appointment"}
         </Button>
 
-        {date && proName.trim().length > 0 && (
+        {date && proName.trim().length > 0 && !isPastAppointment && (
           <AddToCalendarButton
             variant="full"
             event={{
