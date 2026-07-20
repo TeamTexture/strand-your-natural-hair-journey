@@ -155,28 +155,10 @@ const Directory = () => {
 
                 <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
 
-                <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="grid grid-cols-2 gap-2 mt-3">
                   {/* Plain anchor tags so the iframe sandbox / popup-blocker
                       treats them as a user-initiated navigation. window.open
                       was being silently blocked in the embedded preview. */}
-                  {p.instaUrl ? (
-                    <a
-                      href={p.instaUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
-                    >
-                      Instagram
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => toast("Instagram unavailable")}
-                      className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
-                    >
-                      Instagram
-                    </button>
-                  )}
                   {p.website ? (
                     <a
                       href={p.website}
@@ -196,7 +178,7 @@ const Directory = () => {
                     </button>
                   )}
                   {(() => {
-                    const bookUrl = p.bookingUrl || p.website || p.instaUrl;
+                    const bookUrl = p.bookingUrl || p.website;
                     return bookUrl ? (
                       <a
                         href={bookUrl}
@@ -212,7 +194,7 @@ const Directory = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => toast("Booking unavailable — try Instagram")}
+                        onClick={() => toast("Booking unavailable")}
                         className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary/60 text-primary-foreground rounded-md font-medium min-h-[44px]"
                       >
                         Book Now
