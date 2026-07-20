@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import ProAvatar from "@/components/ProAvatar";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { CalendarEvent } from "@/lib/addToCalendar";
@@ -131,7 +132,14 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
           <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-semibold font-body leading-relaxed">
             {dateTime}
           </p>
-          <span className="bg-muted text-muted-foreground text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full shrink-0">
+          <span
+            className={cn(
+              "text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full shrink-0",
+              appointment.status === "completed"
+                ? "bg-good/15 text-good"
+                : "bg-muted text-muted-foreground",
+            )}
+          >
             {statusLabel}
           </span>
         </div>
