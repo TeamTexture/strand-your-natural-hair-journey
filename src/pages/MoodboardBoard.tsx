@@ -98,7 +98,7 @@ const MoodboardBoard = () => {
     };
   }, [id, user, navigate]);
 
-  const { images, loading, uploadImage, toggleFavourite, deleteImage, reload } = useMoodboardImages(
+  const { images, loading, uploadImage, toggleFavourite, deleteImage, setBoardCover, reload } = useMoodboardImages(
     board?.id,
     { isFavouritesBoard: !!board?.is_favourites },
   );
