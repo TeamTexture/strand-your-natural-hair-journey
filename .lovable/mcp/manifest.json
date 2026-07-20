@@ -508,6 +508,72 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "add_wishlist_item",
+        "title": "Add wishlist item",
+        "description": "Add a product to the signed-in user's wishlist (stored in `user_products` with on_wishlist=true). The `reason` is saved into `ai_summary` so the user sees why you recommended it.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Product name."
+            },
+            "brand": {
+              "type": "string",
+              "description": "Brand name."
+            },
+            "category": {
+              "type": "string",
+              "description": "Category, e.g. 'leave-in', 'oil', 'mask', 'supplement'."
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why this is recommended for the user."
+            },
+            "priority": {
+              "type": "integer",
+              "description": "Optional priority ranking; stored as match_score."
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_wishlist_items",
+        "title": "List wishlist items",
+        "description": "Return the signed-in user's active wishlist items (rows in `user_products` where on_wishlist=true).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Max items to return (default 100)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }
