@@ -443,8 +443,7 @@ const StrandSummary = () => {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="image/*,.heic,.heif"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
