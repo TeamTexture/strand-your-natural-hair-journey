@@ -427,7 +427,7 @@ const Home = () => {
             </div>
           </div>
         ) : (
-          <SurfaceCard>
+          <SurfaceCard data-tour="current-style">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Current style</p>
             <button onClick={() => navigate("/home/style")} className="text-left w-full">
               <p className="text-sm text-muted-foreground">
@@ -436,6 +436,7 @@ const Home = () => {
             </button>
           </SurfaceCard>
         )}
+
 
         {/* length goal — populated from the user's primary length-retention
             goal so the home screen reflects what they actually committed to.
