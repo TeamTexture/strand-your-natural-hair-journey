@@ -468,7 +468,7 @@ const JournalEntry = () => {
 
     const payload = {
       user_id: user.id,
-      title: `${tag} ${entry?.title ?? "Journal entry"}`.trim(),
+      title: `${tag} ${(titleDraft.trim() || entry?.title || "Journal entry")}`.trim(),
       note: noteBody || null,
       photo_paths: photoPaths,
       products_used: state.productIds,
