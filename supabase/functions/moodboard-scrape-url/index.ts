@@ -6,6 +6,11 @@ const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 const MAX_IMAGES = 40;
 
 const IMG_EXT_RE = /\.(jpe?g|png|webp|gif|avif|heic|heif)(\?.*)?$/i;
+const PINTEREST_HOST_RE = /(^|\.)(pinterest\.[a-z.]+|pin\.it)$/i;
+
+function isPinterestUrl(url: URL): boolean {
+  return PINTEREST_HOST_RE.test(url.hostname.toLowerCase());
+}
 
 function isLikelyImage(url: string): boolean {
   if (!url) return false;
@@ -66,6 +71,67 @@ function extractImgUrls(html: string, base: string): string[] {
   return Array.from(found);
 }
 
+async function resolvePinterestUrl(input: URL): Promise<string> {
+  // Short pin.it links redirect to a full pinterest URL. Resolve them server-side
+  // before calling Pinterest oEmbed.
+  if (input.hostname.toLowerCase() !== "pin.it") return input.toString();
+
+  let current = input.toString();
+  for (let i = 0; i < 5; i += 1) {
+    const res = await fetch(current, {
+      method: "GET",
+      redirect: "manual",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    const location = res.headers.get("location");
+    if (!location) return res.url || current;
+    current = new URL(location, current).toString();
+    const next = new URL(current);
+    if (next.hostname.toLowerCase() !== "pin.it") return current;
+  }
+  return current;
+}
+
+async function scrapePinterestPin(target: URL): Promise<{ source: string; images: string[] } | null> {
+  const resolved = await resolvePinterestUrl(target);
+  const pinUrl = new URL(resolved);
+
+  // Pinterest exposes a public oEmbed endpoint for pins. It is far more stable
+  // than page scraping and avoids Firecrawl's Pinterest block.
+  const oembed = new URL("https://www.pinterest.com/oembed.json");
+  oembed.searchParams.set("url", pinUrl.toString());
+
+  const res = await fetch(oembed.toString(), {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+      Accept: "application/json",
+    },
+  });
+  if (!res.ok) {
+    console.error("Pinterest oEmbed failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+
+  const payload = await res.json().catch(() => null) as {
+    thumbnail_url?: string;
+    url?: string;
+    html?: string;
+  } | null;
+  if (!payload) return null;
+
+  const images = new Set<string>();
+  if (payload.thumbnail_url && isLikelyImage(payload.thumbnail_url)) images.add(payload.thumbnail_url);
+  if (payload.url && isLikelyImage(payload.url)) images.add(payload.url);
+  if (payload.html) {
+    for (const img of extractImgUrls(payload.html, pinUrl.toString())) images.add(img);
+  }
+
+  return { source: pinUrl.toString(), images: Array.from(images).slice(0, MAX_IMAGES) };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -101,6 +167,19 @@ Deno.serve(async (req) => {
         JSON.stringify({ source: target.toString(), images: [target.toString()] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    if (isPinterestUrl(target)) {
+      const pinterest = await scrapePinterestPin(target);
+      if (pinterest?.images.length) {
+        return new Response(JSON.stringify(pinterest), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "We couldn't read that Pin. Try copying the image address from the Pin and paste that instead." }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
