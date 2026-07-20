@@ -445,13 +445,22 @@ export default function BloodUpload() {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Upload blood test" onBack={() => navigate(isOnboarding ? "/onboarding/blood-timing" : "/blood-history")} />
+      <TitleBar title="Upload blood test" onBack={() => navigate(isOnboarding ? "/onboarding/profile-step-4-colour" : "/blood-history")} />
 
       <div className="px-5 pt-2 pb-10 space-y-4">
         <p className="text-sm text-foreground/80 font-body leading-relaxed">
           Upload a PDF or photo of your lab report. STRAND will read the results
           and pre-fill your panel — check them, then save.
         </p>
+
+        {isOnboarding && files.length === 0 && (
+          <SurfaceCard tone="gold">
+            <p className="text-sm font-body leading-snug">
+              <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
+              Drag &amp; drop your lab report below and we'll pre-fill your panel — or enter results manually.
+            </p>
+          </SurfaceCard>
+        )}
 
         {files.length === 0 && (
           <SurfaceCard>
