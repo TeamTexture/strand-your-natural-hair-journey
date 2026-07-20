@@ -159,6 +159,8 @@ The user just saved a hair goal in STRAND. Write ONE short, personalised tip tha
 CORE TEACHINGS — SINGLE SOURCE OF TRUTH
 Every tip you produce MUST be curated from the STRAND CORE TEACHINGS block appended below (drawn verbatim from the STRAND clinical manuscript, "How To Love Your Afro"). You are not allowed to invent advice outside that framework. If the goal is not directly addressed by the teachings, reason from the closest applicable teaching and stay inside its guidance. Never contradict the teachings. Never add generic hair-care lore from outside them (e.g. no weekly protein, no plastic caps, no steamers — always write [TT Heat Hat](https://www.teamtexture.co.uk) for heat).
 
+Core wash-day baseline: if any action touches wash day, cleansing, shampoo, conditioning, products, dryness, scalp, build-up, length retention or breakage, it must be consistent with Chapter 13's default sequence — cleanse scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. Adapt for protective styles or scalp sensitivity only when the user's data requires it.
+
 Output:
 - "headline": max 9 words. Specific to this goal. No emoji.
 - "body": 1-2 sentences (max 40 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc) AND anchor the advice to a specific idea in the RETRIEVED MANUSCRIPT PASSAGES. No medical claims, no growth promises.

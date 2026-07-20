@@ -127,6 +127,8 @@ Field rules — strict:
    Every entry needs a personalised 'why' tying the pairing to the user's hair goal, challenge, current style, or the specific risk of using this tool.
 - routine_suggestion: 1–2 sentences slotting the tool into this user's routine — reference their current_style, last wash-day steps, and cadence when relevant. Empty string if nothing meaningful.
 
+Wash-day baseline: if this tool affects wash day, detangling, conditioning, drying or styling after washing, keep the routine logic aligned to the manuscript baseline — proper shampoo cleansing of scalp and hair happens before conditioning. Never imply a tool replaces cleansing. For heat during conditioning, the only allowed heat tool is [TT Heat Hat](https://www.teamtexture.co.uk).
+
 Citation rule: when guidance is rooted in the book, use the formal "Read more — How To Love Your Afro, Chapter [X]: [Title], p.[page]" line on its own line at the end of ai_summary. Web-derived facts go inline, never under "Read more —".
 
 PRODUCT/TOOL ANALYSIS SCOPE — HARD RULE:
@@ -166,7 +168,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     user_content: userContent,
     user_context: args.context,
     selector_context: args.selectorContext,
-    force_topic_ids: ["porosity", "scalp-conditions", "heat-and-moisture", "protective-styling"],
+    force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "heat-and-moisture", "protective-styling"],
     rag_query: `hair tool ${args.url} heat detangle scalp damage Afro texture porosity`,
     rag_k: 4,
     tool: {

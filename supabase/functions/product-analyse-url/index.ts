@@ -136,6 +136,9 @@ Field rules — strict:
 
 Grounding rule: when your guidance is rooted in the retrieved manuscript passages, reason from them and blend the underlying idea into your prose in STRAND's voice — do NOT name the book, its author, chapters, or page numbers, and do NOT emit any "Read more — …" line. When facts come from the fetched page or web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose. Never claim something "comes from the book" unless the specific point is supported by a retrieved passage.
 
+WASH-DAY BASELINE — HARD RULE:
+When THIS product is a shampoo, cleanser, co-wash, conditioner, deep conditioner, mask, or anything that belongs in wash day, apply the Chapter 13 routine as the default logic: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. Do not present co-wash as a replacement for shampoo cleansing. Adapt for protective styles or scalp sensitivity without abandoning the need to clean both scalp and hair.
+
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE:
 Moisture comes from water. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. Use this phrasing only.
 
@@ -201,6 +204,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     user_context: args.context,
     selector_context: args.selectorContext,
     force_topic_ids: [
+      "wash-day-mechanics",
       "porosity",
       "scalp-conditions",
       "diagnosed-conditions",

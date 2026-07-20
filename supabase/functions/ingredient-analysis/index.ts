@@ -190,6 +190,9 @@ We are NOT a Yuka-style scaremonger app. Cosmetic preservatives (phenoxyethanol,
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE (the STRAND manuscript, Chapter 14: Moisture Retention):
 Moisture comes from water. Period. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. NEVER write "restores moisture", "adds moisture", "replenishes moisture", "delivers moisture", or "hydrates the strand". Use book-aligned phrasing only: "seals moisture in", "locks moisture in", "helps retain moisture", "slows moisture loss", "supports moisture retention", "softens cuticle so water can absorb during wash day". Conditioners, leave-ins, oils, butters, masks and stylers are sealers / softeners / penetrants / emollients / humectants — never water sources. Apply this rule to ingredient body copy, the summary, and personalised_guidance equally.
 
+WASH-DAY BASELINE — HARD RULE (Chapter 13):
+When the product is a shampoo, cleanser, co-wash, conditioner, deep conditioner, mask, or anything used on wash day, the app's core routine logic is: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. If personalised_guidance is about THIS shampoo/cleanser, the best tip should usually be about which cleanse it belongs to, scalp-first application, emulsifying, sectioning, dwell/contact time, or letting lather run through lengths — without inventing other products. Do not present co-wash as replacing shampoo cleansing.
+
 RULES — STRICT:
 1. Flag EVERY ingredient supplied — do NOT skip any (including water, fragrance, colourants, preservatives). The tool schema enforces the count (${ingredientCount > 0 ? ingredientCount : "as supplied"}); preserve the input order.
 2. tone — apply this exact decision tree:
@@ -298,7 +301,7 @@ async function runClaude(args: {
     task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount),
     user_payload: userPayload,
     selector_context: selectorContext,
-    force_topic_ids: ["porosity", "scalp-conditions", "diagnosed-conditions"],
+    force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
     rag_query: ragQuery,
     rag_k: 4,
     tool: {
