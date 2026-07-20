@@ -554,7 +554,7 @@ const LogAppointment = () => {
           {saving ? "Saving…" : "Save Appointment"}
         </Button>
 
-        {date && proName.trim().length > 0 && (
+        {date && proName.trim().length > 0 && !isPastAppointment && (
           <AddToCalendarButton
             variant="full"
             event={{
