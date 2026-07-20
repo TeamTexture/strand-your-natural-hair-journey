@@ -441,7 +441,8 @@ const Home = () => {
         {/* length goal — populated from the user's primary length-retention
             goal so the home screen reflects what they actually committed to.
             Falls back to a CTA when no goal exists yet. */}
-        <SurfaceCard>
+        <SurfaceCard data-tour="length-goal">
+
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Length goal
