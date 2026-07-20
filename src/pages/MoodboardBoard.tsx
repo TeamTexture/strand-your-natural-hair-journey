@@ -178,7 +178,7 @@ const MoodboardBoard = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title={board.name} />
+      <TitleBar title={board.name} onBack={() => navigate("/journal/moodboards")} />
 
       {/* Hidden file inputs */}
       <input
