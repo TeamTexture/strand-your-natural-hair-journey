@@ -343,14 +343,14 @@ const MoodboardList = () => {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => cameraInputRef.current?.click()}
                     className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
                   >
                     <Camera className="size-5 mx-auto mb-1 text-primary" />
-                    <p className="text-[11px] font-medium">Take a Photo</p>
+                    <p className="text-[10px] font-medium leading-tight">Take Photo</p>
                   </button>
                   <button
                     type="button"
@@ -358,8 +358,105 @@ const MoodboardList = () => {
                     className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
                   >
                     <ImagePlus className="size-5 mx-auto mb-1 text-primary" />
-                    <p className="text-[11px] font-medium">Upload Photo</p>
+                    <p className="text-[10px] font-medium leading-tight">Upload</p>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setLinkOpen(true)}
+                    className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
+                  >
+                    <LinkIcon className="size-5 mx-auto mb-1 text-primary" />
+                    <p className="text-[10px] font-medium leading-tight">From Link</p>
+                  </button>
+                </div>
+              )}
+              {linkOpen && (
+                <div className="mt-3 space-y-2 rounded-[12px] border border-border bg-card p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                      Add cover from a link
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLinkOpen(false);
+                        setLinkUrl("");
+                        setLinkImages([]);
+                      }}
+                      aria-label="Close link import"
+                      className="text-muted-foreground"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="Paste image or page link"
+                      className="h-11 pl-9 text-[13px]"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (!linkScraping) handleScrapeLink();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="h-3 w-full overflow-hidden rounded-full bg-secondary"
+                    role="progressbar"
+                    aria-valuenow={Math.round(linkProgress)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="h-full bg-primary transition-[width] duration-200 ease-out"
+                      style={{ width: `${linkProgress}%` }}
+                    />
+                  </div>
+                  <Button
+                    variant="gold"
+                    size="pill"
+                    onClick={handleScrapeLink}
+                    disabled={linkScraping || !linkUrl.trim()}
+                    className="h-10 w-full text-[12px]"
+                  >
+                    {linkScraping ? "Scanning" : "Scan"}
+                  </Button>
+                  {linkImages.length > 0 && (
+                    <>
+                      <p className="text-[10px] text-muted-foreground">
+                        Tap an image to use as cover
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
+                        {linkImages.map((src) => (
+                          <button
+                            type="button"
+                            key={src}
+                            onClick={() => handlePickLinkImage(src)}
+                            className={cn(
+                              "relative aspect-square rounded-[10px] overflow-hidden border-2 border-transparent bg-secondary",
+                            )}
+                          >
+                            <img
+                              src={src}
+                              alt=""
+                              loading="lazy"
+                              className="absolute inset-0 size-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            <span className="absolute top-1 right-1 size-5 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center opacity-0 hover:opacity-100">
+                              <Check className="size-3" />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               <p className="text-[10px] text-muted-foreground mt-1.5">Optional — you can add one later.</p>
