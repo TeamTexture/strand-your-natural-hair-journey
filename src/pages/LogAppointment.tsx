@@ -171,7 +171,7 @@ const LogAppointment = () => {
       const uploaded = await Promise.all(pendingPhotos.map((p) => uploadApptPhoto(p.file)));
       const rows = uploaded
         .filter((path): path is string => !!path)
-        .map((path) => ({ appointment_id: inserted.id, user_id: user.id, storage_path: path }));
+        .map((path) => ({ appointment_id: savedId!, user_id: user.id, storage_path: path }));
       if (rows.length > 0) {
         const { error: photoErr } = await supabase.from("appointment_photos").insert(rows);
         if (photoErr) console.error("appointment_photos insert failed", photoErr);
