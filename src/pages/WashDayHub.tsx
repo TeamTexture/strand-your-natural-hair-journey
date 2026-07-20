@@ -533,7 +533,70 @@ const WashDayHub = () => {
           + Log Today's Wash Day
         </Button>
       </div>
+
+      <Dialog open={scheduleDialogIso !== null} onOpenChange={(o) => { if (!o) setScheduleDialogIso(null); }}>
+        <DialogContent className="max-w-[340px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg">
+              {scheduleDialogIso && scheduledSet.has(scheduleDialogIso) ? "Scheduled wash day" : "Schedule a wash day"}
+            </DialogTitle>
+            <DialogDescription className="font-body text-[13px] leading-snug">
+              {scheduleDialogIso && (
+                <>
+                  {fmtDayLong(new Date(scheduleDialogIso))}. {scheduledSet.has(scheduleDialogIso)
+                    ? "This date is already on your STRAND calendar. You can add it to Google Calendar or remove it."
+                    : "Plan this wash day in advance. You can also add it to your Google Calendar."}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            {scheduleDialogIso && !scheduledSet.has(scheduleDialogIso) && (
+              <Button
+                variant="gold"
+                size="pill"
+                onClick={() => { confirmSchedule(); setScheduleDialogIso(null); }}
+              >
+                <CalendarClock className="size-4 mr-1.5" />
+                Add to STRAND calendar
+              </Button>
+            )}
+            {scheduleDialogIso && (
+              <a
+                href={buildGoogleCalendarUrl(scheduleDialogIso)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => { confirmSchedule(); }}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
+              >
+                <CalendarPlus className="size-4" />
+                Add to Google Calendar
+              </a>
+            )}
+            {scheduleDialogIso && scheduledSet.has(scheduleDialogIso) && (
+              <button
+                type="button"
+                onClick={removeSchedule}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full text-destructive text-[12.5px] font-semibold font-body px-4 py-2.5 hover:bg-destructive/10 transition"
+              >
+                <Trash2 className="size-4" />
+                Remove from calendar
+              </button>
+            )}
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setScheduleDialogIso(null)}
+              className="w-full text-center text-[12px] text-muted-foreground font-body py-1"
+            >
+              Cancel
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
+
   );
 };
 
