@@ -7,6 +7,7 @@ const MAX_IMAGES = 40;
 
 const IMG_EXT_RE = /\.(jpe?g|png|webp|gif|avif|heic|heif)(\?.*)?$/i;
 const PINTEREST_HOST_RE = /(^|\.)(pinterest\.[a-z.]+|pin\.it)$/i;
+const PINTEREST_PIN_RE = /\/pin\/(\d+)/i;
 
 function isPinterestUrl(url: URL): boolean {
   return PINTEREST_HOST_RE.test(url.hostname.toLowerCase());
@@ -32,6 +33,26 @@ async function isRemoteImage(url: string): Promise<boolean> {
       },
     });
     const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+    return res.ok && contentType.startsWith("image/");
+  } catch {
+    return false;
+  }
+}
+
+async function detectRemoteImage(url: string): Promise<boolean> {
+  if (await isRemoteImage(url)) return true;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+        Accept: "image/*,*/*;q=0.8",
+        Range: "bytes=0-0",
+      },
+    });
+    const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
+    await res.body?.cancel().catch(() => undefined);
     return res.ok && contentType.startsWith("image/");
   } catch {
     return false;
@@ -107,13 +128,43 @@ async function resolvePinterestUrl(input: URL): Promise<string> {
     if (!location) return res.url || current;
     current = new URL(location, current).toString();
     const next = new URL(current);
-    if (next.hostname.toLowerCase() !== "pin.it") return current;
+    const host = next.hostname.toLowerCase();
+    if (PINTEREST_PIN_RE.test(next.pathname)) return current;
+    if (host !== "pin.it" && host !== "api.pinterest.com") return current;
   }
   return current;
 }
 
+function normalisePinterestPinUrl(raw: string): string {
+  try {
+    const parsed = new URL(raw);
+    const pinMatch = parsed.pathname.match(PINTEREST_PIN_RE);
+    if (pinMatch?.[1]) return `https://www.pinterest.com/pin/${pinMatch[1]}/`;
+  } catch {
+    // Fall through to returning the original string.
+  }
+  return raw;
+}
+
+async function scrapePinterestPage(pinUrl: URL): Promise<string[]> {
+  try {
+    const res = await fetch(pinUrl.toString(), {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      redirect: "follow",
+    });
+    if (!res.ok) return [];
+    const html = await res.text();
+    return extractImgUrls(html, res.url || pinUrl.toString());
+  } catch {
+    return [];
+  }
+}
+
 async function scrapePinterestPin(target: URL): Promise<{ source: string; images: string[] } | null> {
-  const resolved = await resolvePinterestUrl(target);
+  const resolved = normalisePinterestPinUrl(await resolvePinterestUrl(target));
   const pinUrl = new URL(resolved);
 
   // Pinterest exposes a public oEmbed endpoint for pins. It is far more stable
@@ -129,7 +180,8 @@ async function scrapePinterestPin(target: URL): Promise<{ source: string; images
   });
   if (!res.ok) {
     console.error("Pinterest oEmbed failed", res.status, await res.text().catch(() => ""));
-    return null;
+    const fallback = await scrapePinterestPage(pinUrl);
+    return fallback.length ? { source: pinUrl.toString(), images: fallback.slice(0, MAX_IMAGES) } : null;
   }
 
   const payload = await res.json().catch(() => null) as {
@@ -144,6 +196,10 @@ async function scrapePinterestPin(target: URL): Promise<{ source: string; images
   if (payload.url && isLikelyImage(payload.url)) images.add(payload.url);
   if (payload.html) {
     for (const img of extractImgUrls(payload.html, pinUrl.toString())) images.add(img);
+  }
+
+  if (images.size === 0) {
+    for (const img of await scrapePinterestPage(pinUrl)) images.add(img);
   }
 
   return { source: pinUrl.toString(), images: Array.from(images).slice(0, MAX_IMAGES) };
@@ -179,7 +235,7 @@ Deno.serve(async (req) => {
     }
 
     // Direct image URL? Skip scraping — just echo it back.
-    if (isLikelyImage(target.toString()) || await isRemoteImage(target.toString())) {
+    if (isLikelyImage(target.toString()) || await detectRemoteImage(target.toString())) {
       return new Response(
         JSON.stringify({ source: target.toString(), images: [target.toString()] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -193,8 +249,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "We couldn't read that Pin. Try copying the image address from the Pin and paste that instead." }), {
-        status: 422,
+      return new Response(JSON.stringify({ source: target.toString(), images: [], error: "We couldn't read that Pin. Try copying the image address from the Pin and paste that instead." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -225,9 +280,15 @@ Deno.serve(async (req) => {
     if (!res.ok || !payload) {
       const errBody = payload ? JSON.stringify(payload) : await res.text().catch(() => "");
       console.error("Firecrawl scrape failed", res.status, errBody);
+      if (await detectRemoteImage(target.toString())) {
+        return new Response(
+          JSON.stringify({ source: target.toString(), images: [target.toString()] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       return new Response(
-        JSON.stringify({ error: "Failed to scrape page", status: res.status, details: errBody }),
-        { status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ source: target.toString(), images: [], error: "We couldn't read that page. Try copying the image address and paste that instead.", status: res.status, details: errBody }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
