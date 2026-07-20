@@ -1,6 +1,6 @@
 import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Plus, X, Camera, Share2, Loader2, GripVertical, Star, ImagePlus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -42,6 +42,7 @@ import ProductVoicenotes from "@/components/ProductVoicenotes";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import ShareSheet from "@/components/ShareSheet";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
+import ProductThumb from "@/components/ProductThumb";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -210,6 +211,7 @@ interface DbJournalEntry {
 const JournalEntry = () => {
   const { id: rawId = "" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   // Brand-new entries arrive at /journal/entry/new. We mint a stable per-session
   // id so all the localStorage keys (photos, reflection) line up, and synthesize
@@ -409,6 +411,24 @@ const JournalEntry = () => {
       /* ignore */
     }
   };
+
+  useEffect(() => {
+    const returnedProductId = (location.state as { journalAddProductId?: string } | null)?.journalAddProductId;
+    if (!returnedProductId) return;
+    setPickerOpen(false);
+    setState((prev) => {
+      if (prev.productIds.includes(returnedProductId)) return prev;
+      const next = { ...prev, productIds: [...prev.productIds, returnedProductId] };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+    toast.success("Product added to this journal entry");
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  }, [location.pathname, location.search, location.state, navigate, storageKey]);
 
   const toggleProduct = (productId: string) => {
     const has = state.productIds.includes(productId);
@@ -824,13 +844,13 @@ const JournalEntry = () => {
                   controls
                   playsInline
                   preload="metadata"
-                  className="absolute inset-0 size-full object-cover bg-black"
+                  className="absolute inset-0 size-full object-cover object-top bg-black"
                 />
               ) : (
                 <img
                   src={coverUrl}
                   alt={entry.title}
-                  className="absolute inset-0 size-full object-cover"
+                  className="absolute inset-0 size-full object-cover object-top"
                 />
               )
             ) : (
@@ -992,13 +1012,14 @@ const JournalEntry = () => {
                   key={p.id}
                   className="inline-flex items-center gap-2 bg-primary/10 text-foreground text-xs pl-1 pr-3 py-1 rounded-full border border-primary/30"
                 >
-                  <span className="size-6 rounded-full overflow-hidden bg-secondary shrink-0">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt="" className="size-full object-cover" />
-                    ) : (
-                      <span className="size-full flex items-center justify-center text-[11px] bg-primary/15">🧴</span>
-                    )}
-                  </span>
+                  <ProductThumb
+                    imageUrl={p.image_url}
+                    storagePath={p.storage_path}
+                    alt={p.name}
+                    cover
+                    wrapperClassName="size-6 rounded-full overflow-hidden bg-secondary shrink-0"
+                    fallbackEmoji="🧴"
+                  />
                   <span className="font-medium">{p.name}</span>
                   <button
                     type="button"
