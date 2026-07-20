@@ -136,6 +136,13 @@ FIELD: action  (this is the CARD HEADER, not the tip itself)
 - If suggesting heat, write exactly "TT Heat Hat" — never generic "heat cap", plastic cap, shower cap, warm towel, or steamer.
 - ABSOLUTE: never a protein, keratin, or bond-repair treatment on any cadence.
 - Do NOT write a full imperative sentence here. Do NOT append a comma explaining WHY — the explanation goes in \`why\`.
+- HEADER↔BODY ALIGNMENT (STRICT): the header MUST name the SAME single core move the \`why\` body explains. Write \`why\` first internally, then choose an action header that summarises it.
+  • If \`why\` centres on a deep-conditioning mask + TT Heat Hat, the header is about that mask/heat step — NOT the cleanse step.
+  • If \`why\` tells them to keep the same shampoo/conditioner sequence for another cycle, the header is about repeating the sequence — NOT a mask.
+  • If \`why\` is about protecting ends / low manipulation, the header names that move.
+  • Never mention cleansing products in the header when the body's real recommendation is a mid-week or mask/heat treatment.
+  • Never mention a mask in the header when the body is about a cleanse step.
+  Before returning, reread your header and body: if a reader could not guess the header from the body's central instruction, rewrite the header.
 
 FIELD: why  (this is the BODY that explains the header)
 - 2 to 4 short sentences, ~55 words max. Plain, conversational English.
@@ -238,6 +245,12 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
    - why: THE BODY that explains the header. 2 to 4 short sentences (~55 words max), plain English. May use short labelled sub-paragraphs: "Why it matters:", "Technique:", "Moisture:", "Product consistency:", "Goal focus:", "Scalp signal:", "Watch for:".
      • Tie to a concrete pattern in the user's own data — a recent wash day (name the date or "last wash"), a repeated signal, a product outcome they've logged, OR their active goal by title. Do not invent history.
      • Ground the reasoning in an explicit How To Love Your Afro teaching (3–4 wash-cycle consistency; moisture-first for high porosity/humidity; low-manipulation + ends-tucking for length retention; scalp-first for growth). Never name the book, chapters, or pages.
+   - HEADER↔BODY ALIGNMENT (STRICT): the \`action\` header MUST summarise the SAME core move that \`why\` explains. Draft \`why\` first, then write the header from it.
+     • If the body's real recommendation is a deep-conditioning mask under a TT Heat Hat, the header is about that mask/heat step — not the cleanse.
+     • If the body says keep the same shampoo/conditioner sequence, the header is about repeating that sequence — not a mask.
+     • If the body is about protecting ends / low manipulation, the header names that move.
+     • Never name cleanse products in the header when the body centres on a mask/heat step. Never name a mask in the header when the body centres on the cleanse.
+     • Before returning: reread. If a reader can't guess the header from the body's central instruction, rewrite the header so they can.
    - For dryness/high porosity/humid weather, recommend moisture-first support (deep conditioning mask, conditioner slip) — never default to protein or product-hopping.
    - If suggesting heat, ONLY write [TT Heat Hat](https://www.teamtexture.co.uk) — never generic "heat hat", "heat cap", plastic caps, shower caps, warm towels, steamers, or the raw website as visible text.
    - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence. ABSOLUTE: NEVER suggest scheduled pre-poo.
