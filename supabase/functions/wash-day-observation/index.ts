@@ -136,6 +136,13 @@ FIELD: action  (this is the CARD HEADER, not the tip itself)
 - If suggesting heat, write exactly "TT Heat Hat" — never generic "heat cap", plastic cap, shower cap, warm towel, or steamer.
 - ABSOLUTE: never a protein, keratin, or bond-repair treatment on any cadence.
 - Do NOT write a full imperative sentence here. Do NOT append a comma explaining WHY — the explanation goes in \`why\`.
+- HEADER↔BODY ALIGNMENT (STRICT): the header MUST name the SAME single core move the \`why\` body explains. Write \`why\` first internally, then choose an action header that summarises it.
+  • If \`why\` centres on a deep-conditioning mask + TT Heat Hat, the header is about that mask/heat step — NOT the cleanse step.
+  • If \`why\` tells them to keep the same shampoo/conditioner sequence for another cycle, the header is about repeating the sequence — NOT a mask.
+  • If \`why\` is about protecting ends / low manipulation, the header names that move.
+  • Never mention cleansing products in the header when the body's real recommendation is a mid-week or mask/heat treatment.
+  • Never mention a mask in the header when the body is about a cleanse step.
+  Before returning, reread your header and body: if a reader could not guess the header from the body's central instruction, rewrite the header.
 
 FIELD: why  (this is the BODY that explains the header)
 - 2 to 4 short sentences, ~55 words max. Plain, conversational English.
