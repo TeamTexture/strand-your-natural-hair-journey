@@ -63,12 +63,12 @@ const RETURN_OBSERVATION_SCHEMA = {
         action: {
           type: "string",
           description:
-            "ONE imperative sentence for the user's NEXT wash day. MAX 14 words. Starts with a verb. No preamble, no hedging, no adverbs like 'gently'/'carefully'. Names a specific product from their shelf or a specific tool when possible. If today's products are working and only used 1-3 cycles, say 'Keep…' or 'Repeat…' rather than changing.",
+            "SHORT HEADER for the tip card — 2 to 6 words, Title Case, no trailing punctuation. Names the core move (e.g. 'Repeat your current sequence', 'Deep-condition under TT Heat Hat', 'Lead with moisture'). NOT a full sentence. The full explanation goes in `why`.",
         },
         why: {
           type: "string",
           description:
-            "MAX 2 short sentences (~35 words total). Sentence 1: tie to a concrete signal from the user — a specific pattern in recent wash days (name the date or 'last wash') OR their current goal — in plain conversational English. Sentence 2: ground the reasoning in a How To Love Your Afro teaching (the 3-4 wash-cycle rule, moisture-first for high porosity, low-manipulation for length retention, scalp-first for growth, etc.) without naming the book, chapters, or pages.",
+            "The body of the tip that explains the header. 2-4 short sentences (~55 words max). Tie to the user's own data (specific recent wash, product, or goal) and ground the reasoning in a How To Love Your Afro teaching without naming the book. May use short labelled paragraphs like 'Why it matters:', 'Technique:', 'Moisture:', 'Product consistency:' to break up the body.",
         },
       },
     },
