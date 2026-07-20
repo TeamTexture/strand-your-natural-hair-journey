@@ -22,6 +22,8 @@ import {
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
+import HomeTour from "@/components/HomeTour";
+
 
 // Render text with "TT Heat Hat" turned into a link to Team Texture.
 const HEAT_HAT_URL = "https://www.teamtexture.co.uk";
@@ -335,7 +337,7 @@ const Home = () => {
       <div className="px-5 space-y-4 pb-6">
         {/* current style — editorial terra card */}
         {style.current_hairstyle ? (
-          <div className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
+          <div data-tour="current-style" className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
             {/* Decorative glows / rings */}
             <div className="pointer-events-none absolute top-0 right-0 w-48 h-48 bg-[#C5A059]/10 rounded-full -mr-20 -mt-20 blur-3xl" />
             <div className="pointer-events-none absolute bottom-24 left-0 w-32 h-32 border border-[#C5A059]/10 rounded-full -ml-16" />
@@ -427,7 +429,7 @@ const Home = () => {
             </div>
           </div>
         ) : (
-          <SurfaceCard>
+          <SurfaceCard data-tour="current-style">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Current style</p>
             <button onClick={() => navigate("/home/style")} className="text-left w-full">
               <p className="text-sm text-muted-foreground">
@@ -437,10 +439,12 @@ const Home = () => {
           </SurfaceCard>
         )}
 
+
         {/* length goal — populated from the user's primary length-retention
             goal so the home screen reflects what they actually committed to.
             Falls back to a CTA when no goal exists yet. */}
-        <SurfaceCard>
+        <SurfaceCard data-tour="length-goal">
+
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Length goal
@@ -578,7 +582,7 @@ const Home = () => {
         </SurfaceCard>
 
         {/* My Blood Work */}
-        <SurfaceCard>
+        <SurfaceCard data-tour="blood-work">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               My Blood Work
@@ -641,7 +645,7 @@ const Home = () => {
           )}
         </SurfaceCard>
 
-        <SurfaceCard tone="dark" padded={false}>
+        <SurfaceCard data-tour="alerts" tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
               🔔 Alerts {visibleAlerts.length > 0 && `(${visibleAlerts.length})`}
@@ -710,7 +714,8 @@ const Home = () => {
       </div>
 
       <SectionLabel>Quick actions</SectionLabel>
-      <div className="px-5 grid grid-cols-2 gap-3">
+      <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-3">
+
         <button
           onClick={() => navigate("/wash-day")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
@@ -746,7 +751,8 @@ const Home = () => {
       </div>
 
       <SectionLabel>My shelf</SectionLabel>
-      <div className="px-5 pb-6">
+      <div data-tour="my-shelf" className="px-5 pb-6">
+
         <SurfaceCard padded={false} className="divide-y divide-border/60">
           {shelfLoading ? (
             <div className="p-4 text-[11px] text-muted-foreground">Loading…</div>
@@ -803,8 +809,9 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
-
+      <HomeTour />
     </ScreenLayout>
+
   );
 };
 
