@@ -176,59 +176,20 @@ const Appointments = () => {
               <SectionLabel>Past</SectionLabel>
               <div className="px-5 space-y-3 pb-4">
                 {past.map((a) => (
-                  <SurfaceCard key={a.id}>
-                    <p className="text-[11px] text-muted-foreground mb-2">
-                      {a.professional_type ?? "Appointment"} · {formatDate(a.appointment_date)}
-                    </p>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="size-10 rounded-[10px] bg-good/15 flex items-center justify-center shrink-0">
-                        <Shield className="size-5 text-good" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display text-sm font-semibold truncate">
-                          {a.professional_name}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {[a.clinic_name, a.reason].filter(Boolean).join(" · ") || "—"}
-                        </p>
-                      </div>
-                      {a.follow_up_needed && (
-                        <span className="bg-warn/15 text-warn text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0">
-                          Follow-up
-                        </span>
-                      )}
-                    </div>
-                    {a.notes && (
-                      <p className="text-[11px] text-foreground/80 leading-relaxed border-t border-border pt-2">
-                        {a.notes}
-                      </p>
-                    )}
-                    <div className="mt-3 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(a)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body text-destructive hover:bg-destructive/10 transition-colors min-h-[36px]"
-                        aria-label="Delete appointment"
-                      >
-                        <Trash2 className="size-3.5" />
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/appointments/log?fromId=${a.id}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[11px] font-body hover:bg-muted/40 transition-colors min-h-[36px]"
-                        aria-label="Edit appointment"
-                      >
-                        <Pencil className="size-3.5" />
-                        Edit
-                      </button>
-                    </div>
+                  <AppointmentCard
+                    key={a.id}
+                    appointment={a}
+                    variant="past"
+                    onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                    onDelete={() => setDeleteTarget(a)}
+                  >
                     <ApptPhotos appointmentId={a.id} />
-                  </SurfaceCard>
+                  </AppointmentCard>
                 ))}
               </div>
             </>
           )}
+
 
           <div className="px-5 pb-4">
             <Button variant="goldOutline" size="pill" onClick={goLog}>
