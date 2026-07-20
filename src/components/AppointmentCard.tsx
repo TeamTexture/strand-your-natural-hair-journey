@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import ProAvatar from "@/components/ProAvatar";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { CalendarEvent } from "@/lib/addToCalendar";
