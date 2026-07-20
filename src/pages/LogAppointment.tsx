@@ -61,7 +61,7 @@ const LogAppointment = () => {
     (async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, follow_up_needed, follow_up_date, follow_up_time")
+        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, status, follow_up_needed, follow_up_date, follow_up_time, outcome_notes, outcome_audio_path")
         .eq("id", fromId)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -73,13 +73,19 @@ const LogAppointment = () => {
       setTime(data.appointment_time ?? "");
       setReason(data.reason ?? "");
       setNotes(data.notes ?? "");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setOutcomeNotes(((data as any).outcome_notes ?? "") as string);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setOutcomeAudio(((data as any).outcome_audio_path ?? null) as string | null);
       setFollowUp(!!data.follow_up_needed);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setFollowUpDate(((data as any).follow_up_date ?? "") as string);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setFollowUpTime(((data as any).follow_up_time ?? "") as string);
 
-      setStatus("completed");
+      // Default to "completed" for follow-ups from the home alert, but keep
+      // the actual saved status if the user is editing an existing record.
+      setStatus((data.status as "upcoming" | "completed") ?? "completed");
       setPrefilled(true);
     })();
     return () => {
