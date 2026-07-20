@@ -63,7 +63,7 @@ const RETURN_OBSERVATION_SCHEMA = {
         action: {
           type: "string",
           description:
-            "SHORT HEADER for the tip card — 2 to 6 words, Title Case, no trailing punctuation. Names the core move (e.g. 'Repeat your current sequence', 'Deep-condition under TT Heat Hat', 'Lead with moisture'). NOT a full sentence. The full explanation goes in `why`.",
+            "SHORT HEADER for the tip card — 3 to 7 words, Title Case, no trailing punctuation. HOLISTIC: captures or alludes to the WHOLE arc of the tip, not one isolated step. Pair linked moves with a comma or 'and' (e.g. 'Cleanse Then Deep-Condition Under Heat', 'Repeat Sequence, Add Midweek Moisture', 'Protect Ends, Lead With Moisture'). NOT a full sentence. The full explanation goes in `why`.",
         },
         why: {
           type: "string",
