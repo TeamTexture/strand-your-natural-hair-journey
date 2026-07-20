@@ -105,7 +105,28 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
             </div>
           </div>
 
-          {appointment.notes && (
+          {isFollowUp && (previousReason || upcomingReason) && (
+            <div className="border-t border-white/10 pt-3 mb-4 space-y-1.5">
+              {previousReason && (
+                <p className="text-[#E0D7CC]/85 text-[11px] leading-relaxed font-body">
+                  <span className="text-[#C5A059] font-semibold uppercase tracking-[0.12em] text-[10px]">
+                    Previous reason·
+                  </span>{" "}
+                  {previousReason}
+                </p>
+              )}
+              {upcomingReason && (
+                <p className="text-white/95 text-[12px] leading-relaxed font-body">
+                  <span className="text-[#C5A059] font-semibold uppercase tracking-[0.12em] text-[10px]">
+                    This visit·
+                  </span>{" "}
+                  {upcomingReason}
+                </p>
+              )}
+            </div>
+          )}
+
+          {appointment.notes && !isFollowUp && (
             <p className="text-[#E0D7CC]/90 text-[12px] leading-relaxed border-t border-white/10 pt-3 mb-4 font-body">
               {appointment.notes}
             </p>
