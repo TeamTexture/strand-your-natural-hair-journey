@@ -712,7 +712,8 @@ const Home = () => {
       </div>
 
       <SectionLabel>Quick actions</SectionLabel>
-      <div className="px-5 grid grid-cols-2 gap-3">
+      <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-3">
+
         <button
           onClick={() => navigate("/wash-day")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
