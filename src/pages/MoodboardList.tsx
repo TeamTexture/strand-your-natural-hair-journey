@@ -198,7 +198,7 @@ const MoodboardList = () => {
       else await reload();
     } catch (e) {
       console.error(e);
-      toast.error("Could not create board");
+      toast.error(e instanceof Error ? e.message : "Could not create board");
     } finally {
       setSaving(false);
     }
