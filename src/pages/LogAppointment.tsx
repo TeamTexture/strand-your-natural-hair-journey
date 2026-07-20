@@ -28,6 +28,8 @@ const LogAppointment = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { pros } = useDirectoryProfessionals();
+  const [searchParams] = useSearchParams();
+  const fromId = searchParams.get("fromId");
 
   const [query, setQuery] = useState("");
   const [pickedFromDirectory, setPickedFromDirectory] = useState<Professional | null>(null);
@@ -43,6 +45,38 @@ const LogAppointment = () => {
   const [status, setStatus] = useState<"upcoming" | "completed">("upcoming");
   const [followUp, setFollowUp] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Prefill from an existing appointment (e.g. from the "did you have your
+  // appointment?" home alert). We load the booking, populate every field we
+  // can, and default the status to "completed" since the user is logging it.
+  useEffect(() => {
+    if (!fromId || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, follow_up_needed")
+        .eq("id", fromId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      setProName(data.professional_name ?? "");
+      if (data.professional_type) setProType(data.professional_type);
+      setClinic(data.clinic_name ?? "");
+      if (data.appointment_date) setDate(data.appointment_date);
+      setTime(data.appointment_time ?? "");
+      setReason(data.reason ?? "");
+      setNotes(data.notes ?? "");
+      setFollowUp(!!data.follow_up_needed);
+      setStatus("completed");
+      setPrefilled(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fromId, user]);
+
 
   // Local-only list of File objects awaiting upload; uploaded after the
   // appointment row is created so we can FK them to its id.
