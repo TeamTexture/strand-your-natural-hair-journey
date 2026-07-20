@@ -147,11 +147,11 @@ const buildEducationalNote = ({
   const reasons: string[] = [];
   if (p.includes("high")) {
     reasons.push(
-      "because you have high porosity hair, your strands lose moisture quickly between washes, so a steady weekly rhythm gives you a reliable chance to put moisture back in",
+      "your hair tends to lose moisture quickly between washes, so a steady weekly rhythm gives you a reliable chance to put moisture back in",
     );
   } else if (p.includes("low")) {
     reasons.push(
-      "since your hair sits on the low porosity side, product tends to build up on the cuticle, and a weekly cleanse clears that so conditioner can actually get in",
+      "product tends to build up on your strands over the week, and a weekly cleanse clears that so conditioner can actually get in",
     );
   } else {
     reasons.push(
@@ -175,7 +175,7 @@ const buildEducationalNote = ({
 
   if (d.includes("high") || d.includes("thick")) {
     reasons.push(
-      "with your denser hair, shed strands and product sit close to the scalp, and only a proper weekly wash lifts them out",
+      "with denser hair, shed strands and product sit close to the scalp, and only a proper weekly wash lifts them out",
     );
   }
 
@@ -215,11 +215,8 @@ const buildEducationalNote = ({
     }
   }
 
-  const headline = p
-    ? `A weekly wash rhythm is what your ${startCase(p)} porosity hair responds to best.`
-    : d
-      ? `Aim to wash every 7 days — it's the rhythm that works with your ${startCase(d)} density hair.`
-      : "Aim to wash every 7 days for a healthy scalp and strong strands.";
+  const headline = "Wash weekly — every 7 days.";
+
 
   return {
     headline,
