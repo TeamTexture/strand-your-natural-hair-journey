@@ -6,6 +6,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 const BUCKET = "moodboard-images";
 const MAX_BYTES = 12 * 1024 * 1024; // 12MB
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+const PINTEREST_HOST_RE = /(^|\.)(pinterest\.[a-z.]+|pin\.it)$/i;
+const PINTEREST_PIN_RE = /\/pin\/(\d+)/i;
 
 function extForType(type: string): string {
   switch (type) {
@@ -16,6 +18,105 @@ function extForType(type: string): string {
     case "image/avif": return "avif";
     default: return "jpg";
   }
+}
+
+function isPinterestUrl(url: URL): boolean {
+  return PINTEREST_HOST_RE.test(url.hostname.toLowerCase());
+}
+
+function isLikelyImage(url: string): boolean {
+  return /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(url) || /(images|img|cdn|media|photo|assets)\./i.test(url);
+}
+
+function toAbsolute(src: string, base: string): string | null {
+  try {
+    return new URL(src, base).toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractImgUrls(html: string, base: string): string[] {
+  const found = new Set<string>();
+  const imgRe = /<img\b[^>]*?>/gi;
+  const attrRe = /(?:src|data-src|data-original|data-lazy-src|srcset)\s*=\s*(?:"([^"]+)"|'([^']+)')/gi;
+  const metaRe = /<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/gi;
+  const push = (raw: string) => {
+    const parts = raw.split(",").map((p) => p.trim().split(/\s+/)[0]);
+    for (const part of parts) {
+      const abs = toAbsolute(part, base);
+      if (abs && isLikelyImage(abs)) found.add(abs);
+    }
+  };
+  let match: RegExpExecArray | null;
+  while ((match = metaRe.exec(html))) push(match[1]);
+  while ((match = imgRe.exec(html))) {
+    const tag = match[0];
+    let attr: RegExpExecArray | null;
+    attrRe.lastIndex = 0;
+    while ((attr = attrRe.exec(tag))) push(attr[1] ?? attr[2] ?? "");
+  }
+  return Array.from(found);
+}
+
+async function resolvePinterestUrl(input: URL): Promise<string> {
+  if (input.hostname.toLowerCase() !== "pin.it") return input.toString();
+  let current = input.toString();
+  for (let i = 0; i < 5; i += 1) {
+    const res = await fetch(current, {
+      method: "GET",
+      redirect: "manual",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    const location = res.headers.get("location");
+    if (!location) return res.url || current;
+    current = new URL(location, current).toString();
+    const next = new URL(current);
+    if (PINTEREST_PIN_RE.test(next.pathname)) return current;
+    if (next.hostname.toLowerCase() !== "pin.it") return current;
+  }
+  return current;
+}
+
+function normalisePinterestPinUrl(raw: string): string {
+  try {
+    const parsed = new URL(raw);
+    const pinMatch = parsed.pathname.match(PINTEREST_PIN_RE);
+    if (pinMatch?.[1]) return `https://www.pinterest.com/pin/${pinMatch[1]}/`;
+  } catch {
+    // Return the original string below.
+  }
+  return raw;
+}
+
+async function imageCandidates(rawUrl: string): Promise<string[]> {
+  const parsed = new URL(rawUrl);
+  const candidates = new Set<string>([rawUrl]);
+
+  if (isPinterestUrl(parsed)) {
+    const resolved = normalisePinterestPinUrl(await resolvePinterestUrl(parsed));
+    candidates.add(resolved);
+    const pinUrl = new URL(resolved);
+    const oembed = new URL("https://www.pinterest.com/oembed.json");
+    oembed.searchParams.set("url", pinUrl.toString());
+    const embedRes = await fetch(oembed.toString(), {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
+        Accept: "application/json",
+      },
+    }).catch(() => null);
+    if (embedRes?.ok) {
+      const payload = await embedRes.json().catch(() => null) as { thumbnail_url?: string; url?: string; html?: string } | null;
+      if (payload?.thumbnail_url) candidates.add(payload.thumbnail_url);
+      if (payload?.url) candidates.add(payload.url);
+      if (payload?.html) for (const img of extractImgUrls(payload.html, pinUrl.toString())) candidates.add(img);
+    }
+  }
+
+  return Array.from(candidates);
 }
 
 Deno.serve(async (req) => {
@@ -96,17 +197,42 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const imgRes = await fetch(u.toString(), {
+        const candidates = await imageCandidates(u.toString());
+        let imgRes: Response | null = null;
+        let fetchedUrl = u.toString();
+        let lastError = "Could not fetch image";
+        for (const candidate of candidates) {
+          const res = await fetch(candidate, {
           headers: {
             // Some CDNs (Google, Pinterest) block empty UAs.
             "User-Agent":
               "Mozilla/5.0 (compatible; STRAND-Moodboard/1.0; +https://mystrand.co.uk)",
             Accept: "image/*,*/*;q=0.8",
+            Referer: isPinterestUrl(u) ? "https://www.pinterest.com/" : "https://mystrand.co.uk/",
           },
           redirect: "follow",
-        });
-        if (!imgRes.ok) {
-          results.push({ url: rawUrl, ok: false, error: `HTTP ${imgRes.status}` });
+          }).catch((e) => {
+            lastError = e instanceof Error ? e.message : String(e);
+            return null;
+          });
+          if (!res) continue;
+          if (!res.ok) {
+            lastError = `HTTP ${res.status}`;
+            await res.body?.cancel().catch(() => undefined);
+            continue;
+          }
+          const candidateType = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+          if (!ALLOWED.includes(candidateType)) {
+            lastError = `Unsupported type (${candidateType || "unknown"})`;
+            await res.body?.cancel().catch(() => undefined);
+            continue;
+          }
+          imgRes = res;
+          fetchedUrl = candidate;
+          break;
+        }
+        if (!imgRes) {
+          results.push({ url: rawUrl, ok: false, error: lastError });
           continue;
         }
 
@@ -150,6 +276,7 @@ Deno.serve(async (req) => {
           continue;
         }
         results.push({ url: rawUrl, ok: true });
+        if (fetchedUrl !== rawUrl) console.log("Imported moodboard cover via resolved image", { source: rawUrl, fetchedUrl });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         results.push({ url: rawUrl, ok: false, error: msg });
