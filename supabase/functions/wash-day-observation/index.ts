@@ -241,17 +241,17 @@ TASK
 Given a single wash day log + the user's profile, return TWO fields via the tool. The client UI foregrounds next_wash_tip, so make that the most useful part.
 1) observation (1-2 sentences): REFLECT on today only — a specific product, scalp feel, breakage, hair feel — tied to hair profile / blood / meds where relevant. No forward-looking advice.
 2) next_wash_tip: an object with { action, why }. BE SUCCINCT — this is a home-screen card, not a paragraph.
-   - action: SHORT CARD HEADER only — 2 to 6 words, Title Case, no trailing period. Names the core move ("Repeat Your Current Sequence", "Deep-Condition Under TT Heat Hat", "Lead With Moisture"). Not a full sentence. May include one specific product/tool name from context.shelf / context.tools when that IS the core move. Never invent items.
-   - Core rule: wash-day products need 3–4 wash cycles before judging them. If the product outcome is working, neutral, or only 1–3 cycles in, the header should say to keep/repeat the current sequence. Do NOT suggest changing products after two washes unless the user's own data shows a clear negative reaction.
+   - action: SHORT CARD HEADER only — 3 to 7 words, Title Case, no trailing period. HOLISTIC: captures or alludes to the WHOLE arc of the tip, not one isolated step. Pair linked moves with a comma or "and" ("Cleanse Then Deep-Condition Under Heat", "Repeat Sequence, Add Midweek Moisture", "Protect Ends, Lead With Moisture"). Not a full sentence. May include one specific product/tool name from context.shelf / context.tools when that is central to the overall move. Never invent items.
+   - Core rule: wash-day products need 3–4 wash cycles before judging them. If the product outcome is working, neutral, or only 1–3 cycles in, the header should signal keeping/repeating the current sequence (plus any midweek support). Do NOT suggest changing products after two washes unless the user's own data shows a clear negative reaction.
    - why: THE BODY that explains the header. 2 to 4 short sentences (~55 words max), plain English. May use short labelled sub-paragraphs: "Why it matters:", "Technique:", "Moisture:", "Product consistency:", "Goal focus:", "Scalp signal:", "Watch for:".
      • Tie to a concrete pattern in the user's own data — a recent wash day (name the date or "last wash"), a repeated signal, a product outcome they've logged, OR their active goal by title. Do not invent history.
       • Ground the reasoning in an explicit How To Love Your Afro teaching (two cleanses before conditioning: scalp-focused cleansing shampoo first, moisturising/conditioning shampoo through the hair second; 3–4 wash-cycle consistency; moisture-first for high porosity/humidity; low-manipulation + ends-tucking for length retention; scalp-first for growth). Never name the book, chapters, or pages.
-   - HEADER↔BODY ALIGNMENT (STRICT): the \`action\` header MUST summarise the SAME core move that \`why\` explains. Draft \`why\` first, then write the header from it.
-     • If the body's real recommendation is a deep-conditioning mask under a TT Heat Hat, the header is about that mask/heat step — not the cleanse.
-     • If the body says keep the same shampoo/conditioner sequence, the header is about repeating that sequence — not a mask.
-     • If the body is about protecting ends / low manipulation, the header names that move.
-     • Never name cleanse products in the header when the body centres on a mask/heat step. Never name a mask in the header when the body centres on the cleanse.
-     • Before returning: reread. If a reader can't guess the header from the body's central instruction, rewrite the header so they can.
+   - HEADER↔BODY ALIGNMENT (STRICT + HOLISTIC): the \`action\` header MUST cover ALL of the moves \`why\` recommends, weighted toward the primary one. Draft \`why\` first, then write the header from it.
+     • If the body's real recommendation is a deep-conditioning mask under a TT Heat Hat AFTER a gentle cleanse, the header covers both ("Cleanse Then Deep-Condition Under Heat"), not just the mask or just the cleanse.
+     • If the body says keep the same shampoo/conditioner sequence AND add a midweek moisture top-up, the header reflects both ("Repeat Sequence, Add Midweek Moisture").
+     • If the body is only about protecting ends / low manipulation, the header names that single move.
+     • Never leave the primary move out of the header. Never let the header advertise only one step when the body prescribes several.
+     • Before returning: reread. Could a reader summarise the body from just the header? If not, rewrite so the header covers the whole arc.
    - For dryness/high porosity/humid weather, recommend moisture-first support (deep conditioning mask, conditioner slip) — never default to protein or product-hopping.
    - If suggesting heat, ONLY write [TT Heat Hat](https://www.teamtexture.co.uk) — never generic "heat hat", "heat cap", plastic caps, shower caps, warm towels, steamers, or the raw website as visible text.
    - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence. ABSOLUTE: NEVER suggest scheduled pre-poo.
