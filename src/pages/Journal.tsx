@@ -373,9 +373,6 @@ const Journal = () => {
             <Button variant="goldOutline" size="pill" onClick={() => navigate("/journal/moodboards")}>
               View Mood Boards
             </Button>
-            <Button variant="goldGhost" size="pill" onClick={() => navigate("/journal/moodboards/favourites")}>
-              + Add to Mood Board
-            </Button>
           </div>
         </>
       )}
