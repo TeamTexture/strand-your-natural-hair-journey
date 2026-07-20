@@ -27,6 +27,7 @@
 import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { formatTime12h } from "@/lib/formatTime";
 
 import { BLOOD_RANGES, evaluate, statusLabel } from "@/data/bloodRanges";
 
