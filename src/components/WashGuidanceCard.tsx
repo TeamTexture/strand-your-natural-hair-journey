@@ -102,7 +102,7 @@ const WashGuidanceCard = () => {
           {tips.map((t, i) => (
             <li key={i} className="flex gap-2 text-[12px] leading-snug">
               <span className="text-primary mt-0.5 shrink-0">•</span>
-              <span className="flex-1">{renderTip(t)}</span>
+              <span className="flex-1">{renderTip(t, `tip-${i}`)}</span>
             </li>
           ))}
         </ul>
