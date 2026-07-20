@@ -231,6 +231,7 @@ const IngredientDetail = () => {
       name: string;
       brand: string | null;
       imageUrl: string | null;
+      storagePath: string | null;
       onShelf: boolean;
       onWishlist: boolean;
     }>>();
@@ -247,6 +248,7 @@ const IngredientDetail = () => {
           name: p.name,
           brand: p.brand,
           imageUrl: p.image_url ?? null,
+          storagePath: p.storage_path ?? null,
           onShelf: !!p.on_shelf,
           onWishlist: !!p.on_wishlist,
         });
