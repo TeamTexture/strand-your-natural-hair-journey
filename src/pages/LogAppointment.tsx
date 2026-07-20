@@ -150,6 +150,8 @@ const LogAppointment = () => {
       follow_up_needed: followUp,
       follow_up_date: followUp && followUpDate ? followUpDate : null,
       follow_up_time: followUp && followUpTime.trim() ? followUpTime.trim() : null,
+      outcome_notes: status === "completed" && outcomeNotes.trim() ? outcomeNotes.trim() : null,
+      outcome_audio_path: status === "completed" ? outcomeAudio : null,
     };
 
     let savedId: string | null = null;
