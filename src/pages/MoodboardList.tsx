@@ -35,6 +35,7 @@ const MoodboardList = () => {
   const [gradient, setGradient] = useState(GRADIENTS[0]);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverLinkUrl, setCoverLinkUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
