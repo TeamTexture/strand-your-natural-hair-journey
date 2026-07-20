@@ -79,9 +79,16 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
             <p className="text-[#C5A059] text-[10px] uppercase tracking-[0.2em] font-semibold font-body leading-relaxed">
               {dateTime}
             </p>
-            <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full shrink-0">
-              Soon
-            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isFollowUp && (
+                <span className="bg-[#C5A059] text-[#2C2416] text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full">
+                  Follow-up
+                </span>
+              )}
+              <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full">
+                Soon
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 mb-4">
