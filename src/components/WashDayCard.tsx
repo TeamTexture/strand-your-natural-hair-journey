@@ -116,15 +116,13 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
       )}
       aria-label={`View wash day #${sequenceNumber}, ${dateLabel}`}
     >
-      {/* Header: wash # + relative time */}
-      <div className="flex justify-between items-center mb-3">
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary font-body">
-          Wash #{sequenceNumber}
-        </span>
+      {/* Header: relative time */}
+      <div className="flex justify-end items-center mb-3">
         <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground font-body">
           {relative}
         </span>
       </div>
+
 
       {/* Date + style */}
       <div className="mb-4">
