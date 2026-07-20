@@ -134,6 +134,7 @@ const MoodboardList = () => {
     try {
       const prepped = await convertHeicToJpeg(file);
       setCoverFile(prepped);
+      setCoverLinkUrl(null);
       if (coverPreview) URL.revokeObjectURL(coverPreview);
       setCoverPreview(URL.createObjectURL(prepped));
     } catch (e) {
@@ -142,12 +143,17 @@ const MoodboardList = () => {
     }
   };
 
+  const clearCover = () => {
+    setCoverFile(null);
+    setCoverLinkUrl(null);
+    if (coverPreview && coverPreview.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
+    setCoverPreview(null);
+  };
+
   const resetForm = () => {
     setName("");
     setGradient(GRADIENTS[0]);
-    setCoverFile(null);
-    if (coverPreview) URL.revokeObjectURL(coverPreview);
-    setCoverPreview(null);
+    clearCover();
   };
 
   const handleCreate = async () => {
@@ -158,6 +164,23 @@ const MoodboardList = () => {
     setSaving(true);
     try {
       const board = await createBoard({ name: name.trim(), gradient, coverFile: coverFile ?? undefined });
+      // If the cover came from a link (not a File), download it server-side and
+      // add it as the board's first image so it becomes the cover.
+      if (board && coverLinkUrl && !coverFile) {
+        try {
+          const { data, error } = await supabase.functions.invoke("moodboard-import-image", {
+            body: { board_id: board.id, image_urls: [coverLinkUrl] },
+          });
+          if (error) throw error;
+          if (!data?.imported) {
+            const reason = data?.results?.[0]?.error || "Could not use that image";
+            toast.error(`Cover image skipped — ${reason}`);
+          }
+        } catch (e) {
+          console.error("Cover import failed:", e);
+          toast.error("Board created, but the cover image couldn't be saved");
+        }
+      }
       toast.success(`${name.trim()} created`);
       setOpen(false);
       resetForm();
