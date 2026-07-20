@@ -25,7 +25,7 @@ export const useGoalTip = (goal: UserGoal | null) => {
   // days, appointments, blood work, hair/health profile changes).
   const today = new Date().toISOString().slice(0, 10);
   return useQuery({
-    queryKey: ["goal-tip", "manuscript-v5-daily", today, goal?.id],
+    queryKey: ["goal-tip", "manuscript-v6-style-playbook-daily", today, goal?.id],
     enabled: !!goal && !!(goal.challenge || goal.target_text || goal.title),
     staleTime: Infinity,
     gcTime: 1000 * 60 * 60 * 36,
