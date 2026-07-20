@@ -335,7 +335,7 @@ const Home = () => {
       <div className="px-5 space-y-4 pb-6">
         {/* current style — editorial terra card */}
         {style.current_hairstyle ? (
-          <div className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
+          <div data-tour="current-style" className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
             {/* Decorative glows / rings */}
             <div className="pointer-events-none absolute top-0 right-0 w-48 h-48 bg-[#C5A059]/10 rounded-full -mr-20 -mt-20 blur-3xl" />
             <div className="pointer-events-none absolute bottom-24 left-0 w-32 h-32 border border-[#C5A059]/10 rounded-full -ml-16" />
