@@ -505,6 +505,26 @@ export default function BloodUpload() {
           </SurfaceCard>
         )}
 
+        {isOnboarding && files.length === 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[11px] tracking-[0.2em] uppercase text-foreground/50 font-body">or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/onboarding/blood-iron-vitamins")}
+            >
+              Add Test Manually
+            </Button>
+          </div>
+        )}
+
+
+
 
         {files.length > 0 && (
           <SurfaceCard>
