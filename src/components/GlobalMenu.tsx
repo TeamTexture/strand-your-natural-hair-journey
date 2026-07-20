@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
+  Star,
   ChevronLeft,
   Home as HomeIcon,
   Droplets,
@@ -19,6 +20,12 @@ import {
   LogOut,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 
