@@ -107,8 +107,10 @@ const Journal = () => {
     note: string | null;
     entry_date: string;
     photo_paths: string[];
+    products_used: string[] | null;
     coverUrl?: string;
   }
+  const [productLookup, setProductLookup] = useState<Record<string, { name: string; brand: string | null }>>({});
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
