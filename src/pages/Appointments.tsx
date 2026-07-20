@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Search, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -81,6 +81,7 @@ const Appointments = () => {
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
+  const [search, setSearch] = useState("");
 
   const handleDelete = async () => {
     if (!user || !deleteTarget) return;
@@ -119,12 +120,33 @@ const Appointments = () => {
   }, [user]);
 
   const today = new Date().toISOString().slice(0, 10);
+
+  const filteredAppts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return appts;
+    return appts.filter((a) => {
+      const haystack = [
+        a.professional_name,
+        a.professional_type,
+        a.clinic_name,
+        a.reason,
+        a.notes,
+        a.outcome_notes,
+        a.appointment_date,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [appts, search]);
+
   // Status is the source of truth: anything marked "completed" belongs in Past
   // regardless of date; anything else is Upcoming unless its date has already
   // slipped into the past (in which case we still show it under Past so it
   // doesn't hang around the top of the list forever).
-  const upcoming = appts.filter((a) => a.status !== "completed" && a.appointment_date >= today);
-  const past = appts.filter((a) => a.status === "completed" || a.appointment_date < today);
+  const upcoming = filteredAppts.filter((a) => a.status !== "completed" && a.appointment_date >= today);
+  const past = filteredAppts.filter((a) => a.status === "completed" || a.appointment_date < today);
 
   const goLog = () => navigate("/appointments/log");
 
@@ -152,6 +174,40 @@ const Appointments = () => {
         </div>
       ) : (
         <>
+          <div className="px-5 pt-2 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name, clinic, type, notes…"
+                className="w-full pl-10 pr-9 py-2.5 rounded-full border border-border bg-secondary/60 text-sm font-body placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                aria-label="Search appointments"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {filteredAppts.length === 0 && (
+            <div className="px-5 py-8">
+              <EmptyState
+                icon="🔍"
+                message="No matches"
+                hint={`Nothing found for "${search.trim()}". Try a different keyword.`}
+              />
+            </div>
+          )}
+
           {upcoming.length > 0 && (
             <>
               <SectionLabel>Upcoming</SectionLabel>
