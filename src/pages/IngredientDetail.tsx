@@ -155,6 +155,7 @@ const IngredientDetail = () => {
   const navIntent: "shelf" | "wishlist" = navState?.intent ?? "shelf";
   const autoSave = navState?.auto_save ?? false;
   const returnTo = navState?.returnTo ?? null;
+  const isJournalReturn = !!returnTo?.startsWith("/journal/entry/");
 
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(
@@ -166,6 +167,17 @@ const IngredientDetail = () => {
   const productRow = useMemo(
     () => allProducts.find((p) => p.product_key === productKey) ?? null,
     [allProducts, productKey],
+  );
+
+  const returnAfterAutoSave = useCallback(
+    (productId: string | null | undefined) => {
+      if (!returnTo) return;
+      navigate(returnTo, {
+        replace: true,
+        state: isJournalReturn && productId ? { journalAddProductId: productId } : undefined,
+      });
+    },
+    [isJournalReturn, navigate, returnTo],
   );
 
   // Initial loading state: only show the spinner when we have no fresh
@@ -438,10 +450,27 @@ const IngredientDetail = () => {
     (async () => {
       const saved = await persistFreshScan(navIntent);
       if (saved && returnTo) {
-        navigate(returnTo, { replace: true });
+        returnAfterAutoSave(saved.id);
       }
     })();
-  }, [freshAnalysis, autoSave, navIntent, returnTo, persistFreshScan, navigate, autoSaveDoneRef]);
+  }, [freshAnalysis, autoSave, navIntent, returnTo, persistFreshScan, returnAfterAutoSave, autoSaveDoneRef]);
+
+  // Existing-product auto-save path (for links/products already analysed):
+  // send the user back to the journal and pass the saved row id so it is
+  // selected immediately instead of making them pick it again.
+  const existingAutoSaveDoneRef = useRef(false);
+  useEffect(() => {
+    if (!autoSave || freshAnalysis || !productRow || !returnTo || existingAutoSaveDoneRef.current) return;
+    existingAutoSaveDoneRef.current = true;
+    (async () => {
+      if (navIntent === "shelf" && !productRow.on_shelf) {
+        await setShelf(productRow.id, true);
+      } else if (navIntent === "wishlist" && !productRow.on_wishlist) {
+        await setWishlist(productRow.id, true);
+      }
+      returnAfterAutoSave(productRow.id);
+    })();
+  }, [autoSave, freshAnalysis, navIntent, productRow, returnAfterAutoSave, returnTo, setShelf, setWishlist]);
 
   const handleSaveFreshTo = async (intent: "shelf" | "wishlist") => {
     const saved = await persistFreshScan(intent);
