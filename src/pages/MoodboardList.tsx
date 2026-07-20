@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Plus, Camera, ImagePlus, X } from "lucide-react";
+import { Trash2, Plus, Camera, ImagePlus, X, Link as LinkIcon, Check } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import {
@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useMoodboards, type Moodboard } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const GRADIENTS = [
-  "from-[#C8B89A] to-[#D4B96A]",
+  "from-[#6B4423] to-[#3E2410]",
   "from-[#D4AA52] to-[#C49A3C]",
   "from-[#E8D8C0] to-[#A07828]",
   "from-[#DDD0B8] to-[#C8B89A]",
@@ -36,6 +38,89 @@ const MoodboardList = () => {
   const [saving, setSaving] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Add-from-link state (for the cover image)
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkImages, setLinkImages] = useState<string[]>([]);
+  const [linkScraping, setLinkScraping] = useState(false);
+  const [linkProgress, setLinkProgress] = useState(0);
+  const linkTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (linkScraping) {
+      setLinkProgress(6);
+      const start = Date.now();
+      linkTimerRef.current = window.setInterval(() => {
+        const elapsed = Date.now() - start;
+        const target = Math.min(92, 6 + (elapsed / 9000) * 86);
+        setLinkProgress((p) => (p < target ? target : p));
+      }, 120);
+    } else {
+      if (linkTimerRef.current) {
+        window.clearInterval(linkTimerRef.current);
+        linkTimerRef.current = null;
+      }
+      if (linkProgress > 0) {
+        setLinkProgress(100);
+        const t = window.setTimeout(() => setLinkProgress(0), 400);
+        return () => window.clearTimeout(t);
+      }
+    }
+    return () => {
+      if (linkTimerRef.current) {
+        window.clearInterval(linkTimerRef.current);
+        linkTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkScraping]);
+
+  const handleScrapeLink = async () => {
+    const trimmed = linkUrl.trim();
+    if (!trimmed) {
+      toast.error("Paste a link to scan");
+      return;
+    }
+    setLinkScraping(true);
+    setLinkImages([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("moodboard-scrape-url", {
+        body: { url: trimmed },
+      });
+      if (error) throw error;
+      const list: string[] = Array.isArray(data?.images) ? data.images : [];
+      if (list.length === 0) {
+        toast.error("No images found on that page");
+      } else {
+        setLinkImages(list);
+        toast.success(`Found ${list.length} image${list.length === 1 ? "" : "s"}`);
+      }
+    } catch (e) {
+      console.error("Scrape failed:", e);
+      toast.error(e instanceof Error ? e.message : "Could not scan that link");
+    } finally {
+      setLinkScraping(false);
+    }
+  };
+
+  const handlePickLinkImage = async (src: string) => {
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error("Could not download image");
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "jpg").split(";")[0];
+      const file = new File([blob], `cover.${ext}`, { type: blob.type || "image/jpeg" });
+      await handlePickCover(file);
+      setLinkOpen(false);
+      setLinkUrl("");
+      setLinkImages([]);
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not use that image — try another");
+    }
+  };
+
 
   const handlePickCover = async (file: File | undefined) => {
     if (!file) return;
@@ -258,14 +343,14 @@ const MoodboardList = () => {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => cameraInputRef.current?.click()}
                     className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
                   >
                     <Camera className="size-5 mx-auto mb-1 text-primary" />
-                    <p className="text-[11px] font-medium">Take a Photo</p>
+                    <p className="text-[10px] font-medium leading-tight">Take Photo</p>
                   </button>
                   <button
                     type="button"
@@ -273,8 +358,105 @@ const MoodboardList = () => {
                     className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
                   >
                     <ImagePlus className="size-5 mx-auto mb-1 text-primary" />
-                    <p className="text-[11px] font-medium">Upload Photo</p>
+                    <p className="text-[10px] font-medium leading-tight">Upload</p>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setLinkOpen(true)}
+                    className="p-3 rounded-[12px] border-2 border-dashed border-primary/50 bg-card text-center"
+                  >
+                    <LinkIcon className="size-5 mx-auto mb-1 text-primary" />
+                    <p className="text-[10px] font-medium leading-tight">From Link</p>
+                  </button>
+                </div>
+              )}
+              {linkOpen && (
+                <div className="mt-3 space-y-2 rounded-[12px] border border-border bg-card p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                      Add cover from a link
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLinkOpen(false);
+                        setLinkUrl("");
+                        setLinkImages([]);
+                      }}
+                      aria-label="Close link import"
+                      className="text-muted-foreground"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="Paste image or page link"
+                      className="h-11 pl-9 text-[13px]"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (!linkScraping) handleScrapeLink();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="h-3 w-full overflow-hidden rounded-full bg-secondary"
+                    role="progressbar"
+                    aria-valuenow={Math.round(linkProgress)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="h-full bg-primary transition-[width] duration-200 ease-out"
+                      style={{ width: `${linkProgress}%` }}
+                    />
+                  </div>
+                  <Button
+                    variant="gold"
+                    size="pill"
+                    onClick={handleScrapeLink}
+                    disabled={linkScraping || !linkUrl.trim()}
+                    className="h-10 w-full text-[12px]"
+                  >
+                    {linkScraping ? "Scanning" : "Scan"}
+                  </Button>
+                  {linkImages.length > 0 && (
+                    <>
+                      <p className="text-[10px] text-muted-foreground">
+                        Tap an image to use as cover
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
+                        {linkImages.map((src) => (
+                          <button
+                            type="button"
+                            key={src}
+                            onClick={() => handlePickLinkImage(src)}
+                            className={cn(
+                              "relative aspect-square rounded-[10px] overflow-hidden border-2 border-transparent bg-secondary",
+                            )}
+                          >
+                            <img
+                              src={src}
+                              alt=""
+                              loading="lazy"
+                              className="absolute inset-0 size-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            <span className="absolute top-1 right-1 size-5 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center opacity-0 hover:opacity-100">
+                              <Check className="size-3" />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               <p className="text-[10px] text-muted-foreground mt-1.5">Optional — you can add one later.</p>
