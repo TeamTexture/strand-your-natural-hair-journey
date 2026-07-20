@@ -281,15 +281,18 @@ const WashDayDetail = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back />
       <div className="px-5 pb-8 space-y-4">
+        {/* ── Header ─────────────────────────── */}
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">Logged</p>
-            <h1 className="font-display text-xl font-bold">{fmtDate(wd.wash_date)}</h1>
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
+              <CalendarDays className="size-3" /> {daysAgoLabel(wd.wash_date)}
+            </p>
+            <h1 className="font-display text-xl font-bold leading-tight">{fmtDate(wd.wash_date)}</h1>
           </div>
           {!editing && (
             <button
               onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(true); }}
-              className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5"
+              className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
               aria-label="Edit wash day"
             >
               <Pencil className="size-3.5" />
@@ -311,10 +314,55 @@ const WashDayDetail = () => {
           />
         )}
 
-        {wd.steps?.length > 0 && (
+        {/* ── At-a-glance stats ──────────────── */}
+        {!editing && (
+          <div className="flex gap-2">
+            <Stat icon={Package} label="Products" value={products.length || wd.product_ids?.length || 0} />
+            <Stat icon={ListOrdered} label="Steps" value={wd.steps?.length ?? 0} />
+            <Stat
+              icon={Scissors}
+              label="Style"
+              value={wd.style_after ?? "—"}
+            />
+          </div>
+        )}
+
+        {/* ── Health signals ─────────────────── */}
+        {!editing && (wd.scalp_feel || wd.breakage || wd.stress_level != null) && (
+          <SurfaceCard>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2.5">
+              How your hair felt
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {wd.scalp_feel && (
+                <Chip tone={scalpTone(wd.scalp_feel)}>
+                  <Droplets className="size-3" /> Scalp: {wd.scalp_feel}
+                </Chip>
+              )}
+              {wd.breakage && (
+                <Chip tone={breakageTone(wd.breakage)}>
+                  <Heart className="size-3" /> Breakage: {wd.breakage}
+                </Chip>
+              )}
+              {wd.stress_level != null && (
+                <Chip tone={stressTone(wd.stress_level)}>
+                  <Gauge className="size-3" /> Stress: {wd.stress_level}/5
+                </Chip>
+              )}
+              {wd.duration_min != null && (
+                <Chip>
+                  <Clock className="size-3" /> {wd.duration_min} min
+                </Chip>
+              )}
+            </div>
+          </SurfaceCard>
+        )}
+
+        {/* ── Wash steps ─────────────────────── */}
+        {!editing && wd.steps?.length > 0 && (
           <SurfaceCard padded={false} className="divide-y divide-border/60">
-            <div className="p-3.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Steps
+            <div className="p-3.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+              <ListOrdered className="size-3.5 text-primary" /> Steps taken
             </div>
             {wd.steps.map((s, i) => (
               <div key={i} className="p-3 flex items-start gap-3">
@@ -334,23 +382,57 @@ const WashDayDetail = () => {
           </SurfaceCard>
         )}
 
-        {wd.heat_treatment && (
-          <SurfaceCard>
-            <Field
-              label="Heat treatment"
-              value={
-                <span>
-                  {wd.heat_treatment.product ?? "—"}
-                  {wd.heat_treatment.duration_min != null &&
-                    ` · ${wd.heat_treatment.duration_min} min`}
-                </span>
-              }
-            />
+        {/* ── Heat treatment ─────────────────── */}
+        {!editing && wd.heat_treatment && (wd.heat_treatment as HeatTreatment).used !== false && (() => {
+          const h = wd.heat_treatment as HeatTreatment;
+          const tools = h.tools?.filter(Boolean) ?? [];
+          const label = tools.length ? tools.join(", ") : h.product ?? "TT Heat Hat";
+          return (
+            <SurfaceCard>
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <Flame className="size-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">
+                    Heat treatment
+                  </p>
+                  <p className="text-sm font-medium leading-tight break-words">{label}</p>
+                  {h.duration_min != null && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{h.duration_min} min</p>
+                  )}
+                </div>
+              </div>
+            </SurfaceCard>
+          );
+        })()}
+
+        {/* ── Products used ──────────────────── */}
+        {!editing && products.length > 0 && (
+          <SurfaceCard padded={false} className="divide-y divide-border/60">
+            <div className="p-3.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+              <Package className="size-3.5 text-primary" /> Products used
+            </div>
+            {products.map((p) => (
+              <Link
+                key={p.id}
+                to={`/products/${p.id}`}
+                className="flex items-center gap-3 p-3 hover:bg-primary/5 transition"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-tight break-words">{p.name}</p>
+                  {p.brand && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{p.brand}</p>
+                  )}
+                </div>
+                <span className="text-primary text-xs">›</span>
+              </Link>
+            ))}
           </SurfaceCard>
         )}
 
-        {/* DETAILS — view or edit */}
-        {editing && draft ? (
+        {/* ── Edit form ──────────────────────── */}
+        {editing && draft && (
           <SurfaceCard className="space-y-3">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
               Edit details
@@ -370,118 +452,67 @@ const WashDayDetail = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="scalp" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Scalp feel</Label>
-                <Input
-                  id="scalp"
-                  value={draft.scalp_feel}
-                  onChange={(e) => setDraft({ ...draft, scalp_feel: e.target.value })}
-                  placeholder="e.g. Calm"
-                  className="mt-1"
-                />
+                <Input id="scalp" value={draft.scalp_feel} onChange={(e) => setDraft({ ...draft, scalp_feel: e.target.value })} placeholder="e.g. Calm" className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="breakage" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Breakage</Label>
-                <Input
-                  id="breakage"
-                  value={draft.breakage}
-                  onChange={(e) => setDraft({ ...draft, breakage: e.target.value })}
-                  placeholder="e.g. Minimal"
-                  className="mt-1"
-                />
+                <Input id="breakage" value={draft.breakage} onChange={(e) => setDraft({ ...draft, breakage: e.target.value })} placeholder="e.g. Minimal" className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="style" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Style after</Label>
-                <Input
-                  id="style"
-                  value={draft.style_after}
-                  onChange={(e) => setDraft({ ...draft, style_after: e.target.value })}
-                  placeholder="e.g. Twist-out"
-                  className="mt-1"
-                />
+                <Input id="style" value={draft.style_after} onChange={(e) => setDraft({ ...draft, style_after: e.target.value })} placeholder="e.g. Twist-out" className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="duration" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Duration (min)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  value={draft.duration_min}
-                  onChange={(e) => setDraft({ ...draft, duration_min: e.target.value })}
-                  className="mt-1"
-                />
+                <Input id="duration" type="number" inputMode="numeric" min={0} value={draft.duration_min} onChange={(e) => setDraft({ ...draft, duration_min: e.target.value })} className="mt-1" />
               </div>
               <div className="col-span-2">
                 <Label htmlFor="stress" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Stress level (1–5)</Label>
-                <Input
-                  id="stress"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={5}
-                  value={draft.stress_level}
-                  onChange={(e) => setDraft({ ...draft, stress_level: e.target.value })}
-                  className="mt-1"
-                />
+                <Input id="stress" type="number" inputMode="numeric" min={1} max={5} value={draft.stress_level} onChange={(e) => setDraft({ ...draft, stress_level: e.target.value })} className="mt-1" />
               </div>
             </div>
 
             <div>
               <Label htmlFor="feel" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Hair feel note</Label>
-              <Textarea
-                id="feel"
-                value={draft.hair_feel_note}
-                onChange={(e) => setDraft({ ...draft, hair_feel_note: e.target.value })}
-                placeholder="How did your hair feel after this wash?"
-                rows={3}
-                className="mt-1"
-              />
+              <Textarea id="feel" value={draft.hair_feel_note} onChange={(e) => setDraft({ ...draft, hair_feel_note: e.target.value })} placeholder="How did your hair feel after this wash?" rows={3} className="mt-1" />
             </div>
 
             <div className="flex gap-2 pt-1">
               <Button variant="gold" size="pill" onClick={handleSave} disabled={saving} className="flex-1">
                 {saving ? "Saving…" : "Save changes"}
               </Button>
-              <Button
-                variant="goldOutline"
-                size="pill"
-                onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(false); }}
-                disabled={saving}
-              >
+              <Button variant="goldOutline" size="pill" onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(false); }} disabled={saving}>
                 Cancel
               </Button>
             </div>
           </SurfaceCard>
-        ) : (
-          <SurfaceCard className="grid grid-cols-2 gap-4">
-            {wd.scalp_feel && <Field label="Scalp feel" value={wd.scalp_feel} />}
-            {wd.breakage && <Field label="Breakage" value={wd.breakage} />}
-            {wd.style_after && <Field label="Style after" value={wd.style_after} />}
-            {wd.duration_min != null && (
-              <Field label="Duration" value={`${wd.duration_min} min`} />
-            )}
-            {wd.stress_level != null && (
-              <Field label="Stress level" value={`${wd.stress_level}/5`} />
-            )}
+        )}
+
+        {/* ── Hair feel note + voice ─────────── */}
+        {!editing && (wd.hair_feel_note || voiceUrl) && (
+          <SurfaceCard>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2 flex items-center gap-1.5">
+              {voiceUrl ? <Mic className="size-3" /> : null} Your hair feel note
+            </p>
+            <div className="space-y-2">
+              {wd.hair_feel_note && (
+                <p className="text-sm leading-relaxed">{wd.hair_feel_note}</p>
+              )}
+              {voiceUrl && <audio controls src={voiceUrl} className="w-full" />}
+            </div>
           </SurfaceCard>
         )}
 
-        {!editing && (wd.hair_feel_note || voiceUrl) && (
-          <SurfaceCard>
-            <Field
-              label="Hair feel"
-              value={
-                <div className="space-y-2">
-                  {wd.hair_feel_note && (
-                    <p className="text-sm leading-snug">{wd.hair_feel_note}</p>
-                  )}
-                  {voiceUrl && (
-                    <audio controls src={voiceUrl} className="w-full" />
-                  )}
-                </div>
-              }
-            />
+        {/* ── AI insight ─────────────────────── */}
+        {!editing && wd.ai_insight && (
+          <SurfaceCard className="bg-primary/[0.04] border-primary/20">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2 flex items-center gap-1.5">
+              <Sparkles className="size-3" /> Strand observation
+            </p>
+            <p className="text-sm leading-relaxed whitespace-pre-line">{wd.ai_insight}</p>
           </SurfaceCard>
         )}
+
 
         {wd.next_wash_tip && (() => {
           let action = wd.next_wash_tip;
