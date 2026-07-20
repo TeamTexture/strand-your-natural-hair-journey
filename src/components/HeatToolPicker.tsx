@@ -1,6 +1,6 @@
 // Lightweight tool picker shown inside the wash-day Condition step when the
 // user confirms they used a heat treatment. Lets them attach the actual tool
-// (heat hat, steamer cap, hooded dryer, etc.) from their My Tools list — and
+// (TT Heat Hat) from their My Tools list — and
 // quick-add a new one inline if it isn't there yet.
 //
 // Kept intentionally minimal: name + category only, no photo, no rating. The
@@ -13,16 +13,8 @@ import { useUserTools, type UserTool } from "@/hooks/useUserTools";
 
 import { cn } from "@/lib/utils";
 
-// Heat-related categories rise to the top so the relevant tools (heat hat,
-// steamer, hooded dryer, etc.) are easy to find. Other tools still appear
-// below in case the user files things differently.
-const HEAT_CATEGORIES = new Set<string>([
-  "Deep conditioning cap / heat hat",
-  "Hair steamer cap",
-  "Steamer",
-  "Hair dryer",
-  "Heat protectant tool",
-]);
+const isHeatHatCategory = (category?: string | null) =>
+  !!category && /tt\s*heat\s*hat|deep\s*conditioning\s*cap|heat\s*hat|heat\s*cap|heated\s*cap/i.test(category);
 
 interface HeatToolPickerProps {
   /** IDs of tools currently attached to this heat treatment. */
@@ -35,16 +27,14 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
   const { tools, loading, addTool } = useUserTools();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<string>("Deep conditioning cap / heat hat");
+  const [category] = useState<string>("TT Heat Hat");
   const [submitting, setSubmitting] = useState(false);
 
   // Wash-day heat step is heat-hat only — filter everything else out so the
   // picker doesn't surface straighteners, wands, etc.
   const sorted = useMemo(
     () =>
-      tools.filter(
-        (t) => t.category === "Deep conditioning cap / heat hat",
-      ),
+      tools.filter((t) => isHeatHatCategory(t.category)),
     [tools],
   );
 
@@ -78,7 +68,7 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
         <p className="text-[11px] text-muted-foreground">Loading your tools…</p>
       ) : sorted.length === 0 ? (
         <p className="text-[11px] text-muted-foreground italic">
-          No tools yet — add your heat hat or steamer cap below.
+          No TT Heat Hat yet — add it below.
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
@@ -137,7 +127,7 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
             autoFocus
           />
           <p className="text-[10px] text-muted-foreground">
-            Category: Deep conditioning cap / heat hat
+            Category: TT Heat Hat
           </p>
 
           <Button
