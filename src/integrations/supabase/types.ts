@@ -510,6 +510,7 @@ export type Database = {
       }
       moodboards: {
         Row: {
+          cover_storage_path: string | null
           created_at: string
           emoji: string
           gradient: string
@@ -520,6 +521,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cover_storage_path?: string | null
           created_at?: string
           emoji?: string
           gradient?: string
@@ -530,6 +532,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cover_storage_path?: string | null
           created_at?: string
           emoji?: string
           gradient?: string
