@@ -426,7 +426,7 @@ export function NextWashTipCard({
           <div className="min-w-0 pr-3 flex items-center gap-2">
             <Sparkles className="size-3.5 text-[#C5A059] shrink-0" />
             <p className="text-[#C5A059] uppercase tracking-[0.25em] text-[10px] font-semibold font-body">
-              Tip for your next wash day
+              Your next wash day focus
             </p>
           </div>
           {headerRight}
