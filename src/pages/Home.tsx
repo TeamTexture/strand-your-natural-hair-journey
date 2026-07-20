@@ -23,6 +23,7 @@ import {
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
 import HomeTour from "@/components/HomeTour";
+import { useSmartInline } from "@/lib/smartInline";
 
 
 // Rich text rendering is delegated to useSmartInline() inside the component
