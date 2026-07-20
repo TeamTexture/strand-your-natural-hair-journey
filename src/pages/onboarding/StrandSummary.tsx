@@ -90,6 +90,7 @@ interface Summary {
 }
 
 const StrandSummary = () => {
+  const renderRichText = useSmartInline();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
