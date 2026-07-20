@@ -13,6 +13,7 @@ import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { AlertTriangle } from "lucide-react";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
+import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 
 const monthNames = [
