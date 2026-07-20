@@ -38,6 +38,7 @@ import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { cn } from "@/lib/utils";
+import BrandLink from "@/components/BrandLink";
 
 interface Ingredient {
   tone: "good" | "warn" | "bad";
@@ -1166,7 +1167,7 @@ const IngredientDetail = () => {
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold leading-snug break-words">{p.name}</p>
                   {p.brand && (
-                    <p className="text-[11px] text-muted-foreground break-words">{p.brand}</p>
+                    <p className="text-[11px] text-muted-foreground break-words"><BrandLink brand={p.brand} /></p>
                   )}
                 </div>
                 <span className="text-[10px] uppercase tracking-[0.12em] text-primary shrink-0 mt-0.5">
