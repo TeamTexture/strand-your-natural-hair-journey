@@ -742,6 +742,7 @@ const Home = () => {
       <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-3">
 
         <button
+          data-tour="qa-wash"
           onClick={() => navigate("/wash-day")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -750,6 +751,7 @@ const Home = () => {
           <p className="text-[11px] text-muted-foreground mt-0.5">{lastWashSub}</p>
         </button>
         <button
+          data-tour="qa-product"
           onClick={() => navigate("/products")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -758,6 +760,7 @@ const Home = () => {
           <p className="text-[11px] text-muted-foreground mt-0.5">Scan or screenshot</p>
         </button>
         <button
+          data-tour="qa-journal"
           onClick={() => navigate("/journal")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -766,6 +769,7 @@ const Home = () => {
           <p className="text-[11px] text-muted-foreground mt-0.5">Document your favourite styles</p>
         </button>
         <button
+          data-tour="qa-appt"
           onClick={() => navigate("/appointments")}
           className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
