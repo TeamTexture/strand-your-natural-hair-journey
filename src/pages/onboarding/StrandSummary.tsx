@@ -20,6 +20,7 @@ import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { buildAiContext } from "@/lib/aiContext";
 import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
+import { useSmartInline } from "@/lib/smartInline";
 
 const MAX_PHOTOS = 5;
 
