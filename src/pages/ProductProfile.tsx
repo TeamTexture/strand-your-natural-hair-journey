@@ -91,16 +91,54 @@ const ProductProfile = () => {
   }, [aiFlags]);
 
   const appearances = useMemo(() => {
-    if (!product) return [] as Array<{ id: string; date: string; stepName?: string }>;
+    if (!product) return [] as Array<{
+      id: string;
+      date: string;
+      stepName?: string;
+      scalpFeel?: string | null;
+      breakage?: string | null;
+      styleAfter?: string | null;
+      insight?: string | null;
+      thumbPath?: string | null;
+    }>;
     return washDays
       .filter(wd => wd.product_ids?.includes(product.id))
       .map(wd => {
         const step = (wd.steps ?? []).find(s => s.product_id === product.id);
-        return { id: wd.id, date: wd.wash_date, stepName: step?.name };
+        const styling = (wd as unknown as { styling?: { photoPaths?: string[] } | null }).styling ?? null;
+        return {
+          id: wd.id,
+          date: wd.wash_date,
+          stepName: step?.name,
+          scalpFeel: wd.scalp_feel,
+          breakage: wd.breakage,
+          styleAfter: wd.style_after,
+          insight: wd.next_wash_tip ?? wd.ai_insight ?? wd.hair_feel_note,
+          thumbPath: styling?.photoPaths?.[0] ?? null,
+        };
       });
   }, [washDays, product]);
 
   const lastUse = appearances[0] ?? null;
+
+  // Sign the first styling photo per appearance for use as a thumbnail.
+  const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const paths = appearances.filter(a => a.thumbPath).map(a => ({ id: a.id, p: a.thumbPath! }));
+    if (paths.length === 0) { setThumbUrls({}); return; }
+    (async () => {
+      const entries = await Promise.all(paths.map(async ({ id, p }) => {
+        const { data } = await supabase.storage.from("journal-photos").createSignedUrl(p, 3600);
+        return [id, data?.signedUrl] as const;
+      }));
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      entries.forEach(([id, url]) => { if (url) map[id] = url; });
+      setThumbUrls(map);
+    })();
+    return () => { cancelled = true; };
+  }, [appearances]);
 
   // Personalised analysis is "sticky": once a product has been analysed for
   // this user we keep showing that result and DO NOT re-call the AI on every
@@ -369,21 +407,64 @@ const ProductProfile = () => {
 
         {appearances.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Wash days</p>
-            <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {appearances.map(a => (
-                <button
-                  key={a.id}
-                  onClick={() => navigate(`/wash-day/${a.id}`)}
-                  className="w-full p-3.5 flex items-center justify-between text-left hover:bg-primary/5"
-                >
-                  <span className="text-sm font-medium">{formatDate(a.date)}</span>
-                  {a.stepName && <span className="text-[11px] text-muted-foreground">{a.stepName}</span>}
-                </button>
-              ))}
-            </SurfaceCard>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">
+              Wash days with this product
+            </p>
+            <div className="space-y-2">
+              {appearances.map(a => {
+                const chips = [a.stepName, a.scalpFeel, a.breakage, a.styleAfter]
+                  .filter((c): c is string => !!c && c.trim().length > 0)
+                  .slice(0, 3);
+                const insight = a.insight?.replace(/\s+/g, " ").trim() ?? "";
+                const snippet = insight.length > 120 ? `${insight.slice(0, 117)}…` : insight;
+                const thumb = thumbUrls[a.id];
+                return (
+                  <SurfaceCard key={a.id} padded={false}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/wash-day/${a.id}`)}
+                      className="w-full p-3 flex gap-3 text-left hover:bg-primary/5 rounded-inherit"
+                      aria-label={`Review wash day on ${formatDate(a.date)}`}
+                    >
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-primary/10 border border-border/60 flex items-center justify-center">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <span className="text-lg">💧</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium truncate">{formatDate(a.date)}</span>
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-primary shrink-0">Review →</span>
+                        </div>
+                        {chips.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {chips.map((c, i) => (
+                              <span
+                                key={`${a.id}-${i}`}
+                                className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary/90"
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {snippet && (
+                          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                            {snippet}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  </SurfaceCard>
+                );
+              })}
+            </div>
           </div>
         )}
+
+
 
         <div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Strand rating</p>
