@@ -473,7 +473,7 @@ const Profile = () => {
         key: `appt-${a.id}`,
         icon: <Calendar className="size-5" />,
         label: `${a.professional_name}`,
-        detail: `${formatShortDate(a.appointment_date)}${a.appointment_time ? ` · ${a.appointment_time}` : ""}${a.professional_type ? ` · ${a.professional_type}` : ""}`,
+        detail: `${formatShortDate(a.appointment_date)}${a.appointment_time ? ` · ${formatTime12h(a.appointment_time)}` : ""}${a.professional_type ? ` · ${a.professional_type}` : ""}`,
         tone: "info",
         onClick: () => navigate("/appointments"),
       });
