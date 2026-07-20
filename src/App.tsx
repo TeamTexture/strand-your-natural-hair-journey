@@ -178,6 +178,7 @@ const App = () => (
               </div>
             </div>
           </PhoneShell>
+        </BackButtonProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
