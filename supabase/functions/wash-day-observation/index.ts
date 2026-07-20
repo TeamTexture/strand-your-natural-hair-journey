@@ -129,22 +129,21 @@ PART 2 — NEXT WASH DAY TIP (field: next_wash_tip — object with { action, why
 =========================================
 This is the primary value the user reads on the home screen. Be SUCCINCT. Do not re-analyse today.
 
-FIELD: action
-- ONE imperative sentence. HARD LIMIT: 14 words. Starts with a verb ("Keep…", "Repeat…", "Lead with…", "Skip…", "Deep-condition under…").
-- Concrete and doable in a single wash session.
-- Name at least ONE specific product from context.shelf/wishlist OR a specific tool from context.tools, by name. Never invent items they don't have.
-- If today's product outcome is working, neutral, or under 4 wash cycles, prefer "Keep using…" / "Repeat…" over changing products.
-- Never use "Swap…" unless the user's own data shows a clear negative reaction or repeated poor outcome.
-- If suggesting heat, ONLY write [TT Heat Hat](https://www.teamtexture.co.uk). Never write generic "heat hat", "heat cap", plastic caps, shower caps, warm towels, steamers, or the raw website as visible text.
-- ABSOLUTE: NEVER recommend a protein, keratin, bond-repair or "strengthening" treatment on any cadence.
-- No hedging ("you might want to", "perhaps", "if you feel like it"). No filler adverbs.
+FIELD: action  (this is the CARD HEADER, not the tip itself)
+- SHORT header only: 2 to 6 words, Title Case, NO trailing period.
+- Names the core move so a reader instantly grasps the direction. Examples: "Repeat Your Current Sequence", "Deep-Condition Under TT Heat Hat", "Lead With Moisture", "Protect Your Ends This Week", "Keep Using Your Lola Mask".
+- May include ONE specific product or tool name from context.shelf / context.tools when that IS the core move. Never invent items.
+- If suggesting heat, write exactly "TT Heat Hat" — never generic "heat cap", plastic cap, shower cap, warm towel, or steamer.
+- ABSOLUTE: never a protein, keratin, or bond-repair treatment on any cadence.
+- Do NOT write a full imperative sentence here. Do NOT append a comma explaining WHY — the explanation goes in \`why\`.
 
-FIELD: why
-- HARD LIMIT: 2 short sentences (~35 words total). Punchy, plain English.
-- Sentence 1 MUST tie to a concrete pattern the user can verify in their own data: name a recent wash day ("last wash", "your wash on 12 July"), a repeated signal (scalp feel, breakage, hair-feel note), a product outcome the user has already logged, OR the user's active goal by title. Do NOT invent history — only reference what appears in the payload.
-- Sentence 2 MUST ground the reasoning in an explicit How To Love Your Afro teaching, referenced by mechanism not by name. Draw from: the 3-4 wash-cycle consistency rule; moisture-first response for high porosity / humidity / dry hair; low-manipulation and ends-tucking for length retention; scalp-first (clean, calm, well-circulated) for growth; no scheduled protein — moisture leads. If recommending a deep conditioning mask, frame it as a moisture response, never as a routine change.
-- Do NOT name the manuscript, chapters, or page numbers. Do NOT say "the book says". Reason from the teaching directly.
-- No medical advice.`;
+FIELD: why  (this is the BODY that explains the header)
+- 2 to 4 short sentences, ~55 words max. Plain, conversational English.
+- Break it up with short labelled sub-paragraphs when it helps readability. Recognised labels: "Why it matters:", "Technique:", "Moisture:", "Product consistency:", "Goal focus:", "Scalp signal:", "Watch for:".
+- Tie the reasoning to a concrete pattern the user can verify in their own data: name a recent wash ("last wash", "your wash on 12 July"), a repeated signal (scalp feel, breakage, hair-feel note), a product outcome they've logged, or their active goal by title. Do NOT invent history.
+- Ground the reasoning in a How To Love Your Afro teaching, referenced by mechanism not by name. Draw from: the 3-4 wash-cycle consistency rule; moisture-first response for high porosity / humidity / dry hair; low-manipulation and ends-tucking for length retention; scalp-first (clean, calm, well-circulated) for growth; no scheduled protein — moisture leads. If recommending a deep conditioning mask, frame it as a moisture response, never as a routine change.
+- Do NOT name the manuscript, chapters, or page numbers. Do NOT say "the book says".
+- No medical advice.\`;
 }
 
 
