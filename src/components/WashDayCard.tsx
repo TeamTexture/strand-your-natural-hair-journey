@@ -62,26 +62,6 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
   // ---------- Key insight (full text, markdown stripped) ----------
   const stripMd = (s: string) =>
     s.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[#>_`]/g, "").trim();
-  // Insights are generated when the wash day is first saved, so any absolute
-  // dates baked into them go stale the moment a user edits `wash_date`. Strip
-  // them out so the thumbnail always reads relative to the current wash date.
-  const stripStaleDates = (s: string) => {
-    const months = "(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)";
-    const weekdays = "(?:Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun)[a-z]*";
-    return s
-      // "on Friday, June 28" / "by Tuesday 16 June" / "Fri 28 Jun"
-      .replace(new RegExp(`\\b(on|by|for|until|before|after|around|circa)?\\s*${weekdays}(,)?\\s*(the\\s+)?\\d{1,2}(st|nd|rd|th)?\\s*(of\\s+)?${months}(\\s+\\d{2,4})?`, "gi"), "on your next wash day")
-      .replace(new RegExp(`\\b(on|by|for|until|before|after|around|circa)?\\s*${weekdays}(,)?\\s*${months}\\s*\\d{1,2}(st|nd|rd|th)?(,?\\s*\\d{2,4})?`, "gi"), "on your next wash day")
-      // "June 28" / "28 June 2025" / "June 28th, 2025"
-      .replace(new RegExp(`\\b${months}\\s+\\d{1,2}(st|nd|rd|th)?(,?\\s*\\d{2,4})?\\b`, "gi"), "your next wash day")
-      .replace(new RegExp(`\\b\\d{1,2}(st|nd|rd|th)?\\s+(of\\s+)?${months}(\\s+\\d{2,4})?\\b`, "gi"), "your next wash day")
-      // Bare weekday references like "by Friday" or "next Tuesday"
-      .replace(new RegExp(`\\b(this|next|by|on|come)\\s+${weekdays}\\b`, "gi"), "on your next wash day")
-      // Tidy up double spaces / repeated fillers from the substitutions.
-      .replace(/\s+/g, " ")
-      .replace(/(on your next wash day)(\s+\1)+/gi, "$1")
-      .trim();
-  };
   const insightRaw = (() => {
     if (washDay.ai_insight) return washDay.ai_insight;
     if (washDay.next_wash_tip) {
