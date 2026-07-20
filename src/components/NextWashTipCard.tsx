@@ -163,7 +163,7 @@ const renderInline = (
   keyPrefix: string,
   products: UserProduct[],
 ) => {
-  const safeLine = normaliseHeatLanguage(line);
+  const safeLine = normaliseHeatLanguage(line).replace(/\*\*([^*]+)\*\*/g, "$1");
   // Build a match list of { start, end, kind, product? }
   type Match = {
     start: number;
