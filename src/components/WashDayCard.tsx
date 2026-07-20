@@ -58,28 +58,24 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
       ? washDay.style_after
       : (washDay.steps ?? []).map((s) => s.name).filter(Boolean).join(" · ") || "Wash & condition";
 
-  // ---------- Key insight ----------
+  // ---------- Key insight (full text, markdown stripped) ----------
   const stripMd = (s: string) =>
     s.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[#>_`]/g, "").trim();
-  const firstSentence = (s: string) => {
-    const cleaned = stripMd(s);
-    const match = cleaned.match(/^[^.!?\n]+[.!?]?/);
-    return (match ? match[0] : cleaned).trim();
-  };
   const insightRaw = (() => {
     if (washDay.ai_insight) return washDay.ai_insight;
     if (washDay.next_wash_tip) {
       try {
         const parsed = JSON.parse(washDay.next_wash_tip);
         if (parsed && typeof parsed === "object") {
-          return parsed.action || parsed.why || null;
+          return [parsed.action, parsed.why].filter(Boolean).join(" ") || null;
         }
       } catch { /* plain text */ }
       return washDay.next_wash_tip;
     }
     return washDay.hair_feel_note || null;
   })();
-  const insight = insightRaw ? firstSentence(insightRaw) : null;
+  const insight = insightRaw ? stripMd(insightRaw) : null;
+
 
   // ---------- Health chips ----------
   const scalpTone = (() => {
