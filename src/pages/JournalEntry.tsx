@@ -865,7 +865,15 @@ const JournalEntry = () => {
           </div>
           <div className="p-4 flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="font-display text-xl font-semibold leading-tight">{entry.title}</p>
+              <input
+                type="text"
+                value={titleDraft}
+                onChange={(e) => commitTitle(e.target.value)}
+                placeholder={entry.title && entry.title !== "New journal entry" ? entry.title : "Name this entry"}
+                aria-label="Journal entry title"
+                maxLength={80}
+                className="w-full font-display text-xl font-semibold leading-tight bg-transparent border-0 border-b border-transparent focus:border-primary/40 focus:outline-none px-0 py-0.5 placeholder:text-muted-foreground/60"
+              />
               <p className="text-[11px] uppercase tracking-[0.15em] text-primary mt-1">
                 {entry.date}
               </p>
