@@ -179,8 +179,12 @@ const MoodboardBoard = () => {
   }
 
   return (
-    <ScreenLayout bottomNav>
+    <ScreenLayout
+      bottomNav
+      backgroundClassName={`bg-gradient-to-br ${board.gradient ?? "from-[#C8B89A] to-[#D4B96A]"}`}
+    >
       <TitleBar title={board.name} onBack={() => navigate("/journal/moodboards")} />
+
 
       {/* Hidden file inputs */}
       <input
