@@ -643,7 +643,7 @@ const Home = () => {
           )}
         </SurfaceCard>
 
-        <SurfaceCard tone="dark" padded={false}>
+        <SurfaceCard data-tour="alerts" tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
               🔔 Alerts {visibleAlerts.length > 0 && `(${visibleAlerts.length})`}
