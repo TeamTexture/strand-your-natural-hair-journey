@@ -580,7 +580,7 @@ const Home = () => {
         </SurfaceCard>
 
         {/* My Blood Work */}
-        <SurfaceCard>
+        <SurfaceCard data-tour="blood-work">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               My Blood Work
