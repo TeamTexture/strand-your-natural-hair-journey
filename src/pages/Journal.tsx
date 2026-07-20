@@ -287,6 +287,12 @@ const Journal = () => {
           const match = s.title?.match(/^\[([^\]]+)\]\s*(.*)$/);
           const displayTitle = match?.[2] || s.title || "Journal entry";
           const dateLabel = formatEntryDate(s.entry_date);
+          // Pull the human-friendly product names for the badges under the cover.
+          const productNames = (s.products_used ?? [])
+            .map((pid) => productLookup[pid])
+            .filter(Boolean)
+            .map((p) => (p!.brand ? `${p!.brand} ${p!.name}` : p!.name));
+          const extraProducts = Math.max(0, productNames.length - 2);
           return (
             <div
               key={s.id}
@@ -301,23 +307,27 @@ const Journal = () => {
               }}
               className="w-full text-left cursor-pointer"
             >
-              <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-colors">
-                <div className={`relative h-64 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
+              <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg">
+                <div className={`relative h-56 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
                   {s.coverUrl ? (
                     isVideoPath(s.photo_paths?.[0] ?? "") ? (
                       <>
-                        <video src={s.coverUrl} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover object-top bg-black" />
+                        <video src={s.coverUrl} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover object-[center_20%] bg-black" />
                         <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
                       </>
                     ) : (
-                      <img src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover object-top" loading="lazy" />
+                      <img src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover object-[center_20%]" loading="lazy" />
                     )
                   ) : (
                     <span className="text-[10px] uppercase tracking-[0.2em] text-white/80 font-medium">
                       No photo
                     </span>
                   )}
-                  <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full">
+                  {/* Soft bottom gradient so the title overlay stays legible on any cover. */}
+                  {s.coverUrl && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+                  )}
+                  <span className="absolute top-2 right-2 text-[10px] font-body text-white bg-black/55 px-2 py-0.5 rounded-full backdrop-blur-sm">
                     {dateLabel}
                   </span>
                   <button
@@ -331,10 +341,55 @@ const Journal = () => {
                   >
                     <Trash2 className="size-4" />
                   </button>
+                  {/* Style title sits directly on the cover for magazine-style presentation. */}
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-white/80 font-medium">Style</p>
+                    <p className="font-display text-lg font-semibold text-white leading-tight drop-shadow">
+                      {displayTitle}
+                    </p>
+                  </div>
                 </div>
-                <div className="p-3">
-                  <p className="font-display text-base font-semibold">{displayTitle}</p>
-                  {s.note && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 whitespace-pre-line">{s.note}</p>}
+                <div className="p-3 space-y-2">
+                  {productNames.length > 0 ? (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-primary/80 font-medium mb-1.5 flex items-center gap-1">
+                        <Sparkles className="size-3" /> Products used
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {productNames.slice(0, 2).map((n) => (
+                          <span
+                            key={n}
+                            className="text-[10px] font-body px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 max-w-[140px] truncate"
+                          >
+                            {n}
+                          </span>
+                        ))}
+                        {extraProducts > 0 && (
+                          <span className="text-[10px] font-body px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                            +{extraProducts} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground italic">
+                      No products logged yet
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-muted-foreground">{dateLabel}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/journal/entry/${s.id}`);
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+                      aria-label="Edit journal entry"
+                    >
+                      <Pencil className="size-3" /> Edit
+                    </button>
+                  </div>
                 </div>
               </SurfaceCard>
             </div>
