@@ -1,0 +1,1 @@
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS follow_up_date date, ADD COLUMN IF NOT EXISTS follow_up_time text;
