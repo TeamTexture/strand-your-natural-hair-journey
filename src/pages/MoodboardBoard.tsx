@@ -70,7 +70,7 @@ const MoodboardBoard = () => {
       if (id === "favourites") {
         const { data } = await supabase
           .from("moodboards")
-          .select("id, name, emoji, is_favourites")
+          .select("id, name, emoji, is_favourites, gradient")
           .eq("user_id", user.id)
           .eq("is_favourites", true)
           .maybeSingle();
@@ -85,7 +85,7 @@ const MoodboardBoard = () => {
       } else {
         const { data } = await supabase
           .from("moodboards")
-          .select("id, name, emoji, is_favourites")
+          .select("id, name, emoji, is_favourites, gradient")
           .eq("id", id)
           .maybeSingle();
         if (cancelled) return;
