@@ -210,6 +210,41 @@ const WashDayDetail = () => {
         } else {
           setProducts([]);
         }
+
+        // Styling snapshot (photos, styling products, note, voicenote)
+        const s = ((data as unknown as { styling?: StylingSnapshot | null })?.styling) ?? null;
+        setStyling(s);
+        if (s?.productIds?.length) {
+          const { data: sp } = await supabase
+            .from("user_products")
+            .select("id, name, brand")
+            .in("id", s.productIds);
+          if (!cancelled) setStylingProducts((sp as ProductLookup[]) ?? []);
+        } else {
+          setStylingProducts([]);
+        }
+        if (s?.photoPaths?.length) {
+          const signed = await Promise.all(
+            s.photoPaths.map(async (p) => {
+              const { data: sig } = await supabase.storage
+                .from("journal-photos")
+                .createSignedUrl(p, 3600);
+              return sig?.signedUrl ?? null;
+            }),
+          );
+          if (!cancelled) setStylingPhotoUrls(signed.filter((u): u is string => !!u));
+        } else {
+          setStylingPhotoUrls([]);
+        }
+        if (s?.audioPath) {
+          const { data: sig } = await supabase.storage
+            .from("voicenotes")
+            .createSignedUrl(s.audioPath, 3600);
+          if (!cancelled) setStylingAudioUrl(sig?.signedUrl ?? null);
+        } else {
+          setStylingAudioUrl(null);
+        }
+
         setLoading(false);
       }
     })();
