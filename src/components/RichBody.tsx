@@ -70,6 +70,7 @@ const DISPLAY_LABEL: Record<string, string> = {
 const normaliseText = (raw: string): string => {
   let t = String(raw ?? "");
   t = t.replace(/\\n/g, "\n").replace(/\/n\/n/g, "\n\n").replace(/\/n/g, "\n");
+  t = normaliseHeatLanguage(t);
   t = t.replace(LABEL_RE, (_m, lbl) => `\n\n${lbl}:`);
   return t.replace(/\n{3,}/g, "\n\n").trim();
 };
