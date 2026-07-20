@@ -97,10 +97,11 @@ const MoodboardBoard = () => {
     };
   }, [id, user, navigate]);
 
-  const { images, loading, uploadImage, toggleFavourite, deleteImage } = useMoodboardImages(
+  const { images, loading, uploadImage, toggleFavourite, deleteImage, reload } = useMoodboardImages(
     board?.id,
     { isFavouritesBoard: !!board?.is_favourites },
   );
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
