@@ -239,6 +239,23 @@ const encouragement = (count: number) => {
   return "Excellent — your scalp and hair will thank you for this routine.";
 };
 
+// Build a Google Calendar "Add event" URL for an all-day wash-day reminder.
+const buildGoogleCalendarUrl = (iso: string) => {
+  const compact = iso.replace(/-/g, "");
+  const start = new Date(iso);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const endCompact = `${end.getFullYear()}${pad(end.getMonth() + 1)}${pad(end.getDate())}`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: "Wash day — STRAND",
+    dates: `${compact}/${endCompact}`,
+    details:
+      "Your STRAND weekly wash day. Double-cleanse the scalp, then hydrate the lengths. Open the app to log it when done.",
+  });
+  return `https://www.google.com/calendar/render?${params.toString()}`;
+};
+
 const fmtCardDate = (iso: string) => {
   const d = new Date(iso);
   return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
