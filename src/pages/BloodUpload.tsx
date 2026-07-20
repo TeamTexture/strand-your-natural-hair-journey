@@ -88,6 +88,26 @@ export default function BloodUpload() {
   const [dupConfirmed, setDupConfirmed] = useState(false);
   const [deletingDup, setDeletingDup] = useState(false);
 
+  // Onboarding-only: after a save, show an inline "add another / continue" panel
+  // instead of navigating away, so users can upload every test they have.
+  const [savedInOnboarding, setSavedInOnboarding] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
+
+  const resetForNextUpload = () => {
+    setFiles([]);
+    setRows([]);
+    setTestType(null);
+    setLabName(null);
+    setPanelLabel(null);
+    setThumbSource(null);
+    setLogoBbox(null);
+    setDuplicatePanel(null);
+    setDupConfirmed(false);
+    if (thumbPreview) URL.revokeObjectURL(thumbPreview);
+    setThumbPreview(null);
+    setPanelDate(new Date().toISOString().slice(0, 10));
+  };
+
   const deleteDuplicate = async () => {
     if (!duplicatePanel || !user) return;
     if (!window.confirm("Delete the existing panel for this date? This can't be undone.")) return;
@@ -425,7 +445,10 @@ export default function BloodUpload() {
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
-        navigate("/onboarding/blood-ai-summary");
+        // Stay on the upload screen so the user can add more tests before moving on.
+        setSavedCount((n) => n + 1);
+        setSavedInOnboarding(true);
+        resetForNextUpload();
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
