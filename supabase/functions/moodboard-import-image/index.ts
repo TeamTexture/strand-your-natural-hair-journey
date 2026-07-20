@@ -116,7 +116,8 @@ async function resolvePinterestUrl(input: URL): Promise<string> {
     current = new URL(location, current).toString();
     const next = new URL(current);
     if (PINTEREST_PIN_RE.test(next.pathname)) return current;
-    if (next.hostname.toLowerCase() !== "pin.it") return current;
+    const host = next.hostname.toLowerCase();
+    if (host !== "pin.it" && host !== "api.pinterest.com") return current;
   }
   return current;
 }
