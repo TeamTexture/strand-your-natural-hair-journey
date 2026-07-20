@@ -319,6 +319,14 @@ const HomeTour = () => {
                 />
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => finish(true)}
+              className="mt-3 w-full text-center text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
+            >
+              Skip the tour
+            </button>
           </div>
         </div>
       )}
