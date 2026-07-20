@@ -5,6 +5,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import ProductPhotoTile from "@/components/ProductPhotoTile";
+import ProductThumb from "@/components/ProductThumb";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
