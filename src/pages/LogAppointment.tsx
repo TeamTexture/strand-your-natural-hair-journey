@@ -140,7 +140,10 @@ const LogAppointment = () => {
       notes: notes.trim() || null,
       status,
       follow_up_needed: followUp,
+      follow_up_date: followUp && followUpDate ? followUpDate : null,
+      follow_up_time: followUp && followUpTime.trim() ? followUpTime.trim() : null,
     };
+
     let savedId: string | null = null;
     if (fromId) {
       // Updating the pre-existing booking (came from the home alert).
