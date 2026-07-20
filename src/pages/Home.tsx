@@ -809,8 +809,9 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
-
+      <HomeTour />
     </ScreenLayout>
+
   );
 };
 
