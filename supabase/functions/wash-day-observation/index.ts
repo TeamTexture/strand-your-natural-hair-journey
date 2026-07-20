@@ -271,8 +271,8 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
                   next_wash_tip: {
                     type: "object",
                     properties: {
-                      action: { type: "string", description: "One imperative sentence, max 18 words." },
-                      why: { type: "string", description: "2-3 sentence explanation grounded in HTLA teachings + a user-specific signal." },
+                      action: { type: "string", description: "Short card header, 2-6 words, Title Case. Not a full sentence." },
+                      why: { type: "string", description: "Body of the tip explaining the header. 2-4 short sentences grounded in HTLA teachings + a user-specific signal. May use short labelled sub-paragraphs." },
                     },
                     required: ["action", "why"],
                   },
