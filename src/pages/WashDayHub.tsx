@@ -196,6 +196,7 @@ const buildEducationalNote = ({
 
   // Next-wash reminder — anchored to the actual last wash date, always the 7th day.
   let reminder: string;
+  let nextDateIso: string | null = null;
   if (!lastWash) {
     reminder = "Log your first wash day and we'll time the next one for you.";
   } else {
@@ -203,6 +204,9 @@ const buildEducationalNote = ({
     nextDate.setDate(nextDate.getDate() + idealDays);
     const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / 86400000);
     const overdue = daysUntil < 0;
+    // Anchor the scheduling CTA to today if overdue, otherwise the ideal date.
+    const anchorDate = overdue ? today : nextDate;
+    nextDateIso = `${anchorDate.getFullYear()}-${pad(anchorDate.getMonth() + 1)}-${pad(anchorDate.getDate())}`;
 
     if (overdue) {
       const overdueBy = Math.abs(daysUntil);
@@ -224,6 +228,7 @@ const buildEducationalNote = ({
     window: cadenceLabel,
     why,
     reminder,
+    nextDateIso,
   };
 };
 
