@@ -435,18 +435,20 @@ const WashDayHub = () => {
         {latestTip && (
           <NextWashTipCard action={latestTip.action} why={latestTip.why} />
         )}
-        <Calendar
-          year={view.year}
-          month={view.month}
-          washDates={washDates}
-          washDayIdsByDate={washDayIdsByDate}
-          scheduledDates={scheduledSet}
-          onPrev={goPrev}
-          onNext={goNext}
-          onPickDate={(id) => navigate(`/wash-day/${id}`)}
-          onLogDate={(iso) => navigate(`/wash/step-1?date=${iso}`)}
-          onScheduleDate={openScheduleDialog}
-        />
+        <div id="wash-calendar">
+          <Calendar
+            year={view.year}
+            month={view.month}
+            washDates={washDates}
+            washDayIdsByDate={washDayIdsByDate}
+            scheduledDates={scheduledSet}
+            onPrev={goPrev}
+            onNext={goNext}
+            onPickDate={(id) => navigate(`/wash-day/${id}`)}
+            onLogDate={(iso) => navigate(`/wash/step-1?date=${iso}`)}
+            onScheduleDate={openScheduleDialog}
+          />
+        </div>
 
         <SurfaceCard tone="gold">
           <div className="flex items-start gap-3">
