@@ -91,31 +91,61 @@ const SeverityChip = ({ level }: { level?: string }) => {
   );
 };
 
-// Split an actionable "how to use / best paired with" section out of the
-// card body so it ALWAYS renders in a dedicated Strand tip box, regardless
-// of how the model formatted the paragraph order.
-const TIP_LABELS = [
-  "How to use", "How to take", "How to eat", "How to prepare",
-  "How it helps", "Best paired with", "Pair with", "Best with",
-  "Try this", "Do this",
+// Split every actionable card section into dedicated Strand tip boxes so the
+// UI enforces this even for cached or newly generated AI text.
+const STRAND_TIP_LABELS = [
+  "How to use it", "How to use", "How to take", "How to eat", "How to prepare",
+  "Best paired with", "Pair with", "Best with", "Try this", "Do this",
+  "Watch out for", "Watch out", "Watch for",
 ];
-const splitHowToUse = (raw: string): { rest: string; howToUse: string | null } => {
+
+const NON_TIP_LABELS = [
+  "Why it matters", "Why this matters", "Why it helps", "Your signal", "Your focus",
+  "Best sources", "Easier swap", "The action", "The rationale", "Note", "Strand tip",
+];
+
+const ALL_CARD_LABELS = [...STRAND_TIP_LABELS, ...NON_TIP_LABELS];
+
+const splitStrandTips = (raw: string): { rest: string; tips: string[] } => {
   const text = String(raw ?? "")
     .replace(/\\n/g, "\n")
     .replace(/\/n\/n/g, "\n\n")
     .replace(/\/n/g, "\n");
-  const re = new RegExp(`\\*{0,2}\\b(?:${TIP_LABELS.join("|")})\\b\\*{0,2}\\s*:\\*{0,2}\\s*`, "i");
-  const m = text.match(re);
-  if (!m || m.index === undefined) return { rest: text.trim(), howToUse: null };
-  const label = m[0].replace(/[*:\s]+$/g, "").replace(/^[*\s]+/, "");
-  const before = text.slice(0, m.index);
-  const after = text.slice(m.index + m[0].length);
-  const nextLabel = after.match(/\n{1,}\s*\*{0,2}\b(Your signal|Your focus|Why it matters|Why this matters|Watch for|Best sources|The action|The rationale|Note|Strand tip)\b/i);
-  const tipBody = (nextLabel ? after.slice(0, nextLabel.index) : after).trim();
-  const trailing = nextLabel ? after.slice(nextLabel.index) : "";
-  const rest = (before + "\n\n" + trailing).replace(/\n{3,}/g, "\n\n").trim();
-  const tip = tipBody ? `**${label}:** ${tipBody}` : null;
-  return { rest, howToUse: tip };
+  const labelRe = new RegExp(`\\*{0,2}\\b(${ALL_CARD_LABELS.join("|")})\\b\\s*(?::\\s*\\*{0,2}|\\*{0,2}\\s*:)\\*{0,2}\\s*`, "gi");
+  const matches = Array.from(text.matchAll(labelRe));
+  if (matches.length === 0) return { rest: text.trim(), tips: [] };
+
+  const restParts: string[] = [];
+  const tips: string[] = [];
+  let cursor = 0;
+
+  matches.forEach((match, idx) => {
+    const start = match.index ?? 0;
+    if (start > cursor) restParts.push(text.slice(cursor, start));
+
+    const label = String(match[1] ?? "").trim();
+    const bodyStart = start + match[0].length;
+    const bodyEnd = idx + 1 < matches.length ? matches[idx + 1].index ?? text.length : text.length;
+    const body = text.slice(bodyStart, bodyEnd).trim();
+    const isTip = STRAND_TIP_LABELS.some((l) => l.toLowerCase() === label.toLowerCase());
+
+    if (body) {
+      if (isTip) {
+        const normalisedLabel = /^watch (out|for)/i.test(label) ? "Watch out for" : label;
+        tips.push(`**${normalisedLabel}:** ${body}`);
+      } else {
+        restParts.push(`\n\n${label}: ${body}`);
+      }
+    }
+    cursor = bodyEnd;
+  });
+
+  if (cursor < text.length) restParts.push(text.slice(cursor));
+
+  return {
+    rest: restParts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(),
+    tips,
+  };
 };
 
 const StrandTipBox = ({ text }: { text: string }) => {
@@ -141,7 +171,7 @@ const StrandTipBox = ({ text }: { text: string }) => {
 };
 
 const SupplementCard = ({ s }: { s: AiSupplement }) => {
-  const { rest, howToUse } = splitHowToUse(s.body);
+  const { rest, tips } = splitStrandTips(s.body);
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
       <div className="flex gap-3">
@@ -157,8 +187,8 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
               <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
             </div>
           )}
-          {rest && <RichBody text={rest} className="mt-2" strandTipLast={!howToUse} />}
-          {howToUse && <StrandTipBox text={howToUse} />}
+          {rest && <RichBody text={rest} className="mt-2" strandTipLast={tips.length === 0} />}
+          {tips.map((tip, i) => <StrandTipBox key={`${s.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
     </SurfaceCard>
@@ -166,15 +196,15 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
 };
 
 const DietCard = ({ c }: { c: AiCard }) => {
-  const { rest, howToUse } = splitHowToUse(c.body);
+  const { rest, tips } = splitStrandTips(c.body);
   return (
     <SurfaceCard className="border-l-4 border-l-good">
       <div className="flex gap-3">
         <IconBubble emoji={c.emoji || "🥗"} tone="good" />
         <div className="flex-1 min-w-0">
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={!howToUse} />}
-          {howToUse && <StrandTipBox text={howToUse} />}
+          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
+          {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
     </SurfaceCard>
@@ -182,7 +212,7 @@ const DietCard = ({ c }: { c: AiCard }) => {
 };
 
 const AvoidCard = ({ c }: { c: AiCard }) => {
-  const { rest, howToUse } = splitHowToUse(c.body);
+  const { rest, tips } = splitStrandTips(c.body);
   return (
     <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
       <div className="flex gap-3">
@@ -192,8 +222,8 @@ const AvoidCard = ({ c }: { c: AiCard }) => {
             <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
             <SeverityChip level={c.severity} />
           </div>
-          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={!howToUse} />}
-          {howToUse && <StrandTipBox text={howToUse} />}
+          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
+          {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
     </SurfaceCard>
@@ -351,23 +381,23 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
   const out: AiSupplement[] = [];
   if (p.flagged.has("Ferritin")) out.push({
     emoji: "🩸", name: "Iron", dose: "One 200 mg tablet with orange juice", priority: "high",
-    body: "Ferritin (your body's stored iron) is what your follicles draw on to build new hair, so when it runs low you tend to see more shedding. Take it with vitamin C to help absorption, and keep it away from tea, coffee and calcium for an hour either side.",
+    body: "**Why it matters:** Ferritin (your body's stored iron) is what your follicles draw on to build new hair, so when it runs low you tend to see more shedding.\n\n**How to use it:** Take it with vitamin C to help absorption.\n\n**Watch out for:** Keep it away from tea, coffee and calcium for an hour either side.",
   });
   if (p.flagged.has("Vitamin D")) out.push({
     emoji: "☀️", name: "Vitamin D3", dose: "1000–2000 IU daily with breakfast", priority: "high",
-    body: "Deeper skin tones make less vitamin D from UK sunlight, and vitamin D helps switch your follicles back into their growth phase. A daily dose taken with food (it's fat-soluble) is the simplest way to keep levels steady year-round.",
+    body: "**Why it matters:** Vitamin D helps switch your follicles back into their growth phase and supports scalp health.\n\n**How to use it:** Take it daily with breakfast or another meal that contains some fat, because vitamin D absorbs better that way.\n\n**Watch out for:** If you already take a high-dose vitamin D prescription, check your dose before adding another supplement.",
   });
   if (p.flagged.has("Vitamin B12") || isVeg) out.push({
     emoji: "🌱", name: "Vitamin B12", dose: "Methylcobalamin 1000 mcg daily", priority: "high",
-    body: "B12 is what your blood cells use to carry oxygen to every follicle. On a plant-based diet it's the one nutrient you really can't skip — a small daily supplement covers you.",
+    body: "**Why it matters:** B12 is what your blood cells use to carry oxygen to every follicle.\n\n**How to use it:** Take a small daily supplement consistently, especially if you eat little or no animal food.\n\n**Watch out for:** If you take metformin or long-term reflux medication, B12 can run low more easily, so it is worth tracking.",
   });
   if (p.flagged.has("Zinc")) out.push({
     emoji: "⚙️", name: "Zinc", dose: "8–11 mg daily (never above 40 mg)", priority: "medium",
-    body: "Zinc helps your follicles build the proteins that make up each strand and keeps scalp oil in balance. A modest daily dose is enough — going higher can actually work against you.",
+    body: "**Why it matters:** Zinc helps your follicles build the proteins that make up each strand and keeps scalp oil in balance.\n\n**How to use it:** Keep the dose modest and take it with food if it makes you feel nauseous.\n\n**Watch out for:** Going too high can work against you, so avoid stacking multiple zinc supplements.",
   });
   out.push({
     emoji: "🐟", name: "Omega-3", dose: "1000 mg fish oil (or algae oil if plant-based) daily", priority: "medium",
-    body: "Omega-3s calm inflammation around the follicle and keep your scalp's oil layer supple, which helps hair stay flexible and shiny. Take it with a meal that has some fat in it for best absorption.",
+    body: "**Why it matters:** Omega-3s help calm inflammation around the follicle and keep your scalp's oil layer supple, which supports flexible strands.\n\n**How to use it:** Take it with a main meal that already contains fat so your body absorbs it well.\n\n**Best paired with:** Oily fish, eggs, pumpkin seeds, walnuts or an algae oil option if you are plant-based.\n\n**Watch out for:** If you take blood-thinning medication or have surgery planned, check with your GP before starting.",
   });
   return out;
 };

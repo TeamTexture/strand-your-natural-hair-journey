@@ -16,11 +16,16 @@ const chunkSentences = (text: string, perChunk = 2): string[] => {
 const LABELS = [
   "Your signal",
   "Your focus",
+  "What to prioritise",
   "Why it matters",
   "Why this matters",
+  "How to use it",
   "How to use",
   "How it helps",
+  "Watch out for",
+  "Watch out",
   "Watch for",
+  "Best paired with",
   "Best sources",
   "Try this",
   "Do this next wash",
@@ -34,13 +39,16 @@ const LABELS = [
 const LABEL_RE = new RegExp(`\\*{0,2}\\b(${LABELS.join("|")})\\b\\*{0,2}\\s*:\\*{0,2}`, "gi");
 
 const LABEL_TONE: Record<string, { dot: string; label: string }> = {
-  "your signal": { dot: "bg-primary", label: "text-primary" },
-  "your focus": { dot: "bg-primary", label: "text-primary" },
+  "what to prioritise": { dot: "bg-primary", label: "text-primary" },
   "why it matters": { dot: "bg-good", label: "text-good" },
   "why this matters": { dot: "bg-good", label: "text-good" },
+  "how to use it": { dot: "bg-good", label: "text-good" },
   "how to use": { dot: "bg-good", label: "text-good" },
   "how it helps": { dot: "bg-good", label: "text-good" },
+  "watch out for": { dot: "bg-destructive", label: "text-destructive" },
+  "watch out": { dot: "bg-destructive", label: "text-destructive" },
   "watch for": { dot: "bg-destructive", label: "text-destructive" },
+  "best paired with": { dot: "bg-good", label: "text-good" },
   "best sources": { dot: "bg-good", label: "text-good" },
   "try this": { dot: "bg-primary", label: "text-primary" },
   "do this next wash": { dot: "bg-primary", label: "text-primary" },
@@ -49,6 +57,13 @@ const LABEL_TONE: Record<string, { dot: string; label: string }> = {
   "product consistency": { dot: "bg-primary", label: "text-primary" },
   "strand tip": { dot: "bg-primary", label: "text-primary" },
   note: { dot: "bg-muted-foreground", label: "text-muted-foreground" },
+};
+
+const DISPLAY_LABEL: Record<string, string> = {
+  "your signal": "Why it matters",
+  "your focus": "What to prioritise",
+  "watch out": "Watch out for",
+  "watch for": "Watch out for",
 };
 
 const normaliseText = (raw: string): string => {
@@ -103,13 +118,15 @@ const RichBody = ({ text, className = "", strandTipLast = false }: RichBodyProps
       {paras.map((p, i) => {
         const m = p.match(/^([A-Z][A-Za-z ]{2,24}):\s*([\s\S]*)$/);
         const key = m?.[1]?.toLowerCase().trim();
-        const tone = key ? LABEL_TONE[key] : undefined;
+        const displayLabel = key ? DISPLAY_LABEL[key] ?? m?.[1] : undefined;
+        const toneKey = key === "your signal" ? "why it matters" : key === "your focus" ? "what to prioritise" : key;
+        const tone = toneKey ? LABEL_TONE[toneKey] : undefined;
         if (m && tone) {
           return (
             <div key={i} className="relative pl-3">
               <span className={`absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full ${tone.dot}`} />
               <p className={`text-[10px] uppercase tracking-[0.16em] font-semibold ${tone.label}`}>
-                {m[1]}
+                {displayLabel}
               </p>
               <p className="mt-1 text-xs text-foreground/85 font-body leading-relaxed">
                 {renderInline(m[2], `p${i}`)}
