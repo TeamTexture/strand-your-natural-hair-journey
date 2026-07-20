@@ -8,12 +8,6 @@ type UnknownRecord = Record<string, unknown>;
 
 const HEAT_HAT_LINK = "[TT Heat Hat](https://www.teamtexture.co.uk)";
 
-const toArray = (value: unknown): string[] => {
-  if (Array.isArray(value)) return value.map(String).filter(Boolean);
-  if (typeof value === "string" && value.trim()) return [value.trim()];
-  return [];
-};
-
 const textOf = (value: unknown): string => {
   if (value == null) return "";
   if (typeof value === "string") return value;
@@ -179,7 +173,7 @@ function healthTip(context: UnknownRecord): string | null {
 function cleanseModelTip(tip: string): string {
   return tip
     .replace(/\bheat\s+cap\b/gi, "TT Heat Hat")
-    .replace(/(?<!TT\s)\bheat\s+hat\b/gi, "TT Heat Hat")
+    .replace(/\bheat\s+hat\b/gi, "TT Heat Hat")
     .replace(/\bheated\s+cap\b/gi, "TT Heat Hat")
     .replace(/\bsteamer\b/gi, "TT Heat Hat")
     .replace(/\bwarm\s+towel\b/gi, "TT Heat Hat");
