@@ -53,9 +53,9 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
     : null;
   const previousReason = previousReasonMatch?.[1]?.trim() || null;
 
-  const dateTime = `${appointment.professional_type ?? "Appointment"} · ${formatDate(
-    appointment.appointment_date,
-  )}${appointment.appointment_time ? ` · ${formatTime12h(appointment.appointment_time)}` : ""}`;
+  const formattedDate = formatDate(appointment.appointment_date);
+  const formattedTime = appointment.appointment_time ? formatTime12h(appointment.appointment_time) : "";
+  const kicker = appointment.professional_type ?? "Appointment";
 
   const subtitle =
     [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
