@@ -141,29 +141,27 @@ const Products = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar
-        title="My Products"
-        back={false}
-        right={
-          <div className="flex items-center">
-            {products.length > 0 && (
-              <SelectToggleButton
-                selectMode={batch.selectMode}
-                onEnter={() => batch.enter()}
-                onExit={batch.exit}
-              />
-            )}
-            {!batch.selectMode && (
-              <button
-                onClick={() => navigate("/products/repository")}
-                className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
-              >
-                All Products
-              </button>
-            )}
-          </div>
-        }
-      />
+      <TitleBar title="My Products" back={false} />
+
+      <div className="px-5 flex items-center justify-between gap-2 pb-2">
+        {products.length > 0 ? (
+          <SelectToggleButton
+            selectMode={batch.selectMode}
+            onEnter={() => batch.enter()}
+            onExit={batch.exit}
+          />
+        ) : (
+          <span />
+        )}
+        {!batch.selectMode && (
+          <button
+            onClick={() => navigate("/products/repository")}
+            className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium px-2 min-h-[44px]"
+          >
+            All Products
+          </button>
+        )}
+      </div>
 
       <ProductsHeader
         active="shelf"
@@ -171,6 +169,7 @@ const Products = () => {
         filteredCount={filteredProducts.length}
         state={filterState}
       />
+
 
       <div className={cn("px-5 space-y-3 pb-4", batch.selectMode && "pb-40")}>
         {loading ? (
