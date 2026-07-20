@@ -1153,7 +1153,7 @@ const IngredientDetail = () => {
                 type="button"
                 onClick={() => {
                   setSelectedIngredient(null);
-                  navigate(`/products/${p.id}`);
+                  navigate(`/products/profile/${p.id}`);
                 }}
                 className="w-full rounded-lg border border-border/60 bg-background/60 p-2.5 flex items-start gap-2.5 text-left hover:bg-primary/5 transition-colors"
               >
