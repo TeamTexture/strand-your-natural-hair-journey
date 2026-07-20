@@ -254,11 +254,6 @@ const Appointments = () => {
           )}
 
 
-          <div className="px-5 pb-4">
-            <Button variant="goldOutline" size="pill" onClick={goLog}>
-              + Log Appointment
-            </Button>
-          </div>
         </>
       )}
 
