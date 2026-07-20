@@ -121,17 +121,36 @@ const condenseHeader = (raw: string) => {
   return words.slice(0, 8).join(" ") + "…";
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const hasKnownProductReference = (text: string, products: UserProduct[]) => {
+  const candidates = products.flatMap((p) => [p.name, p.brand]).filter((v): v is string => Boolean(v && v.trim().length >= 3));
+  return candidates.some((candidate) => new RegExp(`\\b${escapeRegExp(candidate.trim())}\\b`, "i").test(text));
+};
+
+const looksLikeProductLedHeader = (action: string, products: UserProduct[]) => {
+  const lower = action.toLowerCase();
+  const washProductNoun = /\b(shampoo|cleanser|co-wash|cowash|conditioner|mask|treatment|leave[-\s]?in|cream|gel|oil)\b/i;
+  return (
+    hasKnownProductReference(action, products) ||
+    (/\bwith\s+(?:the|your|a|an)\b/i.test(action) && washProductNoun.test(action)) ||
+    (/\b(cleanse|shampoo|condition|deep[-\s]?condition|apply|use)\b/i.test(action) && washProductNoun.test(action)) ||
+    lower.includes("scalp+hair")
+  );
+};
+
 /**
- * If the saved `action` header only names ONE step (e.g. "Cleanse With The
- * Dove Shampoo") but the `why` body prescribes a multi-step arc (cleanse +
- * condition + mask + heat + moisture etc.), rewrite the header so it reflects
- * the whole arc. Fixes legacy tips saved with narrow single-product headers.
+ * If the saved `action` header is product-led (e.g. "Cleanse With The Dove
+ * Shampoo...") or narrower than the body, rewrite it into a generic,
+ * whole-tip title. Product names belong in the body, never the card title.
  */
-const holisticiseHeader = (rawAction: string, rawWhy: string): string => {
+const holisticiseHeader = (rawAction: string, rawWhy: string, products: UserProduct[]): string => {
   const a = String(rawAction ?? "").trim();
-  const w = String(rawWhy ?? "").toLowerCase();
-  if (!a || !w) return a;
+  const w = String(rawWhy ?? "").trim();
+  if (!a) return a;
   const al = a.toLowerCase();
+  const combined = `${a}\n${w}`.toLowerCase();
+  const productLed = looksLikeProductLedHeader(a, products);
 
   const covers = {
     cleanse: /(cleanse|shampoo|wash)/.test(al),
@@ -142,19 +161,19 @@ const holisticiseHeader = (rawAction: string, rawWhy: string): string => {
     ends: /(ends|protect|tuck|low.?manipulation)/.test(al),
   };
   const bodyMoves = {
-    cleanse: /(cleanse|shampoo|wash)/.test(w),
-    condition: /(rinse.?out conditioner|\bconditioner\b|conditioning step)/.test(w),
-    mask: /(deep.?condition|\bmask\b|treatment)/.test(w),
-    heat: /(tt heat hat|heat hat|under heat|steam)/.test(w),
-    moisture: /(leave.?in|midweek moistur|refresh moistur|seal|hydrat|moisture top.?up|moisture spritz)/.test(w),
-    ends: /(protect (?:your )?ends|tuck (?:your )?ends|low.?manipulation)/.test(w),
+    cleanse: /(cleanse|shampoo|wash)/.test(combined),
+    condition: /(rinse.?out conditioner|\bconditioner\b|conditioning step|\bcondition\b)/.test(combined),
+    mask: /(deep.?condition|\bmask\b|treatment)/.test(combined),
+    heat: /(tt heat hat|heat hat|under heat|steam)/.test(combined),
+    moisture: /(leave.?in|midweek moistur|refresh moistur|seal|hydrat|moisture top.?up|moisture spritz)/.test(combined),
+    ends: /(protect (?:your )?ends|tuck (?:your )?ends|low.?manipulation)/.test(combined),
   };
   const bodyMoveCount = Object.values(bodyMoves).filter(Boolean).length;
   const headerMoveCount = Object.values(covers).filter(Boolean).length;
 
-  // Only rewrite if the body clearly covers multiple moves AND the header
-  // covers strictly fewer of them (i.e. the header is narrower than the body).
-  if (bodyMoveCount < 2 || headerMoveCount >= bodyMoveCount) return a;
+  // Rewrite when the title is product-led, or when the body clearly covers
+  // multiple moves and the title covers fewer of them.
+  if (!productLed && (bodyMoveCount < 2 || headerMoveCount >= bodyMoveCount)) return a;
 
   const parts: string[] = [];
   if (bodyMoves.cleanse) parts.push("Double Cleanse");
@@ -165,7 +184,14 @@ const holisticiseHeader = (rawAction: string, rawWhy: string): string => {
   else if (bodyMoves.moisture && parts.length < 3) parts.push("Lock In Moisture");
   if (bodyMoves.ends && parts.length < 3) parts.push("Protect Your Ends");
 
-  if (parts.length < 2) return a;
+  if (parts.length < 2) {
+    if (!productLed) return a;
+    if (bodyMoves.cleanse) return "Scalp-First Cleansing Reset";
+    if (bodyMoves.mask || bodyMoves.condition) return "Moisture-Focused Conditioning";
+    if (bodyMoves.moisture) return "Refresh And Seal Moisture";
+    if (bodyMoves.ends) return "Protect Your Ends";
+    return "Complete Your Wash-Day Focus";
+  }
   const trimmed = parts.slice(0, 3);
   if (trimmed.length === 2) return `${trimmed[0]} & ${trimmed[1]}`;
   return `${trimmed[0]}, ${trimmed[1]} & ${trimmed[2]}`;
@@ -451,7 +477,7 @@ export function NextWashTipCard({
   // 3-line "title".
   const rawAction = String(action ?? "").trim();
   const rawWhy = String(why ?? "").trim();
-  const holisticAction = holisticiseHeader(rawAction, rawWhy);
+  const holisticAction = holisticiseHeader(rawAction, rawWhy, products);
   const condensedAction = condenseHeader(holisticAction);
   const overflow =
     rawAction && condensedAction &&
