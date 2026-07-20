@@ -547,6 +547,39 @@ export function useHomeAlerts() {
         }
       }
 
+      // 7b. Past-due upcoming appointments — the appointment date/time has
+      // passed but the row is still marked "upcoming". Prompt the user to log
+      // what happened so we can pre-populate the log form from their booking.
+      const nowMs = Date.now();
+      const { data: pastDueAppts } = await supabase
+        .from("appointments")
+        .select("id, appointment_date, appointment_time, professional_name, professional_type, clinic_name, reason")
+        .eq("user_id", user.id)
+        .eq("status", "upcoming")
+        .lte("appointment_date", new Date().toISOString().slice(0, 10))
+        .order("appointment_date", { ascending: false })
+        .limit(5);
+      for (const row of pastDueAppts ?? []) {
+        const dtIso = `${row.appointment_date}T${row.appointment_time ?? "23:59"}:00`;
+        const t = Date.parse(dtIso);
+        if (Number.isFinite(t) && t <= nowMs) {
+          const who = row.professional_name || row.clinic_name || "your appointment";
+          const dateLabel = new Date(`${row.appointment_date}T00:00:00`).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+          });
+          next.push({
+            id: `appt-log:${row.id}`,
+            emoji: "📝",
+            title: `Did you have your appointment with ${who}?`,
+            body: `${dateLabel} — tap to log how it went. We'll pre-fill the details from your booking.`,
+            to: `/appointments/log?fromId=${row.id}`,
+            tone: "warning",
+            signature: `apptLog:${row.id}:${row.appointment_date}`,
+          });
+        }
+      }
+
       // (Hard-water clarifier alert removed.)
       const recentWashes = (recentWashRes.data ?? []) as Array<{
         wash_date: string;
