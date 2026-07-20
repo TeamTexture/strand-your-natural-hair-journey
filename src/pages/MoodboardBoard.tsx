@@ -326,24 +326,33 @@ const MoodboardBoard = () => {
       </div>
 
       {/* Upload tiles */}
-      <div className="px-5 pb-4 grid grid-cols-2 gap-3">
+      <div className="px-5 pb-4 grid grid-cols-3 gap-2">
         <button
           onClick={() => cameraInputRef.current?.click()}
           disabled={uploading}
-          className="p-4 rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center min-h-[88px] disabled:opacity-50"
+          className="p-3 rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center min-h-[88px] disabled:opacity-50"
         >
-          <Camera className="size-6 mx-auto mb-1.5 text-primary" />
-          <p className="text-xs font-medium">Take a Photo</p>
-          <p className="text-[10px] text-muted-foreground">Use your camera</p>
+          <Camera className="size-5 mx-auto mb-1 text-primary" />
+          <p className="text-[11px] font-medium leading-tight">Take Photo</p>
+          <p className="text-[9px] text-muted-foreground">Camera</p>
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="p-4 rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center min-h-[88px] disabled:opacity-50"
+          className="p-3 rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center min-h-[88px] disabled:opacity-50"
         >
-          <ImagePlus className="size-6 mx-auto mb-1.5 text-primary" />
-          <p className="text-xs font-medium">Upload Photos</p>
-          <p className="text-[10px] text-muted-foreground">From your device</p>
+          <ImagePlus className="size-5 mx-auto mb-1 text-primary" />
+          <p className="text-[11px] font-medium leading-tight">Upload</p>
+          <p className="text-[9px] text-muted-foreground">From device</p>
+        </button>
+        <button
+          onClick={() => board && setLinkDialogOpen(true)}
+          disabled={uploading || !board}
+          className="p-3 rounded-[14px] border-2 border-dashed border-primary/50 bg-card text-center min-h-[88px] disabled:opacity-50"
+        >
+          <LinkIcon className="size-5 mx-auto mb-1 text-primary" />
+          <p className="text-[11px] font-medium leading-tight">Add Link</p>
+          <p className="text-[9px] text-muted-foreground">Google, Pinterest…</p>
         </button>
       </div>
 
