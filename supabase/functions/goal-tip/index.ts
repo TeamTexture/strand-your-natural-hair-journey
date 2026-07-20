@@ -223,9 +223,19 @@ Deno.serve(async (req) => {
       console.warn("goal-tip RAG retrieval failed (continuing):", e);
     }
 
+    const cs = (body.context?.currentStyle ?? null) as Record<string, unknown> | null;
+    const styleBlock = cs
+      ? buildStylePlaybookBlock({
+          current_hairstyle: (cs.current_hairstyle as string | null) ?? null,
+          planned_next_style: (cs.planned_next_style as string | null) ?? null,
+          days_in_style: typeof cs.days_in_style === "number" ? (cs.days_in_style as number) : null,
+        })
+      : "";
+    const styleSuffix = styleBlock ? `\n\n${styleBlock}` : "";
+
     const systemPrompt = teachings.length > 0
-      ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}${ragBlock}`
-      : `${baseSystemPrompt}${ragBlock}`;
+      ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}${ragBlock}${styleSuffix}`
+      : `${baseSystemPrompt}${ragBlock}${styleSuffix}`;
 
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
