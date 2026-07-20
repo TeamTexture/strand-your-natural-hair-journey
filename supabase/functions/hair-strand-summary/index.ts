@@ -163,7 +163,17 @@ Deno.serve(async (req: Request) => {
     } catch (e) {
       console.warn("hair-strand-summary RAG retrieval failed (continuing without):", e);
     }
-    const systemWithKnowledge = `${SYSTEM}\n\n${knowledgeBlock}${ragBlock}`;
+    const cs = (context.currentStyle ?? null) as Record<string, unknown> | null;
+    const styleBlock = cs
+      ? buildStylePlaybookBlock({
+          current_hairstyle: (cs.current_hairstyle as string | null) ?? null,
+          planned_next_style: (cs.planned_next_style as string | null) ?? null,
+          days_in_style: typeof cs.days_in_style === "number" ? (cs.days_in_style as number) : null,
+        })
+      : "";
+    const systemWithKnowledge = `${SYSTEM}\n\n${knowledgeBlock}${ragBlock}${
+      styleBlock ? `\n\n${styleBlock}` : ""
+    }`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
