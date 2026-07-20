@@ -59,6 +59,23 @@ const Auth = () => {
     password.length >= 6 &&
     (mode !== "signup" || (confirmPassword.length >= 6 && passwordsMatch));
 
+  const sendResetEmail = async (targetEmail: string) => {
+    if (!targetEmail) {
+      toast.error("Enter your email first, then tap Forgot password.");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset email sent — check your inbox.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Couldn't send reset email";
+      toast.error(msg);
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || password.length < 6) {
@@ -80,7 +97,35 @@ const Auth = () => {
             data: { display_name: name || email.split("@")[0] },
           },
         });
-        if (error) throw error;
+        if (error) {
+          // Supabase returns "User already registered" when the email is
+          // already attached to a confirmed account. Convert to a friendly
+          // message and flip the form to sign-in so the user isn't stuck.
+          const msg = error.message?.toLowerCase() ?? "";
+          if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+            toast.error("An account already exists for this email. Please sign in.");
+            setMode("signin");
+            setConfirmPassword("");
+            return;
+          }
+          throw error;
+        }
+        // When email confirmation is enabled, Supabase obfuscates existing
+        // accounts by returning a user with an empty `identities` array
+        // rather than an error. Treat that as "email already registered".
+        const identities = data.user?.identities ?? [];
+        if (data.user && identities.length === 0) {
+          toast.error("An account already exists for this email. Please sign in.", {
+            action: {
+              label: "Reset password",
+              onClick: () => sendResetEmail(email),
+            },
+            duration: 10000,
+          });
+          setMode("signin");
+          setConfirmPassword("");
+          return;
+        }
         const uid = data.user?.id;
         if (uid) {
           localStorage.setItem(`strand_setup_pending:${uid}`, "true");
