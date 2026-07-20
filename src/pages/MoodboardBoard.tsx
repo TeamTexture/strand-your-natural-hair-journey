@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Heart, Trash2, Loader2, ImagePlus, Camera, Share2, Link as LinkIcon } from "lucide-react";
+import { Heart, Trash2, Loader2, ImagePlus, Camera, Share2, Link as LinkIcon, Star } from "lucide-react";
 import MoodboardLinkImportDialog from "@/components/MoodboardLinkImportDialog";
 import { useNavigate, useParams } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
