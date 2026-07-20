@@ -87,6 +87,7 @@ const GlobalMenu = () => {
       <button
         type="button"
         aria-label="Open menu"
+        data-tour="global-menu"
         onClick={() => setOpen(true)}
         className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
       >
