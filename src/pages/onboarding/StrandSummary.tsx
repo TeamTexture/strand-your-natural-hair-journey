@@ -339,7 +339,7 @@ const StrandSummary = () => {
                           <Icon className="size-3.5 text-primary" />
                         </span>
                         <span className="flex-1 text-[13px] leading-snug text-foreground/90">
-                          {renderRichText(b)}
+                          {renderRichText(b, `rt-${i}`)}
                         </span>
                       </li>
                     );
