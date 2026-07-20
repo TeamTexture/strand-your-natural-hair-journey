@@ -123,6 +123,7 @@ interface EducationalNote {
   window: string;
   why: string;
   reminder: string;
+  nextDateIso: string | null;
 }
 
 const buildEducationalNote = ({
