@@ -160,6 +160,7 @@ const WashDayDetail = () => {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [products, setProducts] = useState<ProductLookup[]>([]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -182,11 +183,23 @@ const WashDayDetail = () => {
             .createSignedUrl(data.hair_feel_voice_url, 3600);
           setVoiceUrl(sig?.signedUrl ?? null);
         }
+        // Resolve product_ids → names/brands for a clear "Products used" list
+        const ids = (next?.product_ids ?? []).filter(Boolean);
+        if (ids.length) {
+          const { data: prods } = await supabase
+            .from("user_products")
+            .select("id, name, brand")
+            .in("id", ids);
+          if (!cancelled) setProducts((prods as ProductLookup[]) ?? []);
+        } else {
+          setProducts([]);
+        }
         setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, [user, id]);
+
 
   const handleSave = async () => {
     if (!wd || !draft || !user) return;
