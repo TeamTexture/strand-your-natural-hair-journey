@@ -237,10 +237,6 @@ const Auth = () => {
           </Button>
         </form>
 
-          <Button variant="gold" size="pill" type="submit" disabled={!canSubmit}>
-            {loading ? "Please wait…" : mode === "signup" ? "Create Account →" : "Sign In →"}
-          </Button>
-        </form>
 
         {mode === "signin" && (
           <button
