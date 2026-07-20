@@ -358,6 +358,34 @@ const JournalEntry = () => {
     });
   }, [id, storageKey, entry, isDbEntry, dbEntry]);
 
+  // Hydrate the editable title. Prefer localStorage draft (unsaved edits),
+  // then the DB / catalog title. Default to a friendly placeholder for new entries.
+  useEffect(() => {
+    if (!id || !entry) return;
+    try {
+      const cached = localStorage.getItem(titleKey);
+      if (cached && cached.trim()) {
+        setTitleDraft(cached);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    const initial = entry.title && entry.title !== "New journal entry" ? entry.title : "";
+    setTitleDraft(initial);
+  }, [id, titleKey, entry]);
+
+  const commitTitle = (value: string) => {
+    setTitleDraft(value);
+    try {
+      if (value.trim()) localStorage.setItem(titleKey, value);
+      else localStorage.removeItem(titleKey);
+    } catch {
+      /* ignore */
+    }
+  };
+
+
   const { allProducts } = useUserProducts("all");
   const selectedProducts = useMemo(
     () => allProducts.filter((p) => state.productIds.includes(p.id)),
