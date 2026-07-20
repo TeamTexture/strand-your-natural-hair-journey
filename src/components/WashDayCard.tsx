@@ -178,9 +178,10 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
               Key insight
             </span>
           </div>
-          <p className="text-[12.5px] leading-snug text-foreground/85 font-body break-words line-clamp-2">
+          <p className="text-[12.5px] leading-snug text-foreground/85 font-body break-words whitespace-pre-line">
             {insight}
           </p>
+
         </div>
       )}
 
