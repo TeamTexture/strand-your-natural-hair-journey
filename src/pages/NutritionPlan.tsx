@@ -741,6 +741,19 @@ const NutritionPlan = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {isOnboarding && (
+          <div className="pt-6">
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/onboarding/photos")}
+            >
+              Continue to STRAND →
+            </Button>
+          </div>
+        )}
       </div>
     </ScreenLayout>
   );
