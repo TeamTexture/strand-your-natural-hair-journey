@@ -550,7 +550,7 @@ const NutritionPlan = () => {
 
   return (
     <ScreenLayout bottomNav={!isOnboarding}>
-      <TitleBar title="Nutrition Plan" onBack={() => navigate(isOnboarding ? "/onboarding/blood-ai-summary" : -1)} />
+      <TitleBar title="Nutrition Plan" onBack={() => isOnboarding ? navigate("/onboarding/blood-ai-summary") : navigate(-1)} />
       <div className="px-5 pt-1 pb-8">
         <h1 className="font-display text-[26px] leading-tight mb-1">Your Nutrition Plan</h1>
         <p className="text-xs text-muted-foreground font-body mb-4">
