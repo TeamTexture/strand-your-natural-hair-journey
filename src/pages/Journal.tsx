@@ -143,7 +143,7 @@ const Journal = () => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, title, note, entry_date, photo_paths")
+        .select("id, title, note, entry_date, photo_paths, products_used")
         .eq("user_id", user.id)
         .order("entry_date", { ascending: false })
         .order("created_at", { ascending: false });
@@ -158,7 +158,22 @@ const Journal = () => {
           return { ...r, coverUrl: sig?.signedUrl };
         }),
       );
-      if (!cancelled) setSavedEntries(rows);
+      if (cancelled) return;
+      setSavedEntries(rows);
+      // Batch-load product names referenced across all entries so thumbnails
+      // can surface "Products used" without N extra queries per card.
+      const allIds = Array.from(new Set(rows.flatMap((r) => r.products_used ?? [])));
+      if (allIds.length) {
+        const { data: prods } = await supabase
+          .from("user_products")
+          .select("id, name, brand")
+          .in("id", allIds);
+        if (!cancelled && prods) {
+          const map: Record<string, { name: string; brand: string | null }> = {};
+          for (const p of prods) map[p.id] = { name: p.name, brand: p.brand };
+          setProductLookup(map);
+        }
+      }
     })();
     return () => { cancelled = true; };
   }, [user]);
