@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
+import { useBackButtonContext } from "@/components/BackButtonContext";
+
 
 const NAV: { label: string; to: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { label: "Home", to: "/home", icon: HomeIcon },
