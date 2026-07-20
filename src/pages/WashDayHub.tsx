@@ -440,11 +440,14 @@ const WashDayHub = () => {
           month={view.month}
           washDates={washDates}
           washDayIdsByDate={washDayIdsByDate}
+          scheduledDates={scheduledSet}
           onPrev={goPrev}
           onNext={goNext}
           onPickDate={(id) => navigate(`/wash-day/${id}`)}
           onLogDate={(iso) => navigate(`/wash/step-1?date=${iso}`)}
+          onScheduleDate={openScheduleDialog}
         />
+
         <SurfaceCard tone="gold">
           <div className="flex items-start gap-3">
             <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
