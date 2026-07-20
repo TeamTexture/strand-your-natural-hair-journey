@@ -282,8 +282,49 @@ const WashDayHub = () => {
   const navigate = useNavigate();
   const { washDays, loading } = useWashDays();
   const { goals } = useGoals();
+  const { user } = useAuth();
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
+
+  // Scheduled future wash days — stored per user in localStorage as a simple
+  // planning aid (no server-side row until they log the wash for real).
+  const storageKey = user ? `strand.scheduledWashDays.${user.id}` : null;
+  const [scheduled, setScheduled] = useState<string[]>([]);
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const arr = raw ? (JSON.parse(raw) as string[]) : [];
+      const todayIso = isoFor(today.getFullYear(), today.getMonth(), today.getDate());
+      // Prune past scheduled dates automatically.
+      const pruned = arr.filter((d) => d >= todayIso);
+      setScheduled(pruned);
+      if (pruned.length !== arr.length) localStorage.setItem(storageKey, JSON.stringify(pruned));
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+  const persistScheduled = (next: string[]) => {
+    setScheduled(next);
+    if (storageKey) {
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* ignore */ }
+    }
+  };
+  const scheduledSet = useMemo(() => new Set(scheduled), [scheduled]);
+
+  const [scheduleDialogIso, setScheduleDialogIso] = useState<string | null>(null);
+  const openScheduleDialog = (iso: string) => setScheduleDialogIso(iso);
+  const confirmSchedule = () => {
+    if (scheduleDialogIso && !scheduledSet.has(scheduleDialogIso)) {
+      persistScheduled([...scheduled, scheduleDialogIso].sort());
+    }
+  };
+  const removeSchedule = () => {
+    if (scheduleDialogIso) {
+      persistScheduled(scheduled.filter((d) => d !== scheduleDialogIso));
+      setScheduleDialogIso(null);
+    }
+  };
+
 
   const { washDates, washDayIdsByDate, currentMonthCount } = useMemo(() => {
     const dates = new Set<string>();
