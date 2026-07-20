@@ -312,6 +312,16 @@ const MoodboardBoard = () => {
               >
                 <Trash2 className="size-4" />
               </button>
+              {!board.is_favourites && (
+                <button
+                  onClick={() => handleSetCover(img)}
+                  aria-label="Set as board cover"
+                  title="Set as cover"
+                  className="absolute bottom-2 left-2 size-9 rounded-full bg-white/85 text-primary hover:bg-white flex items-center justify-center shadow"
+                >
+                  <Star className="size-4" />
+                </button>
+              )}
               <button
                 onClick={() => setSharing(img)}
                 aria-label="Share image"
