@@ -29,14 +29,28 @@ const IngredientResearch = () => {
   const { allProducts, loading: productsLoading } = useUserProducts("all");
 
   const relatedProducts = useMemo(() => {
-    const target = ingredient.toLowerCase();
+    const normalise = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const target = normalise(ingredient);
     if (!target) return [];
+    // Build a tolerant token set: exact normalised form + a compact no-space form
+    const targetCompact = target.replace(/\s+/g, "");
     return allProducts.filter((p) => {
       const names = [
         ...(p.ingredients ?? []),
         ...(p.key_ingredients ?? []).map((i) => i.name),
       ];
-      return names.some((name) => name.toLowerCase().trim() === target);
+      return names.some((rawName) => {
+        const name = normalise(rawName);
+        if (!name) return false;
+        if (name === target) return true;
+        const nameCompact = name.replace(/\s+/g, "");
+        if (nameCompact === targetCompact) return true;
+        // Word-boundary style containment so "Sodium PCA" matches
+        // "Sodium PCA (Amino Acid)" or "Aqua, Sodium PCA, Glycerin"
+        const pattern = new RegExp(`(?:^|\\s)${target.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}(?:\\s|$)`);
+        return pattern.test(name);
+      });
     });
   }, [allProducts, ingredient]);
 
