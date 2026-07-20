@@ -38,6 +38,7 @@ import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import BrandLink from "@/components/BrandLink";
+import { stripStaleDates } from "@/lib/stripStaleDates";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
