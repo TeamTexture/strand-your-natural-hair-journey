@@ -33,7 +33,7 @@ const TitleBar = ({ title, right, back = true, onBack }: Props) => {
 
   return (
     <div className="h-12 px-4 flex items-center justify-between gap-2 shrink-0">
-      <div className="w-12 flex items-center">
+      <div className="w-12 flex-shrink-0 flex items-center">
         {back && (
           <button
             onClick={handleBack}
@@ -44,8 +44,10 @@ const TitleBar = ({ title, right, back = true, onBack }: Props) => {
           </button>
         )}
       </div>
-      <h1 className="font-display text-base text-foreground truncate">{title}</h1>
-      <div className="w-12 flex items-center justify-end text-xs text-muted-foreground font-body">
+      <h1 className="flex-1 min-w-0 text-center font-display text-base text-foreground truncate px-2">
+        {title}
+      </h1>
+      <div className="flex-shrink-0 flex items-center justify-end text-xs text-muted-foreground font-body">
         {right}
       </div>
     </div>
