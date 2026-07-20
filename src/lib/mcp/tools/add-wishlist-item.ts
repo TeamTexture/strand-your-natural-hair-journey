@@ -25,6 +25,7 @@ export default defineTool({
     category: z.string().trim().optional().describe("Category, e.g. 'leave-in', 'oil', 'mask', 'supplement'."),
     reason: z.string().trim().optional().describe("Why this is recommended for the user."),
     priority: z.number().int().optional().describe("Optional priority ranking; stored as match_score."),
+    source_url: z.string().url().optional().describe("Product page URL if known — used to pull the thumbnail image."),
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
@@ -34,10 +35,16 @@ export default defineTool({
       const sb = supabaseForUser(ctx);
       const product_key = keyOf(input.brand, input.name);
 
+      const enriched = await enrichProduct({
+        name: input.name,
+        brand: input.brand,
+        source_url: input.source_url,
+      });
+
       // If a row already exists for this product_key (e.g. previously on shelf), flip on_wishlist true.
       const { data: existing } = await sb
         .from("user_products")
-        .select("id, on_wishlist, on_shelf")
+        .select("id, on_wishlist, on_shelf, image_url, source_url")
         .eq("user_id", ctx.getUserId())
         .eq("product_key", product_key)
         .maybeSingle();
@@ -50,9 +57,12 @@ export default defineTool({
             ai_summary: input.reason ?? undefined,
             match_score: input.priority ?? undefined,
             category: input.category ?? undefined,
+            // Only fill image/url if the existing row has none — never overwrite in-app captures.
+            image_url: existing.image_url ?? enriched.image_url ?? undefined,
+            source_url: existing.source_url ?? enriched.source_url ?? undefined,
           })
           .eq("id", existing.id)
-          .select("id, name, brand, on_wishlist, on_shelf")
+          .select("id, name, brand, image_url, source_url, on_wishlist, on_shelf")
           .single();
         if (error) return { content: [{ type: "text", text: error.message }], isError: true };
         return {
@@ -73,8 +83,10 @@ export default defineTool({
           on_shelf: false,
           ai_summary: input.reason ?? null,
           match_score: input.priority ?? null,
+          image_url: enriched.image_url ?? null,
+          source_url: enriched.source_url ?? null,
         })
-        .select("id, name, brand, category, ai_summary, match_score, on_wishlist")
+        .select("id, name, brand, category, ai_summary, match_score, image_url, source_url, on_wishlist")
         .single();
       if (error) return { content: [{ type: "text", text: error.message }], isError: true };
       return {

@@ -743,7 +743,8 @@ var add_wishlist_item_default = defineTool15({
     brand: z11.string().trim().optional().describe("Brand name."),
     category: z11.string().trim().optional().describe("Category, e.g. 'leave-in', 'oil', 'mask', 'supplement'."),
     reason: z11.string().trim().optional().describe("Why this is recommended for the user."),
-    priority: z11.number().int().optional().describe("Optional priority ranking; stored as match_score.")
+    priority: z11.number().int().optional().describe("Optional priority ranking; stored as match_score."),
+    source_url: z11.string().url().optional().describe("Product page URL if known \u2014 used to pull the thumbnail image.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
@@ -752,14 +753,22 @@ var add_wishlist_item_default = defineTool15({
         return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
       const sb = supabaseForUser15(ctx);
       const product_key = keyOf2(input.brand, input.name);
-      const { data: existing } = await sb.from("user_products").select("id, on_wishlist, on_shelf").eq("user_id", ctx.getUserId()).eq("product_key", product_key).maybeSingle();
+      const enriched = await enrichProduct({
+        name: input.name,
+        brand: input.brand,
+        source_url: input.source_url
+      });
+      const { data: existing } = await sb.from("user_products").select("id, on_wishlist, on_shelf, image_url, source_url").eq("user_id", ctx.getUserId()).eq("product_key", product_key).maybeSingle();
       if (existing) {
         const { data: data2, error: error2 } = await sb.from("user_products").update({
           on_wishlist: true,
           ai_summary: input.reason ?? void 0,
           match_score: input.priority ?? void 0,
-          category: input.category ?? void 0
-        }).eq("id", existing.id).select("id, name, brand, on_wishlist, on_shelf").single();
+          category: input.category ?? void 0,
+          // Only fill image/url if the existing row has none — never overwrite in-app captures.
+          image_url: existing.image_url ?? enriched.image_url ?? void 0,
+          source_url: existing.source_url ?? enriched.source_url ?? void 0
+        }).eq("id", existing.id).select("id, name, brand, image_url, source_url, on_wishlist, on_shelf").single();
         if (error2) return { content: [{ type: "text", text: error2.message }], isError: true };
         return {
           content: [{ type: "text", text: `Updated wishlist entry for ${data2.brand ? data2.brand + " " : ""}${data2.name}.` }],
@@ -775,8 +784,10 @@ var add_wishlist_item_default = defineTool15({
         on_wishlist: true,
         on_shelf: false,
         ai_summary: input.reason ?? null,
-        match_score: input.priority ?? null
-      }).select("id, name, brand, category, ai_summary, match_score, on_wishlist").single();
+        match_score: input.priority ?? null,
+        image_url: enriched.image_url ?? null,
+        source_url: enriched.source_url ?? null
+      }).select("id, name, brand, category, ai_summary, match_score, image_url, source_url, on_wishlist").single();
       if (error) return { content: [{ type: "text", text: error.message }], isError: true };
       return {
         content: [{ type: "text", text: `Added ${data.brand ? data.brand + " " : ""}${data.name} to wishlist.` }],
