@@ -143,15 +143,27 @@ const BloodTiming = () => {
             </Button>
           </>
         ) : (
-          <Button
-            variant="gold"
-            size="pill"
-            className="mt-4"
-            onClick={() => navigate("/onboarding/blood-iron-vitamins")}
-          >
-            Input My Results →
-          </Button>
+          <div className="space-y-3 mt-4">
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/blood-upload?onboarding=1")}
+            >
+              <Upload className="size-4 mr-1.5" />
+              Upload PDF or Photo
+            </Button>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/onboarding/blood-iron-vitamins")}
+            >
+              Input Manually →
+            </Button>
+          </div>
         )}
+
       </div>
     </ScreenLayout>
   );
