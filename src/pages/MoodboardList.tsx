@@ -352,11 +352,7 @@ const MoodboardList = () => {
                   <img src={coverPreview} alt="Cover preview" className="absolute inset-0 size-full object-cover" />
                   <button
                     type="button"
-                    onClick={() => {
-                      setCoverFile(null);
-                      if (coverPreview) URL.revokeObjectURL(coverPreview);
-                      setCoverPreview(null);
-                    }}
+                    onClick={clearCover}
                     className="absolute top-1.5 right-1.5 size-7 rounded-full bg-black/55 text-white flex items-center justify-center"
                     aria-label="Remove cover"
                   >
