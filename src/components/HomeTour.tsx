@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { X, Sparkles } from "lucide-react";
 
-// Bumped key — the tour is refreshed for every user once.
-const TOUR_KEY = "strand_home_tour_seen_v2";
+// Bumped key — tour is refreshed once for every user when new steps are added.
+const TOUR_KEY = "strand_home_tour_seen_v3";
 const PENDING_KEY = "strand_home_tour_pending";
 
 type Step = {
@@ -27,7 +27,7 @@ const STEPS: Step[] = [
     target: null,
     eyebrow: "Welcome",
     title: "This is your home for hair",
-    body: "STRAND has read your profile, your bloods and your goals. Let's walk through what each panel on this screen is telling you — 30 seconds, skip anytime.",
+    body: "STRAND has read your profile, your bloods and your goals. Let's take a quick walk through every part of the app — 60 seconds, and you can skip anytime.",
   },
   {
     target: "current-style",
@@ -55,21 +55,63 @@ const STEPS: Step[] = [
   },
   {
     target: "quick-actions",
-    eyebrow: "Panel 5",
-    title: "Quick Actions",
-    body: "One tap to log a wash day, add a product, journal a style or book an appointment. Every entry sharpens the guidance you get everywhere else.",
+    eyebrow: "Quick actions",
+    title: "Four one-tap shortcuts",
+    body: "These four buttons are the fastest way to feed STRAND new data. Let's step through each one so you know exactly what it captures.",
+  },
+  {
+    target: "qa-wash",
+    eyebrow: "Quick action 1 of 4",
+    title: "Log Wash Day",
+    body: "Every wash you log — products, technique, scalp feel, breakage, styling — becomes the single richest signal STRAND uses. Your next-wash tip, product ratings and heat guidance all come from this.",
+  },
+  {
+    target: "qa-product",
+    eyebrow: "Quick action 2 of 4",
+    title: "Add Product",
+    body: "Scan a bottle, screenshot a page or paste a URL. STRAND reads the ingredients, rates the product against your hair profile and goal, and adds it to your shelf ready to use on wash day.",
+  },
+  {
+    target: "qa-journal",
+    eyebrow: "Quick action 3 of 4",
+    title: "Style Journal",
+    body: "A visual diary of every style you wear — braids, wigs, silk press, twist-outs. Photos, notes, how long you kept it in. It's how STRAND learns which styles genuinely work for your hair.",
+  },
+  {
+    target: "qa-appt",
+    eyebrow: "Quick action 4 of 4",
+    title: "Appointments",
+    body: "Book and track sessions with your stylist, trichologist or salon. STRAND uses these dates to time your wash rhythm, heat treatments and style ceilings around them.",
   },
   {
     target: "my-shelf",
-    eyebrow: "Panel 6",
+    eyebrow: "Panel 5",
     title: "My Shelf",
     body: "Everything you own, rated by STRAND against your hair profile and goals. Tap a product to see how well it fits you and how to get the most out of it.",
+  },
+  {
+    target: "bottom-nav",
+    eyebrow: "Navigation",
+    title: "Your bottom bar",
+    body: "Home · Products · Wash Day · Diet · Profile. These five tabs are always with you — jump between the core sections of STRAND from any screen.",
+  },
+  {
+    target: "bottom-nav-profile",
+    eyebrow: "Profile tab",
+    title: "Update your details here",
+    body: "Your Profile tab is where you edit hair type, health profile, medications, current style, photos and anything else STRAND uses to personalise. Update it whenever anything changes — the guidance updates with you.",
+  },
+  {
+    target: "global-menu",
+    eyebrow: "Top-right menu",
+    title: "The full menu lives here",
+    body: "Tap the menu icon top-right on any screen to jump straight to Blood Work, Nutrition, Directory, Style Journal, Help, Contact or Sign out. It's the shortcut to everywhere else in STRAND.",
   },
   {
     target: null,
     eyebrow: "You're set",
     title: "One last thing",
-    body: "Let's set your first goal so every tip on the home screen starts working for you from day one.",
+    body: "You can replay this tour anytime from the ‘Take the tour’ button pinned at the top of your home screen. Now let's set your first goal so every tip starts working for you from day one.",
   },
 ];
 
@@ -80,16 +122,32 @@ const HomeTour = () => {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
 
-  // Start the tour if it hasn't been seen, or if onboarding just flagged it pending.
+  // Auto-start ONLY when onboarding just flagged the tour as pending.
+  // We never auto-run for returning users on every login — they trigger it
+  // manually via the pinned "Take the tour" button which dispatches an event.
   useEffect(() => {
+    const startFromScratch = () => {
+      setStep(0);
+      setActive(true);
+    };
     try {
       const seen = localStorage.getItem(TOUR_KEY);
       const pending = localStorage.getItem(PENDING_KEY);
-      if (!seen || pending) {
-        const t = setTimeout(() => setActive(true), 400);
+      if (pending && !seen) {
+        const t = setTimeout(startFromScratch, 400);
         return () => clearTimeout(t);
       }
     } catch {}
+  }, []);
+
+  // Allow the pinned Home button (or any caller) to replay the tour on demand.
+  useEffect(() => {
+    const onStart = () => {
+      setStep(0);
+      setActive(true);
+    };
+    window.addEventListener("strand:start-tour", onStart as EventListener);
+    return () => window.removeEventListener("strand:start-tour", onStart as EventListener);
   }, []);
 
   const current = STEPS[step];
@@ -135,7 +193,6 @@ const HomeTour = () => {
     } catch {}
     setActive(false);
     if (!skipped) {
-      // Small delay so the overlay unmounts cleanly before the dialog opens.
       setTimeout(() => setGoalOpen(true), 250);
     }
   };
