@@ -120,12 +120,33 @@ const Appointments = () => {
   }, [user]);
 
   const today = new Date().toISOString().slice(0, 10);
+
+  const filteredAppts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return appts;
+    return appts.filter((a) => {
+      const haystack = [
+        a.professional_name,
+        a.professional_type,
+        a.clinic_name,
+        a.reason,
+        a.notes,
+        a.outcome_notes,
+        a.appointment_date,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [appts, search]);
+
   // Status is the source of truth: anything marked "completed" belongs in Past
   // regardless of date; anything else is Upcoming unless its date has already
   // slipped into the past (in which case we still show it under Past so it
   // doesn't hang around the top of the list forever).
-  const upcoming = appts.filter((a) => a.status !== "completed" && a.appointment_date >= today);
-  const past = appts.filter((a) => a.status === "completed" || a.appointment_date < today);
+  const upcoming = filteredAppts.filter((a) => a.status !== "completed" && a.appointment_date >= today);
+  const past = filteredAppts.filter((a) => a.status === "completed" || a.appointment_date < today);
 
   const goLog = () => navigate("/appointments/log");
 
