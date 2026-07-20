@@ -186,9 +186,19 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
     <div className="rounded-[22px] border border-border bg-secondary/70 shadow-sm">
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
-          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-semibold font-body leading-relaxed">
-            {dateTime}
-          </p>
+          <div className="flex flex-col items-start gap-0.5">
+            <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-semibold font-body">
+              {kicker}
+            </p>
+            <p className="font-display text-foreground text-lg font-bold leading-tight tracking-tight">
+              {formattedDate}
+            </p>
+            {formattedTime && (
+              <p className="text-foreground/80 text-[13px] font-bold font-body tracking-wide">
+                {formattedTime}
+              </p>
+            )}
+          </div>
           <span
             className={cn(
               "text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full shrink-0",
