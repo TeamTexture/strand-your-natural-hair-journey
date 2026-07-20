@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Plus, Camera, ImagePlus, X } from "lucide-react";
+import { Trash2, Plus, Camera, ImagePlus, X, Link as LinkIcon, Check } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import {
@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useMoodboards, type Moodboard } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const GRADIENTS = [
-  "from-[#C8B89A] to-[#D4B96A]",
+  "from-[#6B4423] to-[#3E2410]",
   "from-[#D4AA52] to-[#C49A3C]",
   "from-[#E8D8C0] to-[#A07828]",
   "from-[#DDD0B8] to-[#C8B89A]",
