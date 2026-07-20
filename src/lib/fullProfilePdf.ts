@@ -27,6 +27,7 @@
 import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { formatTime12h } from "@/lib/formatTime";
 
 import { BLOOD_RANGES, evaluate, statusLabel } from "@/data/bloodRanges";
 
@@ -452,7 +453,7 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
   if (d.appts.length === 0) cur.empty("No appointments logged.");
   else {
     for (const a of d.appts) {
-      cur.card(`${fmtDate(a.appointment_date)}${a.appointment_time ? ` · ${a.appointment_time}` : ""}`, [
+      cur.card(`${fmtDate(a.appointment_date)}${a.appointment_time ? ` · ${formatTime12h(a.appointment_time)}` : ""}`, [
         { label: "Professional", value: a.professional_name || "" },
         { label: "Type", value: a.professional_type || "" },
         { label: "Clinic", value: a.clinic_name || "" },

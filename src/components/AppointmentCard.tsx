@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import ProAvatar from "@/components/ProAvatar";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { CalendarEvent } from "@/lib/addToCalendar";
+import { formatTime12h } from "@/lib/formatTime";
 
 export interface AppointmentCardData {
   id: string;
@@ -54,7 +55,7 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
 
   const dateTime = `${appointment.professional_type ?? "Appointment"} · ${formatDate(
     appointment.appointment_date,
-  )}${appointment.appointment_time ? ` · ${appointment.appointment_time}` : ""}`;
+  )}${appointment.appointment_time ? ` · ${formatTime12h(appointment.appointment_time)}` : ""}`;
 
   const subtitle =
     [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
