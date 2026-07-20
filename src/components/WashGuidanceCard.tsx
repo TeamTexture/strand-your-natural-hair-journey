@@ -64,7 +64,7 @@ const buildTips = (p: HairProfile | null): string[] => {
 };
 
 const WashGuidanceCard = () => {
-  const [profile, setProfile] = useState<HairProfile | null>(null);
+  const renderTip = useSmartInline();
   useEffect(() => {
     let cancelled = false;
     void (async () => {
