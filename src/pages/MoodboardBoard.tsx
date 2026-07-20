@@ -178,10 +178,17 @@ const MoodboardBoard = () => {
     );
   }
 
+  const gradientClass = board.gradient ?? "from-[#C8B89A] to-[#D4B96A]";
+  // Dark palettes need light contrasting text (white / bright gold)
+  const isDarkGradient = /#(6B4423|3E2410|8B6914|C49A3C|A07828)/i.test(gradientClass);
+  const contrastClass = isDarkGradient
+    ? "[&_.text-foreground]:!text-white [&_h1.text-foreground]:!text-[#FFD87A] [&_.text-muted-foreground]:!text-white/80 [&_.text-foreground\\/80]:!text-white/90"
+    : "";
+
   return (
     <ScreenLayout
       bottomNav
-      backgroundClassName={`bg-gradient-to-br ${board.gradient ?? "from-[#C8B89A] to-[#D4B96A]"}`}
+      backgroundClassName={`bg-gradient-to-br ${gradientClass} ${contrastClass}`}
     >
       <TitleBar title={board.name} onBack={() => navigate("/journal/moodboards")} />
 
