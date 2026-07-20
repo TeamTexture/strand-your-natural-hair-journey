@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import ProAvatar from "@/components/ProAvatar";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { CalendarEvent } from "@/lib/addToCalendar";
+import { formatTime12h } from "@/lib/formatTime";
 
 export interface AppointmentCardData {
   id: string;
