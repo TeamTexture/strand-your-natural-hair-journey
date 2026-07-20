@@ -394,7 +394,20 @@ export function NextWashTipCard({
   collapsed = false,
 }: NextWashTipCardProps) {
   const { products } = useUserProducts("all");
-  const sections = buildTipSections(why);
+
+  // If a legacy tip crammed everything into `action`, condense the header and
+  // push the leftover into `why` so it becomes body copy rather than a
+  // 3-line "title".
+  const rawAction = String(action ?? "").trim();
+  const rawWhy = String(why ?? "").trim();
+  const condensedAction = condenseHeader(rawAction);
+  const overflow =
+    rawAction && condensedAction &&
+    rawAction.replace(/\s+/g, " ").length > condensedAction.replace(/[…]$/, "").length + 2
+      ? rawAction
+      : "";
+  const effectiveWhy = [overflow, rawWhy].filter(Boolean).join("\n\n");
+  const sections = buildTipSections(effectiveWhy);
 
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
