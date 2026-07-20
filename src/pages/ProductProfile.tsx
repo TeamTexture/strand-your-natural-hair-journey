@@ -407,21 +407,64 @@ const ProductProfile = () => {
 
         {appearances.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Wash days</p>
-            <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {appearances.map(a => (
-                <button
-                  key={a.id}
-                  onClick={() => navigate(`/wash-day/${a.id}`)}
-                  className="w-full p-3.5 flex items-center justify-between text-left hover:bg-primary/5"
-                >
-                  <span className="text-sm font-medium">{formatDate(a.date)}</span>
-                  {a.stepName && <span className="text-[11px] text-muted-foreground">{a.stepName}</span>}
-                </button>
-              ))}
-            </SurfaceCard>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">
+              Wash days with this product
+            </p>
+            <div className="space-y-2">
+              {appearances.map(a => {
+                const chips = [a.stepName, a.scalpFeel, a.breakage, a.styleAfter]
+                  .filter((c): c is string => !!c && c.trim().length > 0)
+                  .slice(0, 3);
+                const insight = a.insight?.replace(/\s+/g, " ").trim() ?? "";
+                const snippet = insight.length > 120 ? `${insight.slice(0, 117)}…` : insight;
+                const thumb = thumbUrls[a.id];
+                return (
+                  <SurfaceCard key={a.id} padded={false}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/wash-day/${a.id}`)}
+                      className="w-full p-3 flex gap-3 text-left hover:bg-primary/5 rounded-inherit"
+                      aria-label={`Review wash day on ${formatDate(a.date)}`}
+                    >
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-primary/10 border border-border/60 flex items-center justify-center">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <span className="text-lg">💧</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium truncate">{formatDate(a.date)}</span>
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-primary shrink-0">Review →</span>
+                        </div>
+                        {chips.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {chips.map((c, i) => (
+                              <span
+                                key={`${a.id}-${i}`}
+                                className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary/90"
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {snippet && (
+                          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                            {snippet}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  </SurfaceCard>
+                );
+              })}
+            </div>
           </div>
         )}
+
+
 
         <div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Strand rating</p>
