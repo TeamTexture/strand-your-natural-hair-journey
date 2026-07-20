@@ -119,6 +119,14 @@ const MoodboardList = () => {
     setLinkImages([]);
   };
 
+  const buildCoverImageUrl = () => {
+    const selected = coverLinkUrl?.trim();
+    if (selected) return selected;
+    const pasted = linkUrl.trim();
+    if (!coverFile && pasted) return pasted;
+    return null;
+  };
+
 
   const handlePickCover = async (file: File | undefined) => {
     if (!file) return;
@@ -163,22 +171,24 @@ const MoodboardList = () => {
     }
     setSaving(true);
     try {
+      const linkCover = buildCoverImageUrl();
       const board = await createBoard({ name: name.trim(), gradient, coverFile: coverFile ?? undefined });
       // If the cover came from a link (not a File), download it server-side and
       // add it as the board's first image so it becomes the cover.
-      if (board && coverLinkUrl && !coverFile) {
+      if (board && linkCover && !coverFile) {
         try {
           const { data, error } = await supabase.functions.invoke("moodboard-import-image", {
-            body: { board_id: board.id, image_urls: [coverLinkUrl] },
+            body: { board_id: board.id, image_urls: [linkCover] },
           });
           if (error) throw error;
           if (!data?.imported) {
             const reason = data?.results?.[0]?.error || "Could not use that image";
-            toast.error(`Cover image skipped — ${reason}`);
+            throw new Error(reason);
           }
         } catch (e) {
           console.error("Cover import failed:", e);
-          toast.error("Board created, but the cover image couldn't be saved");
+          await deleteBoard(board).catch((cleanupError) => console.error("Cover cleanup failed:", cleanupError));
+          throw new Error("The board wasn't created because the cover image couldn't be saved. Try a different Pin or image link.");
         }
       }
       toast.success(`${name.trim()} created`);
@@ -349,7 +359,17 @@ const MoodboardList = () => {
               />
               {coverPreview ? (
                 <div className={`relative h-28 rounded-[12px] overflow-hidden bg-gradient-to-br ${gradient}`}>
-                  <img src={coverPreview} alt="Cover preview" className="absolute inset-0 size-full object-cover" />
+                  <img
+                    src={coverPreview}
+                    alt="Cover preview"
+                    className="absolute inset-0 size-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.opacity = "0";
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-xs font-semibold text-primary-foreground bg-black/35">
+                    Cover selected from link
+                  </div>
                   <button
                     type="button"
                     onClick={clearCover}
@@ -463,9 +483,12 @@ const MoodboardList = () => {
                               loading="lazy"
                               className="absolute inset-0 size-full object-cover"
                               onError={(e) => {
-                                (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+                                e.currentTarget.style.opacity = "0";
                               }}
                             />
+                            <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-[10px] font-semibold leading-tight text-primary bg-secondary">
+                              Use image
+                            </span>
                             <span className="absolute top-1 right-1 size-5 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center opacity-0 hover:opacity-100">
                               <Check className="size-3" />
                             </span>
