@@ -514,6 +514,33 @@ const JournalEntry = () => {
     };
   }, [user, id, photoPathKey, photosKey]);
 
+  // Safety net: any path in photoPaths that has no signed URL yet gets one
+  // fetched here. Covers upload responses that came back with an empty URL and
+  // reorder/remove cases where a stale map is missing keys.
+  useEffect(() => {
+    if (!user || photoPaths.length === 0) return;
+    const missing = photoPaths.filter((p) => !photoUrls[p]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        missing.map(async (p) => {
+          const { data, error } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(p, 3600);
+          if (error) console.error("Journal photo signed URL refresh failed:", error, { path: p });
+          return [p, data?.signedUrl ?? ""] as const;
+        }),
+      );
+      if (cancelled) return;
+      setPhotoUrls((prev) => {
+        const next = { ...prev };
+        entries.forEach(([p, url]) => { if (url) next[p] = url; });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [photoPaths, photoUrls, user]);
+
+
   const handlePhotoUpload = async (files: FileList | File[]) => {
     if (!user) {
       toast.error("Please sign in to add photos");
@@ -568,14 +595,20 @@ const JournalEntry = () => {
           .from(PHOTO_BUCKET)
           .upload(path, file, { contentType: file.type || (isVideoFile ? "video/mp4" : undefined), upsert: false });
         if (upErr) {
-          console.error("Upload failed:", upErr);
-          toast.error(`${file.name}: upload failed`);
+          console.error("Journal photo upload failed:", upErr, { path, size: file.size, type: file.type });
+          toast.error(`${file.name}: ${upErr.message || "upload failed"}`);
           continue;
         }
-        const { data: sig } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .createSignedUrl(path, 3600);
-        uploaded.push({ path, url: sig?.signedUrl ?? "" });
+        // Sign URL — retry once if it comes back empty so the tile actually renders.
+        let signedUrl = "";
+        for (let attempt = 0; attempt < 2 && !signedUrl; attempt++) {
+          const { data: sig, error: sigErr } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(path, 3600);
+          if (sigErr) console.error("Journal photo signed URL failed:", sigErr, { path });
+          signedUrl = sig?.signedUrl ?? "";
+        }
+        uploaded.push({ path, url: signedUrl });
       }
       if (uploaded.length === 0) return;
       const nextPaths = [...photoPaths, ...uploaded.map((u) => u.path)];
