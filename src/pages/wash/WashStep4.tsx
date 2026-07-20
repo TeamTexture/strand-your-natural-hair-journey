@@ -218,7 +218,19 @@ const WashStep4 = () => {
         scalp_feel: step2.scalp?.[0] ?? null,
         breakage: step2.breakage?.[0] ?? null,
         style_after: styling.style?.[0] ?? null,
-        duration_min: null,
+        duration_min: (() => {
+          const bucket = styling.duration?.[0];
+          if (!bucket) return null;
+          const map: Record<string, number> = {
+            "Under 30 min": 20,
+            "30-60 min": 45,
+            "1-2 hours": 90,
+            "2-4 hours": 180,
+            "4+ hours": 300,
+          };
+          return map[bucket] ?? null;
+        })(),
+
         stress_level: styling.stress?.[0]
           ? ({ Low: 1, Moderate: 2, High: 3 } as Record<string, number>)[styling.stress[0]] ?? null
           : null,
