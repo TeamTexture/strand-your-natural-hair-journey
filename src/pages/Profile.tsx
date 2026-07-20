@@ -9,6 +9,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import UserAvatar from "@/components/UserAvatar";
 import FontScaleControl from "@/components/FontScaleControl";
+import { formatTime12h } from "@/lib/formatTime";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
