@@ -7,7 +7,9 @@ import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
 import RequireAuth from "@/components/RequireAuth";
 import GlobalMenu from "@/components/GlobalMenu";
+import { BackButtonProvider } from "@/components/BackButtonContext";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
+
 
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
