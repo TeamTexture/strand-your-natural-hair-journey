@@ -558,7 +558,7 @@ export default function BloodUpload() {
           </SurfaceCard>
         )}
 
-        {isOnboarding && files.length === 0 && (
+        {isOnboarding && !savedInOnboarding && files.length === 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
