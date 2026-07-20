@@ -91,31 +91,61 @@ const SeverityChip = ({ level }: { level?: string }) => {
   );
 };
 
-// Split an actionable "how to use / best paired with" section out of the
-// card body so it ALWAYS renders in a dedicated Strand tip box, regardless
-// of how the model formatted the paragraph order.
-const TIP_LABELS = [
-  "How to use", "How to take", "How to eat", "How to prepare",
-  "How it helps", "Best paired with", "Pair with", "Best with",
-  "Try this", "Do this",
+// Split every actionable card section into dedicated Strand tip boxes so the
+// UI enforces this even for cached or newly generated AI text.
+const STRAND_TIP_LABELS = [
+  "How to use it", "How to use", "How to take", "How to eat", "How to prepare",
+  "Best paired with", "Pair with", "Best with", "Try this", "Do this",
+  "Watch out for", "Watch out", "Watch for",
 ];
-const splitHowToUse = (raw: string): { rest: string; howToUse: string | null } => {
+
+const NON_TIP_LABELS = [
+  "Why it matters", "Why this matters", "Why it helps", "Your signal", "Your focus",
+  "Best sources", "Easier swap", "The action", "The rationale", "Note", "Strand tip",
+];
+
+const ALL_CARD_LABELS = [...STRAND_TIP_LABELS, ...NON_TIP_LABELS];
+
+const splitStrandTips = (raw: string): { rest: string; tips: string[] } => {
   const text = String(raw ?? "")
     .replace(/\\n/g, "\n")
     .replace(/\/n\/n/g, "\n\n")
     .replace(/\/n/g, "\n");
-  const re = new RegExp(`\\*{0,2}\\b(?:${TIP_LABELS.join("|")})\\b\\*{0,2}\\s*:\\*{0,2}\\s*`, "i");
-  const m = text.match(re);
-  if (!m || m.index === undefined) return { rest: text.trim(), howToUse: null };
-  const label = m[0].replace(/[*:\s]+$/g, "").replace(/^[*\s]+/, "");
-  const before = text.slice(0, m.index);
-  const after = text.slice(m.index + m[0].length);
-  const nextLabel = after.match(/\n{1,}\s*\*{0,2}\b(Your signal|Your focus|Why it matters|Why this matters|Watch for|Best sources|The action|The rationale|Note|Strand tip)\b/i);
-  const tipBody = (nextLabel ? after.slice(0, nextLabel.index) : after).trim();
-  const trailing = nextLabel ? after.slice(nextLabel.index) : "";
-  const rest = (before + "\n\n" + trailing).replace(/\n{3,}/g, "\n\n").trim();
-  const tip = tipBody ? `**${label}:** ${tipBody}` : null;
-  return { rest, howToUse: tip };
+  const labelRe = new RegExp(`\\*{0,2}\\b(${ALL_CARD_LABELS.join("|")})\\b\\*{0,2}\\s*:\\*{0,2}\\s*`, "gi");
+  const matches = Array.from(text.matchAll(labelRe));
+  if (matches.length === 0) return { rest: text.trim(), tips: [] };
+
+  const restParts: string[] = [];
+  const tips: string[] = [];
+  let cursor = 0;
+
+  matches.forEach((match, idx) => {
+    const start = match.index ?? 0;
+    if (start > cursor) restParts.push(text.slice(cursor, start));
+
+    const label = String(match[1] ?? "").trim();
+    const bodyStart = start + match[0].length;
+    const bodyEnd = idx + 1 < matches.length ? matches[idx + 1].index ?? text.length : text.length;
+    const body = text.slice(bodyStart, bodyEnd).trim();
+    const isTip = STRAND_TIP_LABELS.some((l) => l.toLowerCase() === label.toLowerCase());
+
+    if (body) {
+      if (isTip) {
+        const normalisedLabel = /^watch (out|for)/i.test(label) ? "Watch out for" : label;
+        tips.push(`**${normalisedLabel}:** ${body}`);
+      } else {
+        restParts.push(`\n\n${label}: ${body}`);
+      }
+    }
+    cursor = bodyEnd;
+  });
+
+  if (cursor < text.length) restParts.push(text.slice(cursor));
+
+  return {
+    rest: restParts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(),
+    tips,
+  };
 };
 
 const StrandTipBox = ({ text }: { text: string }) => {
@@ -141,7 +171,7 @@ const StrandTipBox = ({ text }: { text: string }) => {
 };
 
 const SupplementCard = ({ s }: { s: AiSupplement }) => {
-  const { rest, howToUse } = splitHowToUse(s.body);
+  const { rest, tips } = splitStrandTips(s.body);
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
       <div className="flex gap-3">
@@ -157,8 +187,8 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
               <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
             </div>
           )}
-          {rest && <RichBody text={rest} className="mt-2" strandTipLast={!howToUse} />}
-          {howToUse && <StrandTipBox text={howToUse} />}
+          {rest && <RichBody text={rest} className="mt-2" strandTipLast={tips.length === 0} />}
+          {tips.map((tip, i) => <StrandTipBox key={`${s.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
     </SurfaceCard>
@@ -166,15 +196,15 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
 };
 
 const DietCard = ({ c }: { c: AiCard }) => {
-  const { rest, howToUse } = splitHowToUse(c.body);
+  const { rest, tips } = splitStrandTips(c.body);
   return (
     <SurfaceCard className="border-l-4 border-l-good">
       <div className="flex gap-3">
         <IconBubble emoji={c.emoji || "🥗"} tone="good" />
         <div className="flex-1 min-w-0">
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={!howToUse} />}
-          {howToUse && <StrandTipBox text={howToUse} />}
+          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
+          {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
     </SurfaceCard>
@@ -182,7 +212,7 @@ const DietCard = ({ c }: { c: AiCard }) => {
 };
 
 const AvoidCard = ({ c }: { c: AiCard }) => {
-  const { rest, howToUse } = splitHowToUse(c.body);
+  const { rest, tips } = splitStrandTips(c.body);
   return (
     <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
       <div className="flex gap-3">
@@ -192,8 +222,8 @@ const AvoidCard = ({ c }: { c: AiCard }) => {
             <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
             <SeverityChip level={c.severity} />
           </div>
-          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={!howToUse} />}
-          {howToUse && <StrandTipBox text={howToUse} />}
+          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
+          {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
     </SurfaceCard>
