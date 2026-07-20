@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
 import { z } from "zod";
+import { enrichProduct } from "../_enrich";
 
 function supabaseForUser(ctx: ToolContext) {
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
@@ -33,6 +34,11 @@ export default defineTool({
         return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
       const sb = supabaseForUser(ctx);
       const toShelf = (input.destination ?? "shelf") === "shelf";
+      const enriched = await enrichProduct({
+        name: input.name,
+        brand: input.brand,
+        source_url: input.source_url,
+      });
       const { data, error } = await sb
         .from("user_products")
         .insert({
@@ -40,14 +46,15 @@ export default defineTool({
           name: input.name,
           brand: input.brand ?? null,
           category: input.category ?? null,
-          source_url: input.source_url ?? null,
+          source_url: enriched.source_url ?? input.source_url ?? null,
+          image_url: enriched.image_url ?? null,
           ingredients: input.ingredients ?? [],
           product_key: keyOf(input.brand, input.name),
           on_shelf: toShelf,
           on_wishlist: !toShelf,
           added_to_shelf_at: toShelf ? new Date().toISOString() : null,
         })
-        .select("id, name, brand, on_shelf, on_wishlist")
+        .select("id, name, brand, image_url, source_url, on_shelf, on_wishlist")
         .single();
       if (error) return { content: [{ type: "text", text: error.message }], isError: true };
       return {

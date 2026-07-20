@@ -354,6 +354,102 @@ var log_wash_day_default = defineTool9({
 import { createClient as createClient10 } from "npm:@supabase/supabase-js@^2.104.1";
 import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.23.0";
 import { z as z6 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/_enrich.ts
+var UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+function toHttps(u) {
+  if (!u) return null;
+  return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
+}
+function extractOgImage(html) {
+  const found = [];
+  const patterns = [
+    {
+      re: /<meta\s+(?:property|name)=["'](og:image:secure_url|og:image|twitter:image)["']\s+content=["']([^"']+)["']/gi,
+      kindIdx: 1,
+      urlIdx: 2
+    },
+    {
+      re: /<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["'](og:image:secure_url|og:image|twitter:image)["']/gi,
+      kindIdx: 2,
+      urlIdx: 1
+    }
+  ];
+  for (const { re, kindIdx, urlIdx } of patterns) {
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      const tag = m[kindIdx];
+      const url = m[urlIdx];
+      if (!url) continue;
+      const kind = tag === "og:image:secure_url" ? "secure" : tag === "og:image" ? "og" : "twitter";
+      found.push({ kind, url });
+    }
+  }
+  const pickHttps = (list) => {
+    const https = list.find((f) => f.url.startsWith("https://"))?.url;
+    if (https) return https;
+    return toHttps(list[0]?.url ?? null);
+  };
+  const secure = pickHttps(found.filter((f) => f.kind === "secure"));
+  if (secure) return secure;
+  const og = pickHttps(found.filter((f) => f.kind === "og"));
+  if (og) return og;
+  const tw = pickHttps(found.filter((f) => f.kind === "twitter"));
+  if (tw) return tw;
+  return null;
+}
+async function fetchOgImage(url) {
+  try {
+    const resp = await fetch(url, {
+      headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(6e3)
+    });
+    if (!resp.ok) return null;
+    return extractOgImage(await resp.text());
+  } catch {
+    return null;
+  }
+}
+async function firecrawlSearchTopUrl(query) {
+  const key = process.env.FIRECRAWL_API_KEY;
+  if (!key) return null;
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v2/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ query, limit: 3 }),
+      signal: AbortSignal.timeout(1e4)
+    });
+    if (!resp.ok) return null;
+    const body = await resp.json();
+    const web = body?.data?.web ?? body?.data?.results ?? [];
+    for (const r of web) {
+      const u = r?.url;
+      if (u && /^https?:\/\//i.test(u)) return u;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+async function enrichProduct(input) {
+  if (input.source_url) {
+    const img2 = await fetchOgImage(input.source_url);
+    return { image_url: img2, source_url: input.source_url };
+  }
+  const query = [input.brand ?? "", input.name].filter(Boolean).join(" ").trim();
+  if (!query) return { image_url: null, source_url: null };
+  const topUrl = await firecrawlSearchTopUrl(query);
+  if (!topUrl) return { image_url: null, source_url: null };
+  const img = await fetchOgImage(topUrl);
+  return { image_url: img, source_url: topUrl };
+}
+
+// src/lib/mcp/tools/add-product.ts
 function supabaseForUser10(ctx) {
   return createClient10(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
@@ -382,18 +478,24 @@ var add_product_default = defineTool10({
         return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
       const sb = supabaseForUser10(ctx);
       const toShelf = (input.destination ?? "shelf") === "shelf";
+      const enriched = await enrichProduct({
+        name: input.name,
+        brand: input.brand,
+        source_url: input.source_url
+      });
       const { data, error } = await sb.from("user_products").insert({
         user_id: ctx.getUserId(),
         name: input.name,
         brand: input.brand ?? null,
         category: input.category ?? null,
-        source_url: input.source_url ?? null,
+        source_url: enriched.source_url ?? input.source_url ?? null,
+        image_url: enriched.image_url ?? null,
         ingredients: input.ingredients ?? [],
         product_key: keyOf(input.brand, input.name),
         on_shelf: toShelf,
         on_wishlist: !toShelf,
         added_to_shelf_at: toShelf ? (/* @__PURE__ */ new Date()).toISOString() : null
-      }).select("id, name, brand, on_shelf, on_wishlist").single();
+      }).select("id, name, brand, image_url, source_url, on_shelf, on_wishlist").single();
       if (error) return { content: [{ type: "text", text: error.message }], isError: true };
       return {
         content: [
