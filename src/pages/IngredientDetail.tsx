@@ -1155,22 +1155,21 @@ const IngredientDetail = () => {
                   setSelectedIngredient(null);
                   navigate(`/products/${p.id}`);
                 }}
-                className="w-full rounded-lg border border-border/60 bg-background/60 p-2.5 flex items-center gap-2.5 text-left hover:bg-primary/5 transition-colors"
+                className="w-full rounded-lg border border-border/60 bg-background/60 p-2.5 flex items-start gap-2.5 text-left hover:bg-primary/5 transition-colors"
               >
-                <div className="size-9 rounded-md overflow-hidden bg-primary/10 shrink-0 flex items-center justify-center text-base">
-                  {p.imageUrl ? (
-                    <img src={p.imageUrl} alt="" className="size-full object-cover" loading="lazy" />
-                  ) : (
-                    <span aria-hidden="true">🧴</span>
-                  )}
-                </div>
+                <ProductThumb
+                  imageUrl={p.imageUrl}
+                  storagePath={p.storagePath}
+                  alt={p.name}
+                  wrapperClassName="size-10 rounded-md overflow-hidden bg-primary/10 shrink-0"
+                />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold leading-tight truncate">{p.name}</p>
+                  <p className="text-[13px] font-semibold leading-snug break-words">{p.name}</p>
                   {p.brand && (
-                    <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                    <p className="text-[11px] text-muted-foreground break-words">{p.brand}</p>
                   )}
                 </div>
-                <span className="text-[10px] uppercase tracking-[0.12em] text-primary shrink-0">
+                <span className="text-[10px] uppercase tracking-[0.12em] text-primary shrink-0 mt-0.5">
                   Review
                 </span>
               </button>
