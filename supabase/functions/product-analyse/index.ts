@@ -140,6 +140,8 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
 
 5. Grounding rule: when your guidance is rooted in the retrieved manuscript passages, reason from them and blend the underlying idea into your prose in STRAND's voice — do NOT name the book, its author, chapters, or page numbers, and do NOT emit any "Read more — …" line. When facts come from web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose. Never claim something "comes from the book" unless the specific point is supported by a retrieved passage.
 
+5a. Wash-day baseline: when THIS product is a shampoo, cleanser, co-wash, conditioner, deep conditioner, mask, or anything that belongs in wash day, apply the Chapter 13 sequence as the default routine logic: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. Do not present co-wash as a replacement for shampoo cleansing. Adapt for protective styles or scalp sensitivity without abandoning the need to clean both scalp and hair.
+
 6. Field rules — strict:
    - product_name / brand: read from photo 1 if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
    - category: pick the single best fit from the enum.
@@ -236,6 +238,7 @@ Return JSON only via the return_product_analysis tool.`;
     user_context: args.context,
     selector_context: args.selectorContext,
     force_topic_ids: [
+      "wash-day-mechanics",
       "porosity",
       "scalp-conditions",
       "diagnosed-conditions",

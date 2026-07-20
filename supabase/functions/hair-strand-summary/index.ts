@@ -73,6 +73,7 @@ Each item MUST be a single sentence that follows this shape:
 - Do NOT repeat the same action twice in different words. Each tip must be a distinct instruction.
 - BANNED phrases (too vague): "manage", "maintain", "look after", "take care of", "keep an eye on", "be mindful of", "focus on moisture", "prioritise hydration", "monitor", "consider", "try to". Rewrite any item that drifts this way.
 - BANNED — pre-poo scheduling: NEVER prescribe pre-poo as a recurring routine step. Do NOT say "pre-poo every wash", "pre-poo weekly", "pre-poo before every wash", "add a pre-poo step", or any scheduled pre-poo instruction. Pre-poo is not part of the STRAND wash-day protocol as a scheduled ritual. Only mention pre-poo if the user's data explicitly shows they already pre-poo and it's serving them — otherwise omit the concept entirely.
+- CORE WASH-DAY BASELINE: at least one routine tip must preserve the Chapter 13 structure whenever routine_tips include wash-day guidance: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. Adapt for protective styles, scalp sensitivity or build-up, but never replace shampoo cleansing with co-washing and never skip conditioner.
 - Every tip MUST be grounded in the manuscript teachings provided below. Do not invent guidance outside them. If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one tip must reference it directly.
 
 BLOOD & HEALTH INTEGRATION — REQUIRED:

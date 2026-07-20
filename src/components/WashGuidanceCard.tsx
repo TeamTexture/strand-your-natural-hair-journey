@@ -62,11 +62,11 @@ const buildTips = (p: HairProfile | null): string[] => {
 
   if (sc.includes("dry") || sc.includes("sensitive")) {
     tips.push(
-      "Dry/sensitive scalp: choose sulphate-free cleansers and massage gently — over-stripping triggers reactive sebum and irritation.",
+      "Dry/sensitive scalp: keep the two-cleanse structure, but use a gentle scalp cleanse first, fingertip pads only, then a moisturising shampoo through the hair.",
     );
   } else if (sc.includes("oily")) {
     tips.push(
-      "Oily scalp: a clarifying wash every 1–2 weeks helps; focus shampoo on the scalp, conditioner on mid-lengths to ends only.",
+      "Oily scalp: make the first cleanse scalp-focused to lift sebum properly, then follow with a moisturising shampoo through the hair before conditioner.",
     );
   }
 
@@ -78,7 +78,7 @@ const buildTips = (p: HairProfile | null): string[] => {
 
   if (den.includes("high") && tips.length < 3) {
     tips.push(
-      "High density: section into 4–6 parts before cleansing/conditioning so product reaches the scalp and every strand evenly.",
+      "High density: section into 4–6 parts so the first cleanse reaches the scalp and the second cleanse reaches the hair evenly.",
     );
   }
 

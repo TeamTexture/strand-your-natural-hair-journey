@@ -190,6 +190,9 @@ We are NOT a Yuka-style scaremonger app. Cosmetic preservatives (phenoxyethanol,
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE (the STRAND manuscript, Chapter 14: Moisture Retention):
 Moisture comes from water. Period. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. NEVER write "restores moisture", "adds moisture", "replenishes moisture", "delivers moisture", or "hydrates the strand". Use book-aligned phrasing only: "seals moisture in", "locks moisture in", "helps retain moisture", "slows moisture loss", "supports moisture retention", "softens cuticle so water can absorb during wash day". Conditioners, leave-ins, oils, butters, masks and stylers are sealers / softeners / penetrants / emollients / humectants — never water sources. Apply this rule to ingredient body copy, the summary, and personalised_guidance equally.
 
+WASH-DAY BASELINE — HARD RULE (Chapter 13):
+When the product is a shampoo, cleanser, co-wash, conditioner, deep conditioner, mask, or anything used on wash day, the app's core routine logic is: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. If personalised_guidance is about THIS shampoo/cleanser, the best tip should usually be about which cleanse it belongs to, scalp-first application, emulsifying, sectioning, dwell/contact time, or letting lather run through lengths — without inventing other products. Do not present co-wash as replacing shampoo cleansing.
+
 RULES — STRICT:
 1. Flag EVERY ingredient supplied — do NOT skip any (including water, fragrance, colourants, preservatives). The tool schema enforces the count (${ingredientCount > 0 ? ingredientCount : "as supplied"}); preserve the input order.
 2. tone — apply this exact decision tree:
@@ -211,6 +214,7 @@ RULES — STRICT:
    ABSOLUTE SCOPE — HARD BAN on referencing anything outside THIS product:
    - Do NOT recommend, name, pair with, "follow with", "layer with", "use alongside", "then apply", or otherwise suggest ANY other product, product type, or step (no "deep conditioner", "leave-in", "oil", "mask", "clarifying wash", "protein treatment", "styler", etc.). Even generic categories are banned.
    - Do NOT suggest a routine, regimen, wash-day structure, or multi-step process. The tip is ONLY about how to apply/use THIS product itself to get maximum benefit.
+    - Exception for shampoo/cleanser category only: you may identify whether THIS product belongs as the scalp-focused first cleanse or the hair-focused second cleanse. Keep the tip about THIS product's role and technique; do not recommend a named second product.
    - Allowed levers ONLY: application technique on THIS product (dry vs damp vs soaking-wet hair, sectioning, emulsifying in palms, scalp-only vs lengths, contact/dwell time, water temperature, rinse pressure, frequency of use of THIS product, amount used, whether to double-cleanse with it, whether to dilute it, how to distribute it for this user's density/porosity, how to work it through their current style safely).
 
    How to choose the tip — weigh in this order:
@@ -298,7 +302,7 @@ async function runClaude(args: {
     task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount),
     user_payload: userPayload,
     selector_context: selectorContext,
-    force_topic_ids: ["porosity", "scalp-conditions", "diagnosed-conditions"],
+    force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
     rag_query: ragQuery,
     rag_k: 4,
     tool: {

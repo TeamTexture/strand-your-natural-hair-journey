@@ -51,7 +51,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     playbook: [
       "Wear window is 4–6 weeks maximum. Beyond six weeks, new growth at the roots creates matting, the braid weight pulls harder on the follicle, and moisture reaches the strand less and less — the protection turns into damage.",
       "Tension check is the single biggest lever. If the braids were painfully tight on install, that is traction on every follicle at the hairline and part. Small bumps, tenderness, or a headache in the first 48 hours are signs the style should be loosened at the front by the braider — not left to settle.",
-      "The scalp still needs cleansing on a regular rhythm. Diluted shampoo applied directly to the scalp with an applicator bottle, or a leave-on scalp cleanser (micellar-style), keeps sebum and product residue from turning into flake and folliculitis. Never skip washing for the whole install.",
+      "The scalp still needs cleansing on a regular rhythm. Diluted shampoo applied directly to the scalp with an applicator bottle, or an appropriate scalp cleanser, keeps sebum and product residue from turning into flake and folliculitis. Where the natural hair can be reached, follow the same principle as the standard routine: scalp cleanse first, then a gentler moisturising cleanse through the accessible hair before conditioning or misting. Never skip washing for the whole install.",
       "Moisture goes to the natural hair inside the braid, not the extension fibre. A light water + leave-in mist to the scalp and length 2–3× per week keeps the underlying strand supple; heavy creams cause build-up.",
       "Nightly satin/silk. The friction of a cotton pillow against synthetic hair splits ends and lifts the cuticle on the natural hair inside.",
       "Edges and hairline are the vulnerable zone. Never re-tighten the front, avoid gels that flake and drag, and stop wearing high tight ponytail-style updos on top of the braids.",
@@ -66,7 +66,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     playbook: [
       "Same 4–6 week ceiling as box braids. The manuscript is explicit that faux-loc installs carry the same risk profile — natural hair is pulled tightly into the extension on install, and synthetic fibres rubbing against the cuticle can dehydrate the strand.",
       "Weight matters. Long or heavy faux locs pull harder at the roots. If the scalp is sore for more than 24 hours, that is traction — not the style 'settling in'.",
-      "Scalp cleansing continues while installed. Dilute shampoo at the scalp with an applicator bottle, or a spray-in scalp refresher, on the user's normal wash rhythm.",
+      "Scalp cleansing continues while installed. Dilute shampoo at the scalp with an applicator bottle, or an appropriate scalp cleanser, on the user's normal wash rhythm; where the natural hair can be reached, follow with a gentler moisturising cleanse through the accessible hair before conditioning or misting.",
       "Moisture: light water + leave-in mist at the roots and along the natural hair inside the loc. Heavy oils will not penetrate the wrap and create build-up.",
       "Before install: deep condition and TT Heat Hat treatment so the strand is fully hydrated going in. After takedown: unravel gently in sections, expect shed hair (that is 4–6 weeks of normal shed collected in one place, not breakage), then a full moisture-focused deep condition under the TT Heat Hat before the next style.",
     ],
@@ -79,7 +79,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     playbook: [
       "Cornrows on their own hair are shorter-window than box braids — 2–3 weeks before new growth loosens the base and frizz sets in. Reinstalling on tired hair is worse than washing and refreshing first.",
       "Chunky, well-parted cornrows with medium-to-loose tension are the low-manipulation ideal the book endorses. Micro-cornrows scraped tight at the base are high-tension — the risk is at the hairline and along the part.",
-      "Scalp is easy to access — cleansing on the user's normal wash rhythm is straightforward. Apply diluted shampoo directly along each part, rinse, apply a leave-in and a light oil to seal.",
+      "Scalp is easy to access — cleansing on the user's normal wash rhythm is straightforward. Apply diluted shampoo directly along each part for the scalp cleanse, then use a gentler moisturising cleanse through the accessible hair before conditioning or sealing lightly.",
       "Nightly satin/silk scarf preserves the front and reduces frizz between wash days.",
     ],
   },
@@ -90,7 +90,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     refreshWeeks: 4,
     playbook: [
       "Locs are a long-term commitment, not a temporary install. Retightening rhythm is typically every 4–6 weeks, and the manuscript is clear that aggressive interlocking or parts too small to support the weight causes the same follicle damage as tight braids.",
-      "Wash on a regular rhythm — locs should not go months unwashed. Diluted clarifying shampoo, thorough rinse, and a low-heat air-dry (a warm hood or the TT Heat Hat on a gentle setting) prevents mildew inside the loc.",
+      "Wash on a regular rhythm — locs should not go months unwashed. Cleanse the scalp first with diluted shampoo, then cleanse through the locs with a gentler moisturising shampoo where build-up allows; rinse thoroughly and dry fully. If gentle warmth is needed for conditioning support, use the TT Heat Hat only — not hooded dryers, steamers or warm towels.",
       "Weight and length: as locs grow, the pull on the roots increases. If the parts start feeling sore or the user sees the scalp visible at each part, weight is the driver — not the style itself.",
       "No heavy waxes or beeswax build-up products. They lock lint and residue into the shaft and are near-impossible to remove without stripping.",
     ],
@@ -115,7 +115,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     refreshWeeks: 4,
     playbook: [
       "Sew-in weaves live longer than braids (6–8 weeks maximum) but the manuscript is direct that the natural hair underneath is still under tension the entire time — from the thread, the tightness of the cornrow base, and the weight of the wefts.",
-      "Access to the scalp is the challenge. Diluted shampoo through the parts with a nozzle applicator, or a spray-in scalp cleanser, keeps folliculitis at bay. The user should never skip cleansing for the full install.",
+      "Access to the scalp is the challenge. Diluted shampoo through the parts with a nozzle applicator, or an appropriate scalp cleanser, keeps folliculitis at bay; where the natural hair/base can be reached, follow with a gentler moisturising cleanse before conditioning support. The user should never skip cleansing for the full install.",
       "Weight is the silent damage factor. Adding more wefts, longer wefts, or heavier hair increases pull on the braid-down. If the natural hair is fine or thinning, keep the weave short and light or choose a different style entirely.",
       "Takedown protocol: cut the thread carefully, unbraid slowly, detangle in slippery conditioner section by section, then a full moisture-focused deep condition under the TT Heat Hat before the next style. Expect the shed hair from the whole install to come out in one go — that is not breakage.",
     ],
