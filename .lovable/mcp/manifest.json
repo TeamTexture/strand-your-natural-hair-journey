@@ -541,6 +541,11 @@
             "priority": {
               "type": "integer",
               "description": "Optional priority ranking; stored as match_score."
+            },
+            "source_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Product page URL if known — used to pull the thumbnail image."
             }
           },
           "required": [
