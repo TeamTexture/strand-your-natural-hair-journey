@@ -304,6 +304,27 @@ const Appointments = () => {
           <ChevronRight className="size-5 text-primary shrink-0" />
         </button>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete appointment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove your appointment with <strong>{deleteTarget?.professional_name}</strong> on{" "}
+              {deleteTarget ? formatDate(deleteTarget.appointment_date) : ""}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
