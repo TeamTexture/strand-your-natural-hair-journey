@@ -53,9 +53,9 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
     : null;
   const previousReason = previousReasonMatch?.[1]?.trim() || null;
 
-  const dateTime = `${appointment.professional_type ?? "Appointment"} · ${formatDate(
-    appointment.appointment_date,
-  )}${appointment.appointment_time ? ` · ${formatTime12h(appointment.appointment_time)}` : ""}`;
+  const formattedDate = formatDate(appointment.appointment_date);
+  const formattedTime = appointment.appointment_time ? formatTime12h(appointment.appointment_time) : "";
+  const kicker = appointment.professional_type ?? "Appointment";
 
   const subtitle =
     [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
@@ -77,9 +77,19 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
         <div className="pointer-events-none absolute -top-10 -right-10 w-32 h-32 bg-[#C5A059]/10 rounded-full blur-2xl" />
         <div className="relative p-5">
           <div className="flex items-start justify-between gap-3 mb-4">
-            <p className="text-[#C5A059] text-[10px] uppercase tracking-[0.2em] font-semibold font-body leading-relaxed">
-              {dateTime}
-            </p>
+            <div className="flex flex-col items-start gap-0.5">
+              <p className="text-[#C5A059]/80 text-[10px] uppercase tracking-[0.2em] font-semibold font-body">
+                {kicker}
+              </p>
+              <p className="font-display text-white text-xl font-bold leading-tight tracking-tight">
+                {formattedDate}
+              </p>
+              {formattedTime && (
+                <p className="text-[#C5A059] text-[13px] font-bold font-body tracking-wide">
+                  {formattedTime}
+                </p>
+              )}
+            </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {isFollowUp ? (
                 <span className="bg-[#C5A059] text-[#2C2416] text-[10px] uppercase tracking-[0.15em] font-bold px-2.5 py-1 rounded-full">
@@ -176,9 +186,19 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
     <div className="rounded-[22px] border border-border bg-secondary/70 shadow-sm">
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
-          <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-semibold font-body leading-relaxed">
-            {dateTime}
-          </p>
+          <div className="flex flex-col items-start gap-0.5">
+            <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-semibold font-body">
+              {kicker}
+            </p>
+            <p className="font-display text-foreground text-lg font-bold leading-tight tracking-tight">
+              {formattedDate}
+            </p>
+            {formattedTime && (
+              <p className="text-foreground/80 text-[13px] font-bold font-body tracking-wide">
+                {formattedTime}
+              </p>
+            )}
+          </div>
           <span
             className={cn(
               "text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full shrink-0",
