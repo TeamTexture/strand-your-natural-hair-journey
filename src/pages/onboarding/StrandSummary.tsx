@@ -21,7 +21,7 @@ import { buildAiContext } from "@/lib/aiContext";
 import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
 
-const MAX_PHOTOS = 12;
+const MAX_PHOTOS = 5;
 
 const bannedSummaryPatterns = [
   /\bit[’']s a pleasure to connect with you[.!]?\s*/gi,
