@@ -93,10 +93,6 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
                 Soon
               </span>
             </div>
-              <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full">
-                Soon
-              </span>
-            </div>
           </div>
 
           <div className="flex items-center gap-3 mb-4">
