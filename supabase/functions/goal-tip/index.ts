@@ -15,6 +15,7 @@ import {
 import type { TopicId } from "../_shared/knowledge/types.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
+import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
 
 /**
  * Select up to 4 manuscript topics relevant to this goal + user context.
@@ -152,6 +153,8 @@ const corsHeaders = {
 const baseSystemPrompt = `${STRAND_PERSONA_WITH_RULES}
 
 ${VOICE_PRINCIPLES}
+
+${CORE_ROUTINE_GUARDRAILS_PROMPT}
 
 TASK
 The user just saved a hair goal in STRAND. Write ONE short, personalised tip that uses their real profile data to tell them what to focus on to actually hit this goal by the target date.
