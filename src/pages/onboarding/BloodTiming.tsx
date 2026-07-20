@@ -53,6 +53,15 @@ const BloodTiming = () => {
           Blood deficiencies are one of the most overlooked causes of hair shedding and slow growth.
         </ItalicSub>
 
+        <SurfaceCard tone="gold">
+          <p className="text-sm font-body leading-snug">
+            <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
+            Your results power every piece of guidance in the app — from your nutrition plan to your wash-day tips.
+            If you don't have a recent test, order one below or book a doctor before continuing.
+          </p>
+        </SurfaceCard>
+
+
         <div className="space-y-3">
           {opts.map((o) => (
             <button
