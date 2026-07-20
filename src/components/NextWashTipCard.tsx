@@ -79,7 +79,7 @@ const normaliseHeatLanguage = (raw: string) => {
   );
   t = t.replace(/\b(?:the\s+)?TT\s+Heat\s+Hat\s+(?:TT\s+Heat\s+Hat\s*)+/gi, "the TT Heat Hat");
   t = t.replace(/\bthe\s+the\s+TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat");
-  return t.replace(/\s{2,}/g, " ");
+  return t.replace(/[ \t]{2,}/g, " ");
 };
 
 const chunkSentences = (text: string, perChunk = 2): string[] => {
@@ -163,7 +163,7 @@ const renderInline = (
   keyPrefix: string,
   products: UserProduct[],
 ) => {
-  const safeLine = normaliseHeatLanguage(line).replace(/\*\*([^*]+)\*\*/g, "$1");
+  const safeLine = normaliseHeatLanguage(line);
   // Build a match list of { start, end, kind, product? }
   type Match = {
     start: number;
