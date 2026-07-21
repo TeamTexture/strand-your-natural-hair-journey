@@ -29,6 +29,8 @@ interface PassportPreview {
   hairSummary: string;
   flaggedMarkers: number;
   goals: string[];
+  phone: string | null;
+  location: string | null;
 }
 
 const usePassportPreviews = (enquiries: Enquiry[]) => {
