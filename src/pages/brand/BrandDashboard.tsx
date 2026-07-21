@@ -77,7 +77,14 @@ const BrandDashboard = () => {
         <SurfaceCard className="py-3.5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-display text-[15px] leading-tight flex-1">{o.headline}</p>
-            <StatusPill status={o._derived} />
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <StatusPill status={o._derived} />
+              {withPendingSet.has(o.id) && (
+                <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-warn/15 text-warn font-body font-medium">
+                  Changes under review
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap gap-1 mt-1.5">
             {slotSet.map((s) => (
