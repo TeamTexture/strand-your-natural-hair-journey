@@ -1464,6 +1464,7 @@ export type Database = {
           colour_last_treated: string | null
           colour_product: string | null
           colour_reaction: boolean | null
+          colour_reaction_audio_path: string | null
           colour_reaction_details: string | null
           colour_type: string | null
           created_at: string
@@ -1482,6 +1483,7 @@ export type Database = {
           colour_last_treated?: string | null
           colour_product?: string | null
           colour_reaction?: boolean | null
+          colour_reaction_audio_path?: string | null
           colour_reaction_details?: string | null
           colour_type?: string | null
           created_at?: string
@@ -1500,6 +1502,7 @@ export type Database = {
           colour_last_treated?: string | null
           colour_product?: string | null
           colour_reaction?: boolean | null
+          colour_reaction_audio_path?: string | null
           colour_reaction_details?: string | null
           colour_type?: string | null
           created_at?: string
