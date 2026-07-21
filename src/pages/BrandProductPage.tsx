@@ -85,7 +85,7 @@ const BrandProductPage = () => {
       if (pe) throw pe;
       const { data: off, error: oe } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id, brand_profiles!inner(brand_name)")
+        .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id, brand_profiles(brand_name)")
         .eq("id", offerId!)
         .maybeSingle();
       if (oe) throw oe;
