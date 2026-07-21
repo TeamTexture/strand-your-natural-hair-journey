@@ -87,14 +87,12 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
           if (Array.isArray(v)) return v[0];
           return typeof v === "string" ? v : null;
         };
-        const tx = one(h?.texture);
+        const tx = one(h?.surface_texture);
         const den = one(h?.density);
         const por = one(h?.porosity);
         if (tx) hairBits.push(String(tx));
         if (den) hairBits.push(`${den} density`);
         if (por) hairBits.push(`${por} porosity`);
-        const diag = Array.isArray(h?.diagnosed) ? (h!.diagnosed as string[]) : [];
-        if (diag.length) hairBits.push(diag[0]);
 
         out[id] = {
           firstName,
