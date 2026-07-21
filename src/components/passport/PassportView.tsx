@@ -1142,10 +1142,10 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
                     </ol>
                   </div>
                 )}
-                {heatTreatment && Object.values(heatTreatment).some(v => v != null && v !== "") && (
+                {heatTreatment && Object.entries(heatTreatment).some(([k, v]) => k !== "tool_ids" && v != null && v !== "") && (
                   <div className="mt-3 pt-3 border-t border-border">
                     <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Heat treatment</p>
-                    <HumanFields obj={heatTreatment} />
+                    <HumanFields obj={heatTreatment} exclude={["tool_ids"]} />
                   </div>
                 )}
                 {styling && (
