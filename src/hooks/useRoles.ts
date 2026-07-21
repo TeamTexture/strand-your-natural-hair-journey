@@ -27,6 +27,7 @@ export function useRoles() {
     isConsumer: roles.includes("consumer"),
     isProfessional: roles.includes("professional"),
     isAdmin: roles.includes("admin"),
+    isBrand: roles.includes("brand"),
     loading: authLoading || q.isLoading,
   };
 }

@@ -37,6 +37,7 @@ import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
+import BrandBanner from "@/components/BrandBanner";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
@@ -142,6 +143,9 @@ const Products = () => {
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="My Products" back={false} />
+
+      <div className="px-5 pb-2"><BrandBanner slot="products" /></div>
+
 
       <div className="px-5 flex items-center justify-between gap-2 pb-2">
         {products.length > 0 ? (

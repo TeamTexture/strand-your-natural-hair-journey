@@ -32,7 +32,7 @@ const Index = () => {
     if (loading || !user) return;
     setChecking(true);
     (async () => {
-      const [{ data: profile }, { data: roleRows }, { data: proApp }, onboardingStatus] = await Promise.all([
+      const [{ data: profile }, { data: roleRows }, { data: proApp }, { data: brandProf }, onboardingStatus] = await Promise.all([
         supabase
           .from("profiles")
           .select("onboarding_completed_at, display_name")
@@ -46,17 +46,29 @@ const Index = () => {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("brand_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle(),
         getConsumerOnboardingStatus(user.id),
       ]);
       const roles = (roleRows ?? []).map((r) => r.role as string);
       const hasConsumer = roles.includes("consumer");
       const hasPro = roles.includes("professional");
       const hasAdmin = roles.includes("admin");
+      const hasBrand = roles.includes("brand");
 
       // Pro-intent shortcut: applicants (not yet approved) skip consumer
       // onboarding entirely and land on the pro landing screen.
-      if (proApp && !hasPro && !hasAdmin) {
+      if (proApp && !hasPro && !hasAdmin && !hasBrand) {
         navigate("/pro/landing", { replace: true });
+        return;
+      }
+
+      // Brand-intent shortcut: brand accounts skip consumer onboarding.
+      if (brandProf && hasBrand && !hasConsumer && !hasPro && !hasAdmin) {
+        navigate("/brand", { replace: true });
         return;
       }
 
@@ -72,6 +84,8 @@ const Index = () => {
         dests.push({ path: consumerPath, label: "Enter STRAND", sub: "Your personal hair journal" });
       if (hasPro)
         dests.push({ path: "/pro", label: "Professional dashboard", sub: "Clients & enquiries" });
+      if (hasBrand)
+        dests.push({ path: "/brand", label: "Brand dashboard", sub: "Offers & placements" });
       if (hasAdmin)
         dests.push({ path: "/admin", label: "Admin dashboard", sub: "Applications, members & settings" });
 
