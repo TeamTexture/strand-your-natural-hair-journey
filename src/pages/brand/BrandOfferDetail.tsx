@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle } from "lucide-react";
+import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -31,7 +32,17 @@ const BrandOfferDetail = () => {
   const [paying, setPaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const [heroOpen, setHeroOpen] = useState(false);
   const deleteOffer = useDeleteBrandOffer();
+
+  useEffect(() => {
+    if (!offer?.hero_image_path) { setHeroUrl(null); return; }
+    let cancelled = false;
+    supabase.storage.from("brand-assets").createSignedUrl(offer.hero_image_path, 60 * 60)
+      .then(({ data }) => { if (!cancelled) setHeroUrl(data?.signedUrl ?? null); });
+    return () => { cancelled = true; };
+  }, [offer?.hero_image_path]);
 
   if (isLoading || !offer) return <LoadingDot />;
 
@@ -105,6 +116,42 @@ const BrandOfferDetail = () => {
             <p className="text-[12px] text-destructive mt-1">{offer.rejection_reason}</p>
           )}
         </SurfaceCard>
+
+        {heroUrl && (
+          <button
+            type="button"
+            onClick={() => setHeroOpen(true)}
+            className="group relative w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/30"
+            aria-label="View full banner graphic"
+          >
+            <img
+              src={heroUrl}
+              alt={offer.headline ?? "Offer banner"}
+              className="w-full h-auto object-cover aspect-[1500/320] block"
+              loading="lazy"
+            />
+            <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-background/85 backdrop-blur px-2 py-0.5 text-[10px] font-body text-foreground/80 shadow-sm">
+              <Maximize2 className="size-3" /> Tap to view full
+            </span>
+          </button>
+        )}
+
+        {offer.external_url && (
+          <SurfaceCard className="py-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Advert link</p>
+            <a
+              href={offer.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1.5 text-[12px] text-primary font-body break-all hover:underline"
+            >
+              <ExternalLink className="size-3.5 shrink-0" />
+              <span className="break-all">{offer.external_url}</span>
+            </a>
+          </SurfaceCard>
+        )}
+
+
 
         {pendingRevision && (
           <SurfaceCard className="bg-warn/5 border-warn/40">
@@ -271,6 +318,13 @@ const BrandOfferDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={heroOpen} onOpenChange={setHeroOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-[720px] p-2 bg-background">
+          {heroUrl && (
+            <img src={heroUrl} alt={offer.headline ?? "Offer banner"} className="w-full h-auto rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 };
