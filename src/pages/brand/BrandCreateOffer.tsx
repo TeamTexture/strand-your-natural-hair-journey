@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer } from "@/hooks/useBrandOffers";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day"];
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -145,10 +146,17 @@ const BrandCreateOffer = () => {
     }
   };
 
+  const { isActive: brandSubActive } = useBrandSubscription();
+
   const submit = async (asDraft: boolean) => {
     if (!user) return;
     if (!headline.trim()) return toast.error("Add a headline.");
     if (!asDraft && totalDays === 0) return toast.error("Select at least one placement date.");
+    if (!asDraft && !brandSubActive) {
+      toast("Annual brand membership required to submit for review.");
+      nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -388,12 +396,18 @@ const BrandCreateOffer = () => {
           </div>
         </SurfaceCard>
 
+        {!brandSubActive && (
+          <div className="rounded-[12px] border border-primary/30 bg-primary/5 p-3 text-[12px] font-body text-foreground/80 leading-snug">
+            Submitting requires an active <span className="font-semibold">STRAND Brand Access</span> membership (£99/year). Save as draft any time.
+          </div>
+        )}
+
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-3 flex gap-2 max-w-[375px] mx-auto">
           <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1">
             Save draft
           </Button>
           <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1">
-            Submit for review
+            {brandSubActive ? "Submit for review" : "Unlock & submit"}
           </Button>
         </div>
       </div>
