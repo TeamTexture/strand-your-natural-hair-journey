@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, ExternalLink, X } from "lucide-react";
 import { useActiveBrandOffer, useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import DiscountCodeChip from "@/components/DiscountCodeChip";
+
 
 interface Props {
   slot: PlacementSlot;
@@ -64,13 +65,7 @@ const BrandBanner = ({ slot }: Props) => {
     setDismissed(true);
   };
 
-  const copyCode = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!offer.discount_code) return;
-    navigator.clipboard.writeText(offer.discount_code).then(() => {
-      toast.success(`Code ${offer.discount_code} copied`);
-    }).catch(() => toast.error("Could not copy"));
-  };
+
 
   const visit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -141,14 +136,9 @@ const BrandBanner = ({ slot }: Props) => {
                 <p className="text-[12px] text-foreground/80 leading-snug font-body">{offer.body_copy}</p>
               )}
               {offer.discount_code && (
-                <button
-                  type="button"
-                  onClick={copyCode}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2 py-1 hover:bg-primary/15"
-                >
-                  <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-body">Tap to copy</span>
-                  <span className="font-body font-medium text-[12px] text-primary">{offer.discount_code}</span>
-                </button>
+                <div className="mt-2">
+                  <DiscountCodeChip code={offer.discount_code} variant="chip" />
+                </div>
               )}
               <button
                 type="button"

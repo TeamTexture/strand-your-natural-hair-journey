@@ -8,6 +8,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
@@ -240,9 +241,8 @@ const OfferPage = () => {
             <p className="font-display text-xl mt-1">{offer.headline}</p>
             {offer.body_copy && <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">{offer.body_copy}</p>}
             {offer.discount_code && (
-              <div className="mt-3 p-2.5 rounded-lg bg-primary/10 border border-primary/30 text-center">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Discount code</p>
-                <p className="font-display text-lg text-primary tracking-widest mt-0.5">{offer.discount_code}</p>
+              <div className="mt-3">
+                <DiscountCodeChip code={offer.discount_code} variant="block" />
               </div>
             )}
             {offer.external_url && (
