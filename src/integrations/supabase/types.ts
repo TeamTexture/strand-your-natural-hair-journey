@@ -1817,6 +1817,13 @@ export type Database = {
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
+      admin_list_member_emails: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
       approve_pro_application: {
