@@ -252,11 +252,27 @@ const EnquiryCard = ({
         </div>
       )}
 
-      {enquiry.status === "accepted" && onOpenPassport && (
-        <div className="mt-3">
-          <Button size="sm" onClick={onOpenPassport} className="w-full">
-            Open client passport
-          </Button>
+      {enquiry.status === "accepted" && (onOpenPassport || onBookAppointment) && (
+        <div className="mt-3 space-y-2">
+          {onOpenPassport && (
+            <Button
+              size="sm"
+              onClick={onOpenPassport}
+              className="w-full uppercase tracking-[0.08em]"
+            >
+              OPEN CLIENT PASSPORT
+            </Button>
+          )}
+          {onBookAppointment && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onBookAppointment}
+              className="w-full uppercase tracking-[0.08em]"
+            >
+              BOOK APPOINTMENT
+            </Button>
+          )}
         </div>
       )}
 
