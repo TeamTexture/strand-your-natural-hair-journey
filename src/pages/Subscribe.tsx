@@ -255,9 +255,12 @@ const Subscribe = () => {
 
         {/* Section header */}
         <div className="text-center pt-2 space-y-2">
-          <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
-            What's inside
-          </p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brown/10 border border-brown/20">
+            <HairStrandIcon className="w-3 h-3 text-brown" />
+            <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-brown">
+              What's inside
+            </span>
+          </div>
           <h2 className="font-display text-2xl font-semibold text-foreground">
             Eight pillars, one hair story
           </h2>
@@ -268,38 +271,66 @@ const Subscribe = () => {
         </div>
 
         {/* Pillars */}
-        <div className="space-y-3">
-          {PILLARS.map((p, i) => {
-            const Icon = p.icon;
-            return (
-              <SurfaceCard key={p.title} className="!p-5 space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
-                    <Icon className="size-[18px]" />
+        <div className="relative">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-56 h-56 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative grid grid-cols-2 gap-3">
+            {PILLARS.map((p, i) => {
+              const Icon = p.icon;
+              const isBrown = i % 2 === 0;
+              return (
+                <div
+                  key={p.title}
+                  className={cn(
+                    "relative overflow-hidden rounded-[14px] p-3.5 min-h-[178px] flex flex-col border",
+                    isBrown
+                      ? "bg-brown border-primary/30 text-brown-foreground"
+                      : "bg-gradient-to-br from-primary/12 to-primary/5 border-primary/25 text-foreground"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute top-0 left-0 right-0 h-[2px]",
+                      isBrown ? "bg-primary" : "bg-brown"
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      "size-9 rounded-full flex items-center justify-center mb-3 border",
+                      isBrown
+                        ? "bg-primary/15 text-primary border-primary/25"
+                        : "bg-brown/10 text-brown border-brown/20"
+                    )}
+                  >
+                    <Icon className="size-[18px]" strokeWidth={1.6} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-body font-bold uppercase tracking-[0.18em] text-primary/80">
-                      {String(i + 1).padStart(2, "0")}
-                    </p>
-                    <h3 className="font-display text-[17px] font-semibold text-foreground leading-tight mt-0.5">
-                      {p.title}
-                    </h3>
-                  </div>
+                  <p
+                    className={cn(
+                      "text-[9px] font-body font-bold uppercase tracking-[0.22em] mb-1",
+                      isBrown ? "text-primary/80" : "text-brown/70"
+                    )}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </p>
+                  <h3
+                    className={cn(
+                      "font-display text-[15px] font-semibold leading-[1.15] mb-2",
+                      isBrown ? "text-brown-foreground" : "text-foreground"
+                    )}
+                  >
+                    {p.title}
+                  </h3>
+                  <p
+                    className={cn(
+                      "font-body text-[11.5px] leading-snug mt-auto",
+                      isBrown ? "text-brown-foreground/80" : "text-foreground/75"
+                    )}
+                  >
+                    {p.benefit}
+                  </p>
                 </div>
-                <p className="font-body text-[13px] text-foreground/80 leading-relaxed">
-                  {p.body}
-                </p>
-                <ul className="space-y-1.5 pt-1 border-t border-border/50">
-                  {p.points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-2 text-[12.5px] font-body text-foreground/85 leading-snug pt-1.5">
-                      <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
-                      <span>{pt}</span>
-                    </li>
-                  ))}
-                </ul>
-              </SurfaceCard>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Author voice pull-quote */}
