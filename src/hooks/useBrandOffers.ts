@@ -1,7 +1,31 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
+
+/** Subscribe to brand_offers/brand_products changes so an admin-approved
+ *  revision propagates to every open consumer client without a manual refresh. */
+function useBrandOfferLiveSync() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("brand-offers-live-sync")
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offers" }, () => {
+        qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
+        qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer"] });
+      })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_products" }, () => {
+        qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer"] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [qc]);
+}
 
 export type BrandProfile = Database["public"]["Tables"]["brand_profiles"]["Row"];
 export type BrandOffer = Database["public"]["Tables"]["brand_offers"]["Row"];
@@ -199,9 +223,10 @@ export function londonToday(): string {
  *  Read-time date logic: an offer is "live" from starts_on..ends_on inclusive
  *  regardless of whether the stored status has been flipped to `live` yet. */
 export function useActiveBrandOffer(slot: PlacementSlot) {
+  useBrandOfferLiveSync();
   return useQuery({
     queryKey: ["active-brand-offer", slot, londonToday()],
-    staleTime: 60_000,
+    staleTime: 15_000,
     queryFn: async () => {
       const today = londonToday();
       const { data, error } = await supabase
@@ -222,9 +247,10 @@ export function useActiveBrandOffer(slot: PlacementSlot) {
 
 /** All currently paid+in-window offers for the profile Discounts area. */
 export function useAllLiveBrandOffers() {
+  useBrandOfferLiveSync();
   return useQuery({
     queryKey: ["all-live-brand-offers", londonToday()],
-    staleTime: 60_000,
+    staleTime: 15_000,
     queryFn: async () => {
       const today = londonToday();
       const { data, error } = await supabase
