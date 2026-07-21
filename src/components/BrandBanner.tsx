@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, ExternalLink, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useActiveBrandOffer, useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
@@ -10,8 +10,8 @@ interface Props {
   slot: PlacementSlot;
 }
 
-const dismissKey = (slot: PlacementSlot, offerId: string) =>
-  `strand:brand-banner:dismissed:${slot}:${offerId}`;
+// Sponsored banners cannot be permanently dismissed — users can only collapse
+// them via the chevron. (Previous session-scoped dismiss key removed.)
 
 type BrandProductRow = {
   id: string;
@@ -22,12 +22,11 @@ type BrandProductRow = {
 
 /** Collapsed strip (~80px) + expandable drop-down with body copy, discount
  *  code, CTA button, and the first attached product on the right. Silent
- *  when no offer holds the slot today. Dismissible for the session. */
+ *  when no offer holds the slot today. Users can collapse but not dismiss. */
 const BrandBanner = ({ slot }: Props) => {
   const { data } = useActiveBrandOffer(slot);
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
-  const [dismissed, setDismissed] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const logStat = useLogBrandStat();
   const nav = useNavigate();
@@ -40,12 +39,6 @@ const BrandBanner = ({ slot }: Props) => {
 
   useEffect(() => {
     if (!offer) return;
-    try {
-      if (sessionStorage.getItem(dismissKey(slot, offer.id))) {
-        setDismissed(true);
-        return;
-      }
-    } catch { /* sessionStorage disabled */ }
     logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
     if (offer.hero_image_path) {
       supabase.storage.from("brand-assets").createSignedUrl(offer.hero_image_path, 60 * 60).then(({ data: d }) => {
@@ -57,13 +50,9 @@ const BrandBanner = ({ slot }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer?.id]);
 
-  if (!offer || dismissed) return null;
+  if (!offer) return null;
 
-  const onDismiss = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try { sessionStorage.setItem(dismissKey(slot, offer.id), "1"); } catch { /* noop */ }
-    setDismissed(true);
-  };
+
 
 
 
@@ -135,21 +124,12 @@ const BrandBanner = ({ slot }: Props) => {
             </div>
           )}
           {expanded ? (
-            <ChevronUp className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
+            <ChevronUp className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
           ) : (
-            <ChevronDown className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
           )}
         </div>
       </div>
-      <button
-        type="button"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={onDismiss}
-        aria-label="Dismiss sponsored banner"
-        className="absolute top-2 right-2 z-20 size-7 rounded-full bg-background/85 backdrop-blur border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground"
-      >
-        <X className="size-3.5" />
-      </button>
       {/* Grid-rows transition — expands the row 0fr → 1fr so the banner stays
        *  anchored at the top and content below flows down smoothly, with no
        *  scroll-jump / scroll-anchoring surprises. */}
