@@ -423,6 +423,15 @@ const ProApply = () => {
               onChange={(e) => set("website_url", e.target.value)}
               placeholder="https://"
             />
+            {form.website_url.trim() && (
+              <a
+                href={normalizeWebsiteUrl(form.website_url)}
+                {...externalLinkProps}
+                className="mt-1 block truncate text-[11px] text-primary underline underline-offset-2"
+              >
+                {normalizeWebsiteUrl(form.website_url)}
+              </a>
+            )}
           </Field>
           <Field label="Instagram handle">
             <Input
@@ -430,6 +439,18 @@ const ProApply = () => {
               onChange={(e) => set("instagram_handle", e.target.value)}
               placeholder="@yourhandle"
             />
+            <p className="mt-1 text-[11px] font-body text-muted-foreground">
+              Paste your @handle or full URL — we'll clean it up.
+            </p>
+            {normalizeInstagramHandle(form.instagram_handle) && (
+              <a
+                href={instagramUrl(form.instagram_handle)}
+                {...externalLinkProps}
+                className="mt-1 block truncate text-[11px] text-primary underline underline-offset-2"
+              >
+                {instagramUrl(form.instagram_handle)}
+              </a>
+            )}
           </Field>
         </section>
 
