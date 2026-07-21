@@ -333,6 +333,7 @@ const Home = () => {
 
 
       <div className="px-5 space-y-4 pb-6">
+        <BrandBanner slot="home" />
         {/* current style — editorial terra card */}
         {style.current_hairstyle ? (
           <div data-tour="current-style" className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
@@ -735,7 +736,6 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
-      <div className="px-5 pt-2"><BrandBanner slot="home" /></div>
       <SectionLabel>Quick actions</SectionLabel>
       <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-3">
 
