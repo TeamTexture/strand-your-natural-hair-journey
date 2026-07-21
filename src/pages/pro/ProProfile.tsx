@@ -201,6 +201,7 @@ const ProProfile = () => {
     onSuccess: () => {
       toast.success("Profile saved");
       qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
+      nav("/directory");
     },
     onError: (e: Error) => {
       console.error(e);

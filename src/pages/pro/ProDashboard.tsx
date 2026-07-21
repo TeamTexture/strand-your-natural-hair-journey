@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -143,6 +143,12 @@ const ProDashboard = () => {
             title="Profile"
             sub="Bio, photos, services, contact details."
             onClick={() => nav("/pro/profile")}
+          />
+          <Card
+            icon={BookOpen}
+            title="View directory"
+            sub="See your live listing alongside other pros."
+            onClick={() => nav("/directory")}
           />
           <Card
             icon={Tag}
