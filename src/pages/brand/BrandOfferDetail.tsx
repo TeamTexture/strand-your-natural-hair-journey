@@ -244,6 +244,33 @@ const BrandOfferDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={confirmWithdraw} onOpenChange={setConfirmWithdraw}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Withdraw these changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your original creative will keep running to members unchanged. You can submit a new edit at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep pending</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!pendingRevision) return;
+                try {
+                  await withdrawRevision.mutateAsync({ revision_id: pendingRevision.id, offer_id: offer.id });
+                  toast.success("Changes withdrawn");
+                  setConfirmWithdraw(false);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Withdraw failed");
+                }
+              }}
+            >
+              Withdraw
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
