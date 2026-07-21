@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useRoles } from "@/hooks/useRoles";
 import {
   useProInbox,
   useAcceptEnquiry,
@@ -284,6 +285,7 @@ const DeclineDialog = ({
 const ProEnquiries = () => {
   const nav = useNavigate();
   const { isActive, isLoading: subLoading } = useProSubscription();
+  const { isAdmin } = useRoles();
   const { data, isLoading } = useProInbox();
   const accept = useAcceptEnquiry();
   const decline = useDeclineEnquiry();
@@ -295,7 +297,7 @@ const ProEnquiries = () => {
 
   const filtered = enquiries.filter((e) => e.status === tab);
 
-  if (!subLoading && !isActive) {
+  if (!subLoading && !isActive && !isAdmin) {
     return (
       <ScreenLayout>
         <TitleBar title="Enquiries" onBack={() => nav("/pro")} />
