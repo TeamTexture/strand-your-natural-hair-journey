@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, ExternalLink, X } from "lucide-react";
 import { useActiveBrandOffer, useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import DiscountCodeChip from "@/components/DiscountCodeChip";
+
 
 interface Props {
   slot: PlacementSlot;
