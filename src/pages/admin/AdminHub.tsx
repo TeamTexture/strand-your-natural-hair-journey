@@ -293,6 +293,29 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/members?filter=complimentary")}
               />
             </div>
+
+            <SectionLabel className="!px-0">Brands</SectionLabel>
+            <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
+              Paying brand partners — kept separate from consumer members.
+            </p>
+            <div className="grid grid-cols-3 gap-2.5">
+              <StatCard
+                label="Live brands"
+                value={stats.liveBrands}
+                onClick={() => nav("/admin/brand-offers?filter=brands")}
+              />
+              <StatCard
+                label="Live offers"
+                value={stats.liveBrandOffers}
+                onClick={() => nav("/admin/brand-offers?filter=live")}
+              />
+              <StatCard
+                label="Offer requests"
+                value={stats.brandOfferRequests}
+                tone={stats.brandOfferRequests > 0 ? "warn" : "default"}
+                onClick={() => nav("/admin/brand-offers?filter=pending")}
+              />
+            </div>
           </>
         )}
 
