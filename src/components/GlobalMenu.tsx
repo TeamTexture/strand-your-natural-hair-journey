@@ -116,6 +116,29 @@ const GlobalMenu = () => {
 
   const ActiveIcon = viewMeta[activeView].icon;
 
+  const ADMIN_NAV: NavItem[] = [
+    { label: "Overview", to: "/admin", icon: LayoutDashboard },
+    { label: "Applications", to: "/admin/applications", icon: ClipboardList, badge: pendingApplicationsCount },
+    { label: "Members", to: "/admin/members", icon: Users },
+    { label: "Audit trail", to: "/admin/audit", icon: FileText },
+    { label: "Settings", to: "/admin/settings", icon: Settings },
+  ];
+
+  // For pro view: only show items the pro can actually access.
+  // Approved + subscribed pros (or admins acting as pro) see everything.
+  // Otherwise (application pending, or approved-but-unpaid), the dashboard
+  // is locked to the landing/welcome screen and we surface nothing.
+  const proUnlocked = isAdmin || (isProfessional && proSubActive);
+
+  const navItems: NavItem[] =
+    activeView === "admin"
+      ? ADMIN_NAV
+      : activeView === "pro"
+        ? proUnlocked
+          ? PRO_NAV
+          : []
+        : CONSUMER_NAV;
+
 
   const go = (to: string) => {
     setOpen(false);
