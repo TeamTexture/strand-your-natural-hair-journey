@@ -52,7 +52,7 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
         supabase.from("profiles").select("user_id, display_name").in("user_id", ids),
         supabase
           .from("user_hair_profile")
-          .select("user_id, texture, density, porosity, diagnosed")
+          .select("user_id, surface_texture, density, porosity")
           .in("user_id", ids),
         supabase
           .from("blood_results")
