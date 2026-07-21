@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useRoles } from "@/hooks/useRoles";
 import {
   useProInbox,
   useAcceptEnquiry,
