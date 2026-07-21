@@ -482,41 +482,105 @@ const PaginatedList = <T,>({ items, render, empty }: { items: T[]; render: (t: T
   );
 };
 
-const WashSection = ({ d }: { d: PassportDataset }) => (
-  <PaginatedList
-    items={d.washDays}
-    empty="No wash days logged."
-    render={(w) => {
-      const steps = Array.isArray(w.steps) ? w.steps as Array<Record<string, unknown>> : [];
-      return (
-        <Collapsible key={w.id} summary={
-          <div>
-            <p className="text-sm font-body font-semibold">{format(new Date(w.wash_date), "EEE d MMM yyyy")}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              {w.scalp_feel ? `Scalp: ${String(w.scalp_feel)}` : ""}{w.breakage ? ` · Breakage: ${String(w.breakage)}` : ""}{w.duration_min ? ` · ${String(w.duration_min)}m` : ""}
-            </p>
+const WashSection = ({ d }: { d: PassportDataset }) => {
+  const productsById = useMemo(() => {
+    const m = new Map<string, PassportDataset["shelf"][number]>();
+    d.shelf.forEach(p => m.set(p.id, p));
+    return m;
+  }, [d.shelf]);
+  const productPhotoByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
+    return m;
+  }, [d.productPhotos]);
+
+  const ProductRow = ({ productId }: { productId: string }) => {
+    const p = productsById.get(productId);
+    const key = p?.product_key as string | undefined;
+    const path = (p?.storage_path as string | null | undefined) ?? (key ? productPhotoByKey.get(key) : null);
+    if (!p) return <p className="text-[12px] text-muted-foreground break-words">Product ID: {productId}</p>;
+    return (
+      <Collapsible summary={
+        <div className="flex items-center gap-3">
+          <Thumb bucket="product-photos" path={path} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-medium truncate">{p.name}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}</p>
           </div>
-        }>
-          <AllFields obj={w as Record<string, unknown>} exclude={["steps", "product_ids", "heat_treatment", "styling", "hair_feel_voice_url", "wash_date"]} />
-          {steps.length > 0 && (
-            <div className="mt-3">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Steps</p>
-              <div className="space-y-2">
-                {steps.map((s, i) => (
-                  <div key={i} className="border-l-2 border-primary/30 pl-2.5">
-                    <p className="text-[12px] font-medium">{String(s.name ?? s.step ?? `Step ${i + 1}`)}</p>
-                    <pre className="text-[11px] whitespace-pre-wrap text-muted-foreground">{JSON.stringify(s, null, 2)}</pre>
-                  </div>
-                ))}
-              </div>
+        </div>
+      }>
+        <AllFields obj={p as Record<string, unknown>} />
+      </Collapsible>
+    );
+  };
+
+  return (
+    <PaginatedList
+      items={d.washDays}
+      empty="No wash days logged."
+      render={(w) => {
+        const steps = Array.isArray(w.steps) ? w.steps as Array<Record<string, unknown>> : [];
+        const productIds = Array.isArray(w.product_ids) ? w.product_ids.map(String) : [];
+        const styling = (w.styling && typeof w.styling === "object") ? w.styling as Record<string, unknown> : null;
+        const heatTreatment = (w.heat_treatment && typeof w.heat_treatment === "object") ? w.heat_treatment as Record<string, unknown> : null;
+        const stylingPhotoPaths = Array.isArray(styling?.photoPaths) ? styling.photoPaths.map(String) : [];
+        const stylingProductIds = Array.isArray(styling?.productIds) ? styling.productIds.map(String) : [];
+        return (
+          <Collapsible key={w.id} summary={
+            <div>
+              <p className="text-sm font-body font-semibold">{format(new Date(w.wash_date), "EEE d MMM yyyy")}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {w.scalp_feel ? `Scalp: ${String(w.scalp_feel)}` : ""}{w.breakage ? ` · Breakage: ${String(w.breakage)}` : ""}{w.duration_min ? ` · ${String(w.duration_min)}m` : ""}
+              </p>
             </div>
-          )}
-          <AudioButton bucket="voicenotes" path={w.hair_feel_voice_url as string | null} />
-        </Collapsible>
-      );
-    }}
-  />
-);
+          }>
+            <AllFields obj={w as Record<string, unknown>} exclude={["steps", "product_ids", "heat_treatment", "styling", "hair_feel_voice_url"]} />
+            {productIds.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Products used in wash</p>
+                <div className="space-y-2">{productIds.map(id => <ProductRow key={id} productId={id} />)}</div>
+              </div>
+            )}
+            {steps.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Every wash step</p>
+                <div className="space-y-2">
+                  {steps.map((s, i) => (
+                    <Collapsible key={i} summary={
+                      <div>
+                        <p className="text-[12px] font-medium">{String(s.name ?? s.step ?? `Step ${i + 1}`)}</p>
+                        <p className="text-[11px] text-muted-foreground">{Object.keys(s).length} field{Object.keys(s).length === 1 ? "" : "s"}</p>
+                      </div>
+                    }>
+                      <AllFields obj={s} />
+                    </Collapsible>
+                  ))}
+                </div>
+              </div>
+            )}
+            {heatTreatment && <FullRecord obj={heatTreatment} title="Heat treatment details" />}
+            {styling && (
+              <div className="mt-3 pt-3 border-t border-border space-y-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Styling details</p>
+                  <AllFields obj={styling} exclude={["audioPath", "photoPaths", "productIds"]} />
+                </div>
+                {stylingProductIds.length > 0 && <div className="space-y-2">{stylingProductIds.map(id => <ProductRow key={id} productId={id} />)}</div>}
+                {stylingPhotoPaths.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {stylingPhotoPaths.map((p, i) => <Thumb key={p} bucket="journal-photos" path={p} className="aspect-square" title={`Styling photo ${i + 1}`} meta={<AllFields obj={styling} />} />)}
+                  </div>
+                )}
+                <AudioButton bucket="voicenotes" path={styling.audioPath as string | null} transcriptFallback={styling.transcript as string | null} />
+              </div>
+            )}
+            <AudioButton bucket="voicenotes" path={w.hair_feel_voice_url as string | null} />
+          </Collapsible>
+        );
+      }}
+    />
+  );
+};
 
 const JournalSection = ({ d }: { d: PassportDataset }) => (
   <PaginatedList
