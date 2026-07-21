@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ViewAsProvider } from "@/hooks/useViewAs";
 import RequireAuth from "@/components/RequireAuth";
 import PaidGate from "@/components/PaidGate";
 import OnboardingGate from "@/components/OnboardingGate";
@@ -13,6 +14,7 @@ import AdminMembers from "./pages/admin/AdminMembers";
 import AdminMemberPassport from "./pages/admin/AdminMemberPassport";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminProfessionals from "./pages/admin/AdminProfessionals";
+import AdminViewAs from "./pages/admin/AdminViewAs";
 
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
