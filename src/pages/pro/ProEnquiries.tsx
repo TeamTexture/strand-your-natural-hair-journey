@@ -135,12 +135,26 @@ const EnquiryCard = ({
   onOpenPassport?: () => void;
 }) => {
   const first = preview?.firstName ?? "Client";
+  const phone = preview?.phone ?? enquiry.contact_phone ?? null;
+  const contactMethod = enquiry.contact_method ?? null;
+  const location = preview?.location ?? enquiry.location_preference ?? null;
   return (
     <SurfaceCard>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="font-display text-base font-semibold leading-tight">{first}</p>
-          <p className="text-[11px] text-muted-foreground">
+          {(phone || contactMethod) && (
+            <p className="text-[11.5px] font-body text-foreground/85 mt-0.5 leading-snug truncate">
+              {phone ? phone : contactMethod}
+              {phone && contactMethod ? ` · ${contactMethod}` : ""}
+            </p>
+          )}
+          {location && (
+            <p className="text-[11px] font-body text-muted-foreground leading-snug truncate">
+              {location}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             {formatDistanceToNow(new Date(enquiry.created_at), { addSuffix: true })}
           </p>
         </div>
