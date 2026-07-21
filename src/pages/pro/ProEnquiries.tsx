@@ -56,6 +56,8 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
           .from("profiles")
           .select("user_id, display_name, phone_number, postcode, country")
           .in("user_id", ids),
+        supabase
+          .from("user_hair_profile")
           .select("user_id, surface_texture, density, porosity")
           .in("user_id", ids),
         supabase
