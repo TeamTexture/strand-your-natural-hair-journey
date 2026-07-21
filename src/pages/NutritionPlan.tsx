@@ -643,10 +643,12 @@ const NutritionPlan = () => {
     <ScreenLayout bottomNav={!isOnboarding}>
       <TitleBar title="Nutrition Plan" onBack={() => isOnboarding ? navigate("/onboarding/blood-ai-summary") : navigate(-1)} />
       <div className="px-5 pt-1 pb-8">
-        <h1 className="font-display text-[26px] leading-tight mb-1">Your Nutrition Plan</h1>
-        <p className="text-xs text-muted-foreground font-body mb-4">
-          Personalised to your blood work, heritage, life stage and hair goals.
-        </p>
+        <div className="text-center mb-5">
+          <h1 className="font-display text-[26px] leading-tight">Your Nutrition Plan</h1>
+          <p className="text-xs text-muted-foreground font-body mt-2 max-w-[300px] mx-auto">
+            Personalised to your blood work, heritage, life stage and hair goals.
+          </p>
+        </div>
 
         {plan?.summary && (
           <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
