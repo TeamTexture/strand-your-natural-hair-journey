@@ -206,9 +206,10 @@ const BrandOfferDetail = () => {
           </>
         )}
 
-        {canEdit && (
+        {canEdit && !pendingRevision && (
           <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${offer.id}/edit`)} className="w-full">
-            <Edit className="size-4 mr-1.5" /> Edit offer
+            <Edit className="size-4 mr-1.5" />
+            {isRevisionMode ? "Edit creative (submits for review)" : "Edit offer"}
           </Button>
         )}
 
