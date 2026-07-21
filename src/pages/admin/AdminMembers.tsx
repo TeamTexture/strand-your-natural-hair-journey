@@ -95,7 +95,7 @@ const AdminMembers = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Members" onBack={() => nav("/admin/applications")} />
+      <TitleBar title="Members" onBack={() => nav("/admin")} />
 
       <div className="px-5 pb-4">
         <div className="relative">

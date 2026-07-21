@@ -78,7 +78,7 @@ const AdminAudit = () => {
   if (loading) {
     return (
       <ScreenLayout>
-        <TitleBar title="Audit" onBack={() => nav("/admin/applications")} />
+        <TitleBar title="Audit" onBack={() => nav("/admin")} />
         <LoadingDot label="Loading audit…" fullScreen={false} />
       </ScreenLayout>
     );
@@ -86,7 +86,7 @@ const AdminAudit = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Audit" onBack={() => nav("/admin/applications")} />
+      <TitleBar title="Audit" onBack={() => nav("/admin")} />
 
       <div className="px-5 pb-8 space-y-3">
         <SectionLabel>Recent passport views</SectionLabel>

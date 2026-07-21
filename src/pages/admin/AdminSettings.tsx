@@ -76,7 +76,7 @@ const AdminSettings = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Settings" onBack={() => nav("/admin/applications")} />
+      <TitleBar title="Settings" onBack={() => nav("/admin")} />
 
       <div className="px-5 pb-8 space-y-3">
         {isLoading ? (
