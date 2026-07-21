@@ -217,8 +217,20 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
             <Row label="Country" value={d.profile.country} />
             <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
             <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
+            <AllFields obj={d.profile} exclude={["display_name", "avatar_url", "birth_year", "age", "heritage", "postcode", "country", "created_at", "onboarding_completed_at"]} />
           </div>
         ) : <p className="text-xs text-muted-foreground">No profile recorded.</p>}
+      </SurfaceCard>
+
+      <SectionLabel>Clinical snapshot</SectionLabel>
+      <SurfaceCard>
+        <div className="space-y-2">
+          <Row label="Bodily health" value={d.health?.medical_conditions ? oneOf(d.health.medical_conditions) : oneOf(d.health?.life_stage)} />
+          <Row label="Lifestyle" value={[d.health?.diet, d.health?.exercise, d.health?.sleep_quality].filter(Boolean).map(String).join(" · ") || null} />
+          <Row label="Medications" value={d.medications.length ? d.medications.map(m => [m.name, m.category].filter(Boolean).join(" — ")).join(", ") : null} />
+          <Row label="Hair concerns" value={d.hair?.areas_of_concern ? oneOf(d.hair.areas_of_concern) : null} />
+          <Row label="Scalp / diagnoses" value={[oneOf(d.hair?.scalp_condition), oneOf(d.hair?.diagnosed_conditions)].filter(Boolean).join(" · ") || null} />
+        </div>
       </SurfaceCard>
 
       <SectionLabel>Hair profile</SectionLabel>
@@ -226,6 +238,18 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
 
       <SectionLabel>Health profile</SectionLabel>
       <SurfaceCard><AllFields obj={d.health} /></SurfaceCard>
+
+      <SectionLabel>Medications</SectionLabel>
+      {d.medications.length === 0 ? <EmptyCard msg="No medications recorded." /> : d.medications.map(m => (
+        <Collapsible key={m.id} summary={
+          <div>
+            <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
+            <p className="text-[11px] text-muted-foreground">{m.category ?? "—"}{m.created_at ? ` · added ${format(new Date(m.created_at), "d MMM yyyy")}` : ""}</p>
+          </div>
+        }>
+          <AllFields obj={m as Record<string, unknown>} />
+        </Collapsible>
+      ))}
 
       <SectionLabel>Style profile</SectionLabel>
       <SurfaceCard><AllFields obj={d.style} exclude={["colour_history", "chemical_history", "colour_reaction_audio_path"]} /></SurfaceCard>
