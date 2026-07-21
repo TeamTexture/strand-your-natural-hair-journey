@@ -566,7 +566,7 @@ const BrandCreateOffer = () => {
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
       qc.invalidateQueries({ queryKey: ["brand-offer", offerId] });
       toast.success(asDraft ? "Saved as draft" : "Submitted for review");
-      nav("/brand");
+      nav(ownerHomeRoute(ownerMode));
     } catch (e) {
       console.error("Brand offer save failed", e);
       const msg =
