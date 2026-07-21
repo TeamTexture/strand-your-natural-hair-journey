@@ -365,6 +365,17 @@ const App = () => (
               <Route path="/brand/offers/:id/edit" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
               <Route path="/brand/offers/:id/extend" element={<RoleGate allow={["brand", "admin"]}><BrandExtendOffer /></RoleGate>} />
               <Route path="/brand/checkout/success" element={<RoleGate allow={["brand", "admin"]}><BrandCheckoutSuccess /></RoleGate>} />
+
+              {/* Pro promoted campaigns — reuse the brand pages via URL-based
+                   owner mode. Same booking calendar + Stripe flow, gated by
+                   the pro subscription instead of the brand annual fee. */}
+              <Route path="/pro/campaigns" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandDashboard /></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/new" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandCreateOffer /></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/:id" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandOfferDetail /></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/:id/edit" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandCreateOffer /></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/:id/extend" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandExtendOffer /></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/checkout/success" element={<RoleGate allow={["professional", "admin"]}><BrandCheckoutSuccess /></RoleGate>} />
+
               <Route path="/offers/:id" element={<Paid><OfferPage /></Paid>} />
               <Route path="/offers/:offerId/product/:productId" element={<Paid><BrandProductPage /></Paid>} />
 
