@@ -21,7 +21,7 @@ const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 const BrandOfferDetail = () => {
   const { id } = useParams();
   const nav = useNavigate();
-  const { data: offer, isLoading, refetch } = useBrandOffer(id);
+  const { data: offer, isLoading } = useBrandOffer(id);
   const [paying, setPaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteOffer = useDeleteBrandOffer();
