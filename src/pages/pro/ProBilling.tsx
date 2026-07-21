@@ -7,6 +7,7 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useRoles } from "@/hooks/useRoles";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -42,6 +43,7 @@ const ProBilling = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const { subscription, isActive, isLoading, refetch } = useProSubscription();
+  const { isAdmin } = useRoles();
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
 
   // Fetch price from platform_settings
@@ -100,7 +102,9 @@ const ProBilling = () => {
     }
   };
 
-  const status = statusLabel(subscription?.status);
+  const status = isAdmin && !isActive
+    ? { label: "Admin", tone: "good" as const }
+    : statusLabel(subscription?.status);
   const price = priceQ.data ?? 12.99;
 
   return (

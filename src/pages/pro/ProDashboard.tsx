@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
+import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
 
 const Card = ({
   icon: Icon,
@@ -16,6 +17,7 @@ const Card = ({
   onClick,
   disabled,
   badge,
+  count,
 }: {
   icon: React.ElementType;
   title: string;
@@ -23,6 +25,7 @@ const Card = ({
   onClick?: () => void;
   disabled?: boolean;
   badge?: string;
+  count?: number;
 }) => (
   <button
     onClick={onClick}
@@ -35,6 +38,14 @@ const Card = ({
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2">
         <p className="font-display text-base font-semibold leading-tight">{title}</p>
+        {count !== undefined && count > 0 && (
+          <span
+            aria-label={`${count} pending`}
+            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none"
+          >
+            {count > 99 ? "99+" : count}
+          </span>
+        )}
         {badge && (
           <span className="text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground font-body">
             {badge}
@@ -53,12 +64,15 @@ const ProDashboard = () => {
   const { isConsumer, isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
+  const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
   const [noticeDismissed, setNoticeDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.sessionStorage.getItem("pro_sub_notice_dismissed") === "1";
   });
 
-  const showLapseNotice = !subLoading && !subActive && !noticeDismissed;
+  // Admins get full pro-side access without a subscription for testing.
+  const hasProAccess = subActive || isAdmin;
+  const showLapseNotice = !subLoading && !hasProAccess && !noticeDismissed;
 
   return (
     <ScreenLayout>
@@ -116,15 +130,16 @@ const ProDashboard = () => {
           <Card
             icon={Inbox}
             title="Enquiries"
-            sub={subActive ? "Client requests and passport previews." : "Subscribe to receive enquiries."}
+            sub={hasProAccess ? "Client requests and passport previews." : "Subscribe to receive enquiries."}
             onClick={() => nav("/pro/enquiries")}
+            count={pendingEnquiries}
           />
           <Card
             icon={CreditCard}
             title="Billing"
-            sub={subLoading ? "Loading…" : subActive ? "Manage your subscription." : "Subscribe to STRAND Pro."}
+            sub={subLoading ? "Loading…" : hasProAccess ? "Manage your subscription." : "Subscribe to STRAND Pro."}
             onClick={() => nav("/pro/billing")}
-            badge={subActive ? "Active" : "Inactive"}
+            badge={isAdmin && !subActive ? "Admin" : subActive ? "Active" : "Inactive"}
           />
         </div>
 
