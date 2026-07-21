@@ -201,13 +201,13 @@ const App = () => (
               <Route path="/pro/auth" element={<ProAuth />} />
               <Route path="/pro/landing" element={<Protected><ProLanding /></Protected>} />
               <Route path="/pro/apply" element={<Protected><ProApply /></Protected>} />
-              <Route path="/pro/apply/confirmed" element={<Protected><ProApplyConfirmed /></Protected>} />
-              {/* Professional portal */}
+              <Route path="/pro/welcome" element={<Protected><ProWelcome /></Protected>} />
+              {/* Professional portal — dashboard gated behind an active subscription */}
               <Route
                 path="/pro"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProDashboard />
+                    <ProSubGate><ProDashboard /></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -215,7 +215,7 @@ const App = () => (
                 path="/pro/profile"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProProfile />
+                    <ProSubGate><ProProfile /></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -223,7 +223,7 @@ const App = () => (
                 path="/pro/offers"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProOffers />
+                    <ProSubGate><ProOffers /></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -239,7 +239,7 @@ const App = () => (
                 path="/pro/enquiries"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProEnquiries />
+                    <ProSubGate><ProEnquiries /></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -247,10 +247,11 @@ const App = () => (
                 path="/pro/clients/:consumerId"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProClientPassport />
+                    <ProSubGate><ProClientPassport /></ProSubGate>
                   </RoleGate>
                 }
               />
+
 
               <Route path="/profile/enquiries" element={<Paid><MyEnquiries /></Paid>} />
               <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
