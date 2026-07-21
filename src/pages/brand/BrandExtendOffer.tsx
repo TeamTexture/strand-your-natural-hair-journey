@@ -49,6 +49,7 @@ const BrandExtendOffer = () => {
     try {
       const payload = {
         brand_user_id: user.id,
+        owner_type: ownerMode,
         headline: offer.headline,
         body_copy: offer.body_copy,
         discount_code: offer.discount_code,
@@ -61,7 +62,7 @@ const BrandExtendOffer = () => {
       };
       const { data: created, error } = await supabase
         .from("brand_offers")
-        .insert(payload)
+        .insert(payload as unknown as never)
         .select("id")
         .single();
       if (error) throw error;
