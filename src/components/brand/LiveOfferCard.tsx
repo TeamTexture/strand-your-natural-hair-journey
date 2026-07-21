@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Eye, MousePointerClick, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SLOT_LABEL, type BrandPlacementSlot } from "@/hooks/useBrandOffers";
+import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
 
 interface Totals {
