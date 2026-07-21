@@ -20,12 +20,16 @@ import {
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
+import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
 const BrandOfferDetail = () => {
   const { id } = useParams();
   const nav = useNavigate();
+  const ownerMode = useOwnerMode();
+  const homeRoute = ownerHomeRoute(ownerMode);
+  const editRoute = (oid: string) => `${ownerOfferRoute(ownerMode, oid)}/edit`;
   const { data: offer, isLoading } = useBrandOffer(id);
   const { data: pendingRevision } = usePendingRevision(id);
   const { data: allRevisions = [] } = useOfferRevisions(id);
@@ -80,7 +84,7 @@ const BrandOfferDetail = () => {
     try {
       await deleteOffer.mutateAsync(offer.id);
       toast.success("Offer deleted");
-      nav("/brand");
+      nav(homeRoute);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");
     }
@@ -102,7 +106,7 @@ const BrandOfferDetail = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={offer.headline ?? "Offer"} onBack={() => nav("/brand")} />
+      <TitleBar title={offer.headline ?? "Offer"} onBack={() => nav(homeRoute)} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-2">
           <div className="flex items-start justify-between gap-2">
@@ -177,7 +181,7 @@ const BrandOfferDetail = () => {
                   Submitted {format(new Date(pendingRevision.submitted_at), "d MMM · HH:mm")}
                 </p>
                 <div className="flex gap-1.5 mt-2">
-                  <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${offer.id}/edit`)} className="flex-1 text-[11px]">
+                  <Button variant="outline" size="pill" onClick={() => nav(editRoute(offer.id))} className="flex-1 text-[11px]">
                     Update changes
                   </Button>
                   <Button
@@ -326,7 +330,7 @@ const BrandOfferDetail = () => {
 
 
         {canEdit && !pendingRevision && (
-          <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${offer.id}/edit`)} className="w-full">
+          <Button variant="outline" size="pill" onClick={() => nav(editRoute(offer.id))} className="w-full">
             <Edit className="size-4 mr-1.5" />
             {isRevisionMode ? "Edit creative (submits for review)" : "Edit offer"}
           </Button>

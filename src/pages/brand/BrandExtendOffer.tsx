@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBrandOffer } from "@/hooks/useBrandOffers";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { getOfferExpiry, buildCountdown, formatCountdown } from "@/lib/offerExpiry";
+import { useOwnerMode, ownerOfferRoute } from "@/hooks/useOwnerMode";
 
 /**
  * Extend an existing offer.
@@ -26,8 +27,10 @@ const BrandExtendOffer = () => {
   const { id } = useParams();
   const nav = useNavigate();
   const { user } = useAuth();
+  const ownerMode = useOwnerMode();
   const { data: offer, isLoading } = useBrandOffer(id);
   const [cloning, setCloning] = useState(false);
+
 
   const [tick, setTick] = useState(() => new Date());
   useEffect(() => {
@@ -46,6 +49,7 @@ const BrandExtendOffer = () => {
     try {
       const payload = {
         brand_user_id: user.id,
+        owner_type: ownerMode,
         headline: offer.headline,
         body_copy: offer.body_copy,
         discount_code: offer.discount_code,
@@ -58,7 +62,7 @@ const BrandExtendOffer = () => {
       };
       const { data: created, error } = await supabase
         .from("brand_offers")
-        .insert(payload)
+        .insert(payload as unknown as never)
         .select("id")
         .single();
       if (error) throw error;
@@ -95,7 +99,7 @@ const BrandExtendOffer = () => {
       }
 
       toast.success("Extension draft created — pick new dates");
-      nav(`/brand/offers/${newId}/edit`);
+      nav(`${ownerOfferRoute(ownerMode, newId)}/edit`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Extend failed");
       setCloning(false);
@@ -104,7 +108,7 @@ const BrandExtendOffer = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Extend offer" onBack={() => nav(`/brand/offers/${id}`)} />
+      <TitleBar title="Extend offer" onBack={() => nav(ownerOfferRoute(ownerMode, id!))} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-2">
           <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium">Current offer</p>
@@ -146,7 +150,7 @@ const BrandExtendOffer = () => {
         <Button variant="gold" size="pill" onClick={cloneAndEdit} disabled={cloning} className="w-full">
           {cloning ? <Loader2 className="size-4 animate-spin" /> : <><CalendarPlus className="size-4 mr-1.5" /> Pick new dates</>}
         </Button>
-        <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${id}`)} className="w-full">
+        <Button variant="outline" size="pill" onClick={() => nav(ownerOfferRoute(ownerMode, id!))} className="w-full">
           Not now
         </Button>
       </div>

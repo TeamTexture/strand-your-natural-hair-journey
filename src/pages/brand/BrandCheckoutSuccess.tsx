@@ -6,10 +6,13 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useOwnerMode, ownerHomeRoute } from "@/hooks/useOwnerMode";
 
 const BrandCheckoutSuccess = () => {
   const [params] = useSearchParams();
   const nav = useNavigate();
+  const ownerMode = useOwnerMode();
+  const home = ownerHomeRoute(ownerMode);
   const [status, setStatus] = useState<"verifying" | "paid" | "pending" | "error">("verifying");
   const sessionId = params.get("session_id");
 
@@ -30,7 +33,7 @@ const BrandCheckoutSuccess = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Payment" onBack={() => nav("/brand")} />
+      <TitleBar title="Payment" onBack={() => nav(home)} />
       <div className="px-5 pt-8 flex flex-col items-center text-center">
         {status === "verifying" && <Loader2 className="size-10 animate-spin text-primary" />}
         {status === "paid" && <CheckCircle2 className="size-12 text-good" />}
@@ -46,7 +49,7 @@ const BrandCheckoutSuccess = () => {
             {status === "pending" && "It's on its way — refresh in a moment."}
             {status === "error" && "Please contact us if this persists."}
           </p>
-          <Button variant="gold" size="pill" onClick={() => nav("/brand")} className="mt-4 w-full">
+          <Button variant="gold" size="pill" onClick={() => nav(home)} className="mt-4 w-full">
             Back to dashboard
           </Button>
         </SurfaceCard>

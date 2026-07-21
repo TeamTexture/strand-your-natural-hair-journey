@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
+import { useProSubscription } from "@/hooks/useProSubscription";
 import { Sparkles, Image as ImageIcon, Trash2, Loader2, Plus, Search, PackagePlus, Wrench } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -112,10 +114,12 @@ const BrandCreateOffer = () => {
   const nav = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const ownerMode = useOwnerMode();
   const { data: rates } = usePlacementRates();
   const { data: existing } = useBrandOffer(existingId);
   const { data: pendingRevision } = usePendingRevision(existingId);
   const submitRevision = useSubmitBrandOfferRevision();
+  const { isActive: proSubActive } = useProSubscription();
 
   // Revision mode = editing an already-live or paid-scheduled offer. Only creative
   // fields (title, body, code, URL, banner, attached products/tools) can change;
@@ -472,15 +476,21 @@ const BrandCreateOffer = () => {
     // Headline is optional — no validation required.
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
-    if (!asDraft && !brandSubActive) {
+    if (!asDraft && ownerMode === "brand" && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);
+      return;
+    }
+    if (!asDraft && ownerMode === "pro" && !proSubActive) {
+      toast("An active STRAND Pro subscription is required to promote.");
+      nav(`/pro/billing`);
       return;
     }
     setSubmitting(true);
     try {
       const payload = {
         brand_user_id: user.id,
+        owner_type: ownerMode,
         headline: headline.trim() || null,
         body_copy: bodyCopy.trim() || null,
         discount_code: discountCode.trim() || null,
@@ -500,12 +510,12 @@ const BrandCreateOffer = () => {
 
       let offerId = existingId;
       if (offerId) {
-        const { error } = await supabase.from("brand_offers").update(payload).eq("id", offerId);
+        const { error } = await supabase.from("brand_offers").update(payload as unknown as never).eq("id", offerId);
         if (error) throw error;
         await supabase.from("brand_offer_placements").delete().eq("offer_id", offerId);
         await supabase.from("brand_products").delete().eq("offer_id", offerId);
       } else {
-        const { data, error } = await supabase.from("brand_offers").insert(payload).select("id").single();
+        const { data, error } = await supabase.from("brand_offers").insert(payload as unknown as never).select("id").single();
         if (error) throw error;
         offerId = data.id;
       }
@@ -556,7 +566,7 @@ const BrandCreateOffer = () => {
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
       qc.invalidateQueries({ queryKey: ["brand-offer", offerId] });
       toast.success(asDraft ? "Saved as draft" : "Submitted for review");
-      nav("/brand");
+      nav(ownerHomeRoute(ownerMode));
     } catch (e) {
       console.error("Brand offer save failed", e);
       const msg =
