@@ -307,25 +307,6 @@ const Subscribe = () => {
           </p>
         </div>
 
-        {/* Price card */}
-        <SurfaceCard tone="gold" className="!p-5 space-y-4 text-center">
-          <div>
-            <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
-              Monthly membership
-            </p>
-            <div className="mt-2 flex items-baseline justify-center gap-1.5">
-              <span className="font-display text-[44px] font-semibold leading-none text-foreground">
-                £{price.toFixed(2)}
-              </span>
-              <span className="font-body text-sm text-foreground/70">/ month</span>
-            </div>
-            <p className="text-[12px] font-body text-foreground/70 mt-1.5 leading-snug">
-              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span> — less
-              than a single deep-conditioning treatment, every month for life.
-            </p>
-          </div>
-          <CtaBlock />
-        </SurfaceCard>
 
         {/* Section header */}
         <div className="text-center pt-2 space-y-2">
@@ -406,18 +387,21 @@ const Subscribe = () => {
           })}
         </div>
 
-        {/* Final CTA */}
-        <SurfaceCard tone="gold" className="!p-6 text-center space-y-4">
-          <div className="space-y-1.5">
+        {/* Price card */}
+        <SurfaceCard tone="gold" className="!p-5 space-y-4 text-center">
+          <div>
             <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
-              Ready when you are
+              Monthly membership
             </p>
-            <h3 className="font-display text-[22px] font-semibold text-foreground leading-tight">
-              Your hair's next chapter<br />starts today.
-            </h3>
-            <p className="font-body text-[12.5px] text-foreground/75 leading-relaxed">
-              £{price.toFixed(2)} a month. Cancel any time. Everything above, from the very
-              first tap.
+            <div className="mt-2 flex items-baseline justify-center gap-1.5">
+              <span className="font-display text-[44px] font-semibold leading-none text-foreground">
+                £{price.toFixed(2)}
+              </span>
+              <span className="font-body text-sm text-foreground/70">/ month</span>
+            </div>
+            <p className="text-[12px] font-body text-foreground/70 mt-1.5 leading-snug">
+              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span> — less
+              than a single deep-conditioning treatment, every month for life.
             </p>
           </div>
           <CtaBlock />
