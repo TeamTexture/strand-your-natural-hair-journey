@@ -61,7 +61,6 @@ const BrandBanner = ({ slot }: Props) => {
   const onDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     try { sessionStorage.setItem(dismissKey(slot, offer.id), "1"); } catch { /* noop */ }
-    logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
     setDismissed(true);
   };
 
