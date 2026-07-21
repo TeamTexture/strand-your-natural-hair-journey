@@ -1013,10 +1013,10 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
     const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <Thumb bucket="product-photos" path={photo ?? null} className={size === "sm" ? "size-11 shrink-0 rounded-lg" : "size-14 shrink-0 rounded-lg"} title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
-          <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{p.name}</p>
+          <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
           <p className="text-[11px] text-muted-foreground font-body truncate">
             {humaniseValue(p.brand) ?? "—"}{p.category ? ` · ${humaniseValue(p.category)}` : ""}
           </p>
@@ -1195,10 +1195,10 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
     const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <Thumb bucket="product-photos" path={photo ?? null} className="size-11 shrink-0 rounded-lg" title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
-          <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{p.name}</p>
+          <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
           <p className="text-[11px] text-muted-foreground font-body truncate">
             {humaniseValue(p.brand) ?? "—"}{p.category ? ` · ${humaniseValue(p.category)}` : ""}
           </p>
