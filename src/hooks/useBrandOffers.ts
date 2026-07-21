@@ -10,6 +10,43 @@ export type BrandProduct = Database["public"]["Tables"]["brand_products"]["Row"]
 export type PlacementSlot = Database["public"]["Enums"]["brand_placement_slot"];
 export type BrandOfferStatus = Database["public"]["Enums"]["brand_offer_status"];
 
+/** Revision row shape (creative-only edit awaiting review). Generated types will
+ *  catch up on next codegen; keep this local type in sync with the migration. */
+export interface BrandOfferRevision {
+  id: string;
+  offer_id: string;
+  brand_user_id: string;
+  status: "pending" | "approved" | "rejected" | "withdrawn" | "superseded";
+  headline: string | null;
+  body_copy: string | null;
+  discount_code: string | null;
+  external_url: string | null;
+  hero_image_path: string | null;
+  products: RevisionProductSnapshot[];
+  rejection_reason: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RevisionProductSnapshot {
+  kind: "product" | "tool";
+  name: string;
+  description?: string | null;
+  external_url?: string | null;
+  image_urls?: string[];
+  ingredients?: string[];
+  tool_kind?: string | null;
+  key_features?: string[];
+  materials?: string[];
+  source_type?: "manual" | "ai" | "linked";
+  source_url?: string | null;
+  linked_product_id?: string | null;
+}
+
+
 export const SLOT_LABEL: Record<PlacementSlot, string> = {
   home: "Home banner",
   products: "Products banner",
