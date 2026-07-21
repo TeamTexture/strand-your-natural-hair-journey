@@ -138,13 +138,32 @@ const BrandCreateOffer = () => {
 
   const totalDays = SLOTS.reduce((n, s) => n + selectedByslot[s].length, 0);
 
+  const [multiSlot, setMultiSlot] = useState(false);
+
   const toggleDate = (slot: PlacementSlot, date: string) => {
-    setSelectedByslot((prev) => ({
-      ...prev,
-      [slot]: prev[slot].includes(date)
-        ? prev[slot].filter((d) => d !== date)
-        : [...prev[slot], date],
-    }));
+    setSelectedByslot((prev) => {
+      // "Apply to all 3 slots" mode: toggle the date on every slot at once.
+      // If it's already fully-selected across the three slots, remove from all;
+      // otherwise add it to any slot that doesn't have it yet.
+      if (multiSlot) {
+        const fully = SLOTS.every((s) => prev[s].includes(date));
+        const next = { ...prev };
+        SLOTS.forEach((s) => {
+          if (fully) {
+            next[s] = prev[s].filter((d) => d !== date);
+          } else if (!prev[s].includes(date)) {
+            next[s] = [...prev[s], date];
+          }
+        });
+        return next;
+      }
+      return {
+        ...prev,
+        [slot]: prev[slot].includes(date)
+          ? prev[slot].filter((d) => d !== date)
+          : [...prev[slot], date],
+      };
+    });
   };
 
   const uploadBlob = async (blob: Blob, prefix: string): Promise<string> => {
