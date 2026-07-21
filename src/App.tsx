@@ -197,9 +197,11 @@ const App = () => (
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
 
               {/* Professional portal (Phase A/B — application + admin vetting) */}
-              <Route path="/pro/apply" element={<ProApply />} />
+              <Route path="/pro/auth" element={<ProAuth />} />
+              <Route path="/pro/landing" element={<Protected><ProLanding /></Protected>} />
+              <Route path="/pro/apply" element={<Protected><ProApply /></Protected>} />
+              <Route path="/pro/apply/confirmed" element={<Protected><ProApplyConfirmed /></Protected>} />
               {/* Professional portal */}
-              <Route path="/pro/apply" element={<ProApply />} />
               <Route
                 path="/pro"
                 element={
