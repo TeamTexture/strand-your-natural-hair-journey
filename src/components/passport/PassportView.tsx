@@ -1946,10 +1946,36 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
 
   const Icon = sectionIcon[section];
 
+  if (activeProduct) {
+    return (
+      <ImagePreviewContext.Provider value={setImagePreview}>
+        <PassportProductDetail
+          product={activeProduct}
+          data={data}
+          mode={mode}
+          onBack={() => setActiveProduct(null)}
+        />
+        <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
+          <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] rounded-[20px] p-4 gap-3 max-h-[82vh] overflow-y-auto">
+            <DialogTitle className="font-display text-base leading-tight pr-8">{imagePreview?.title ?? "Image"}</DialogTitle>
+            {imagePreview?.url ? (
+              <img src={imagePreview.url} alt={imagePreview.title} className="w-full rounded-md object-contain max-h-[46vh] bg-muted" />
+            ) : (
+              <div className="aspect-square rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">Loading image…</div>
+            )}
+            {imagePreview?.meta && <div className="pt-2 border-t border-border">{imagePreview.meta}</div>}
+          </DialogContent>
+        </Dialog>
+      </ImagePreviewContext.Provider>
+    );
+  }
+
   return (
     <ImagePreviewContext.Provider value={setImagePreview}>
+      <OpenProductContext.Provider value={setActiveProduct}>
       <ScreenLayout>
         <TitleBar title={mode === "admin" ? "Member passport" : "Client passport"} onBack={accessEndedAction} />
+
 
         {/* Sticky tab strip — gold-edged passport pages */}
         <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-2.5 pb-3 px-5 border-b border-primary/15">
