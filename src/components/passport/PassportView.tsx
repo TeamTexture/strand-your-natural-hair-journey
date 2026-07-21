@@ -36,8 +36,8 @@ const SECTIONS: SectionSpec[] = [
   { key: "profile", label: "Profile", count: () => 0 },
   { key: "routine", label: "Routine", count: (d) => d.washDays.length },
   { key: "products", label: "Products", count: (d) => d.shelf.length },
-  { key: "nutrition", label: "Nutrition", count: (d) => d.nutritionSummaries.length },
   { key: "appointments", label: "Appts", count: (d) => d.appointments.length },
+  { key: "nutrition", label: "Nutrition", count: (d) => d.nutritionSummaries.length },
   { key: "journal", label: "Journal", count: (d) => d.journal.length },
   { key: "colour", label: "Colour", count: (d) => {
     const style = d.style ?? {};
@@ -1798,8 +1798,8 @@ const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> 
   profile: User,
   routine: Droplet,
   products: Package,
-  nutrition: Leaf,
   appointments: CalendarDays,
+  nutrition: Leaf,
   journal: PenLine,
   colour: Beaker,
   photos: ImageIcon,
@@ -1810,8 +1810,8 @@ const sectionSub: Record<Section, string> = {
   profile: "Identity, health, medications, hair and blood work",
   routine: "Wash days in full detail",
   products: "Shelf, favourites, wishlist and off-shelf",
-  nutrition: "Latest supplement and dietary guidance",
   appointments: "Upcoming and past visits",
+  nutrition: "Latest supplement and dietary guidance",
   journal: "Entries with notes, mood and photos",
   colour: "Colour history and chemical reactions",
   photos: "Milestones, before shots, moodboards",
@@ -1931,8 +1931,8 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "profile" && <ProfileSection d={data} />}
           {section === "routine" && <RoutineSection d={data} />}
           {section === "products" && <ProductsSection d={data} />}
-          {section === "nutrition" && <NutritionSection d={data} />}
           {section === "appointments" && <AppointmentsSection d={data} />}
+          {section === "nutrition" && <NutritionSection d={data} />}
           {section === "journal" && <JournalSection d={data} />}
           {section === "colour" && <ColourSection d={data} />}
           {section === "photos" && <PhotosSection d={data} />}
