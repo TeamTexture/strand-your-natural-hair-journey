@@ -13,6 +13,7 @@ import { useProAppointments } from "@/hooks/useProAppointments";
 import { useProClients } from "@/hooks/useProClients";
 
 import { formatTime12h } from "@/lib/formatTime";
+import { useProGreetingName } from "@/hooks/useProGreetingName";
 
 
 const Card = ({
@@ -66,6 +67,7 @@ const Card = ({
 const ProDashboard = () => {
   const nav = useNavigate();
   const { signOut, user } = useAuth();
+  const { firstName: proFirstName } = useProGreetingName();
   const { isConsumer, isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
@@ -104,7 +106,7 @@ const ProDashboard = () => {
       <TitleBar title="Professional" back={false} />
       <div className="px-5 pb-8 space-y-4">
         <p className="text-sm text-foreground/70 font-body">
-          Welcome{user?.email ? `, ${user.email}` : ""}.
+          {proFirstName ? `Welcome, ${proFirstName}.` : "Welcome back."}
         </p>
 
         {showLapseNotice && (

@@ -71,7 +71,7 @@ const ProLanding = () => {
   const submitted = latest?.payment_confirmed_at != null;
   const submittedPending = submitted && latest?.status === "pending";
   const rejected = submitted && latest?.status === "rejected";
-  const displayName = latest?.full_name || user.email?.split("@")[0] || "Practitioner";
+  const displayName = latest?.full_name?.trim() || "Practitioner";
 
   const submittedDate = latest?.payment_confirmed_at
     ? new Date(latest.payment_confirmed_at).toLocaleDateString("en-GB", {
