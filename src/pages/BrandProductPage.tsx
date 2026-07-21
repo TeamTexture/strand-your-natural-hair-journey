@@ -479,79 +479,8 @@ const BrandProductPage = () => {
           </SurfaceCard>
         )}
 
-        {/* AI suitability */}
-        <SurfaceCard className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <Sparkles className="size-4 text-primary" />
-            <SectionLabel className="!px-0 !mt-0">Is this right for my hair?</SectionLabel>
-          </div>
-          {aiLoading && (
-            <div className="flex items-center gap-2 text-[12px] text-muted-foreground font-body">
-              <Loader2 className="size-3.5 animate-spin" /> Checking against your profile…
-            </div>
-          )}
-          {aiError && !aiLoading && (
-            <p className="text-[12px] text-muted-foreground font-body">{aiError}</p>
-          )}
-          {!aiLoading && !aiError && analysis && (
-            <>
-              {typeof analysis.match_score === "number" && (
-                <p className="text-[12px] text-muted-foreground font-body">
-                  Match score:{" "}
-                  <span className="text-foreground font-medium">
-                    {Math.round(analysis.match_score)}/100
-                  </span>
-                </p>
-              )}
-              {analysis.verdict && (
-                <p className="text-[13px] font-display leading-tight">{analysis.verdict}</p>
-              )}
-              {analysis.summary && (
-                <p className="text-[13px] text-foreground/85 leading-relaxed font-body whitespace-pre-wrap">
-                  {analysis.summary}
-                </p>
-              )}
-              {Array.isArray(analysis.ingredients) && analysis.ingredients.length > 0 && (
-                <div className="space-y-1.5 pt-1">
-                  {analysis.ingredients.slice(0, 8).map((f) => (
-                    <div key={f.name} className="flex gap-2">
-                      <span
-                        className={
-                          "mt-1 size-2 rounded-full shrink-0 " +
-                          (f.tone === "good"
-                            ? "bg-good"
-                            : f.tone === "warn"
-                              ? "bg-warn"
-                              : "bg-alert-dark")
-                        }
-                      />
-                      <div className="min-w-0">
-                        <p className="text-[12px] font-medium leading-tight">{f.name}</p>
-                        {f.body && (
-                          <p className="text-[11px] text-muted-foreground leading-snug font-body">
-                            {f.body}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {Array.isArray(analysis.cautions) && analysis.cautions.length > 0 && (
-                <div className="pt-1 space-y-1">
-                  {analysis.cautions.map((c, i) => (
-                    <p key={i} className="text-[11px] text-alert-dark leading-snug font-body">
-                      • {c}
-                    </p>
-                  ))}
-                </div>
-              )}
-              <p className="text-[10px] text-muted-foreground leading-snug font-body pt-1">
-                Honest assessment based on your hair profile — not a sponsor endorsement.
-              </p>
-            </>
-          )}
-        </SurfaceCard>
+        {/* AI suitability section removed — personalised playbook below covers this */}
+
 
         {/* Personalised usage playbook */}
         {(guidanceLoading || guidance) && (
