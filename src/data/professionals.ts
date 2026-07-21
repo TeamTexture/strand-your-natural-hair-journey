@@ -232,13 +232,15 @@ export const PROFESSIONALS: Professional[] = [
 ];
 
 /** Search any list of professionals by name, clinic, postcode, location, bio, or specialism. */
+const PINNED_ORDER = ["dr-eve-skin", "erica-liburd"];
+
 export function searchProfessionalsIn(
   list: Professional[],
   query: string,
   type?: ProType | "All",
 ): Professional[] {
   const q = query.trim().toLowerCase();
-  return list.filter((p) => {
+  const filtered = list.filter((p) => {
     if (type && type !== "All" && p.type !== type) return false;
     if (!q) return true;
     const haystack = [
@@ -247,6 +249,14 @@ export function searchProfessionalsIn(
       .join(" ")
       .toLowerCase();
     return haystack.includes(q);
+  });
+  return filtered.sort((a, b) => {
+    const ai = PINNED_ORDER.indexOf(a.id);
+    const bi = PINNED_ORDER.indexOf(b.id);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
   });
 }
 
