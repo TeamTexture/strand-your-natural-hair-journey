@@ -886,44 +886,65 @@ const BrandCreateOffer = () => {
                   </Button>
                 </div>
               ) : catalogueQuery.data?.length ? (
-                catalogueQuery.data.map((item) => (
-                  <button
-                    key={`${item.kind}-${item.source_id}`}
-                    type="button"
-                    onClick={() => attachCatalogueItem(item)}
-                    className="w-full text-left rounded-[12px] border border-border bg-card p-2.5 hover:border-primary/40"
-                  >
-                    <div className="flex gap-2.5 min-w-0">
-                      <div className="size-12 shrink-0 rounded-lg bg-muted border border-border overflow-hidden flex items-center justify-center text-primary">
-                        {item.image_url ? (
-                          <img src={item.image_url} alt="" className="size-full object-cover" />
-                        ) : item.kind === "tool" ? (
-                          <Wrench className="size-5" />
-                        ) : (
-                          <PackagePlus className="size-5" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <p className="font-display text-[14px] leading-tight truncate">{item.name}</p>
-                          <span className="shrink-0 text-[8px] uppercase tracking-wider text-muted-foreground border border-border rounded-pill px-1.5 py-[1px]">
-                            {item.kind === "tool" ? "Tool" : "Product"}
-                          </span>
+                catalogueQuery.data.map((item) => {
+                  const attached = isCatalogueItemAttached(item);
+                  return (
+                    <button
+                      key={`${item.kind}-${item.source_id}`}
+                      type="button"
+                      onClick={() => attachCatalogueItem(item)}
+                      aria-pressed={attached}
+                      className={`w-full text-left rounded-[12px] border p-2.5 transition-colors ${
+                        attached
+                          ? "border-primary bg-primary/10 ring-1 ring-primary"
+                          : "border-border bg-card hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="flex gap-2.5 min-w-0">
+                        <div className={`size-12 shrink-0 rounded-lg border overflow-hidden flex items-center justify-center text-primary ${attached ? "border-primary bg-primary/5" : "bg-muted border-border"}`}>
+                          {item.image_url ? (
+                            <img src={item.image_url} alt="" className="size-full object-cover" />
+                          ) : item.kind === "tool" ? (
+                            <Wrench className="size-5" />
+                          ) : (
+                            <PackagePlus className="size-5" />
+                          )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {[item.brand, item.category].filter(Boolean).join(" · ") || "STRAND catalogue item"}
-                        </p>
-                        <p className="text-[10px] text-primary font-body mt-0.5">
-                          {item.user_count} member{item.user_count === 1 ? "" : "s"} have added this
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className={`font-display text-[14px] leading-tight truncate ${attached ? "text-primary" : ""}`}>{item.name}</p>
+                            <span className={`shrink-0 text-[8px] uppercase tracking-wider rounded-pill px-1.5 py-[1px] border ${attached ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>
+                              {item.kind === "tool" ? "Tool" : "Product"}
+                            </span>
+                            {attached ? (
+                              <span className="shrink-0 text-[8px] uppercase tracking-wider rounded-pill px-1.5 py-[1px] bg-primary text-primary-foreground">
+                                Attached
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {[item.brand, item.category].filter(Boolean).join(" · ") || "STRAND catalogue item"}
+                          </p>
+                          <p className="text-[10px] text-primary font-body mt-0.5">
+                            {item.user_count} member{item.user_count === 1 ? "" : "s"} have added this
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  );
+                })
               ) : (
                 <p className="text-[12px] text-muted-foreground text-center py-8">No catalogue matches yet.</p>
               )}
             </div>
+          </div>
+          <div className="border-t border-border bg-background/95 backdrop-blur px-4 py-3 flex items-center justify-between gap-2">
+            <p className="text-[11px] text-muted-foreground">
+              {products.filter((p) => p.source_type === "linked").length} attached
+            </p>
+            <Button type="button" size="sm" onClick={() => setCatalogueOpen(false)} className="rounded-pill px-5">
+              Save
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
