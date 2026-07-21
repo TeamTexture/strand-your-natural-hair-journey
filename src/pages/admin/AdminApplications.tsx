@@ -519,4 +519,193 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
   </div>
 );
 
+const PROGRESS_LABEL: Record<IncompleteProRow["progress"], string> = {
+  not_started: "Not started",
+  draft_started: "Draft started",
+  nearly_ready: "Nearly ready",
+};
+
+const PROGRESS_CLS: Record<IncompleteProRow["progress"], string> = {
+  not_started: "bg-muted text-muted-foreground",
+  draft_started: "bg-warn/15 text-warn",
+  nearly_ready: "bg-good/15 text-good",
+};
+
+const IncompleteCard = ({ row }: { row: IncompleteProRow }) => {
+  const { app, email, last_session, session_count, progress, filled_sections } = row;
+  const [expanded, setExpanded] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const initials =
+    app.full_name
+      ?.split(" ")
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "•";
+
+  const signedUp = (() => {
+    try {
+      return formatDistanceToNowStrict(new Date(app.created_at), { addSuffix: true });
+    } catch {
+      return "";
+    }
+  })();
+
+  const lastActive = last_session
+    ? formatDistanceToNow(new Date(last_session), { addSuffix: true })
+    : null;
+
+  const extras = app as unknown as {
+    business_phone?: string | null;
+    business_email?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    city?: string | null;
+    opening_hours?: Record<string, { closed?: boolean; open?: string; close?: string }> | null;
+  };
+  const address = [extras.address_line1, extras.address_line2, extras.city, app.postcode]
+    .filter(Boolean)
+    .join(", ");
+
+  const restrict = async () => {
+    if (!app.user_id) return;
+    if (
+      !confirm(
+        "Restrict this applicant's account? They'll only see the access-restricted screen and any subscriptions cancel.",
+      )
+    )
+      return;
+    setBusy(true);
+    const { error } = await supabase.functions.invoke("admin-restrict-user", {
+      body: { user_id: app.user_id },
+    });
+    setBusy(false);
+    if (error) toast.error(error.message ?? "Could not restrict");
+    else toast.success("Access restricted.");
+  };
+
+  return (
+    <SurfaceCard className="!p-5">
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-12 w-12 shrink-0 rounded-full bg-background border border-primary/30 flex items-center justify-center">
+              <span className="font-display font-bold text-lg text-primary">{initials}</span>
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-display font-bold text-[17px] leading-tight text-foreground truncate">
+                {app.full_name || "Unnamed applicant"}
+              </h3>
+              <p className="text-[11px] font-body font-medium uppercase tracking-[0.12em] text-muted-foreground truncate mt-0.5">
+                {app.discipline}
+                {app.business_name ? ` · ${app.business_name}` : ""}
+              </p>
+            </div>
+          </div>
+          <span
+            className={cn(
+              "shrink-0 text-[9px] font-body font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-full",
+              PROGRESS_CLS[progress],
+            )}
+          >
+            {PROGRESS_LABEL[progress]}
+          </span>
+        </div>
+
+        <div className="mt-3 space-y-1 text-[11px] font-body text-foreground/70">
+          {email && (
+            <p className="flex items-center gap-1.5 min-w-0">
+              <Mail className="size-3 text-primary shrink-0" />
+              <span className="truncate">{email}</span>
+            </p>
+          )}
+          <p>
+            Signed up {signedUp}
+            {lastActive ? ` · last active ${lastActive}` : ""}
+            {session_count > 0 ? ` · ${session_count} session${session_count === 1 ? "" : "s"}` : ""}
+          </p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground pt-1">
+            {filled_sections.length === 0
+              ? "Only signup details filled"
+              : `Filled: ${filled_sections.join(" · ")}`}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-3 text-[10px] font-body font-semibold uppercase tracking-[0.15em] text-primary"
+        >
+          {expanded ? "Hide details" : "View entered details"}
+        </button>
+
+        {expanded && (
+          <div className="pt-3 mt-2 space-y-2.5 text-xs font-body leading-relaxed border-t border-background min-w-0">
+            <Row label="Account email">{app.email || email || "—"}</Row>
+            <Row label="Discipline">{app.discipline}</Row>
+            {app.business_name && <Row label="Business / clinic">{app.business_name}</Row>}
+            {app.qualifications && <Row label="Qualifications">{app.qualifications}</Row>}
+            {(app.insurance_provider || app.insurance_policy_no) && (
+              <Row label="Insurance">
+                {[app.insurance_provider, app.insurance_policy_no, app.insurance_expiry]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Row>
+            )}
+            {extras.business_phone && <Row label="Business phone">{extras.business_phone}</Row>}
+            {extras.business_email && <Row label="Business email">{extras.business_email}</Row>}
+            {address && <Row label="Address">{address}</Row>}
+            {(app.location || app.postcode) && (
+              <Row label="Location">
+                {[app.location, app.postcode].filter(Boolean).join(" · ")}
+              </Row>
+            )}
+            {app.website_url && <Row label="Website">{app.website_url}</Row>}
+            {app.instagram_handle && <Row label="Instagram">{app.instagram_handle}</Row>}
+            {app.why_strand && <Row label="Why STRAND">{app.why_strand}</Row>}
+            <p className="text-[10px] italic text-muted-foreground pt-1">
+              Draft — never submitted. Nothing to approve or reject.
+            </p>
+          </div>
+        )}
+
+        <div className="pt-3 flex gap-2">
+          {email && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              asChild
+            >
+              <a
+                href={`mailto:${email}?subject=${encodeURIComponent(
+                  "Your STRAND Pro application",
+                )}&body=${encodeURIComponent(
+                  `Hi ${app.full_name?.split(" ")[0] ?? "there"},\n\nWe noticed you started an application for STRAND Pro but haven't submitted it yet. Is there anything we can help with?\n\n— The STRAND team`,
+                )}`}
+              >
+                <Mail className="size-3.5 mr-1.5" /> Email applicant
+              </a>
+            </Button>
+          )}
+          {app.user_id && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+              disabled={busy}
+              onClick={restrict}
+            >
+              <ShieldOff className="size-3.5 mr-1.5" /> Restrict
+            </Button>
+          )}
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+};
+
+export default AdminApplications;
+
 export default AdminApplications;
