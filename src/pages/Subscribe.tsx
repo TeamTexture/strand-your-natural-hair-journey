@@ -1,25 +1,147 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CreditCard, CheckCircle2, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import {
+  CreditCard,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  Droplet,
+  FlaskConical,
+  BookOpen,
+  Camera,
+  Users,
+  Calendar,
+  Leaf,
+  Heart,
+  ShieldCheck,
+  Lock,
+} from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { Button } from "@/components/ui/button";
+import SurfaceCard from "@/components/SurfaceCard";
+import HairStrandIcon from "@/components/HairStrandIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { LucideIcon } from "lucide-react";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
-const INCLUDED = [
-  "Personalised guidance rooted in How To Love Your Afro",
-  "Wash day tracking with weekly focus",
-  "Blood work analysis and marker trends",
-  "Ingredient analysis on every product",
-  "Your professional passport — share with your stylist or trichologist",
+type Pillar = {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  points: string[];
+};
+
+const PILLARS: Pillar[] = [
+  {
+    icon: BookOpen,
+    title: "Your personal STRAND guide",
+    body:
+      "Every screen speaks to you in the voice of Paige Lewin, author of How To Love Your Afro — tailored to your hair, your health, your history.",
+    points: [
+      "AI guidance rooted in the full manuscript of How To Love Your Afro",
+      "Never generic advice — every insight is shaped by your own profile",
+      "A living hair-and-scalp summary that updates as your data grows",
+    ],
+  },
+  {
+    icon: Droplet,
+    title: "Wash days, done properly",
+    body:
+      "Log every wash the way a curl specialist would — from double-cleanse through to the seal — and STRAND turns the pattern into insight.",
+    points: [
+      "Step-by-step wash-day flow: cleanse, treat, style, seal",
+      "Track porosity, shedding, breakage and scalp feel in seconds",
+      "Voice-note your wash, we transcribe it for your records",
+      "Schedule future wash days and drop them into your calendar",
+    ],
+  },
+  {
+    icon: FlaskConical,
+    title: "Every product, analysed",
+    body:
+      "Scan a bottle or paste a link and STRAND reads the ingredients like a chemist — flagging what fights your hair type, protein balance and water.",
+    points: [
+      "AI ingredient analysis on every product in your shelf",
+      "Personalised flags — protein overload, drying alcohols, hard-water triggers",
+      "Times-used and last-used tracking so nothing sits forgotten",
+      "Rate, favourite, batch-move and archive your shelf with ease",
+    ],
+  },
+  {
+    icon: Heart,
+    title: "Blood work that finally makes sense",
+    body:
+      "Upload a lab PDF and STRAND translates every marker — ferritin, vitamin D, thyroid, hormones — into what it means for your strands.",
+    points: [
+      "Upload PDFs, photos or scans — even password-protected files",
+      "Automatic extraction, flagging and trend charts over time",
+      "Plain-English rationale for every low or high marker",
+      "A personalised nutrition plan built from your results",
+    ],
+  },
+  {
+    icon: Camera,
+    title: "Your hair, documented",
+    body:
+      "Milestones, moodboards, colour history and appointment photos — the visual record you've never quite kept, kept for you.",
+    points: [
+      "Milestone and before-photo library with progress side-by-sides",
+      "Moodboards for inspiration — import from Instagram, Pinterest or the web",
+      "Full colour and chemical history with dates and formulations",
+      "Appointment log with photos, outcomes and post-visit follow-ups",
+    ],
+  },
+  {
+    icon: Users,
+    title: "The Client Passport",
+    body:
+      "Walk into any chair — stylist, colourist, trichologist — with your entire story ready. No more explaining yourself from scratch.",
+    points: [
+      "Share a consent-controlled passport with vetted STRAND professionals",
+      "Bio, hair and health profile, bloodwork, products, wash-day patterns, photos",
+      "Every view logged for you — full transparency, always revocable",
+      "Export the whole thing as a branded PDF for anyone, any time",
+    ],
+  },
+  {
+    icon: Calendar,
+    title: "Your journey, your journal",
+    body:
+      "A private space to note what worked, what didn't, and how your hair felt — with gentle prompts from STRAND when you need them.",
+    points: [
+      "Journal entries with photos, voice notes and mood tracking",
+      "Multi-goal tracking with regular check-ins and progress updates",
+      "Automatic appointment reminders and post-visit prompts",
+      "AI encouragement written in Paige's voice, never generic",
+    ],
+  },
+  {
+    icon: Leaf,
+    title: "Rooted in the book, not the algorithm",
+    body:
+      "STRAND doesn't invent trends. Every recommendation is grounded in the teachings of How To Love Your Afro and tailored to you.",
+    points: [
+      "No fads, no protein-every-week myths, no one-size-fits-all",
+      "Hard-water postcode analysis — because your tap matters",
+      "Heat-treatment rationale grounded in Chapter-13 protocols",
+      "A directory of hand-vetted practitioners championing textured hair",
+    ],
+  },
+];
+
+const REASSURANCE = [
+  { icon: Lock, title: "Cancel any time", body: "One tap in the billing portal. No calls, no forms, no guilt." },
+  { icon: ShieldCheck, title: "Your data is yours", body: "Encrypted, private, and never sold. Pause your membership and it waits for you." },
+  { icon: Sparkles, title: "Always improving", body: "New features and refinements every month, included at no extra cost." },
 ];
 
 const Subscribe = () => {
@@ -87,12 +209,60 @@ const Subscribe = () => {
   };
 
   const price = priceQ.data ?? 9.99;
+  const perDay = (price / 30).toFixed(2);
+
+  const CtaBlock = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center gap-2 text-sm text-foreground/60 py-2">
+          <Loader2 className="size-4 animate-spin" /> Loading…
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        {subscription?.cancel_at_period_end && stripeActive && (
+          <div className="flex items-start gap-2 text-[12px] text-warn font-body">
+            <AlertCircle className="size-4 shrink-0 mt-0.5" />
+            <span>Cancellation scheduled — access continues until the end of the current period.</span>
+          </div>
+        )}
+
+        {stripeActive ? (
+          <Button variant="gold" size="pill" className="w-full" onClick={openPortal} disabled={busy !== null}>
+            {busy === "portal" ? <Loader2 className="size-4 animate-spin" /> : "Manage subscription"}
+          </Button>
+        ) : complimentary || isAdminOrPro ? (
+          <Button variant="gold" size="pill" className="w-full" onClick={() => nav(nextPath ?? "/home")}>
+            Continue to STRAND
+          </Button>
+        ) : (
+          <>
+            <Button variant="gold" size="pill" className="w-full" onClick={startCheckout} disabled={busy !== null}>
+              {busy === "subscribe" ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : subscription?.status === "canceled" || subscription?.status === "past_due" ? (
+                "Resubscribe →"
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <CreditCard className="size-4" /> Begin my membership →
+                </span>
+              )}
+            </Button>
+            <p className="text-[11px] text-center text-foreground/60 font-body">
+              Have a promo code? Enter it at checkout. Cancel any time.
+            </p>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <ScreenLayout>
       <TitleBar title="Membership" onBack={hasAccess ? () => nav("/home") : undefined} />
 
-      <div className="px-5 pb-10 space-y-5">
+      <div className="px-5 pb-12 space-y-6">
         {hasAccess && (
           <div className="rounded-[14px] bg-good/10 border border-good/30 p-4 flex items-start gap-2">
             <CheckCircle2 className="size-4 text-good shrink-0 mt-0.5" />
@@ -118,78 +288,144 @@ const Subscribe = () => {
           </div>
         )}
 
-        <div className="rounded-[16px] border border-border bg-card p-5 space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="size-11 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Sparkles className="size-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-xl font-semibold leading-tight">STRAND Membership</p>
-              <p className="font-display text-lg font-semibold mt-1">
-                £{price.toFixed(2)}
-                <span className="text-sm font-body font-normal text-foreground/70"> / month</span>
-              </p>
-              <p className="text-[12px] text-foreground/70 mt-1 leading-snug font-body">
-                Cancel any time.
-              </p>
-            </div>
+        {/* Hero */}
+        <div className="text-center pt-1 space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25">
+            <HairStrandIcon className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
+              The STRAND Membership
+            </span>
           </div>
-
-          <ul className="space-y-2 pt-1">
-            {INCLUDED.map((line) => (
-              <li key={line} className="flex items-start gap-2 text-[13px] font-body text-foreground/85 leading-snug">
-                <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-
-          {isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-foreground/60 py-2">
-              <Loader2 className="size-4 animate-spin" /> Loading…
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {subscription?.cancel_at_period_end && stripeActive && (
-                <div className="flex items-start gap-2 text-[12px] text-warn font-body">
-                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                  <span>Cancellation scheduled — access continues until the end of the current period.</span>
-                </div>
-              )}
-
-              {stripeActive ? (
-                <Button className="w-full rounded-pill" onClick={openPortal} disabled={busy !== null}>
-                  {busy === "portal" ? <Loader2 className="size-4 animate-spin" /> : "Manage subscription"}
-                </Button>
-              ) : complimentary || isAdminOrPro ? (
-                <Button className="w-full rounded-pill" onClick={() => nav(nextPath ?? "/home")}>
-                  Continue to STRAND
-                </Button>
-              ) : (
-                <>
-                  <Button className="w-full rounded-pill" onClick={startCheckout} disabled={busy !== null}>
-                    {busy === "subscribe" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : subscription?.status === "canceled" || subscription?.status === "past_due" ? (
-                      "Resubscribe"
-                    ) : (
-                      <span className="inline-flex items-center gap-2">
-                        <CreditCard className="size-4" /> Subscribe
-                      </span>
-                    )}
-                  </Button>
-                  <p className="text-[11px] text-center text-foreground/60 font-body">
-                    Have a promo code? Enter it at checkout.
-                  </p>
-                </>
-              )}
-            </div>
-          )}
+          <h1 className="font-display text-[28px] font-semibold leading-[1.15] text-foreground">
+            The first hair companion<br />built entirely around{" "}
+            <span className="italic text-primary">you</span>.
+          </h1>
+          <p className="font-body text-[13.5px] text-foreground/75 leading-relaxed max-w-[320px] mx-auto">
+            Not another routine tracker. STRAND reads your hair, your bloodwork, your
+            products and your history — then guides you, in the voice of Paige Lewin, one
+            wash day at a time.
+          </p>
         </div>
 
+        {/* Price card */}
+        <SurfaceCard tone="gold" className="!p-5 space-y-4 text-center">
+          <div>
+            <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
+              Monthly membership
+            </p>
+            <div className="mt-2 flex items-baseline justify-center gap-1.5">
+              <span className="font-display text-[44px] font-semibold leading-none text-foreground">
+                £{price.toFixed(2)}
+              </span>
+              <span className="font-body text-sm text-foreground/70">/ month</span>
+            </div>
+            <p className="text-[12px] font-body text-foreground/70 mt-1.5 leading-snug">
+              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span> — less
+              than a single deep-conditioning treatment, every month for life.
+            </p>
+          </div>
+          <CtaBlock />
+        </SurfaceCard>
+
+        {/* Section header */}
+        <div className="text-center pt-2 space-y-2">
+          <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
+            What's inside
+          </p>
+          <h2 className="font-display text-2xl font-semibold text-foreground">
+            Eight pillars, one hair story
+          </h2>
+          <p className="font-body text-[12.5px] text-foreground/70 leading-relaxed max-w-[300px] mx-auto">
+            Every feature in STRAND is designed to answer one question: what does{" "}
+            <span className="italic">your</span> hair need next?
+          </p>
+        </div>
+
+        {/* Pillars */}
+        <div className="space-y-3">
+          {PILLARS.map((p, i) => {
+            const Icon = p.icon;
+            return (
+              <SurfaceCard key={p.title} className="!p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                    <Icon className="size-[18px]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-body font-bold uppercase tracking-[0.18em] text-primary/80">
+                      {String(i + 1).padStart(2, "0")}
+                    </p>
+                    <h3 className="font-display text-[17px] font-semibold text-foreground leading-tight mt-0.5">
+                      {p.title}
+                    </h3>
+                  </div>
+                </div>
+                <p className="font-body text-[13px] text-foreground/80 leading-relaxed">
+                  {p.body}
+                </p>
+                <ul className="space-y-1.5 pt-1 border-t border-border/50">
+                  {p.points.map((pt) => (
+                    <li key={pt} className="flex items-start gap-2 text-[12.5px] font-body text-foreground/85 leading-snug pt-1.5">
+                      <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </SurfaceCard>
+            );
+          })}
+        </div>
+
+        {/* Author voice pull-quote */}
+        <SurfaceCard className="!p-5 text-center space-y-3 bg-primary/5 border-primary/20">
+          <HairStrandIcon className="w-6 h-6 text-primary mx-auto" />
+          <p className="font-display italic text-[15.5px] text-foreground leading-relaxed">
+            "Loving your afro isn't a routine. It's a relationship — and STRAND is how you
+            keep the receipts."
+          </p>
+          <p className="text-[10px] font-body uppercase tracking-[0.22em] text-primary">
+            Paige Lewin · Author, How To Love Your Afro
+          </p>
+        </SurfaceCard>
+
+        {/* Reassurance strip */}
+        <div className="space-y-2 pt-1">
+          {REASSURANCE.map((r) => {
+            const Icon = r.icon;
+            return (
+              <div key={r.title} className="flex items-start gap-3 p-4 rounded-[14px] border border-border bg-card">
+                <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Icon className="size-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-body text-[13px] font-semibold text-foreground">{r.title}</p>
+                  <p className="font-body text-[12px] text-foreground/70 leading-snug mt-0.5">{r.body}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Final CTA */}
+        <SurfaceCard tone="gold" className="!p-6 text-center space-y-4">
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
+              Ready when you are
+            </p>
+            <h3 className="font-display text-[22px] font-semibold text-foreground leading-tight">
+              Your hair's next chapter<br />starts today.
+            </h3>
+            <p className="font-body text-[12.5px] text-foreground/75 leading-relaxed">
+              £{price.toFixed(2)} a month. Cancel any time. Everything above, from the very
+              first tap.
+            </p>
+          </div>
+          <CtaBlock />
+        </SurfaceCard>
+
         <p className="text-[11px] text-foreground/50 font-body text-center leading-relaxed">
-          Payments processed by Stripe. Your data is never deleted if your membership lapses —
-          access is restored the moment you resubscribe.
+          Payments processed securely by Stripe. Your data is never deleted if your
+          membership lapses — access is restored the moment you resubscribe.
         </p>
       </div>
     </ScreenLayout>
