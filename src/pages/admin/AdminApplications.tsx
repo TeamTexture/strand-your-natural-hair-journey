@@ -81,6 +81,22 @@ const AdminApplications = () => {
     });
   }, [apps, query, sortDesc]);
 
+  const filteredIncomplete = useMemo(() => {
+    const t = query.trim().toLowerCase();
+    const base = t
+      ? incompleteRows.filter(({ app: a, email }) =>
+          [a.full_name, a.discipline, a.business_name, a.location, email]
+            .filter(Boolean)
+            .some((s) => (s as string).toLowerCase().includes(t)),
+        )
+      : incompleteRows;
+    return [...base].sort((a, b) => {
+      const av = new Date(a.app.created_at).valueOf();
+      const bv = new Date(b.app.created_at).valueOf();
+      return sortDesc ? bv - av : av - bv;
+    });
+  }, [incompleteRows, query, sortDesc]);
+
   const decide = useMutation({
     mutationFn: async ({
       id,
