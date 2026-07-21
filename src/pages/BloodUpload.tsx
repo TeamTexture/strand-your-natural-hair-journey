@@ -665,7 +665,7 @@ export default function BloodUpload() {
               </p>
               {(testType || labName) && (
                 <p className="text-[11px] text-foreground/60 font-body mt-1.5">
-                  {[testType, labName].filter(Boolean).join(" · ")}
+                  {[testType, titleCase(labName)].filter(Boolean).join(" · ")}
                 </p>
               )}
               <Label htmlFor="panel-date" className="text-xs font-body text-foreground/70 mt-3 block">
