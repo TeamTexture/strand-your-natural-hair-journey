@@ -145,6 +145,12 @@ const ProDashboard = () => {
             onClick={() => nav("/pro/profile")}
           />
           <Card
+            icon={BookOpen}
+            title="View directory"
+            sub="See your live listing alongside other pros."
+            onClick={() => nav("/directory")}
+          />
+          <Card
             icon={Tag}
             title="Listing discount"
             sub="One-off promotions shown on your directory listing."
