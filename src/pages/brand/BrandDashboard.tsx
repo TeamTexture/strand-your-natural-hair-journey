@@ -32,6 +32,7 @@ const BrandDashboard = () => {
   const nav = useNavigate();
   const { data: profile, isLoading: profileLoading } = useBrandProfile();
   const { data: offers = [], isLoading } = useBrandOffers();
+  const { subscription, isActive: subActive, isAdminOverride } = useBrandSubscription();
 
   if (profileLoading || isLoading) return <LoadingDot />;
 
