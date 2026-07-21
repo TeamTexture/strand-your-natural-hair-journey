@@ -19,7 +19,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { CheckCircle2, Circle, CreditCard } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
@@ -55,23 +54,19 @@ const schema = z.object({
 type FormShape = z.infer<typeof schema>;
 
 /**
- * Multi-step pro application flow.
- *
- *   Step 1 — practitioner details (upsert into pro_applications, still draft)
- *   Step 2 — payment (redirect to Stripe checkout via pro-application-checkout)
- *   Step 2 posts back to /pro/apply/confirmed which flips payment_confirmed_at.
- *
- * The application row is only visible to admins once payment_confirmed_at
- * is set (RLS + trigger). Users can resume the draft any time before pay.
+ * Professional application — details only. No payment at application time.
+ * On submit we upsert into pro_applications and set `payment_confirmed_at`
+ * to now() so the DB trigger + admin queue treat the row as "submitted"
+ * (the column is retained for schema stability; semantically it's now
+ * "submitted_at"). Payment is collected AFTER admin approval on
+ * /pro/welcome.
  */
 const ProApply = () => {
   const nav = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [initLoading, setInitLoading] = useState(true);
   const [appId, setAppId] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
   const [saving, setSaving] = useState(false);
-  const [payBusy, setPayBusy] = useState(false);
   const [form, setForm] = useState<FormShape>({
     full_name: "",
     business_name: "",
@@ -93,7 +88,6 @@ const ProApply = () => {
     }
   }, [authLoading, user, nav]);
 
-  // Load latest draft/application, redirect if already submitted
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -105,8 +99,8 @@ const ProApply = () => {
         .limit(1)
         .maybeSingle();
       if (data) {
+        // Already submitted — send them back to the landing (pending or approved).
         if (data.payment_confirmed_at) {
-          // Already paid — user shouldn't be re-filling. Send to landing.
           nav("/pro/landing", { replace: true });
           return;
         }
@@ -133,14 +127,15 @@ const ProApply = () => {
   const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const saveDraft = async (): Promise<string | null> => {
-    if (!user) return null;
+  const submit = async () => {
+    if (!user) return;
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
-      return null;
+      return;
     }
     setSaving(true);
+    const submittedAt = new Date().toISOString();
     const payload = {
       user_id: user.id,
       email: user.email!,
@@ -156,282 +151,159 @@ const ProApply = () => {
       website_url: parsed.data.website_url || null,
       instagram_handle: parsed.data.instagram_handle || null,
       why_strand: parsed.data.why_strand,
+      status: "pending" as const,
+      payment_confirmed_at: submittedAt,
     };
-    let id = appId;
-    if (id) {
-      const { error } = await supabase
+    let error: unknown = null;
+    if (appId) {
+      const res = await supabase
         .from("pro_applications")
         .update(payload as never)
-        .eq("id", id);
-      if (error) {
-        setSaving(false);
-        toast.error("Couldn't save — please try again.");
-        return null;
-      }
+        .eq("id", appId);
+      error = res.error;
     } else {
-      const { data, error } = await supabase
+      const res = await supabase
         .from("pro_applications")
-        .insert(payload as never)
-        .select("id")
-        .single();
-      if (error || !data) {
-        setSaving(false);
-        toast.error("Couldn't save — please try again.");
-        return null;
-      }
-      id = data.id;
-      setAppId(id);
+        .insert(payload as never);
+      error = res.error;
     }
     setSaving(false);
-    return id;
-  };
-
-  const continueToPayment = async () => {
-    const id = await saveDraft();
-    if (id) setStep(2);
-  };
-
-  const startPayment = async () => {
-    if (!appId) return;
-    setPayBusy(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("pro-application-checkout", {
-        body: { application_id: appId },
-      });
-      if (error) throw error;
-      if (!data?.url) throw new Error("Checkout URL missing");
-      window.location.href = data.url;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not start checkout");
-      setPayBusy(false);
+    if (error) {
+      console.error("[pro-apply] submit failed", error);
+      toast.error("Couldn't submit — please try again.");
+      return;
     }
+    toast.success("Application submitted.");
+    nav("/pro/landing", { replace: true });
   };
 
   if (authLoading || initLoading) return <LoadingDot />;
 
   return (
     <ScreenLayout>
-      <TitleBar
-        title={step === 1 ? "Your practice" : "Membership payment"}
-        onBack={() => (step === 2 ? setStep(1) : nav("/pro/landing"))}
-      />
-
+      <TitleBar title="Apply to STRAND Pro" onBack={() => nav("/pro/landing")} />
       <div className="px-5 py-4 space-y-4">
-        <Stepper step={step} />
+        <SurfaceCard tone="gold">
+          <p className="text-xs font-body leading-snug">
+            <span className="font-semibold uppercase tracking-[0.15em] text-primary">
+              Vetted directory —{" "}
+            </span>
+            Share your credentials and the Strand Council will be in touch. No payment
+            is taken at application — you'll only subscribe once accepted.
+          </p>
+        </SurfaceCard>
 
-        {step === 1 && (
-          <>
-            <SurfaceCard tone="gold">
-              <p className="text-xs font-body leading-snug">
-                <span className="font-semibold uppercase tracking-[0.15em] text-primary">
-                  Vetted directory —{" "}
-                </span>
-                Share your credentials so the Strand Council can review your practice.
-              </p>
-            </SurfaceCard>
+        <Field label="Full name *">
+          <Input
+            value={form.full_name}
+            onChange={(e) => set("full_name", e.target.value)}
+            placeholder="Dr Ada Lovelace"
+          />
+        </Field>
+        <Field label="Business / clinic name">
+          <Input
+            value={form.business_name}
+            onChange={(e) => set("business_name", e.target.value)}
+          />
+        </Field>
+        <Field label="Discipline *">
+          <Select
+            value={form.discipline}
+            onValueChange={(v) => set("discipline", v as Discipline)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {disciplines.map((d) => (
+                <SelectItem key={d} value={d}>
+                  {d}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Qualifications">
+          <Textarea
+            rows={3}
+            value={form.qualifications}
+            onChange={(e) => set("qualifications", e.target.value)}
+            placeholder="MBBS, IOT membership, City & Guilds, etc."
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Insurance provider">
+            <Input
+              value={form.insurance_provider}
+              onChange={(e) => set("insurance_provider", e.target.value)}
+            />
+          </Field>
+          <Field label="Policy number">
+            <Input
+              value={form.insurance_policy_no}
+              onChange={(e) => set("insurance_policy_no", e.target.value)}
+            />
+          </Field>
+        </div>
+        <Field label="Insurance expiry">
+          <Input
+            type="date"
+            value={form.insurance_expiry}
+            onChange={(e) => set("insurance_expiry", e.target.value)}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Location">
+            <Input
+              value={form.location}
+              onChange={(e) => set("location", e.target.value)}
+              placeholder="London"
+            />
+          </Field>
+          <Field label="Postcode">
+            <Input
+              value={form.postcode}
+              onChange={(e) => set("postcode", e.target.value)}
+              placeholder="SW3"
+            />
+          </Field>
+        </div>
+        <Field label="Website">
+          <Input
+            value={form.website_url}
+            onChange={(e) => set("website_url", e.target.value)}
+            placeholder="https://"
+          />
+        </Field>
+        <Field label="Instagram handle">
+          <Input
+            value={form.instagram_handle}
+            onChange={(e) => set("instagram_handle", e.target.value)}
+            placeholder="@yourhandle"
+          />
+        </Field>
+        <Field label="Why STRAND? *">
+          <Textarea
+            rows={4}
+            value={form.why_strand}
+            onChange={(e) => set("why_strand", e.target.value)}
+            placeholder="Tell us about your practice and why you want to join STRAND."
+          />
+        </Field>
 
-            <Field label="Full name *">
-              <Input
-                value={form.full_name}
-                onChange={(e) => set("full_name", e.target.value)}
-                placeholder="Dr Ada Lovelace"
-              />
-            </Field>
-            <Field label="Business / clinic name">
-              <Input
-                value={form.business_name}
-                onChange={(e) => set("business_name", e.target.value)}
-              />
-            </Field>
-            <Field label="Discipline *">
-              <Select
-                value={form.discipline}
-                onValueChange={(v) => set("discipline", v as Discipline)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {disciplines.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Qualifications">
-              <Textarea
-                rows={3}
-                value={form.qualifications}
-                onChange={(e) => set("qualifications", e.target.value)}
-                placeholder="MBBS, IOT membership, City & Guilds, etc."
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Insurance provider">
-                <Input
-                  value={form.insurance_provider}
-                  onChange={(e) => set("insurance_provider", e.target.value)}
-                />
-              </Field>
-              <Field label="Policy number">
-                <Input
-                  value={form.insurance_policy_no}
-                  onChange={(e) => set("insurance_policy_no", e.target.value)}
-                />
-              </Field>
-            </div>
-            <Field label="Insurance expiry">
-              <Input
-                type="date"
-                value={form.insurance_expiry}
-                onChange={(e) => set("insurance_expiry", e.target.value)}
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Location">
-                <Input
-                  value={form.location}
-                  onChange={(e) => set("location", e.target.value)}
-                  placeholder="London"
-                />
-              </Field>
-              <Field label="Postcode">
-                <Input
-                  value={form.postcode}
-                  onChange={(e) => set("postcode", e.target.value)}
-                  placeholder="SW3"
-                />
-              </Field>
-            </div>
-            <Field label="Website">
-              <Input
-                value={form.website_url}
-                onChange={(e) => set("website_url", e.target.value)}
-                placeholder="https://"
-              />
-            </Field>
-            <Field label="Instagram handle">
-              <Input
-                value={form.instagram_handle}
-                onChange={(e) => set("instagram_handle", e.target.value)}
-                placeholder="@yourhandle"
-              />
-            </Field>
-            <Field label="Why STRAND? *">
-              <Textarea
-                rows={4}
-                value={form.why_strand}
-                onChange={(e) => set("why_strand", e.target.value)}
-                placeholder="Tell us about your practice and why you want to join STRAND."
-              />
-            </Field>
-
-            <Button
-              variant="gold"
-              size="pill"
-              className="w-full"
-              onClick={continueToPayment}
-              disabled={saving}
-            >
-              {saving ? "Saving…" : "Continue to payment →"}
-            </Button>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <SurfaceCard className="!p-5 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="size-11 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <CreditCard className="size-5" />
-                </div>
-                <div>
-                  <p className="font-display text-lg font-semibold leading-tight">
-                    STRAND Pro Membership
-                  </p>
-                  <p className="text-[12px] font-body text-foreground/70 leading-snug">
-                    Secure payment via Stripe. Your application is submitted for review
-                    once payment succeeds.
-                  </p>
-                </div>
-              </div>
-              <ul className="text-[12.5px] font-body text-foreground/80 space-y-1 pt-1">
-                <li>· Directory placement (upon approval)</li>
-                <li>· Client enquiries with pre-populated context</li>
-                <li>· Access to consented client passports</li>
-                <li>· Cancel any time from the billing portal</li>
-              </ul>
-            </SurfaceCard>
-
-            <SurfaceCard tone="gold" className="!p-4">
-              <p className="text-[12px] font-body leading-snug text-foreground/85">
-                If your application isn't accepted, your subscription is cancelled and
-                you won't be charged again.
-              </p>
-            </SurfaceCard>
-
-            <Button
-              variant="gold"
-              size="pill"
-              className="w-full"
-              onClick={startPayment}
-              disabled={payBusy}
-            >
-              {payBusy ? "Redirecting to Stripe…" : "Pay & submit application →"}
-            </Button>
-
-            <button
-              onClick={() => setStep(1)}
-              className="mt-1 w-full text-center text-xs text-muted-foreground hover:text-foreground"
-            >
-              Review your details
-            </button>
-          </>
-        )}
+        <Button
+          variant="gold"
+          size="pill"
+          className="w-full"
+          onClick={submit}
+          disabled={saving}
+        >
+          {saving ? "Submitting…" : "Submit application →"}
+        </Button>
       </div>
     </ScreenLayout>
   );
 };
-
-const Stepper = ({ step }: { step: 1 | 2 }) => (
-  <div className="flex items-center gap-2 pb-1">
-    <StepDot n={1} label="Details" active={step >= 1} done={step > 1} />
-    <div className="h-px flex-1 bg-primary/20" />
-    <StepDot n={2} label="Payment" active={step >= 2} done={false} />
-  </div>
-);
-
-const StepDot = ({
-  n,
-  label,
-  active,
-  done,
-}: {
-  n: number;
-  label: string;
-  active: boolean;
-  done: boolean;
-}) => (
-  <div className="flex items-center gap-1.5">
-    {done ? (
-      <CheckCircle2 className="size-4 text-primary" />
-    ) : active ? (
-      <Circle className="size-4 text-primary fill-primary/20" />
-    ) : (
-      <Circle className="size-4 text-foreground/30" />
-    )}
-    <span
-      className={
-        "text-[10px] font-body uppercase tracking-[0.15em] " +
-        (active ? "text-primary font-semibold" : "text-foreground/50")
-      }
-    >
-      {label}
-    </span>
-  </div>
-);
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-1.5">
