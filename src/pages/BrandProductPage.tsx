@@ -540,6 +540,73 @@ const BrandProductPage = () => {
           )}
         </SurfaceCard>
 
+        {/* Personalised usage playbook */}
+        {(guidanceLoading || guidance) && (
+          <SurfaceCard className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              <SectionLabel className="!px-0 !mt-0">Get the most out of this</SectionLabel>
+            </div>
+            {guidanceLoading && !guidance && (
+              <div className="flex items-center gap-2 text-[12px] text-muted-foreground font-body">
+                <Loader2 className="size-3.5 animate-spin" /> Building your usage playbook…
+              </div>
+            )}
+            {guidance && (
+              <>
+                {guidance.headline && (
+                  <p className="font-display text-[15px] leading-tight">{guidance.headline}</p>
+                )}
+                {guidance.fit_summary && (
+                  <p className="text-[13px] text-foreground/85 leading-relaxed font-body">
+                    {guidance.fit_summary}
+                  </p>
+                )}
+                {guidance.how_to_use.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-body mb-1.5">
+                      How to use it for your hair
+                    </p>
+                    <ul className="space-y-1">
+                      {guidance.how_to_use.map((s, i) => (
+                        <li key={i} className="text-[12.5px] leading-snug font-body flex gap-2">
+                          <span className="text-primary shrink-0">•</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {guidance.benefits_for_you.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-body mb-1.5">
+                      What you can expect
+                    </p>
+                    <ul className="space-y-1">
+                      {guidance.benefits_for_you.map((s, i) => (
+                        <li key={i} className="text-[12.5px] leading-snug font-body flex gap-2">
+                          <span className="text-good shrink-0">•</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {guidance.cautions.length > 0 && (
+                  <div className="pt-1 space-y-1">
+                    {guidance.cautions.map((c, i) => (
+                      <p key={i} className="text-[11px] text-alert-dark leading-snug font-body">
+                        • {c}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </SurfaceCard>
+        )}
+
+
         {/* Actions */}
         <div className="space-y-2">
           {product.external_url && (
