@@ -13,7 +13,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday, useAllPendingRevisions } from "@/hooks/useBrandOffers";
+import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday, useAllPendingRevisions, useOfferRevisionCounts, useOffersWithPendingRevisions } from "@/hooks/useBrandOffers";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
