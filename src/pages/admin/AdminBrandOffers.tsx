@@ -105,6 +105,10 @@ const AdminBrandOffers = () => {
     qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
   };
 
+  const allIds = offers.map((o) => o.id);
+  const { data: revisionCounts = {} } = useOfferRevisionCounts(allIds);
+  const { data: pendingRevSet = new Set<string>() } = useOffersWithPendingRevisions(allIds);
+
   if (isLoading) return <LoadingDot />;
 
   const today = londonToday();
@@ -114,7 +118,7 @@ const AdminBrandOffers = () => {
   const pending = withDerived.filter((o) => o._derived === "under_review");
   const liveOnly = withDerived.filter((o) => o._derived === "live");
   const other = withDerived.filter((o) => o._derived !== "under_review");
-  const allIds = withDerived.map((o) => o.id);
+
 
 
   const showPending = !filter || filter === "pending";
