@@ -132,7 +132,7 @@ const ProfileStep1 = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, display_name, birth_year, postcode, country, heritage")
+        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
