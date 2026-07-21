@@ -73,19 +73,13 @@ Deno.serve(async (req) => {
       { onConflict: "user_id,role", ignoreDuplicates: true },
     );
 
-    // Brand-only accounts don't need the auto-assigned consumer role.
-    // Only remove it if they haven't opted into consumer onboarding.
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("hair_type_defined")
+    // Brand-only accounts don't need the auto-assigned consumer role — it
+    // otherwise pushes them through the consumer paywall on /home. Users
+    // who also want the consumer app can add that role separately later.
+    await admin.from("user_roles")
+      .delete()
       .eq("user_id", userId)
-      .maybeSingle();
-    if (!profile?.hair_type_defined) {
-      await admin.from("user_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role", "consumer");
-    }
+      .eq("role", "consumer");
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
