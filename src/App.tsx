@@ -80,6 +80,7 @@ import BrandDashboard from "./pages/brand/BrandDashboard";
 import BrandCreateOffer from "./pages/brand/BrandCreateOffer";
 import BrandOfferDetail from "./pages/brand/BrandOfferDetail";
 import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
+import BrandSubscribe from "./pages/brand/BrandSubscribe";
 import OfferPage from "./pages/OfferPage";
 import AdminBrandOffers from "./pages/admin/AdminBrandOffers";
 import AdminBrandCalendar from "./pages/admin/AdminBrandCalendar";
