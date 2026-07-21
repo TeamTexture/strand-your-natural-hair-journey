@@ -148,7 +148,9 @@ const Subscribe = () => {
       localStorage.setItem("strand_subscribe_next", returnTo);
     } catch {}
     try {
-      const { data, error } = await supabase.functions.invoke("consumer-checkout");
+      const { data, error } = await supabase.functions.invoke("consumer-checkout", {
+        body: { next: returnTo },
+      });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
@@ -192,14 +194,17 @@ const Subscribe = () => {
           </div>
         )}
 
-        {stripeActive ? (
-          <Button variant="gold" size="pill" className="w-full" onClick={openPortal} disabled={busy !== null}>
-            {busy === "portal" ? <Loader2 className="size-4 animate-spin" /> : "Manage subscription"}
-          </Button>
-        ) : complimentary || isAdminOrPro ? (
-          <Button variant="gold" size="pill" className="w-full" onClick={() => nav(returnTo)}>
-            Continue to STRAND
-          </Button>
+        {hasAccess ? (
+          <div className="space-y-2">
+            <Button variant="gold" size="pill" className="w-full" onClick={() => nav(returnTo)}>
+              Continue to STRAND
+            </Button>
+            {stripeActive && (
+              <Button variant="goldOutline" size="pill" className="w-full" onClick={openPortal} disabled={busy !== null}>
+                {busy === "portal" ? <Loader2 className="size-4 animate-spin" /> : "Manage subscription"}
+              </Button>
+            )}
+          </div>
         ) : (
           <>
             <Button variant="gold" size="pill" className="w-full" onClick={startCheckout} disabled={busy !== null}>
