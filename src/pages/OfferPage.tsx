@@ -12,11 +12,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+import { useUserTools } from "@/hooks/useUserTools";
 import { useQuery } from "@tanstack/react-query";
+import { buildAiContext } from "@/lib/aiContext";
+import { ToolAdviceDialog } from "@/components/ToolAdviceDialog";
 
-/** Deterministic product_key so a brand product only ever creates a single
- *  user_products row per user — matches how manually-scanned products dedupe. */
+/** Deterministic keys so a brand item only ever creates a single row per user. */
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
+const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
+
+type BrandItemRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  ingredients: string[] | null;
+  image_urls: string[] | null;
+  external_url: string | null;
+  kind?: string | null;
+  tool_kind?: string | null;
+  key_features?: string[] | null;
+  materials?: string[] | null;
+};
 
 const OfferPage = () => {
   const { id } = useParams();
@@ -26,8 +42,12 @@ const OfferPage = () => {
   const { user } = useAuth();
   const logStat = useLogBrandStat();
   const { allProducts, upsert } = useUserProducts();
+  const { tools: userTools, reload: reloadTools } = useUserTools();
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [toolAdvice, setToolAdvice] = useState<Record<string, unknown> | null>(null);
+  const [toolAdviceOpen, setToolAdviceOpen] = useState(false);
+  const [toolAdviceTitle, setToolAdviceTitle] = useState("");
 
   const { data: offer, isLoading } = useQuery({
     queryKey: ["brand-offer-public", id],
@@ -61,61 +81,101 @@ const OfferPage = () => {
   const brandName =
     (offer as { brand_profiles?: { brand_name?: string } }).brand_profiles?.brand_name ?? null;
 
-  type BrandProductRow = {
-    id: string;
-    name: string;
-    ingredients: string[] | null;
-    image_urls: string[] | null;
-    external_url: string | null;
-  };
+  const isTool = (bp: BrandItemRow) => bp.kind === "tool";
 
-  const normalize = (bp: BrandProductRow) => ({
-    id: bp.id,
-    name: bp.name,
-    brand_name: brandName,
-    ingredients: bp.ingredients,
-    image_url: bp.image_urls?.[0] ?? null,
-    external_url: bp.external_url,
-  });
-
-  const findExisting = (bp: { id: string; name: string; brand_name?: string | null }) =>
+  const findExistingProduct = (bp: BrandItemRow) =>
     allProducts.find(
       (row) =>
         row.product_key === productKeyFor(bp.id) ||
         row.linked_brand_product_id === bp.id ||
         (row.name.trim().toLowerCase() === bp.name.trim().toLowerCase() &&
-          (row.brand ?? "").trim().toLowerCase() ===
-            (bp.brand_name ?? "").trim().toLowerCase()),
+          (row.brand ?? "").trim().toLowerCase() === (brandName ?? "").trim().toLowerCase()),
     );
 
-  /** Upserts the brand product into the user's shelf/wishlist system and
-   *  preserves the sponsored context. Deduped by product_key first, then by
-   *  name+brand to avoid orphan duplicates for products already in the app. */
+  const findExistingTool = (bp: BrandItemRow) =>
+    userTools.find((t) => {
+      const linked = (t as unknown as { linked_brand_product_id?: string | null }).linked_brand_product_id;
+      return (
+        t.tool_key === toolKeyFor(bp.id) ||
+        linked === bp.id ||
+        (t.name.trim().toLowerCase() === bp.name.trim().toLowerCase() &&
+          (t.brand ?? "").trim().toLowerCase() === (brandName ?? "").trim().toLowerCase())
+      );
+    });
+
   const upsertBrandProduct = async (
-    bp: { id: string; name: string; brand_name: string | null; ingredients: string[] | null; image_url: string | null; external_url: string | null },
+    bp: BrandItemRow,
     opts: { wishlist: boolean },
   ): Promise<UserProduct | null> => {
-    const existing = findExisting(bp);
+    const existing = findExistingProduct(bp);
     const payload: Partial<UserProduct> & { product_key: string; name: string } = {
       product_key: existing?.product_key ?? productKeyFor(bp.id),
       name: bp.name,
-      brand: bp.brand_name,
+      brand: brandName,
       ingredients: bp.ingredients ?? existing?.ingredients ?? [],
-      image_url: bp.image_url ?? existing?.image_url ?? null,
+      image_url: bp.image_urls?.[0] ?? existing?.image_url ?? null,
       linked_brand_offer_id: offer.id,
       linked_brand_product_id: bp.id,
     };
-    if (opts.wishlist) {
-      payload.on_wishlist = true;
-    }
+    if (opts.wishlist) payload.on_wishlist = true;
     return upsert(payload);
   };
 
-  const addToWishlist = async (bp: BrandProductRow) => {
+  const upsertBrandTool = async (bp: BrandItemRow, opts: { wishlist: boolean }) => {
+    if (!user) return null;
+    const existing = findExistingTool(bp);
+    if (existing) {
+      const patch: Record<string, unknown> = {
+        linked_brand_offer_id: offer.id,
+        linked_brand_product_id: bp.id,
+      };
+      if (opts.wishlist) patch.on_shelf = false; // wishlist = not yet on shelf
+      const { error } = await supabase
+        .from("user_tools")
+        .update(patch as never)
+        .eq("id", existing.id)
+        .eq("user_id", user.id);
+      if (error) {
+        toast.error("Could not update tool");
+        return null;
+      }
+      await reloadTools();
+      return existing;
+    }
+    const insertRow = {
+      user_id: user.id,
+      tool_key: toolKeyFor(bp.id),
+      name: bp.name,
+      brand: brandName,
+      category: null,
+      image_url: bp.image_urls?.[0] ?? null,
+      notes: bp.description ?? null,
+      source_url: bp.external_url ?? null,
+      on_shelf: !opts.wishlist,
+      linked_brand_offer_id: offer.id,
+      linked_brand_product_id: bp.id,
+    };
+    const { data, error } = await supabase
+      .from("user_tools")
+      .insert(insertRow as never)
+      .select("*")
+      .single();
+    if (error) {
+      console.error("brand tool insert failed", error);
+      toast.error("Could not add tool");
+      return null;
+    }
+    await reloadTools();
+    return data as unknown as (typeof userTools)[number];
+  };
+
+  const addToWishlist = async (bp: BrandItemRow) => {
     if (!user) return;
     setBusyId(bp.id);
     try {
-      const row = await upsertBrandProduct(normalize(bp), { wishlist: true });
+      const row = isTool(bp)
+        ? await upsertBrandTool(bp, { wishlist: true })
+        : await upsertBrandProduct(bp, { wishlist: true });
       if (row) {
         logStat.mutate({ offer_id: offer.id, slot, kind: "wishlist_adds" });
         toast.success("Added to your wishlist");
@@ -125,16 +185,36 @@ const OfferPage = () => {
     }
   };
 
-  /** Native AI analysis: mirror the existing ingredient-analysis UX by
-   *  upserting the product and jumping into the standard product profile
-   *  page, which already renders personalised suitability the exact way
-   *  users know from their shelf. */
-  const analyseForMe = async (bp: BrandProductRow) => {
+  /** Native AI analysis:
+   *  - Products: upsert + jump into the standard product profile page
+   *    which already renders personalised ingredient suitability.
+   *  - Tools: reuse the existing tool-analyse-url + ToolAdviceDialog UX
+   *    users know from the Tools section — no ingredients, judged on
+   *    tool type/materials vs their hair profile. */
+  const analyseForMe = async (bp: BrandItemRow) => {
     if (!user) return;
     setBusyId(bp.id);
     try {
-      const row = await upsertBrandProduct(normalize(bp), { wishlist: false });
-      if (row) nav(`/products/profile/${row.id}`);
+      if (isTool(bp)) {
+        if (!bp.external_url) {
+          toast.error("This tool has no link to analyse");
+          return;
+        }
+        const context = await buildAiContext();
+        const { data, error } = await supabase.functions.invoke("tool-analyse-url", {
+          body: { url: bp.external_url, context },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(String(data.error));
+        setToolAdvice(data as Record<string, unknown>);
+        setToolAdviceTitle(bp.name);
+        setToolAdviceOpen(true);
+      } else {
+        const row = await upsertBrandProduct(bp, { wishlist: false });
+        if (row) nav(`/products/profile/${row.id}`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Analysis failed");
     } finally {
       setBusyId(null);
     }
@@ -166,14 +246,22 @@ const OfferPage = () => {
 
         {(offer.brand_products ?? []).length > 0 && (
           <>
-            <SectionLabel className="!px-0">Products in this offer</SectionLabel>
-            {(offer.brand_products ?? []).map((p) => {
-              const existing = findExisting(normalize(p));
-              const alreadyWishlisted = !!existing?.on_wishlist;
+            <SectionLabel className="!px-0">In this offer</SectionLabel>
+            {(offer.brand_products ?? []).map((raw) => {
+              const p = raw as unknown as BrandItemRow;
+              const tool = isTool(p);
+              const alreadyWishlisted = tool
+                ? !!findExistingTool(p)
+                : !!findExistingProduct(p)?.on_wishlist;
               return (
                 <SurfaceCard key={p.id} className="space-y-2.5">
                   <div>
-                    <p className="font-display text-[15px] leading-tight">{p.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-display text-[15px] leading-tight">{p.name}</p>
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground border border-border rounded-pill px-1.5 py-[1px]">
+                        {tool ? "Tool" : "Product"}
+                      </span>
+                    </div>
                     {p.description && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{p.description}</p>}
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -208,7 +296,9 @@ const OfferPage = () => {
                     </Button>
                   </div>
                   <p className="text-[10px] text-muted-foreground leading-snug">
-                    "For me?" opens the full personalised ingredient analysis you already use for your shelf.
+                    {tool
+                      ? '"For me?" checks this tool against your hair profile the same way your Tools section does.'
+                      : '"For me?" opens the full personalised ingredient analysis you already use for your shelf.'}
                   </p>
                 </SurfaceCard>
               );
@@ -216,6 +306,14 @@ const OfferPage = () => {
           </>
         )}
       </div>
+
+      <ToolAdviceDialog
+        open={toolAdviceOpen}
+        onOpenChange={setToolAdviceOpen}
+        payload={toolAdvice}
+        title={toolAdviceTitle}
+        primaryLabel="Close"
+      />
     </ScreenLayout>
   );
 };

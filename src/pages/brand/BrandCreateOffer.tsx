@@ -23,26 +23,53 @@ import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day"];
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
+type AttachKind = "product" | "tool";
+
 interface ProductDraft {
   id?: string;
+  kind: AttachKind;
   name: string;
   description: string;
   external_url: string;
   image_urls: string[];
-  ingredients: string[];
+  ingredients: string[];       // product-only
+  tool_kind: string | null;    // tool-only
+  key_features: string[];      // tool-only
+  materials: string[];         // tool-only
   source_type: "manual" | "ai" | "linked";
   source_url?: string | null;
   linked_product_id?: string | null;
 }
 
-const emptyProduct = (): ProductDraft => ({
+const emptyProduct = (kind: AttachKind = "product"): ProductDraft => ({
+  kind,
   name: "",
   description: "",
   external_url: "",
   image_urls: [],
   ingredients: [],
+  tool_kind: null,
+  key_features: [],
+  materials: [],
   source_type: "manual",
 });
+
+// Same tool_kind vocabulary the AI scrape returns / that MyToolsSection recognises.
+const TOOL_KINDS: { value: string; label: string }[] = [
+  { value: "brush", label: "Brush" },
+  { value: "comb", label: "Comb" },
+  { value: "bonnet", label: "Bonnet / silk scarf" },
+  { value: "heat_cap", label: "Heat cap (e.g. TT Heat Hat)" },
+  { value: "hair_dryer", label: "Hair dryer" },
+  { value: "diffuser", label: "Diffuser" },
+  { value: "flat_iron", label: "Flat iron" },
+  { value: "curling_wand", label: "Curling wand" },
+  { value: "pillowcase", label: "Satin pillowcase" },
+  { value: "microfibre_towel", label: "Microfibre / T-shirt towel" },
+  { value: "sectioning_clips", label: "Sectioning clips" },
+  { value: "scissors", label: "Scissors" },
+  { value: "other", label: "Other" },
+];
 
 const BrandCreateOffer = () => {
   const { id: existingId } = useParams();
@@ -59,17 +86,30 @@ const BrandCreateOffer = () => {
   const [heroPath, setHeroPath] = useState<string | null>(existing?.hero_image_path ?? null);
   const [uploadingHero, setUploadingHero] = useState(false);
   const [products, setProducts] = useState<ProductDraft[]>(
-    (existing?.brand_products ?? []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description ?? "",
-      external_url: p.external_url ?? "",
-      image_urls: p.image_urls ?? [],
-      ingredients: p.ingredients ?? [],
-      source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
-      source_url: p.source_url,
-      linked_product_id: p.linked_product_id,
-    })),
+    (existing?.brand_products ?? []).map((p) => {
+      const row = p as typeof p & {
+        kind?: string;
+        tool_kind?: string | null;
+        key_features?: string[] | null;
+        materials?: string[] | null;
+      };
+      const kind: AttachKind = row.kind === "tool" ? "tool" : "product";
+      return {
+        id: p.id,
+        kind,
+        name: p.name,
+        description: p.description ?? "",
+        external_url: p.external_url ?? "",
+        image_urls: p.image_urls ?? [],
+        ingredients: p.ingredients ?? [],
+        tool_kind: row.tool_kind ?? null,
+        key_features: row.key_features ?? [],
+        materials: row.materials ?? [],
+        source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
+        source_url: p.source_url,
+        linked_product_id: p.linked_product_id,
+      } satisfies ProductDraft;
+    }),
   );
   const [selectedByslot, setSelectedByslot] = useState<Record<PlacementSlot, string[]>>(() => {
     const map: Record<PlacementSlot, string[]> = { home: [], products: [], wash_day: [] };
@@ -157,30 +197,37 @@ const BrandCreateOffer = () => {
     }
   };
 
+  const [scrapeKind, setScrapeKind] = useState<AttachKind>("product");
+
   const runScrape = async () => {
     if (!scrapeUrl.trim()) return;
     setScraping(true);
     try {
       const { data, error } = await supabase.functions.invoke("brand-product-scrape", {
-        body: { url: scrapeUrl.trim() },
+        body: { url: scrapeUrl.trim(), kind: scrapeKind },
       });
       if (error) throw error;
-      const p = data?.product;
-      if (!p) throw new Error("No product data returned");
+      const item = data?.item ?? data?.product ?? data?.tool;
+      if (!item) throw new Error("No draft data returned");
+      const kind: AttachKind = data?.kind === "tool" || item.kind === "tool" ? "tool" : "product";
       setProducts((prev) => [
         ...prev,
         {
-          name: p.name ?? "",
-          description: p.description ?? "",
-          external_url: p.external_url ?? scrapeUrl,
-          image_urls: p.image_urls ?? [],
-          ingredients: p.ingredients ?? [],
+          kind,
+          name: item.name ?? "",
+          description: item.description ?? "",
+          external_url: item.external_url ?? scrapeUrl,
+          image_urls: item.image_urls ?? [],
+          ingredients: kind === "product" && Array.isArray(item.ingredients) ? item.ingredients : [],
+          tool_kind: kind === "tool" ? (item.tool_kind ?? null) : null,
+          key_features: kind === "tool" && Array.isArray(item.key_features) ? item.key_features : [],
+          materials: kind === "tool" && Array.isArray(item.materials) ? item.materials : [],
           source_type: "ai",
           source_url: scrapeUrl,
         },
       ]);
       setScrapeUrl("");
-      toast.success("Product draft added — review and edit below");
+      toast.success(kind === "tool" ? "Tool draft added — review and edit below" : "Product draft added — review and edit below");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Scrape failed");
     } finally {
@@ -252,17 +299,25 @@ const BrandCreateOffer = () => {
       if (products.length > 0) {
         const productRows = products.map((p, i) => ({
           offer_id: offerId!,
-          name: p.name || "Untitled product",
+          name: p.name || (p.kind === "tool" ? "Untitled tool" : "Untitled product"),
           description: p.description || null,
           external_url: p.external_url || null,
           image_urls: p.image_urls,
-          ingredients: p.ingredients,
+          ingredients: p.kind === "product" ? p.ingredients : [],
+          kind: p.kind,
+          tool_kind: p.kind === "tool" ? p.tool_kind : null,
+          key_features: p.kind === "tool" ? p.key_features : [],
+          materials: p.kind === "tool" ? p.materials : [],
           source_type: p.source_type,
           source_url: p.source_url ?? null,
           linked_product_id: p.linked_product_id ?? null,
           position: i,
         }));
-        const { error } = await supabase.from("brand_products").insert(productRows);
+        // Cast: brand_products was just extended with kind/tool_kind/key_features/materials;
+        // generated types will catch up on the next codegen.
+        const { error } = await supabase
+          .from("brand_products")
+          .insert(productRows as unknown as never);
         if (error) throw error;
       }
 
@@ -356,15 +411,31 @@ const BrandCreateOffer = () => {
           />
         </div>
 
-        <SectionLabel className="!px-0">Attach products</SectionLabel>
+        <SectionLabel className="!px-0">Attach products &amp; tools</SectionLabel>
         <SurfaceCard className="space-y-3">
           <div>
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
-              <Sparkles className="size-3 text-primary" /> AI product page
+              <Sparkles className="size-3 text-primary" /> AI page from a link
             </Label>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Paste a product URL — we'll draft a STRAND product page you can edit.
+              Paste any product or tool URL — we'll draft a STRAND page you can edit. Choose the item type first so the right fields are drafted (ingredients for products, key features for tools).
             </p>
+            <div className="flex gap-1.5 mt-1.5">
+              {(["product", "tool"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setScrapeKind(k)}
+                  className={`px-3 py-1 rounded-pill border text-[11px] capitalize ${
+                    scrapeKind === k
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-2 mt-1.5">
               <Input value={scrapeUrl} onChange={(e) => setScrapeUrl(e.target.value)} placeholder="https://" />
               <Button type="button" variant="outline" size="pill" onClick={runScrape} disabled={scraping || !scrapeUrl.trim()}>
@@ -372,20 +443,29 @@ const BrandCreateOffer = () => {
               </Button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setProducts((p) => [...p, emptyProduct()])}
-            className="text-[12px] text-primary underline underline-offset-2"
-          >
-            + Add product manually
-          </button>
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setProducts((p) => [...p, emptyProduct("product")])}
+              className="text-[12px] text-primary underline underline-offset-2"
+            >
+              + Add product manually
+            </button>
+            <button
+              type="button"
+              onClick={() => setProducts((p) => [...p, emptyProduct("tool")])}
+              className="text-[12px] text-primary underline underline-offset-2"
+            >
+              + Add tool manually
+            </button>
+          </div>
         </SurfaceCard>
 
         {products.map((p, i) => (
           <SurfaceCard key={i} className="space-y-2">
             <div className="flex items-start justify-between gap-2">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">
-                Product {i + 1} · {p.source_type === "ai" ? "AI draft" : "Manual"}
+                {p.kind === "tool" ? "Tool" : "Product"} {i + 1} · {p.source_type === "ai" ? "AI draft" : "Manual"}
               </p>
               <button
                 type="button"
@@ -395,8 +475,31 @@ const BrandCreateOffer = () => {
                 <Trash2 className="size-3.5" />
               </button>
             </div>
+
+            {/* Product / Tool toggle */}
+            <div className="flex gap-1.5">
+              {(["product", "tool"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() =>
+                    setProducts((prev) => prev.map((x, xi) => (xi === i ? { ...x, kind: k } : x)))
+                  }
+                  className={`px-3 py-1 rounded-pill border text-[11px] capitalize ${
+                    p.kind === k
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+
             <div>
-              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Product image (1:1, min 800×800)</Label>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {p.kind === "tool" ? "Tool image" : "Product image"} (1:1, min 800×800)
+              </Label>
               <div className="flex gap-2 mt-1 items-start">
                 <div className="size-16 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
                   {p.image_urls[0] && <img src={p.image_urls[0]} alt="" className="w-full h-full object-cover" />}
@@ -422,7 +525,7 @@ const BrandCreateOffer = () => {
             <Input
               value={p.name}
               onChange={(e) => setProducts((prev) => prev.map((x, xi) => xi === i ? { ...x, name: e.target.value } : x))}
-              placeholder="Product name"
+              placeholder={p.kind === "tool" ? "Tool name" : "Product name"}
             />
             <Textarea
               value={p.description}
@@ -435,12 +538,71 @@ const BrandCreateOffer = () => {
               onChange={(e) => setProducts((prev) => prev.map((x, xi) => xi === i ? { ...x, external_url: e.target.value } : x))}
               placeholder="Buy URL"
             />
-            <Textarea
-              value={p.ingredients.join(", ")}
-              onChange={(e) => setProducts((prev) => prev.map((x, xi) => xi === i ? { ...x, ingredients: e.target.value.split(",").map(s => s.trim()).filter(Boolean) } : x))}
-              placeholder="Ingredients (comma-separated)"
-              rows={2}
-            />
+
+            {p.kind === "product" ? (
+              <Textarea
+                value={p.ingredients.join(", ")}
+                onChange={(e) =>
+                  setProducts((prev) =>
+                    prev.map((x, xi) =>
+                      xi === i
+                        ? { ...x, ingredients: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
+                        : x,
+                    ),
+                  )
+                }
+                placeholder="Ingredients (comma-separated)"
+                rows={2}
+              />
+            ) : (
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tool kind</Label>
+                  <select
+                    value={p.tool_kind ?? ""}
+                    onChange={(e) =>
+                      setProducts((prev) =>
+                        prev.map((x, xi) => (xi === i ? { ...x, tool_kind: e.target.value || null } : x)),
+                      )
+                    }
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-[13px] font-body"
+                  >
+                    <option value="">Select a type…</option>
+                    {TOOL_KINDS.map((tk) => (
+                      <option key={tk.value} value={tk.value}>{tk.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <Textarea
+                  value={p.key_features.join(", ")}
+                  onChange={(e) =>
+                    setProducts((prev) =>
+                      prev.map((x, xi) =>
+                        xi === i
+                          ? { ...x, key_features: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
+                          : x,
+                      ),
+                    )
+                  }
+                  placeholder="Key features (comma-separated) — e.g. adjustable heat, ionic, silk-lined"
+                  rows={2}
+                />
+                <Textarea
+                  value={p.materials.join(", ")}
+                  onChange={(e) =>
+                    setProducts((prev) =>
+                      prev.map((x, xi) =>
+                        xi === i
+                          ? { ...x, materials: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
+                          : x,
+                      ),
+                    )
+                  }
+                  placeholder="Materials (comma-separated) — e.g. satin, boar bristle, ceramic"
+                  rows={2}
+                />
+              </div>
+            )}
           </SurfaceCard>
         ))}
 

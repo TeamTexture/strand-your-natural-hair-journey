@@ -423,12 +423,16 @@ export type Database = {
           id: string
           image_urls: string[] | null
           ingredients: string[] | null
+          key_features: string[]
+          kind: string
           linked_product_id: string | null
+          materials: string[]
           name: string
           offer_id: string
           position: number
           source_type: string
           source_url: string | null
+          tool_kind: string | null
           updated_at: string
         }
         Insert: {
@@ -438,12 +442,16 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           ingredients?: string[] | null
+          key_features?: string[]
+          kind?: string
           linked_product_id?: string | null
+          materials?: string[]
           name: string
           offer_id: string
           position?: number
           source_type: string
           source_url?: string | null
+          tool_kind?: string | null
           updated_at?: string
         }
         Update: {
@@ -453,12 +461,16 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           ingredients?: string[] | null
+          key_features?: string[]
+          kind?: string
           linked_product_id?: string | null
+          materials?: string[]
           name?: string
           offer_id?: string
           position?: number
           source_type?: string
           source_url?: string | null
+          tool_kind?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2105,6 +2117,8 @@ export type Database = {
           id: string
           image_url: string | null
           last_used_at: string | null
+          linked_brand_offer_id: string | null
+          linked_brand_product_id: string | null
           match_score: number | null
           name: string
           notes: string | null
@@ -2129,6 +2143,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           last_used_at?: string | null
+          linked_brand_offer_id?: string | null
+          linked_brand_product_id?: string | null
           match_score?: number | null
           name: string
           notes?: string | null
@@ -2153,6 +2169,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           last_used_at?: string | null
+          linked_brand_offer_id?: string | null
+          linked_brand_product_id?: string | null
           match_score?: number | null
           name?: string
           notes?: string | null
@@ -2166,7 +2184,22 @@ export type Database = {
           use_count?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_tools_linked_brand_offer_id_fkey"
+            columns: ["linked_brand_offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_tools_linked_brand_product_id_fkey"
+            columns: ["linked_brand_product_id"]
+            isOneToOne: false
+            referencedRelation: "brand_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wash_days: {
         Row: {
