@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath } from "@/lib/consumerOnboarding";
+import { titleCase } from "@/lib/humanise";
 
 
 interface ExtractedRow {
