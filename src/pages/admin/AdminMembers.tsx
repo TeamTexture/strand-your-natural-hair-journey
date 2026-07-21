@@ -58,7 +58,7 @@ const AdminMembers = () => {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
     queryFn: async (): Promise<MemberRow[]> => {
-      const [profilesRes, subsRes] = await Promise.all([
+      const [profilesRes, subsRes, emailsRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, display_name, complimentary_access, access_restricted, created_at")
@@ -67,9 +67,11 @@ const AdminMembers = () => {
         supabase
           .from("consumer_subscriptions")
           .select("user_id, status, current_period_end, cancel_at_period_end"),
+        supabase.rpc("admin_list_member_emails"),
       ]);
       if (profilesRes.error) throw profilesRes.error;
       if (subsRes.error) throw subsRes.error;
+      if (emailsRes.error) throw emailsRes.error;
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
           s.user_id,
@@ -80,9 +82,16 @@ const AdminMembers = () => {
           },
         ]),
       );
+      const emailMap = new Map(
+        ((emailsRes.data ?? []) as Array<{ user_id: string; email: string | null }>).map((e) => [
+          e.user_id,
+          e.email,
+        ]),
+      );
       return (profilesRes.data ?? []).map((p) => ({
         user_id: p.user_id,
         display_name: p.display_name,
+        email: emailMap.get(p.user_id) ?? null,
         complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
         access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
         created_at: p.created_at,
