@@ -1197,37 +1197,55 @@ export type Database = {
       }
       pro_enquiries: {
         Row: {
+          budget_range: string | null
           consumer_id: string
+          contact_method: string | null
+          contact_phone: string | null
           created_at: string
           decline_reason: string | null
           id: string
+          location_preference: string | null
           note: string | null
+          preferred_timeframe: string | null
           pro_user_id: string
           responded_at: string | null
+          service_interest: string | null
           share_passport_consent: boolean
           status: Database["public"]["Enums"]["pro_enquiry_status"]
           updated_at: string
         }
         Insert: {
+          budget_range?: string | null
           consumer_id: string
+          contact_method?: string | null
+          contact_phone?: string | null
           created_at?: string
           decline_reason?: string | null
           id?: string
+          location_preference?: string | null
           note?: string | null
+          preferred_timeframe?: string | null
           pro_user_id: string
           responded_at?: string | null
+          service_interest?: string | null
           share_passport_consent?: boolean
           status?: Database["public"]["Enums"]["pro_enquiry_status"]
           updated_at?: string
         }
         Update: {
+          budget_range?: string | null
           consumer_id?: string
+          contact_method?: string | null
+          contact_phone?: string | null
           created_at?: string
           decline_reason?: string | null
           id?: string
+          location_preference?: string | null
           note?: string | null
+          preferred_timeframe?: string | null
           pro_user_id?: string
           responded_at?: string | null
+          service_interest?: string | null
           share_passport_consent?: boolean
           status?: Database["public"]["Enums"]["pro_enquiry_status"]
           updated_at?: string

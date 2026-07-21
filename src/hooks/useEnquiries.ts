@@ -15,6 +15,23 @@ export interface Enquiry {
   decline_reason: string | null;
   created_at: string;
   updated_at: string;
+  service_interest: string | null;
+  preferred_timeframe: string | null;
+  contact_method: string | null;
+  contact_phone: string | null;
+  location_preference: string | null;
+  budget_range: string | null;
+}
+
+export interface CreateEnquiryInput {
+  pro_user_id: string;
+  note?: string | null;
+  service_interest?: string | null;
+  preferred_timeframe?: string | null;
+  contact_method?: string | null;
+  contact_phone?: string | null;
+  location_preference?: string | null;
+  budget_range?: string | null;
 }
 
 export interface ClientAccess {
@@ -85,7 +102,7 @@ export function useCreateEnquiry() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { pro_user_id: string; note?: string | null }) => {
+    mutationFn: async (input: CreateEnquiryInput) => {
       if (!user?.id) throw new Error("Sign in required");
       const { data, error } = await supabase
         .from("pro_enquiries")
@@ -93,6 +110,12 @@ export function useCreateEnquiry() {
           consumer_id: user.id,
           pro_user_id: input.pro_user_id,
           note: input.note ?? null,
+          service_interest: input.service_interest ?? null,
+          preferred_timeframe: input.preferred_timeframe ?? null,
+          contact_method: input.contact_method ?? null,
+          contact_phone: input.contact_phone ?? null,
+          location_preference: input.location_preference ?? null,
+          budget_range: input.budget_range ?? null,
           share_passport_consent: true,
           status: "pending",
         })

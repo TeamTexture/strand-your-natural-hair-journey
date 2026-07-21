@@ -137,6 +137,61 @@ const EnquiryCard = ({
         </div>
       </div>
 
+      {(enquiry.service_interest ||
+        enquiry.preferred_timeframe ||
+        enquiry.location_preference ||
+        enquiry.budget_range) && (
+        <div className="mt-3 grid grid-cols-2 gap-1.5">
+          {enquiry.service_interest && (
+            <div className="rounded-[8px] bg-card border border-border/60 px-2 py-1.5">
+              <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                Looking for
+              </p>
+              <p className="text-[12px] font-body leading-tight mt-0.5">
+                {enquiry.service_interest}
+              </p>
+            </div>
+          )}
+          {enquiry.preferred_timeframe && (
+            <div className="rounded-[8px] bg-card border border-border/60 px-2 py-1.5">
+              <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                Timing
+              </p>
+              <p className="text-[12px] font-body leading-tight mt-0.5">
+                {enquiry.preferred_timeframe}
+              </p>
+            </div>
+          )}
+          {enquiry.location_preference && (
+            <div className="rounded-[8px] bg-card border border-border/60 px-2 py-1.5">
+              <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                Location
+              </p>
+              <p className="text-[12px] font-body leading-tight mt-0.5">
+                {enquiry.location_preference}
+              </p>
+            </div>
+          )}
+          {enquiry.budget_range && (
+            <div className="rounded-[8px] bg-card border border-border/60 px-2 py-1.5">
+              <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                Budget
+              </p>
+              <p className="text-[12px] font-body leading-tight mt-0.5">
+                {enquiry.budget_range}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(enquiry.contact_method || enquiry.contact_phone) && (
+        <p className="mt-2 text-[11px] font-body text-muted-foreground">
+          Contact via <span className="text-foreground">{enquiry.contact_method ?? "In-app"}</span>
+          {enquiry.contact_phone ? ` · ${enquiry.contact_phone}` : ""}
+        </p>
+      )}
+
       {enquiry.note && (
         <p className="text-sm font-body mt-2 leading-snug border-l-2 border-primary/40 pl-2">
           "{enquiry.note}"
