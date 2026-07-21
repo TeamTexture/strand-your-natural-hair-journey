@@ -94,13 +94,18 @@ const Index = () => {
             </div>
 
             <div className="w-full flex flex-col gap-3">
-              <Button
-                variant="gold"
-                size="pill"
-                onClick={() => navigate(target, { replace: true })}
-              >
-                Enter STRAND →
-              </Button>
+              {destinations.map((d) => (
+                <Button
+                  key={d.path}
+                  variant="gold"
+                  size="pill"
+                  onClick={() => navigate(d.path, { replace: true })}
+                  className="flex-col h-auto py-3"
+                >
+                  <span>{d.label} →</span>
+                  <span className="text-[11px] font-normal opacity-80">{d.sub}</span>
+                </Button>
+              ))}
               <button
                 type="button"
                 onClick={async () => {
