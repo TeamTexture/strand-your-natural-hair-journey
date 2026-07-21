@@ -123,7 +123,7 @@ const GlobalMenu = () => {
     ? "admin"
     : path.startsWith("/brand")
       ? "brand"
-      : path.startsWith("/pro")
+      : path === "/pro" || path.startsWith("/pro/")
         ? "pro"
         : "consumer";
 
