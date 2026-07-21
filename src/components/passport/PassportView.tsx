@@ -153,6 +153,22 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
 
   return (
     <>
+      <SectionLabel>Identity</SectionLabel>
+      <SurfaceCard>
+        {d.profile ? (
+          <div className="space-y-1.5">
+            <Row label="Name" value={d.profile.display_name} />
+            <Row label="Email" value={d.authEmail} />
+            <Row label="Age" value={d.profile.age != null ? `${d.profile.age} (born ${d.profile.birth_year})` : null} />
+            <Row label="Heritage" value={d.profile.heritage.length ? d.profile.heritage.join(", ") : null} />
+            <Row label="Postcode" value={d.profile.postcode} />
+            <Row label="Country" value={d.profile.country} />
+            <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
+            <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
+          </div>
+        ) : <p className="text-xs text-muted-foreground">No profile recorded.</p>}
+      </SurfaceCard>
+
       <SectionLabel>Hair profile</SectionLabel>
       <SurfaceCard><AllFields obj={d.hair} /></SurfaceCard>
 
@@ -161,6 +177,9 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
 
       <SectionLabel>Style profile</SectionLabel>
       <SurfaceCard><AllFields obj={d.style} exclude={["colour_history", "chemical_history", "colour_reaction_audio_path"]} /></SurfaceCard>
+
+      <SectionLabel>Preferred professional</SectionLabel>
+      <SurfaceCard><AllFields obj={d.professional} /></SurfaceCard>
 
       <SectionLabel>Strand summaries</SectionLabel>
       {d.strandSummaries.length === 0 ? <EmptyCard msg="No Strand summary yet." /> : d.strandSummaries.map(s => (
