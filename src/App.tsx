@@ -12,6 +12,8 @@ import Subscribe from "./pages/Subscribe";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminMemberPassport from "./pages/admin/AdminMemberPassport";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminProfessionals from "./pages/admin/AdminProfessionals";
+
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
