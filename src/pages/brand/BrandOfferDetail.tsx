@@ -241,6 +241,49 @@ const BrandOfferDetail = () => {
           Taps = banner opened. Code copies = discount code copied. Link clicks = tapped through to your site.
         </p>
 
+        {allRevisions.length > 0 && (
+          <>
+            <SectionLabel className="!px-0">Revision history ({allRevisions.length})</SectionLabel>
+            {allRevisions.map((r) => {
+              const tone =
+                r.status === "pending" ? "bg-warn/15 text-warn"
+                  : r.status === "approved" ? "bg-good/15 text-good"
+                    : r.status === "rejected" ? "bg-destructive/15 text-destructive"
+                      : "bg-muted text-muted-foreground";
+              const label =
+                r.status === "pending" ? "Under review"
+                  : r.status === "approved" ? "Approved"
+                    : r.status === "rejected" ? "Rejected"
+                      : r.status === "withdrawn" ? "Withdrawn"
+                        : r.status === "superseded" ? "Superseded"
+                          : r.status;
+              const stamp = r.reviewed_at ?? r.submitted_at;
+              return (
+                <SurfaceCard key={r.id} className="py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-display text-[13px] leading-tight truncate">
+                      {r.headline?.trim() || <span className="italic text-muted-foreground">No headline</span>}
+                    </p>
+                    <span className={`text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full font-body font-medium ${tone}`}>
+                      {label}
+                    </span>
+                  </div>
+                  <p className="text-[10.5px] text-muted-foreground font-body mt-0.5">
+                    Submitted {format(new Date(r.submitted_at), "d MMM yyyy · HH:mm")}
+                    {r.reviewed_at && r.status !== "pending" && (
+                      <> · {label.toLowerCase()} {format(new Date(stamp!), "d MMM · HH:mm")}</>
+                    )}
+                  </p>
+                  {r.rejection_reason && (
+                    <p className="text-[11px] text-destructive font-body mt-1 leading-snug">{r.rejection_reason}</p>
+                  )}
+                </SurfaceCard>
+              );
+            })}
+          </>
+        )}
+
+
         {(offer.brand_products ?? []).length > 0 && (
           <>
             <SectionLabel className="!px-0">Products</SectionLabel>
