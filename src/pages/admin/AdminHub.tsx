@@ -484,6 +484,12 @@ const AdminHub = () => {
             onClick={() => nav("/admin/audit")}
           />
           <NavCard
+            icon={Eye}
+            title="View as user"
+            description="Shadow any account to see their app view"
+            onClick={() => nav("/admin/view-as")}
+          />
+          <NavCard
             icon={SettingsIcon}
             title="Settings"
             description="Pricing and Stripe configuration"
