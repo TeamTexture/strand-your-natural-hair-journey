@@ -79,7 +79,7 @@ const AdminMembers = () => {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
     queryFn: async (): Promise<MemberRow[]> => {
-      const [profilesRes, subsRes, emailsRes, activityRes] = await Promise.all([
+      const [profilesRes, subsRes, emailsRes, activityRes, rolesRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, display_name, complimentary_access, access_restricted, created_at")
@@ -90,11 +90,16 @@ const AdminMembers = () => {
           .select("user_id, status, current_period_end, cancel_at_period_end"),
         supabase.rpc("admin_list_member_emails"),
         supabase.rpc("admin_list_member_activity"),
+        supabase.from("user_roles").select("user_id, role").eq("role", "professional"),
       ]);
       if (profilesRes.error) throw profilesRes.error;
       if (subsRes.error) throw subsRes.error;
       if (emailsRes.error) throw emailsRes.error;
       if (activityRes.error) throw activityRes.error;
+      if (rolesRes.error) throw rolesRes.error;
+      const proIds = new Set(
+        ((rolesRes.data ?? []) as Array<{ user_id: string }>).map((r) => r.user_id),
+      );
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
           s.user_id,
@@ -126,7 +131,7 @@ const AdminMembers = () => {
           },
         ]),
       );
-      return (profilesRes.data ?? []).map((p) => {
+      return (profilesRes.data ?? []).filter((p) => !proIds.has(p.user_id)).map((p) => {
         const act = activityMap.get(p.user_id);
         return {
           user_id: p.user_id,
