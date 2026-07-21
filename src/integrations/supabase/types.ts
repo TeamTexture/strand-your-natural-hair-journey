@@ -2362,6 +2362,7 @@ export type Database = {
         Returns: boolean
       }
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
+      strand_today_london: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "consumer" | "professional" | "admin" | "brand"

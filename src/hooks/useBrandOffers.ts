@@ -113,19 +113,29 @@ export function useTakenPlacements() {
   });
 }
 
-/** Live+paid offer holding a given slot today (for consumer banner). */
+/** Today's date in Europe/London as yyyy-mm-dd. Banner windows are London-based. */
+export function londonToday(): string {
+  // en-CA gives yyyy-mm-dd format.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
+}
+
+/** Paid+in-window offer holding a given slot today (for consumer banner).
+ *  Read-time date logic: an offer is "live" from starts_on..ends_on inclusive
+ *  regardless of whether the stored status has been flipped to `live` yet. */
 export function useActiveBrandOffer(slot: PlacementSlot) {
   return useQuery({
-    queryKey: ["active-brand-offer", slot],
+    queryKey: ["active-brand-offer", slot, londonToday()],
     staleTime: 60_000,
     queryFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = londonToday();
       const { data, error } = await supabase
         .from("brand_offer_placements")
-        .select("offer_id, slot, brand_offers!inner(id, headline, body_copy, hero_image_path, external_url, discount_code, status, brand_user_id, brand_products(id, name, image_urls, external_url))")
+        .select("offer_id, slot, brand_offers!inner(id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_products(id, name, image_urls, external_url))")
         .eq("slot", slot)
         .eq("placement_date", today)
-        .in("brand_offers.status", ["live", "paid_scheduled"])
+        .in("brand_offers.status", ["paid_scheduled", "live"])
+        .lte("brand_offers.starts_on", today)
+        .gte("brand_offers.ends_on", today)
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -134,13 +144,13 @@ export function useActiveBrandOffer(slot: PlacementSlot) {
   });
 }
 
-/** All currently live+paid offers for the profile Discounts area. */
+/** All currently paid+in-window offers for the profile Discounts area. */
 export function useAllLiveBrandOffers() {
   return useQuery({
-    queryKey: ["all-live-brand-offers"],
+    queryKey: ["all-live-brand-offers", londonToday()],
     staleTime: 60_000,
     queryFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = londonToday();
       const { data, error } = await supabase
         .from("brand_offers")
         .select("id, headline, body_copy, hero_image_path, external_url, discount_code, brand_user_id")
@@ -152,6 +162,7 @@ export function useAllLiveBrandOffers() {
     },
   });
 }
+
 
 export function usePendingBrandOffersCount() {
   return useQuery({
