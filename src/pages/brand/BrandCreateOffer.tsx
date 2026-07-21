@@ -603,10 +603,45 @@ const BrandCreateOffer = () => {
               keep it <span className="font-medium">bold, large and minimal</span> (2–4 words max) so it stays legible
               at the 80px collapsed strip. Avoid small print, paragraphs or logos with fine detail.
             </p>
-            <label className="flex items-center gap-2 mt-2 p-3 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50">
+            <label
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isDraggingBanner) setIsDraggingBanner(true);
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDraggingBanner(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDraggingBanner(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDraggingBanner(false);
+                const f = Array.from(e.dataTransfer.files).find((file) =>
+                  ["image/jpeg", "image/png", "image/webp"].includes(file.type)
+                );
+                if (f) onBannerFilePicked(f);
+                else if (e.dataTransfer.files.length > 0) toast.error("Please drop a JPG, PNG or WebP image.");
+              }}
+              className={`flex items-center gap-2 mt-2 p-3 rounded-lg border border-dashed cursor-pointer transition-colors ${
+                isDraggingBanner ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              }`}
+            >
               <ImageIcon className="size-4 text-muted-foreground" />
               <span className="text-[12px] font-body text-muted-foreground flex-1">
-                {uploadingHero ? "Uploading…" : heroPath ? "Replace banner image" : "Upload banner image (JPG/PNG/WebP up to 2MB)"}
+                {uploadingHero
+                  ? "Uploading…"
+                  : isDraggingBanner
+                  ? "Drop image to upload"
+                  : heroPath
+                  ? "Replace banner image — click or drag & drop"
+                  : "Upload banner image — click or drag & drop (JPG/PNG/WebP up to 2MB)"}
               </span>
               <input
                 type="file"
