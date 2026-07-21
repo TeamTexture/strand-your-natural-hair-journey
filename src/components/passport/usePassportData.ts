@@ -50,7 +50,7 @@ const emptyDataset = (): PassportDataset => ({
   clientName: "Client", memberSince: null,
   profile: null, authEmail: null,
   hair: null, health: null, style: null, professional: null,
-  goals: [], goalUpdates: [], bloodPanels: [], bloodResults: [], bloodSummaries: [], strandSummaries: [],
+  goals: [], goalUpdates: [], bloodPanels: [], bloodResults: [], bloodSummaries: [], nutritionSummaries: [], strandSummaries: [],
   washDays: [], journal: [], shelf: [], productPhotos: [], productRatings: [], productVoicenotes: [],
   appointments: [], appointmentPhotos: [], medications: [], tools: [], milestonePhotos: [], beforePhotos: [],
   savedMeals: [], moodboards: [], moodboardImages: [], ingredientLists: [],
