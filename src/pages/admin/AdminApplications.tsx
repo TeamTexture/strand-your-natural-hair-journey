@@ -25,6 +25,7 @@ const tabs: { key: Status; label: string }[] = [
 
 const AdminApplications = () => {
   const [tab, setTab] = useState<Status>("pending");
+  const nav = useNavigate();
   const qc = useQueryClient();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
 
