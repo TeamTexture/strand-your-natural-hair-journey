@@ -129,6 +129,7 @@ const App = () => (
                 <GlobalMenu />
                 <div className="flex-1 min-h-0 overflow-y-auto">
 
+                <AccessRestrictedGate>
                 <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
