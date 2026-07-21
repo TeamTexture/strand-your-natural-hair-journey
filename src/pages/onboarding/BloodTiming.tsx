@@ -10,26 +10,12 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// Subtitles intentionally removed — describing what each option unlocks
-// could nudge people to misreport when they last tested just to gain
-// access. We keep the timing options neutral.
-const opts = [
-  { id: 1, t: "Within the last month" },
-  { id: 2, t: "1-3 months ago" },
-  { id: 3, t: "3-6 months ago" },
-  { id: 4, t: "Over 6 months ago / never tested" },
-];
-
 const DAYE_URL = "https://www.yourdaye.com/products/hormone-test/";
 const DAYE_CODE = "STRAND20";
 
 const BloodTiming = () => {
   const navigate = useNavigate();
-  const [choice, setChoice] = useState<number>(1);
-
-  // Choices 3 (3-6 months) and 4 (over 6 months / never) mean the bloods are
-  // too old / missing — we steer the user to retest before inputting results.
-  const needsRetest = choice === 3 || choice === 4;
+  const [choice, setChoice] = useState<"yes" | "no">("yes");
 
   const copyCode = async () => {
     try {
@@ -47,7 +33,7 @@ const BloodTiming = () => {
 
       <div className="px-5 pb-8 space-y-4">
         <h2 className="font-display text-[22px] leading-tight text-center pt-2">
-          When did you last have a blood test?
+          Have you had a blood test in the last 3 months?
         </h2>
         <ItalicSub>
           Blood deficiencies are one of the most overlooked causes of hair shedding and slow growth.
@@ -55,72 +41,61 @@ const BloodTiming = () => {
 
         <SurfaceCard tone="gold">
           <p className="text-sm font-body leading-snug">
-            <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
-            Your results power every piece of guidance in the app — from your nutrition plan to your wash-day tips.
-            If you don't have a recent test, order one below or book a doctor before continuing.
+            <span className="font-semibold">A recent blood test is required to unlock STRAND.</span>{" "}
+            Your results power every piece of guidance — from your nutrition plan to your wash-day tips.
           </p>
         </SurfaceCard>
 
-
         <div className="space-y-3">
-          {opts.map((o) => (
+          {(["yes", "no"] as const).map((v) => (
             <button
-              key={o.id}
+              key={v}
               type="button"
-              onClick={() => setChoice(o.id)}
+              onClick={() => setChoice(v)}
               className={cn(
                 "w-full text-left p-4 rounded-[14px] border bg-card transition-colors",
-                choice === o.id ? "border-primary border-2" : "border-border",
+                choice === v ? "border-primary border-2" : "border-border",
               )}
             >
-              <p className="text-sm font-medium font-body">{o.t}</p>
+              <p className="text-sm font-medium font-body">
+                {v === "yes"
+                  ? "Yes — within the last 3 months"
+                  : "No — it's older than 3 months or I've never tested"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {v === "yes"
+                  ? "You'll upload or enter your results next"
+                  : "We'll help you book a test — your profile stays saved"}
+              </p>
             </button>
           ))}
         </div>
 
-        {needsRetest ? (
+        {choice === "no" ? (
           <>
             <SurfaceCard tone="orange">
               <p className="text-sm font-body leading-snug">
-                Your last blood work is too old to give us an accurate read. Pick one of the
-                two options below to retest before continuing.
+                You'll need recent blood work to unlock STRAND. Book with a vetted
+                professional below — your profile will be waiting when you're ready.
               </p>
             </SurfaceCard>
 
-            {/* Option A — Book a doctor (deep-link to dermatologists in directory) */}
-            <SurfaceCard>
-              <div className="flex items-start gap-3">
-                <div className="size-10 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                  <Stethoscope className="size-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-display text-base font-semibold mb-1">
-                    Book a Doctor
-                  </p>
-                  <p className="text-xs text-foreground/80 mb-3 font-body">
-                    See a verified dermatologist who can run the full blood panel we need
-                    for hair-loss screening.
-                  </p>
-                  <Button
-                    variant="goldOutline"
-                    size="pill"
-                    className="w-full"
-                    onClick={() => navigate("/directory?bloodOnly=1")}
-                  >
-                    See verified doctors →
-                  </Button>
-                </div>
-              </div>
-            </SurfaceCard>
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/directory?bloodOnly=1")}
+            >
+              <Stethoscope className="size-4 mr-1.5" />
+              See verified doctors →
+            </Button>
 
-            {/* Option B — Daye at-home kit */}
             <SurfaceCard tone="gold">
               <p className="font-display text-base font-semibold mb-1">
-                Order with Daye — At-Home Kit
+                Or — order an at-home kit with Daye
               </p>
               <p className="text-xs text-foreground/80 mb-3 font-body">
-                Full hair and scalp blood panel posted to your door. Results in 5 days.
-                Exclusive Strand member discount.
+                Full hair & scalp blood panel posted to your door. Results in 5 days.
               </p>
               <button
                 type="button"
@@ -131,7 +106,6 @@ const BloodTiming = () => {
                 {DAYE_CODE}
                 <Copy className="size-3" />
               </button>
-
               <a
                 href={DAYE_URL}
                 target="_blank"
@@ -144,22 +118,12 @@ const BloodTiming = () => {
             </SurfaceCard>
 
             <Button
-              variant="goldOutline"
-              size="pill"
-              className="w-full"
-              onClick={() => navigate("/blood-upload?onboarding=1")}
-            >
-              <Upload className="size-4 mr-1.5" />
-              Upload PDF or Photo
-            </Button>
-            <Button
               variant="goldGhost"
               size="pill"
               onClick={() => navigate("/onboarding/blood-iron-vitamins")}
             >
               Skip for now — input what I have
             </Button>
-
           </>
         ) : (
           <div className="space-y-3 mt-4">
@@ -182,7 +146,6 @@ const BloodTiming = () => {
             </Button>
           </div>
         )}
-
       </div>
     </ScreenLayout>
   );
