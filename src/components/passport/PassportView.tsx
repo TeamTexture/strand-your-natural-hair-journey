@@ -56,6 +56,9 @@ interface ImagePreviewState {
 }
 const ImagePreviewContext = createContext<((preview: ImagePreviewState) => void) | null>(null);
 
+type PassportProduct = Record<string, unknown> & { id: string; name: string };
+const OpenProductContext = createContext<((p: PassportProduct) => void) | null>(null);
+
 const logView = async (consumerId: string, section: Section) => {
   try { await supabase.functions.invoke("passport-view-log", { body: { consumer_id: consumerId, section } }); } catch { /* best-effort */ }
 };
@@ -1009,11 +1012,16 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d.productPhotos]);
 
+  const openProduct = useContext(OpenProductContext);
   const renderProductRow = (p: PassportDataset["shelf"][number], size: "sm" | "md" = "sm") => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
     const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
     return (
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        onClick={() => openProduct?.(p as PassportProduct)}
+        className="w-full flex items-start gap-3 text-left hover:opacity-90 active:opacity-75 transition-opacity"
+      >
         <Thumb bucket="product-photos" path={photo ?? null} className={size === "sm" ? "size-11 shrink-0 rounded-lg" : "size-14 shrink-0 rounded-lg"} title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
           <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
@@ -1026,9 +1034,10 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
             </p>
           )}
         </div>
-      </div>
+      </button>
     );
   };
+
 
   const ProductInner = ({ p }: { p: PassportDataset["shelf"][number] }) => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
@@ -1133,10 +1142,10 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
                     </ol>
                   </div>
                 )}
-                {heatTreatment && Object.values(heatTreatment).some(v => v != null && v !== "") && (
+                {heatTreatment && Object.entries(heatTreatment).some(([k, v]) => k !== "tool_ids" && v != null && v !== "") && (
                   <div className="mt-3 pt-3 border-t border-border">
                     <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Heat treatment</p>
-                    <HumanFields obj={heatTreatment} />
+                    <HumanFields obj={heatTreatment} exclude={["tool_ids"]} />
                   </div>
                 )}
                 {styling && (
@@ -1151,9 +1160,9 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
                           const p = productsById.get(id);
                           if (!p) return null;
                           return (
-                            <Collapsible key={id} summary={renderProductRow(p)}>
-                              <ProductInner p={p} />
-                            </Collapsible>
+                            <SurfaceCard key={id} className="py-2.5">
+                              {renderProductRow(p)}
+                            </SurfaceCard>
                           );
                         })}
                       </div>
@@ -1191,11 +1200,16 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d.productPhotos]);
 
+  const openProduct = useContext(OpenProductContext);
   const renderProductRow = (p: PassportDataset["shelf"][number]) => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
     const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
     return (
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        onClick={() => openProduct?.(p as PassportProduct)}
+        className="w-full flex items-start gap-3 text-left hover:opacity-90 active:opacity-75 transition-opacity"
+      >
         <Thumb bucket="product-photos" path={photo ?? null} className="size-11 shrink-0 rounded-lg" title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
           <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
@@ -1208,38 +1222,8 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
             </p>
           )}
         </div>
-      </div>
-    );
-  };
-
-  const ProductInner = ({ p }: { p: PassportDataset["shelf"][number] }) => {
-    const key = (p as Record<string, unknown>).product_key as string | undefined;
-    const voicenotes = key ? d.productVoicenotes.filter(v => v.product_key === key) : [];
-    const ingredients = Array.isArray((p as Record<string, unknown>).ingredients) ? ((p as Record<string, unknown>).ingredients as unknown[]).map(String) : [];
-    return (
-      <>
-        <HumanFields obj={p as Record<string, unknown>} exclude={["name", "brand", "category", "rating", "off_shelf_voice_url", "ingredients"]} />
-        {ingredients.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Ingredients</p>
-            <p className="text-[12px] font-body leading-relaxed text-foreground/85">{ingredients.join(", ")}</p>
-          </div>
-        )}
-        {voicenotes.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Voice notes</p>
-            <div className="space-y-2">
-              {voicenotes.map(v => (
-                <div key={v.id} className="border-l-2 border-primary/30 pl-3">
-                  <p className="text-[11px] text-muted-foreground font-body">{formatDate(v.created_at)}</p>
-                  <AudioPlayer bucket="voicenotes" path={v.audio_url} transcript={v.transcript} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <AudioPlayer bucket="voicenotes" path={((p as Record<string, unknown>).off_shelf_voice_url as string | null) ?? null} label="Off-shelf voice note" />
-      </>
+        <ChevronDown className="size-4 text-muted-foreground/60 shrink-0 mt-1 -rotate-90" />
+      </button>
     );
   };
 
@@ -1258,15 +1242,16 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
         </p>
         <div className="space-y-2">
           {list.slice(0, n).map(p => (
-            <Collapsible key={p.id} summary={renderProductRow(p)}>
-              <ProductInner p={p} />
-            </Collapsible>
+            <SurfaceCard key={p.id}>
+              {renderProductRow(p)}
+            </SurfaceCard>
           ))}
           <LoadMore shown={Math.min(n, list.length)} total={list.length} onMore={() => setN(x => x + 8)} />
         </div>
       </div>
     );
   };
+
 
   return (
     <>
@@ -1783,8 +1768,144 @@ const sectionSub: Record<Section, string> = {
 };
 
 
+// ================================================================
+// Product detail — full-page view opened when a product row is tapped.
+// Mirrors the consumer product page (image, name, brand, chips,
+// ingredients, voicenotes, photos) but is read-only.
+// ================================================================
+const PassportProductDetail = ({ product, data, onBack, mode }: {
+  product: PassportProduct;
+  data: PassportDataset;
+  onBack: () => void;
+  mode: "pro" | "admin";
+}) => {
+  const p = product as Record<string, unknown>;
+  const key = p.product_key as string | undefined;
+  const photoPath = (p.storage_path as string | null | undefined)
+    ?? data.productPhotos.find(x => x.product_key === key)?.storage_path
+    ?? null;
+  const extraPhotos = key
+    ? data.productPhotos.filter(x => x.product_key === key && x.storage_path && x.storage_path !== photoPath)
+    : [];
+  const voicenotes = key ? data.productVoicenotes.filter(v => v.product_key === key) : [];
+  const ingredients = Array.isArray(p.ingredients) ? (p.ingredients as unknown[]).map(String) : [];
+  const rating = p.rating as number | null | undefined;
+  const matchScore = p.match_score as number | null | undefined;
+  const aiSummary = p.ai_summary as string | null | undefined;
+  const category = humaniseValue(p.category);
+  const brand = humaniseValue(p.brand);
+  const status: { label: string; tone: "good" | "gold" | "neutral" | "warn" } =
+    p.on_favourite ? { label: "Favourite", tone: "gold" }
+    : p.on_shelf ? { label: "On shelf", tone: "good" }
+    : p.on_wishlist ? { label: "Wishlist", tone: "neutral" }
+    : { label: "Off shelf", tone: "warn" };
+
+  return (
+    <ScreenLayout>
+      <TitleBar title="Product" onBack={onBack} />
+      <div className="px-5 pt-3 pb-10 space-y-5 animate-fade-in">
+        <SurfaceCard>
+          <div className="flex items-start gap-3">
+            <Thumb
+              bucket="product-photos"
+              path={photoPath}
+              className="size-24 shrink-0 rounded-xl"
+              title={String(p.name ?? "Product image")}
+            />
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="font-display text-[19px] leading-[1.1] text-foreground break-words">{String(p.name ?? "Product")}</p>
+              {brand && <p className="text-[12px] text-muted-foreground font-body mt-1">{brand}{category ? ` · ${category}` : ""}</p>}
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                <Chip tone={status.tone}>{status.label}</Chip>
+                {rating != null && <Chip tone="gold">★ {String(rating)}</Chip>}
+                {matchScore != null && <Chip tone="gold">Match {String(matchScore)}</Chip>}
+                {typeof p.use_count === "number" && (p.use_count as number) > 0 && (
+                  <Chip tone="neutral">Used {String(p.use_count)}×</Chip>
+                )}
+              </div>
+            </div>
+          </div>
+        </SurfaceCard>
+
+        {aiSummary && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Summary</p>
+            <p className="text-[13px] font-body leading-relaxed text-foreground/90 whitespace-pre-line">{aiSummary}</p>
+          </SurfaceCard>
+        )}
+
+        {ingredients.length > 0 && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Ingredients</p>
+            <p className="text-[12.5px] font-body leading-relaxed text-foreground/85 break-words">{ingredients.join(", ")}</p>
+          </SurfaceCard>
+        )}
+
+        <SurfaceCard>
+          <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Details</p>
+          <HumanFields
+            obj={p}
+            exclude={[
+              "name", "brand", "category", "rating", "match_score", "ai_summary",
+              "ingredients", "off_shelf_voice_url", "storage_path", "image_url",
+              "product_key", "id", "user_id", "on_favourite", "on_shelf",
+              "on_wishlist", "previously_on_shelf", "use_count", "key_ingredients",
+              "analysis_profile_snapshot_hash", "analysis_generated_at",
+              "source_url",
+            ]}
+          />
+        </SurfaceCard>
+
+        {voicenotes.length > 0 && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Voice notes</p>
+            <div className="space-y-2">
+              {voicenotes.map(v => (
+                <div key={v.id} className="border-l-2 border-primary/30 pl-3">
+                  <p className="text-[11px] text-muted-foreground font-body">{formatDate(v.created_at)}</p>
+                  <AudioPlayer bucket="voicenotes" path={v.audio_url} transcript={v.transcript} />
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
+        )}
+
+        <AudioPlayer
+          bucket="voicenotes"
+          path={(p.off_shelf_voice_url as string | null) ?? null}
+          label="Off-shelf voice note"
+        />
+
+        {extraPhotos.length > 0 && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Photos</p>
+            <div className="grid grid-cols-3 gap-2">
+              {extraPhotos.map((ph, i) => (
+                <Thumb
+                  key={ph.id}
+                  bucket="product-photos"
+                  path={ph.storage_path}
+                  className="aspect-square rounded-lg"
+                  title={`Photo ${i + 1}`}
+                />
+              ))}
+            </div>
+          </SurfaceCard>
+        )}
+
+        {mode === "admin" && (
+          <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-body">Admin view · read only</p>
+        )}
+      </div>
+    </ScreenLayout>
+  );
+};
+
+
 const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("profile");
+  const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
+
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
@@ -1825,10 +1946,36 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
 
   const Icon = sectionIcon[section];
 
+  if (activeProduct) {
+    return (
+      <ImagePreviewContext.Provider value={setImagePreview}>
+        <PassportProductDetail
+          product={activeProduct}
+          data={data}
+          mode={mode}
+          onBack={() => setActiveProduct(null)}
+        />
+        <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
+          <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] rounded-[20px] p-4 gap-3 max-h-[82vh] overflow-y-auto">
+            <DialogTitle className="font-display text-base leading-tight pr-8">{imagePreview?.title ?? "Image"}</DialogTitle>
+            {imagePreview?.url ? (
+              <img src={imagePreview.url} alt={imagePreview.title} className="w-full rounded-md object-contain max-h-[46vh] bg-muted" />
+            ) : (
+              <div className="aspect-square rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">Loading image…</div>
+            )}
+            {imagePreview?.meta && <div className="pt-2 border-t border-border">{imagePreview.meta}</div>}
+          </DialogContent>
+        </Dialog>
+      </ImagePreviewContext.Provider>
+    );
+  }
+
   return (
     <ImagePreviewContext.Provider value={setImagePreview}>
+      <OpenProductContext.Provider value={setActiveProduct}>
       <ScreenLayout>
         <TitleBar title={mode === "admin" ? "Member passport" : "Client passport"} onBack={accessEndedAction} />
+
 
         {/* Sticky tab strip — gold-edged passport pages */}
         <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-2.5 pb-3 px-5 border-b border-primary/15">
@@ -1896,6 +2043,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           </DialogContent>
         </Dialog>
       </ScreenLayout>
+      </OpenProductContext.Provider>
     </ImagePreviewContext.Provider>
   );
 };
