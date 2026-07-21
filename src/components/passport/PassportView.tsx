@@ -859,26 +859,6 @@ const MarkerRow = ({ marker, value, unit, status }: { marker: string; value: num
 };
 
 
-const BloodAiCard = ({ payload, when }: { payload: unknown; when: string }) => {
-  const p = payload as { html?: string; summary?: string } | string | null;
-  const body = typeof p === "string" ? p : (p?.html ?? p?.summary ?? null);
-  return (
-    <SurfaceCard tone="gold">
-      <div className="flex items-center gap-2 mb-2">
-        <Sparkles className="size-4 text-primary" />
-        <p className="font-display text-[15px] leading-tight text-foreground">AI blood summary</p>
-      </div>
-      <p className="text-[10.5px] uppercase tracking-wider text-primary/80 font-body mb-3">
-        Updated {formatDate(when)} · {formatRelative(when)}
-      </p>
-      {body ? (
-        <div className="text-[13px] leading-relaxed font-body prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
-      ) : (
-        <p className="text-[12px] text-muted-foreground font-body">No summary content available.</p>
-      )}
-    </SurfaceCard>
-  );
-};
 
 const BloodSection = ({ d }: { d: PassportDataset }) => {
   const resultsByPanel = useMemo(() => {
