@@ -334,30 +334,30 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
                 </div>
               )}
               <div className="flex-1 min-w-0 pb-0.5">
-                <p className="text-[9.5px] uppercase tracking-[0.28em] font-body text-primary/60 mb-1">Bearer</p>
-                <p className="font-display text-[22px] leading-[1.05] text-primary truncate tracking-[0.005em]">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.26em] font-body text-primary/75 mb-1">Bearer</p>
+                <p className="font-display font-bold text-[24px] leading-[1.05] text-primary truncate tracking-[0.005em]">
                   {d.clientName}
                 </p>
               </div>
             </div>
 
             {/* Passport data strip */}
-            <div className="mt-4 pt-4 border-t border-primary/20 grid grid-cols-3 gap-3">
+            <div className="mt-4 pt-4 border-t border-primary/25 grid grid-cols-3 gap-3">
               <div>
-                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Issued</p>
-                <p className="text-[11.5px] font-body text-primary/95 leading-tight">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[0.22em] font-body text-primary/70 mb-0.5">Issued</p>
+                <p className="text-[12.5px] font-body font-semibold text-primary leading-tight">
                   {d.memberSince ? formatMonth(d.memberSince) : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Age</p>
-                <p className="text-[11.5px] font-body text-primary/95 leading-tight">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[0.22em] font-body text-primary/70 mb-0.5">Age</p>
+                <p className="text-[12.5px] font-body font-semibold text-primary leading-tight">
                   {p?.age != null ? `${p.age} yrs` : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Region</p>
-                <p className="text-[11.5px] font-body text-primary/95 leading-tight truncate">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[0.22em] font-body text-primary/70 mb-0.5">Region</p>
+                <p className="text-[12.5px] font-body font-semibold text-primary leading-tight truncate">
                   {p?.postcode ?? humaniseValue(p?.country) ?? "—"}
                 </p>
               </div>
