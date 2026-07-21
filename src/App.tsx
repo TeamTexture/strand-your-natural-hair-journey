@@ -363,6 +363,7 @@ const App = () => (
               <Route path="/brand/offers/new" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
               <Route path="/brand/offers/:id" element={<RoleGate allow={["brand", "admin"]}><BrandOfferDetail /></RoleGate>} />
               <Route path="/brand/offers/:id/edit" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
+              <Route path="/brand/offers/:id/extend" element={<RoleGate allow={["brand", "admin"]}><BrandExtendOffer /></RoleGate>} />
               <Route path="/brand/checkout/success" element={<RoleGate allow={["brand", "admin"]}><BrandCheckoutSuccess /></RoleGate>} />
               <Route path="/offers/:id" element={<Paid><OfferPage /></Paid>} />
               <Route path="/offers/:offerId/product/:productId" element={<Paid><BrandProductPage /></Paid>} />
