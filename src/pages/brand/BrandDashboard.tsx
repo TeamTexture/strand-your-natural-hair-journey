@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CreditCard, AlertCircle } from "lucide-react";
+import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -7,7 +8,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, STATUS_LABEL, SLOT_LABEL } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferTotals, STATUS_LABEL, SLOT_LABEL } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { format } from "date-fns";
 
@@ -34,6 +35,12 @@ const BrandDashboard = () => {
   const { data: offers = [], isLoading } = useBrandOffers();
   const { subscription, isActive: subActive, isAdminOverride } = useBrandSubscription();
 
+  const trackedOfferIds = useMemo(
+    () => offers.filter((o) => ["live", "paid_scheduled", "ended"].includes(o.status)).map((o) => o.id),
+    [offers],
+  );
+  const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
+
   if (profileLoading || isLoading) return <LoadingDot />;
 
   const drafts = offers.filter((o) => o.status === "draft");
@@ -41,12 +48,13 @@ const BrandDashboard = () => {
   const past = offers.filter((o) => ["ended", "rejected", "cancelled"].includes(o.status));
 
   const renderOffer = (o: typeof offers[number]) => {
-    const stats = { impressions: 0, taps: 0, wishlist: 0 };
+    const t = totals[o.id];
     const placements = o.brand_offer_placements ?? [];
     const slotSet = Array.from(new Set(placements.map((p) => p.slot)));
     const dates = placements.map((p) => p.placement_date).sort();
     const startDate = dates[0];
     const endDate = dates[dates.length - 1];
+    const showStats = t && ["live", "paid_scheduled", "ended"].includes(o.status);
     return (
       <button
         key={o.id}
@@ -71,6 +79,13 @@ const BrandDashboard = () => {
             </span>
             <span className="font-medium text-foreground">{money(o.total_price_pence)}</span>
           </div>
+          {showStats && (
+            <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center gap-3 text-[11px] font-body text-foreground/80">
+              <span className="inline-flex items-center gap-1"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
+              <span className="inline-flex items-center gap-1"><MousePointerClick className="size-3 text-muted-foreground" /> {t.taps}</span>
+              <span className="inline-flex items-center gap-1"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
+            </div>
+          )}
           {o.status === "approved_unpaid" && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary font-body font-medium">
               <CreditCard className="size-3" /> Complete payment to confirm placement

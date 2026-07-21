@@ -2341,6 +2341,15 @@ export type Database = {
           user_count: number
         }[]
       }
+      brand_offer_totals: {
+        Args: { _offer_ids: string[] }
+        Returns: {
+          impressions: number
+          offer_id: string
+          taps: number
+          wishlist_adds: number
+        }[]
+      }
       has_active_brand_subscription: {
         Args: { _user: string }
         Returns: boolean
@@ -2360,6 +2369,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_brand_offer_stat: {
+        Args: {
+          _kind: string
+          _offer_id: string
+          _slot: Database["public"]["Enums"]["brand_placement_slot"]
+        }
+        Returns: undefined
       }
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
       strand_today_london: { Args: never; Returns: string }

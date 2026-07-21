@@ -11,8 +11,9 @@ import {
   DAYE_URL, DAYE_CODE,
   LOLA_HEALTH_URL, LOLA_HEALTH_CODE,
 } from "@/lib/discounts";
-import { useAllLiveBrandOffers } from "@/hooks/useBrandOffers";
+import { useAllLiveBrandOffers, useLogBrandStat } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 interface OfferProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -100,6 +101,17 @@ const Discounts = () => {
   const navigate = useNavigate();
   const { data: brandOffers } = useAllLiveBrandOffers();
   const { data: proOffers } = useProOffersForConsumer();
+  const logStat = useLogBrandStat();
+
+  // Record an impression per brand offer as it renders in the Discounts list.
+  // Dedupe is handled inside the hook (session-scoped, per offer+slot).
+  useEffect(() => {
+    (brandOffers ?? []).forEach((o) => {
+      logStat.mutate({ offer_id: o.id, slot: null, kind: "impressions" });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandOffers?.map((o) => o.id).join(",")]);
+
 
   return (
     <ScreenLayout>
