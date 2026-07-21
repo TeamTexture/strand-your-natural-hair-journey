@@ -80,6 +80,7 @@ import BrandDashboard from "./pages/brand/BrandDashboard";
 import BrandCreateOffer from "./pages/brand/BrandCreateOffer";
 import BrandOfferDetail from "./pages/brand/BrandOfferDetail";
 import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
+import BrandSubscribe from "./pages/brand/BrandSubscribe";
 import OfferPage from "./pages/OfferPage";
 import AdminBrandOffers from "./pages/admin/AdminBrandOffers";
 import AdminBrandCalendar from "./pages/admin/AdminBrandCalendar";
@@ -342,6 +343,7 @@ const App = () => (
 
               {/* Brand routes */}
               <Route path="/brand/auth" element={<BrandAuth />} />
+              <Route path="/brand/subscribe" element={<RoleGate allow={["brand", "admin"]}><BrandSubscribe /></RoleGate>} />
               <Route path="/brand" element={<RoleGate allow={["brand", "admin"]}><BrandDashboard /></RoleGate>} />
               <Route path="/brand/offers/new" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
               <Route path="/brand/offers/:id" element={<RoleGate allow={["brand", "admin"]}><BrandOfferDetail /></RoleGate>} />
