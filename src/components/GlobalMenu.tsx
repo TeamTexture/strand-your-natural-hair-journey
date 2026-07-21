@@ -236,6 +236,14 @@ const GlobalMenu = () => {
                   <Briefcase className="size-4 mr-2" /> Professional
                 </DropdownMenuItem>
               )}
+              {isBrand && (
+                <DropdownMenuItem
+                  onClick={() => navigate(viewMeta.brand.to)}
+                  className={activeView === "brand" ? "bg-primary/10 text-primary" : ""}
+                >
+                  <Store className="size-4 mr-2" /> Brand
+                </DropdownMenuItem>
+              )}
               {isAdmin && (
                 <DropdownMenuItem
                   onClick={() => navigate(viewMeta.admin.to)}
@@ -285,7 +293,7 @@ const GlobalMenu = () => {
           <nav className="flex-1 overflow-y-auto py-2">
             {!isOnboarding && navItems.map(({ label, to, icon: Icon, badge }) => {
               const active =
-                to === "/home" || to === "/pro" || to === "/admin"
+                to === "/home" || to === "/pro" || to === "/admin" || to === "/brand"
                   ? location.pathname === to
                   : location.pathname === to || location.pathname.startsWith(to + "/");
               return (
@@ -328,6 +336,15 @@ const GlobalMenu = () => {
                 >
                   <Briefcase className="size-4" />
                   <span>Professional</span>
+                </button>
+              )}
+              {isBrand && activeView !== "brand" && (
+                <button
+                  onClick={() => go(viewMeta.brand.to)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
+                >
+                  <Store className="size-4" />
+                  <span>Brand</span>
                 </button>
               )}
               {isAdmin && activeView !== "admin" && (
