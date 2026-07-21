@@ -227,10 +227,10 @@ const GlobalMenu = () => {
             <SheetTitle className="font-display text-xl">Menu</SheetTitle>
           </SheetHeader>
           <nav className="flex-1 overflow-y-auto py-2">
-            {NAV.map(({ label, to, icon: Icon }) => {
+            {navItems.map(({ label, to, icon: Icon, badge }) => {
               const active =
-                to === "/home"
-                  ? location.pathname === "/home"
+                to === "/home" || to === "/pro" || to === "/admin"
+                  ? location.pathname === to
                   : location.pathname === to || location.pathname.startsWith(to + "/");
               return (
                 <button
@@ -241,11 +241,50 @@ const GlobalMenu = () => {
                   }`}
                 >
                   <Icon className="size-4" />
-                  <span>{label}</span>
+                  <span className="flex-1">{label}</span>
+                  {badge && badge > 0 ? (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none bg-primary text-primary-foreground">
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
           </nav>
+          {showViewSwitcher && (
+            <div className="border-t p-3 space-y-1">
+              <p className="px-3 pb-1 text-[10px] uppercase tracking-wider font-body font-semibold text-muted-foreground">
+                Switch view
+              </p>
+              {isConsumer && activeView !== "consumer" && (
+                <button
+                  onClick={() => go(viewMeta.consumer.to)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
+                >
+                  <HomeIcon className="size-4" />
+                  <span>My STRAND</span>
+                </button>
+              )}
+              {isProfessional && activeView !== "pro" && (
+                <button
+                  onClick={() => go(viewMeta.pro.to)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
+                >
+                  <Briefcase className="size-4" />
+                  <span>Professional</span>
+                </button>
+              )}
+              {isAdmin && activeView !== "admin" && (
+                <button
+                  onClick={() => go(viewMeta.admin.to)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
+                >
+                  <ShieldCheck className="size-4" />
+                  <span>Admin</span>
+                </button>
+              )}
+            </div>
+          )}
           <div className="border-t p-3">
             <button
               onClick={async () => {
