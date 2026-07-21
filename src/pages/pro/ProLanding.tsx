@@ -43,7 +43,11 @@ const ProLanding = () => {
   // Approved pros → welcome (if unpaid) or dashboard (if paid).
   useEffect(() => {
     if (rolesLoading || subLoading) return;
-    if (isAdmin && !isProfessional) return; // admins land normally
+    // Admins get full pro access without a subscription.
+    if (isAdmin) {
+      nav("/pro", { replace: true });
+      return;
+    }
     if (isProfessional) {
       nav(isActive ? "/pro" : "/pro/welcome", { replace: true });
     }
