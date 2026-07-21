@@ -23,9 +23,9 @@ const BannerPreview = ({
   expanded = false,
 }: Props) => {
   return (
-    <div className="w-full max-w-[343px] mx-auto">
+    <div className="w-full min-w-0 max-w-full mx-auto overflow-hidden">
       {/* Collapsed strip — full-width, ~80px tall, brand image as backdrop. */}
-      <div className="relative rounded-t-[14px] overflow-hidden border border-primary/20 bg-card" style={{ height: 80 }}>
+      <div className="relative rounded-t-[12px] overflow-hidden border border-primary/20 bg-card" style={{ height: 80 }}>
         {heroUrl ? (
           <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
@@ -35,8 +35,8 @@ const BannerPreview = ({
         <span className="absolute top-1.5 left-2 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
           Sponsored
         </span>
-        <div className="relative h-full flex items-center pl-3 pr-9 w-2/3">
-          <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm">
+        <div className="relative h-full flex items-center pl-3 pr-9 max-w-[68%]">
+          <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm break-words">
             {headline || "Your headline goes here"}
           </p>
         </div>
@@ -44,8 +44,8 @@ const BannerPreview = ({
       </div>
 
       {expanded && (
-        <div className="rounded-b-[14px] border border-t-0 border-primary/20 bg-card p-3">
-          <div className="flex gap-3">
+        <div className="rounded-b-[12px] border border-t-0 border-primary/20 bg-card p-3 overflow-hidden">
+          <div className="flex gap-2 min-w-0">
             <div className="flex-1 min-w-0">
               {bodyCopy ? (
                 <p className="text-[12px] text-foreground/80 leading-snug font-body">{bodyCopy}</p>
@@ -53,9 +53,9 @@ const BannerPreview = ({
                 <p className="text-[12px] text-muted-foreground italic font-body">Body copy shows here.</p>
               )}
               {discountCode && (
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2 py-1">
+                <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md bg-primary/10 border border-primary/30 px-2 py-1">
                   <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-body">Code</span>
-                  <span className="font-body font-medium text-[12px] text-primary">{discountCode}</span>
+                  <span className="font-body font-medium text-[12px] text-primary truncate">{discountCode}</span>
                 </div>
               )}
               <button
@@ -66,7 +66,7 @@ const BannerPreview = ({
               </button>
             </div>
             {(productImageUrl || productName) && (
-              <div className="w-[92px] shrink-0">
+              <div className="w-[82px] shrink-0">
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border">
                   {productImageUrl && (
                     <img src={productImageUrl} alt="" className="w-full h-full object-cover" />

@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Sparkles, Image as ImageIcon, Trash2, Loader2, Plus } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Trash2, Loader2, Plus, Search, PackagePlus, Wrench } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PlacementCalendarPicker from "@/components/PlacementCalendarPicker";
 import BannerPreview from "@/components/brand/BannerPreview";
 import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer } from "@/hooks/useBrandOffers";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day"];
@@ -40,6 +41,23 @@ interface ProductDraft {
   source_url?: string | null;
   linked_product_id?: string | null;
 }
+
+interface CatalogueItem {
+  kind: AttachKind;
+  source_id: string;
+  name: string;
+  brand: string | null;
+  category: string | null;
+  image_url: string | null;
+  ingredients: string[] | null;
+  tool_kind: string | null;
+  key_features: string[] | null;
+  materials: string[] | null;
+  source_url: string | null;
+  user_count: number;
+}
+
+type CatalogueFilter = "all" | AttachKind;
 
 const emptyProduct = (kind: AttachKind = "product"): ProductDraft => ({
   kind,
@@ -70,6 +88,23 @@ const TOOL_KINDS: { value: string; label: string }[] = [
   { value: "scissors", label: "Scissors" },
   { value: "other", label: "Other" },
 ];
+
+const toToolKind = (category: string | null) => {
+  const value = (category ?? "").toLowerCase();
+  if (value.includes("brush")) return "brush";
+  if (value.includes("comb")) return "comb";
+  if (value.includes("bonnet") || value.includes("scarf")) return "bonnet";
+  if (value.includes("heat hat") || value.includes("heat cap")) return "heat_cap";
+  if (value.includes("dryer")) return "hair_dryer";
+  if (value.includes("diffuser")) return "diffuser";
+  if (value.includes("iron")) return "flat_iron";
+  if (value.includes("wand") || value.includes("curler")) return "curling_wand";
+  if (value.includes("pillow")) return "pillowcase";
+  if (value.includes("towel")) return "microfibre_towel";
+  if (value.includes("clip")) return "sectioning_clips";
+  if (value.includes("scissor")) return "scissors";
+  return category ? "other" : null;
+};
 
 const BrandCreateOffer = () => {
   const { id: existingId } = useParams();
@@ -124,12 +159,75 @@ const BrandCreateOffer = () => {
   const [scraping, setScraping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewMode, setPreviewMode] = useState<"collapsed" | "expanded">("collapsed");
+  const [catalogueOpen, setCatalogueOpen] = useState(false);
+  const [catalogueKind, setCatalogueKind] = useState<CatalogueFilter>("all");
+  const [catalogueSearch, setCatalogueSearch] = useState("");
 
   // Cropper state — one dialog reused for banner or a specific product image.
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropTarget, setCropTarget] = useState<{ kind: "banner" } | { kind: "product"; index: number } | null>(null);
 
   const heroPreview = useHeroPreview(heroPath);
+
+  useEffect(() => {
+    if (!existingId || !existing) return;
+    setHeadline(existing.headline ?? "");
+    setBodyCopy(existing.body_copy ?? "");
+    setDiscountCode(existing.discount_code ?? "");
+    setExternalUrl(existing.external_url ?? "");
+    setHeroPath(existing.hero_image_path ?? null);
+    setProducts(
+      (existing.brand_products ?? []).map((p) => {
+        const row = p as typeof p & {
+          kind?: string;
+          tool_kind?: string | null;
+          key_features?: string[] | null;
+          materials?: string[] | null;
+        };
+        const kind: AttachKind = row.kind === "tool" ? "tool" : "product";
+        return {
+          id: p.id,
+          kind,
+          name: p.name,
+          description: p.description ?? "",
+          external_url: p.external_url ?? "",
+          image_urls: p.image_urls ?? [],
+          ingredients: p.ingredients ?? [],
+          tool_kind: row.tool_kind ?? null,
+          key_features: row.key_features ?? [],
+          materials: row.materials ?? [],
+          source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
+          source_url: p.source_url,
+          linked_product_id: p.linked_product_id,
+        } satisfies ProductDraft;
+      }),
+    );
+    const map: Record<PlacementSlot, string[]> = { home: [], products: [], wash_day: [] };
+    (existing.brand_offer_placements ?? []).forEach((p) => {
+      map[p.slot as PlacementSlot].push(p.placement_date);
+    });
+    setSelectedByslot(map);
+  }, [existingId, existing]);
+
+  const catalogueQuery = useQuery({
+    queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
+    enabled: catalogueOpen,
+    queryFn: async (): Promise<CatalogueItem[]> => {
+      const rpc = (supabase as unknown as {
+        rpc: (
+          fn: "brand_catalogue_items",
+          args: { _kind: string; _search: string | null; _limit: number },
+        ) => Promise<{ data: CatalogueItem[] | null; error: { message?: string } | null }>;
+      }).rpc;
+      const { data, error } = await rpc("brand_catalogue_items", {
+        _kind: catalogueKind,
+        _search: catalogueSearch.trim() || null,
+        _limit: 80,
+      });
+      if (error) throw new Error(error.message ?? "Catalogue unavailable");
+      return data ?? [];
+    },
+  });
 
   const total = useMemo(() => {
     if (!rates) return 0;
@@ -254,6 +352,28 @@ const BrandCreateOffer = () => {
     }
   };
 
+  const attachCatalogueItem = (item: CatalogueItem) => {
+    const label = item.kind === "tool" ? "tool" : "product";
+    setProducts((prev) => [
+      ...prev,
+      {
+        kind: item.kind,
+        name: item.name,
+        description: item.brand ? `${item.brand}${item.category ? ` · ${item.category}` : ""}` : (item.category ?? ""),
+        external_url: item.source_url ?? "",
+        image_urls: item.image_url ? [item.image_url] : [],
+        ingredients: item.kind === "product" ? (item.ingredients ?? []) : [],
+        tool_kind: item.kind === "tool" ? (toToolKind(item.tool_kind ?? item.category) ?? item.tool_kind) : null,
+        key_features: item.kind === "tool" ? (item.key_features ?? []) : [],
+        materials: item.kind === "tool" ? (item.materials ?? []) : [],
+        source_type: "linked",
+        source_url: item.source_url,
+        linked_product_id: item.source_id,
+      },
+    ]);
+    toast.success(`${label === "tool" ? "Tool" : "Product"} attached`);
+  };
+
   const { isActive: brandSubActive } = useBrandSubscription();
 
   const firstProduct = products[0];
@@ -261,7 +381,7 @@ const BrandCreateOffer = () => {
 
   const submit = async (asDraft: boolean) => {
     if (!user) return;
-    if (!headline.trim()) return toast.error("Add a headline.");
+    if (!asDraft && !headline.trim()) return toast.error("Add a headline.");
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
     if (!asDraft && totalDays === 0) return toast.error("Select at least one placement date.");
     if (!asDraft && !brandSubActive) {
@@ -273,7 +393,7 @@ const BrandCreateOffer = () => {
     try {
       const payload = {
         brand_user_id: user.id,
-        headline: headline.trim(),
+        headline: headline.trim() || "Untitled draft",
         body_copy: bodyCopy.trim() || null,
         discount_code: discountCode.trim() || null,
         external_url: externalUrl.trim() || null,
@@ -316,7 +436,9 @@ const BrandCreateOffer = () => {
       }
 
       if (products.length > 0) {
-        const productRows = products.map((p, i) => ({
+        const productRows = products
+          .filter((p) => asDraft || p.name.trim() || p.description.trim() || p.external_url.trim() || p.image_urls.length > 0)
+          .map((p, i) => ({
           offer_id: offerId!,
           name: p.name || (p.kind === "tool" ? "Untitled tool" : "Untitled product"),
           description: p.description || null,
@@ -334,10 +456,12 @@ const BrandCreateOffer = () => {
         }));
         // Cast: brand_products was just extended with kind/tool_kind/key_features/materials;
         // generated types will catch up on the next codegen.
-        const { error } = await supabase
-          .from("brand_products")
-          .insert(productRows as unknown as never);
-        if (error) throw error;
+        if (productRows.length > 0) {
+          const { error } = await supabase
+            .from("brand_products")
+            .insert(productRows as unknown as never);
+          if (error) throw error;
+        }
       }
 
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
@@ -361,7 +485,7 @@ const BrandCreateOffer = () => {
   return (
     <ScreenLayout>
       <TitleBar title={existingId ? "Edit offer" : "Create offer"} onBack={() => nav("/brand")} />
-      <div className="px-5 pb-4 space-y-5">
+      <div className="px-5 pb-0 space-y-5 overflow-x-hidden">
         <SectionLabel className="!px-0 !mt-0">Creative</SectionLabel>
         <SurfaceCard className="space-y-3">
           <div>
@@ -408,7 +532,7 @@ const BrandCreateOffer = () => {
         </SurfaceCard>
 
         <SectionLabel className="!px-0">Live preview</SectionLabel>
-        <div className="flex gap-1.5 text-[11px]">
+        <div className="flex flex-wrap gap-1.5 text-[11px]">
           <button
             type="button"
             onClick={() => setPreviewMode("collapsed")}
@@ -424,7 +548,7 @@ const BrandCreateOffer = () => {
             Expanded
           </button>
         </div>
-        <div className="rounded-[12px] bg-muted/40 p-3">
+        <div className="w-full min-w-0 overflow-hidden rounded-[12px] bg-muted/40 p-2">
           <BannerPreview
             heroUrl={heroPreview}
             headline={headline}
@@ -438,6 +562,17 @@ const BrandCreateOffer = () => {
 
         <SectionLabel className="!px-0">Attach products &amp; tools</SectionLabel>
         <SurfaceCard className="space-y-3">
+          <div className="rounded-[12px] border border-primary/25 bg-primary/5 p-3">
+            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
+              <PackagePlus className="size-3 text-primary" /> Browse app catalogue
+            </Label>
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+              Search anonymised products and tools already used in STRAND, then attach the item to this advert.
+            </p>
+            <Button type="button" variant="outline" size="pill" onClick={() => setCatalogueOpen(true)} className="mt-2 w-full px-4">
+              Browse products &amp; tools
+            </Button>
+          </div>
           <div>
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
               <Sparkles className="size-3 text-primary" /> AI page from a link
@@ -461,14 +596,14 @@ const BrandCreateOffer = () => {
                 </button>
               ))}
             </div>
-            <div className="flex gap-2 mt-1.5">
-              <Input value={scrapeUrl} onChange={(e) => setScrapeUrl(e.target.value)} placeholder="https://" />
-              <Button type="button" variant="outline" size="pill" onClick={runScrape} disabled={scraping || !scrapeUrl.trim()}>
+            <div className="flex gap-2 mt-1.5 min-w-0">
+              <Input className="min-w-0" value={scrapeUrl} onChange={(e) => setScrapeUrl(e.target.value)} placeholder="https://" />
+              <Button type="button" variant="outline" size="pill" onClick={runScrape} disabled={scraping || !scrapeUrl.trim()} className="w-auto shrink-0 px-4">
                 {scraping ? <Loader2 className="size-4 animate-spin" /> : "Draft"}
               </Button>
             </div>
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-wrap gap-3 pt-1">
             <button
               type="button"
               onClick={() => setProducts((p) => [...p, emptyProduct("product")])}
@@ -694,15 +829,90 @@ const BrandCreateOffer = () => {
           </div>
         )}
 
-        <div className="sticky bottom-0 -mx-5 bg-background/95 backdrop-blur border-t border-border px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex gap-2">
-          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1">
+        <div className="sticky bottom-0 -mx-5 bg-background/95 backdrop-blur border-t border-border px-5 pt-2 pb-2 flex gap-2">
+          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px]">
             Save draft
           </Button>
-          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1">
-            {brandSubActive ? "Submit for review" : "Unlock & submit"}
+          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px]">
+            {brandSubActive ? "Review" : "Unlock"}
           </Button>
         </div>
       </div>
+
+      <Dialog open={catalogueOpen} onOpenChange={setCatalogueOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[343px] max-h-[82vh] overflow-hidden rounded-[14px] p-0">
+          <DialogHeader className="p-4 pb-2 text-left">
+            <DialogTitle className="font-display text-lg">App catalogue</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-4 space-y-3 overflow-hidden">
+            <div className="flex flex-wrap gap-1.5 text-[11px]">
+              {(["all", "product", "tool"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setCatalogueKind(k)}
+                  className={`px-3 py-1 rounded-pill border capitalize ${
+                    catalogueKind === k ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {k === "all" ? "All" : `${k}s`}
+                </button>
+              ))}
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={catalogueSearch}
+                onChange={(e) => setCatalogueSearch(e.target.value)}
+                placeholder="Search products or tools"
+                className="pl-9"
+              />
+            </div>
+            <div className="max-h-[54vh] overflow-y-auto pr-1 space-y-2">
+              {catalogueQuery.isLoading ? (
+                <div className="py-8"><LoadingDot /></div>
+              ) : catalogueQuery.data?.length ? (
+                catalogueQuery.data.map((item) => (
+                  <button
+                    key={`${item.kind}-${item.source_id}`}
+                    type="button"
+                    onClick={() => attachCatalogueItem(item)}
+                    className="w-full text-left rounded-[12px] border border-border bg-card p-2.5 hover:border-primary/40"
+                  >
+                    <div className="flex gap-2.5 min-w-0">
+                      <div className="size-12 shrink-0 rounded-lg bg-muted border border-border overflow-hidden flex items-center justify-center text-primary">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt="" className="size-full object-cover" />
+                        ) : item.kind === "tool" ? (
+                          <Wrench className="size-5" />
+                        ) : (
+                          <PackagePlus className="size-5" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="font-display text-[14px] leading-tight truncate">{item.name}</p>
+                          <span className="shrink-0 text-[8px] uppercase tracking-wider text-muted-foreground border border-border rounded-pill px-1.5 py-[1px]">
+                            {item.kind === "tool" ? "Tool" : "Product"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {[item.brand, item.category].filter(Boolean).join(" · ") || "STRAND catalogue item"}
+                        </p>
+                        <p className="text-[10px] text-primary font-body mt-0.5">
+                          {item.user_count} member{item.user_count === 1 ? "" : "s"} have added this
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <p className="text-[12px] text-muted-foreground text-center py-8">No catalogue matches yet.</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ImageCropDialog
         file={cropFile}
@@ -717,7 +927,7 @@ const BrandCreateOffer = () => {
 /** Sign the hero image path for preview. */
 function useHeroPreview(path: string | null) {
   const [url, setUrl] = useState<string | null>(null);
-  useMemo(() => {
+  useEffect(() => {
     if (!path) { setUrl(null); return; }
     supabase.storage.from("brand-assets").createSignedUrl(path, 60 * 60).then(({ data }) => {
       setUrl(data?.signedUrl ?? null);

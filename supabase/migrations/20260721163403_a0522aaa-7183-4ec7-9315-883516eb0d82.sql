@@ -1,0 +1,2 @@
+ALTER TABLE public.brand_products DROP CONSTRAINT IF EXISTS brand_products_source_type_check;
+ALTER TABLE public.brand_products ADD CONSTRAINT brand_products_source_type_check CHECK (source_type IN ('manual', 'ai', 'linked', 'ai_generated'));
