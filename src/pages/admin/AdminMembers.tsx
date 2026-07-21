@@ -26,6 +26,7 @@ import { toast } from "sonner";
 interface MemberRow {
   user_id: string;
   display_name: string | null;
+  email: string | null;
   complimentary_access: boolean;
   access_restricted: boolean;
   created_at: string;
@@ -57,7 +58,7 @@ const AdminMembers = () => {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
     queryFn: async (): Promise<MemberRow[]> => {
-      const [profilesRes, subsRes] = await Promise.all([
+      const [profilesRes, subsRes, emailsRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, display_name, complimentary_access, access_restricted, created_at")
@@ -66,9 +67,11 @@ const AdminMembers = () => {
         supabase
           .from("consumer_subscriptions")
           .select("user_id, status, current_period_end, cancel_at_period_end"),
+        supabase.rpc("admin_list_member_emails"),
       ]);
       if (profilesRes.error) throw profilesRes.error;
       if (subsRes.error) throw subsRes.error;
+      if (emailsRes.error) throw emailsRes.error;
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
           s.user_id,
@@ -79,9 +82,16 @@ const AdminMembers = () => {
           },
         ]),
       );
+      const emailMap = new Map(
+        ((emailsRes.data ?? []) as Array<{ user_id: string; email: string | null }>).map((e) => [
+          e.user_id,
+          e.email,
+        ]),
+      );
       return (profilesRes.data ?? []).map((p) => ({
         user_id: p.user_id,
         display_name: p.display_name,
+        email: emailMap.get(p.user_id) ?? null,
         complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
         access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
         created_at: p.created_at,
@@ -162,7 +172,11 @@ const AdminMembers = () => {
         if (!active || r.access_restricted) return false;
       }
       if (!t) return true;
-      return (r.display_name ?? "").toLowerCase().includes(t) || r.user_id.includes(t);
+      return (
+        (r.display_name ?? "").toLowerCase().includes(t) ||
+        (r.email ?? "").toLowerCase().includes(t) ||
+        r.user_id.includes(t)
+      );
     });
   }, [rows, q, filter]);
 
@@ -189,7 +203,7 @@ const AdminMembers = () => {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name or id…"
+            placeholder="Search name, email or id…"
             className="pl-9"
           />
         </div>
@@ -246,6 +260,9 @@ const AdminMembers = () => {
                     <p className="text-sm font-body font-semibold truncate">
                       {r.display_name ?? "Unnamed member"}
                     </p>
+                    {r.email && (
+                      <p className="text-[12px] text-muted-foreground truncate">{r.email}</p>
+                    )}
                     <p className="text-[11px] text-muted-foreground truncate">
                       Joined {new Date(r.created_at).toLocaleDateString("en-GB")} · {r.user_id.slice(0, 8)}
                     </p>
