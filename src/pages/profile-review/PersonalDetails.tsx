@@ -44,7 +44,7 @@ const PersonalDetailsReview = () => {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "display_name, birth_year, postcode, country, heritage, avatar_url",
+          "display_name, phone_number, birth_year, postcode, country, heritage, avatar_url",
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -254,6 +254,22 @@ const PersonalDetailsReview = () => {
           kind={{ type: "text", placeholder: "Enter your full name", maxLength: 100 }}
           autoEdit={editKey === "name"}
           onSave={(v) => saveField({ display_name: String(v).trim() })}
+        />
+
+        <ReviewField
+          label="Mobile number"
+          value={(profile as { phone_number?: string | null } | null)?.phone_number ?? ""}
+          kind={{ type: "text", placeholder: "e.g. 07700 900123", maxLength: 20 }}
+          autoEdit={editKey === "phone"}
+          onSave={(v) => {
+            const trimmed = String(v).trim();
+            const digits = trimmed.replace(/\D/g, "");
+            if (trimmed && digits.length < 7) {
+              toast.error("Enter a valid mobile number");
+              throw new Error("invalid phone");
+            }
+            return saveField({ phone_number: trimmed || null });
+          }}
         />
 
         <ReviewField
