@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -7,6 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { usePassportData, type PassportDataset } from "./usePassportData";
@@ -35,6 +36,14 @@ const SECTIONS: { key: Section; label: string }[] = [
 
 const PAGE = 20;
 
+interface ImagePreviewState {
+  url: string | null;
+  title: string;
+  meta?: React.ReactNode;
+}
+
+const ImagePreviewContext = createContext<((preview: ImagePreviewState) => void) | null>(null);
+
 const logView = async (consumerId: string, section: Section) => {
   try { await supabase.functions.invoke("passport-view-log", { body: { consumer_id: consumerId, section } }); } catch { /* best-effort */ }
 };
@@ -47,6 +56,27 @@ const oneOf = (v: unknown): string | null => {
   return String(v);
 };
 
+const formatMaybeDate = (key: string, v: unknown) => {
+  if (typeof v !== "string") return null;
+  if (!/(^|_)(date|at|on)$/.test(key) && !key.endsWith("_date") && !key.endsWith("_at")) return null;
+  const dt = new Date(v);
+  if (Number.isNaN(dt.getTime())) return null;
+  return v.includes("T") ? format(dt, "d MMM yyyy, HH:mm") : format(dt, "d MMM yyyy");
+};
+
+const tidyLabel = (key: string) => key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+const FieldValue = ({ fieldKey, value }: { fieldKey: string; value: unknown }) => {
+  const maybeDate = formatMaybeDate(fieldKey, value);
+  if (maybeDate) return <>{maybeDate}</>;
+  if (Array.isArray(value)) return <>{value.filter(Boolean).map(String).join(", ") || "—"}</>;
+  if (typeof value === "boolean") return <>{value ? "Yes" : "No"}</>;
+  if (typeof value === "object" && value !== null) {
+    return <pre className="text-[11px] whitespace-pre-wrap break-words bg-muted/40 rounded p-2">{JSON.stringify(value, null, 2)}</pre>;
+  }
+  return <>{oneOf(value) ?? "—"}</>;
+};
+
 const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex gap-3 text-[13px]">
     <span className="text-muted-foreground w-[120px] shrink-0">{label}</span>
@@ -56,20 +86,42 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 const AllFields = ({ obj, exclude = [] }: { obj: Record<string, unknown> | null; exclude?: string[] }) => {
   if (!obj) return <p className="text-xs text-muted-foreground">Nothing recorded.</p>;
-  const skip = new Set(["id", "user_id", "created_at", "updated_at", ...exclude, ...Object.keys(obj).filter(k => k.endsWith("_enc") || k.endsWith("_hash") || k.endsWith("_snapshot"))]);
+  const skip = new Set(["id", "user_id", ...exclude, ...Object.keys(obj).filter(k => k.endsWith("_enc") || k.endsWith("_hash") || k.endsWith("_snapshot"))]);
   const entries = Object.entries(obj).filter(([k, v]) => !skip.has(k) && v != null && v !== "" && !(Array.isArray(v) && v.length === 0));
   if (entries.length === 0) return <p className="text-xs text-muted-foreground">Nothing recorded.</p>;
   return (
     <div className="space-y-1.5">
       {entries.map(([k, v]) => {
-        const label = k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-        let display: React.ReactNode;
-        if (Array.isArray(v)) display = (v as unknown[]).map(String).join(", ");
-        else if (typeof v === "object") display = <pre className="text-[11px] whitespace-pre-wrap break-words bg-muted/40 rounded p-2">{JSON.stringify(v, null, 2)}</pre>;
-        else display = oneOf(v);
-        return <Row key={k} label={label} value={display} />;
+        return <Row key={k} label={tidyLabel(k)} value={<FieldValue fieldKey={k} value={v} />} />;
       })}
     </div>
+  );
+};
+
+const FullRecord = ({ obj, title = "Full record", exclude = [] }: { obj: Record<string, unknown> | null; title?: string; exclude?: string[] }) => (
+  <div className="mt-3 pt-3 border-t border-border">
+    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">{title}</p>
+    <AllFields obj={obj} exclude={exclude} />
+  </div>
+);
+
+const Thumb = ({ bucket, path, alt, className, title, meta }: {
+  bucket: string;
+  path: string | null | undefined;
+  alt?: string;
+  className?: string;
+  title: string;
+  meta?: React.ReactNode;
+}) => {
+  const openPreview = useContext(ImagePreviewContext);
+  return (
+    <SignedImage
+      bucket={bucket}
+      path={path}
+      alt={alt ?? title}
+      className={className}
+      onClick={openPreview ? (url) => openPreview({ url, title, meta }) : undefined}
+    />
   );
 };
 
