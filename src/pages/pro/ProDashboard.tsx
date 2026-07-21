@@ -7,6 +7,7 @@ import SectionLabel from "@/components/SectionLabel";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 
 const Card = ({
   icon: Icon,
