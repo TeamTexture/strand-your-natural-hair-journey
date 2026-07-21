@@ -23,26 +23,53 @@ import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day"];
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
+type AttachKind = "product" | "tool";
+
 interface ProductDraft {
   id?: string;
+  kind: AttachKind;
   name: string;
   description: string;
   external_url: string;
   image_urls: string[];
-  ingredients: string[];
+  ingredients: string[];       // product-only
+  tool_kind: string | null;    // tool-only
+  key_features: string[];      // tool-only
+  materials: string[];         // tool-only
   source_type: "manual" | "ai" | "linked";
   source_url?: string | null;
   linked_product_id?: string | null;
 }
 
-const emptyProduct = (): ProductDraft => ({
+const emptyProduct = (kind: AttachKind = "product"): ProductDraft => ({
+  kind,
   name: "",
   description: "",
   external_url: "",
   image_urls: [],
   ingredients: [],
+  tool_kind: null,
+  key_features: [],
+  materials: [],
   source_type: "manual",
 });
+
+// Same tool_kind vocabulary the AI scrape returns / that MyToolsSection recognises.
+const TOOL_KINDS: { value: string; label: string }[] = [
+  { value: "brush", label: "Brush" },
+  { value: "comb", label: "Comb" },
+  { value: "bonnet", label: "Bonnet / silk scarf" },
+  { value: "heat_cap", label: "Heat cap (e.g. TT Heat Hat)" },
+  { value: "hair_dryer", label: "Hair dryer" },
+  { value: "diffuser", label: "Diffuser" },
+  { value: "flat_iron", label: "Flat iron" },
+  { value: "curling_wand", label: "Curling wand" },
+  { value: "pillowcase", label: "Satin pillowcase" },
+  { value: "microfibre_towel", label: "Microfibre / T-shirt towel" },
+  { value: "sectioning_clips", label: "Sectioning clips" },
+  { value: "scissors", label: "Scissors" },
+  { value: "other", label: "Other" },
+];
 
 const BrandCreateOffer = () => {
   const { id: existingId } = useParams();
