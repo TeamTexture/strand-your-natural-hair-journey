@@ -22,7 +22,8 @@ import {
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
 
-const COLOUR = ["Natural", "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"];
+const NATURAL_NEVER = "Natural (never coloured)";
+const COLOUR = [NATURAL_NEVER, "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"];
 const CHEM_HIST = ["Relaxer current", "Relaxer past", "Texturiser", "Curly perm", "Heat damage", "None"];
 const HAIRSTYLES = [
   "Loose natural", "Box braids", "Faux locs", "Cornrows", "Locs", "Wig / unit",
