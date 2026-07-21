@@ -648,6 +648,22 @@ const BrandCreateOffer = () => {
           ))}
         </div>
 
+        <label className="flex items-start gap-2 px-1 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={multiSlot}
+            onChange={(e) => setMultiSlot(e.target.checked)}
+            className="mt-0.5 accent-primary"
+          />
+          <span className="text-[11px] leading-snug font-body text-foreground/80">
+            <span className="font-medium">Apply date to all 3 slots.</span>{" "}
+            <span className="text-muted-foreground">
+              While on, each date you tap gets added to Home, Products <em>and</em> Wash Day at once
+              (charged per slot per day). Turn off to book slots individually.
+            </span>
+          </span>
+        </label>
+
         <SurfaceCard>
           <PlacementCalendarPicker
             month={month}
