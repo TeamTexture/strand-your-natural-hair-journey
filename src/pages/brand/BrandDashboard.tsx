@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, Sparkles, Archive, TrendingUp, CreditCard } from "lucide-react";
+import { Plus, CreditCard, AlertCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -8,6 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, STATUS_LABEL, SLOT_LABEL } from "@/hooks/useBrandOffers";
+import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { format } from "date-fns";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -31,6 +32,7 @@ const BrandDashboard = () => {
   const nav = useNavigate();
   const { data: profile, isLoading: profileLoading } = useBrandProfile();
   const { data: offers = [], isLoading } = useBrandOffers();
+  const { subscription, isActive: subActive, isAdminOverride } = useBrandSubscription();
 
   if (profileLoading || isLoading) return <LoadingDot />;
 
@@ -83,6 +85,50 @@ const BrandDashboard = () => {
     <ScreenLayout>
       <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} onBack={() => nav("/")} />
       <div className="px-5 pb-8 space-y-5">
+        {/* Subscription banner */}
+        {!subActive ? (
+          <button
+            onClick={() => nav("/brand/subscribe")}
+            className="w-full text-left rounded-[14px] border border-primary/40 bg-primary/5 p-4 flex items-start gap-3"
+          >
+            <div className="size-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <AlertCircle className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-[14px] font-semibold leading-tight">
+                {subscription?.status === "past_due" || subscription?.status === "unpaid"
+                  ? "Payment failed — renew to submit new offers"
+                  : subscription?.status === "canceled"
+                    ? "Membership ended — renew to submit new offers"
+                    : "Activate STRAND Brand Access — £99/year"}
+              </p>
+              <p className="text-[11.5px] text-foreground/70 font-body leading-snug mt-0.5">
+                Unlimited campaigns. Placement fees per campaign apply. Existing paid campaigns run to completion.
+              </p>
+            </div>
+          </button>
+        ) : (
+          <button
+            onClick={() => nav("/brand/billing")}
+            className="w-full text-left rounded-[12px] border border-border bg-card p-3 flex items-center gap-3"
+          >
+            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <CreditCard className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-body text-[13px] font-semibold">
+                {isAdminOverride ? "Admin access" : "Brand Access active"}
+              </p>
+              <p className="text-[11px] text-foreground/60 font-body">
+                {subscription?.current_period_end && !isAdminOverride
+                  ? `${subscription.cancel_at_period_end ? "Ends" : "Renews"} ${format(new Date(subscription.current_period_end), "d MMM yyyy")}`
+                  : "Manage billing"}
+              </p>
+            </div>
+            <span className="text-[11px] text-primary font-body">Manage →</span>
+          </button>
+        )}
+
         <Button variant="gold" size="pill" onClick={() => nav("/brand/offers/new")} className="w-full">
           <Plus className="size-4 mr-1.5" /> Create new offer
         </Button>

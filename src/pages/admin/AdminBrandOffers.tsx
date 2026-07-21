@@ -42,6 +42,42 @@ const AdminBrandOffers = () => {
     },
   });
 
+  // Pull brand subscription statuses for every brand featured in this list.
+  const brandIds = Array.from(new Set(offers.map((o) => (o as { brand_user_id?: string }).brand_user_id).filter((v): v is string => !!v)));
+  const { data: subsById = {} } = useQuery({
+    queryKey: ["admin", "brand-subscriptions", brandIds.sort().join(",")],
+    enabled: brandIds.length > 0,
+    queryFn: async () => {
+      const { data } = await (supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            in: (col: string, arr: string[]) => Promise<{ data: Array<{ brand_user_id: string; status: string; current_period_end: string | null; cancel_at_period_end: boolean }> | null }>;
+          };
+        };
+      })
+        .from("brand_subscriptions")
+        .select("brand_user_id,status,current_period_end,cancel_at_period_end")
+        .in("brand_user_id", brandIds);
+      const map: Record<string, { status: string; current_period_end: string | null; cancel_at_period_end: boolean }> = {};
+      (data ?? []).forEach((r) => { map[r.brand_user_id] = r; });
+      return map;
+    },
+  });
+
+  const subBadge = (brandUserId: string | undefined) => {
+    if (!brandUserId) return null;
+    const s = subsById[brandUserId];
+    if (!s) return { label: "No subscription", tone: "muted" as const };
+    const active = ["active", "trialing"].includes(s.status) && (!s.current_period_end || new Date(s.current_period_end) > new Date());
+    if (active) {
+      const until = s.current_period_end ? ` · until ${format(new Date(s.current_period_end), "d MMM yyyy")}` : "";
+      return { label: `Active${until}`, tone: "good" as const };
+    }
+    if (s.status === "past_due" || s.status === "unpaid") return { label: "Past due", tone: "warn" as const };
+    if (s.status === "canceled") return { label: "Cancelled", tone: "muted" as const };
+    return { label: s.status, tone: "muted" as const };
+  };
+
   const approve = async (id: string) => {
     const { error } = await supabase
       .from("brand_offers")
@@ -91,6 +127,20 @@ const AdminBrandOffers = () => {
                 <p className="text-[11px] text-muted-foreground">
                   {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {money(o.total_price_pence)}
                 </p>
+                {(() => {
+                  const b = subBadge((o as { brand_user_id?: string }).brand_user_id);
+                  if (!b) return null;
+                  const cls = b.tone === "good"
+                    ? "bg-good/15 text-good"
+                    : b.tone === "warn"
+                      ? "bg-warn/20 text-warn"
+                      : "bg-muted text-muted-foreground";
+                  return (
+                    <span className={`inline-block mt-1 text-[9.5px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded font-body ${cls}`}>
+                      Brand access · {b.label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
             <div className="flex flex-wrap gap-1">

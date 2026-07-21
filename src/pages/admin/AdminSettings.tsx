@@ -426,6 +426,25 @@ const AdminSettings = () => {
           ))
         )}
 
+        {/* Brand access — note-only entry (annual, separate Stripe product) */}
+        <SurfaceCard>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-body font-semibold">Note</p>
+              <p className="font-display text-[18px] leading-tight mt-0.5">STRAND Brand Access</p>
+              <p className="text-[11.5px] text-muted-foreground font-body">Brand annual subscription</p>
+            </div>
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10.5px] font-body font-semibold bg-primary/10 text-primary border border-primary/25">
+              £99 / year
+            </span>
+          </div>
+          <p className="text-[12px] font-body text-muted-foreground leading-relaxed mt-3">
+            Price is set in Stripe on the product linked to <code className="text-[11px] bg-muted px-1 rounded">STRIPE_BRAND_PRICE_ID</code>.
+            To change the amount, create a new annual GBP price in Stripe and update that secret.
+            Per-placement fees (£50 / £75 / £100 per day) are billed separately at approval.
+          </p>
+        </SurfaceCard>
+
         {/* Manage in Stripe */}
         <div className="pt-2">
           <p className="text-[10.5px] uppercase tracking-[0.22em] font-body font-semibold text-primary mb-2">Manage in Stripe</p>

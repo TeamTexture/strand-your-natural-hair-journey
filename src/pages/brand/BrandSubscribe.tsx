@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CreditCard,
   Megaphone,
@@ -18,7 +18,9 @@ import TitleBar from "@/components/TitleBar";
 import { Button } from "@/components/ui/button";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import type { LucideIcon } from "lucide-react";
 
 type Pillar = { icon: LucideIcon; title: string; benefit: string };
@@ -26,13 +28,13 @@ type Pillar = { icon: LucideIcon; title: string; benefit: string };
 const PILLARS: Pillar[] = [
   {
     icon: Megaphone,
-    title: "In-app placements",
-    benefit: "Sponsored banners on Home, Products and Wash Day — seen by members every single day.",
+    title: "Unlimited offer campaigns",
+    benefit: "Post as many offer campaigns as you like across a full year — no per-submission fees.",
   },
   {
     icon: CalendarDays,
     title: "Placement calendar",
-    benefit: "Book exclusive daily slots ahead of time. One brand, one placement, no clutter.",
+    benefit: "Book exclusive daily slots on Home, Products and Wash Day. Placement fees apply per campaign.",
   },
   {
     icon: Sparkles,
@@ -46,7 +48,7 @@ const PILLARS: Pillar[] = [
   },
   {
     icon: BarChart3,
-    title: "Live performance stats",
+    title: "Performance analytics",
     benefit: "Impressions, taps and wishlist adds tracked in real time on your dashboard.",
   },
   {
@@ -72,24 +74,57 @@ const REASSURANCE = [
   { icon: Sparkles, title: "Always improving", body: "New placement surfaces and analytics ship every month." },
 ];
 
-const PRICE = 5.99;
+const PRICE = 99;
 
 const BrandSubscribe = () => {
   const nav = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const nextPath = params.get("next");
+  const { isActive, refetch } = useBrandSubscription();
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const c = params.get("checkout");
+    if (c === "success") {
+      toast.success("Welcome to STRAND Brand Access. Your membership is active.");
+      refetch();
+      params.delete("checkout");
+      setParams(params, { replace: true });
+    } else if (c === "cancelled") {
+      toast("Checkout cancelled.");
+      params.delete("checkout");
+      setParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // If already active and there's a next path, bounce them straight there.
+    if (isActive && nextPath && nextPath.startsWith("/")) {
+      nav(nextPath, { replace: true });
+    }
+  }, [isActive, nextPath, nav]);
 
   const startCheckout = async () => {
     setBusy(true);
-    // Backend wiring (brand-subscribe-checkout) can be added later.
-    toast("Brand subscription checkout is coming soon.");
-    setBusy(false);
+    try {
+      const { data, error } = await supabase.functions.invoke("brand-subscription-checkout", {
+        body: { next: nextPath && nextPath.startsWith("/") ? nextPath : "/brand" },
+      });
+      if (error) throw error;
+      if (!data?.url) throw new Error("Checkout URL missing");
+      window.location.href = data.url as string;
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not start checkout");
+      setBusy(false);
+    }
   };
 
-  const perDay = (PRICE / 30).toFixed(2);
+  const perMonth = (PRICE / 12).toFixed(2);
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand membership" onBack={() => nav("/brand")} />
+      <TitleBar title="Brand access" onBack={() => nav("/brand")} />
 
       <div className="px-5 pb-12 space-y-6">
         {/* Hero */}
@@ -97,16 +132,16 @@ const BrandSubscribe = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25">
             <HairStrandIcon className="w-3.5 h-3.5 text-primary" />
             <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
-              STRAND for Brands
+              STRAND Brand Access
             </span>
           </div>
           <h1 className="font-display text-[28px] font-semibold leading-[1.15] text-foreground">
-            Place your brand in the<br />hands of women who{" "}
-            <span className="italic text-primary">care</span>.
+            A year of access.<br />
+            <span className="italic text-primary">Unlimited</span> campaigns.
           </h1>
           <p className="font-body text-[13.5px] text-foreground/75 leading-relaxed max-w-[320px] mx-auto">
-            STRAND members are opted-in, engaged and hungry for products that actually
-            work for their hair. Show up where the decisions are being made.
+            One annual membership unlocks unlimited offer submissions for a full year.
+            You only pay for the days you place. No per-campaign submission fees.
           </p>
         </div>
 
@@ -115,14 +150,14 @@ const BrandSubscribe = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brown/10 border border-brown/20">
             <HairStrandIcon className="w-3 h-3 text-brown" />
             <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-brown">
-              What you get
+              What's included
             </span>
           </div>
           <h2 className="font-display text-2xl font-semibold text-foreground">
             Eight ways to reach members
           </h2>
           <p className="font-body text-[12.5px] text-foreground/70 leading-relaxed max-w-[300px] mx-auto">
-            Everything you need to launch, run and measure an offer inside STRAND.
+            Everything you need to launch, run and measure offers inside STRAND.
           </p>
         </div>
 
@@ -180,20 +215,20 @@ const BrandSubscribe = () => {
         <SurfaceCard tone="gold" className="!p-5 space-y-4 text-center">
           <div>
             <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
-              Monthly membership
+              Annual membership
             </p>
             <div className="mt-2 flex items-baseline justify-center gap-1.5">
               <span className="font-display text-[44px] font-semibold leading-none text-foreground">
-                £{PRICE.toFixed(2)}
+                £{PRICE}
               </span>
-              <span className="font-body text-sm text-foreground/70">/ month</span>
+              <span className="font-body text-sm text-foreground/70">/ year</span>
             </div>
             <p className="text-[12px] font-body text-foreground/70 mt-1.5 leading-snug">
-              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span> —
-              less than a coffee to be seen by an audience actively choosing products.
+              Roughly <span className="font-semibold text-foreground">£{perMonth}/month</span> —
+              billed once, unlimited campaigns for a full year.
             </p>
             <p className="text-[11px] font-body text-foreground/60 mt-1.5 leading-snug">
-              Placement bookings (£50 / £75 / £100 per slot) are billed separately.
+              Placement fees (£50 / £75 / £100 per day) are billed separately per campaign.
             </p>
           </div>
 
@@ -203,7 +238,7 @@ const BrandSubscribe = () => {
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <CreditCard className="size-4" /> Begin brand membership →
+                  <CreditCard className="size-4" /> Subscribe — £{PRICE}/year →
                 </span>
               )}
             </Button>
@@ -215,7 +250,7 @@ const BrandSubscribe = () => {
 
         <p className="text-[11px] text-foreground/50 font-body text-center leading-relaxed">
           Payments processed securely by Stripe. Your offers and analytics are preserved
-          if your membership lapses — access is restored the moment you resubscribe.
+          if your membership lapses — existing paid campaigns run to completion.
         </p>
       </div>
     </ScreenLayout>

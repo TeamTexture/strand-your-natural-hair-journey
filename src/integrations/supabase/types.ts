@@ -504,6 +504,45 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_subscriptions: {
+        Row: {
+          brand_user_id: string
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          id: string
+          price_id: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand_user_id: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          price_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand_user_id?: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          price_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consumer_subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -2251,6 +2290,10 @@ export type Database = {
       approve_pro_application: {
         Args: { _admin_notes?: string; _application_id: string }
         Returns: string
+      }
+      has_active_brand_subscription: {
+        Args: { _user: string }
+        Returns: boolean
       }
       has_active_client_access: {
         Args: { _consumer: string; _pro: string }
