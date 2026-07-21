@@ -8,7 +8,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -50,6 +50,8 @@ const BrandDashboard = () => {
   );
   const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
   const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions(offers.map((o) => o.id));
+  const { data: revisionCounts = {} } = useOfferRevisionCounts(offers.map((o) => o.id));
+
 
   if (profileLoading || isLoading) return <LoadingDot />;
 
@@ -81,11 +83,16 @@ const BrandDashboard = () => {
             <p className="font-display text-[15px] leading-tight flex-1">{o.headline}</p>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <StatusPill status={o._derived} />
-              {withPendingSet.has(o.id) && (
+              {withPendingSet.has(o.id) ? (
                 <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-warn/15 text-warn font-body font-medium">
                   Changes under review
                 </span>
-              )}
+              ) : revisionCounts[o.id] ? (
+                <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-muted text-foreground/70 font-body font-medium">
+                  Revised · {revisionCounts[o.id]}
+                </span>
+              ) : null}
+
             </div>
           </div>
           <div className="flex flex-wrap gap-1 mt-1.5">

@@ -13,7 +13,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday, useAllPendingRevisions } from "@/hooks/useBrandOffers";
+import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday, useAllPendingRevisions, useOfferRevisionCounts, useOffersWithPendingRevisions } from "@/hooks/useBrandOffers";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -105,6 +105,10 @@ const AdminBrandOffers = () => {
     qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
   };
 
+  const allIds = offers.map((o) => o.id);
+  const { data: revisionCounts = {} } = useOfferRevisionCounts(allIds);
+  const { data: pendingRevSet = new Set<string>() } = useOffersWithPendingRevisions(allIds);
+
   if (isLoading) return <LoadingDot />;
 
   const today = londonToday();
@@ -114,6 +118,8 @@ const AdminBrandOffers = () => {
   const pending = withDerived.filter((o) => o._derived === "under_review");
   const liveOnly = withDerived.filter((o) => o._derived === "live");
   const other = withDerived.filter((o) => o._derived !== "under_review");
+
+
 
   const showPending = !filter || filter === "pending";
   const showLive = filter === "live" || filter === "brands";
@@ -218,10 +224,12 @@ const AdminBrandOffers = () => {
                       {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {STATUS_LABEL[o._derived]}
                     </p>
                   </div>
+                  <RevisionBadge pending={pendingRevSet.has(o.id)} count={revisionCounts[o.id]} />
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </SurfaceCard>
               </button>
             ))}
+
           </>
         )}
 
@@ -237,10 +245,12 @@ const AdminBrandOffers = () => {
                       {STATUS_LABEL[o._derived]} · {money(o.total_price_pence)}
                     </p>
                   </div>
+                  <RevisionBadge pending={pendingRevSet.has(o.id)} count={revisionCounts[o.id]} />
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </SurfaceCard>
               </button>
             ))}
+
           </>
         )}
       </div>
@@ -301,4 +311,21 @@ const PendingRevisionsSection = () => {
   );
 };
 
+const RevisionBadge = ({ pending, count }: { pending: boolean; count: number | undefined }) => {
+  if (pending) {
+    return (
+      <span className="shrink-0 text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-body font-medium">
+        Revision pending
+      </span>
+    );
+  }
+  if (!count) return null;
+  return (
+    <span className="shrink-0 text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-muted text-foreground/70 font-body font-medium">
+      Revised · {count}
+    </span>
+  );
+};
+
 export default AdminBrandOffers;
+
