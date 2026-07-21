@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { formatDistanceToNowStrict } from "date-fns";
-import { MapPin, Search } from "lucide-react";
+import { formatDistanceToNowStrict, formatDistanceToNow } from "date-fns";
+import { MapPin, Search, Mail, ShieldOff, CheckCircle2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -14,13 +14,19 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
+import {
+  useIncompleteProApplications,
+  type IncompleteProRow,
+} from "@/hooks/useIncompleteProApplications";
 import type { Database } from "@/integrations/supabase/types";
 
 type Application = Database["public"]["Tables"]["pro_applications"]["Row"];
 type Status = Database["public"]["Enums"]["pro_application_status"];
+type TabKey = Status | "incomplete";
 
-const tabs: { key: Status; label: string }[] = [
+const tabs: { key: TabKey; label: string }[] = [
   { key: "pending", label: "Pending" },
+  { key: "incomplete", label: "Incomplete" },
   { key: "approved", label: "Approved" },
   { key: "rejected", label: "Rejected" },
   { key: "suspended", label: "Suspended" },
@@ -34,22 +40,24 @@ const STATUS_CHIP: Record<Status, string> = {
 };
 
 const AdminApplications = () => {
-  const [tab, setTab] = useState<Status>("pending");
+  const [tab, setTab] = useState<TabKey>("pending");
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
   const nav = useNavigate();
   const qc = useQueryClient();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
+  const { data: incompleteRows = [], isLoading: incompleteLoading } = useIncompleteProApplications();
+  const incompleteCount = incompleteRows.length;
 
   const { data: apps = [], isLoading } = useQuery({
     queryKey: ["admin", "pro_applications", tab],
+    enabled: tab !== "incomplete",
     queryFn: async () => {
-      // Only surface applications where payment has been confirmed —
-      // unpaid drafts stay hidden from admins until the applicant pays.
+      // Submitted applications only — draft/unpaid rows live in the Incomplete tab.
       const { data, error } = await supabase
         .from("pro_applications")
         .select("*")
-        .eq("status", tab)
+        .eq("status", tab as Status)
         .not("payment_confirmed_at", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
