@@ -58,6 +58,8 @@ const BrandOfferDetail = () => {
       toast.error(e instanceof Error ? e.message : "Delete failed");
     }
   };
+
+  const startCheckout = async () => {
     setPaying(true);
     try {
       const { data, error } = await supabase.functions.invoke("brand-checkout", {
