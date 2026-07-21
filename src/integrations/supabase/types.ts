@@ -616,6 +616,111 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_offers: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          pro_user_id: string
+          starts_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          pro_user_id: string
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          pro_user_id?: string
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pro_profiles: {
+        Row: {
+          avatar_path: string | null
+          bio: string | null
+          booking_url: string | null
+          contact_email: string | null
+          cover_path: string | null
+          created_at: string
+          discipline: Database["public"]["Enums"]["pro_discipline"]
+          display_name: string
+          id: string
+          instagram_handle: string | null
+          is_published: boolean
+          location: string | null
+          photos: string[]
+          postcode: string | null
+          services: Json
+          suspended_at: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          avatar_path?: string | null
+          bio?: string | null
+          booking_url?: string | null
+          contact_email?: string | null
+          cover_path?: string | null
+          created_at?: string
+          discipline: Database["public"]["Enums"]["pro_discipline"]
+          display_name: string
+          id?: string
+          instagram_handle?: string | null
+          is_published?: boolean
+          location?: string | null
+          photos?: string[]
+          postcode?: string | null
+          services?: Json
+          suspended_at?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          avatar_path?: string | null
+          bio?: string | null
+          booking_url?: string | null
+          contact_email?: string | null
+          cover_path?: string | null
+          created_at?: string
+          discipline?: Database["public"]["Enums"]["pro_discipline"]
+          display_name?: string
+          id?: string
+          instagram_handle?: string | null
+          is_published?: boolean
+          location?: string | null
+          photos?: string[]
+          postcode?: string | null
+          services?: Json
+          suspended_at?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       product_ratings: {
         Row: {
           created_at: string
@@ -1493,6 +1598,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_pro_application: {
+        Args: { _admin_notes?: string; _application_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
