@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  getBrandEntryPath,
   getConsumerAccessForUser,
   getConsumerOnboardingStatus,
   getSubscribePath,
@@ -66,9 +67,11 @@ const Index = () => {
         return;
       }
 
-      // Brand-intent shortcut: brand accounts skip consumer onboarding.
-      if (brandProf && hasBrand && !hasConsumer && !hasPro && !hasAdmin) {
-        navigate("/brand", { replace: true });
+      // Brand accounts skip the consumer onboarding/paywall entirely. The
+      // default consumer role can still exist on older accounts, so don't use
+      // it as evidence that this is an end-user login.
+      if (brandProf && hasBrand && !hasPro && !hasAdmin) {
+        navigate(await getBrandEntryPath(user.id, roles), { replace: true });
         return;
       }
 

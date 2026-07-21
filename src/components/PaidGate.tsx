@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
 
 interface Props {
   children: ReactNode;
@@ -25,9 +26,12 @@ const PaidGate = ({ children }: Props) => (
 );
 
 const PaidGateInner = ({ children }: { children: ReactNode }) => {
-  const { hasAccess, isLoading } = useConsumerSubscription();
+  const { hasAccess, isLoading, isBrand, isAdminOrPro } = useConsumerSubscription();
   const location = useLocation();
   if (isLoading) return <LoadingDot />;
+  if (isBrand && !isAdminOrPro) {
+    return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
+  }
   if (!hasAccess) {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/subscribe?next=${next}`} replace />;

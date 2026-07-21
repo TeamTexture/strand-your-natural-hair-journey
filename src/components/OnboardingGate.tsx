@@ -5,7 +5,7 @@ import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
-import { getConsumerOnboardingStatus, getSubscribePath } from "@/lib/consumerOnboarding";
+import { BRAND_ACCESS_PATH, getConsumerOnboardingStatus, getSubscribePath } from "@/lib/consumerOnboarding";
 
 interface Props {
   children: ReactNode;
@@ -31,7 +31,7 @@ const OnboardingGate = ({ children }: Props) => (
 
 const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
+  const { hasAccess, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
 
   const { data: status, isLoading: profileLoading } = useQuery({
     queryKey: ["profile_onboarding_completed", user?.id],
@@ -40,6 +40,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   });
 
   if (subLoading || profileLoading) return <LoadingDot />;
+  if (isBrand && !isAdminOrPro) {
+    return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
+  }
   if (status?.completed && !hasAccess) {
     return <Navigate to={getSubscribePath(status.analysisPath)} replace />;
   }

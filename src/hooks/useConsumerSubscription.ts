@@ -25,7 +25,7 @@ const ACTIVE_STATUSES = new Set(["active", "trialing"]);
  */
 export function useConsumerSubscription() {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, isProfessional, loading: rolesLoading } = useRoles();
+  const { isAdmin, isProfessional, isBrand, loading: rolesLoading } = useRoles();
 
   const subQ = useQuery({
     queryKey: ["consumer_subscription", user?.id],
@@ -70,6 +70,7 @@ export function useConsumerSubscription() {
     stripeActive,
     complimentary,
     isAdminOrPro,
+    isBrand,
     hasAccess,
     isLoading: authLoading || rolesLoading || subQ.isLoading || compQ.isLoading,
     refetch: () => {
