@@ -396,7 +396,7 @@ const BrandCreateOffer = () => {
     try {
       const payload = {
         brand_user_id: user.id,
-        headline: headline.trim() || "Untitled draft",
+        headline: headline.trim() || null,
         body_copy: bodyCopy.trim() || null,
         discount_code: discountCode.trim() || null,
         external_url: externalUrl.trim() || null,
@@ -493,8 +493,11 @@ const BrandCreateOffer = () => {
         <SectionLabel className="!px-0 !mt-0">Creative</SectionLabel>
         <SurfaceCard className="space-y-3">
           <div>
-            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Headline *</Label>
+            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Headline</Label>
             <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="e.g. 10% off your first filter" maxLength={80} />
+            <p className="text-[11px] text-muted-foreground font-body mt-1 leading-snug">
+              Title is optional. If your graphic already contains text, adding a title here will obstruct it — choose one or the other.
+            </p>
           </div>
           <div>
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Body copy</Label>
