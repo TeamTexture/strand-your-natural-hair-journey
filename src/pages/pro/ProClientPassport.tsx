@@ -166,7 +166,10 @@ const ProClientPassport = () => {
     logView(consumerId, section);
   }, [canView, consumerId, section, accessEnded]);
 
-  const bloodHtml = useMemo(() => data?.bloodSummary?.html ?? null, [data]);
+  const bloodHtml = useMemo(() => {
+    const p = data?.bloodSummary?.payload as { html?: string; summary?: string } | null | undefined;
+    return p?.html ?? p?.summary ?? null;
+  }, [data]);
 
   if (!subLoading && !isActive) {
     return (
