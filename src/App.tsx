@@ -183,6 +183,32 @@ const App = () => (
 
               {/* Professional portal (Phase A/B — application + admin vetting) */}
               <Route path="/pro/apply" element={<ProApply />} />
+              {/* Professional portal */}
+              <Route path="/pro/apply" element={<ProApply />} />
+              <Route
+                path="/pro"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProDashboard />
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/profile"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProProfile />
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/offers"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProOffers />
+                  </RoleGate>
+                }
+              />
               <Route
                 path="/admin/applications"
                 element={
