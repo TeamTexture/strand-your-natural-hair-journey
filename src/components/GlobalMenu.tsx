@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useAccessRestricted } from "@/hooks/useAccessRestricted";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { useBackButtonContext } from "@/components/BackButtonContext";
