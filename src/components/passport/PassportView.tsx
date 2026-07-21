@@ -212,21 +212,41 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d]);
 
+  const hardWater = d.profile?.postcode ? lookupHardWater(d.profile.postcode) : null;
+  const avatarUrl = d.profile?.avatar_url ?? null;
+  const avatarIsHttp = typeof avatarUrl === "string" && /^https?:\/\//.test(avatarUrl);
+
   return (
     <>
       <SectionLabel>Identity</SectionLabel>
       <SurfaceCard>
         {d.profile ? (
-          <div className="space-y-1.5">
-            <Row label="Name" value={d.profile.display_name} />
-            <Row label="Email" value={d.authEmail} />
-            <Row label="Age" value={d.profile.age != null ? `${d.profile.age} (born ${d.profile.birth_year})` : null} />
-            <Row label="Heritage" value={d.profile.heritage.length ? d.profile.heritage.join(", ") : null} />
-            <Row label="Postcode" value={d.profile.postcode} />
-            <Row label="Country" value={d.profile.country} />
-            <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
-            <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
-            <AllFields obj={d.profile} exclude={["display_name", "avatar_url", "birth_year", "age", "heritage", "postcode", "country", "created_at", "onboarding_completed_at"]} />
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              {avatarIsHttp ? (
+                <img src={avatarUrl!} alt="" className="size-16 rounded-full object-cover border border-border" />
+              ) : avatarUrl ? (
+                <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-16 rounded-full overflow-hidden border border-border" />
+              ) : (
+                <div className="size-16 rounded-full bg-muted border border-border flex items-center justify-center text-lg font-body font-semibold text-muted-foreground">
+                  {(d.profile.display_name ?? "?").trim().charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-body font-semibold truncate">{d.profile.display_name ?? "—"}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{d.authEmail ?? "—"}</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Row label="Age" value={d.profile.age != null ? `${d.profile.age} (born ${d.profile.birth_year})` : null} />
+              <Row label="Heritage" value={d.profile.heritage.length ? d.profile.heritage.join(", ") : null} />
+              <Row label="Postcode" value={d.profile.postcode} />
+              <Row label="Water hardness" value={hardWater ? `${hardWater.label} (${hardWater.area}) — ${hardWater.explanation}` : null} />
+              <Row label="Country" value={d.profile.country} />
+              <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
+              <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
+              <AllFields obj={d.profile} exclude={["display_name", "avatar_url", "birth_year", "age", "heritage", "postcode", "country", "created_at", "onboarding_completed_at"]} />
+            </div>
           </div>
         ) : <p className="text-xs text-muted-foreground">No profile recorded.</p>}
       </SurfaceCard>
