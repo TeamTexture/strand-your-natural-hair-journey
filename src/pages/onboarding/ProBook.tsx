@@ -12,9 +12,10 @@ import ProAvatar from "@/components/ProAvatar";
 import { Button } from "@/components/ui/button";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
+import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 
 const ProCard = ({ p }: { p: Professional }) => {
-  const bookHref = p.bookingUrl || p.website || p.instaUrl || "";
+  const bookHref = normalizeWebsiteUrl(p.bookingUrl || p.website || p.instaUrl || "");
   return (
     <SurfaceCard padded={false} className="overflow-hidden">
       <div className="p-4 flex gap-3">
