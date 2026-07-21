@@ -104,21 +104,26 @@ const BrandBanner = ({ slot }: Props) => {
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+          {offer.headline && (
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+          )}
           <span className="absolute top-1.5 left-2 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
             Sponsored
           </span>
-          <div className="relative h-full flex items-center pl-3 pr-16 w-2/3">
-            <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm">
-              {offer.headline}
-            </p>
-          </div>
+          {offer.headline && (
+            <div className="relative h-full flex items-center pl-3 pr-16 w-2/3">
+              <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm">
+                {offer.headline}
+              </p>
+            </div>
+          )}
           {expanded ? (
-            <ChevronUp className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85" />
+            <ChevronUp className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow" />
           ) : (
-            <ChevronDown className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85" />
+            <ChevronDown className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow" />
           )}
         </div>
+
       </button>
       <button
         type="button"
