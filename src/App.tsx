@@ -83,6 +83,7 @@ import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
 import BrandSubscribe from "./pages/brand/BrandSubscribe";
 import BrandBilling from "./pages/brand/BrandBilling";
 import OfferPage from "./pages/OfferPage";
+import BrandProductPage from "./pages/BrandProductPage";
 import AdminBrandOffers from "./pages/admin/AdminBrandOffers";
 import AdminBrandCalendar from "./pages/admin/AdminBrandCalendar";
 import AdminBrandOfferReview from "./pages/admin/AdminBrandOfferReview";
