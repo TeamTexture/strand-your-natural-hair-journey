@@ -11,6 +11,7 @@ import Subscribe from "./pages/Subscribe";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import GlobalMenu from "@/components/GlobalMenu";
+import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 
