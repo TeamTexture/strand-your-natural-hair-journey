@@ -187,37 +187,69 @@ const BrandCreateOffer = () => {
 
   useEffect(() => {
     if (!existingId || !existing) return;
-    setHeadline(existing.headline ?? "");
-    setBodyCopy(existing.body_copy ?? "");
-    setDiscountCode(existing.discount_code ?? "");
-    setExternalUrl(existing.external_url ?? "");
-    setHeroPath(existing.hero_image_path ?? null);
-    setProducts(
-      (existing.brand_products ?? []).map((p) => {
-        const row = p as typeof p & {
-          kind?: string;
-          tool_kind?: string | null;
-          key_features?: string[] | null;
-          materials?: string[] | null;
-        };
-        const kind: AttachKind = row.kind === "tool" ? "tool" : "product";
-        return {
-          id: p.id,
-          kind,
-          name: p.name,
+    // In revision mode with a pending revision, edits should start from the LATEST
+    // pending values (so brands can "update changes"). Otherwise, start from the
+    // live/persisted offer creative.
+    const source = isRevisionMode && pendingRevision ? {
+      headline: pendingRevision.headline,
+      body_copy: pendingRevision.body_copy,
+      discount_code: pendingRevision.discount_code,
+      external_url: pendingRevision.external_url,
+      hero_image_path: pendingRevision.hero_image_path ?? existing.hero_image_path,
+    } : {
+      headline: existing.headline,
+      body_copy: existing.body_copy,
+      discount_code: existing.discount_code,
+      external_url: existing.external_url,
+      hero_image_path: existing.hero_image_path,
+    };
+    setHeadline(source.headline ?? "");
+    setBodyCopy(source.body_copy ?? "");
+    setDiscountCode(source.discount_code ?? "");
+    setExternalUrl(source.external_url ?? "");
+    setHeroPath(source.hero_image_path ?? null);
+
+    const productSource: ProductDraft[] = isRevisionMode && pendingRevision
+      ? (pendingRevision.products ?? []).map((p) => ({
+          kind: p.kind ?? "product",
+          name: p.name ?? "",
           description: p.description ?? "",
           external_url: p.external_url ?? "",
           image_urls: p.image_urls ?? [],
           ingredients: p.ingredients ?? [],
-          tool_kind: row.tool_kind ?? null,
-          key_features: row.key_features ?? [],
-          materials: row.materials ?? [],
-          source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
-          source_url: p.source_url,
-          linked_product_id: p.linked_product_id,
-        } satisfies ProductDraft;
-      }),
-    );
+          tool_kind: p.tool_kind ?? null,
+          key_features: p.key_features ?? [],
+          materials: p.materials ?? [],
+          source_type: p.source_type ?? "manual",
+          source_url: p.source_url ?? null,
+          linked_product_id: p.linked_product_id ?? null,
+        }))
+      : (existing.brand_products ?? []).map((p) => {
+          const row = p as typeof p & {
+            kind?: string; tool_kind?: string | null;
+            key_features?: string[] | null; materials?: string[] | null;
+          };
+          const kind: AttachKind = row.kind === "tool" ? "tool" : "product";
+          return {
+            id: p.id,
+            kind,
+            name: p.name,
+            description: p.description ?? "",
+            external_url: p.external_url ?? "",
+            image_urls: p.image_urls ?? [],
+            ingredients: p.ingredients ?? [],
+            tool_kind: row.tool_kind ?? null,
+            key_features: row.key_features ?? [],
+            materials: row.materials ?? [],
+            source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
+            source_url: p.source_url,
+            linked_product_id: p.linked_product_id,
+          } satisfies ProductDraft;
+        });
+    setProducts(productSource);
+
+    // Placements are locked in revision mode — still hydrate them so the calendar
+    // shows the booked dates if the brand looks. But the UI hides the picker.
     const enabled: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
     const set = new Set<string>();
     (existing.brand_offer_placements ?? []).forEach((p) => {
@@ -226,8 +258,7 @@ const BrandCreateOffer = () => {
     });
     setEnabledSlots(enabled);
     setSelectedDates(Array.from(set).sort());
-
-  }, [existingId, existing]);
+  }, [existingId, existing, isRevisionMode, pendingRevision]);
 
   const catalogueQuery = useQuery({
     queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
