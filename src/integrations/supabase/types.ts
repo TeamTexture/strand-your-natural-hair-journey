@@ -258,6 +258,45 @@ export type Database = {
           },
         ]
       }
+      consumer_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          id: string
+          price_id: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          price_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          price_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -1027,6 +1066,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           birth_year: number | null
+          complimentary_access: boolean
           country: string
           created_at: string
           display_name: string | null
@@ -1040,6 +1080,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           birth_year?: number | null
+          complimentary_access?: boolean
           country?: string
           created_at?: string
           display_name?: string | null
@@ -1053,6 +1094,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           birth_year?: number | null
+          complimentary_access?: boolean
           country?: string
           created_at?: string
           display_name?: string | null
@@ -1772,6 +1814,10 @@ export type Database = {
       }
       has_active_client_access: {
         Args: { _consumer: string; _pro: string }
+        Returns: boolean
+      }
+      has_active_consumer_subscription: {
+        Args: { _user: string }
         Returns: boolean
       }
       has_active_pro_subscription: { Args: { _pro: string }; Returns: boolean }

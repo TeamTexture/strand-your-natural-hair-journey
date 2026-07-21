@@ -6,6 +6,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
 import RequireAuth from "@/components/RequireAuth";
+import PaidGate from "@/components/PaidGate";
+import Subscribe from "./pages/Subscribe";
+import AdminMembers from "./pages/admin/AdminMembers";
+import AdminSettings from "./pages/admin/AdminSettings";
 import GlobalMenu from "@/components/GlobalMenu";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
@@ -96,6 +100,7 @@ const queryClient = new QueryClient();
 
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
+const Paid = ({ children }: { children: React.ReactNode }) => <PaidGate>{children}</PaidGate>;
 
 // Mounts global side-effects (e.g. keyboard-aware input scrolling) inside the
 // React tree so they're active for every screen in the app.
@@ -145,37 +150,37 @@ const App = () => (
               <Route path="/onboarding/success" element={<Protected><SuccessScreen /></Protected>} />
 
               {/* Main app */}
-              <Route path="/home" element={<Protected><Home /></Protected>} />
+              <Route path="/home" element={<Paid><Home /></Paid>} />
               <Route path="/profile/personal" element={<Protected><PersonalDetailsReview /></Protected>} />
               <Route path="/profile/health" element={<Protected><HealthReview /></Protected>} />
               <Route path="/profile/hair" element={<Protected><HairReview /></Protected>} />
               <Route path="/profile/colour" element={<Protected><ColourReview /></Protected>} />
-              <Route path="/home/style" element={<Protected><SetCurrentStyle /></Protected>} />
-              <Route path="/wash-day" element={<Protected><WashDayHub /></Protected>} />
-              <Route path="/wash-day/:id" element={<Protected><WashDayDetail /></Protected>} />
-              <Route path="/wash/step-1" element={<Protected><WashStep1 /></Protected>} />
-              <Route path="/wash/step-2" element={<Protected><WashStep2 /></Protected>} />
-              <Route path="/wash/step-3" element={<Protected><WashStep3 /></Protected>} />
-              <Route path="/wash/step-styling" element={<Protected><WashStepStyling /></Protected>} />
-              <Route path="/wash/step-4" element={<Protected><WashStep4 /></Protected>} />
-              <Route path="/products" element={<Protected><Products /></Protected>} />
-              <Route path="/products/ingredient" element={<Protected><IngredientDetail /></Protected>} />
-              <Route path="/products/wishlist" element={<Protected><Wishlist /></Protected>} />
-              <Route path="/products/favourites" element={<Protected><Favourites /></Protected>} />
-              <Route path="/products/off-shelf" element={<Protected><OffShelf /></Protected>} />
-              <Route path="/products/avoidlist" element={<Protected><Avoidlist /></Protected>} />
-              <Route path="/products/scanning" element={<Protected><ProductScanning /></Protected>} />
-              <Route path="/products/repository" element={<Protected><ProductRepository /></Protected>} />
-              <Route path="/products/profile/:id" element={<Protected><ProductProfileRedirect /></Protected>} />
-              <Route path="/products/brand/:brand" element={<Protected><BrandProducts /></Protected>} />
-              <Route path="/products/by-ingredient" element={<Protected><ProductsByIngredient /></Protected>} />
-              <Route path="/products/ingredient-research" element={<Protected><IngredientResearch /></Protected>} />
-              <Route path="/journal" element={<Protected><Journal /></Protected>} />
-              <Route path="/journal/entry/:id" element={<Protected><JournalEntry /></Protected>} />
-              <Route path="/journal/moodboards" element={<Protected><MoodboardList /></Protected>} />
-              <Route path="/journal/moodboards/:id" element={<Protected><MoodboardBoard /></Protected>} />
-              <Route path="/appointments" element={<Protected><Appointments /></Protected>} />
-              <Route path="/appointments/log" element={<Protected><LogAppointment /></Protected>} />
+              <Route path="/home/style" element={<Paid><SetCurrentStyle /></Paid>} />
+              <Route path="/wash-day" element={<Paid><WashDayHub /></Paid>} />
+              <Route path="/wash-day/:id" element={<Paid><WashDayDetail /></Paid>} />
+              <Route path="/wash/step-1" element={<Paid><WashStep1 /></Paid>} />
+              <Route path="/wash/step-2" element={<Paid><WashStep2 /></Paid>} />
+              <Route path="/wash/step-3" element={<Paid><WashStep3 /></Paid>} />
+              <Route path="/wash/step-styling" element={<Paid><WashStepStyling /></Paid>} />
+              <Route path="/wash/step-4" element={<Paid><WashStep4 /></Paid>} />
+              <Route path="/products" element={<Paid><Products /></Paid>} />
+              <Route path="/products/ingredient" element={<Paid><IngredientDetail /></Paid>} />
+              <Route path="/products/wishlist" element={<Paid><Wishlist /></Paid>} />
+              <Route path="/products/favourites" element={<Paid><Favourites /></Paid>} />
+              <Route path="/products/off-shelf" element={<Paid><OffShelf /></Paid>} />
+              <Route path="/products/avoidlist" element={<Paid><Avoidlist /></Paid>} />
+              <Route path="/products/scanning" element={<Paid><ProductScanning /></Paid>} />
+              <Route path="/products/repository" element={<Paid><ProductRepository /></Paid>} />
+              <Route path="/products/profile/:id" element={<Paid><ProductProfileRedirect /></Paid>} />
+              <Route path="/products/brand/:brand" element={<Paid><BrandProducts /></Paid>} />
+              <Route path="/products/by-ingredient" element={<Paid><ProductsByIngredient /></Paid>} />
+              <Route path="/products/ingredient-research" element={<Paid><IngredientResearch /></Paid>} />
+              <Route path="/journal" element={<Paid><Journal /></Paid>} />
+              <Route path="/journal/entry/:id" element={<Paid><JournalEntry /></Paid>} />
+              <Route path="/journal/moodboards" element={<Paid><MoodboardList /></Paid>} />
+              <Route path="/journal/moodboards/:id" element={<Paid><MoodboardBoard /></Paid>} />
+              <Route path="/appointments" element={<Paid><Appointments /></Paid>} />
+              <Route path="/appointments/log" element={<Paid><LogAppointment /></Paid>} />
               <Route path="/directory" element={<Directory />} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/profile/milestones" element={<Protected><MilestoneGallery /></Protected>} />
@@ -183,7 +188,7 @@ const App = () => (
               <Route path="/blood-upload" element={<Protected><BloodUpload /></Protected>} />
               <Route path="/blood-panel/:id" element={<Protected><BloodPanelReview /></Protected>} />
 
-              <Route path="/nutrition-plan" element={<Protected><NutritionPlan /></Protected>} />
+              <Route path="/nutrition-plan" element={<Paid><NutritionPlan /></Paid>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
 
@@ -240,7 +245,7 @@ const App = () => (
                 }
               />
 
-              <Route path="/profile/enquiries" element={<Protected><MyEnquiries /></Protected>} />
+              <Route path="/profile/enquiries" element={<Paid><MyEnquiries /></Paid>} />
               <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
 
               <Route
@@ -261,6 +266,9 @@ const App = () => (
               />
 
 
+              <Route path="/subscribe" element={<Protected><Subscribe /></Protected>} />
+              <Route path="/admin/members" element={<RoleGate allow={["admin"]}><AdminMembers /></RoleGate>} />
+              <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
                 </Routes>
