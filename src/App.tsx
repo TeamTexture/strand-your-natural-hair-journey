@@ -178,9 +178,21 @@ const App = () => (
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
 
+              {/* Professional portal (Phase A/B — application + admin vetting) */}
+              <Route path="/pro/apply" element={<ProApply />} />
+              <Route
+                path="/admin/applications"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminApplications />
+                  </RoleGate>
+                }
+              />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
                 </Routes>
+
               </div>
             </div>
           </PhoneShell>
