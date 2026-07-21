@@ -57,7 +57,7 @@ const Products = () => {
   const [confirmBulkOffShelf, setConfirmBulkOffShelf] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const {
-    products, loading, remove, reload, setFavourite,
+    products, loading, remove, reload, setFavourite, sponsoredById,
     bulkSetShelf, bulkSetFavourite, bulkRemove,
   } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
@@ -286,6 +286,7 @@ const Products = () => {
                           className="flex-1 min-w-0 text-left"
                         >
                           <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
+                          <p className="text-sm font-medium font-body leading-snug break-words">{p.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Stars n={stars} />
                             {noteCount > 0 && (
@@ -294,6 +295,16 @@ const Products = () => {
                               </span>
                             )}
                           </div>
+                          {sponsoredById[p.id] && (
+                            <p className="text-[9.5px] mt-1 leading-snug">
+                              <span className="uppercase tracking-wider text-muted-foreground">Sponsored</span>
+                              <span className="text-primary font-body font-medium">
+                                {" · On offer"}
+                                {sponsoredById[p.id].discountCode ? ` — code ${sponsoredById[p.id].discountCode}` : ""}
+                                {sponsoredById[p.id].endsOn ? ` until ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                              </span>
+                            </p>
+                          )}
                         </button>
                       </div>
                     </div>
