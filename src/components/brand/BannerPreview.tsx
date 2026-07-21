@@ -12,7 +12,8 @@ interface Props {
 
 /** Live preview of a brand banner at true mobile proportions (375px shell).
  *  Renders both collapsed (~80px strip) and expanded (drop-down with product
- *  card) states so brands see exactly what STRAND members will see. */
+ *  card) states so brands see exactly what STRAND members will see.
+ *  When headline is empty, renders image-only (no scrim/text overlay). */
 const BannerPreview = ({
   heroUrl,
   headline,
@@ -22,6 +23,7 @@ const BannerPreview = ({
   productImageUrl,
   expanded = false,
 }: Props) => {
+  const hasHeadline = Boolean(headline && headline.trim());
   return (
     <div className="w-full min-w-0 max-w-full mx-auto overflow-hidden">
       {/* Collapsed strip — full-width, ~80px tall, brand image as backdrop. */}
@@ -31,17 +33,22 @@ const BannerPreview = ({
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        {hasHeadline && (
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        )}
         <span className="absolute top-1.5 left-2 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
           Sponsored
         </span>
-        <div className="relative h-full flex items-center pl-3 pr-9 max-w-[68%]">
-          <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm break-words">
-            {headline || "Your headline goes here"}
-          </p>
-        </div>
-        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-4 text-white/85" />
+        {hasHeadline && (
+          <div className="relative h-full flex items-center pl-3 pr-9 max-w-[68%]">
+            <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm break-words">
+              {headline}
+            </p>
+          </div>
+        )}
+        <ChevronDown className={`absolute right-2 top-1/2 -translate-y-1/2 size-4 ${hasHeadline || heroUrl ? "text-white/85 drop-shadow" : "text-muted-foreground"}`} />
       </div>
+
 
       {expanded && (
         <div className="rounded-b-[12px] border border-t-0 border-primary/20 bg-card p-3 overflow-hidden">
