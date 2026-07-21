@@ -219,15 +219,50 @@ const AdminBrandOfferReview = () => {
         ) : (
           <>
             <SurfaceCard padded={false} className="overflow-hidden">
-              {heroUrl && <img src={heroUrl} alt="" className="w-full aspect-[16/9] object-cover" />}
+              {heroUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setHeroOpen(true)}
+                  className="relative w-full block group"
+                  aria-label="View full advert graphic"
+                >
+                  <img src={heroUrl} alt="" className="w-full aspect-[16/9] object-cover" />
+                  <span className="absolute top-2 right-2 rounded-full bg-background/80 backdrop-blur px-2 py-1 text-[10px] font-body inline-flex items-center gap-1 opacity-90 group-hover:opacity-100">
+                    <Maximize2 className="size-3" /> View full
+                  </span>
+                </button>
+              ) : null}
               <div className="p-3">
                 <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">{deriveBrandOfferStatus(offer) === "live" && (<span className="relative flex size-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" /><span className="relative inline-flex size-1.5 rounded-full bg-good" /></span>)}{STATUS_LABEL[deriveBrandOfferStatus(offer)]}</p>
-                <p className="font-display text-lg mt-1">{offer.headline}</p>
+                {offer.headline && <p className="font-display text-lg mt-1">{offer.headline}</p>}
                 {offer.body_copy && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{offer.body_copy}</p>}
                 {offer.discount_code && <p className="text-[11px] text-primary mt-2 font-body">Code {offer.discount_code}</p>}
-                {offer.external_url && <p className="text-[11px] text-muted-foreground mt-1 break-all">{offer.external_url}</p>}
               </div>
             </SurfaceCard>
+
+            {offer.external_url && (
+              <a
+                href={offer.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <SurfaceCard className="py-2.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Advert link</p>
+                    <p className="text-[12px] mt-0.5 break-all">{offer.external_url}</p>
+                  </div>
+                  <ExternalLink className="size-4 text-primary shrink-0" />
+                </SurfaceCard>
+              </a>
+            )}
+
+            <Dialog open={heroOpen} onOpenChange={setHeroOpen}>
+              <DialogContent className="max-w-[95vw] p-0 bg-transparent border-0 shadow-none">
+                {heroUrl && <img src={heroUrl} alt="Full advert graphic" className="w-full h-auto rounded-lg" />}
+              </DialogContent>
+            </Dialog>
+
 
             <SurfaceCard className="py-2.5">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total value</p>
