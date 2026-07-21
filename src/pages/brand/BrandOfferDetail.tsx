@@ -318,6 +318,13 @@ const BrandOfferDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={heroOpen} onOpenChange={setHeroOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-[720px] p-2 bg-background">
+          {heroUrl && (
+            <img src={heroUrl} alt={offer.headline ?? "Offer banner"} className="w-full h-auto rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
   );
 };
