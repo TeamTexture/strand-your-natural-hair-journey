@@ -84,7 +84,7 @@ const OfferPage = () => {
   if (isLoading || !offer) return <LoadingDot />;
 
   const goOffer = (url: string) => {
-    logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+    logStat.mutate({ offer_id: offer.id, slot, kind: "link_clicks" });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
