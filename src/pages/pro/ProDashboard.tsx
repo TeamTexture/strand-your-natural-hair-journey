@@ -146,13 +146,13 @@ const ProDashboard = () => {
           />
           <Card
             icon={Tag}
-            title="Offers"
-            sub="One-off promotions on your profile."
+            title="Listing discount"
+            sub="One-off promotions shown on your directory listing."
             onClick={() => nav("/pro/offers")}
           />
           <Card
             icon={Megaphone}
-            title="Promote"
+            title="Create an offer"
             sub="Paid banner campaigns across the app."
             onClick={() => nav("/pro/campaigns")}
           />
