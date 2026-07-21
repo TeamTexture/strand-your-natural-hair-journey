@@ -83,6 +83,7 @@ import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
 import BrandSubscribe from "./pages/brand/BrandSubscribe";
 import BrandBilling from "./pages/brand/BrandBilling";
 import OfferPage from "./pages/OfferPage";
+import BrandProductPage from "./pages/BrandProductPage";
 import AdminBrandOffers from "./pages/admin/AdminBrandOffers";
 import AdminBrandCalendar from "./pages/admin/AdminBrandCalendar";
 import AdminBrandOfferReview from "./pages/admin/AdminBrandOfferReview";
@@ -363,6 +364,8 @@ const App = () => (
               <Route path="/brand/offers/:id/edit" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
               <Route path="/brand/checkout/success" element={<RoleGate allow={["brand", "admin"]}><BrandCheckoutSuccess /></RoleGate>} />
               <Route path="/offers/:id" element={<Paid><OfferPage /></Paid>} />
+              <Route path="/offers/:offerId/product/:productId" element={<Paid><BrandProductPage /></Paid>} />
+
               <Route path="/admin/brand-offers" element={<RoleGate allow={["admin"]}><AdminBrandOffers /></RoleGate>} />
               <Route path="/admin/brand-offers/:id" element={<RoleGate allow={["admin"]}><AdminBrandOfferReview /></RoleGate>} />
               <Route path="/admin/brand-calendar" element={<RoleGate allow={["admin"]}><AdminBrandCalendar /></RoleGate>} />
