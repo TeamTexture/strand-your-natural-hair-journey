@@ -52,6 +52,7 @@ const ProDashboard = () => {
   const { signOut, user } = useAuth();
   const { isConsumer, isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
+  const { data: pendingCount = 0 } = usePendingApplicationsCount();
   const [noticeDismissed, setNoticeDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.sessionStorage.getItem("pro_sub_notice_dismissed") === "1";
