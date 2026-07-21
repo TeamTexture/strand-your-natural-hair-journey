@@ -243,12 +243,33 @@ const AdminHub = () => {
                 label="Pending applications"
                 value={stats.pendingApplications}
                 tone={stats.pendingApplications > 0 ? "warn" : "default"}
+                onClick={() => nav("/admin/applications?tab=pending")}
               />
-              <StatCard label="Live professionals" value={stats.livePros} />
-              <StatCard label="Active pro subs" value={stats.activeProSubs} />
-              <StatCard label="Members total" value={stats.membersTotal} />
-              <StatCard label="Paid members" value={stats.activePaidMembers} />
-              <StatCard label="Complimentary" value={stats.complimentaryMembers} />
+              <StatCard
+                label="Live professionals"
+                value={stats.livePros}
+                onClick={() => nav("/admin/professionals?filter=published")}
+              />
+              <StatCard
+                label="Active pro subs"
+                value={stats.activeProSubs}
+                onClick={() => nav("/admin/professionals?filter=subscribed")}
+              />
+              <StatCard
+                label="Members total"
+                value={stats.membersTotal}
+                onClick={() => nav("/admin/members?filter=all")}
+              />
+              <StatCard
+                label="Paid members"
+                value={stats.activePaidMembers}
+                onClick={() => nav("/admin/members?filter=active")}
+              />
+              <StatCard
+                label="Complimentary"
+                value={stats.complimentaryMembers}
+                onClick={() => nav("/admin/members?filter=complimentary")}
+              />
             </div>
           </>
         )}
