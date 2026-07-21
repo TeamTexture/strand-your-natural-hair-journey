@@ -20,6 +20,7 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { cn } from "@/lib/utils";
 
 interface Stats {
