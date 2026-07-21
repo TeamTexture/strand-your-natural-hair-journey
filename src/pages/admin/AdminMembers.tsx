@@ -66,6 +66,8 @@ const AdminMembers = () => {
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
   const [restrictTarget, setRestrictTarget] = useState<MemberRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
@@ -194,6 +196,23 @@ const AdminMembers = () => {
     },
     onError: (err) => {
       toast.error((err as Error).message ?? "Could not unrestrict");
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      return data as { ok: boolean };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      toast.success("Member deleted. All their data has been removed.");
+    },
+    onError: (err) => {
+      toast.error((err as Error).message ?? "Could not delete member");
     },
   });
 
