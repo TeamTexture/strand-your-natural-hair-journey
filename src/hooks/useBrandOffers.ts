@@ -178,6 +178,10 @@ export function usePendingBrandOffersCount() {
   });
 }
 
+/** Session-scoped impression dedupe: one impression per (offer, slot) per browser session. */
+const impressionSeenKey = (offerId: string, slot: PlacementSlot | null) =>
+  `strand:brand-stat:impression:${offerId}:${slot ?? "none"}`;
+
 export function useLogBrandStat() {
   return useMutation({
     mutationFn: async ({
@@ -189,29 +193,46 @@ export function useLogBrandStat() {
       slot: PlacementSlot | null;
       kind: "impressions" | "taps" | "wishlist_adds";
     }) => {
-      const today = new Date().toISOString().slice(0, 10);
-      let q = supabase
-        .from("brand_offer_stats")
-        .select("id, impressions, taps, wishlist_adds")
-        .eq("offer_id", offer_id)
-        .eq("stat_date", today);
-      q = slot === null ? q.is("slot", null) : q.eq("slot", slot);
-      const { data: existing } = await q.maybeSingle();
-      if (existing) {
-        const currentVal = (existing as unknown as Record<string, number>)[kind] ?? 0;
-        const patch: Record<string, number> = { [kind]: currentVal + 1 };
-        await supabase.from("brand_offer_stats").update(patch as never).eq("id", existing.id);
-      } else {
-        const insertRow = {
-          offer_id,
-          slot,
-          stat_date: today,
-          impressions: kind === "impressions" ? 1 : 0,
-          taps: kind === "taps" ? 1 : 0,
-          wishlist_adds: kind === "wishlist_adds" ? 1 : 0,
-        };
-        await supabase.from("brand_offer_stats").insert(insertRow);
+      // Dedupe impressions per (offer, slot) per session so re-renders / route
+      // revisits don't inflate counts.
+      if (kind === "impressions") {
+        try {
+          const k = impressionSeenKey(offer_id, slot);
+          if (sessionStorage.getItem(k)) return;
+          sessionStorage.setItem(k, "1");
+        } catch { /* sessionStorage disabled — still log */ }
       }
+      // Fire-and-forget atomic increment via SECURITY DEFINER RPC. Never blocks UI.
+      const { error } = await supabase.rpc("increment_brand_offer_stat", {
+        _offer_id: offer_id,
+        _slot: slot,
+        _kind: kind,
+      });
+      if (error) console.warn("brand stat log failed", error);
+    },
+  });
+}
+
+/** Aggregate totals across ALL users for the given offers. Backed by a SECURITY
+ *  DEFINER function that only returns rows for offers owned by the caller (or admin). */
+export function useBrandOfferTotals(offerIds: string[]) {
+  const key = [...offerIds].sort().join(",");
+  return useQuery({
+    queryKey: ["brand-offer-totals", key],
+    enabled: offerIds.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("brand_offer_totals", { _offer_ids: offerIds });
+      if (error) throw error;
+      const map: Record<string, { impressions: number; taps: number; wishlist_adds: number }> = {};
+      for (const row of (data ?? []) as Array<{ offer_id: string; impressions: number; taps: number; wishlist_adds: number }>) {
+        map[row.offer_id] = {
+          impressions: Number(row.impressions ?? 0),
+          taps: Number(row.taps ?? 0),
+          wishlist_adds: Number(row.wishlist_adds ?? 0),
+        };
+      }
+      return map;
     },
   });
 }
