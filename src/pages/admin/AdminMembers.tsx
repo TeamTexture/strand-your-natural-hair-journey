@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Search, Loader2, ShieldOff, ShieldCheck, Activity, Trash2, Mail, CheckCircle2, Circle } from "lucide-react";
@@ -63,8 +63,14 @@ const AdminMembers = () => {
   const nav = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialFilter = ((): Filter => {
+    const f = searchParams.get("filter");
+    const valid: Filter[] = ["all", "active", "complimentary", "restricted", "incomplete"];
+    return (valid as string[]).includes(f ?? "") ? (f as Filter) : "all";
+  })();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [sort, setSort] = useState<SortKey>("recent");
   const [restrictTarget, setRestrictTarget] = useState<MemberRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);

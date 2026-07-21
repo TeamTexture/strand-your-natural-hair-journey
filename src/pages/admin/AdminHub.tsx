@@ -132,25 +132,42 @@ const StatCard = ({
   label,
   value,
   tone,
+  onClick,
 }: {
   label: string;
   value: number | string;
   tone?: "warn" | "default";
-}) => (
-  <SurfaceCard className="py-3">
-    <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium">
-      {label}
-    </p>
-    <p
-      className={cn(
-        "font-display text-[26px] leading-none mt-1.5",
-        tone === "warn" ? "text-warn" : "text-foreground",
+  onClick?: () => void;
+}) => {
+  const content = (
+    <SurfaceCard className="py-3 relative h-full">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium pr-4">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "font-display text-[26px] leading-none mt-1.5",
+          tone === "warn" ? "text-warn" : "text-foreground",
+        )}
+      >
+        {value}
+      </p>
+      {onClick && (
+        <ChevronRight className="size-3.5 text-muted-foreground absolute top-3 right-3" />
       )}
+    </SurfaceCard>
+  );
+  if (!onClick) return content;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-left w-full transition-transform active:scale-[0.98]"
     >
-      {value}
-    </p>
-  </SurfaceCard>
-);
+      {content}
+    </button>
+  );
+};
 
 const NavCard = ({
   icon: Icon,
@@ -226,12 +243,33 @@ const AdminHub = () => {
                 label="Pending applications"
                 value={stats.pendingApplications}
                 tone={stats.pendingApplications > 0 ? "warn" : "default"}
+                onClick={() => nav("/admin/applications?tab=pending")}
               />
-              <StatCard label="Live professionals" value={stats.livePros} />
-              <StatCard label="Active pro subs" value={stats.activeProSubs} />
-              <StatCard label="Members total" value={stats.membersTotal} />
-              <StatCard label="Paid members" value={stats.activePaidMembers} />
-              <StatCard label="Complimentary" value={stats.complimentaryMembers} />
+              <StatCard
+                label="Live professionals"
+                value={stats.livePros}
+                onClick={() => nav("/admin/professionals?filter=published")}
+              />
+              <StatCard
+                label="Active pro subs"
+                value={stats.activeProSubs}
+                onClick={() => nav("/admin/professionals?filter=subscribed")}
+              />
+              <StatCard
+                label="Members total"
+                value={stats.membersTotal}
+                onClick={() => nav("/admin/members?filter=all")}
+              />
+              <StatCard
+                label="Paid members"
+                value={stats.activePaidMembers}
+                onClick={() => nav("/admin/members?filter=active")}
+              />
+              <StatCard
+                label="Complimentary"
+                value={stats.complimentaryMembers}
+                onClick={() => nav("/admin/members?filter=complimentary")}
+              />
             </div>
           </>
         )}

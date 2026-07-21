@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNowStrict, formatDistanceToNow } from "date-fns";
 import { MapPin, Search, Mail, ShieldOff, CheckCircle2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -40,7 +40,13 @@ const STATUS_CHIP: Record<Status, string> = {
 };
 
 const AdminApplications = () => {
-  const [tab, setTab] = useState<TabKey>("pending");
+  const [searchParams] = useSearchParams();
+  const initialTab = ((): TabKey => {
+    const t = searchParams.get("tab");
+    const valid: TabKey[] = ["pending", "incomplete", "approved", "rejected", "suspended"];
+    return (valid as string[]).includes(t ?? "") ? (t as TabKey) : "pending";
+  })();
+  const [tab, setTab] = useState<TabKey>(initialTab);
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
   const nav = useNavigate();
