@@ -43,10 +43,21 @@ const BrandOfferDetail = () => {
     return acc;
   }, {});
 
-  const canEdit = ["draft", "rejected"].includes(offer.status);
+  const canEdit = ["draft", "rejected", "under_review"].includes(offer.status);
   const needsPayment = offer.status === "approved_unpaid";
+  // Brands can pull an offer any time BEFORE it's paid/live — including while under review.
+  // Live/paid campaigns must be ended, not deleted, so they aren't listed here.
+  const canDelete = !["paid_scheduled", "live"].includes(offer.status);
 
-  const startCheckout = async () => {
+  const handleDelete = async () => {
+    try {
+      await deleteOffer.mutateAsync(offer.id);
+      toast.success("Offer deleted");
+      nav("/brand");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  };
     setPaying(true);
     try {
       const { data, error } = await supabase.functions.invoke("brand-checkout", {
