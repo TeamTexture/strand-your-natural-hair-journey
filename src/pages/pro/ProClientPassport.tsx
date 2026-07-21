@@ -369,12 +369,12 @@ const ProClientPassport = () => {
             data.journal.map((j) => (
               <SurfaceCard key={j.id}>
                 <p className="text-sm font-body font-semibold">
-                  {j.style_name ?? "Style entry"}
+                  {j.title ?? "Style entry"}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   {format(new Date(j.entry_date), "d MMM yyyy")}
                 </p>
-                {j.notes && <p className="text-[12px] mt-1.5 leading-snug">{j.notes}</p>}
+                {j.note && <p className="text-[12px] mt-1.5 leading-snug">{j.note}</p>}
               </SurfaceCard>
             ))
           )
@@ -394,8 +394,10 @@ const ProClientPassport = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase tracking-[0.1em] text-primary">{p.status ?? "shelf"}</p>
-                    {p.user_rating != null && <p className="text-[11px]">★ {p.user_rating}</p>}
+                    <p className="text-[10px] uppercase tracking-[0.1em] text-primary">
+                      {p.on_favourite ? "Favourite" : p.on_shelf ? "Shelf" : "Off shelf"}
+                    </p>
+                    {p.rating != null && <p className="text-[11px]">★ {p.rating}</p>}
                   </div>
                 </div>
               </SurfaceCard>
@@ -410,11 +412,12 @@ const ProClientPassport = () => {
             data.appointments.map((a) => (
               <SurfaceCard key={a.id}>
                 <p className="text-sm font-body font-semibold">
-                  {a.pro_name ?? a.pro_type ?? "Appointment"}
+                  {a.professional_name ?? a.professional_type ?? "Appointment"}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {format(new Date(a.scheduled_at), "d MMM yyyy, HH:mm")}
-                  {a.clinic ? ` · ${a.clinic}` : ""}
+                  {format(new Date(a.appointment_date), "d MMM yyyy")}
+                  {a.appointment_time ? `, ${a.appointment_time}` : ""}
+                  {a.clinic_name ? ` · ${a.clinic_name}` : ""}
                 </p>
                 {a.reason && <p className="text-[12px] mt-1.5">Reason: {a.reason}</p>}
                 {a.outcome_notes && <p className="text-[12px] mt-1 italic">Outcome: {a.outcome_notes}</p>}
