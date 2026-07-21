@@ -138,13 +138,32 @@ const BrandCreateOffer = () => {
 
   const totalDays = SLOTS.reduce((n, s) => n + selectedByslot[s].length, 0);
 
+  const [multiSlot, setMultiSlot] = useState(false);
+
   const toggleDate = (slot: PlacementSlot, date: string) => {
-    setSelectedByslot((prev) => ({
-      ...prev,
-      [slot]: prev[slot].includes(date)
-        ? prev[slot].filter((d) => d !== date)
-        : [...prev[slot], date],
-    }));
+    setSelectedByslot((prev) => {
+      // "Apply to all 3 slots" mode: toggle the date on every slot at once.
+      // If it's already fully-selected across the three slots, remove from all;
+      // otherwise add it to any slot that doesn't have it yet.
+      if (multiSlot) {
+        const fully = SLOTS.every((s) => prev[s].includes(date));
+        const next = { ...prev };
+        SLOTS.forEach((s) => {
+          if (fully) {
+            next[s] = prev[s].filter((d) => d !== date);
+          } else if (!prev[s].includes(date)) {
+            next[s] = [...prev[s], date];
+          }
+        });
+        return next;
+      }
+      return {
+        ...prev,
+        [slot]: prev[slot].includes(date)
+          ? prev[slot].filter((d) => d !== date)
+          : [...prev[slot], date],
+      };
+    });
   };
 
   const uploadBlob = async (blob: Blob, prefix: string): Promise<string> => {
@@ -326,7 +345,12 @@ const BrandCreateOffer = () => {
       toast.success(asDraft ? "Saved as draft" : "Submitted for review");
       nav("/brand");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      console.error("Brand offer save failed", e);
+      const msg =
+        (e as { message?: string; error_description?: string; hint?: string })?.message ||
+        (e as { error_description?: string })?.error_description ||
+        "Save failed";
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -337,7 +361,7 @@ const BrandCreateOffer = () => {
   return (
     <ScreenLayout>
       <TitleBar title={existingId ? "Edit offer" : "Create offer"} onBack={() => nav("/brand")} />
-      <div className="px-5 pb-32 space-y-5">
+      <div className="px-5 pb-4 space-y-5">
         <SectionLabel className="!px-0 !mt-0">Creative</SectionLabel>
         <SurfaceCard className="space-y-3">
           <div>
@@ -359,9 +383,10 @@ const BrandCreateOffer = () => {
           <div>
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Banner image *</Label>
             <p className="text-[11px] text-muted-foreground font-body mt-0.5 leading-snug">
-              1500×320px (4.7:1). Keep the focal point in the RIGHT third — your headline
-              renders on the left. <span className="font-medium">No text in the image:</span> headline, copy
-              and discount code come from the fields above.
+              1500×320px (4.7:1). Keep the focal point in the RIGHT third — your app-rendered headline
+              overlays the left. <span className="font-medium">Text on the image is allowed</span> —
+              keep it <span className="font-medium">bold, large and minimal</span> (2–4 words max) so it stays legible
+              at the 80px collapsed strip. Avoid small print, paragraphs or logos with fine detail.
             </p>
             <label className="flex items-center gap-2 mt-2 p-3 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50">
               <ImageIcon className="size-4 text-muted-foreground" />
@@ -627,6 +652,22 @@ const BrandCreateOffer = () => {
             </button>
           ))}
         </div>
+
+        <label className="flex items-start gap-2 px-1 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={multiSlot}
+            onChange={(e) => setMultiSlot(e.target.checked)}
+            className="mt-0.5 accent-primary"
+          />
+          <span className="text-[11px] leading-snug font-body text-foreground/80">
+            <span className="font-medium">Apply date to all 3 slots.</span>{" "}
+            <span className="text-muted-foreground">
+              While on, each date you tap gets added to Home, Products <em>and</em> Wash Day at once
+              (charged per slot per day). Turn off to book slots individually.
+            </span>
+          </span>
+        </label>
 
         <SurfaceCard>
           <PlacementCalendarPicker

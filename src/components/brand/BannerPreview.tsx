@@ -23,7 +23,7 @@ const BannerPreview = ({
   expanded = false,
 }: Props) => {
   return (
-    <div className="mx-auto" style={{ width: 343 }}>
+    <div className="w-full max-w-[343px] mx-auto">
       {/* Collapsed strip — full-width, ~80px tall, brand image as backdrop. */}
       <div className="relative rounded-t-[14px] overflow-hidden border border-primary/20 bg-card" style={{ height: 80 }}>
         {heroUrl ? (
