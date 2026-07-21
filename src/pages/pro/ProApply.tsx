@@ -122,7 +122,7 @@ const ProApply = () => {
       website_url: parsed.data.website_url || null,
       instagram_handle: parsed.data.instagram_handle || null,
     };
-    const { error } = await supabase.from("pro_applications").insert(payload);
+    const { error } = await supabase.from("pro_applications").insert(payload as never);
     setSubmitting(false);
     if (error) {
       console.error("[pro-apply] insert failed", error);
