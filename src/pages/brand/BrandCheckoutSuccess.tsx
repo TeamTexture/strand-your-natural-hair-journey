@@ -6,10 +6,13 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useOwnerMode, ownerHomeRoute } from "@/hooks/useOwnerMode";
 
 const BrandCheckoutSuccess = () => {
   const [params] = useSearchParams();
   const nav = useNavigate();
+  const ownerMode = useOwnerMode();
+  const home = ownerHomeRoute(ownerMode);
   const [status, setStatus] = useState<"verifying" | "paid" | "pending" | "error">("verifying");
   const sessionId = params.get("session_id");
 
