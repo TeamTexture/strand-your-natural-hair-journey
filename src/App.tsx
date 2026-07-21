@@ -43,6 +43,10 @@ import PersonalDetailsReview from "./pages/profile-review/PersonalDetails";
 import HealthReview from "./pages/profile-review/HealthReview";
 import HairReview from "./pages/profile-review/HairReview";
 import ColourReview from "./pages/profile-review/ColourReview";
+import RoleGate from "./components/RoleGate";
+import ProApply from "./pages/pro/ProApply";
+import AdminApplications from "./pages/admin/AdminApplications";
+
 
 // Main app
 import Home from "./pages/Home";
@@ -174,9 +178,21 @@ const App = () => (
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
 
+              {/* Professional portal (Phase A/B — application + admin vetting) */}
+              <Route path="/pro/apply" element={<ProApply />} />
+              <Route
+                path="/admin/applications"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminApplications />
+                  </RoleGate>
+                }
+              />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
                 </Routes>
+
               </div>
             </div>
           </PhoneShell>

@@ -211,7 +211,26 @@ const Directory = () => {
             </SurfaceCard>
           ))
         )}
+
+        {/* Pro application CTA — surfaced under the listings so consumers
+            aren't distracted while browsing, but discoverable for practitioners. */}
+        <SurfaceCard tone="gold">
+          <div className="space-y-2">
+            <p className="font-display text-base leading-tight">Are you a professional?</p>
+            <p className="text-xs font-body text-muted-foreground leading-snug">
+              Join the STRAND vetted directory. Trichologists, dermatologists,
+              curl specialists, colourists and stylists welcome.
+            </p>
+            <a
+              href="/pro/apply"
+              className="mt-1 inline-flex items-center justify-center w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
+            >
+              Apply Now
+            </a>
+          </div>
+        </SurfaceCard>
       </div>
+
 
       {showTop && (
         <button
