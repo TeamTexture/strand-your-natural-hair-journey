@@ -64,6 +64,7 @@ const AdminMembers = () => {
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<SortKey>("recent");
   const [restrictTarget, setRestrictTarget] = useState<MemberRow | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
