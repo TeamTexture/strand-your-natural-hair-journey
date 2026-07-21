@@ -424,6 +424,49 @@ const BrandCreateOffer = () => {
 
   const submit = async (asDraft: boolean) => {
     if (!user) return;
+
+    // ── Revision path ──────────────────────────────────────────────────────────
+    // Editing an already-paid/live offer: submit a pending revision for admin
+    // review. No Stripe. No placement changes. Original creative stays live.
+    if (isRevisionMode && existingId) {
+      if (!heroPath) return toast.error("A banner image is required.");
+      setSubmitting(true);
+      try {
+        const productSnapshots: RevisionProductSnapshot[] = products.map((p, i) => ({
+          kind: p.kind,
+          name: p.name || (p.kind === "tool" ? "Untitled tool" : "Untitled product"),
+          description: p.description || null,
+          external_url: p.external_url || null,
+          image_urls: p.image_urls,
+          ingredients: p.kind === "product" ? p.ingredients : [],
+          tool_kind: p.kind === "tool" ? p.tool_kind : null,
+          key_features: p.kind === "tool" ? p.key_features : [],
+          materials: p.kind === "tool" ? p.materials : [],
+          source_type: p.source_type,
+          source_url: p.source_url ?? null,
+          linked_product_id: p.linked_product_id ?? null,
+          position: i,
+        }));
+        await submitRevision.mutateAsync({
+          offer_id: existingId,
+          headline: headline.trim() || null,
+          body_copy: bodyCopy.trim() || null,
+          discount_code: discountCode.trim() || null,
+          external_url: externalUrl.trim() || null,
+          hero_image_path: heroPath,
+          products: productSnapshots,
+        });
+        toast.success("Changes submitted for review");
+        nav(`/brand/offers/${existingId}`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Submit failed";
+        toast.error(msg);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     // Headline is optional — no validation required.
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
