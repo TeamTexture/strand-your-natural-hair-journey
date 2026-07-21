@@ -20,20 +20,26 @@ export function useDirectoryProfessionals() {
 
     (async () => {
       try {
-        // Column-level GRANT on professionals_directory restricts which
-        // fields authenticated users can read (verification_number,
-        // discount_code and verification_type are intentionally hidden).
-        // SELECT * would fail with permission denied, wiping the DB-sourced
-        // pros and leaving Book Now / Website buttons empty for those rows.
-        const { data, error: dbErr } = await supabase
-          .from("professionals_directory")
-          .select(
-            "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at",
-          )
-          .eq("is_active", true);
+        const [{ data, error: dbErr }, { data: proProfiles, error: ppErr }] =
+          await Promise.all([
+            supabase
+              .from("professionals_directory")
+              .select(
+                "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at",
+              )
+              .eq("is_active", true),
+            supabase
+              .from("pro_profiles")
+              .select(
+                "id,user_id,display_name,discipline,bio,services,location,postcode,contact_email,booking_url,website_url,instagram_handle,is_published,suspended_at",
+              )
+              .eq("is_published", true)
+              .is("suspended_at", null),
+          ]);
 
         if (cancelled) return;
         if (dbErr) throw dbErr;
+        if (ppErr) console.warn("pro_profiles load failed:", ppErr);
 
         const dbPros: Professional[] = (data ?? []).map((row) => {
           const type = row.type as ProType;
@@ -43,12 +49,7 @@ export function useDirectoryProfessionals() {
           const instaUrl = row.instagram_handle
             ? `https://www.instagram.com/${row.instagram_handle}/`
             : "";
-          // discount_code, verification_type and verification_number are
-          // intentionally NOT granted to the authenticated role (security
-          // hardening), so they're unavailable client-side. Default the
-          // public-facing badge to "Specialist" and leave gmc/iot empty.
           const discount = row.discount_description ?? "";
-
           return {
             id: row.id,
             emoji,
@@ -72,10 +73,42 @@ export function useDirectoryProfessionals() {
           };
         });
 
-        // Merge: DB rows win on name collisions. We normalise names by
-        // lower-casing and stripping punctuation/whitespace so "Dr. Smith" and
-        // "Dr Smith" collapse into the same person, then keep whichever entry
-        // has the most populated profile (more filled fields = richer record).
+        // Live approved pros from pro_profiles.
+        const livePros: Professional[] = (proProfiles ?? []).map((row) => {
+          const t = row.discipline as string;
+          const type: ProType =
+            t === "Trichologist" || t === "Dermatologist"
+              ? (t as ProType)
+              : "Curl Specialist";
+          const emoji =
+            type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
+          const insta = row.instagram_handle ? `@${row.instagram_handle}` : "";
+          const instaUrl = row.instagram_handle
+            ? `https://www.instagram.com/${row.instagram_handle.replace(/^@/, "")}/`
+            : "";
+          return {
+            id: row.id,
+            emoji,
+            name: row.display_name,
+            title: t,
+            type,
+            verified: "Specialist",
+            clinic: row.display_name,
+            location: row.postcode ?? row.location ?? "",
+            specs: [],
+            bio: row.bio ?? "",
+            insta,
+            instaUrl,
+            website: row.website_url ?? instaUrl,
+            bookCode: "",
+            discount: "",
+            bookingUrl: row.booking_url ?? row.website_url ?? undefined,
+            featured: true,
+            gmcNumber: undefined,
+            iotNumber: undefined,
+          };
+        });
+
         const norm = (s: string) =>
           s.toLowerCase().replace(/[^a-z0-9]/g, "");
         const populationScore = (p: Professional) =>
@@ -83,8 +116,9 @@ export function useDirectoryProfessionals() {
             .filter((v) => typeof v === "string" && v.trim().length > 0).length +
           (p.specs?.length ?? 0);
 
+        // Live pros take precedence, then curated DB rows, then static seed.
         const byKey = new Map<string, Professional>();
-        for (const p of [...dbPros, ...PROFESSIONALS]) {
+        for (const p of [...livePros, ...dbPros, ...PROFESSIONALS]) {
           const key = norm(p.name);
           const existing = byKey.get(key);
           if (!existing || populationScore(p) > populationScore(existing)) {
