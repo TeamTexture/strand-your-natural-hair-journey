@@ -194,6 +194,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         bloodPanels: asArray(bloodPanels),
         bloodResults: asArray(bloodResults),
         bloodSummaries: asArray(bloodSummaries),
+        nutritionSummaries: asArray(nutritionSummaries),
         strandSummaries: asArray(strandSummaries),
         washDays: asArray(washDays),
         journal: asArray(journal),
