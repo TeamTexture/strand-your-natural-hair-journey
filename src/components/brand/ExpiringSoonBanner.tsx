@@ -67,22 +67,22 @@ const ExpiringSoonBanner = ({ offers, now }: Props) => {
         </ul>
       )}
 
-      <div className="flex gap-2 pl-11">
+      <div className="flex flex-col gap-2 w-full">
         <Button
           variant="gold"
           size="pill"
           onClick={() => nav(`/brand/offers/${first.offer.id}/extend`)}
-          className="flex-1 text-[12px]"
+          className="w-full text-[11.5px] uppercase tracking-[0.08em]"
         >
-          <Zap className="size-3.5 mr-1" /> Extend it
+          <Zap className="size-3.5 mr-1.5" /> EXTEND IT
         </Button>
         <Button
-          variant="outline"
+          variant="gold"
           size="pill"
           onClick={() => nav("/brand/offers/new")}
-          className="flex-1 text-[12px]"
+          className="w-full text-[11.5px] uppercase tracking-[0.08em]"
         >
-          <Plus className="size-3.5 mr-1" /> New offer
+          <Plus className="size-3.5 mr-1.5" /> NEW OFFER
         </Button>
       </div>
     </SurfaceCard>
