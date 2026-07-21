@@ -313,11 +313,11 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
                   <path d="M12 2 L14.5 8 L21 8.5 L16 12.8 L17.6 19.4 L12 15.8 L6.4 19.4 L8 12.8 L3 8.5 L9.5 8 Z"
                     fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                 </svg>
-                <p className="font-display text-[10.5px] uppercase tracking-[0.34em] text-primary/90 leading-none">
+                <p className="font-display font-bold text-[12px] uppercase tracking-[0.32em] text-primary leading-none">
                   Strand · Client Passport
                 </p>
               </div>
-              <span className="text-[9px] font-body uppercase tracking-[0.24em] text-primary/60">
+              <span className="text-[10px] font-body font-semibold uppercase tracking-[0.22em] text-primary/80">
                 UK · {p?.country ? (humaniseValue(p.country) ?? "").slice(0, 3).toUpperCase() : "GBR"}
               </span>
             </div>
@@ -334,38 +334,38 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
                 </div>
               )}
               <div className="flex-1 min-w-0 pb-0.5">
-                <p className="text-[9.5px] uppercase tracking-[0.28em] font-body text-primary/60 mb-1">Bearer</p>
-                <p className="font-display text-[22px] leading-[1.05] text-primary truncate tracking-[0.005em]">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.26em] font-body text-primary/75 mb-1">Bearer</p>
+                <p className="font-display font-bold text-[24px] leading-[1.05] text-primary truncate tracking-[0.005em]">
                   {d.clientName}
                 </p>
               </div>
             </div>
 
             {/* Passport data strip */}
-            <div className="mt-4 pt-4 border-t border-primary/20 grid grid-cols-3 gap-3">
+            <div className="mt-4 pt-4 border-t border-primary/25 grid grid-cols-3 gap-3">
               <div>
-                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Issued</p>
-                <p className="text-[11.5px] font-body text-primary/95 leading-tight">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[0.22em] font-body text-primary/70 mb-0.5">Issued</p>
+                <p className="text-[12.5px] font-body font-semibold text-primary leading-tight">
                   {d.memberSince ? formatMonth(d.memberSince) : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Age</p>
-                <p className="text-[11.5px] font-body text-primary/95 leading-tight">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[0.22em] font-body text-primary/70 mb-0.5">Age</p>
+                <p className="text-[12.5px] font-body font-semibold text-primary leading-tight">
                   {p?.age != null ? `${p.age} yrs` : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Region</p>
-                <p className="text-[11.5px] font-body text-primary/95 leading-tight truncate">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[0.22em] font-body text-primary/70 mb-0.5">Region</p>
+                <p className="text-[12.5px] font-body font-semibold text-primary leading-tight truncate">
                   {p?.postcode ?? humaniseValue(p?.country) ?? "—"}
                 </p>
               </div>
             </div>
 
             {/* MRZ-style bottom band */}
-            <div className="mt-4 -mx-5 px-5 py-2 bg-primary/[0.08] border-t border-primary/20">
-              <p className="text-[9px] font-mono tracking-[0.14em] text-primary/70 truncate">
+            <div className="mt-4 -mx-5 px-5 py-2 bg-primary/[0.12] border-t border-primary/25">
+              <p className="text-[10px] font-mono font-semibold tracking-[0.14em] text-primary/85 truncate">
                 {`STR<<${d.clientName.replace(/\s+/g, "<").toUpperCase()}<<`.slice(0, 44).padEnd(44, "<")}
               </p>
             </div>
@@ -859,26 +859,6 @@ const MarkerRow = ({ marker, value, unit, status }: { marker: string; value: num
 };
 
 
-const BloodAiCard = ({ payload, when }: { payload: unknown; when: string }) => {
-  const p = payload as { html?: string; summary?: string } | string | null;
-  const body = typeof p === "string" ? p : (p?.html ?? p?.summary ?? null);
-  return (
-    <SurfaceCard tone="gold">
-      <div className="flex items-center gap-2 mb-2">
-        <Sparkles className="size-4 text-primary" />
-        <p className="font-display text-[15px] leading-tight text-foreground">AI blood summary</p>
-      </div>
-      <p className="text-[10.5px] uppercase tracking-wider text-primary/80 font-body mb-3">
-        Updated {formatDate(when)} · {formatRelative(when)}
-      </p>
-      {body ? (
-        <div className="text-[13px] leading-relaxed font-body prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
-      ) : (
-        <p className="text-[12px] text-muted-foreground font-body">No summary content available.</p>
-      )}
-    </SurfaceCard>
-  );
-};
 
 const BloodSection = ({ d }: { d: PassportDataset }) => {
   const resultsByPanel = useMemo(() => {
@@ -892,7 +872,7 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d.bloodResults]);
 
-  const latestSummary = d.bloodSummaries[0] ?? null;
+  
   const outOfRange = d.bloodResults.filter(r => ["low", "high", "borderline"].includes(String(r.status ?? "").toLowerCase())).length;
   const inRange = d.bloodResults.filter(r => ["in_range", "normal"].includes(String(r.status ?? "").toLowerCase())).length;
   const total = d.bloodResults.length;
@@ -920,14 +900,6 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
         </div>
       )}
 
-      {latestSummary && (
-        <>
-          <SubLabel>Latest AI analysis</SubLabel>
-          <div className="px-5">
-            <BloodAiCard payload={latestSummary.payload} when={latestSummary.created_at} />
-          </div>
-        </>
-      )}
 
       <SubLabel>Panels</SubLabel>
       <div className="px-5 space-y-2">
