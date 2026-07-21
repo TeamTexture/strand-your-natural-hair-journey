@@ -37,105 +37,49 @@ function formatDate(iso: string | null) {
 type Pillar = {
   icon: LucideIcon;
   title: string;
-  body: string;
-  points: string[];
+  benefit: string;
 };
 
 const PILLARS: Pillar[] = [
   {
     icon: BookOpen,
-    title: "Your personal STRAND guide",
-    body:
-      "Every screen speaks to you in the voice of Paige Lewin, author of How To Love Your Afro — tailored to your hair, your health, your history.",
-    points: [
-      "AI guidance rooted in the full manuscript of How To Love Your Afro",
-      "Never generic advice — every insight is shaped by your own profile",
-      "A living hair-and-scalp summary that updates as your data grows",
-    ],
+    title: "Your personal guide",
+    benefit: "Advice in Paige's voice, tailored to your hair, health and history.",
   },
   {
     icon: Droplet,
-    title: "Wash days, done properly",
-    body:
-      "Log every wash the way a curl specialist would — from double-cleanse through to the seal — and STRAND turns the pattern into insight.",
-    points: [
-      "Step-by-step wash-day flow: cleanse, treat, style, seal",
-      "Track porosity, shedding, breakage and scalp feel in seconds",
-      "Voice-note your wash, we transcribe it for your records",
-      "Schedule future wash days and drop them into your calendar",
-    ],
+    title: "Wash days that count",
+    benefit: "Log, schedule and perfect every cleanse, treat and seal.",
   },
   {
     icon: FlaskConical,
-    title: "Every product, analysed",
-    body:
-      "Scan a bottle or paste a link and STRAND reads the ingredients like a chemist — flagging what fights your hair type, protein balance and water.",
-    points: [
-      "AI ingredient analysis on every product in your shelf",
-      "Personalised flags — protein overload, drying alcohols, hard-water triggers",
-      "Times-used and last-used tracking so nothing sits forgotten",
-      "Rate, favourite, batch-move and archive your shelf with ease",
-    ],
+    title: "Product intelligence",
+    benefit: "Scan, analyse and curate a shelf that actually works for you.",
   },
   {
     icon: Heart,
-    title: "Blood work that finally makes sense",
-    body:
-      "Upload a lab PDF and STRAND translates every marker — ferritin, vitamin D, thyroid, hormones — into what it means for your strands.",
-    points: [
-      "Upload PDFs, photos or scans — even password-protected files",
-      "Automatic extraction, flagging and trend charts over time",
-      "Plain-English rationale for every low or high marker",
-      "A personalised nutrition plan built from your results",
-    ],
+    title: "Blood work decoded",
+    benefit: "Upload results and see what every marker means for your strands.",
   },
   {
     icon: Camera,
-    title: "Your hair, documented",
-    body:
-      "Milestones, moodboards, colour history and appointment photos — the visual record you've never quite kept, kept for you.",
-    points: [
-      "Milestone and before-photo library with progress side-by-sides",
-      "Moodboards for inspiration — import from Instagram, Pinterest or the web",
-      "Full colour and chemical history with dates and formulations",
-      "Appointment log with photos, outcomes and post-visit follow-ups",
-    ],
+    title: "Your hair archive",
+    benefit: "Milestones, moodboards, colour and appointment photos in one place.",
   },
   {
     icon: Users,
     title: "The Client Passport",
-    body:
-      "Walk into any chair — stylist, colourist, trichologist — with your entire story ready. No more explaining yourself from scratch.",
-    points: [
-      "Share a consent-controlled passport with vetted STRAND professionals",
-      "Bio, hair and health profile, bloodwork, products, wash-day patterns, photos",
-      "Every view logged for you — full transparency, always revocable",
-      "Export the whole thing as a branded PDF for anyone, any time",
-    ],
+    benefit: "Walk into any chair with your full story ready to share.",
   },
   {
     icon: Calendar,
-    title: "Your journey, your journal",
-    body:
-      "A private space to note what worked, what didn't, and how your hair felt — with gentle prompts from STRAND when you need them.",
-    points: [
-      "Journal entries with photos, voice notes and mood tracking",
-      "Multi-goal tracking with regular check-ins and progress updates",
-      "Automatic appointment reminders and post-visit prompts",
-      "AI encouragement written in Paige's voice, never generic",
-    ],
+    title: "Journaling that listens",
+    benefit: "Track goals, moods and appointments with gentle AI prompts.",
   },
   {
     icon: Leaf,
-    title: "Rooted in the book, not the algorithm",
-    body:
-      "STRAND doesn't invent trends. Every recommendation is grounded in the teachings of How To Love Your Afro and tailored to you.",
-    points: [
-      "No fads, no protein-every-week myths, no one-size-fits-all",
-      "Hard-water postcode analysis — because your tap matters",
-      "Heat-treatment rationale grounded in Chapter-13 protocols",
-      "A directory of hand-vetted practitioners championing textured hair",
-    ],
+    title: "Rooted in the book",
+    benefit: "No fads. Every insight is grounded in How To Love Your Afro.",
   },
 ];
 
