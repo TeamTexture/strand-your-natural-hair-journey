@@ -104,27 +104,23 @@ export function useCreateEnquiry() {
   return useMutation({
     mutationFn: async (input: CreateEnquiryInput) => {
       if (!user?.id) throw new Error("Sign in required");
-      const { data, error } = await supabase
-        .from("pro_enquiries")
-        .insert({
-          consumer_id: user.id,
-          pro_user_id: input.pro_user_id,
-          note: input.note ?? null,
-          service_interest: input.service_interest ?? null,
-          preferred_timeframe: input.preferred_timeframe ?? null,
-          contact_method: input.contact_method ?? null,
-          contact_phone: input.contact_phone ?? null,
-          location_preference: input.location_preference ?? null,
-          budget_range: input.budget_range ?? null,
-          share_passport_consent: true,
-          status: "pending",
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc("send_enquiry_with_access", {
+        _pro_user_id: input.pro_user_id,
+        _note: input.note ?? null,
+        _service_interest: input.service_interest ?? null,
+        _preferred_timeframe: input.preferred_timeframe ?? null,
+        _contact_method: input.contact_method ?? null,
+        _contact_phone: input.contact_phone ?? null,
+        _location_preference: input.location_preference ?? null,
+        _budget_range: input.budget_range ?? null,
+      });
       if (error) throw error;
-      return data as Enquiry;
+      return data as string;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my_enquiries"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my_enquiries"] });
+      qc.invalidateQueries({ queryKey: ["my_client_access"] });
+    },
   });
 }
 
