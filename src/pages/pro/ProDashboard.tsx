@@ -17,6 +17,7 @@ const Card = ({
   onClick,
   disabled,
   badge,
+  count,
 }: {
   icon: React.ElementType;
   title: string;
@@ -24,6 +25,7 @@ const Card = ({
   onClick?: () => void;
   disabled?: boolean;
   badge?: string;
+  count?: number;
 }) => (
   <button
     onClick={onClick}
@@ -36,6 +38,14 @@ const Card = ({
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2">
         <p className="font-display text-base font-semibold leading-tight">{title}</p>
+        {count !== undefined && count > 0 && (
+          <span
+            aria-label={`${count} pending`}
+            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none"
+          >
+            {count > 99 ? "99+" : count}
+          </span>
+        )}
         {badge && (
           <span className="text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground font-body">
             {badge}
