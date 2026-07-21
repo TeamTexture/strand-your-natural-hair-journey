@@ -288,14 +288,33 @@ const BrandOfferDetail = () => {
         {(offer.brand_products ?? []).length > 0 && (
           <>
             <SectionLabel className="!px-0">Products</SectionLabel>
-            {(offer.brand_products ?? []).map((p) => (
-              <SurfaceCard key={p.id} className="py-2.5">
-                <p className="font-display text-[14px] leading-tight">{p.name}</p>
-                {p.description && <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{p.description}</p>}
-              </SurfaceCard>
-            ))}
+            {(offer.brand_products ?? []).map((p) => {
+              const thumb = (p.image_urls ?? [])[0];
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setActiveProductId(p.id)}
+                  className="w-full text-left"
+                >
+                  <SurfaceCard className="py-2.5 flex items-center gap-3 hover:bg-muted/40 transition-colors">
+                    {thumb ? (
+                      <img src={thumb} alt={p.name} className="size-12 rounded-md object-cover flex-none bg-muted" />
+                    ) : (
+                      <div className="size-12 rounded-md bg-muted flex-none" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-display text-[14px] leading-tight truncate">{p.name}</p>
+                      {p.description && <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{p.description}</p>}
+                    </div>
+                    <Eye className="size-4 text-muted-foreground flex-none" />
+                  </SurfaceCard>
+                </button>
+              );
+            })}
           </>
         )}
+
 
         {canEdit && !pendingRevision && (
           <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${offer.id}/edit`)} className="w-full">
