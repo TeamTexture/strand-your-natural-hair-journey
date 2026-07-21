@@ -43,6 +43,10 @@ import PersonalDetailsReview from "./pages/profile-review/PersonalDetails";
 import HealthReview from "./pages/profile-review/HealthReview";
 import HairReview from "./pages/profile-review/HairReview";
 import ColourReview from "./pages/profile-review/ColourReview";
+import RoleGate from "./components/RoleGate";
+import ProApply from "./pages/pro/ProApply";
+import AdminApplications from "./pages/admin/AdminApplications";
+
 
 // Main app
 import Home from "./pages/Home";
