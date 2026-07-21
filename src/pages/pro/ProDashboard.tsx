@@ -64,12 +64,15 @@ const ProDashboard = () => {
   const { isConsumer, isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
+  const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
   const [noticeDismissed, setNoticeDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.sessionStorage.getItem("pro_sub_notice_dismissed") === "1";
   });
 
-  const showLapseNotice = !subLoading && !subActive && !noticeDismissed;
+  // Admins get full pro-side access without a subscription for testing.
+  const hasProAccess = subActive || isAdmin;
+  const showLapseNotice = !subLoading && !hasProAccess && !noticeDismissed;
 
   return (
     <ScreenLayout>
