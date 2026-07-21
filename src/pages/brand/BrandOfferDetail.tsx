@@ -19,6 +19,7 @@ import {
   usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision,
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
+import CountdownClock from "@/components/brand/CountdownClock";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
@@ -103,16 +104,24 @@ const BrandOfferDetail = () => {
     <ScreenLayout>
       <TitleBar title={offer.headline ?? "Offer"} onBack={() => nav("/brand")} />
       <div className="px-5 pb-8 space-y-4">
-        <SurfaceCard className="space-y-1">
-          <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">
-            {derived === "live" && (
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-good" />
-              </span>
+        <SurfaceCard className="space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">
+              {derived === "live" && (
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-good" />
+                </span>
+              )}
+              {STATUS_LABEL[derived]}
+            </p>
+            {(derived === "live" || derived === "upcoming") && (
+              <CountdownClock offer={offer} />
             )}
-            {STATUS_LABEL[derived]}
-          </p>
+          </div>
+          {(derived === "live" || derived === "upcoming") && (
+            <CountdownClock offer={offer} variant="block" />
+          )}
           {offer.status === "rejected" && offer.rejection_reason && (
             <p className="text-[12px] text-destructive mt-1">{offer.rejection_reason}</p>
           )}

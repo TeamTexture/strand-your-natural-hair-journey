@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart, Ticket, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -8,6 +8,8 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
+import CountdownClock from "@/components/brand/CountdownClock";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
@@ -53,6 +55,16 @@ const BrandDashboard = () => {
   const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions(offers.map((o) => o.id));
   const { data: revisionCounts = {} } = useOfferRevisionCounts(offers.map((o) => o.id));
 
+  // One ticking clock drives the "expiring soon" banner + inline chips so the
+  // brand sees the countdown update live without every offer card holding its
+  // own interval.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+
 
   if (profileLoading || isLoading) return <LoadingDot />;
 
@@ -84,6 +96,9 @@ const BrandDashboard = () => {
             <p className="font-display text-[15px] leading-tight flex-1">{o.headline}</p>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <StatusPill status={o._derived} />
+              {(o._derived === "live" || o._derived === "upcoming") && (
+                <CountdownClock offer={o} />
+              )}
               {withPendingSet.has(o.id) ? (
                 <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-warn/15 text-warn font-body font-medium">
                   Changes under review
@@ -137,6 +152,10 @@ const BrandDashboard = () => {
     <ScreenLayout>
       <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} />
       <div className="px-5 pb-8 space-y-5">
+        {/* Live-offer expiry banner — surfaces any offer ≤3h from ending
+             with Extend / New offer actions. */}
+        <ExpiringSoonBanner offers={withDerived.filter((o) => o._derived === "live")} now={now} />
+
         {/* Subscription banner */}
         {!subActive ? (
           <button
@@ -221,19 +240,23 @@ const BrandDashboard = () => {
                 const placements = o.brand_offer_placements ?? [];
                 const dates = placements.map((p) => p.placement_date).sort();
                 return (
-                  <LiveOfferCard
-                    key={o.id}
-                    id={o.id}
-                    headline={o.headline}
-                    heroImagePath={o.hero_image_path}
-                    slots={placements.map((p) => p.slot)}
-                    startDate={dates[0]}
-                    endDate={dates[dates.length - 1]}
-                    totals={totals[o.id]}
-                    hasPendingRevision={withPendingSet.has(o.id)}
-                    revisionCount={revisionCounts[o.id]}
-                    onReview={() => nav(`/brand/offers/${o.id}`)}
-                  />
+                  <div key={o.id} className="space-y-1.5">
+                    <div className="flex justify-end px-0.5">
+                      <CountdownClock offer={o} />
+                    </div>
+                    <LiveOfferCard
+                      id={o.id}
+                      headline={o.headline}
+                      heroImagePath={o.hero_image_path}
+                      slots={placements.map((p) => p.slot)}
+                      startDate={dates[0]}
+                      endDate={dates[dates.length - 1]}
+                      totals={totals[o.id]}
+                      hasPendingRevision={withPendingSet.has(o.id)}
+                      revisionCount={revisionCounts[o.id]}
+                      onReview={() => nav(`/brand/offers/${o.id}`)}
+                    />
+                  </div>
                 );
               })}
             </div>
