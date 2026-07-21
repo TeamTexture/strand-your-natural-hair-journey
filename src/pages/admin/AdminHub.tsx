@@ -36,6 +36,10 @@ interface Stats {
   liveBrands: number;
   liveBrandOffers: number;
   brandOfferRequests: number;
+  brandOfferRequestsBrand: number;
+  brandOfferRequestsPro: number;
+  liveBrandOffersBrand: number;
+  liveBrandOffersPro: number;
 }
 
 interface ActivityRow {
@@ -78,15 +82,18 @@ const useAdminStats = () =>
           .in("status", ["active", "trialing"]),
         supabase
           .from("brand_offers")
-          .select("id", { count: "exact", head: true })
+          .select("id, owner_type")
           .in("status", ["live", "paid_scheduled"])
           .lte("starts_on", today)
           .gte("ends_on", today),
         supabase
           .from("brand_offers")
-          .select("id", { count: "exact", head: true })
+          .select("id, owner_type")
           .eq("status", "under_review"),
       ]);
+      const liveOffersRows = (liveOffersQ.data ?? []) as { owner_type: string | null }[];
+      const brandReqRows = (brandReqQ.data ?? []) as { owner_type: string | null }[];
+      const isPro = (r: { owner_type: string | null }) => r.owner_type === "pro";
       const activePaid = await supabase
         .from("consumer_subscriptions")
         .select("user_id", { count: "exact", head: true })
@@ -100,8 +107,12 @@ const useAdminStats = () =>
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
         liveBrands: liveBrandsQ.count ?? 0,
-        liveBrandOffers: liveOffersQ.count ?? 0,
-        brandOfferRequests: brandReqQ.count ?? 0,
+        liveBrandOffers: liveOffersRows.length,
+        liveBrandOffersPro: liveOffersRows.filter(isPro).length,
+        liveBrandOffersBrand: liveOffersRows.filter((r) => !isPro(r)).length,
+        brandOfferRequests: brandReqRows.length,
+        brandOfferRequestsPro: brandReqRows.filter(isPro).length,
+        brandOfferRequestsBrand: brandReqRows.filter((r) => !isPro(r)).length,
       };
     },
   });
