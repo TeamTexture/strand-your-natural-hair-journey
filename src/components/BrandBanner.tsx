@@ -166,7 +166,11 @@ const BrandBanner = ({ slot }: Props) => {
                 )}
                 {offer.discount_code && (
                   <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                    <DiscountCodeChip code={offer.discount_code} variant="chip" />
+                    <DiscountCodeChip
+                      code={offer.discount_code}
+                      variant="chip"
+                      onCopy={() => logStat.mutate({ offer_id: offer.id, slot, kind: "code_copies" })}
+                    />
                   </div>
                 )}
                 <button
