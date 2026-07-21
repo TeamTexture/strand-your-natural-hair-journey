@@ -236,14 +236,15 @@ const BrandProductPage = () => {
           };
           if (cancelled) return;
           setAnalysis(payload);
-          await supabase.from("ai_summaries").upsert([
+          await supabase.from("ai_summaries").upsert(
             {
               user_id: user.id,
               kind: cacheKind,
               payload: payload as unknown as Record<string, unknown>,
-            },
+            } as never,
             { onConflict: "user_id,kind" },
           );
+
         }
       } catch (e) {
         if (cancelled) return;
