@@ -122,7 +122,7 @@ export function useActiveBrandOffer(slot: PlacementSlot) {
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("brand_offer_placements")
-        .select("offer_id, slot, brand_offers!inner(id, headline, body_copy, hero_image_path, external_url, discount_code, status, brand_user_id)")
+        .select("offer_id, slot, brand_offers!inner(id, headline, body_copy, hero_image_path, external_url, discount_code, status, brand_user_id, brand_products(id, name, image_urls, external_url))")
         .eq("slot", slot)
         .eq("placement_date", today)
         .in("brand_offers.status", ["live", "paid_scheduled"])
