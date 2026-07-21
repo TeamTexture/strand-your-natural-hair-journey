@@ -152,6 +152,10 @@ const BrandDashboard = () => {
     <ScreenLayout>
       <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} />
       <div className="px-5 pb-8 space-y-5">
+        {/* Live-offer expiry banner — surfaces any offer ≤3h from ending
+             with Extend / New offer actions. */}
+        <ExpiringSoonBanner offers={withDerived.filter((o) => o._derived === "live")} now={now} />
+
         {/* Subscription banner */}
         {!subActive ? (
           <button
