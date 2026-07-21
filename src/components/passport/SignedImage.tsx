@@ -7,11 +7,12 @@ interface Props {
   path: string | null | undefined;
   alt?: string;
   className?: string;
+  onClick?: (url: string | null) => void;
 }
 
 const cache = new Map<string, { url: string; exp: number }>();
 
-const SignedImage = ({ bucket, path, alt = "", className }: Props) => {
+const SignedImage = ({ bucket, path, alt = "", className, onClick }: Props) => {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,11 +34,19 @@ const SignedImage = ({ bucket, path, alt = "", className }: Props) => {
   }, [bucket, path]);
 
   if (!path) return null;
-  return (
-    <div className={cn("relative bg-muted rounded-md overflow-hidden", className)}>
+  const content = (
+    <div className={cn("relative bg-muted rounded-md overflow-hidden", onClick && "cursor-zoom-in", className)}>
       {url && <img src={url} alt={alt} className="w-full h-full object-cover" loading="lazy" />}
     </div>
   );
+  if (onClick) {
+    return (
+      <button type="button" className="block w-full text-left" onClick={() => onClick(url)} aria-label={alt ? `Open ${alt}` : "Open image"}>
+        {content}
+      </button>
+    );
+  }
+  return content;
 };
 
 export default SignedImage;
