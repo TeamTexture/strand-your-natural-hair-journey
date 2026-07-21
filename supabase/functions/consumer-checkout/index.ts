@@ -31,6 +31,9 @@ Deno.serve(async (req) => {
     const userId = user.sub as string;
     const email = (user.email as string | undefined) ?? undefined;
 
+    const body = await req.json().catch(() => ({})) as { next?: string };
+    const nextPath = isSafeInternalPath(body.next) ? body.next : "/home";
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) return json({ error: "Stripe not configured" }, 500);
 
@@ -77,12 +80,13 @@ Deno.serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") ?? "https://mystrand.co.uk";
+    const nextParam = encodeURIComponent(nextPath);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/subscribe?checkout=success`,
-      cancel_url: `${origin}/subscribe?checkout=cancelled`,
+      success_url: `${origin}/subscribe?checkout=success&next=${nextParam}`,
+      cancel_url: `${origin}/subscribe?checkout=cancelled&next=${nextParam}`,
       allow_promotion_codes: true,
       subscription_data: { metadata: { consumer_user_id: userId } },
     });
@@ -99,4 +103,8 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function isSafeInternalPath(path: unknown): path is string {
+  return typeof path === "string" && path.startsWith("/") && !path.startsWith("//");
 }

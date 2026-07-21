@@ -5,7 +5,7 @@ import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
-import { supabase } from "@/integrations/supabase/client";
+import { getConsumerOnboardingStatus, getSubscribePath } from "@/lib/consumerOnboarding";
 
 interface Props {
   children: ReactNode;
@@ -33,22 +33,15 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
 
-  const { data: completed, isLoading: profileLoading } = useQuery({
+  const { data: status, isLoading: profileLoading } = useQuery({
     queryKey: ["profile_onboarding_completed", user?.id],
     enabled: !!user?.id,
-    queryFn: async (): Promise<boolean> => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("onboarding_completed_at")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      return !!(data as { onboarding_completed_at?: string | null } | null)?.onboarding_completed_at;
-    },
+    queryFn: () => getConsumerOnboardingStatus(user!.id),
   });
 
   if (subLoading || profileLoading) return <LoadingDot />;
-  if (completed && !hasAccess) {
-    return <Navigate to="/subscribe" replace />;
+  if (status?.completed && !hasAccess) {
+    return <Navigate to={getSubscribePath(status.analysisPath)} replace />;
   }
   return <>{children}</>;
 };

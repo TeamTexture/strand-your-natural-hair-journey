@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getConsumerAccessForUser,
+  getConsumerOnboardingStatus,
+  getSubscribePath,
+} from "@/lib/consumerOnboarding";
 
 type Destination = { path: string; label: string; sub: string };
 
@@ -27,7 +32,7 @@ const Index = () => {
     if (loading || !user) return;
     setChecking(true);
     (async () => {
-      const [{ data: profile }, { data: roleRows }, { data: proApp }] = await Promise.all([
+      const [{ data: profile }, { data: roleRows }, { data: proApp }, onboardingStatus] = await Promise.all([
         supabase
           .from("profiles")
           .select("onboarding_completed_at, display_name")
@@ -41,6 +46,7 @@ const Index = () => {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        getConsumerOnboardingStatus(user.id),
       ]);
       const roles = (roleRows ?? []).map((r) => r.role as string);
       const hasConsumer = roles.includes("consumer");
@@ -54,8 +60,11 @@ const Index = () => {
         return;
       }
 
-      const consumerPath = profile?.onboarding_completed_at
-        ? "/home"
+      const hasAccess = await getConsumerAccessForUser(user.id, roles);
+      const consumerPath = onboardingStatus.completed
+        ? hasAccess
+          ? "/home"
+          : getSubscribePath(onboardingStatus.analysisPath)
         : "/onboarding/profile-step-1";
 
       const dests: Destination[] = [];
