@@ -285,6 +285,7 @@ const DeclineDialog = ({
 const ProEnquiries = () => {
   const nav = useNavigate();
   const { isActive, isLoading: subLoading } = useProSubscription();
+  const { isAdmin } = useRoles();
   const { data, isLoading } = useProInbox();
   const accept = useAcceptEnquiry();
   const decline = useDeclineEnquiry();
