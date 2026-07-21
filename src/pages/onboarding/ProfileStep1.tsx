@@ -303,12 +303,14 @@ const ProfileStep1 = () => {
           : null;
       const update: {
         display_name: string;
+        phone_number: string | null;
         heritage: string[];
         postcode: string;
         country: string;
         birth_year?: number;
       } = {
         display_name: name.trim(),
+        phone_number: trimmedPhone || null,
         heritage: heritageArr,
         postcode: trimmedPostcode,
         country,
