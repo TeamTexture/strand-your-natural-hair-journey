@@ -86,7 +86,8 @@ const PlacementCalendarPicker = ({
           const key = format(d, "yyyy-MM-dd");
           const inMonth = isSameMonth(d, month);
           const past = d < today;
-          const isTaken = takenSet.has(key);
+          const takenKind = takenMap.get(key);
+          const isTaken = !!takenKind;
           const isSelected = selection.includes(key);
           const disabled = past || isTaken || !inMonth;
           return (
@@ -98,20 +99,25 @@ const PlacementCalendarPicker = ({
               className={cn(
                 "aspect-square rounded-md text-[11px] font-body transition-colors",
                 !inMonth && "opacity-30",
-                disabled && "text-muted-foreground/40 line-through cursor-not-allowed",
+                past && !inMonth === false && "text-muted-foreground/40 line-through cursor-not-allowed",
+                past && "text-muted-foreground/40 line-through cursor-not-allowed",
+                isTaken && takenKind === "pending" && "bg-orange-500/20 text-orange-700 dark:text-orange-300 cursor-not-allowed",
+                isTaken && takenKind === "live" && "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 cursor-not-allowed",
                 !disabled && !isSelected && "hover:bg-primary/10 text-foreground",
                 isSelected && "bg-primary text-primary-foreground font-medium",
               )}
-              aria-label={`${key}${isTaken ? " — unavailable" : ""}`}
+              aria-label={`${key}${takenKind === "pending" ? " — awaiting acceptance" : takenKind === "live" ? " — live offer" : ""}`}
             >
               {d.getDate()}
             </button>
           );
         })}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-1.5 font-body">
-        Grey dates are already booked or past.
-      </p>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground mt-1.5 font-body">
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-orange-500/40" /> Awaiting acceptance</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/50" /> Live / booked</span>
+        <span>Past dates unavailable</span>
+      </div>
     </div>
   );
 };
