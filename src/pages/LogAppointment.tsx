@@ -65,7 +65,7 @@ const LogAppointment = () => {
     (async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, status, follow_up_needed, follow_up_date, follow_up_time, outcome_notes, outcome_audio_path")
+        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, status, follow_up_needed, follow_up_date, follow_up_time, outcome_notes, outcome_audio_path, linked_pro_user_id")
         .eq("id", fromId)
         .eq("user_id", user.id)
         .maybeSingle();
