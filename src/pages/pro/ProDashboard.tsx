@@ -68,7 +68,21 @@ const ProDashboard = () => {
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
   const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
+  const { data: proAppointments = [] } = useProAppointments();
+  const today = new Date().toISOString().slice(0, 10);
+  const upcomingAppointments = proAppointments
+    .filter(
+      (a) =>
+        !["completed", "cancelled", "no_show"].includes(a.status) &&
+        a.appointment_date >= today,
+    )
+    .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date));
+  const nextAppt = upcomingAppointments[0];
+  const nextApptSub = nextAppt
+    ? `${(nextAppt.client_display_name ?? "Client").split(" ")[0]} · ${new Date(nextAppt.appointment_date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}${nextAppt.appointment_time ? ` · ${formatTime12h(nextAppt.appointment_time)}` : ""}`
+    : "Bookings your clients link to you.";
   const [noticeDismissed, setNoticeDismissed] = useState(() => {
+
     if (typeof window === "undefined") return false;
     return window.sessionStorage.getItem("pro_sub_notice_dismissed") === "1";
   });
