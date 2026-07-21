@@ -236,40 +236,28 @@ const BrandCreateOffer = () => {
     },
   });
 
+  const enabledSlotList = useMemo(
+    () => SLOTS.filter((s) => enabledSlots[s]),
+    [enabledSlots],
+  );
+
   const total = useMemo(() => {
     if (!rates) return 0;
-    return SLOTS.reduce((sum, s) => sum + selectedByslot[s].length * rates[s], 0);
-  }, [selectedByslot, rates]);
+    return enabledSlotList.reduce((sum, s) => sum + selectedDates.length * rates[s], 0);
+  }, [enabledSlotList, selectedDates, rates]);
 
-  const totalDays = SLOTS.reduce((n, s) => n + selectedByslot[s].length, 0);
+  const totalDays = selectedDates.length;
 
-  const [multiSlot, setMultiSlot] = useState(false);
-
-  const toggleDate = (slot: PlacementSlot, date: string) => {
-    setSelectedByslot((prev) => {
-      // "Apply to all 3 slots" mode: toggle the date on every slot at once.
-      // If it's already fully-selected across the three slots, remove from all;
-      // otherwise add it to any slot that doesn't have it yet.
-      if (multiSlot) {
-        const fully = SLOTS.every((s) => prev[s].includes(date));
-        const next = { ...prev };
-        SLOTS.forEach((s) => {
-          if (fully) {
-            next[s] = prev[s].filter((d) => d !== date);
-          } else if (!prev[s].includes(date)) {
-            next[s] = [...prev[s], date];
-          }
-        });
-        return next;
-      }
-      return {
-        ...prev,
-        [slot]: prev[slot].includes(date)
-          ? prev[slot].filter((d) => d !== date)
-          : [...prev[slot], date],
-      };
-    });
+  const toggleSlot = (slot: PlacementSlot) => {
+    setEnabledSlots((prev) => ({ ...prev, [slot]: !prev[slot] }));
   };
+
+  const toggleDate = (date: string) => {
+    setSelectedDates((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date].sort(),
+    );
+  };
+
 
   const uploadBlob = async (blob: Blob, prefix: string): Promise<string> => {
     if (!user) throw new Error("Not signed in");
