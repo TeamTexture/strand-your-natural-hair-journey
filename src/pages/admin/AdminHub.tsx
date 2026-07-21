@@ -341,29 +341,52 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/brand-offers?filter=pending")}
               />
             </div>
-            {revisionCount > 0 && (
-              <button
-                type="button"
-                onClick={() => nav("/admin/brand-offers?filter=pending")}
-                className="w-full text-left transition-transform active:scale-[0.99]"
+            <button
+              type="button"
+              onClick={() => nav("/admin/brand-offers?filter=pending")}
+              className="w-full text-left transition-transform active:scale-[0.99]"
+            >
+              <SurfaceCard
+                className={`py-3 flex items-center gap-3 ${
+                  revisionCount > 0
+                    ? "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40"
+                    : ""
+                }`}
               >
-                <SurfaceCard className="py-2.5 border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40 flex items-center gap-2.5">
+                {revisionCount > 0 ? (
                   <span className="relative flex size-2 shrink-0">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-70 animate-ping" />
                     <span className="relative inline-flex size-2 rounded-full bg-destructive" />
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[13.5px] leading-tight text-destructive">
-                      Urgent · {revisionCount} live ad revision{revisionCount === 1 ? "" : "s"} awaiting review
-                    </p>
-                    <p className="text-[11px] text-destructive/80 font-body leading-snug">
-                      Edits to already-live campaigns — approve or reject now.
-                    </p>
-                  </div>
-                  <ChevronRight className="size-4 text-destructive shrink-0" />
-                </SurfaceCard>
-              </button>
-            )}
+                ) : (
+                  <span className="inline-flex size-2 rounded-full bg-muted-foreground/40 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`font-display text-[13.5px] leading-tight ${
+                      revisionCount > 0 ? "text-destructive" : ""
+                    }`}
+                  >
+                    Offer revisions{revisionCount > 0 ? ` · ${revisionCount} awaiting review` : ""}
+                  </p>
+                  <p
+                    className={`text-[11px] font-body leading-snug ${
+                      revisionCount > 0 ? "text-destructive/80" : "text-muted-foreground"
+                    }`}
+                  >
+                    {revisionCount > 0
+                      ? "Edits to already-live campaigns — approve or reject now."
+                      : "No pending edits to live campaigns."}
+                  </p>
+                </div>
+                <ChevronRight
+                  className={`size-4 shrink-0 ${
+                    revisionCount > 0 ? "text-destructive" : "text-muted-foreground"
+                  }`}
+                />
+              </SurfaceCard>
+            </button>
+
           </>
         )}
 
