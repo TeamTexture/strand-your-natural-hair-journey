@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
+import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
