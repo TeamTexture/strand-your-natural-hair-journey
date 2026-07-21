@@ -100,11 +100,14 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
         if (den) hairBits.push(`${den} density`);
         if (por) hairBits.push(`${por} porosity`);
 
+        const locBits = [p?.postcode, p?.country].filter(Boolean) as string[];
         out[id] = {
           firstName,
           hairSummary: hairBits.length ? hairBits.join(" · ") : "Hair profile pending",
           flaggedMarkers: flagged,
           goals: gs,
+          phone: (p?.phone_number as string | null) ?? null,
+          location: locBits.length ? locBits.join(" · ") : null,
         };
       }
 
