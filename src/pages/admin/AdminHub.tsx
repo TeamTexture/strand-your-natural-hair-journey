@@ -32,6 +32,9 @@ interface Stats {
   activePaidMembers: number;
   complimentaryMembers: number;
   viewsLast7d: number;
+  liveBrands: number;
+  liveBrandOffers: number;
+  brandOfferRequests: number;
 }
 
 interface ActivityRow {
