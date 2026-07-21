@@ -345,7 +345,12 @@ const BrandCreateOffer = () => {
       toast.success(asDraft ? "Saved as draft" : "Submitted for review");
       nav("/brand");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      console.error("Brand offer save failed", e);
+      const msg =
+        (e as { message?: string; error_description?: string; hint?: string })?.message ||
+        (e as { error_description?: string })?.error_description ||
+        "Save failed";
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
