@@ -175,6 +175,11 @@ const GoalEditorSheet = ({
       };
       await upsertGoal(savedGoal, goal?.id);
       toast.success(goal ? "Goal updated" : "Goal saved");
+      // Queue the Hello Klean member-perk prompt for the next Home visit.
+      // Home decides whether to actually show it, based on the user's
+      // postcode (hard/very-hard water only) and whether it has already
+      // been shown/unlocked.
+      queueHelloKleanPrompt(user?.id);
       onOpenChange(false);
       // Fire the AI tip popup with the fresh goal + full user context.
       void fetchTip({
