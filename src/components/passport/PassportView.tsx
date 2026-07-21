@@ -56,6 +56,9 @@ interface ImagePreviewState {
 }
 const ImagePreviewContext = createContext<((preview: ImagePreviewState) => void) | null>(null);
 
+type PassportProduct = Record<string, unknown> & { id: string; name: string };
+const OpenProductContext = createContext<((p: PassportProduct) => void) | null>(null);
+
 const logView = async (consumerId: string, section: Section) => {
   try { await supabase.functions.invoke("passport-view-log", { body: { consumer_id: consumerId, section } }); } catch { /* best-effort */ }
 };
