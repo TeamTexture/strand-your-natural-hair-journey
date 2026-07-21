@@ -151,16 +151,37 @@ const ProLanding = () => {
         {!submittedPending && !rejected && (
           <>
             <SurfaceCard className="!p-5 space-y-3">
-              <p className="font-display italic text-[15px] text-foreground leading-relaxed">
-                Join a hand-vetted directory of practitioners championing textured hair.
+              <p className="font-body text-[14px] text-foreground leading-relaxed">
+                Join a hand-vetted directory of practitioners championing textured hair — and get matched with serious, informed clients who are already invested in their journey.
               </p>
-              <ul className="text-[13px] font-body text-foreground/80 space-y-1.5 pt-1">
-                <li>· Featured in the STRAND directory</li>
-                <li>· Receive enquiries with pre-populated client context</li>
-                <li>· Access consented client passports</li>
-                <li>· Profile, offers, photos</li>
+              <p className="text-[10px] font-body font-bold uppercase tracking-[0.18em] text-primary pt-1">
+                What you get
+              </p>
+              <ul className="text-[13px] font-body text-foreground/85 space-y-2">
+                <li>
+                  <span className="font-semibold text-foreground">A featured listing</span> in the STRAND directory — seen by paying members actively searching for a practitioner.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Serious, ready-to-book clients</span> — everyone on STRAND is a paying member committed to their hair care journey, not casual browsers.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Enquiries with full context</span> — no cold emails. Each enquiry arrives with the client's goals, hair type, concerns and history already attached.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">The client passport</span> — with consent, view their complete profile: bio, hair and health profile, colour and chemical history, blood work, current products and tools, wash-day patterns, appointment log and progress photos.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Better consultations, less guesswork</span> — arrive to every appointment already knowing the client's story, so your chair time is spent on the work, not the intake.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Your professional page</span> — bio, discipline, location, portfolio photos and bookable offers, all curated on-brand.
+                </li>
+                <li>
+                  <span className="font-semibold text-foreground">Council recognition</span> — a hand-vetted mark of trust that signals you're one of the practitioners STRAND stands behind.
+                </li>
               </ul>
             </SurfaceCard>
+
 
             <Button
               variant="gold"
