@@ -27,18 +27,32 @@ const Index = () => {
     if (loading || !user) return;
     setChecking(true);
     (async () => {
-      const [{ data: profile }, { data: roleRows }] = await Promise.all([
+      const [{ data: profile }, { data: roleRows }, { data: proApp }] = await Promise.all([
         supabase
           .from("profiles")
           .select("onboarding_completed_at, display_name")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase
+          .from("pro_applications")
+          .select("id, status")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
       const roles = (roleRows ?? []).map((r) => r.role as string);
       const hasConsumer = roles.includes("consumer");
       const hasPro = roles.includes("professional");
       const hasAdmin = roles.includes("admin");
+
+      // Pro-intent shortcut: applicants (not yet approved) skip consumer
+      // onboarding entirely and land on the pro landing screen.
+      if (proApp && !hasPro && !hasAdmin) {
+        navigate("/pro/landing", { replace: true });
+        return;
+      }
 
       const consumerPath = profile?.onboarding_completed_at
         ? "/home"
@@ -50,7 +64,7 @@ const Index = () => {
       if (hasPro)
         dests.push({ path: "/pro", label: "Professional dashboard", sub: "Clients & enquiries" });
       if (hasAdmin)
-        dests.push({ path: "/admin/applications", label: "Admin dashboard", sub: "Applications, members & settings" });
+        dests.push({ path: "/admin", label: "Admin dashboard", sub: "Applications, members & settings" });
 
       if (dests.length === 0) dests.push({ path: consumerPath, label: "Enter STRAND", sub: "Your personal hair journal" });
 
@@ -62,7 +76,7 @@ const Index = () => {
       }
       setChecking(false);
     })();
-  }, [loading, user]);
+  }, [loading, user, navigate]);
 
   if (loading || (user && checking)) return <LoadingDot />;
 

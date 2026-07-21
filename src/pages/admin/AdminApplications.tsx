@@ -44,10 +44,13 @@ const AdminApplications = () => {
   const { data: apps = [], isLoading } = useQuery({
     queryKey: ["admin", "pro_applications", tab],
     queryFn: async () => {
+      // Only surface applications where payment has been confirmed —
+      // unpaid drafts stay hidden from admins until the applicant pays.
       const { data, error } = await supabase
         .from("pro_applications")
         .select("*")
         .eq("status", tab)
+        .not("payment_confirmed_at", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Application[];
@@ -89,6 +92,11 @@ const AdminApplications = () => {
         return;
       }
       const { data: me } = await supabase.auth.getUser();
+      const { data: appRow } = await supabase
+        .from("pro_applications")
+        .select("user_id")
+        .eq("id", id)
+        .maybeSingle();
       const { error } = await supabase
         .from("pro_applications")
         .update({
@@ -99,6 +107,18 @@ const AdminApplications = () => {
         })
         .eq("id", id);
       if (error) throw error;
+      // On rejection, auto-cancel the applicant's Stripe subscription so
+      // they don't keep paying after being declined. Fire-and-forget: if
+      // it fails we still complete the rejection.
+      if (status === "rejected" && appRow?.user_id) {
+        try {
+          await supabase.functions.invoke("pro-cancel-subscription", {
+            body: { user_id: appRow.user_id, immediate: false },
+          });
+        } catch (err) {
+          console.error("pro-cancel-subscription on reject failed", err);
+        }
+      }
     },
     onSuccess: (_d, vars) => {
       toast.success(`Application ${vars.status}.`);

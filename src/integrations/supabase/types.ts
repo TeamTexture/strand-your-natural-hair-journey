@@ -618,11 +618,13 @@ export type Database = {
           insurance_policy_no: string | null
           insurance_provider: string | null
           location: string | null
+          payment_confirmed_at: string | null
           postcode: string | null
           qualifications: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: Database["public"]["Enums"]["pro_application_status"]
+          stripe_checkout_session_id: string | null
           updated_at: string
           user_id: string | null
           website_url: string | null
@@ -641,11 +643,13 @@ export type Database = {
           insurance_policy_no?: string | null
           insurance_provider?: string | null
           location?: string | null
+          payment_confirmed_at?: string | null
           postcode?: string | null
           qualifications?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["pro_application_status"]
+          stripe_checkout_session_id?: string | null
           updated_at?: string
           user_id?: string | null
           website_url?: string | null
@@ -664,11 +668,13 @@ export type Database = {
           insurance_policy_no?: string | null
           insurance_provider?: string | null
           location?: string | null
+          payment_confirmed_at?: string | null
           postcode?: string | null
           qualifications?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["pro_application_status"]
+          stripe_checkout_session_id?: string | null
           updated_at?: string
           user_id?: string | null
           website_url?: string | null

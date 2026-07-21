@@ -14,7 +14,8 @@ export function usePendingApplicationsCount() {
       const { count, error } = await supabase
         .from("pro_applications")
         .select("id", { count: "exact", head: true })
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .not("payment_confirmed_at", "is", null);
       if (error) throw error;
       return count ?? 0;
     },
