@@ -182,6 +182,34 @@ const AdminBrandOfferReview = () => {
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [heroOpen, setHeroOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [submitterName, setSubmitterName] = useState<string | null>(null);
+
+  const ownerType: OwnerType = ((offer as { owner_type?: string | null } | undefined)?.owner_type === "pro" ? "pro" : "brand");
+  const brandUserId = (offer as { brand_user_id?: string | null } | undefined)?.brand_user_id ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!brandUserId) { setSubmitterName(null); return; }
+    (async () => {
+      if (ownerType === "pro") {
+        const { data } = await supabase
+          .from("pro_profiles")
+          .select("display_name")
+          .eq("user_id", brandUserId)
+          .maybeSingle();
+        if (!cancelled) setSubmitterName((data as { display_name?: string } | null)?.display_name ?? "Professional");
+      } else {
+        const { data } = await supabase
+          .from("brand_profiles")
+          .select("brand_name")
+          .eq("user_id", brandUserId)
+          .maybeSingle();
+        if (!cancelled) setSubmitterName((data as { brand_name?: string } | null)?.brand_name ?? "Brand");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [brandUserId, ownerType]);
+
 
 
   useEffect(() => {
