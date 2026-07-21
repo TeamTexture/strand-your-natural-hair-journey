@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
+import { useProSubscription } from "@/hooks/useProSubscription";
 import { Sparkles, Image as ImageIcon, Trash2, Loader2, Plus, Search, PackagePlus, Wrench } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
