@@ -269,7 +269,7 @@ const ProClientPassport = () => {
                 <SurfaceCard key={g.id}>
                   <p className="text-sm font-body font-semibold">{g.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">
-                    {g.status ?? "active"}{g.target_metric ? ` · ${g.target_metric}` : ""}
+                    {g.status ?? "active"}{g.target_text ? ` · ${g.target_text}` : ""}
                   </p>
                 </SurfaceCard>
               ))
