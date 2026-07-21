@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Check, X, Pause } from "lucide-react";
+import { Check, X, Pause, ExternalLink, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -10,7 +10,9 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
