@@ -209,7 +209,7 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
       m.set(u.goal_id, arr);
     });
     return m;
-  }, [d.goalUpdates]);
+  }, [d, d.goalUpdates]);
 
   return (
     <>
@@ -364,7 +364,7 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
       m.set(key, arr);
     });
     return m;
-  }, [d.bloodResults]);
+  }, [d, d.bloodResults]);
 
   return (
     <>
@@ -506,12 +506,12 @@ const WashSection = ({ d }: { d: PassportDataset }) => {
     const m = new Map<string, PassportDataset["shelf"][number]>();
     d.shelf.forEach(p => m.set(p.id, p));
     return m;
-  }, [d.shelf]);
+  }, [d, d.shelf]);
   const productPhotoByKey = useMemo(() => {
     const m = new Map<string, string>();
     d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
     return m;
-  }, [d.productPhotos]);
+  }, [d, d.productPhotos]);
 
   const ProductRow = ({ productId }: { productId: string }) => {
     const p = productsById.get(productId);
@@ -632,7 +632,7 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
     const m = new Map<string, string>();
     d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
     return m;
-  }, [d.productPhotos]);
+  }, [d, d.productPhotos]);
   const notesByKey = useMemo(() => {
     const m = new Map<string, typeof d.productVoicenotes>();
     d.productVoicenotes.forEach(v => {
@@ -642,7 +642,7 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
       m.set(v.product_key, arr);
     });
     return m;
-  }, [d.productVoicenotes]);
+  }, [d, d.productVoicenotes]);
 
   return (
     <PaginatedList
@@ -697,7 +697,7 @@ const AppointmentsSection = ({ d }: { d: PassportDataset }) => {
       m.set(p.appointment_id, arr);
     });
     return m;
-  }, [d.appointmentPhotos]);
+  }, [d, d.appointmentPhotos]);
 
   return (
     <PaginatedList
@@ -829,7 +829,7 @@ const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
       m.set(img.board_id, arr);
     });
     return m;
-  }, [d.moodboardImages]);
+  }, [d, d.moodboardImages]);
 
   if (d.moodboards.length === 0) return <EmptyCard msg="No moodboards." />;
   return (
