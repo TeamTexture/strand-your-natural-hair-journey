@@ -1111,9 +1111,9 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
                         const p = productsById.get(id);
                         if (!p) return null;
                         return (
-                          <Collapsible key={id} summary={renderProductRow(p)}>
-                            <ProductInner p={p} />
-                          </Collapsible>
+                          <SurfaceCard key={id} className="py-2.5">
+                            {renderProductRow(p)}
+                          </SurfaceCard>
                         );
                       })}
                     </div>
