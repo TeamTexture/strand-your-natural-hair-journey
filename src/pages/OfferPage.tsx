@@ -73,7 +73,7 @@ const OfferPage = () => {
     if (!user) return;
     setAnalysingId(productId);
     try {
-      const ctx = await buildAiContext(user.id);
+      const ctx = await buildAiContext();
       const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
         body: {
           productName: product.name,
