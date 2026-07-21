@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Droplets, Flower2, HeartPulse, ExternalLink, Copy, Sparkles, Scissors } from "lucide-react";
-import { toast } from "sonner";
+import { Droplets, Flower2, HeartPulse, ExternalLink, Sparkles, Scissors } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
+import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { Button } from "@/components/ui/button";
 import {
   HELLO_KLEAN_URL, HELLO_KLEAN_CODE,
