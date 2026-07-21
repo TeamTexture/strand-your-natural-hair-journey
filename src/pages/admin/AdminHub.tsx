@@ -341,6 +341,52 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/brand-offers?filter=pending")}
               />
             </div>
+            <button
+              type="button"
+              onClick={() => nav("/admin/brand-offers?filter=pending")}
+              className="w-full text-left transition-transform active:scale-[0.99]"
+            >
+              <SurfaceCard
+                className={`py-3 flex items-center gap-3 ${
+                  revisionCount > 0
+                    ? "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40"
+                    : ""
+                }`}
+              >
+                {revisionCount > 0 ? (
+                  <span className="relative flex size-2 shrink-0">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-70 animate-ping" />
+                    <span className="relative inline-flex size-2 rounded-full bg-destructive" />
+                  </span>
+                ) : (
+                  <span className="inline-flex size-2 rounded-full bg-muted-foreground/40 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`font-display text-[13.5px] leading-tight ${
+                      revisionCount > 0 ? "text-destructive" : ""
+                    }`}
+                  >
+                    Offer revisions{revisionCount > 0 ? ` · ${revisionCount} awaiting review` : ""}
+                  </p>
+                  <p
+                    className={`text-[11px] font-body leading-snug ${
+                      revisionCount > 0 ? "text-destructive/80" : "text-muted-foreground"
+                    }`}
+                  >
+                    {revisionCount > 0
+                      ? "Edits to already-live campaigns — approve or reject now."
+                      : "No pending edits to live campaigns."}
+                  </p>
+                </div>
+                <ChevronRight
+                  className={`size-4 shrink-0 ${
+                    revisionCount > 0 ? "text-destructive" : "text-muted-foreground"
+                  }`}
+                />
+              </SurfaceCard>
+            </button>
+
             {revisionCount > 0 && (
               <button
                 type="button"
