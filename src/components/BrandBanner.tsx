@@ -88,11 +88,19 @@ const BrandBanner = ({ slot }: Props) => {
     nav(`/offers/${offer.id}?slot=${slot}`);
   };
 
+  const toggleExpand = () => {
+    setExpanded((v) => {
+      const next = !v;
+      if (next) logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+      return next;
+    });
+  };
+
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={toggleExpand}
         className={`w-full text-left overflow-hidden border border-primary/20 bg-card ${expanded ? "rounded-t-[14px] border-b-0" : "rounded-[14px]"}`}
       >
         <div className="relative" style={{ height: 80 }}>
