@@ -359,6 +359,7 @@ const BrandProductPage = () => {
         const existing = findExistingTool();
         if (existing) {
           toast.success("Already on your wishlist");
+          nav("/products/wishlist");
           return;
         }
         const insertRow = {
@@ -394,12 +395,14 @@ const BrandProductPage = () => {
       }
       logStat.mutate({ offer_id: offer.id, slot, kind: "wishlist_adds" });
       toast.success("Added to your wishlist");
+      nav("/products/wishlist");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not add to wishlist");
     } finally {
       setBusy(false);
     }
   };
+
 
   const openExternal = () => {
     if (!offer || !product?.external_url) return;
