@@ -203,7 +203,7 @@ const AdminMembers = () => {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name or id…"
+            placeholder="Search name, email or id…"
             className="pl-9"
           />
         </div>
