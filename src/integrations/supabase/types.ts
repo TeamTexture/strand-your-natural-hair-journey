@@ -786,6 +786,33 @@ export type Database = {
           },
         ]
       }
+      pro_client_notes: {
+        Row: {
+          consumer_id: string
+          created_at: string
+          id: string
+          note: string
+          pro_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          consumer_id: string
+          created_at?: string
+          id?: string
+          note: string
+          pro_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          consumer_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+          pro_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pro_enquiries: {
         Row: {
           consumer_id: string
