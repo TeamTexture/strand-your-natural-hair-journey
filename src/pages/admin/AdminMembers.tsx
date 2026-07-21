@@ -244,6 +244,27 @@ const AdminMembers = () => {
     return list;
   }, [rows, q, filter, sort]);
 
+  const { data: incompleteRows = [], isLoading: incompleteLoading } = useIncompleteMembers();
+
+  const filteredIncomplete = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    const list = t
+      ? incompleteRows.filter(
+          (r) =>
+            (r.display_name ?? "").toLowerCase().includes(t) ||
+            (r.email ?? "").toLowerCase().includes(t) ||
+            r.user_id.includes(t),
+        )
+      : incompleteRows;
+    if (sort === "most_active") {
+      return [...list].sort((a, b) => {
+        if (b.sessions_last_30d !== a.sessions_last_30d) return b.sessions_last_30d - a.sessions_last_30d;
+        return b.session_count - a.session_count;
+      });
+    }
+    return list;
+  }, [incompleteRows, q, sort]);
+
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "All" },
     {
@@ -254,6 +275,7 @@ const AdminMembers = () => {
       ).length,
     },
     { key: "complimentary", label: "Complimentary", count: rows.filter((r) => r.complimentary_access).length },
+    { key: "incomplete", label: "Incomplete", count: incompleteRows.length },
     { key: "restricted", label: "Restricted", count: rows.filter((r) => r.access_restricted).length },
   ];
 
