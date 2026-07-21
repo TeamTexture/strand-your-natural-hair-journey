@@ -10,7 +10,9 @@ import {
   FileText,
   Eye,
   Mail,
+  Sparkles,
 } from "lucide-react";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -242,6 +244,15 @@ const AdminHub = () => {
             onClick={() => nav("/admin/applications")}
           />
           <NavCard
+            icon={Sparkles}
+            title="Professionals"
+            description="Usage, enquiries and client access per pro"
+            context={
+              stats ? `${stats.livePros} live · ${stats.activeProSubs} subscribed` : undefined
+            }
+            onClick={() => nav("/admin/professionals")}
+          />
+          <NavCard
             icon={Users}
             title="Members"
             description="Subscriptions and complimentary access"
@@ -250,6 +261,7 @@ const AdminHub = () => {
             }
             onClick={() => nav("/admin/members")}
           />
+
           <NavCard
             icon={ScrollText}
             title="Audit trail"

@@ -127,7 +127,9 @@ const GlobalMenu = () => {
   const ADMIN_NAV: NavItem[] = [
     { label: "Overview", to: "/admin", icon: LayoutDashboard },
     { label: "Applications", to: "/admin/applications", icon: ClipboardList, badge: pendingApplicationsCount },
+    { label: "Professionals", to: "/admin/professionals", icon: Sparkles },
     { label: "Members", to: "/admin/members", icon: Users },
+
     { label: "Audit trail", to: "/admin/audit", icon: FileText },
     { label: "Settings", to: "/admin/settings", icon: Settings },
   ];

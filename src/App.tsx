@@ -12,6 +12,8 @@ import Subscribe from "./pages/Subscribe";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminMemberPassport from "./pages/admin/AdminMemberPassport";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminProfessionals from "./pages/admin/AdminProfessionals";
+
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
@@ -293,7 +295,9 @@ const App = () => (
               <Route path="/admin/members" element={<RoleGate allow={["admin"]}><AdminMembers /></RoleGate>} />
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />
               <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
+              <Route path="/admin/professionals" element={<RoleGate allow={["admin"]}><AdminProfessionals /></RoleGate>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
               <Route path="*" element={<NotFound />} />
                 </Routes>
                 </AccessRestrictedGate>
