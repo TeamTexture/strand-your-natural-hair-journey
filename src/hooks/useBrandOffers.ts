@@ -358,6 +358,29 @@ export function useOffersWithPendingRevisions(offerIds: string[]) {
   });
 }
 
+/** Revision counts (any status) per offer id — for "Revised · N" badges on lists. */
+export function useOfferRevisionCounts(offerIds: string[]) {
+  const key = [...offerIds].sort().join(",");
+  return useQuery({
+    queryKey: ["brand-offers-revision-counts", key],
+    enabled: offerIds.length > 0,
+    staleTime: 30_000,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { in: (c: string, v: string[]) => Promise<{ data: Array<{ offer_id: string }> | null; error: { message: string } | null }> };
+        };
+      };
+      const { data, error } = await client.from("brand_offer_revisions").select("offer_id").in("offer_id", offerIds);
+      if (error) throw new Error(error.message);
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((r) => { counts[r.offer_id] = (counts[r.offer_id] ?? 0) + 1; });
+      return counts;
+    },
+  });
+}
+
+
 export function useSubmitBrandOfferRevision() {
   const qc = useQueryClient();
   return useMutation({
