@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink } from "lucide-react";
+import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -13,7 +13,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus } from "@/hooks/useBrandOffers";
+import {
+  useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
+  usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision,
+} from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
