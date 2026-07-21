@@ -79,8 +79,11 @@ const PRO_NAV: NavItem[] = [
 ];
 
 
-// Hide menu on splash, auth and onboarding flows.
-const HIDDEN_PREFIXES = ["/auth", "/onboarding", "/walkthrough", "/setup", "/.lovable"];
+// Hide menu on splash and auth. Onboarding/walkthrough/setup keep the top
+// bar so users always have a back button and a way to sign out — otherwise
+// they can get stranded on step 1 with no exit.
+const HIDDEN_PREFIXES = ["/auth", "/.lovable"];
+const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup"];
 
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
