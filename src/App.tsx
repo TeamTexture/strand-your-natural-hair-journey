@@ -124,7 +124,18 @@ import Help from "./pages/Help";
 import Contact from "./pages/Contact";
 import OAuthConsent from "./pages/OAuthConsent";
 
-const queryClient = new QueryClient();
+// Global react-query defaults — Home (and every other screen) relies on
+// queries NOT quietly refetching under the user while they're reading. Any
+// hook that legitimately needs polling or focus-refresh opts in explicitly.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchInterval: false,
+    },
+  },
+});
 
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;

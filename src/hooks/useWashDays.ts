@@ -20,7 +20,8 @@ export interface WashDay {
   created_at: string;
 }
 
-export function useWashDays() {
+export function useWashDays(opts?: { static?: boolean }) {
+  const isStatic = !!opts?.static;
   const { user } = useAuth();
   const [washDays, setWashDays] = useState<WashDay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +43,9 @@ export function useWashDays() {
 
   // Realtime — keep the list (and thus the calendar + monthly count) in sync
   // whenever the user inserts/updates/deletes a wash day in any tab.
+  // Skipped in `static` mode (Home): the list loads once on mount and holds.
   useEffect(() => {
-    if (!user) return;
+    if (!user || isStatic) return;
     const channel = supabase
       .channel(`wash_days:${user.id}`)
       .on(
@@ -53,7 +55,7 @@ export function useWashDays() {
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [user, load]);
+  }, [user, load, isStatic]);
 
   const last = washDays[0] ?? null;
   const daysSinceLast = last
