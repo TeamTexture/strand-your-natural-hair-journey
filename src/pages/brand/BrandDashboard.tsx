@@ -81,7 +81,7 @@ const BrandDashboard = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={profile?.brand_name ?? "Brand"} subtitle="Brand dashboard" onBack={() => nav("/")} />
+      <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} onBack={() => nav("/")} />
       <div className="px-5 pb-8 space-y-5">
         <Button variant="gold" size="pill" onClick={() => nav("/brand/offers/new")} className="w-full">
           <Plus className="size-4 mr-1.5" /> Create new offer
