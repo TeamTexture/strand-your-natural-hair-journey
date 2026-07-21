@@ -32,7 +32,17 @@ const BrandOfferDetail = () => {
   const [paying, setPaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const [heroOpen, setHeroOpen] = useState(false);
   const deleteOffer = useDeleteBrandOffer();
+
+  useEffect(() => {
+    if (!offer?.hero_image_path) { setHeroUrl(null); return; }
+    let cancelled = false;
+    supabase.storage.from("brand-assets").createSignedUrl(offer.hero_image_path, 60 * 60)
+      .then(({ data }) => { if (!cancelled) setHeroUrl(data?.signedUrl ?? null); });
+    return () => { cancelled = true; };
+  }, [offer?.hero_image_path]);
 
   if (isLoading || !offer) return <LoadingDot />;
 
