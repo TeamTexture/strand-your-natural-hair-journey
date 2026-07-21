@@ -85,12 +85,13 @@ function useProOffersForConsumer() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pro_offers")
-        .select("id, title, description, code, external_url, pro_user_id, ends_at, pro_profiles!inner(display_name)")
-        .eq("is_active", true)
-        .or("ends_at.is.null,ends_at.gte." + new Date().toISOString())
-        .or("starts_at.is.null,starts_at.lte." + new Date().toISOString());
+        .select("id, title, description, code, pro_user_id, ends_at, starts_at, pro_profiles!inner(display_name)")
+        .eq("is_active", true);
       if (error) throw error;
-      return data ?? [];
+      const now = Date.now();
+      return (data ?? []).filter((o) =>
+        (!o.starts_at || new Date(o.starts_at).getTime() <= now) &&
+        (!o.ends_at || new Date(o.ends_at).getTime() >= now));
     },
   });
 }
@@ -120,8 +121,8 @@ const Discounts = () => {
                 tagline={o.title}
                 blurb={o.description ?? "Offer from a STRAND Council professional."}
                 code={o.code ?? ""}
-                url={o.external_url ?? ""}
-                cta="Open offer"
+                url=""
+                cta=""
               />
             ))}
           </>
