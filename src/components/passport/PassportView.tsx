@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { usePassportData, type PassportDataset } from "./usePassportData";
 import SignedImage from "./SignedImage";
+import { lookupHardWater } from "@/lib/hardWater";
 
 type Section =
   | "overview" | "blood" | "colour" | "wash" | "journal" | "shelf"
