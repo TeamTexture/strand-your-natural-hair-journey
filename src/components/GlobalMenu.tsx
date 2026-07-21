@@ -83,6 +83,11 @@ const PRO_NAV: NavItem[] = [
 
   { label: "Billing", to: "/pro/billing", icon: CreditCard },
 ];
+const BRAND_NAV: NavItem[] = [
+  { label: "Dashboard", to: "/brand", icon: LayoutDashboard },
+  { label: "Create offer", to: "/brand/offers/new", icon: Megaphone },
+];
+
 
 
 
@@ -94,7 +99,7 @@ const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup"];
 
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
-  const { isConsumer, isProfessional, isAdmin } = useRoles();
+  const { isConsumer, isProfessional, isAdmin, isBrand } = useRoles();
   const { isActive: proSubActive } = useProSubscription();
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const { isRestricted } = useAccessRestricted();
@@ -114,19 +119,22 @@ const GlobalMenu = () => {
   const isOnboarding = ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p));
 
   const path = location.pathname;
-  const activeView: "consumer" | "pro" | "admin" = path.startsWith("/admin")
+  const activeView: "consumer" | "pro" | "admin" | "brand" = path.startsWith("/admin")
     ? "admin"
-    : path.startsWith("/pro")
-      ? "pro"
-      : "consumer";
+    : path.startsWith("/brand")
+      ? "brand"
+      : path.startsWith("/pro")
+        ? "pro"
+        : "consumer";
 
-  const roleCount = [isConsumer, isProfessional, isAdmin].filter(Boolean).length;
+  const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
   const showViewSwitcher = roleCount > 1;
 
   const viewMeta = {
     consumer: { label: "My STRAND", icon: HomeIcon, to: "/home" },
     pro: { label: "Professional", icon: Briefcase, to: "/pro" },
     admin: { label: "Admin", icon: ShieldCheck, to: "/admin" },
+    brand: { label: "Brand", icon: Store, to: "/brand" },
   } as const;
 
   const ActiveIcon = viewMeta[activeView].icon;
@@ -136,6 +144,8 @@ const GlobalMenu = () => {
     { label: "Applications", to: "/admin/applications", icon: ClipboardList, badge: pendingApplicationsCount },
     { label: "Professionals", to: "/admin/professionals", icon: Sparkles },
     { label: "Members", to: "/admin/members", icon: Users },
+    { label: "Brand offers", to: "/admin/brand-offers", icon: Megaphone },
+    { label: "Booking calendar", to: "/admin/brand-calendar", icon: CalendarIcon },
 
     { label: "Audit trail", to: "/admin/audit", icon: FileText },
     { label: "Settings", to: "/admin/settings", icon: Settings },
@@ -155,9 +165,11 @@ const GlobalMenu = () => {
   const navItems: NavItem[] =
     activeView === "admin"
       ? ADMIN_NAV
-      : activeView === "pro"
-        ? PRO_NAV
-        : CONSUMER_NAV;
+      : activeView === "brand"
+        ? BRAND_NAV
+        : activeView === "pro"
+          ? PRO_NAV
+          : CONSUMER_NAV;
 
 
 
