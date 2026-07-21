@@ -144,7 +144,19 @@ const Directory = () => {
             hint="Try a postcode, name, or specialism."
           />
         ) : (
-          results.map((p) => (
+          results.map((p) => {
+            const enq = p.proUserId ? enquiryByPro.get(p.proUserId) : undefined;
+            const activeEnq = enq && enq.status !== "withdrawn" && enq.status !== "declined";
+            const enqLabel =
+              enq?.status === "accepted" ? "Accepted"
+              : enq?.status === "pending" ? "Enquiry sent"
+              : enq?.status === "declined" ? "Declined"
+              : "Withdrawn";
+            const enqCls =
+              enq?.status === "accepted" ? "bg-good/15 text-good"
+              : enq?.status === "pending" ? "bg-warn/15 text-warn"
+              : "bg-muted text-muted-foreground";
+            return (
             <SurfaceCard key={p.id} padded={false} className="overflow-hidden">
               <div className="p-4">
                 <div className="flex gap-3">
