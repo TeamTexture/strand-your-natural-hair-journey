@@ -11,6 +11,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import CountdownClock from "@/components/brand/CountdownClock";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -193,6 +194,9 @@ const AdminBrandOffers = () => {
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <StatusPill status={o._derived} />
+              {(o._derived === "live" || o._derived === "upcoming") && (
+                <CountdownClock offer={o} />
+              )}
               {pendingRevSet.has(o.id) ? (
                 <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-body font-medium">
                   Revision pending
