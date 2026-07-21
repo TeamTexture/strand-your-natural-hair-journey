@@ -15,15 +15,17 @@ export type ProSubscription = {
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
 export function useProSubscription() {
-  const { user } = useAuth();
+  // Pro subscription is a property of the REAL signed-in professional, not
+  // any consumer they may be "viewing as".
+  const { actualUser } = useAuth();
   const q = useQuery({
-    queryKey: ["pro_subscription", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["pro_subscription", actualUser?.id],
+    enabled: !!actualUser?.id,
     queryFn: async (): Promise<ProSubscription | null> => {
       const { data, error } = await supabase
         .from("pro_subscriptions")
         .select("*")
-        .eq("pro_user_id", user!.id)
+        .eq("pro_user_id", actualUser!.id)
         .maybeSingle();
       if (error) throw error;
       return (data as ProSubscription | null) ?? null;

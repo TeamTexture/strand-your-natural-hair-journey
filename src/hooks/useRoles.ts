@@ -7,16 +7,19 @@ export type AppRole = Database["public"]["Enums"]["app_role"];
 
 /** Fetches the current user's role set. Cached — role changes are rare. */
 export function useRoles() {
-  const { user, loading: authLoading } = useAuth();
+  // Roles must always reflect the REAL signed-in user, not any view-as target,
+  // so the role switcher, admin gates, and pro/brand access remain correct
+  // when an admin is impersonating another account.
+  const { actualUser, loading: authLoading } = useAuth();
   const q = useQuery({
-    queryKey: ["user-roles", user?.id],
-    enabled: !!user,
+    queryKey: ["user-roles", actualUser?.id],
+    enabled: !!actualUser,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<AppRole[]> => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user!.id);
+        .eq("user_id", actualUser!.id);
       if (error) throw error;
       return (data ?? []).map((r) => r.role);
     },
