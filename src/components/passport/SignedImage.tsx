@@ -34,19 +34,24 @@ const SignedImage = ({ bucket, path, alt = "", className, onClick }: Props) => {
   }, [bucket, path]);
 
   if (!path) return null;
-  const content = (
-    <div className={cn("relative bg-muted rounded-md overflow-hidden", onClick && "cursor-zoom-in", className)}>
+  return (
+    <div
+      className={cn("relative bg-muted rounded-md overflow-hidden", onClick && "cursor-zoom-in", className)}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick(url); } : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onClick(url);
+        }
+      } : undefined}
+      aria-label={onClick ? (alt ? `Open ${alt}` : "Open image") : undefined}
+    >
       {url && <img src={url} alt={alt} className="w-full h-full object-cover" loading="lazy" />}
     </div>
   );
-  if (onClick) {
-    return (
-      <button type="button" className="block w-full text-left" onClick={() => onClick(url)} aria-label={alt ? `Open ${alt}` : "Open image"}>
-        {content}
-      </button>
-    );
-  }
-  return content;
 };
 
 export default SignedImage;
