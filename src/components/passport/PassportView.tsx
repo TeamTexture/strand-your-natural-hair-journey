@@ -1768,8 +1768,144 @@ const sectionSub: Record<Section, string> = {
 };
 
 
+// ================================================================
+// Product detail — full-page view opened when a product row is tapped.
+// Mirrors the consumer product page (image, name, brand, chips,
+// ingredients, voicenotes, photos) but is read-only.
+// ================================================================
+const PassportProductDetail = ({ product, data, onBack, mode }: {
+  product: PassportProduct;
+  data: PassportDataset;
+  onBack: () => void;
+  mode: "pro" | "admin";
+}) => {
+  const p = product as Record<string, unknown>;
+  const key = p.product_key as string | undefined;
+  const photoPath = (p.storage_path as string | null | undefined)
+    ?? data.productPhotos.find(x => x.product_key === key)?.storage_path
+    ?? null;
+  const extraPhotos = key
+    ? data.productPhotos.filter(x => x.product_key === key && x.storage_path && x.storage_path !== photoPath)
+    : [];
+  const voicenotes = key ? data.productVoicenotes.filter(v => v.product_key === key) : [];
+  const ingredients = Array.isArray(p.ingredients) ? (p.ingredients as unknown[]).map(String) : [];
+  const rating = p.rating as number | null | undefined;
+  const matchScore = p.match_score as number | null | undefined;
+  const aiSummary = p.ai_summary as string | null | undefined;
+  const category = humaniseValue(p.category);
+  const brand = humaniseValue(p.brand);
+  const status: { label: string; tone: "good" | "gold" | "neutral" | "warn" } =
+    p.on_favourite ? { label: "Favourite", tone: "gold" }
+    : p.on_shelf ? { label: "On shelf", tone: "good" }
+    : p.on_wishlist ? { label: "Wishlist", tone: "neutral" }
+    : { label: "Off shelf", tone: "warn" };
+
+  return (
+    <ScreenLayout>
+      <TitleBar title="Product" onBack={onBack} />
+      <div className="px-5 pt-3 pb-10 space-y-5 animate-fade-in">
+        <SurfaceCard>
+          <div className="flex items-start gap-3">
+            <Thumb
+              bucket="product-photos"
+              path={photoPath}
+              className="size-24 shrink-0 rounded-xl"
+              title={String(p.name ?? "Product image")}
+            />
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="font-display text-[19px] leading-[1.1] text-foreground break-words">{String(p.name ?? "Product")}</p>
+              {brand && <p className="text-[12px] text-muted-foreground font-body mt-1">{brand}{category ? ` · ${category}` : ""}</p>}
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                <Chip tone={status.tone}>{status.label}</Chip>
+                {rating != null && <Chip tone="gold">★ {String(rating)}</Chip>}
+                {matchScore != null && <Chip tone="gold">Match {String(matchScore)}</Chip>}
+                {typeof p.use_count === "number" && (p.use_count as number) > 0 && (
+                  <Chip tone="neutral">Used {String(p.use_count)}×</Chip>
+                )}
+              </div>
+            </div>
+          </div>
+        </SurfaceCard>
+
+        {aiSummary && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Summary</p>
+            <p className="text-[13px] font-body leading-relaxed text-foreground/90 whitespace-pre-line">{aiSummary}</p>
+          </SurfaceCard>
+        )}
+
+        {ingredients.length > 0 && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Ingredients</p>
+            <p className="text-[12.5px] font-body leading-relaxed text-foreground/85 break-words">{ingredients.join(", ")}</p>
+          </SurfaceCard>
+        )}
+
+        <SurfaceCard>
+          <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Details</p>
+          <HumanFields
+            obj={p}
+            exclude={[
+              "name", "brand", "category", "rating", "match_score", "ai_summary",
+              "ingredients", "off_shelf_voice_url", "storage_path", "image_url",
+              "product_key", "id", "user_id", "on_favourite", "on_shelf",
+              "on_wishlist", "previously_on_shelf", "use_count", "key_ingredients",
+              "analysis_profile_snapshot_hash", "analysis_generated_at",
+              "source_url",
+            ]}
+          />
+        </SurfaceCard>
+
+        {voicenotes.length > 0 && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Voice notes</p>
+            <div className="space-y-2">
+              {voicenotes.map(v => (
+                <div key={v.id} className="border-l-2 border-primary/30 pl-3">
+                  <p className="text-[11px] text-muted-foreground font-body">{formatDate(v.created_at)}</p>
+                  <AudioPlayer bucket="voicenotes" path={v.audio_url} transcript={v.transcript} />
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
+        )}
+
+        <AudioPlayer
+          bucket="voicenotes"
+          path={(p.off_shelf_voice_url as string | null) ?? null}
+          label="Off-shelf voice note"
+        />
+
+        {extraPhotos.length > 0 && (
+          <SurfaceCard>
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Photos</p>
+            <div className="grid grid-cols-3 gap-2">
+              {extraPhotos.map((ph, i) => (
+                <Thumb
+                  key={ph.id}
+                  bucket="product-photos"
+                  path={ph.storage_path}
+                  className="aspect-square rounded-lg"
+                  title={`Photo ${i + 1}`}
+                />
+              ))}
+            </div>
+          </SurfaceCard>
+        )}
+
+        {mode === "admin" && (
+          <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-body">Admin view · read only</p>
+        )}
+      </div>
+    </ScreenLayout>
+  );
+};
+
+
 const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("profile");
+  const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
+
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
