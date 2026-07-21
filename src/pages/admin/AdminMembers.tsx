@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Loader2, ShieldOff, ShieldCheck } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Search, Loader2, ShieldOff, ShieldCheck, Activity } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -33,6 +34,9 @@ interface MemberRow {
   subscription_status: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
+  session_count: number;
+  last_session: string | null;
+  sessions_last_30d: number;
 }
 
 function statusBadge(row: MemberRow) {
@@ -46,6 +50,13 @@ function statusBadge(row: MemberRow) {
 }
 
 type Filter = "all" | "active" | "complimentary" | "restricted";
+type SortKey = "recent" | "most_active";
+
+function activityLevel(sessions30d: number): "high" | "active" | null {
+  if (sessions30d >= 15) return "high";
+  if (sessions30d >= 5) return "active";
+  return null;
+}
 
 const AdminMembers = () => {
   const nav = useNavigate();
@@ -53,12 +64,13 @@ const AdminMembers = () => {
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<SortKey>("recent");
   const [restrictTarget, setRestrictTarget] = useState<MemberRow | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
     queryFn: async (): Promise<MemberRow[]> => {
-      const [profilesRes, subsRes, emailsRes] = await Promise.all([
+      const [profilesRes, subsRes, emailsRes, activityRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, display_name, complimentary_access, access_restricted, created_at")
@@ -68,10 +80,12 @@ const AdminMembers = () => {
           .from("consumer_subscriptions")
           .select("user_id, status, current_period_end, cancel_at_period_end"),
         supabase.rpc("admin_list_member_emails"),
+        supabase.rpc("admin_list_member_activity"),
       ]);
       if (profilesRes.error) throw profilesRes.error;
       if (subsRes.error) throw subsRes.error;
       if (emailsRes.error) throw emailsRes.error;
+      if (activityRes.error) throw activityRes.error;
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
           s.user_id,
@@ -88,17 +102,38 @@ const AdminMembers = () => {
           e.email,
         ]),
       );
-      return (profilesRes.data ?? []).map((p) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        email: emailMap.get(p.user_id) ?? null,
-        complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
-        access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
-        created_at: p.created_at,
-        subscription_status: subMap.get(p.user_id)?.subscription_status ?? null,
-        current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
-        cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
-      }));
+      const activityMap = new Map(
+        ((activityRes.data ?? []) as Array<{
+          user_id: string;
+          session_count: number | string;
+          last_session: string | null;
+          sessions_last_30d: number | string;
+        }>).map((a) => [
+          a.user_id,
+          {
+            session_count: Number(a.session_count) || 0,
+            last_session: a.last_session,
+            sessions_last_30d: Number(a.sessions_last_30d) || 0,
+          },
+        ]),
+      );
+      return (profilesRes.data ?? []).map((p) => {
+        const act = activityMap.get(p.user_id);
+        return {
+          user_id: p.user_id,
+          display_name: p.display_name,
+          email: emailMap.get(p.user_id) ?? null,
+          complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
+          access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
+          created_at: p.created_at,
+          subscription_status: subMap.get(p.user_id)?.subscription_status ?? null,
+          current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
+          cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
+          session_count: act?.session_count ?? 0,
+          last_session: act?.last_session ?? null,
+          sessions_last_30d: act?.sessions_last_30d ?? 0,
+        };
+      });
     },
   });
 
@@ -164,7 +199,7 @@ const AdminMembers = () => {
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       if (filter === "restricted" && !r.access_restricted) return false;
       if (filter === "complimentary" && !r.complimentary_access) return false;
       if (filter === "active") {
@@ -178,7 +213,16 @@ const AdminMembers = () => {
         r.user_id.includes(t)
       );
     });
-  }, [rows, q, filter]);
+    if (sort === "most_active") {
+      return [...list].sort((a, b) => {
+        if (b.sessions_last_30d !== a.sessions_last_30d) {
+          return b.sessions_last_30d - a.sessions_last_30d;
+        }
+        return b.session_count - a.session_count;
+      });
+    }
+    return list;
+  }, [rows, q, filter, sort]);
 
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "All" },
@@ -242,6 +286,32 @@ const AdminMembers = () => {
         </div>
       </div>
 
+      <div className="px-5 pt-3 flex items-center justify-between gap-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium">
+          Sort
+        </span>
+        <div className="inline-flex rounded-pill bg-primary/10 p-0.5">
+          {([
+            { key: "recent", label: "Newest" },
+            { key: "most_active", label: "Most active" },
+          ] as { key: SortKey; label: string }[]).map((s) => {
+            const active = sort === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => setSort(s.key)}
+                className={cn(
+                  "px-3 h-7 rounded-pill text-[11px] font-body transition-colors",
+                  active ? "bg-primary text-primary-foreground font-semibold" : "text-primary/70 hover:text-primary",
+                )}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="px-5 py-4 pb-8 space-y-2">
         {isLoading ? (
           <div className="flex items-center gap-2 text-sm text-foreground/60 py-6 justify-center">
@@ -253,24 +323,57 @@ const AdminMembers = () => {
           filtered.map((r) => {
             const badge = statusBadge(r);
             const isSelf = user?.id === r.user_id;
+            const level = activityLevel(r.sessions_last_30d);
+            const hasActivity = r.session_count > 0 && !!r.last_session;
             return (
               <SurfaceCard key={r.user_id}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-body font-semibold truncate">
-                      {r.display_name ?? "Unnamed member"}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-body font-semibold truncate">
+                        {r.display_name ?? "Unnamed member"}
+                      </p>
+                      {level && (
+                        <span
+                          title={level === "high" ? "Highly active user" : "Active user"}
+                          className={cn(
+                            "inline-flex items-center justify-center rounded-full shrink-0",
+                            level === "high"
+                              ? "size-4 bg-primary/20 text-primary"
+                              : "size-4 bg-primary/10 text-primary/80",
+                          )}
+                        >
+                          <Activity
+                            className={cn(
+                              level === "high" ? "size-2.5" : "size-2.5",
+                            )}
+                            strokeWidth={level === "high" ? 3 : 2.25}
+                          />
+                        </span>
+                      )}
+                    </div>
                     {r.email && (
                       <p className="text-[12px] text-muted-foreground truncate">{r.email}</p>
                     )}
                     <p className="text-[11px] text-muted-foreground truncate">
                       Joined {new Date(r.created_at).toLocaleDateString("en-GB")} · {r.user_id.slice(0, 8)}
                     </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {hasActivity ? (
+                        <>
+                          {r.session_count} session{r.session_count === 1 ? "" : "s"} · last active{" "}
+                          {formatDistanceToNow(new Date(r.last_session!), { addSuffix: true })}
+                        </>
+                      ) : (
+                        <span className="italic">— New tracking</span>
+                      )}
+                    </p>
                   </div>
                   <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
                     {badge.label}
                   </span>
                 </div>
+
                 <div className="mt-3 pt-3 border-t border-border">
                   <Button
                     variant="outline"

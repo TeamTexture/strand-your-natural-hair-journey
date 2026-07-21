@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
+import { logUserSession } from "@/lib/sessionTracker";
 
 interface AuthCtx {
   session: Session | null;
@@ -34,11 +35,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === "SIGNED_OUT") {
         purgeStrandUserScopedKeys("SIGNED_OUT-event");
       }
+      if (event === "SIGNED_IN" && s?.user?.id) {
+        logUserSession(s.user.id, "auth-change");
+      }
     });
     // 2. Then load existing session
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+      if (data.session?.user?.id) {
+        logUserSession(data.session.user.id, "app-open");
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
