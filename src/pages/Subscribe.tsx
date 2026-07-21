@@ -303,17 +303,6 @@ const Subscribe = () => {
         </div>
 
 
-        {/* Author voice pull-quote */}
-        <SurfaceCard className="!p-5 text-center space-y-3 bg-primary/5 border-primary/20">
-          <HairStrandIcon className="w-6 h-6 text-primary mx-auto" />
-          <p className="font-display italic text-[15.5px] text-foreground leading-relaxed">
-            "Loving your afro isn't a routine. It's a relationship — and STRAND is how you
-            keep the receipts."
-          </p>
-          <p className="text-[10px] font-body uppercase tracking-[0.22em] text-primary">
-            Paige Lewin · Author, How To Love Your Afro
-          </p>
-        </SurfaceCard>
 
         {/* Reassurance strip */}
         <div className="space-y-2 pt-1">
