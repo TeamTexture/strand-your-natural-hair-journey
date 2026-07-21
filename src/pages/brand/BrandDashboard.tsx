@@ -96,6 +96,9 @@ const BrandDashboard = () => {
             <p className="font-display text-[15px] leading-tight flex-1">{o.headline}</p>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <StatusPill status={o._derived} />
+              {(o._derived === "live" || o._derived === "upcoming") && (
+                <CountdownClock offer={o} />
+              )}
               {withPendingSet.has(o.id) ? (
                 <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-warn/15 text-warn font-body font-medium">
                   Changes under review
