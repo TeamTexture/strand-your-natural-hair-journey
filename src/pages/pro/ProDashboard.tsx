@@ -114,9 +114,8 @@ const ProDashboard = () => {
           <Card
             icon={Inbox}
             title="Enquiries"
-            sub="Client requests and passport previews."
-            disabled
-            badge="Coming soon"
+            sub={subActive ? "Client requests and passport previews." : "Subscribe to receive enquiries."}
+            onClick={() => nav("/pro/enquiries")}
           />
           <Card
             icon={CreditCard}
