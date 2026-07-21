@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ViewAsProvider } from "@/hooks/useViewAs";
 import RequireAuth from "@/components/RequireAuth";
 import PaidGate from "@/components/PaidGate";
 import OnboardingGate from "@/components/OnboardingGate";
@@ -13,6 +14,7 @@ import AdminMembers from "./pages/admin/AdminMembers";
 import AdminMemberPassport from "./pages/admin/AdminMemberPassport";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminProfessionals from "./pages/admin/AdminProfessionals";
+import AdminViewAs from "./pages/admin/AdminViewAs";
 
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
@@ -159,6 +161,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ViewAsProvider>
         <AuthProvider>
           <BackButtonProvider>
             <GlobalEffects />
@@ -354,6 +357,7 @@ const App = () => (
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />
               <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
               <Route path="/admin/professionals" element={<RoleGate allow={["admin"]}><AdminProfessionals /></RoleGate>} />
+              <Route path="/admin/view-as" element={<RoleGate allow={["admin"]}><AdminViewAs /></RoleGate>} />
 
               {/* Brand routes */}
               <Route path="/brand/auth" element={<BrandAuth />} />
@@ -395,6 +399,7 @@ const App = () => (
           </PhoneShell>
         </BackButtonProvider>
         </AuthProvider>
+        </ViewAsProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

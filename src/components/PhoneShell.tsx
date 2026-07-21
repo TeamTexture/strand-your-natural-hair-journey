@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import ViewAsBanner from "@/components/ViewAsBanner";
 
 interface Props {
   children: ReactNode;
@@ -22,9 +23,14 @@ const PhoneShell = ({ children }: Props) => (
     >
       {/* iOS notch (desktop only) */}
       <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground/90 rounded-b-2xl z-30 pointer-events-none" />
-      <div className="relative z-10 h-full sm:h-[calc(100%-2rem)] sm:pt-8">{children}</div>
+      <div className="relative z-10 h-full sm:h-[calc(100%-2rem)] sm:pt-8 flex flex-col">
+        {/* Admin "View as user" banner — renders only when active. */}
+        <ViewAsBanner />
+        <div className="flex-1 min-h-0">{children}</div>
+      </div>
     </div>
   </div>
 );
 
 export default PhoneShell;
+
