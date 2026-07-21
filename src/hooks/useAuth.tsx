@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
+import { logUserSession } from "@/lib/sessionTracker";
 
 interface AuthCtx {
   session: Session | null;
