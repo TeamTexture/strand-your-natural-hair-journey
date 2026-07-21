@@ -2324,6 +2324,23 @@ export type Database = {
         Args: { _admin_notes?: string; _application_id: string }
         Returns: string
       }
+      brand_catalogue_items: {
+        Args: { _kind?: string; _limit?: number; _search?: string }
+        Returns: {
+          brand: string
+          category: string
+          image_url: string
+          ingredients: string[]
+          key_features: string[]
+          kind: string
+          materials: string[]
+          name: string
+          source_id: string
+          source_url: string
+          tool_kind: string
+          user_count: number
+        }[]
+      }
       has_active_brand_subscription: {
         Args: { _user: string }
         Returns: boolean
