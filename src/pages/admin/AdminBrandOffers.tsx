@@ -144,74 +144,105 @@ const AdminBrandOffers = () => {
         </Button>
 
 
-        <SectionLabel className="!px-0">Pending review ({pending.length})</SectionLabel>
-        {pending.length === 0 ? (
-          <EmptyState icon="✦" message="No offers pending review." tone="card" />
-        ) : pending.map((o) => (
-          <SurfaceCard key={o.id} className="space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="font-display text-[15px] leading-tight">{o.headline}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {money(o.total_price_pence)}
-                </p>
-                {(() => {
-                  const b = subBadge((o as { brand_user_id?: string }).brand_user_id);
-                  if (!b) return null;
-                  const cls = b.tone === "good"
-                    ? "bg-good/15 text-good"
-                    : b.tone === "warn"
-                      ? "bg-warn/20 text-warn"
-                      : "bg-muted text-muted-foreground";
-                  return (
-                    <span className={`inline-block mt-1 text-[9.5px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded font-body ${cls}`}>
-                      Brand access · {b.label}
+        {showPending && (
+          <>
+            <SectionLabel className="!px-0">Pending review ({pending.length})</SectionLabel>
+            {pending.length === 0 ? (
+              <EmptyState icon="✦" message="No offers pending review." tone="card" />
+            ) : pending.map((o) => (
+              <SurfaceCard key={o.id} className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[15px] leading-tight">{o.headline}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {money(o.total_price_pence)}
+                    </p>
+                    {(() => {
+                      const b = subBadge((o as { brand_user_id?: string }).brand_user_id);
+                      if (!b) return null;
+                      const cls = b.tone === "good"
+                        ? "bg-good/15 text-good"
+                        : b.tone === "warn"
+                          ? "bg-warn/20 text-warn"
+                          : "bg-muted text-muted-foreground";
+                      return (
+                        <span className={`inline-block mt-1 text-[9.5px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded font-body ${cls}`}>
+                          Brand access · {b.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {Array.from(new Set((o.brand_offer_placements ?? []).map((p) => p.slot))).map((s) => (
+                    <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
+                      {SLOT_LABEL[s as PlacementSlot]}
                     </span>
-                  );
-                })()}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {Array.from(new Set((o.brand_offer_placements ?? []).map((p) => p.slot))).map((s) => (
-                <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
-                  {SLOT_LABEL[s as PlacementSlot]}
-                </span>
-              ))}
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
-                {(o.brand_offer_placements ?? []).length} days
-              </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
-                {(o.brand_products ?? []).length} product{(o.brand_products ?? []).length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="pill" onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="flex-1 text-[12px]">
-                Review
-              </Button>
-              <Button variant="gold" size="pill" onClick={() => approve(o.id)} className="flex-1 text-[12px]">
-                <Check className="size-3.5 mr-1" /> Approve
-              </Button>
-              <Button variant="outline" size="pill" onClick={() => setRejectFor(o.id)} className="text-[12px]">
-                <X className="size-3.5" />
-              </Button>
-            </div>
-          </SurfaceCard>
-        ))}
+                  ))}
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
+                    {(o.brand_offer_placements ?? []).length} days
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
+                    {(o.brand_products ?? []).length} product{(o.brand_products ?? []).length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="pill" onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="flex-1 text-[12px]">
+                    Review
+                  </Button>
+                  <Button variant="gold" size="pill" onClick={() => approve(o.id)} className="flex-1 text-[12px]">
+                    <Check className="size-3.5 mr-1" /> Approve
+                  </Button>
+                  <Button variant="outline" size="pill" onClick={() => setRejectFor(o.id)} className="text-[12px]">
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
+              </SurfaceCard>
+            ))}
+          </>
+        )}
 
-        <SectionLabel className="!px-0">All offers</SectionLabel>
-        {other.map((o) => (
-          <button key={o.id} onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="w-full text-left">
-            <SurfaceCard className="py-2.5 flex items-center gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="font-display text-[14px] leading-tight truncate">{o.headline}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {STATUS_LABEL[o.status]} · {money(o.total_price_pence)}
-                </p>
-              </div>
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </SurfaceCard>
-          </button>
-        ))}
+        {showLive && (
+          <>
+            <SectionLabel className="!px-0">
+              {filter === "brands" ? "Live brands" : "Live offers"} ({liveOnly.length})
+            </SectionLabel>
+            {liveOnly.length === 0 ? (
+              <EmptyState icon="✦" message="Nothing running today." tone="card" />
+            ) : liveOnly.map((o) => (
+              <button key={o.id} onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="w-full text-left">
+                <SurfaceCard className="py-2.5 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[14px] leading-tight truncate">{o.headline}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {STATUS_LABEL[o.status]}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                </SurfaceCard>
+              </button>
+            ))}
+          </>
+        )}
+
+        {showOther && (
+          <>
+            <SectionLabel className="!px-0">All offers</SectionLabel>
+            {other.map((o) => (
+              <button key={o.id} onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="w-full text-left">
+                <SurfaceCard className="py-2.5 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[14px] leading-tight truncate">{o.headline}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {STATUS_LABEL[o.status]} · {money(o.total_price_pence)}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                </SurfaceCard>
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       <Dialog open={!!rejectFor} onOpenChange={(o) => !o && setRejectFor(null)}>
