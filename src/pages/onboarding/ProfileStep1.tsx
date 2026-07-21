@@ -62,6 +62,7 @@ const ProfileStep1 = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [postcode, setPostcode] = useState("");
   const [country, setCountry] = useState("United Kingdom");
@@ -80,6 +81,7 @@ const ProfileStep1 = () => {
 
   // Refs for keyboard "Next" key focus advance.
   const ageRef = useRef<HTMLSelectElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
   const postcodeRef = useRef<HTMLInputElement>(null);
 
   
@@ -96,6 +98,7 @@ const ProfileStep1 = () => {
       if (cached) {
         const p = JSON.parse(cached) as Partial<{
           name: string;
+          phone: string;
           age: string | number;
           birth_year: number | null;
           postcode: string;
@@ -103,6 +106,7 @@ const ProfileStep1 = () => {
           heritage: string;
         }>;
         if (p.name) setName((c) => (c.trim() ? c : p.name!));
+        if (p.phone) setPhone((c) => (c.trim() ? c : String(p.phone)));
         // Prefer birth_year so age auto-increments each year on birthday rollover.
         if (p.birth_year && Number.isFinite(p.birth_year)) {
           const derived = new Date().getFullYear() - Number(p.birth_year);
@@ -128,7 +132,7 @@ const ProfileStep1 = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, display_name, birth_year, postcode, country, heritage")
+        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -143,6 +147,9 @@ const ProfileStep1 = () => {
         "";
       if (prefillName) {
         setName((current) => (current.trim() ? current : prefillName));
+      }
+      if (data?.phone_number) {
+        setPhone((current) => (current.trim() ? current : String(data.phone_number)));
       }
       if (data?.birth_year && Number.isFinite(data.birth_year)) {
         const derivedAge = new Date().getFullYear() - data.birth_year;
@@ -247,9 +254,12 @@ const ProfileStep1 = () => {
   };
 
   // Per-field validity (only surface errors after submit-attempt).
+  const phoneDigits = phone.replace(/\D/g, "");
   const errors = {
     photo: !avatarPath ? "Add a profile photo to continue" : "",
     name: name.trim().length === 0 ? "Enter your full name" : "",
+    phone:
+      phoneDigits.length < 7 ? "Enter your mobile number" : "",
     age: age === "" ? "Select your age" : "",
     postcode:
       postcode.trim().length < 3 ? "Enter a postcode (at least 3 characters)" : "",
@@ -267,8 +277,10 @@ const ProfileStep1 = () => {
       ageNumForPayload != null && Number.isFinite(ageNumForPayload) && ageNumForPayload >= 1 && ageNumForPayload <= 120
         ? new Date().getFullYear() - ageNumForPayload
         : null;
+    const trimmedPhone = phone.trim();
     const payload = {
       name: name.trim(),
+      phone: trimmedPhone,
       age,
       birth_year: birthYearForPayload,
       postcode: trimmedPostcode,
@@ -291,12 +303,14 @@ const ProfileStep1 = () => {
           : null;
       const update: {
         display_name: string;
+        phone_number: string | null;
         heritage: string[];
         postcode: string;
         country: string;
         birth_year?: number;
       } = {
         display_name: name.trim(),
+        phone_number: trimmedPhone || null,
         heritage: heritageArr,
         postcode: trimmedPostcode,
         country,
@@ -482,7 +496,7 @@ const ProfileStep1 = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  ageRef.current?.focus();
+                  phoneRef.current?.focus();
                 }
               }}
               className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]"
@@ -490,6 +504,36 @@ const ProfileStep1 = () => {
             {name.trim().length > 0 && <Check className="size-4 text-good mr-3 shrink-0" />}
           </FieldFrame>
           {submitted && errors.name && <FieldError>{errors.name}</FieldError>}
+        </label>
+
+        {/* Mobile Number */}
+        <label className="block">
+          <FieldLabel>Mobile Number</FieldLabel>
+          <FieldFrame
+            filled={phoneDigits.length >= 7}
+            invalid={submitted && !!errors.phone}
+          >
+            <input
+              ref={phoneRef}
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 07700 900123"
+              maxLength={20}
+              autoComplete="tel"
+              inputMode="tel"
+              enterKeyHint="next"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  ageRef.current?.focus();
+                }
+              }}
+              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]"
+            />
+            {phoneDigits.length >= 7 && <Check className="size-4 text-good mr-3 shrink-0" />}
+          </FieldFrame>
+          {submitted && errors.phone && <FieldError>{errors.phone}</FieldError>}
         </label>
 
         {/* Age */}

@@ -1591,6 +1591,7 @@ export type Database = {
           heritage: string[]
           id: string
           onboarding_completed_at: string | null
+          phone_number: string | null
           postcode: string | null
           updated_at: string
           user_id: string
@@ -1606,6 +1607,7 @@ export type Database = {
           heritage?: string[]
           id?: string
           onboarding_completed_at?: string | null
+          phone_number?: string | null
           postcode?: string | null
           updated_at?: string
           user_id: string
@@ -1621,6 +1623,7 @@ export type Database = {
           heritage?: string[]
           id?: string
           onboarding_completed_at?: string | null
+          phone_number?: string | null
           postcode?: string | null
           updated_at?: string
           user_id?: string
