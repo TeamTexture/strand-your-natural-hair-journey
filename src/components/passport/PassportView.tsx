@@ -665,47 +665,63 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d]);
 
+  const renderProduct = (p: PassportDataset["shelf"][number]) => {
+    const key = (p as Record<string, unknown>).product_key as string | undefined;
+    const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
+    const voicenotes = key ? notesByKey.get(key) ?? [] : [];
+    const status = p.on_favourite ? "Favourite" : p.on_shelf ? "On shelf" : p.on_wishlist ? "Wishlist" : "Off shelf";
+    return (
+      <Collapsible key={p.id} summary={
+        <div className="flex items-center gap-3">
+          <Thumb bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-body font-semibold truncate">{p.name}</p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-primary mt-0.5">
+              {status}{p.rating != null ? ` · ★ ${String(p.rating)}` : ""}
+            </p>
+          </div>
+        </div>
+      }>
+        <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url"]} />
+        {voicenotes.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Voice notes</p>
+            {voicenotes.map(v => (
+              <div key={v.id} className="border-l-2 border-primary/30 pl-2.5 mb-2">
+                <p className="text-[11px] text-muted-foreground">{format(new Date(v.created_at), "d MMM yyyy")}</p>
+                <AudioButton bucket="voicenotes" path={v.audio_url} transcriptFallback={v.transcript} />
+              </div>
+            ))}
+          </div>
+        )}
+        <AudioButton bucket="voicenotes" path={(p as Record<string, unknown>).off_shelf_voice_url as string | null} />
+      </Collapsible>
+    );
+  };
+
+  const favourites = d.shelf.filter(p => p.on_favourite);
+  const onShelf = d.shelf.filter(p => !p.on_favourite && p.on_shelf);
+  const wishlist = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && p.on_wishlist);
+  const offShelf = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && !p.on_wishlist);
+
+  const Group = ({ title, list }: { title: string; list: PassportDataset["shelf"] }) => (
+    <>
+      <SectionLabel>{title} ({list.length})</SectionLabel>
+      {list.length === 0 ? <EmptyCard msg="Nothing here." /> : <PaginatedList items={list} empty="Nothing here." render={renderProduct} />}
+    </>
+  );
+
+  if (d.shelf.length === 0) return <EmptyCard msg="No products recorded." />;
   return (
-    <PaginatedList
-      items={d.shelf}
-      empty="No products recorded."
-      render={(p) => {
-        const key = (p as Record<string, unknown>).product_key as string | undefined;
-        const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
-        const voicenotes = key ? notesByKey.get(key) ?? [] : [];
-        const status = p.on_favourite ? "Favourite" : p.on_shelf ? "On shelf" : p.on_wishlist ? "Wishlist" : "Off shelf";
-        return (
-          <Collapsible key={p.id} summary={
-            <div className="flex items-center gap-3">
-              <Thumb bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-body font-semibold truncate">{p.name}</p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}
-                </p>
-                <p className="text-[10px] uppercase tracking-[0.1em] text-primary mt-0.5">
-                  {status}{p.rating != null ? ` · ★ ${String(p.rating)}` : ""}
-                </p>
-              </div>
-            </div>
-          }>
-            <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url"]} />
-            {voicenotes.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Voice notes</p>
-                {voicenotes.map(v => (
-                  <div key={v.id} className="border-l-2 border-primary/30 pl-2.5 mb-2">
-                    <p className="text-[11px] text-muted-foreground">{format(new Date(v.created_at), "d MMM yyyy")}</p>
-                    <AudioButton bucket="voicenotes" path={v.audio_url} transcriptFallback={v.transcript} />
-                  </div>
-                ))}
-              </div>
-            )}
-            <AudioButton bucket="voicenotes" path={(p as Record<string, unknown>).off_shelf_voice_url as string | null} />
-          </Collapsible>
-        );
-      }}
-    />
+    <>
+      <Group title="On shelf" list={onShelf} />
+      <Group title="Favourites" list={favourites} />
+      <Group title="Wishlist" list={wishlist} />
+      <Group title="Off shelf" list={offShelf} />
+    </>
   );
 };
 
