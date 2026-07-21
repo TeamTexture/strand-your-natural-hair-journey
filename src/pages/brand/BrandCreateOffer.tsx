@@ -771,59 +771,60 @@ const BrandCreateOffer = () => {
         ))}
 
         <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
+        <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">
+          Pick one or more banner slots, then choose the dates in the calendar below.
+          Your total updates automatically.
+        </p>
         <div className="grid grid-cols-3 gap-1.5">
-          {SLOTS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setActiveSlot(s)}
-              className={`p-2 rounded-lg border text-left transition-colors ${
-                activeSlot === s ? "border-primary bg-primary/5" : "border-border"
-              }`}
-            >
-              <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {rates ? money(rates[s]) : "…"}/day
-              </p>
-              <p className="text-[10px] text-primary font-medium mt-0.5">
-                {selectedByslot[s].length} day{selectedByslot[s].length === 1 ? "" : "s"}
-              </p>
-            </button>
-          ))}
+          {SLOTS.map((s) => {
+            const on = enabledSlots[s];
+            return (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleSlot(s)}
+                className={`p-2 rounded-lg border text-left transition-colors ${
+                  on
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background hover:bg-primary/5"
+                }`}
+              >
+                <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
+                <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
+                  {rates ? money(rates[s]) : "…"}/day
+                </p>
+                <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
+                  {on ? "Selected" : "Tap to add"}
+                </p>
+              </button>
+            );
+          })}
         </div>
-
-        <label className="flex items-start gap-2 px-1 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={multiSlot}
-            onChange={(e) => setMultiSlot(e.target.checked)}
-            className="mt-0.5 accent-primary"
-          />
-          <span className="text-[11px] leading-snug font-body text-foreground/80">
-            <span className="font-medium">Apply date to all 3 slots.</span>{" "}
-            <span className="text-muted-foreground">
-              While on, each date you tap gets added to Home, Products <em>and</em> Wash Day at once
-              (charged per slot per day). Turn off to book slots individually.
-            </span>
-          </span>
-        </label>
 
         <SurfaceCard>
           <PlacementCalendarPicker
             month={month}
-            slot={activeSlot}
-            selection={selectedByslot[activeSlot]}
-            onToggleDate={(d) => toggleDate(activeSlot, d)}
+            slots={enabledSlotList}
+            selection={selectedDates}
+            onToggleDate={(d) => toggleDate(d)}
             onMonthChange={setMonth}
             excludeOfferId={existingId}
           />
+          {enabledSlotList.length === 0 && (
+            <p className="text-[11px] font-body text-muted-foreground mt-2 text-center">
+              Select at least one banner slot above to book dates.
+            </p>
+          )}
         </SurfaceCard>
 
         <SurfaceCard className="flex items-center justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
             <p className="font-display text-2xl">{money(total)}</p>
-            <p className="text-[11px] text-muted-foreground">{totalDays} placement day{totalDays === 1 ? "" : "s"}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {totalDays} day{totalDays === 1 ? "" : "s"} × {enabledSlotList.length} slot{enabledSlotList.length === 1 ? "" : "s"}
+            </p>
           </div>
         </SurfaceCard>
 
@@ -834,13 +835,14 @@ const BrandCreateOffer = () => {
         )}
 
         <div className="sticky bottom-0 -mx-5 bg-background/95 backdrop-blur border-t border-border px-5 pt-2 pb-2 flex gap-2">
-          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px]">
-            Save draft
+          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+            SAVE DRAFT
           </Button>
-          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px]">
-            {brandSubActive ? "Review" : "Unlock"}
+          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+            {brandSubActive ? "SUBMIT FOR REVIEW" : "UNLOCK"}
           </Button>
         </div>
+
       </div>
 
       <Dialog open={catalogueOpen} onOpenChange={setCatalogueOpen}>
