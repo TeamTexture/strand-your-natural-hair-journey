@@ -168,7 +168,7 @@ const ProApply = () => {
           instagram_handle: data.instagram_handle || "",
           why_strand: data.why_strand || "",
         });
-        const savedHours = (data as { opening_hours?: OpeningHours | null }).opening_hours;
+        const savedHours = (data as unknown as { opening_hours?: OpeningHours | null }).opening_hours;
         if (savedHours && typeof savedHours === "object") {
           setHours({ ...defaultHours(), ...savedHours });
         }
