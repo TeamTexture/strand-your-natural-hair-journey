@@ -856,77 +856,101 @@ const BrandCreateOffer = () => {
           </SurfaceCard>
         ))}
 
-        <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
-        <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">
-          Pick one or more banner slots, then choose the dates in the calendar below.
-          Your total updates automatically.
-        </p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {SLOTS.map((s) => {
-            const on = enabledSlots[s];
-            return (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggleSlot(s)}
-                className={`p-2 rounded-lg border text-left transition-colors ${
-                  on
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background hover:bg-primary/5"
-                }`}
-              >
-                <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
-                <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
-                  {rates ? money(rates[s]) : "…"}/day
-                </p>
-                <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
-                  {on ? "Selected" : "Tap to add"}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-
-        <SurfaceCard>
-          <PlacementCalendarPicker
-            month={month}
-            slots={enabledSlotList}
-            selection={selectedDates}
-            onToggleDate={(d) => toggleDate(d)}
-            onMonthChange={setMonth}
-            excludeOfferId={existingId}
-          />
-          {enabledSlotList.length === 0 && (
-            <p className="text-[11px] font-body text-muted-foreground mt-2 text-center">
-              Select at least one banner slot above to book dates.
-            </p>
-          )}
-        </SurfaceCard>
-
-        <SurfaceCard className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
-            <p className="font-display text-2xl">{money(total)}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {totalDays} day{totalDays === 1 ? "" : "s"} × {enabledSlotList.length} slot{enabledSlotList.length === 1 ? "" : "s"}
-            </p>
+        {isRevisionMode ? (
+          <div className="rounded-[12px] border border-warn/40 bg-warn/5 p-3 text-[12px] font-body text-foreground/85 leading-snug flex gap-2">
+            <AlertTriangle className="size-4 text-warn shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">You're editing a live campaign</p>
+              <p className="mt-1">
+                You can update creative content — banner, headline, body copy, discount code, link and attached products/tools. The date
+                window, placements and stats stay exactly as booked. Changes go to admin for approval and appear on next member load. No new
+                payment.
+              </p>
+            </div>
           </div>
-        </SurfaceCard>
+        ) : (
+          <>
+            <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
+            <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">
+              Pick one or more banner slots, then choose the dates in the calendar below.
+              Your total updates automatically.
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {SLOTS.map((s) => {
+                const on = enabledSlots[s];
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleSlot(s)}
+                    className={`p-2 rounded-lg border text-left transition-colors ${
+                      on
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:bg-primary/5"
+                    }`}
+                  >
+                    <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
+                    <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
+                      {rates ? money(rates[s]) : "…"}/day
+                    </p>
+                    <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
+                      {on ? "Selected" : "Tap to add"}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
 
-        {!brandSubActive && (
-          <div className="rounded-[12px] border border-primary/30 bg-primary/5 p-3 text-[12px] font-body text-foreground/80 leading-snug">
-            Submitting requires an active <span className="font-semibold">STRAND Brand Access</span> membership (£99/year). Save as draft any time.
-          </div>
+            <SurfaceCard>
+              <PlacementCalendarPicker
+                month={month}
+                slots={enabledSlotList}
+                selection={selectedDates}
+                onToggleDate={(d) => toggleDate(d)}
+                onMonthChange={setMonth}
+                excludeOfferId={existingId}
+              />
+              {enabledSlotList.length === 0 && (
+                <p className="text-[11px] font-body text-muted-foreground mt-2 text-center">
+                  Select at least one banner slot above to book dates.
+                </p>
+              )}
+            </SurfaceCard>
+
+            <SurfaceCard className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+                <p className="font-display text-2xl">{money(total)}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {totalDays} day{totalDays === 1 ? "" : "s"} × {enabledSlotList.length} slot{enabledSlotList.length === 1 ? "" : "s"}
+                </p>
+              </div>
+            </SurfaceCard>
+
+            {!brandSubActive && (
+              <div className="rounded-[12px] border border-primary/30 bg-primary/5 p-3 text-[12px] font-body text-foreground/80 leading-snug">
+                Submitting requires an active <span className="font-semibold">STRAND Brand Access</span> membership (£99/year). Save as draft any time.
+              </div>
+            )}
+          </>
         )}
 
         <div className="sticky bottom-0 -mx-5 bg-background/95 backdrop-blur border-t border-border px-5 pt-2 pb-2 flex gap-2">
-          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
-            SAVE DRAFT
-          </Button>
-          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
-            {brandSubActive ? "SUBMIT FOR REVIEW" : "UNLOCK"}
-          </Button>
+          {isRevisionMode ? (
+            <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 text-[11px] uppercase tracking-wide">
+              SUBMIT CHANGES FOR REVIEW
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+                SAVE DRAFT
+              </Button>
+              <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+                {brandSubActive ? "SUBMIT FOR REVIEW" : "UNLOCK"}
+              </Button>
+            </>
+          )}
         </div>
 
       </div>
