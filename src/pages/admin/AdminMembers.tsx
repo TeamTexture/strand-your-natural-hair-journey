@@ -603,4 +603,109 @@ const AdminMembers = () => {
   );
 };
 
+const PROGRESS_STEPS: { key: keyof IncompleteMemberRow["progress"]; label: string }[] = [
+  { key: "profile", label: "Profile" },
+  { key: "hair", label: "Hair" },
+  { key: "health", label: "Health" },
+  { key: "style", label: "Style" },
+  { key: "blood", label: "Blood" },
+];
+
+const IncompleteMemberCard = ({
+  row,
+  onView,
+}: {
+  row: IncompleteMemberRow;
+  onView: () => void;
+}) => {
+  const hasActivity = row.session_count > 0 && !!row.last_session;
+  const stalledAt =
+    row.completed === 0
+      ? "Stalled at signup"
+      : row.completed === 5
+        ? "Stalled at paywall"
+        : `Stalled mid-onboarding (${row.completed}/5)`;
+  return (
+    <SurfaceCard>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-body font-semibold truncate">
+            {row.display_name ?? "Unnamed"}
+          </p>
+          {row.email && (
+            <p className="text-[12px] text-muted-foreground truncate">{row.email}</p>
+          )}
+          <p className="text-[11px] text-muted-foreground truncate">
+            Joined {new Date(row.created_at).toLocaleDateString("en-GB")}
+            {hasActivity && (
+              <>
+                {" · last active "}
+                {formatDistanceToNow(new Date(row.last_session!), { addSuffix: true })}
+              </>
+            )}
+          </p>
+        </div>
+        <span className="text-[10px] font-medium px-2 py-1 rounded-full uppercase bg-warn/15 text-warn shrink-0">
+          Unpaid
+        </span>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-border">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1.5">
+          {stalledAt}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {PROGRESS_STEPS.map((s) => {
+            const done = row.progress[s.key];
+            const Icon = done ? CheckCircle2 : Circle;
+            return (
+              <span
+                key={s.key}
+                className={cn(
+                  "inline-flex items-center gap-1 text-[10px] font-body px-2 py-0.5 rounded-full",
+                  done
+                    ? "bg-good/15 text-good"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                <Icon className="size-2.5" strokeWidth={done ? 2.5 : 2} />
+                {s.label}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-border flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 h-9 rounded-pill text-[12px]"
+          onClick={onView}
+        >
+          View passport
+        </Button>
+        {row.email && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 h-9 rounded-pill text-[12px]"
+            asChild
+          >
+            <a
+              href={`mailto:${row.email}?subject=${encodeURIComponent(
+                "Welcome to STRAND — finish setting up",
+              )}&body=${encodeURIComponent(
+                `Hi ${row.display_name?.split(" ")[0] ?? "there"},\n\nWe noticed you started your STRAND account but haven't activated your membership yet. Is there anything we can help with?\n\n— The STRAND team`,
+              )}`}
+            >
+              <Mail className="size-3.5 mr-1.5" /> Email
+            </a>
+          </Button>
+        )}
+      </div>
+    </SurfaceCard>
+  );
+};
+
 export default AdminMembers;
