@@ -198,7 +198,8 @@ const LogAppointment = () => {
       outcome_audio_path: status === "completed" ? outcomeAudio : null,
       // Only carry the platform link when the user picked a LIVE professional
       // (seed directory pros have no proUserId). Free-text entries stay unlinked.
-      linked_pro_user_id: pickedFromDirectory?.proUserId ?? null,
+      linked_pro_user_id: pickedFromDirectory?.proUserId ?? existingLinkedProId ?? null,
+
     };
 
 
