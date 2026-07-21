@@ -313,11 +313,11 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
                   <path d="M12 2 L14.5 8 L21 8.5 L16 12.8 L17.6 19.4 L12 15.8 L6.4 19.4 L8 12.8 L3 8.5 L9.5 8 Z"
                     fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                 </svg>
-                <p className="font-display text-[10.5px] uppercase tracking-[0.34em] text-primary/90 leading-none">
+                <p className="font-display font-bold text-[12px] uppercase tracking-[0.32em] text-primary leading-none">
                   Strand · Client Passport
                 </p>
               </div>
-              <span className="text-[9px] font-body uppercase tracking-[0.24em] text-primary/60">
+              <span className="text-[10px] font-body font-semibold uppercase tracking-[0.22em] text-primary/80">
                 UK · {p?.country ? (humaniseValue(p.country) ?? "").slice(0, 3).toUpperCase() : "GBR"}
               </span>
             </div>
