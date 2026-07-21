@@ -388,6 +388,10 @@ const BrandOfferDetail = () => {
           )}
         </DialogContent>
       </Dialog>
+      <ProductInfoDialog
+        product={(offer.brand_products ?? []).find((p) => p.id === activeProductId) ?? null}
+        onClose={() => setActiveProductId(null)}
+      />
     </ScreenLayout>
   );
 };
