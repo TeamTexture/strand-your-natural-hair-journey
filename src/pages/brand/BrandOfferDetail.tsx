@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink } from "lucide-react";
+import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -13,7 +13,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus } from "@/hooks/useBrandOffers";
+import {
+  useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
+  usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision,
+} from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -22,8 +25,12 @@ const BrandOfferDetail = () => {
   const { id } = useParams();
   const nav = useNavigate();
   const { data: offer, isLoading } = useBrandOffer(id);
+  const { data: pendingRevision } = usePendingRevision(id);
+  const { data: allRevisions = [] } = useOfferRevisions(id);
+  const withdrawRevision = useWithdrawBrandOfferRevision();
   const [paying, setPaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const deleteOffer = useDeleteBrandOffer();
 
   if (isLoading || !offer) return <LoadingDot />;
@@ -46,11 +53,15 @@ const BrandOfferDetail = () => {
   }, {});
 
   const derived = deriveBrandOfferStatus(offer);
-  const canEdit = ["draft", "rejected", "under_review"].includes(offer.status);
+  // Live / paid-scheduled offers can be edited too — via the revision flow (no re-payment).
+  const canEdit = ["draft", "rejected", "under_review", "paid_scheduled", "live"].includes(offer.status);
+  const isRevisionMode = ["paid_scheduled", "live"].includes(offer.status);
   const needsPayment = offer.status === "approved_unpaid";
   // Brands can pull an offer any time BEFORE it's paid/live — including while under review.
   // Live/paid campaigns must be ended, not deleted, so they aren't listed here.
   const canDelete = !["paid_scheduled", "live"].includes(offer.status) && derived !== "live";
+  // Most-recent rejected revision (so the brand can see the admin's note).
+  const lastRejectedRevision = allRevisions.find((r) => r.status === "rejected");
 
   const handleDelete = async () => {
     try {
@@ -78,7 +89,7 @@ const BrandOfferDetail = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={offer.headline} onBack={() => nav("/brand")} />
+      <TitleBar title={offer.headline ?? "Offer"} onBack={() => nav("/brand")} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-1">
           <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">
@@ -94,6 +105,55 @@ const BrandOfferDetail = () => {
             <p className="text-[12px] text-destructive mt-1">{offer.rejection_reason}</p>
           )}
         </SurfaceCard>
+
+        {pendingRevision && (
+          <SurfaceCard className="bg-warn/5 border-warn/40">
+            <div className="flex items-start gap-2.5">
+              <Clock className="size-4 text-warn mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px]">Changes under review</p>
+                <p className="text-[11.5px] text-muted-foreground font-body mt-0.5 leading-snug">
+                  Your original creative is still running to members. When the admin approves your edit, the banner updates on next load —
+                  the date window, placements and stats stay the same. No new payment.
+                </p>
+                <p className="text-[10.5px] text-muted-foreground font-body mt-1">
+                  Submitted {format(new Date(pendingRevision.submitted_at), "d MMM · HH:mm")}
+                </p>
+                <div className="flex gap-1.5 mt-2">
+                  <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${offer.id}/edit`)} className="flex-1 text-[11px]">
+                    Update changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="pill"
+                    onClick={() => setConfirmWithdraw(true)}
+                    disabled={withdrawRevision.isPending}
+                    className="flex-1 text-[11px] text-destructive border-destructive/30 hover:bg-destructive/5"
+                  >
+                    Withdraw
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
+
+        {!pendingRevision && lastRejectedRevision?.rejection_reason && (
+          <SurfaceCard className="bg-destructive/5 border-destructive/30">
+            <div className="flex items-start gap-2.5">
+              <XCircle className="size-4 text-destructive mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px]">Last edit rejected</p>
+                <p className="text-[11.5px] text-foreground/80 font-body mt-0.5 leading-snug">
+                  {lastRejectedRevision.rejection_reason}
+                </p>
+                <p className="text-[10.5px] text-muted-foreground font-body mt-1">
+                  Your original creative is still running. You can submit new changes any time.
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
 
         {needsPayment && (
           <SurfaceCard className="bg-primary/5 border-primary/40">
@@ -146,9 +206,10 @@ const BrandOfferDetail = () => {
           </>
         )}
 
-        {canEdit && (
+        {canEdit && !pendingRevision && (
           <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${offer.id}/edit`)} className="w-full">
-            <Edit className="size-4 mr-1.5" /> Edit offer
+            <Edit className="size-4 mr-1.5" />
+            {isRevisionMode ? "Edit creative (submits for review)" : "Edit offer"}
           </Button>
         )}
 
@@ -179,6 +240,33 @@ const BrandOfferDetail = () => {
             <AlertDialogCancel>Keep offer</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={confirmWithdraw} onOpenChange={setConfirmWithdraw}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Withdraw these changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your original creative will keep running to members unchanged. You can submit a new edit at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep pending</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!pendingRevision) return;
+                try {
+                  await withdrawRevision.mutateAsync({ revision_id: pendingRevision.id, offer_id: offer.id });
+                  toast.success("Changes withdrawn");
+                  setConfirmWithdraw(false);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Withdraw failed");
+                }
+              }}
+            >
+              Withdraw
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

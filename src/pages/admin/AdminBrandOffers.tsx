@@ -13,7 +13,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
+import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday, useAllPendingRevisions } from "@/hooks/useBrandOffers";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -200,6 +200,8 @@ const AdminBrandOffers = () => {
           </>
         )}
 
+        {showPending && <PendingRevisionsSection />}
+
         {showLive && (
           <>
             <SectionLabel className="!px-0">
@@ -254,6 +256,39 @@ const AdminBrandOffers = () => {
         </DialogContent>
       </Dialog>
     </ScreenLayout>
+  );
+};
+
+const PendingRevisionsSection = () => {
+  const nav = useNavigate();
+  const { data: revisions = [] } = useAllPendingRevisions();
+  if (revisions.length === 0) return null;
+  return (
+    <>
+      <SectionLabel className="!px-0">Pending revisions ({revisions.length})</SectionLabel>
+      <p className="text-[11px] text-muted-foreground font-body -mt-1 leading-snug">
+        Live campaigns with creative edits awaiting review. Original creative stays live until you approve.
+      </p>
+      {revisions.map((r) => {
+        const offer = (r as unknown as { offer?: { headline?: string; brand_user_id?: string } }).offer;
+        return (
+          <button key={r.id} onClick={() => nav(`/admin/brand-offers/${r.offer_id}?revision=${r.id}`)} className="w-full text-left">
+            <SurfaceCard className="py-2.5 flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px] leading-tight truncate">{r.headline ?? offer?.headline ?? "Revision"}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Revision · submitted {format(new Date(r.submitted_at), "d MMM · HH:mm")}
+                </p>
+              </div>
+              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-warn/15 text-warn font-body font-medium">
+                Review
+              </span>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </SurfaceCard>
+          </button>
+        );
+      })}
+    </>
   );
 };
 

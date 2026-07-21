@@ -296,6 +296,71 @@ export type Database = {
           },
         ]
       }
+      brand_offer_revisions: {
+        Row: {
+          body_copy: string | null
+          brand_user_id: string
+          created_at: string
+          discount_code: string | null
+          external_url: string | null
+          headline: string | null
+          hero_image_path: string | null
+          id: string
+          offer_id: string
+          products: Json
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          body_copy?: string | null
+          brand_user_id: string
+          created_at?: string
+          discount_code?: string | null
+          external_url?: string | null
+          headline?: string | null
+          hero_image_path?: string | null
+          id?: string
+          offer_id: string
+          products?: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          body_copy?: string | null
+          brand_user_id?: string
+          created_at?: string
+          discount_code?: string | null
+          external_url?: string | null
+          headline?: string | null
+          hero_image_path?: string | null
+          id?: string
+          offer_id?: string
+          products?: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_revisions_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_offer_stats: {
         Row: {
           code_copies: number
@@ -2326,6 +2391,10 @@ export type Database = {
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
+      approve_brand_offer_revision: {
+        Args: { _revision_id: string }
+        Returns: undefined
+      }
       approve_pro_application: {
         Args: { _admin_notes?: string; _application_id: string }
         Returns: string
@@ -2387,7 +2456,27 @@ export type Database = {
         Returns: undefined
       }
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
+      reject_brand_offer_revision: {
+        Args: { _reason: string; _revision_id: string }
+        Returns: undefined
+      }
       strand_today_london: { Args: never; Returns: string }
+      submit_brand_offer_revision: {
+        Args: {
+          _body_copy: string
+          _discount_code: string
+          _external_url: string
+          _headline: string
+          _hero_image_path: string
+          _offer_id: string
+          _products: Json
+        }
+        Returns: string
+      }
+      withdraw_brand_offer_revision: {
+        Args: { _revision_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "consumer" | "professional" | "admin" | "brand"

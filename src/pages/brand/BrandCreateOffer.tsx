@@ -17,9 +17,10 @@ import BannerPreview from "@/components/brand/BannerPreview";
 import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer } from "@/hooks/useBrandOffers";
+import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
+import { AlertTriangle } from "lucide-react";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day"];
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -113,6 +114,14 @@ const BrandCreateOffer = () => {
   const qc = useQueryClient();
   const { data: rates } = usePlacementRates();
   const { data: existing } = useBrandOffer(existingId);
+  const { data: pendingRevision } = usePendingRevision(existingId);
+  const submitRevision = useSubmitBrandOfferRevision();
+
+  // Revision mode = editing an already-live or paid-scheduled offer. Only creative
+  // fields (title, body, code, URL, banner, attached products/tools) can change;
+  // placements/dates are locked, no Stripe interaction, admin re-approves before
+  // consumers see the new creative.
+  const isRevisionMode = existing?.status === "paid_scheduled" || existing?.status === "live";
 
   const [headline, setHeadline] = useState(existing?.headline ?? "");
   const [bodyCopy, setBodyCopy] = useState(existing?.body_copy ?? "");
@@ -178,37 +187,69 @@ const BrandCreateOffer = () => {
 
   useEffect(() => {
     if (!existingId || !existing) return;
-    setHeadline(existing.headline ?? "");
-    setBodyCopy(existing.body_copy ?? "");
-    setDiscountCode(existing.discount_code ?? "");
-    setExternalUrl(existing.external_url ?? "");
-    setHeroPath(existing.hero_image_path ?? null);
-    setProducts(
-      (existing.brand_products ?? []).map((p) => {
-        const row = p as typeof p & {
-          kind?: string;
-          tool_kind?: string | null;
-          key_features?: string[] | null;
-          materials?: string[] | null;
-        };
-        const kind: AttachKind = row.kind === "tool" ? "tool" : "product";
-        return {
-          id: p.id,
-          kind,
-          name: p.name,
+    // In revision mode with a pending revision, edits should start from the LATEST
+    // pending values (so brands can "update changes"). Otherwise, start from the
+    // live/persisted offer creative.
+    const source = isRevisionMode && pendingRevision ? {
+      headline: pendingRevision.headline,
+      body_copy: pendingRevision.body_copy,
+      discount_code: pendingRevision.discount_code,
+      external_url: pendingRevision.external_url,
+      hero_image_path: pendingRevision.hero_image_path ?? existing.hero_image_path,
+    } : {
+      headline: existing.headline,
+      body_copy: existing.body_copy,
+      discount_code: existing.discount_code,
+      external_url: existing.external_url,
+      hero_image_path: existing.hero_image_path,
+    };
+    setHeadline(source.headline ?? "");
+    setBodyCopy(source.body_copy ?? "");
+    setDiscountCode(source.discount_code ?? "");
+    setExternalUrl(source.external_url ?? "");
+    setHeroPath(source.hero_image_path ?? null);
+
+    const productSource: ProductDraft[] = isRevisionMode && pendingRevision
+      ? (pendingRevision.products ?? []).map((p) => ({
+          kind: p.kind ?? "product",
+          name: p.name ?? "",
           description: p.description ?? "",
           external_url: p.external_url ?? "",
           image_urls: p.image_urls ?? [],
           ingredients: p.ingredients ?? [],
-          tool_kind: row.tool_kind ?? null,
-          key_features: row.key_features ?? [],
-          materials: row.materials ?? [],
-          source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
-          source_url: p.source_url,
-          linked_product_id: p.linked_product_id,
-        } satisfies ProductDraft;
-      }),
-    );
+          tool_kind: p.tool_kind ?? null,
+          key_features: p.key_features ?? [],
+          materials: p.materials ?? [],
+          source_type: p.source_type ?? "manual",
+          source_url: p.source_url ?? null,
+          linked_product_id: p.linked_product_id ?? null,
+        }))
+      : (existing.brand_products ?? []).map((p) => {
+          const row = p as typeof p & {
+            kind?: string; tool_kind?: string | null;
+            key_features?: string[] | null; materials?: string[] | null;
+          };
+          const kind: AttachKind = row.kind === "tool" ? "tool" : "product";
+          return {
+            id: p.id,
+            kind,
+            name: p.name,
+            description: p.description ?? "",
+            external_url: p.external_url ?? "",
+            image_urls: p.image_urls ?? [],
+            ingredients: p.ingredients ?? [],
+            tool_kind: row.tool_kind ?? null,
+            key_features: row.key_features ?? [],
+            materials: row.materials ?? [],
+            source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
+            source_url: p.source_url,
+            linked_product_id: p.linked_product_id,
+          } satisfies ProductDraft;
+        });
+    setProducts(productSource);
+
+    // Placements are locked in revision mode — still hydrate them so the calendar
+    // shows the booked dates if the brand looks. But the UI hides the picker.
     const enabled: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
     const set = new Set<string>();
     (existing.brand_offer_placements ?? []).forEach((p) => {
@@ -217,8 +258,7 @@ const BrandCreateOffer = () => {
     });
     setEnabledSlots(enabled);
     setSelectedDates(Array.from(set).sort());
-
-  }, [existingId, existing]);
+  }, [existingId, existing, isRevisionMode, pendingRevision]);
 
   const catalogueQuery = useQuery({
     queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
@@ -384,6 +424,49 @@ const BrandCreateOffer = () => {
 
   const submit = async (asDraft: boolean) => {
     if (!user) return;
+
+    // ── Revision path ──────────────────────────────────────────────────────────
+    // Editing an already-paid/live offer: submit a pending revision for admin
+    // review. No Stripe. No placement changes. Original creative stays live.
+    if (isRevisionMode && existingId) {
+      if (!heroPath) return toast.error("A banner image is required.");
+      setSubmitting(true);
+      try {
+        const productSnapshots: RevisionProductSnapshot[] = products.map((p, i) => ({
+          kind: p.kind,
+          name: p.name || (p.kind === "tool" ? "Untitled tool" : "Untitled product"),
+          description: p.description || null,
+          external_url: p.external_url || null,
+          image_urls: p.image_urls,
+          ingredients: p.kind === "product" ? p.ingredients : [],
+          tool_kind: p.kind === "tool" ? p.tool_kind : null,
+          key_features: p.kind === "tool" ? p.key_features : [],
+          materials: p.kind === "tool" ? p.materials : [],
+          source_type: p.source_type,
+          source_url: p.source_url ?? null,
+          linked_product_id: p.linked_product_id ?? null,
+          position: i,
+        }));
+        await submitRevision.mutateAsync({
+          offer_id: existingId,
+          headline: headline.trim() || null,
+          body_copy: bodyCopy.trim() || null,
+          discount_code: discountCode.trim() || null,
+          external_url: externalUrl.trim() || null,
+          hero_image_path: heroPath,
+          products: productSnapshots,
+        });
+        toast.success("Changes submitted for review");
+        nav(`/brand/offers/${existingId}`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Submit failed";
+        toast.error(msg);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     // Headline is optional — no validation required.
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
@@ -773,77 +856,101 @@ const BrandCreateOffer = () => {
           </SurfaceCard>
         ))}
 
-        <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
-        <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">
-          Pick one or more banner slots, then choose the dates in the calendar below.
-          Your total updates automatically.
-        </p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {SLOTS.map((s) => {
-            const on = enabledSlots[s];
-            return (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggleSlot(s)}
-                className={`p-2 rounded-lg border text-left transition-colors ${
-                  on
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background hover:bg-primary/5"
-                }`}
-              >
-                <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
-                <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
-                  {rates ? money(rates[s]) : "…"}/day
-                </p>
-                <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
-                  {on ? "Selected" : "Tap to add"}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-
-        <SurfaceCard>
-          <PlacementCalendarPicker
-            month={month}
-            slots={enabledSlotList}
-            selection={selectedDates}
-            onToggleDate={(d) => toggleDate(d)}
-            onMonthChange={setMonth}
-            excludeOfferId={existingId}
-          />
-          {enabledSlotList.length === 0 && (
-            <p className="text-[11px] font-body text-muted-foreground mt-2 text-center">
-              Select at least one banner slot above to book dates.
-            </p>
-          )}
-        </SurfaceCard>
-
-        <SurfaceCard className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
-            <p className="font-display text-2xl">{money(total)}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {totalDays} day{totalDays === 1 ? "" : "s"} × {enabledSlotList.length} slot{enabledSlotList.length === 1 ? "" : "s"}
-            </p>
+        {isRevisionMode ? (
+          <div className="rounded-[12px] border border-warn/40 bg-warn/5 p-3 text-[12px] font-body text-foreground/85 leading-snug flex gap-2">
+            <AlertTriangle className="size-4 text-warn shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">You're editing a live campaign</p>
+              <p className="mt-1">
+                You can update creative content — banner, headline, body copy, discount code, link and attached products/tools. The date
+                window, placements and stats stay exactly as booked. Changes go to admin for approval and appear on next member load. No new
+                payment.
+              </p>
+            </div>
           </div>
-        </SurfaceCard>
+        ) : (
+          <>
+            <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
+            <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">
+              Pick one or more banner slots, then choose the dates in the calendar below.
+              Your total updates automatically.
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {SLOTS.map((s) => {
+                const on = enabledSlots[s];
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleSlot(s)}
+                    className={`p-2 rounded-lg border text-left transition-colors ${
+                      on
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:bg-primary/5"
+                    }`}
+                  >
+                    <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
+                    <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
+                      {rates ? money(rates[s]) : "…"}/day
+                    </p>
+                    <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
+                      {on ? "Selected" : "Tap to add"}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
 
-        {!brandSubActive && (
-          <div className="rounded-[12px] border border-primary/30 bg-primary/5 p-3 text-[12px] font-body text-foreground/80 leading-snug">
-            Submitting requires an active <span className="font-semibold">STRAND Brand Access</span> membership (£99/year). Save as draft any time.
-          </div>
+            <SurfaceCard>
+              <PlacementCalendarPicker
+                month={month}
+                slots={enabledSlotList}
+                selection={selectedDates}
+                onToggleDate={(d) => toggleDate(d)}
+                onMonthChange={setMonth}
+                excludeOfferId={existingId}
+              />
+              {enabledSlotList.length === 0 && (
+                <p className="text-[11px] font-body text-muted-foreground mt-2 text-center">
+                  Select at least one banner slot above to book dates.
+                </p>
+              )}
+            </SurfaceCard>
+
+            <SurfaceCard className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+                <p className="font-display text-2xl">{money(total)}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {totalDays} day{totalDays === 1 ? "" : "s"} × {enabledSlotList.length} slot{enabledSlotList.length === 1 ? "" : "s"}
+                </p>
+              </div>
+            </SurfaceCard>
+
+            {!brandSubActive && (
+              <div className="rounded-[12px] border border-primary/30 bg-primary/5 p-3 text-[12px] font-body text-foreground/80 leading-snug">
+                Submitting requires an active <span className="font-semibold">STRAND Brand Access</span> membership (£99/year). Save as draft any time.
+              </div>
+            )}
+          </>
         )}
 
         <div className="sticky bottom-0 -mx-5 bg-background/95 backdrop-blur border-t border-border px-5 pt-2 pb-2 flex gap-2">
-          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
-            SAVE DRAFT
-          </Button>
-          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
-            {brandSubActive ? "SUBMIT FOR REVIEW" : "UNLOCK"}
-          </Button>
+          {isRevisionMode ? (
+            <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 text-[11px] uppercase tracking-wide">
+              SUBMIT CHANGES FOR REVIEW
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+                SAVE DRAFT
+              </Button>
+              <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+                {brandSubActive ? "SUBMIT FOR REVIEW" : "UNLOCK"}
+              </Button>
+            </>
+          )}
         </div>
 
       </div>

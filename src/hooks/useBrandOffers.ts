@@ -10,6 +10,43 @@ export type BrandProduct = Database["public"]["Tables"]["brand_products"]["Row"]
 export type PlacementSlot = Database["public"]["Enums"]["brand_placement_slot"];
 export type BrandOfferStatus = Database["public"]["Enums"]["brand_offer_status"];
 
+/** Revision row shape (creative-only edit awaiting review). Generated types will
+ *  catch up on next codegen; keep this local type in sync with the migration. */
+export interface BrandOfferRevision {
+  id: string;
+  offer_id: string;
+  brand_user_id: string;
+  status: "pending" | "approved" | "rejected" | "withdrawn" | "superseded";
+  headline: string | null;
+  body_copy: string | null;
+  discount_code: string | null;
+  external_url: string | null;
+  hero_image_path: string | null;
+  products: RevisionProductSnapshot[];
+  rejection_reason: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RevisionProductSnapshot {
+  kind: "product" | "tool";
+  name: string;
+  description?: string | null;
+  external_url?: string | null;
+  image_urls?: string[];
+  ingredients?: string[];
+  tool_kind?: string | null;
+  key_features?: string[];
+  materials?: string[];
+  source_type?: "manual" | "ai" | "linked";
+  source_url?: string | null;
+  linked_product_id?: string | null;
+}
+
+
 export const SLOT_LABEL: Record<PlacementSlot, string> = {
   home: "Home banner",
   products: "Products banner",
@@ -198,19 +235,186 @@ export function useAllLiveBrandOffers() {
 }
 
 
+/** Admin queue badge: new offers awaiting review PLUS pending creative revisions
+ *  on already-live offers. Both flow through the same admin review area. */
 export function usePendingBrandOffersCount() {
   return useQuery({
     queryKey: ["admin", "pending-brand-offers"],
     staleTime: 30_000,
     queryFn: async () => {
-      const { count } = await supabase
-        .from("brand_offers")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "under_review");
-      return count ?? 0;
+      const [{ count: offerCount }, { count: revisionCount }] = await Promise.all([
+        supabase.from("brand_offers").select("id", { count: "exact", head: true }).eq("status", "under_review"),
+        (supabase as unknown as {
+          from: (t: string) => { select: (c: string, opts: { count: "exact"; head: true }) => { eq: (c: string, v: string) => Promise<{ count: number | null }> } };
+        }).from("brand_offer_revisions").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      return (offerCount ?? 0) + (revisionCount ?? 0);
     },
   });
 }
+
+/** Pending revision for a single offer (0 or 1). */
+export function usePendingRevision(offerId: string | undefined) {
+  return useQuery({
+    queryKey: ["brand-offer-revision", "pending", offerId],
+    enabled: !!offerId,
+    queryFn: async (): Promise<BrandOfferRevision | null> => {
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: BrandOfferRevision | null; error: { message: string } | null }> } } };
+        };
+      };
+      const { data, error } = await client.from("brand_offer_revisions").select("*").eq("offer_id", offerId!).eq("status", "pending").maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/** All revision history for a single offer (newest first). */
+export function useOfferRevisions(offerId: string | undefined) {
+  return useQuery({
+    queryKey: ["brand-offer-revisions", offerId],
+    enabled: !!offerId,
+    queryFn: async (): Promise<BrandOfferRevision[]> => {
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { eq: (c: string, v: string) => { order: (c: string, o: { ascending: boolean }) => Promise<{ data: BrandOfferRevision[] | null; error: { message: string } | null }> } };
+        };
+      };
+      const { data, error } = await client.from("brand_offer_revisions").select("*").eq("offer_id", offerId!).order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+}
+
+/** All pending revisions across all brands (admin). */
+export function useAllPendingRevisions() {
+  return useQuery({
+    queryKey: ["admin", "all-pending-brand-revisions"],
+    staleTime: 30_000,
+    queryFn: async (): Promise<BrandOfferRevision[]> => {
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { eq: (c: string, v: string) => { order: (c: string, o: { ascending: boolean }) => Promise<{ data: BrandOfferRevision[] | null; error: { message: string } | null }> } };
+        };
+      };
+      const { data, error } = await client.from("brand_offer_revisions").select("*").eq("status", "pending").order("submitted_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+}
+
+/** Brand-side: id-set of offers that have a pending revision (for dashboard badges). */
+export function useOffersWithPendingRevisions(offerIds: string[]) {
+  const key = [...offerIds].sort().join(",");
+  return useQuery({
+    queryKey: ["brand-offers-with-pending-revisions", key],
+    enabled: offerIds.length > 0,
+    staleTime: 30_000,
+    queryFn: async (): Promise<Set<string>> => {
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { in: (c: string, v: string[]) => { eq: (c: string, v: string) => Promise<{ data: Array<{ offer_id: string }> | null; error: { message: string } | null }> } };
+        };
+      };
+      const { data, error } = await client.from("brand_offer_revisions").select("offer_id").in("offer_id", offerIds).eq("status", "pending");
+      if (error) throw new Error(error.message);
+      return new Set((data ?? []).map((r) => r.offer_id));
+    },
+  });
+}
+
+export function useSubmitBrandOfferRevision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      offer_id: string;
+      headline: string | null;
+      body_copy: string | null;
+      discount_code: string | null;
+      external_url: string | null;
+      hero_image_path: string | null;
+      products: RevisionProductSnapshot[];
+    }) => {
+      const { data, error } = await supabase.rpc("submit_brand_offer_revision" as never, {
+        _offer_id: args.offer_id,
+        _headline: args.headline,
+        _body_copy: args.body_copy,
+        _discount_code: args.discount_code,
+        _external_url: args.external_url,
+        _hero_image_path: args.hero_image_path,
+        _products: args.products as unknown as never,
+      } as never);
+      if (error) throw error;
+      return data as unknown as string;
+    },
+    onSuccess: (_id, args) => {
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+    },
+  });
+}
+
+export function useWithdrawBrandOfferRevision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ revision_id }: { revision_id: string; offer_id: string }) => {
+      const { error } = await supabase.rpc("withdraw_brand_offer_revision" as never, { _revision_id: revision_id } as never);
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) => {
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+    },
+  });
+}
+
+export function useApproveBrandOfferRevision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ revision_id }: { revision_id: string; offer_id: string }) => {
+      const { error } = await supabase.rpc("approve_brand_offer_revision" as never, { _revision_id: revision_id } as never);
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) => {
+      qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+      qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
+      qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
+    },
+  });
+}
+
+export function useRejectBrandOfferRevision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ revision_id, reason }: { revision_id: string; offer_id: string; reason: string }) => {
+      const { error } = await supabase.rpc("reject_brand_offer_revision" as never, { _revision_id: revision_id, _reason: reason } as never);
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) => {
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+    },
+  });
+}
+
 
 /** Session-scoped impression dedupe: one impression per (offer, slot) per browser session. */
 const impressionSeenKey = (offerId: string, slot: PlacementSlot | null) =>
