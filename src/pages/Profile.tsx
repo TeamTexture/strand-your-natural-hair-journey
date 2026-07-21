@@ -144,6 +144,7 @@ const EditableSectionLabel = ({
 const Profile = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { isProfessional, isAdmin } = useRoles();
   const { values: bloodValues } = useBloodValues();
 
   const [editPickerOpen, setEditPickerOpen] = useState(false);
