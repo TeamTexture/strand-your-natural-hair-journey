@@ -63,9 +63,12 @@ const Home = () => {
   const { user } = useAuth();
   const greeting = getTimeBasedGreeting();
   const [firstName, setFirstName] = useState<string>("");
-  const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts();
-  const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
-  const { last: lastWash, daysSinceLast } = useWashDays();
+  // Home is intentionally STATIC while mounted: every data hook loads once
+  // on entry, then no realtime channels, focus refetches, or interval polls
+  // run until the user navigates away and returns.
+  const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts({ static: true });
+  const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf", { static: true });
+  const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const queryClient = useQueryClient();
