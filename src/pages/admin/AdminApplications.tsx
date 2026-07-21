@@ -301,7 +301,7 @@ const ApplicationCard = ({
 
         {expanded && (
           <div className="pt-3 mt-2 space-y-2.5 text-xs font-body leading-relaxed border-t border-background min-w-0">
-            {app.email && <Row label="Email">{app.email}</Row>}
+            {app.email && <Row label="Account email">{app.email}</Row>}
             {app.qualifications && <Row label="Qualifications">{app.qualifications}</Row>}
             {(app.insurance_provider || app.insurance_policy_no) && (
               <Row label="Insurance">
@@ -310,6 +310,60 @@ const ApplicationCard = ({
                   .join(" · ")}
               </Row>
             )}
+            {(() => {
+              const a = app as unknown as {
+                business_phone?: string | null;
+                business_email?: string | null;
+                address_line1?: string | null;
+                address_line2?: string | null;
+                city?: string | null;
+                opening_hours?: Record<string, { closed?: boolean; open?: string; close?: string }> | null;
+              };
+              const addressLine = [a.address_line1, a.address_line2, a.city, app.postcode]
+                .filter(Boolean)
+                .join(", ");
+              return (
+                <>
+                  {a.business_phone && <Row label="Business phone">{a.business_phone}</Row>}
+                  {a.business_email && <Row label="Business email">{a.business_email}</Row>}
+                  {addressLine && <Row label="Address">{addressLine}</Row>}
+                  {a.opening_hours && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        Opening hours
+                      </p>
+                      <ul className="space-y-0.5">
+                        {(
+                          [
+                            ["mon", "Mon"],
+                            ["tue", "Tue"],
+                            ["wed", "Wed"],
+                            ["thu", "Thu"],
+                            ["fri", "Fri"],
+                            ["sat", "Sat"],
+                            ["sun", "Sun"],
+                          ] as const
+                        ).map(([k, label]) => {
+                          const dh = a.opening_hours?.[k];
+                          if (!dh) return null;
+                          return (
+                            <li
+                              key={k}
+                              className="flex justify-between text-[11px] text-foreground/80"
+                            >
+                              <span>{label}</span>
+                              <span>
+                                {dh.closed ? "Closed" : `${dh.open ?? ""} – ${dh.close ?? ""}`}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             {app.website_url && <Row label="Website">{app.website_url}</Row>}
             {app.instagram_handle && <Row label="Instagram">{app.instagram_handle}</Row>}
             {app.why_strand && <Row label="Why STRAND">{app.why_strand}</Row>}
