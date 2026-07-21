@@ -544,6 +544,78 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_applications: {
+        Row: {
+          admin_notes: string | null
+          business_name: string | null
+          created_at: string
+          discipline: Database["public"]["Enums"]["pro_discipline"]
+          email: string
+          full_name: string
+          id: string
+          instagram_handle: string | null
+          insurance_expiry: string | null
+          insurance_policy_no: string | null
+          insurance_provider: string | null
+          location: string | null
+          postcode: string | null
+          qualifications: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["pro_application_status"]
+          updated_at: string
+          user_id: string | null
+          website_url: string | null
+          why_strand: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          business_name?: string | null
+          created_at?: string
+          discipline: Database["public"]["Enums"]["pro_discipline"]
+          email: string
+          full_name: string
+          id?: string
+          instagram_handle?: string | null
+          insurance_expiry?: string | null
+          insurance_policy_no?: string | null
+          insurance_provider?: string | null
+          location?: string | null
+          postcode?: string | null
+          qualifications?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["pro_application_status"]
+          updated_at?: string
+          user_id?: string | null
+          website_url?: string | null
+          why_strand?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          business_name?: string | null
+          created_at?: string
+          discipline?: Database["public"]["Enums"]["pro_discipline"]
+          email?: string
+          full_name?: string
+          id?: string
+          instagram_handle?: string | null
+          insurance_expiry?: string | null
+          insurance_policy_no?: string | null
+          insurance_provider?: string | null
+          location?: string | null
+          postcode?: string | null
+          qualifications?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["pro_application_status"]
+          updated_at?: string
+          user_id?: string | null
+          website_url?: string | null
+          why_strand?: string | null
+        }
+        Relationships: []
+      }
       product_ratings: {
         Row: {
           created_at: string
@@ -1158,6 +1230,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_saved_meals: {
         Row: {
           created_at: string
@@ -1400,9 +1493,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "consumer" | "professional" | "admin"
+      pro_application_status: "pending" | "approved" | "rejected" | "suspended"
+      pro_discipline:
+        | "Trichologist"
+        | "Dermatologist"
+        | "Curl Specialist"
+        | "Colourist"
+        | "Stylist"
       pro_type: "Trichologist" | "Dermatologist" | "Curl Specialist"
     }
     CompositeTypes: {
@@ -1531,6 +1638,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["consumer", "professional", "admin"],
+      pro_application_status: ["pending", "approved", "rejected", "suspended"],
+      pro_discipline: [
+        "Trichologist",
+        "Dermatologist",
+        "Curl Specialist",
+        "Colourist",
+        "Stylist",
+      ],
       pro_type: ["Trichologist", "Dermatologist", "Curl Specialist"],
     },
   },
