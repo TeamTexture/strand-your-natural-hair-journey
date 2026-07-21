@@ -787,11 +787,12 @@ export default function BloodUpload() {
                       className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-muted/30"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-body font-medium truncate">{r.marker}</p>
-                        <p className="text-[11px] text-foreground/60 font-body truncate">
+                        <p className="text-sm font-body font-medium break-words">{r.marker}</p>
+                        <p className="text-[11px] text-foreground/60 font-body break-words">
                           As read: {r.raw_marker} · {r.raw_value}
                         </p>
                       </div>
+
                       <div className="flex items-center gap-1.5 shrink-0">
                         <Input
                           type="number"
