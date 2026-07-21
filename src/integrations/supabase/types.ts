@@ -637,6 +637,86 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_client_access: {
+        Row: {
+          consumer_id: string
+          created_at: string
+          enquiry_id: string | null
+          granted_at: string
+          id: string
+          pro_user_id: string
+          revoked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          consumer_id: string
+          created_at?: string
+          enquiry_id?: string | null
+          granted_at?: string
+          id?: string
+          pro_user_id: string
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consumer_id?: string
+          created_at?: string
+          enquiry_id?: string | null
+          granted_at?: string
+          id?: string
+          pro_user_id?: string
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pro_client_access_enquiry_id_fkey"
+            columns: ["enquiry_id"]
+            isOneToOne: false
+            referencedRelation: "pro_enquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pro_enquiries: {
+        Row: {
+          consumer_id: string
+          created_at: string
+          decline_reason: string | null
+          id: string
+          note: string | null
+          pro_user_id: string
+          responded_at: string | null
+          share_passport_consent: boolean
+          status: Database["public"]["Enums"]["pro_enquiry_status"]
+          updated_at: string
+        }
+        Insert: {
+          consumer_id: string
+          created_at?: string
+          decline_reason?: string | null
+          id?: string
+          note?: string | null
+          pro_user_id: string
+          responded_at?: string | null
+          share_passport_consent?: boolean
+          status?: Database["public"]["Enums"]["pro_enquiry_status"]
+          updated_at?: string
+        }
+        Update: {
+          consumer_id?: string
+          created_at?: string
+          decline_reason?: string | null
+          id?: string
+          note?: string | null
+          pro_user_id?: string
+          responded_at?: string | null
+          share_passport_consent?: boolean
+          status?: Database["public"]["Enums"]["pro_enquiry_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pro_offers: {
         Row: {
           code: string | null
@@ -1661,9 +1741,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
       approve_pro_application: {
         Args: { _admin_notes?: string; _application_id: string }
         Returns: string
+      }
+      has_active_client_access: {
+        Args: { _consumer: string; _pro: string }
+        Returns: boolean
       }
       has_active_pro_subscription: { Args: { _pro: string }; Returns: boolean }
       has_role: {
@@ -1683,6 +1768,7 @@ export type Database = {
         | "Curl Specialist"
         | "Colourist"
         | "Stylist"
+      pro_enquiry_status: "pending" | "accepted" | "declined" | "withdrawn"
       pro_type: "Trichologist" | "Dermatologist" | "Curl Specialist"
     }
     CompositeTypes: {
@@ -1820,6 +1906,7 @@ export const Constants = {
         "Colourist",
         "Stylist",
       ],
+      pro_enquiry_status: ["pending", "accepted", "declined", "withdrawn"],
       pro_type: ["Trichologist", "Dermatologist", "Curl Specialist"],
     },
   },
