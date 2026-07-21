@@ -152,6 +152,14 @@ const ProDashboard = () => {
             count={pendingEnquiries}
           />
           <Card
+            icon={Calendar}
+            title="Appointments"
+            sub={hasProAccess ? nextApptSub : "Subscribe to see linked appointments."}
+            onClick={() => nav("/pro/appointments")}
+            count={upcomingAppointments.length}
+          />
+
+          <Card
             icon={CreditCard}
             title="Billing"
             sub={subLoading ? "Loading…" : hasProAccess ? "Manage your subscription." : "Subscribe to STRAND Pro."}
