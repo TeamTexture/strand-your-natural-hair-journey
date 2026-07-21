@@ -1012,11 +1012,16 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d.productPhotos]);
 
+  const openProduct = useContext(OpenProductContext);
   const renderProductRow = (p: PassportDataset["shelf"][number], size: "sm" | "md" = "sm") => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
     const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
     return (
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        onClick={() => openProduct?.(p as PassportProduct)}
+        className="w-full flex items-start gap-3 text-left hover:opacity-90 active:opacity-75 transition-opacity"
+      >
         <Thumb bucket="product-photos" path={photo ?? null} className={size === "sm" ? "size-11 shrink-0 rounded-lg" : "size-14 shrink-0 rounded-lg"} title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
           <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
@@ -1029,9 +1034,10 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
             </p>
           )}
         </div>
-      </div>
+      </button>
     );
   };
+
 
   const ProductInner = ({ p }: { p: PassportDataset["shelf"][number] }) => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
