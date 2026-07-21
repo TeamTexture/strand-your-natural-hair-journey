@@ -606,8 +606,13 @@ export type Database = {
       }
       pro_applications: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
           admin_notes: string | null
+          business_email: string | null
           business_name: string | null
+          business_phone: string | null
+          city: string | null
           created_at: string
           discipline: Database["public"]["Enums"]["pro_discipline"]
           email: string
@@ -618,6 +623,7 @@ export type Database = {
           insurance_policy_no: string | null
           insurance_provider: string | null
           location: string | null
+          opening_hours: Json | null
           payment_confirmed_at: string | null
           postcode: string | null
           qualifications: string | null
@@ -631,8 +637,13 @@ export type Database = {
           why_strand: string | null
         }
         Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
           admin_notes?: string | null
+          business_email?: string | null
           business_name?: string | null
+          business_phone?: string | null
+          city?: string | null
           created_at?: string
           discipline: Database["public"]["Enums"]["pro_discipline"]
           email: string
@@ -643,6 +654,7 @@ export type Database = {
           insurance_policy_no?: string | null
           insurance_provider?: string | null
           location?: string | null
+          opening_hours?: Json | null
           payment_confirmed_at?: string | null
           postcode?: string | null
           qualifications?: string | null
@@ -656,8 +668,13 @@ export type Database = {
           why_strand?: string | null
         }
         Update: {
+          address_line1?: string | null
+          address_line2?: string | null
           admin_notes?: string | null
+          business_email?: string | null
           business_name?: string | null
+          business_phone?: string | null
+          city?: string | null
           created_at?: string
           discipline?: Database["public"]["Enums"]["pro_discipline"]
           email?: string
@@ -668,6 +685,7 @@ export type Database = {
           insurance_policy_no?: string | null
           insurance_provider?: string | null
           location?: string | null
+          opening_hours?: Json | null
           payment_confirmed_at?: string | null
           postcode?: string | null
           qualifications?: string | null
@@ -827,9 +845,14 @@ export type Database = {
       }
       pro_profiles: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
           avatar_path: string | null
           bio: string | null
           booking_url: string | null
+          business_email: string | null
+          business_phone: string | null
+          city: string | null
           contact_email: string | null
           cover_path: string | null
           created_at: string
@@ -839,6 +862,7 @@ export type Database = {
           instagram_handle: string | null
           is_published: boolean
           location: string | null
+          opening_hours: Json | null
           photos: string[]
           postcode: string | null
           services: Json
@@ -848,9 +872,14 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
           avatar_path?: string | null
           bio?: string | null
           booking_url?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          city?: string | null
           contact_email?: string | null
           cover_path?: string | null
           created_at?: string
@@ -860,6 +889,7 @@ export type Database = {
           instagram_handle?: string | null
           is_published?: boolean
           location?: string | null
+          opening_hours?: Json | null
           photos?: string[]
           postcode?: string | null
           services?: Json
@@ -869,9 +899,14 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          address_line1?: string | null
+          address_line2?: string | null
           avatar_path?: string | null
           bio?: string | null
           booking_url?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          city?: string | null
           contact_email?: string | null
           cover_path?: string | null
           created_at?: string
@@ -881,6 +916,7 @@ export type Database = {
           instagram_handle?: string | null
           is_published?: boolean
           location?: string | null
+          opening_hours?: Json | null
           photos?: string[]
           postcode?: string | null
           services?: Json
