@@ -39,6 +39,7 @@ const StatusPill = ({ status }: { status: DerivedStatus }) => {
 
 const BrandDashboard = () => {
   const nav = useNavigate();
+  const { signOut } = useAuth();
   const { data: profile, isLoading: profileLoading } = useBrandProfile();
   const { data: offers = [], isLoading } = useBrandOffers();
   const { subscription, isActive: subActive, isAdminOverride } = useBrandSubscription();
