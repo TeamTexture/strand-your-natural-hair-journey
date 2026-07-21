@@ -178,7 +178,9 @@ const AdminBrandOfferReview = () => {
   const { data: offer, isLoading } = useBrandOffer(id);
   const { data: pendingRevision } = usePendingRevision(id);
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const [heroOpen, setHeroOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
 
   useEffect(() => {
     if (offer?.hero_image_path) {
