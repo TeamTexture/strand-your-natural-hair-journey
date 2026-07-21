@@ -1759,6 +1759,7 @@ const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> 
   journal: PenLine,
   photos: ImageIcon,
   goals: Target,
+  notes: StickyNote,
 };
 
 const sectionSub: Record<Section, string> = {
@@ -1770,7 +1771,9 @@ const sectionSub: Record<Section, string> = {
   journal: "Entries with notes, mood and photos",
   photos: "Milestones, before shots, moodboards",
   goals: "What they want and why they're here",
+  notes: "Your private working notes on this client",
 };
+
 
 
 // ================================================================
