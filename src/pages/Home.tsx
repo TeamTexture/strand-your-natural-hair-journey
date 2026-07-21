@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle, Heart, Droplet, RefreshCw } from "lucide-react";
+import { HelpCircle, Heart, Droplet, RefreshCw, Tag } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -323,6 +323,13 @@ const Home = () => {
             className="size-11 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors"
           >
             <HelpCircle className="size-5" />
+          </button>
+          <button
+            onClick={() => navigate("/profile/discounts")}
+            aria-label="Offers & discounts"
+            className="size-11 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors"
+          >
+            <Tag className="size-5" />
           </button>
           <button
             onClick={() => navigate("/profile")}
