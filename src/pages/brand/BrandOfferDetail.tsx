@@ -23,6 +23,8 @@ const BrandOfferDetail = () => {
   const nav = useNavigate();
   const { data: offer, isLoading, refetch } = useBrandOffer(id);
   const [paying, setPaying] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteOffer = useDeleteBrandOffer();
 
   if (isLoading || !offer) return <LoadingDot />;
 
