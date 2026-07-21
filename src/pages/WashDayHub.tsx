@@ -17,6 +17,7 @@ import { AlertTriangle } from "lucide-react";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
 import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
+import BrandBanner from "@/components/BrandBanner";
 
 
 const monthNames = [
@@ -410,6 +411,7 @@ const WashDayHub = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} />
       <div className="px-5 space-y-4 pb-6">
+        <BrandBanner slot="wash_day" />
         {overdue && (
           <div
             role="alert"
