@@ -1613,6 +1613,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          id: string
+          source: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          source?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          source?: string | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_style_profile: {
         Row: {
           chemical_history: string[]
@@ -1817,6 +1838,15 @@ export type Database = {
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
+      admin_list_member_activity: {
+        Args: never
+        Returns: {
+          last_session: string
+          session_count: number
+          sessions_last_30d: number
+          user_id: string
+        }[]
+      }
       admin_list_member_emails: {
         Args: never
         Returns: {
