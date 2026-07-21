@@ -15,6 +15,8 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
+import { useAuth } from "@/hooks/useAuth";
+import { queueHelloKleanPrompt } from "@/lib/discounts";
 
 /**
  * Track the iOS visual-viewport so the sheet can shrink/translate above
@@ -63,6 +65,7 @@ const GoalEditorSheet = ({
   defaultStatus = "in_progress",
 }: Props) => {
   const { upsertGoal, deleteGoal } = useGoals();
+  const { user } = useAuth();
   const [challenge, setChallenge] = useState("");
   const [target, setTarget] = useState("");
   const [timelineAmount, setTimelineAmount] = useState("");
@@ -172,6 +175,11 @@ const GoalEditorSheet = ({
       };
       await upsertGoal(savedGoal, goal?.id);
       toast.success(goal ? "Goal updated" : "Goal saved");
+      // Queue the Hello Klean member-perk prompt for the next Home visit.
+      // Home decides whether to actually show it, based on the user's
+      // postcode (hard/very-hard water only) and whether it has already
+      // been shown/unlocked.
+      queueHelloKleanPrompt(user?.id);
       onOpenChange(false);
       // Fire the AI tip popup with the fresh goal + full user context.
       void fetchTip({

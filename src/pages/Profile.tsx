@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift } from "lucide-react";
 import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -735,6 +735,18 @@ const Profile = () => {
         >
           <KeyRound className="size-4 text-primary/70" />
           <span className="flex-1">Data access</span>
+          <ChevronRight className="size-3.5 text-muted-foreground" />
+        </button>
+      </div>
+
+      <SectionLabel>Perks</SectionLabel>
+      <div className="px-5 pb-4 space-y-1">
+        <button
+          onClick={() => navigate("/profile/discounts")}
+          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+        >
+          <Gift className="size-4 text-primary/70" />
+          <span className="flex-1">Discounts & offers</span>
           <ChevronRight className="size-3.5 text-muted-foreground" />
         </button>
       </div>
