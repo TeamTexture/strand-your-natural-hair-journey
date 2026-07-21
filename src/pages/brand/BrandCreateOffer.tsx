@@ -491,7 +491,7 @@ const BrandCreateOffer = () => {
           </div>
         )}
 
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-3 flex gap-2 max-w-[375px] mx-auto">
+        <div className="sticky bottom-0 -mx-5 bg-background/95 backdrop-blur border-t border-border px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex gap-2">
           <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1">
             Save draft
           </Button>
