@@ -48,6 +48,15 @@ const AdminApplications = () => {
       status: Status;
       admin_notes?: string;
     }) => {
+      if (status === "approved") {
+        // Atomic: grants professional role + creates pro_profiles row.
+        const { error } = await supabase.rpc("approve_pro_application", {
+          _application_id: id,
+          _admin_notes: admin_notes ?? null,
+        });
+        if (error) throw error;
+        return;
+      }
       const { data: me } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("pro_applications")

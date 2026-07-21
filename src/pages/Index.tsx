@@ -21,20 +21,34 @@ const Index = () => {
     } catch {}
   }, []);
 
-  // Once we have a user, check onboarding status so we know where to send
-  // them WHEN they choose to enter.
+  // Once we have a user, check onboarding status + roles so we know where to
+  // send them WHEN they choose to enter. Pros land on /pro, admin-only on
+  // /admin/applications, multi-role and consumers on the consumer home.
   useEffect(() => {
     if (loading || !user) return;
     setChecking(true);
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("onboarding_completed_at, display_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setTarget(data?.onboarding_completed_at ? "/home" : "/onboarding/profile-step-1");
-      if (data?.display_name) {
-        const first = data.display_name.split(" ")[0];
+      const [{ data: profile }, { data: roleRows }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("onboarding_completed_at, display_name")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+      ]);
+      const roles = (roleRows ?? []).map((r) => r.role as string);
+      const hasConsumer = roles.includes("consumer");
+      const hasPro = roles.includes("professional");
+      const hasAdmin = roles.includes("admin");
+
+      let next = "/home";
+      if (!hasConsumer && hasPro) next = "/pro";
+      else if (!hasConsumer && !hasPro && hasAdmin) next = "/admin/applications";
+      else next = profile?.onboarding_completed_at ? "/home" : "/onboarding/profile-step-1";
+
+      setTarget(next);
+      if (profile?.display_name) {
+        const first = profile.display_name.split(" ")[0];
         setFirstName(first);
         try { localStorage.setItem("strand_last_display_name", first); } catch {}
       }

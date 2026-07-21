@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck } from "lucide-react";
+import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -143,6 +144,7 @@ const EditableSectionLabel = ({
 const Profile = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { isProfessional, isAdmin } = useRoles();
   const { values: bloodValues } = useBloodValues();
 
   const [editPickerOpen, setEditPickerOpen] = useState(false);
@@ -688,6 +690,34 @@ const Profile = () => {
           <span className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
         </button>
       </div>
+
+      {(isProfessional || isAdmin) && (
+        <>
+          <SectionLabel>Switch view</SectionLabel>
+          <div className="px-5 pb-4 space-y-1">
+            {isProfessional && (
+              <button
+                onClick={() => navigate("/pro")}
+                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+              >
+                <ArrowLeftRight className="size-4 text-primary/70" />
+                <span className="flex-1">Professional dashboard</span>
+                <ChevronRight className="size-3.5 text-muted-foreground" />
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin/applications")}
+                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+              >
+                <ShieldCheck className="size-4 text-primary/70" />
+                <span className="flex-1">Admin panel</span>
+                <ChevronRight className="size-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Accessibility — global text size */}
       <SectionLabel>Accessibility</SectionLabel>
