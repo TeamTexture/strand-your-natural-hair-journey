@@ -13,7 +13,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { STATUS_LABEL, SLOT_LABEL, PlacementSlot } from "@/hooks/useBrandOffers";
+import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -107,15 +107,13 @@ const AdminBrandOffers = () => {
 
   if (isLoading) return <LoadingDot />;
 
-  const today = new Date().toISOString().slice(0, 10);
-  const pending = offers.filter((o) => o.status === "under_review");
-  const liveOnly = offers.filter(
-    (o) =>
-      ["live", "paid_scheduled"].includes(o.status) &&
-      (!o.starts_on || o.starts_on <= today) &&
-      (!o.ends_on || o.ends_on >= today),
-  );
-  const other = offers.filter((o) => o.status !== "under_review");
+  const today = londonToday();
+  // Derive display status once per offer so admin agrees with what the brand
+  // and consumer are actually seeing.
+  const withDerived = offers.map((o) => ({ ...o, _derived: deriveBrandOfferStatus(o, today) }));
+  const pending = withDerived.filter((o) => o._derived === "under_review");
+  const liveOnly = withDerived.filter((o) => o._derived === "live");
+  const other = withDerived.filter((o) => o._derived !== "under_review");
 
   const showPending = !filter || filter === "pending";
   const showLive = filter === "live" || filter === "brands";
