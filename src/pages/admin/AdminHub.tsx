@@ -166,11 +166,13 @@ const StatCard = ({
   label,
   value,
   tone,
+  sublabel,
   onClick,
 }: {
   label: string;
   value: number | string;
   tone?: "warn" | "urgent" | "default";
+  sublabel?: string;
   onClick?: () => void;
 }) => {
   const content = (
@@ -191,6 +193,11 @@ const StatCard = ({
       >
         {value}
       </p>
+      {sublabel && (
+        <p className="text-[9.5px] font-body text-muted-foreground mt-1 leading-tight">
+          {sublabel}
+        </p>
+      )}
       {onClick && (
         <ChevronRight className="size-3.5 text-muted-foreground absolute top-3 right-3" />
       )}
