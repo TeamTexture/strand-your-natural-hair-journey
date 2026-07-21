@@ -79,6 +79,7 @@ import BrandAuth from "./pages/brand/BrandAuth";
 import BrandDashboard from "./pages/brand/BrandDashboard";
 import BrandCreateOffer from "./pages/brand/BrandCreateOffer";
 import BrandOfferDetail from "./pages/brand/BrandOfferDetail";
+import BrandExtendOffer from "./pages/brand/BrandExtendOffer";
 import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
 import BrandSubscribe from "./pages/brand/BrandSubscribe";
 import BrandBilling from "./pages/brand/BrandBilling";
