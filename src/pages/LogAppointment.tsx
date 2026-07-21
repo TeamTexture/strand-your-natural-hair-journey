@@ -48,6 +48,10 @@ const LogAppointment = () => {
   const [followUp, setFollowUp] = useState(false);
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpTime, setFollowUpTime] = useState("");
+  // Preserved linked-pro id when editing an existing appointment so an edit
+  // that doesn't re-touch the directory picker doesn't clear the pro linkage.
+  const [existingLinkedProId, setExistingLinkedProId] = useState<string | null>(null);
+
 
   const [saving, setSaving] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
