@@ -25,8 +25,12 @@ const BrandOfferDetail = () => {
   const { id } = useParams();
   const nav = useNavigate();
   const { data: offer, isLoading } = useBrandOffer(id);
+  const { data: pendingRevision } = usePendingRevision(id);
+  const { data: allRevisions = [] } = useOfferRevisions(id);
+  const withdrawRevision = useWithdrawBrandOfferRevision();
   const [paying, setPaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const deleteOffer = useDeleteBrandOffer();
 
   if (isLoading || !offer) return <LoadingDot />;
@@ -49,11 +53,15 @@ const BrandOfferDetail = () => {
   }, {});
 
   const derived = deriveBrandOfferStatus(offer);
-  const canEdit = ["draft", "rejected", "under_review"].includes(offer.status);
+  // Live / paid-scheduled offers can be edited too — via the revision flow (no re-payment).
+  const canEdit = ["draft", "rejected", "under_review", "paid_scheduled", "live"].includes(offer.status);
+  const isRevisionMode = ["paid_scheduled", "live"].includes(offer.status);
   const needsPayment = offer.status === "approved_unpaid";
   // Brands can pull an offer any time BEFORE it's paid/live — including while under review.
   // Live/paid campaigns must be ended, not deleted, so they aren't listed here.
   const canDelete = !["paid_scheduled", "live"].includes(offer.status) && derived !== "live";
+  // Most-recent rejected revision (so the brand can see the admin's note).
+  const lastRejectedRevision = allRevisions.find((r) => r.status === "rejected");
 
   const handleDelete = async () => {
     try {
