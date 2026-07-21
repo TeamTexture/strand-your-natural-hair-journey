@@ -1914,6 +1914,12 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
   const [section, setSection] = useState<Section>("profile");
   const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
 
+  // Notes tab exists only in pro mode — admins are excluded by design from
+  // a professional's private working notes.
+  const SECTIONS = useMemo<SectionSpec[]>(
+    () => (mode === "pro" ? [...BASE_SECTIONS, NOTES_SECTION] : BASE_SECTIONS),
+    [mode],
+  );
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
@@ -1921,8 +1927,11 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
 
   useEffect(() => {
     if (!active || accessEnded) return;
+    // Notes are the pro's own content, not client data — never log a view.
+    if (section === "notes") return;
     logView(userId, section);
   }, [userId, section, active, accessEnded]);
+
 
 
 
