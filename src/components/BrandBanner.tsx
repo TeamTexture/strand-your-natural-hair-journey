@@ -69,7 +69,7 @@ const BrandBanner = ({ slot }: Props) => {
 
   const visit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+    logStat.mutate({ offer_id: offer.id, slot, kind: "link_clicks" });
     if (offer.external_url) {
       window.open(offer.external_url, "_blank", "noopener,noreferrer");
     } else {
