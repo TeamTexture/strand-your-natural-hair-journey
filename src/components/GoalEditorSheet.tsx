@@ -65,6 +65,7 @@ const GoalEditorSheet = ({
   defaultStatus = "in_progress",
 }: Props) => {
   const { upsertGoal, deleteGoal } = useGoals();
+  const { user } = useAuth();
   const [challenge, setChallenge] = useState("");
   const [target, setTarget] = useState("");
   const [timelineAmount, setTimelineAmount] = useState("");
