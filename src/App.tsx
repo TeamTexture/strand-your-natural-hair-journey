@@ -204,6 +204,7 @@ const App = () => (
               <Route path="/directory" element={<Directory />} />
               <Route path="/profile" element={<Onboard><Profile /></Onboard>} />
               <Route path="/profile/milestones" element={<Onboard><MilestoneGallery /></Onboard>} />
+              <Route path="/profile/discounts" element={<Onboard><Discounts /></Onboard>} />
               <Route path="/blood-history" element={<Onboard><BloodHistory /></Onboard>} />
               <Route path="/blood-upload" element={<Onboard><BloodUpload /></Onboard>} />
               <Route path="/blood-panel/:id" element={<Onboard><BloodPanelReview /></Onboard>} />
