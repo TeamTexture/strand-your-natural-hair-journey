@@ -26,6 +26,7 @@ const Directory = () => {
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
   const [showTop, setShowTop] = useState(false);
+  const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
 
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
@@ -179,6 +180,19 @@ const Directory = () => {
                     </button>
                   )}
                   {(() => {
+                    if (p.proUserId) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
+                          }
+                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                        >
+                          Enquire Now
+                        </button>
+                      );
+                    }
                     const bookUrl = p.bookingUrl || p.website;
                     return bookUrl ? (
                       <a
@@ -242,6 +256,14 @@ const Directory = () => {
         >
           <ArrowUp className="size-5" />
         </button>
+      )}
+      {enquiryTarget && (
+        <EnquiryDialog
+          open={!!enquiryTarget}
+          onOpenChange={(o) => !o && setEnquiryTarget(null)}
+          proUserId={enquiryTarget.proUserId}
+          proName={enquiryTarget.name}
+        />
       )}
     </ScreenLayout>
   );
