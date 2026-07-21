@@ -20,26 +20,8 @@ import { buildAiContext } from "@/lib/aiContext";
 
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
-const analysisCacheKind = (brandProductId: string) =>
-  `brand_product_analysis:${brandProductId}`;
 const guidanceCacheKind = (brandProductId: string) =>
   `brand_product_guidance:${brandProductId}`;
-
-interface IngredientFlag {
-  name: string;
-  tone: "good" | "warn" | "bad";
-  body: string;
-}
-
-type AnalysisPayload = {
-  summary?: string | null;
-  match_score?: number | null;
-  ingredients?: IngredientFlag[];
-  // Tool-analyse-url shape
-  verdict?: string | null;
-  rationale?: string | null;
-  cautions?: string[];
-};
 
 type GuidancePayload = {
   headline: string;
