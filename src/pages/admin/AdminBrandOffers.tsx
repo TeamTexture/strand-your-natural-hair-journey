@@ -346,9 +346,12 @@ const AdminBrandOffers = () => {
                   const dates = placements.map((p) => p.placement_date).sort();
                   return (
                     <div key={o.id} className="space-y-1">
-                      <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground px-0.5">
-                        {brandNameOf(o)}
-                      </p>
+                      <div className="flex items-center justify-between gap-2 px-0.5">
+                        <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground">
+                          {brandNameOf(o)}
+                        </p>
+                        <CountdownClock offer={o} />
+                      </div>
                       <LiveOfferCard
                         id={o.id}
                         headline={o.headline}
