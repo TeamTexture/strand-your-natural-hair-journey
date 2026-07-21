@@ -639,7 +639,7 @@ const Home = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-base font-semibold leading-snug">
-                    {bloodSummary.label ?? "Blood test"}
+                    {titleCase(bloodSummary.label) || "Blood test"}
                   </p>
                   <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mt-0.5">
                     {bloodSummary.panelDate
