@@ -476,15 +476,21 @@ const BrandCreateOffer = () => {
     // Headline is optional — no validation required.
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
-    if (!asDraft && !brandSubActive) {
+    if (!asDraft && ownerMode === "brand" && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);
+      return;
+    }
+    if (!asDraft && ownerMode === "pro" && !proSubActive) {
+      toast("An active STRAND Pro subscription is required to promote.");
+      nav(`/pro/billing`);
       return;
     }
     setSubmitting(true);
     try {
       const payload = {
         brand_user_id: user.id,
+        owner_type: ownerMode,
         headline: headline.trim() || null,
         body_copy: bodyCopy.trim() || null,
         discount_code: discountCode.trim() || null,
