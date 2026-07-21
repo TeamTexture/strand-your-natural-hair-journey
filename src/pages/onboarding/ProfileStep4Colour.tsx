@@ -410,7 +410,7 @@ const ProfileStep4Colour = () => {
             // Same-tab listeners (Home banner) need a custom event because the
             // browser `storage` event only fires in OTHER tabs.
             window.dispatchEvent(new Event("strand:style-updated"));
-            navigate("/blood-upload?onboarding=1");
+            navigate("/onboarding/blood-timing");
           }}
         >
           Continue to Blood Test →
