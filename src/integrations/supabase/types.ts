@@ -1890,6 +1890,36 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_pro_usage: {
+        Args: never
+        Returns: {
+          access_restricted: boolean
+          active_clients: number
+          application_created_at: string
+          application_status: string
+          contact_email: string
+          created_at: string
+          discipline: string
+          display_name: string
+          email: string
+          enquiries_accepted: number
+          enquiries_declined: number
+          enquiries_pending: number
+          enquiries_total: number
+          is_published: boolean
+          last_session: string
+          offers_live: number
+          session_count: number
+          sessions_last_30d: number
+          sub_cancel_at_period_end: boolean
+          sub_current_period_end: string
+          sub_status: string
+          suspended_at: string
+          user_id: string
+          views_last_30d: number
+        }[]
+      }
+      admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
       approve_pro_application: {
