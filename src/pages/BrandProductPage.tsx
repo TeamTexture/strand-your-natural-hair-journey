@@ -85,13 +85,23 @@ const BrandProductPage = () => {
       if (pe) throw pe;
       const { data: off, error: oe } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id, brand_profiles(brand_name)")
+        .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id")
         .eq("id", offerId!)
         .maybeSingle();
       if (oe) throw oe;
-      return { product: prod, offer: off };
+      let brand: { brand_name: string | null } | null = null;
+      if (off?.brand_user_id) {
+        const { data: bp } = await supabase
+          .from("brand_profiles")
+          .select("brand_name")
+          .eq("user_id", off.brand_user_id)
+          .maybeSingle();
+        brand = bp ?? null;
+      }
+      return { product: prod, offer: off ? { ...off, brand_profiles: brand } : null };
     },
   });
+
 
   const product = data?.product ?? null;
   const offer = data?.offer ?? null;
