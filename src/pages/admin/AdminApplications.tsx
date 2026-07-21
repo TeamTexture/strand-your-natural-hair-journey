@@ -25,6 +25,7 @@ const tabs: { key: Status; label: string }[] = [
 const AdminApplications = () => {
   const [tab, setTab] = useState<Status>("pending");
   const qc = useQueryClient();
+  const { data: pendingCount = 0 } = usePendingApplicationsCount();
 
   const { data: apps = [], isLoading } = useQuery({
     queryKey: ["admin", "pro_applications", tab],
