@@ -98,6 +98,7 @@ const ProfileStep1 = () => {
       if (cached) {
         const p = JSON.parse(cached) as Partial<{
           name: string;
+          phone: string;
           age: string | number;
           birth_year: number | null;
           postcode: string;
@@ -105,6 +106,7 @@ const ProfileStep1 = () => {
           heritage: string;
         }>;
         if (p.name) setName((c) => (c.trim() ? c : p.name!));
+        if (p.phone) setPhone((c) => (c.trim() ? c : String(p.phone)));
         // Prefer birth_year so age auto-increments each year on birthday rollover.
         if (p.birth_year && Number.isFinite(p.birth_year)) {
           const derived = new Date().getFullYear() - Number(p.birth_year);
