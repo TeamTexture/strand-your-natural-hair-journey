@@ -249,6 +249,14 @@ const App = () => (
               <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
 
               <Route
+                path="/admin"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminHub />
+                  </RoleGate>
+                }
+              />
+              <Route
                 path="/admin/applications"
                 element={
                   <RoleGate allow={["admin"]}>
