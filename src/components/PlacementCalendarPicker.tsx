@@ -10,18 +10,20 @@ interface Selection {
 
 interface Props {
   month: Date;
-  slot: PlacementSlot;
+  slot?: PlacementSlot;
+  slots?: PlacementSlot[]; // when provided, a date is taken if ANY of these slots is taken
   selection: string[]; // yyyy-mm-dd list
   onToggleDate: (date: string) => void;
   onMonthChange: (d: Date) => void;
   excludeOfferId?: string;
 }
 
-/** Calendar for picking placement dates for a single slot. Unavailable
- *  dates (already held by another approved/paid/live offer) are locked. */
+/** Calendar for picking placement dates. Unavailable dates (already held by
+ *  another approved/paid/live offer) are locked. */
 const PlacementCalendarPicker = ({
   month,
   slot,
+  slots,
   selection,
   onToggleDate,
   onMonthChange,
@@ -29,12 +31,15 @@ const PlacementCalendarPicker = ({
 }: Props) => {
   const { data: taken = [] } = useTakenPlacements();
   const takenSet = useMemo(() => {
+    const activeSlots = slots && slots.length > 0 ? slots : slot ? [slot] : [];
+    if (activeSlots.length === 0) return new Set<string>();
     return new Set(
       taken
-        .filter((t) => t.slot === slot && t.offer_id !== excludeOfferId)
+        .filter((t) => activeSlots.includes(t.slot as PlacementSlot) && t.offer_id !== excludeOfferId)
         .map((t) => t.placement_date),
     );
-  }, [taken, slot, excludeOfferId]);
+  }, [taken, slot, slots, excludeOfferId]);
+
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
