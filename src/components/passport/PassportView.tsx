@@ -114,13 +114,21 @@ const Thumb = ({ bucket, path, alt, className, title, meta }: {
   meta?: React.ReactNode;
 }) => {
   const openPreview = useContext(ImagePreviewContext);
+  const open = async (url: string | null) => {
+    if (!openPreview) return;
+    openPreview({ url, title, meta });
+    if (!url && path) {
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+      if (data?.signedUrl) openPreview({ url: data.signedUrl, title, meta });
+    }
+  };
   return (
     <SignedImage
       bucket={bucket}
       path={path}
       alt={alt ?? title}
       className={className}
-      onClick={openPreview ? (url) => openPreview({ url, title, meta }) : undefined}
+      onClick={openPreview ? open : undefined}
     />
   );
 };
