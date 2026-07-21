@@ -181,6 +181,8 @@ const AdminBrandCalendar = () => {
             <span className="inline-flex items-center justify-center size-3 rounded-full bg-primary text-primary-foreground text-[7px] font-body font-bold leading-none">P</span>
             <span className="text-muted-foreground">Pro campaign</span>
           </div>
+        </div>
+      </div>
     </ScreenLayout>
   );
 };
