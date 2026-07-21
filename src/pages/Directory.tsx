@@ -226,6 +226,17 @@ const Directory = () => {
                   )}
                   {(() => {
                     if (p.proUserId) {
+                      if (activeEnq) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => navigate("/profile/enquiries")}
+                            className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground border border-primary/40 rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                          >
+                            View enquiry
+                          </button>
+                        );
+                      }
                       return (
                         <button
                           type="button"
@@ -234,7 +245,7 @@ const Directory = () => {
                           }
                           className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
                         >
-                          Enquire Now
+                          {enq ? "Enquire again" : "Enquire Now"}
                         </button>
                       );
                     }
