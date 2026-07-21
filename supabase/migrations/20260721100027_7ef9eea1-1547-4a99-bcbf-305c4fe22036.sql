@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.has_active_pro_subscription(uuid) TO authenticated, anon;
