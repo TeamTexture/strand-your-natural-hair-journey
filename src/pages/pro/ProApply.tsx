@@ -127,34 +127,41 @@ const ProApply = () => {
   const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const submit = async () => {
+  const persist = async (opts: { submit: boolean }) => {
     if (!user) return;
-    const parsed = schema.safeParse(form);
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
-      return;
+
+    if (opts.submit) {
+      const parsed = schema.safeParse(form);
+      if (!parsed.success) {
+        toast.error(parsed.error.issues[0].message);
+        return;
+      }
     }
+
     setSaving(true);
-    const submittedAt = new Date().toISOString();
-    const payload = {
+    const payload: Record<string, unknown> = {
       user_id: user.id,
       email: user.email!,
-      full_name: parsed.data.full_name,
-      discipline: parsed.data.discipline,
-      business_name: parsed.data.business_name || null,
-      qualifications: parsed.data.qualifications || null,
-      insurance_provider: parsed.data.insurance_provider || null,
-      insurance_policy_no: parsed.data.insurance_policy_no || null,
-      insurance_expiry: parsed.data.insurance_expiry || null,
-      location: parsed.data.location || null,
-      postcode: parsed.data.postcode || null,
-      website_url: parsed.data.website_url || null,
-      instagram_handle: parsed.data.instagram_handle || null,
-      why_strand: parsed.data.why_strand,
+      full_name: form.full_name || "",
+      discipline: form.discipline,
+      business_name: form.business_name || null,
+      qualifications: form.qualifications || null,
+      insurance_provider: form.insurance_provider || null,
+      insurance_policy_no: form.insurance_policy_no || null,
+      insurance_expiry: form.insurance_expiry || null,
+      location: form.location || null,
+      postcode: form.postcode || null,
+      website_url: form.website_url || null,
+      instagram_handle: form.instagram_handle || null,
+      why_strand: form.why_strand || "",
       status: "pending" as const,
-      payment_confirmed_at: submittedAt,
     };
+    if (opts.submit) {
+      payload.payment_confirmed_at = new Date().toISOString();
+    }
+
     let error: unknown = null;
+    let newId: string | null = appId;
     if (appId) {
       const res = await supabase
         .from("pro_applications")
@@ -164,18 +171,35 @@ const ProApply = () => {
     } else {
       const res = await supabase
         .from("pro_applications")
-        .insert(payload as never);
+        .insert(payload as never)
+        .select("id")
+        .maybeSingle();
       error = res.error;
+      newId = (res.data as { id?: string } | null)?.id ?? null;
+      if (newId) setAppId(newId);
     }
     setSaving(false);
     if (error) {
-      console.error("[pro-apply] submit failed", error);
-      toast.error("Couldn't submit — please try again.");
+      console.error("[pro-apply] persist failed", error);
+      toast.error(
+        opts.submit
+          ? "Couldn't submit — please try again."
+          : "Couldn't save draft — please try again.",
+      );
       return;
     }
-    toast.success("Application submitted.");
-    nav("/pro/landing", { replace: true });
+    if (opts.submit) {
+      toast.success("Application submitted.");
+      nav("/pro/landing", { replace: true });
+    } else {
+      toast.success("Draft saved. You can come back any time.");
+      nav("/pro/landing");
+    }
   };
+
+  const saveDraft = () => persist({ submit: false });
+  const submit = () => persist({ submit: true });
+
 
   if (authLoading || initLoading) return <LoadingDot />;
 
