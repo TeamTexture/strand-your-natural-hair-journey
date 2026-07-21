@@ -9,6 +9,9 @@ import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
+import { useProAppointments } from "@/hooks/useProAppointments";
+import { formatTime12h } from "@/lib/formatTime";
+
 
 const Card = ({
   icon: Icon,
