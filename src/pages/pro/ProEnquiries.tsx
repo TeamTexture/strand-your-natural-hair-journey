@@ -333,6 +333,11 @@ const ProEnquiries = () => {
                 }
               }}
               onDecline={() => setDeclineId(e.id)}
+              onOpenPassport={
+                e.status === "accepted"
+                  ? () => nav(`/pro/clients/${e.consumer_id}`)
+                  : undefined
+              }
             />
           ))
         )}
