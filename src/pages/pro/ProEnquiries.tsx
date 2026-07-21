@@ -297,7 +297,7 @@ const ProEnquiries = () => {
 
   const filtered = enquiries.filter((e) => e.status === tab);
 
-  if (!subLoading && !isActive) {
+  if (!subLoading && !isActive && !isAdmin) {
     return (
       <ScreenLayout>
         <TitleBar title="Enquiries" onBack={() => nav("/pro")} />
