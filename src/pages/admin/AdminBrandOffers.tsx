@@ -311,4 +311,21 @@ const PendingRevisionsSection = () => {
   );
 };
 
+const RevisionBadge = ({ pending, count }: { pending: boolean; count: number | undefined }) => {
+  if (pending) {
+    return (
+      <span className="shrink-0 text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-body font-medium">
+        Revision pending
+      </span>
+    );
+  }
+  if (!count) return null;
+  return (
+    <span className="shrink-0 text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-muted text-foreground/70 font-body font-medium">
+      Revised · {count}
+    </span>
+  );
+};
+
 export default AdminBrandOffers;
+
