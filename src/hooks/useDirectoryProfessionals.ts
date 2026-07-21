@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PROFESSIONALS, type Professional, type ProType } from "@/data/professionals";
+import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/lib/socialLinks";
 
 /**
  * Fetches the professionals_directory table from the backend and merges the
@@ -93,10 +94,11 @@ export function useDirectoryProfessionals() {
           const type = row.type as ProType;
           const emoji =
             type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
-          const insta = row.instagram_handle ? `@${row.instagram_handle}` : "";
-          const instaUrl = row.instagram_handle
-            ? `https://www.instagram.com/${row.instagram_handle}/`
-            : "";
+          const handle = normalizeInstagramHandle(row.instagram_handle);
+          const insta = handle ? `@${handle}` : "";
+          const instaUrl = instagramUrl(handle);
+          const website = normalizeWebsiteUrl(row.website_url) || instaUrl;
+          const booking = normalizeWebsiteUrl(row.booking_url) || normalizeWebsiteUrl(row.website_url) || undefined;
           const discount = row.discount_description ?? "";
           return {
             id: row.id,
@@ -111,10 +113,10 @@ export function useDirectoryProfessionals() {
             bio: row.bio ?? "",
             insta,
             instaUrl,
-            website: row.website_url ?? instaUrl,
+            website,
             bookCode: "",
             discount,
-            bookingUrl: row.booking_url ?? row.website_url ?? undefined,
+            bookingUrl: booking,
             featured: true,
             gmcNumber: undefined,
             iotNumber: undefined,
@@ -130,11 +132,10 @@ export function useDirectoryProfessionals() {
               : "Curl Specialist";
           const emoji =
             type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
-          const rawHandle = row.instagram_handle?.replace(/^@/, "") ?? "";
-          const insta = rawHandle ? `@${rawHandle}` : "";
-          const instaUrl = rawHandle
-            ? `https://www.instagram.com/${rawHandle}/`
-            : "";
+          const handle = normalizeInstagramHandle(row.instagram_handle);
+          const insta = handle ? `@${handle}` : "";
+          const instaUrl = instagramUrl(handle);
+          const website = normalizeWebsiteUrl(row.website_url) || instaUrl;
           const specialisms = (row.specialisms as string[] | null) ?? [];
           const offer = offerMap.get(row.user_id);
           const discount = offer
@@ -155,7 +156,7 @@ export function useDirectoryProfessionals() {
             bio: row.bio ?? "",
             insta,
             instaUrl,
-            website: row.website_url ?? instaUrl,
+            website,
             bookCode: offer?.code ?? "",
             discount,
             bookingUrl: row.booking_url ?? row.website_url ?? undefined,
