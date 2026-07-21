@@ -21,6 +21,13 @@ import {
   Briefcase,
   ShieldCheck,
   ChevronDown,
+  LayoutDashboard,
+  Sparkles,
+  Inbox,
+  CreditCard,
+  FileText,
+  ClipboardList,
+  Settings,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -37,10 +44,18 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useProSubscription } from "@/hooks/useProSubscription";
+import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 
+type NavItem = {
+  label: string;
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+};
 
-const NAV: { label: string; to: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const CONSUMER_NAV: NavItem[] = [
   { label: "Home", to: "/home", icon: HomeIcon },
   { label: "Wash Day", to: "/wash-day", icon: Droplets },
   { label: "Products", to: "/products", icon: ShoppingBag },
@@ -53,6 +68,15 @@ const NAV: { label: string; to: string; icon: React.ComponentType<{ className?: 
   { label: "Help", to: "/help", icon: HelpCircle },
   { label: "Contact", to: "/contact", icon: Mail },
 ];
+
+const PRO_NAV: NavItem[] = [
+  { label: "Dashboard", to: "/pro", icon: LayoutDashboard },
+  { label: "Profile", to: "/pro/profile", icon: User },
+  { label: "Offers", to: "/pro/offers", icon: Sparkles },
+  { label: "Enquiries", to: "/pro/enquiries", icon: Inbox },
+  { label: "Billing", to: "/pro/billing", icon: CreditCard },
+];
+
 
 // Hide menu on splash, auth and onboarding flows.
 const HIDDEN_PREFIXES = ["/auth", "/onboarding", "/walkthrough", "/setup", "/.lovable"];
