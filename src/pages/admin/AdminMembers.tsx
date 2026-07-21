@@ -355,7 +355,25 @@ const AdminMembers = () => {
       </div>
 
       <div className="px-5 py-4 pb-8 space-y-2">
-        {isLoading ? (
+        {filter === "incomplete" ? (
+          incompleteLoading ? (
+            <div className="flex items-center gap-2 text-sm text-foreground/60 py-6 justify-center">
+              <Loader2 className="size-4 animate-spin" /> Loading drop-offs…
+            </div>
+          ) : filteredIncomplete.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No incomplete registrations.
+            </p>
+          ) : (
+            filteredIncomplete.map((r) => (
+              <IncompleteMemberCard
+                key={r.user_id}
+                row={r}
+                onView={() => nav(`/admin/members/${r.user_id}/passport`)}
+              />
+            ))
+          )
+        ) : isLoading ? (
           <div className="flex items-center gap-2 text-sm text-foreground/60 py-6 justify-center">
             <Loader2 className="size-4 animate-spin" /> Loading members…
           </div>
