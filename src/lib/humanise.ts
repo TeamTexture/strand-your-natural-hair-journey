@@ -182,3 +182,24 @@ export const cleanTitle = (t: string | null | undefined): string => {
     .trim();
 };
 
+/**
+ * Convert brand/lab names to Title Case ("medichecks" → "Medichecks",
+ * "thriva health" → "Thriva Health"). Preserves acronyms already all-caps
+ * (e.g. "NHS", "GP") and known lower-case brand fragments.
+ */
+const KEEP_LOWER = new Set(["and", "of", "the", "for", "in", "on", "de", "la"]);
+export const titleCase = (s: string | null | undefined): string => {
+  if (!s) return "";
+  return String(s)
+    .split(/(\s+|[-/])/)
+    .map((part, i) => {
+      if (/^\s+$/.test(part) || part === "-" || part === "/") return part;
+      // Preserve tokens already ALL CAPS with 2+ chars (NHS, GP, DNA)
+      if (/^[A-Z]{2,}$/.test(part)) return part;
+      const lower = part.toLowerCase();
+      if (i > 0 && KEEP_LOWER.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join("");
+};
+
