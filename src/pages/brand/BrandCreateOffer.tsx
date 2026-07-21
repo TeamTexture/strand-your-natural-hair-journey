@@ -86,17 +86,30 @@ const BrandCreateOffer = () => {
   const [heroPath, setHeroPath] = useState<string | null>(existing?.hero_image_path ?? null);
   const [uploadingHero, setUploadingHero] = useState(false);
   const [products, setProducts] = useState<ProductDraft[]>(
-    (existing?.brand_products ?? []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description ?? "",
-      external_url: p.external_url ?? "",
-      image_urls: p.image_urls ?? [],
-      ingredients: p.ingredients ?? [],
-      source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
-      source_url: p.source_url,
-      linked_product_id: p.linked_product_id,
-    })),
+    (existing?.brand_products ?? []).map((p) => {
+      const row = p as typeof p & {
+        kind?: string;
+        tool_kind?: string | null;
+        key_features?: string[] | null;
+        materials?: string[] | null;
+      };
+      const kind: AttachKind = row.kind === "tool" ? "tool" : "product";
+      return {
+        id: p.id,
+        kind,
+        name: p.name,
+        description: p.description ?? "",
+        external_url: p.external_url ?? "",
+        image_urls: p.image_urls ?? [],
+        ingredients: p.ingredients ?? [],
+        tool_kind: row.tool_kind ?? null,
+        key_features: row.key_features ?? [],
+        materials: row.materials ?? [],
+        source_type: (p.source_type as ProductDraft["source_type"]) ?? "manual",
+        source_url: p.source_url,
+        linked_product_id: p.linked_product_id,
+      } satisfies ProductDraft;
+    }),
   );
   const [selectedByslot, setSelectedByslot] = useState<Record<PlacementSlot, string[]>>(() => {
     const map: Record<PlacementSlot, string[]> = { home: [], products: [], wash_day: [] };
