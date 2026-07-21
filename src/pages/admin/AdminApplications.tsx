@@ -92,8 +92,6 @@ const AdminApplications = () => {
         return;
       }
       const { data: me } = await supabase.auth.getUser();
-      const { error } = await supabase
-      const { data: me } = await supabase.auth.getUser();
       const { data: appRow } = await supabase
         .from("pro_applications")
         .select("user_id")
@@ -125,7 +123,6 @@ const AdminApplications = () => {
     onSuccess: (_d, vars) => {
       toast.success(`Application ${vars.status}.`);
       qc.invalidateQueries({ queryKey: ["admin", "pro_applications"] });
-      qc.invalidateQueries({ queryKey: ["admin", "pending-applications-count"] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-applications-count"] });
     },
     onError: (err) => {
