@@ -197,30 +197,37 @@ const BrandCreateOffer = () => {
     }
   };
 
+  const [scrapeKind, setScrapeKind] = useState<AttachKind>("product");
+
   const runScrape = async () => {
     if (!scrapeUrl.trim()) return;
     setScraping(true);
     try {
       const { data, error } = await supabase.functions.invoke("brand-product-scrape", {
-        body: { url: scrapeUrl.trim() },
+        body: { url: scrapeUrl.trim(), kind: scrapeKind },
       });
       if (error) throw error;
-      const p = data?.product;
-      if (!p) throw new Error("No product data returned");
+      const item = data?.item ?? data?.product ?? data?.tool;
+      if (!item) throw new Error("No draft data returned");
+      const kind: AttachKind = data?.kind === "tool" || item.kind === "tool" ? "tool" : "product";
       setProducts((prev) => [
         ...prev,
         {
-          name: p.name ?? "",
-          description: p.description ?? "",
-          external_url: p.external_url ?? scrapeUrl,
-          image_urls: p.image_urls ?? [],
-          ingredients: p.ingredients ?? [],
+          kind,
+          name: item.name ?? "",
+          description: item.description ?? "",
+          external_url: item.external_url ?? scrapeUrl,
+          image_urls: item.image_urls ?? [],
+          ingredients: kind === "product" && Array.isArray(item.ingredients) ? item.ingredients : [],
+          tool_kind: kind === "tool" ? (item.tool_kind ?? null) : null,
+          key_features: kind === "tool" && Array.isArray(item.key_features) ? item.key_features : [],
+          materials: kind === "tool" && Array.isArray(item.materials) ? item.materials : [],
           source_type: "ai",
           source_url: scrapeUrl,
         },
       ]);
       setScrapeUrl("");
-      toast.success("Product draft added — review and edit below");
+      toast.success(kind === "tool" ? "Tool draft added — review and edit below" : "Product draft added — review and edit below");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Scrape failed");
     } finally {
