@@ -149,7 +149,7 @@ export const valueTone = (v: unknown): "good" | "warn" | "alert" | "neutral" => 
 
 // ── Field-level filter for raw record dumps ─────────────────────────────
 
-const HIDDEN_SUFFIXES = ["_enc", "_hash", "_snapshot", "_url", "_path", "_id"];
+const HIDDEN_SUFFIXES = ["_enc", "_hash", "_snapshot", "_url", "_path", "_id", "_key"];
 const HIDDEN_KEYS = new Set([
   "id", "user_id", "created_at", "updated_at", "deleted_at",
   "avatar_url", "storage_path", "thumbnail_path",
@@ -158,6 +158,8 @@ const HIDDEN_KEYS = new Set([
   "audio_url", "voice_url", "photo_paths",
   "steps", "product_ids", "heat_treatment", "styling",
   "colour_history", "chemical_history",
+  "product_key", "board_id", "panel_id", "goal_id",
+  "brand_id", "external_id", "sku", "barcode",
 ]);
 
 /** Whether a raw DB field key should be omitted from a humanised dump. */
@@ -166,3 +168,17 @@ export const shouldHideField = (key: string, extra: string[] = []): boolean => {
   if (extra.includes(key)) return true;
   return HIDDEN_SUFFIXES.some((suf) => key.endsWith(suf));
 };
+
+/**
+ * Strip legacy "[tag] " prefixes/suffixes and trailing hash/uuid codes from a
+ * user-visible title. Journal titles in particular are stored as `[abc123] Title`.
+ */
+export const cleanTitle = (t: string | null | undefined): string => {
+  if (!t) return "";
+  return String(t)
+    .replace(/\[[^\]]*\]/g, "")               // strip [tag] fragments
+    .replace(/\s+[0-9a-f]{6,}\s*$/i, "")      // strip trailing hex/uuid tokens
+    .replace(/\s{2,}/g, " ")
+    .trim();
+};
+

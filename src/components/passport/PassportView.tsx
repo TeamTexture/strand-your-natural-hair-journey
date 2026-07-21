@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet } from "lucide-react";
+import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePassportData, type PassportDataset } from "./usePassportData";
 import SignedImage from "./SignedImage";
 import { lookupHardWater } from "@/lib/hardWater";
-import { humaniseKey, humaniseValue, valueTone, shouldHideField } from "@/lib/humanise";
+import { humaniseKey, humaniseValue, valueTone, shouldHideField, cleanTitle } from "@/lib/humanise";
 import { formatDate, formatDateTime, formatMonth, formatRelative } from "@/lib/formatPassportDate";
 import { formatTime12h } from "@/lib/formatTime";
 
@@ -22,8 +22,8 @@ import { formatTime12h } from "@/lib/formatTime";
 // ================================================================
 
 type Section =
-  | "snapshot" | "goals" | "hair" | "colour" | "blood"
-  | "routine" | "journal" | "lifestyle" | "appointments";
+  | "profile" | "routine" | "products" | "nutrition"
+  | "appointments" | "journal" | "colour" | "photos" | "goals";
 
 interface SectionSpec {
   key: Section;
@@ -32,19 +32,19 @@ interface SectionSpec {
 }
 
 const SECTIONS: SectionSpec[] = [
-  { key: "snapshot", label: "Snapshot", count: () => 0 },
-  { key: "goals", label: "Goals", count: (d) => d.goals.length },
-  { key: "hair", label: "Hair", count: () => 0 },
+  { key: "profile", label: "Profile", count: () => 0 },
+  { key: "routine", label: "Routine", count: (d) => d.washDays.length },
+  { key: "products", label: "Products", count: (d) => d.shelf.length },
+  { key: "nutrition", label: "Nutrition", count: (d) => d.nutritionSummaries.length },
+  { key: "appointments", label: "Appts", count: (d) => d.appointments.length },
+  { key: "journal", label: "Journal", count: (d) => d.journal.length },
   { key: "colour", label: "Colour", count: (d) => {
     const style = d.style ?? {};
     const history = Array.isArray(style.colour_history) ? (style.colour_history as unknown[]).length : 0;
     return history + (style.colour_reaction === true ? 1 : 0);
   } },
-  { key: "blood", label: "Blood", count: (d) => d.bloodPanels.length },
-  { key: "routine", label: "Routine", count: (d) => d.washDays.length },
-  { key: "journal", label: "Journal", count: (d) => d.journal.length },
-  { key: "lifestyle", label: "Lifestyle", count: (d) => d.medications.length + d.tools.length },
-  { key: "appointments", label: "Appts", count: (d) => d.appointments.length },
+  { key: "photos", label: "Photos", count: (d) => d.milestonePhotos.length + d.beforePhotos.length + d.moodboards.length },
+  { key: "goals", label: "Goals", count: (d) => d.goals.length },
 ];
 
 const PAGE = 15;
@@ -273,25 +273,17 @@ const computeFlags = (d: PassportDataset): CriticalFlags => {
 };
 
 // ================================================================
-// Section: Snapshot — the first two seconds
+// Section: Profile — comprehensive personal, health, hair, blood dossier
 // ================================================================
 
-const SnapshotSection = ({ d, goTo }: { d: PassportDataset; goTo: (s: Section) => void }) => {
+const ProfileSection = ({ d }: { d: PassportDataset }) => {
   const flags = computeFlags(d);
   const hardWater = d.profile?.postcode ? lookupHardWater(d.profile.postcode) : null;
   const avatarUrl = d.profile?.avatar_url ?? null;
   const avatarIsHttp = typeof avatarUrl === "string" && /^https?:\/\//.test(avatarUrl);
-
-  const hair = d.hair ?? {};
-  const chips: Array<{ icon: React.ComponentType<{ className?: string }>; label: string; value: string; tone: "good" | "warn" | "alert" | "neutral" | "gold" }> = [];
-  const curl = humaniseValue(hair.curl_pattern) ?? humaniseValue(hair.hair_type);
-  if (curl) chips.push({ icon: Scissors, label: "Texture", value: curl, tone: "gold" });
-  const porosity = humaniseValue(hair.porosity);
-  if (porosity) chips.push({ icon: Droplet, label: "Porosity", value: porosity, tone: valueTone(hair.porosity) === "alert" ? "warn" : "gold" });
-  const density = humaniseValue(hair.density);
-  if (density) chips.push({ icon: FlaskConical, label: "Density", value: density, tone: "gold" });
-
   const latestStrand = d.strandSummaries[0] ?? null;
+
+  const p = d.profile ?? null;
 
   return (
     <>
@@ -311,10 +303,10 @@ const SnapshotSection = ({ d, goTo }: { d: PassportDataset; goTo: (s: Section) =
               <p className="text-[11px] text-muted-foreground font-body mt-0.5 truncate">
                 {d.authEmail ?? "No email on file"}
               </p>
-              {d.profile?.age != null && (
+              {p?.age != null && (
                 <p className="text-[12px] text-foreground/80 font-body mt-1">
-                  {d.profile.age} years old
-                  {d.profile.heritage?.length ? ` · ${d.profile.heritage.join(", ")}` : ""}
+                  {p.age} years old
+                  {p.heritage?.length ? ` · ${p.heritage.join(", ")}` : ""}
                 </p>
               )}
               {d.memberSince && (
@@ -325,9 +317,10 @@ const SnapshotSection = ({ d, goTo }: { d: PassportDataset; goTo: (s: Section) =
             </div>
           </div>
 
-          {(d.profile?.postcode || hardWater) && (
+          {(p?.postcode || p?.country || hardWater) && (
             <div className="mt-3 pt-3 border-t border-primary/20 flex flex-wrap gap-2">
-              {d.profile?.postcode && <Chip tone="neutral">{d.profile.postcode}</Chip>}
+              {p?.postcode && <Chip tone="neutral">{p.postcode}</Chip>}
+              {p?.country && <Chip tone="neutral">{humaniseValue(p.country) ?? String(p.country)}</Chip>}
               {hardWater && (
                 <Chip tone={hardWater.hardness === "very-hard" || hardWater.hardness === "hard" ? "warn" : "good"} icon={Droplet}>
                   {hardWater.label} water
@@ -338,79 +331,139 @@ const SnapshotSection = ({ d, goTo }: { d: PassportDataset; goTo: (s: Section) =
         </SurfaceCard>
       </div>
 
-      {/* Hair at a glance */}
-      {chips.length > 0 && (
+      {/* Critical flags (chemical reaction + blood flag counts remain visible) */}
+      {flags.chemicalReaction && (
         <>
-          <SubLabel>Hair at a glance</SubLabel>
+          <SubLabel>Critical safety flag</SubLabel>
           <div className="px-5">
-            <SurfaceCard>
-              <div className="flex flex-wrap gap-2">
-                {chips.map((c) => (
-                  <Chip key={c.label} tone={c.tone} icon={c.icon}>
-                    <span className="opacity-70 mr-1">{c.label}</span> {c.value}
-                  </Chip>
-                ))}
+            <SurfaceCard className="border-destructive/40 bg-destructive/[0.05]">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-body font-semibold text-destructive">Chemical reaction reported</p>
+                  {flags.chemicalReaction.details && (
+                    <p className="text-[13px] text-foreground/95 mt-1.5 leading-relaxed">"{flags.chemicalReaction.details}"</p>
+                  )}
+                  <AudioPlayer bucket="voicenotes" path={flags.chemicalReaction.audio} label="Reaction voice note" />
+                </div>
               </div>
             </SurfaceCard>
           </div>
         </>
       )}
 
-      {/* Critical flags */}
-      <SubLabel>Critical flags</SubLabel>
+      {/* Personal information */}
+      <SubLabel>Personal information</SubLabel>
       <div className="px-5">
         <SurfaceCard>
-          {flags.chemicalReaction || flags.bloodOutOfRange || flags.medicationsCount || flags.medicalConditions ? (
-            <div className="space-y-3">
-              {flags.chemicalReaction && (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/[0.06] p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-body font-semibold text-destructive uppercase tracking-wider">Chemical reaction reported</p>
-                      {flags.chemicalReaction.details && (
-                        <p className="text-[13px] text-foreground/90 mt-1 leading-relaxed">"{flags.chemicalReaction.details}"</p>
-                      )}
-                      <AudioPlayer bucket="voicenotes" path={flags.chemicalReaction.audio} label="Reaction voice note" />
-                    </div>
-                  </div>
+          {p ? (
+            <div className="divide-y divide-border">
+              {([
+                ["Full name", p.display_name],
+                ["Age", p.age != null ? `${p.age} years` : null],
+                ["Year of birth", p.birth_year],
+                ["Heritage", p.heritage?.length ? p.heritage.join(", ") : null],
+                ["Country", humaniseValue(p.country)],
+                ["Postcode", p.postcode],
+                ["Email", d.authEmail],
+                ["Member since", d.memberSince ? formatMonth(d.memberSince) : null],
+                ["Onboarded", p.onboarding_completed_at ? formatDate(p.onboarding_completed_at) : null],
+              ] as Array<[string, React.ReactNode]>).map(([label, v]) => v == null || v === "" ? null : (
+                <div key={label} className="flex gap-3 py-2.5 text-[13px] font-body">
+                  <span className="text-muted-foreground w-[130px] shrink-0">{label}</span>
+                  <span className="flex-1 break-words text-foreground">{v}</span>
                 </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {flags.bloodOutOfRange > 0 && (
-                  <button type="button" onClick={() => goTo("blood")}>
-                    <Chip tone="warn" icon={FlaskConical}>{flags.bloodOutOfRange} blood marker{flags.bloodOutOfRange === 1 ? "" : "s"} flagged</Chip>
-                  </button>
-                )}
-                {flags.medicationsCount > 0 && (
-                  <button type="button" onClick={() => goTo("lifestyle")}>
-                    <Chip tone="gold" icon={Pill}>{flags.medicationsCount} current medication{flags.medicationsCount === 1 ? "" : "s"}</Chip>
-                  </button>
-                )}
-                {flags.medicalConditions && (
-                  <Chip tone="warn" icon={Heart}>Health: {flags.medicalConditions}</Chip>
-                )}
-              </div>
+              ))}
             </div>
           ) : (
-            <p className="text-[12px] text-muted-foreground font-body">No safety flags recorded.</p>
+            <p className="text-[12px] text-muted-foreground font-body">No profile on file.</p>
           )}
         </SurfaceCard>
       </div>
 
-      {/* Preferred professional */}
-      {flags.hasProfessional && (
-        <>
-          <SubLabel>Preferred professional</SubLabel>
-          <div className="px-5">
-            <SurfaceCard>
-              <HumanFields obj={d.professional} />
-            </SurfaceCard>
-          </div>
-        </>
-      )}
+      {/* Health & lifestyle */}
+      <SubLabel>Health & lifestyle</SubLabel>
+      <div className="px-5">
+        <SurfaceCard>
+          {d.health ? (
+            <>
+              <HumanFields obj={d.health} exclude={["notes"]} />
+              {typeof d.health.notes === "string" && d.health.notes && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1">Notes</p>
+                  <p className="text-[12.5px] font-body leading-relaxed">{d.health.notes}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-[12px] text-muted-foreground font-body">No health context recorded.</p>
+          )}
+        </SurfaceCard>
+      </div>
 
-      {/* Latest Strand summary — typographic, not raw */}
+      {/* Current medications — full details, no counts */}
+      <SubLabel>Current medications</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.medications.length === 0 ? (
+          <EmptyLine msg="No medications recorded." />
+        ) : d.medications.map(m => (
+          <SurfaceCard key={m.id}>
+            <div className="flex items-start gap-3">
+              <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                <Pill className="size-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground">{humaniseValue(m.name) ?? "Medication"}</p>
+                {m.category && (
+                  <p className="text-[11.5px] text-muted-foreground font-body mt-0.5">{humaniseValue(m.category)}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+                  Added {formatDate(m.created_at)}
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        ))}
+      </div>
+
+      {/* Hair characteristics */}
+      <SubLabel>Hair characteristics</SubLabel>
+      <div className="px-5">
+        <SurfaceCard>
+          {(() => {
+            const hair = d.hair ?? {};
+            const rows: Array<{ label: string; value: React.ReactNode; tone?: "warn" }> = [];
+            const push = (label: string, key: string, tone?: "warn") => {
+              const v = humaniseValue(hair[key]);
+              if (v) rows.push({ label, value: v, tone });
+            };
+            push("Texture", "curl_pattern");
+            push("Porosity", "porosity", valueTone(hair.porosity) === "alert" ? "warn" : undefined);
+            push("Density", "density");
+            push("Diameter", "hair_width");
+            push("Elasticity", "elasticity");
+            push("Length", "current_length");
+            push("Scalp condition", "scalp_condition");
+            const diagnosed = humaniseValue(hair.diagnosed_conditions);
+            if (diagnosed) rows.push({ label: "Diagnoses", value: diagnosed, tone: "warn" });
+            push("Areas of concern", "areas_of_concern");
+            push("Wash frequency", "wash_frequency");
+            if (rows.length === 0) return <p className="text-[12px] text-muted-foreground font-body">No hair profile recorded.</p>;
+            return (
+              <div className="divide-y divide-border">
+                {rows.map(r => (
+                  <div key={r.label} className="flex gap-3 py-2.5 text-[13px] font-body">
+                    <span className={cn("w-[130px] shrink-0", r.tone === "warn" ? "text-warn font-medium" : "text-muted-foreground")}>{r.label}</span>
+                    <span className={cn("flex-1 break-words", r.tone === "warn" ? "text-warn font-medium" : "text-foreground")}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </SurfaceCard>
+      </div>
+
+      {/* Latest Strand summary — most recent only */}
       {latestStrand && (
         <>
           <SubLabel>Latest Strand summary</SubLabel>
@@ -436,21 +489,21 @@ const SnapshotSection = ({ d, goTo }: { d: PassportDataset; goTo: (s: Section) =
                   </ul>
                 </div>
               )}
-              {d.strandSummaries.length > 1 && (
-                <details className="mt-4 pt-4 border-t border-border">
-                  <summary className="text-[11px] font-body text-primary cursor-pointer hover:underline">
-                    Previous summaries ({d.strandSummaries.length - 1})
-                  </summary>
-                  <div className="mt-2 space-y-2">
-                    {d.strandSummaries.slice(1).map((s) => (
-                      <div key={s.id} className="text-[11.5px] text-muted-foreground font-body pl-3 border-l-2 border-primary/20">
-                        <p className="font-semibold text-foreground/80">{formatDate(s.created_at)}</p>
-                        {s.overview && <p className="mt-0.5 line-clamp-2">{s.overview}</p>}
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              )}
+            </SurfaceCard>
+          </div>
+        </>
+      )}
+
+      {/* Blood work — full details, embedded in Profile */}
+      <BloodSection d={d} />
+
+      {/* Preferred professional */}
+      {flags.hasProfessional && (
+        <>
+          <SubLabel>Preferred professional</SubLabel>
+          <div className="px-5">
+            <SurfaceCard>
+              <HumanFields obj={d.professional} />
             </SurfaceCard>
           </div>
         </>
@@ -458,6 +511,7 @@ const SnapshotSection = ({ d, goTo }: { d: PassportDataset; goTo: (s: Section) =
     </>
   );
 };
+
 
 // ================================================================
 // Section: Goals & concerns — "why they're here"
@@ -785,18 +839,6 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
           <div className="px-5">
             <BloodAiCard payload={latestSummary.payload} when={latestSummary.created_at} />
           </div>
-          {d.bloodSummaries.length > 1 && (
-            <details className="px-5 mt-2">
-              <summary className="text-[11px] font-body text-primary cursor-pointer hover:underline">
-                Previous AI summaries ({d.bloodSummaries.length - 1})
-              </summary>
-              <div className="mt-2 space-y-2">
-                {d.bloodSummaries.slice(1).map(s => (
-                  <BloodAiCard key={s.id} payload={s.payload} when={s.created_at} />
-                ))}
-              </div>
-            </details>
-          )}
         </>
       )}
 
@@ -1110,6 +1152,100 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
         />
       </div>
 
+    </>
+  );
+};
+
+// ================================================================
+// Section: Products — shelf, favourites, wishlist, off-shelf + tools
+// ================================================================
+
+const ProductsSection = ({ d }: { d: PassportDataset }) => {
+  const photosByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
+    return m;
+  }, [d.productPhotos]);
+
+  const renderProductRow = (p: PassportDataset["shelf"][number]) => {
+    const key = (p as Record<string, unknown>).product_key as string | undefined;
+    const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
+    return (
+      <div className="flex items-center gap-3">
+        <Thumb bucket="product-photos" path={photo ?? null} className="size-11 shrink-0 rounded-lg" title={String(p.name ?? "Product image")} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{p.name}</p>
+          <p className="text-[11px] text-muted-foreground font-body truncate">
+            {humaniseValue(p.brand) ?? "—"}{p.category ? ` · ${humaniseValue(p.category)}` : ""}
+          </p>
+          {p.rating != null && (
+            <p className="text-[10.5px] uppercase tracking-[0.15em] text-primary font-body font-semibold mt-0.5">
+              ★ {String(p.rating)}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const ProductInner = ({ p }: { p: PassportDataset["shelf"][number] }) => {
+    const key = (p as Record<string, unknown>).product_key as string | undefined;
+    const voicenotes = key ? d.productVoicenotes.filter(v => v.product_key === key) : [];
+    const ingredients = Array.isArray((p as Record<string, unknown>).ingredients) ? ((p as Record<string, unknown>).ingredients as unknown[]).map(String) : [];
+    return (
+      <>
+        <HumanFields obj={p as Record<string, unknown>} exclude={["name", "brand", "category", "rating", "off_shelf_voice_url", "ingredients"]} />
+        {ingredients.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Ingredients</p>
+            <p className="text-[12px] font-body leading-relaxed text-foreground/85">{ingredients.join(", ")}</p>
+          </div>
+        )}
+        {voicenotes.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Voice notes</p>
+            <div className="space-y-2">
+              {voicenotes.map(v => (
+                <div key={v.id} className="border-l-2 border-primary/30 pl-3">
+                  <p className="text-[11px] text-muted-foreground font-body">{formatDate(v.created_at)}</p>
+                  <AudioPlayer bucket="voicenotes" path={v.audio_url} transcript={v.transcript} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <AudioPlayer bucket="voicenotes" path={((p as Record<string, unknown>).off_shelf_voice_url as string | null) ?? null} label="Off-shelf voice note" />
+      </>
+    );
+  };
+
+  const favourites = d.shelf.filter(p => p.on_favourite);
+  const onShelf = d.shelf.filter(p => !p.on_favourite && p.on_shelf);
+  const wishlist = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && p.on_wishlist);
+  const offShelf = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && !p.on_wishlist);
+
+  const ProductGroup = ({ title, list }: { title: string; list: PassportDataset["shelf"] }) => {
+    const [n, setN] = useState(8);
+    if (list.length === 0) return null;
+    return (
+      <div>
+        <p className="text-[10.5px] uppercase tracking-[0.18em] text-primary font-body font-semibold mb-2">
+          {title} · {list.length}
+        </p>
+        <div className="space-y-2">
+          {list.slice(0, n).map(p => (
+            <Collapsible key={p.id} summary={renderProductRow(p)}>
+              <ProductInner p={p} />
+            </Collapsible>
+          ))}
+          <LoadMore shown={Math.min(n, list.length)} total={list.length} onMore={() => setN(x => x + 8)} />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
       <SubLabel>Product shelf</SubLabel>
       <div className="px-5 space-y-5">
         {d.shelf.length === 0 ? <EmptyLine msg="No products on this client's shelf." /> : (
@@ -1117,29 +1253,39 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
             <ProductGroup title="On shelf" list={onShelf} />
             <ProductGroup title="Favourites" list={favourites} />
             <ProductGroup title="Wishlist" list={wishlist} />
-            <ProductGroup title="Off shelf" list={offShelf} />
+            <ProductGroup title="Avoid list" list={offShelf} />
           </>
         )}
+      </div>
+
+      <SubLabel>Tools</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.tools.length === 0 ? <EmptyLine msg="No tools recorded." /> : d.tools.map(t => (
+          <Collapsible key={t.id} summary={
+            <div className="flex items-center gap-3">
+              <Thumb bucket="product-photos" path={(t.storage_path as string | null) ?? null} className="size-11 shrink-0 rounded-lg" title={String(t.name ?? "Tool")} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{humaniseValue(t.name) ?? "Tool"}</p>
+                <p className="text-[11px] text-muted-foreground font-body truncate">
+                  {humaniseValue(t.brand) ?? "—"}{t.category ? ` · ${humaniseValue(t.category)}` : ""}
+                </p>
+              </div>
+            </div>
+          }>
+            <HumanFields obj={t as Record<string, unknown>} exclude={["name", "brand", "category"]} />
+          </Collapsible>
+        ))}
       </div>
     </>
   );
 };
+
 
 // ================================================================
 // Section: Journal & photos
 // ================================================================
 
 const JournalSection = ({ d }: { d: PassportDataset }) => {
-  const boardImages = useMemo(() => {
-    const m = new Map<string, typeof d.moodboardImages>();
-    d.moodboardImages.forEach(img => {
-      const arr = m.get(img.board_id) ?? [];
-      arr.push(img);
-      m.set(img.board_id, arr);
-    });
-    return m;
-  }, [d.moodboardImages]);
-
   return (
     <>
       <SubLabel>Journal entries</SubLabel>
@@ -1150,19 +1296,20 @@ const JournalSection = ({ d }: { d: PassportDataset }) => {
           render={(j) => {
             const photos = Array.isArray(j.photo_paths) ? j.photo_paths : [];
             const products = Array.isArray(j.products_used) ? j.products_used : [];
+            const cleanedTitle = cleanTitle(j.title) || "Journal entry";
             return (
               <Collapsible key={j.id} summary={
                 <div className="flex gap-3">
                   {photos.length > 0 && (
-                    <Thumb bucket="journal-photos" path={photos[0]} className="size-14 shrink-0 rounded-lg" title={j.title ?? "Journal entry"} />
+                    <Thumb bucket="journal-photos" path={photos[0]} className="size-14 shrink-0 rounded-lg" title={cleanedTitle} />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-body font-semibold text-foreground leading-tight truncate">{j.title ?? "Journal entry"}</p>
+                    <p className="text-[13.5px] font-body font-semibold text-foreground leading-tight truncate">{cleanedTitle}</p>
                     <p className="text-[11px] text-muted-foreground font-body mt-0.5">
                       {formatDate(j.entry_date)} · {formatRelative(j.entry_date)}
                     </p>
                     {j.mood && (
-                      <div className="mt-1"><Chip tone={valueTone(j.mood) as any}>{humaniseValue(j.mood)}</Chip></div>
+                      <div className="mt-1"><Chip tone={valueTone(j.mood) as "good" | "warn" | "alert" | "neutral"}>{humaniseValue(j.mood)}</Chip></div>
                     )}
                   </div>
                 </div>
@@ -1181,7 +1328,7 @@ const JournalSection = ({ d }: { d: PassportDataset }) => {
                 {photos.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2">
                     {photos.map((p, i) => (
-                      <Thumb key={i} bucket="journal-photos" path={p} className="aspect-square rounded-lg" title={`${j.title ?? "Journal"} photo ${i + 1}`} />
+                      <Thumb key={i} bucket="journal-photos" path={p} className="aspect-square rounded-lg" title={`${cleanedTitle} photo ${i + 1}`} />
                     ))}
                   </div>
                 )}
@@ -1191,7 +1338,32 @@ const JournalSection = ({ d }: { d: PassportDataset }) => {
           pageSize={8}
         />
       </div>
+    </>
+  );
+};
 
+// ================================================================
+// Section: Photos — milestones, before, moodboards
+// ================================================================
+
+const PhotosSection = ({ d }: { d: PassportDataset }) => {
+  const boardImages = useMemo(() => {
+    const m = new Map<string, typeof d.moodboardImages>();
+    d.moodboardImages.forEach(img => {
+      const arr = m.get(img.board_id) ?? [];
+      arr.push(img);
+      m.set(img.board_id, arr);
+    });
+    return m;
+  }, [d.moodboardImages]);
+
+  const empty = d.milestonePhotos.length === 0 && d.beforePhotos.length === 0 && d.moodboards.length === 0;
+
+  return (
+    <>
+      {empty && (
+        <div className="px-5 mt-2"><EmptyLine msg="No photos or moodboards yet." /></div>
+      )}
       {d.milestonePhotos.length > 0 && (
         <>
           <SubLabel>Milestone photos</SubLabel>
@@ -1266,6 +1438,7 @@ const JournalSection = ({ d }: { d: PassportDataset }) => {
     </>
   );
 };
+
 
 // ================================================================
 // Section: Lifestyle — nutrition, medications, tools
@@ -1372,74 +1545,21 @@ const NutritionAdviceCard = ({ payload, when, defaultOpen = false }: { payload: 
   );
 };
 
-const LifestyleSection = ({ d }: { d: PassportDataset }) => {
+const NutritionSection = ({ d }: { d: PassportDataset }) => {
   return (
     <>
-      <SubLabel>Nutrition & supplements</SubLabel>
+      <SubLabel>Nutrition & supplement guidance</SubLabel>
       <div className="px-5 space-y-2">
         {d.nutritionSummaries.length === 0 ? (
           <EmptyLine msg="No nutrition guidance generated yet." />
         ) : (
-          <>
-            <NutritionAdviceCard payload={d.nutritionSummaries[0].payload} when={d.nutritionSummaries[0].created_at} defaultOpen />
-            {d.nutritionSummaries.length > 1 && (
-              <details>
-                <summary className="text-[11px] font-body text-primary cursor-pointer hover:underline py-2">
-                  Previous plans ({d.nutritionSummaries.length - 1})
-                </summary>
-                <div className="mt-2 space-y-2">
-                  {d.nutritionSummaries.slice(1).map(s => (
-                    <NutritionAdviceCard key={s.id} payload={s.payload} when={s.created_at} />
-                  ))}
-                </div>
-              </details>
-            )}
-          </>
+          <NutritionAdviceCard payload={d.nutritionSummaries[0].payload} when={d.nutritionSummaries[0].created_at} defaultOpen />
         )}
-      </div>
-
-      <SubLabel>Medications</SubLabel>
-      <div className="px-5 space-y-2">
-        {d.medications.length === 0 ? <EmptyLine msg="No medications recorded." /> : d.medications.map(m => (
-          <Collapsible key={m.id} summary={
-            <div className="flex items-start gap-3">
-              <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
-                <Pill className="size-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-body font-semibold text-foreground">{humaniseValue(m.name) ?? "Medication"}</p>
-                <p className="text-[11px] text-muted-foreground font-body">
-                  {humaniseValue(m.category) ?? "—"} · added {formatDate(m.created_at)}
-                </p>
-              </div>
-            </div>
-          }>
-            <HumanFields obj={m as Record<string, unknown>} exclude={["name", "category"]} />
-          </Collapsible>
-        ))}
-      </div>
-
-      <SubLabel>Tools</SubLabel>
-      <div className="px-5 space-y-2">
-        {d.tools.length === 0 ? <EmptyLine msg="No tools recorded." /> : d.tools.map(t => (
-          <Collapsible key={t.id} summary={
-            <div className="flex items-center gap-3">
-              <Thumb bucket="product-photos" path={(t.storage_path as string | null) ?? null} className="size-11 shrink-0 rounded-lg" title={String(t.name ?? "Tool")} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{humaniseValue(t.name) ?? "Tool"}</p>
-                <p className="text-[11px] text-muted-foreground font-body truncate">
-                  {humaniseValue(t.brand) ?? "—"}{t.category ? ` · ${humaniseValue(t.category)}` : ""}
-                </p>
-              </div>
-            </div>
-          }>
-            <HumanFields obj={t as Record<string, unknown>} exclude={["name", "brand", "category"]} />
-          </Collapsible>
-        ))}
       </div>
     </>
   );
 };
+
 
 // ================================================================
 // Section: Appointments — consumer AppointmentCard styling
@@ -1612,31 +1732,32 @@ const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void 
 );
 
 const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> = {
-  snapshot: User,
-  goals: Heart,
-  hair: Scissors,
-  colour: FlaskConical,
-  blood: FlaskConical,
+  profile: User,
   routine: Sparkles,
-  journal: Package,
-  lifestyle: Leaf,
+  products: Package,
+  nutrition: Leaf,
   appointments: Clock,
+  journal: Heart,
+  colour: FlaskConical,
+  photos: Scissors,
+  goals: Heart,
 };
 
 const sectionSub: Record<Section, string> = {
-  snapshot: "Identity, safety flags, latest summary",
-  goals: "What they want and why they're here",
-  hair: "Type, porosity, density and health context",
-  colour: "Colour history and chemical reactions",
-  blood: "Panels, markers and AI analysis",
-  routine: "Wash days and product shelf",
-  journal: "Entries, milestones, moodboards",
-  lifestyle: "Nutrition, medications, tools",
+  profile: "Identity, health, medications, hair and blood work",
+  routine: "Wash days in full detail",
+  products: "Shelf, favourites, wishlist and off-shelf",
+  nutrition: "Latest supplement and dietary guidance",
   appointments: "Upcoming and past visits",
+  journal: "Entries with notes, mood and photos",
+  colour: "Colour history and chemical reactions",
+  photos: "Milestones, before shots, moodboards",
+  goals: "What they want and why they're here",
 };
 
 const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
-  const [section, setSection] = useState<Section>("snapshot");
+  const [section, setSection] = useState<Section>("profile");
+
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
   const tabsRef = useRef<HTMLDivElement | null>(null);
@@ -1646,13 +1767,8 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
     logView(userId, section);
   }, [userId, section, active, accessEnded]);
 
-  const goTo = (s: Section) => {
-    setSection(s);
-    // Scroll section content into view under the sticky tab bar.
-    setTimeout(() => {
-      tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 20);
-  };
+
+
 
   if (showAccessEnded) {
     return (
@@ -1744,16 +1860,17 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
         <SectionHeader icon={Icon} title={SECTIONS.find(s => s.key === section)?.label ?? "Passport"} sub={sectionSub[section]} />
 
         <div className="pb-10">
-          {section === "snapshot" && <SnapshotSection d={data} goTo={goTo} />}
-          {section === "goals" && <GoalsSection d={data} />}
-          {section === "hair" && <HairSection d={data} />}
-          {section === "colour" && <ColourSection d={data} />}
-          {section === "blood" && <BloodSection d={data} />}
+          {section === "profile" && <ProfileSection d={data} />}
           {section === "routine" && <RoutineSection d={data} />}
-          {section === "journal" && <JournalSection d={data} />}
-          {section === "lifestyle" && <LifestyleSection d={data} />}
+          {section === "products" && <ProductsSection d={data} />}
+          {section === "nutrition" && <NutritionSection d={data} />}
           {section === "appointments" && <AppointmentsSection d={data} />}
+          {section === "journal" && <JournalSection d={data} />}
+          {section === "colour" && <ColourSection d={data} />}
+          {section === "photos" && <PhotosSection d={data} />}
+          {section === "goals" && <GoalsSection d={data} />}
         </div>
+
 
         <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
           <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] rounded-[20px] p-4 gap-3 max-h-[82vh] overflow-y-auto">
