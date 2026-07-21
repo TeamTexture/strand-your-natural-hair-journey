@@ -48,6 +48,10 @@ const LogAppointment = () => {
   const [followUp, setFollowUp] = useState(false);
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpTime, setFollowUpTime] = useState("");
+  // Preserved linked-pro id when editing an existing appointment so an edit
+  // that doesn't re-touch the directory picker doesn't clear the pro linkage.
+  const [existingLinkedProId, setExistingLinkedProId] = useState<string | null>(null);
+
 
   const [saving, setSaving] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
@@ -61,7 +65,7 @@ const LogAppointment = () => {
     (async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, status, follow_up_needed, follow_up_date, follow_up_time, outcome_notes, outcome_audio_path")
+        .select("professional_name, professional_type, clinic_name, appointment_date, appointment_time, reason, notes, status, follow_up_needed, follow_up_date, follow_up_time, outcome_notes, outcome_audio_path, linked_pro_user_id")
         .eq("id", fromId)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -86,7 +90,10 @@ const LogAppointment = () => {
       // Default to "completed" for follow-ups from the home alert, but keep
       // the actual saved status if the user is editing an existing record.
       setStatus((data.status as "upcoming" | "completed") ?? "completed");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setExistingLinkedProId(((data as any).linked_pro_user_id ?? null) as string | null);
       setPrefilled(true);
+
     })();
     return () => {
       cancelled = true;
@@ -109,11 +116,36 @@ const LogAppointment = () => {
     }
   }, [date]);
 
+  // Pull the current user's active consent relationships so we can float
+  // "their" pros to the top of the picker matches.
+  const [consentedProIds, setConsentedProIds] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("pro_client_access")
+        .select("pro_user_id")
+        .eq("consumer_id", user.id)
+        .is("revoked_at", null);
+      if (cancelled) return;
+      setConsentedProIds(new Set((data ?? []).map((r) => r.pro_user_id)));
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const matches = useMemo(() => {
     const q = query.trim();
     if (q.length < 2 || pickedFromDirectory) return [];
-    return searchProfessionalsIn(pros, q).slice(0, 5);
-  }, [pros, query, pickedFromDirectory]);
+    const results = searchProfessionalsIn(pros, q);
+    // Sort: consented pros first, then other live pros, then seed pros.
+    const scored = results.map((p) => {
+      const consented = p.proUserId && consentedProIds.has(p.proUserId) ? 0 : p.proUserId ? 1 : 2;
+      return { p, consented };
+    });
+    scored.sort((a, b) => a.consented - b.consented);
+    return scored.slice(0, 5).map((s) => s.p);
+  }, [pros, query, pickedFromDirectory, consentedProIds]);
 
   const applyPro = (p: Professional) => {
     setProName(p.name);
@@ -127,6 +159,7 @@ const LogAppointment = () => {
     setPickedFromDirectory(null);
     setQuery("");
   };
+
 
   const canSave = proName.trim().length > 0 && date.trim().length > 0 && !saving;
 
@@ -163,7 +196,12 @@ const LogAppointment = () => {
       follow_up_time: followUp && followUpTime.trim() ? followUpTime.trim() : null,
       outcome_notes: status === "completed" && outcomeNotes.trim() ? outcomeNotes.trim() : null,
       outcome_audio_path: status === "completed" ? outcomeAudio : null,
+      // Only carry the platform link when the user picked a LIVE professional
+      // (seed directory pros have no proUserId). Free-text entries stay unlinked.
+      linked_pro_user_id: pickedFromDirectory?.proUserId ?? existingLinkedProId ?? null,
+
     };
+
 
     let savedId: string | null = null;
     if (fromId) {
@@ -235,7 +273,9 @@ const LogAppointment = () => {
         follow_up_needed: false,
         follow_up_date: null,
         follow_up_time: null,
+        linked_pro_user_id: pickedFromDirectory?.proUserId ?? existingLinkedProId ?? null,
       };
+
       const { error: followErr } = await supabase.from("appointments").insert(followPayload);
       if (followErr) console.error("Follow-up insert failed", followErr);
     }

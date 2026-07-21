@@ -113,6 +113,7 @@ export type Database = {
           follow_up_needed: boolean
           follow_up_time: string | null
           id: string
+          linked_pro_user_id: string | null
           notes: string | null
           outcome_audio_path: string | null
           outcome_notes: string | null
@@ -132,6 +133,7 @@ export type Database = {
           follow_up_needed?: boolean
           follow_up_time?: string | null
           id?: string
+          linked_pro_user_id?: string | null
           notes?: string | null
           outcome_audio_path?: string | null
           outcome_notes?: string | null
@@ -151,6 +153,7 @@ export type Database = {
           follow_up_needed?: boolean
           follow_up_time?: string | null
           id?: string
+          linked_pro_user_id?: string | null
           notes?: string | null
           outcome_audio_path?: string | null
           outcome_notes?: string | null
@@ -1942,6 +1945,8 @@ export type Database = {
           active_clients: number
           application_created_at: string
           application_status: string
+          appointments_total: number
+          appointments_upcoming: number
           contact_email: string
           created_at: string
           discipline: string

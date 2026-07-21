@@ -75,8 +75,10 @@ const PRO_NAV: NavItem[] = [
   { label: "Profile", to: "/pro/profile", icon: User },
   { label: "Offers", to: "/pro/offers", icon: Sparkles },
   { label: "Enquiries", to: "/pro/enquiries", icon: Inbox },
+  { label: "Appointments", to: "/pro/appointments", icon: Calendar },
   { label: "Billing", to: "/pro/billing", icon: CreditCard },
 ];
+
 
 
 // Hide menu on splash and auth. Onboarding/walkthrough/setup keep the top
