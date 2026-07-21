@@ -245,10 +245,12 @@ const AdminBrandOffers = () => {
                       {STATUS_LABEL[o._derived]} · {money(o.total_price_pence)}
                     </p>
                   </div>
+                  <RevisionBadge pending={pendingRevSet.has(o.id)} count={revisionCounts[o.id]} />
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </SurfaceCard>
               </button>
             ))}
+
           </>
         )}
       </div>
