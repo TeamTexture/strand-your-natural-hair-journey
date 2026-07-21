@@ -364,8 +364,8 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
             </div>
 
             {/* MRZ-style bottom band */}
-            <div className="mt-4 -mx-5 px-5 py-2 bg-primary/[0.08] border-t border-primary/20">
-              <p className="text-[9px] font-mono tracking-[0.14em] text-primary/70 truncate">
+            <div className="mt-4 -mx-5 px-5 py-2 bg-primary/[0.12] border-t border-primary/25">
+              <p className="text-[10px] font-mono font-semibold tracking-[0.14em] text-primary/85 truncate">
                 {`STR<<${d.clientName.replace(/\s+/g, "<").toUpperCase()}<<`.slice(0, 44).padEnd(44, "<")}
               </p>
             </div>
