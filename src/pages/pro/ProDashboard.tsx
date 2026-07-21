@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useProSubscription } from "@/hooks/useProSubscription";
 
 const Card = ({
   icon: Icon,
@@ -48,6 +50,13 @@ const ProDashboard = () => {
   const nav = useNavigate();
   const { signOut, user } = useAuth();
   const { isConsumer, isAdmin } = useRoles();
+  const { isActive: subActive, isLoading: subLoading } = useProSubscription();
+  const [noticeDismissed, setNoticeDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem("pro_sub_notice_dismissed") === "1";
+  });
+
+  const showLapseNotice = !subLoading && !subActive && !noticeDismissed;
 
   return (
     <ScreenLayout>
@@ -56,6 +65,33 @@ const ProDashboard = () => {
         <p className="text-sm text-foreground/70 font-body">
           Welcome{user?.email ? `, ${user.email}` : ""}.
         </p>
+
+        {showLapseNotice && (
+          <div className="relative rounded-[12px] border border-warn/40 bg-warn/10 p-3 pr-9">
+            <button
+              onClick={() => {
+                window.sessionStorage.setItem("pro_sub_notice_dismissed", "1");
+                setNoticeDismissed(true);
+              }}
+              className="absolute top-2 right-2 text-foreground/50 hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              <X className="size-4" />
+            </button>
+            <div className="flex items-start gap-2">
+              <AlertCircle className="size-4 text-warn mt-0.5 shrink-0" />
+              <div className="text-[12px] font-body text-foreground/85 leading-snug">
+                <button
+                  onClick={() => nav("/pro/billing")}
+                  className="font-medium underline underline-offset-2"
+                >
+                  Subscribe
+                </button>{" "}
+                to receive client enquiries and access passports.
+              </div>
+            </div>
+          </div>
+        )}
 
         <SectionLabel>Your practice</SectionLabel>
         <div className="space-y-2.5">
@@ -85,11 +121,13 @@ const ProDashboard = () => {
           <Card
             icon={CreditCard}
             title="Billing"
-            sub="STRAND Pro subscription."
-            disabled
-            badge="Coming soon"
+            sub={subLoading ? "Loading…" : subActive ? "Manage your subscription." : "Subscribe to STRAND Pro."}
+            onClick={() => nav("/pro/billing")}
+            badge={subActive ? "Active" : "Inactive"}
           />
         </div>
+
+
 
         {(isConsumer || isAdmin) && (
           <>

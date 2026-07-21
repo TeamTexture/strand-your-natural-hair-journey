@@ -48,6 +48,7 @@ import ProApply from "./pages/pro/ProApply";
 import ProDashboard from "./pages/pro/ProDashboard";
 import ProProfile from "./pages/pro/ProProfile";
 import ProOffers from "./pages/pro/ProOffers";
+import ProBilling from "./pages/pro/ProBilling";
 import AdminApplications from "./pages/admin/AdminApplications";
 
 
@@ -209,6 +210,15 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/pro/billing"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProBilling />
+                  </RoleGate>
+                }
+              />
+
               <Route
                 path="/admin/applications"
                 element={
