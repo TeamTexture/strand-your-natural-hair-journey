@@ -21,6 +21,13 @@ import {
   Briefcase,
   ShieldCheck,
   ChevronDown,
+  LayoutDashboard,
+  Sparkles,
+  Inbox,
+  CreditCard,
+  FileText,
+  ClipboardList,
+  Settings,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -37,10 +44,18 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useProSubscription } from "@/hooks/useProSubscription";
+import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 
+type NavItem = {
+  label: string;
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+};
 
-const NAV: { label: string; to: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const CONSUMER_NAV: NavItem[] = [
   { label: "Home", to: "/home", icon: HomeIcon },
   { label: "Wash Day", to: "/wash-day", icon: Droplets },
   { label: "Products", to: "/products", icon: ShoppingBag },
@@ -54,12 +69,23 @@ const NAV: { label: string; to: string; icon: React.ComponentType<{ className?: 
   { label: "Contact", to: "/contact", icon: Mail },
 ];
 
+const PRO_NAV: NavItem[] = [
+  { label: "Dashboard", to: "/pro", icon: LayoutDashboard },
+  { label: "Profile", to: "/pro/profile", icon: User },
+  { label: "Offers", to: "/pro/offers", icon: Sparkles },
+  { label: "Enquiries", to: "/pro/enquiries", icon: Inbox },
+  { label: "Billing", to: "/pro/billing", icon: CreditCard },
+];
+
+
 // Hide menu on splash, auth and onboarding flows.
 const HIDDEN_PREFIXES = ["/auth", "/onboarding", "/walkthrough", "/setup", "/.lovable"];
 
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
   const { isConsumer, isProfessional, isAdmin } = useRoles();
+  const { isActive: proSubActive } = useProSubscription();
+  const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -89,6 +115,29 @@ const GlobalMenu = () => {
   } as const;
 
   const ActiveIcon = viewMeta[activeView].icon;
+
+  const ADMIN_NAV: NavItem[] = [
+    { label: "Overview", to: "/admin", icon: LayoutDashboard },
+    { label: "Applications", to: "/admin/applications", icon: ClipboardList, badge: pendingApplicationsCount },
+    { label: "Members", to: "/admin/members", icon: Users },
+    { label: "Audit trail", to: "/admin/audit", icon: FileText },
+    { label: "Settings", to: "/admin/settings", icon: Settings },
+  ];
+
+  // For pro view: only show items the pro can actually access.
+  // Approved + subscribed pros (or admins acting as pro) see everything.
+  // Otherwise (application pending, or approved-but-unpaid), the dashboard
+  // is locked to the landing/welcome screen and we surface nothing.
+  const proUnlocked = isAdmin || (isProfessional && proSubActive);
+
+  const navItems: NavItem[] =
+    activeView === "admin"
+      ? ADMIN_NAV
+      : activeView === "pro"
+        ? proUnlocked
+          ? PRO_NAV
+          : []
+        : CONSUMER_NAV;
 
 
   const go = (to: string) => {
@@ -201,10 +250,10 @@ const GlobalMenu = () => {
             <SheetTitle className="font-display text-xl">Menu</SheetTitle>
           </SheetHeader>
           <nav className="flex-1 overflow-y-auto py-2">
-            {NAV.map(({ label, to, icon: Icon }) => {
+            {navItems.map(({ label, to, icon: Icon, badge }) => {
               const active =
-                to === "/home"
-                  ? location.pathname === "/home"
+                to === "/home" || to === "/pro" || to === "/admin"
+                  ? location.pathname === to
                   : location.pathname === to || location.pathname.startsWith(to + "/");
               return (
                 <button
@@ -215,11 +264,50 @@ const GlobalMenu = () => {
                   }`}
                 >
                   <Icon className="size-4" />
-                  <span>{label}</span>
+                  <span className="flex-1">{label}</span>
+                  {badge && badge > 0 ? (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none bg-primary text-primary-foreground">
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
           </nav>
+          {showViewSwitcher && (
+            <div className="border-t p-3 space-y-1">
+              <p className="px-3 pb-1 text-[10px] uppercase tracking-wider font-body font-semibold text-muted-foreground">
+                Switch view
+              </p>
+              {isConsumer && activeView !== "consumer" && (
+                <button
+                  onClick={() => go(viewMeta.consumer.to)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
+                >
+                  <HomeIcon className="size-4" />
+                  <span>My STRAND</span>
+                </button>
+              )}
+              {isProfessional && activeView !== "pro" && (
+                <button
+                  onClick={() => go(viewMeta.pro.to)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
+                >
+                  <Briefcase className="size-4" />
+                  <span>Professional</span>
+                </button>
+              )}
+              {isAdmin && activeView !== "admin" && (
+                <button
+                  onClick={() => go(viewMeta.admin.to)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
+                >
+                  <ShieldCheck className="size-4" />
+                  <span>Admin</span>
+                </button>
+              )}
+            </div>
+          )}
           <div className="border-t p-3">
             <button
               onClick={async () => {
