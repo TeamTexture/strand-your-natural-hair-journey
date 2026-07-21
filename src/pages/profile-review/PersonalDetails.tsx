@@ -257,6 +257,22 @@ const PersonalDetailsReview = () => {
         />
 
         <ReviewField
+          label="Mobile number"
+          value={(profile as { phone_number?: string | null } | null)?.phone_number ?? ""}
+          kind={{ type: "text", placeholder: "e.g. 07700 900123", maxLength: 20 }}
+          autoEdit={editKey === "phone"}
+          onSave={(v) => {
+            const trimmed = String(v).trim();
+            const digits = trimmed.replace(/\D/g, "");
+            if (trimmed && digits.length < 7) {
+              toast.error("Enter a valid mobile number");
+              throw new Error("invalid phone");
+            }
+            return saveField({ phone_number: trimmed || null });
+          }}
+        />
+
+        <ReviewField
           label="Age"
           value={age ?? ""}
           hint={
