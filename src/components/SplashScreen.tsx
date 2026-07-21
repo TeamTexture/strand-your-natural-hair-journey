@@ -32,7 +32,9 @@ const SplashScreen = () => {
     try {
       const stored = localStorage.getItem("strand_last_display_name");
       if (stored) setFirstName(stored);
-    } catch {}
+    } catch {
+      // Ignore private browsing/storage failures.
+    }
   }, []);
 
   const nextParam = searchParams.get("next");
