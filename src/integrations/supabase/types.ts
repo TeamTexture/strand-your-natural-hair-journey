@@ -583,6 +583,48 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_pricing_changes: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          currency: string
+          id: string
+          interval: string
+          new_amount_gbp: number
+          new_price_id: string
+          notes: string | null
+          old_amount_gbp: number | null
+          old_price_id: string | null
+          product_kind: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          interval?: string
+          new_amount_gbp: number
+          new_price_id: string
+          notes?: string | null
+          old_amount_gbp?: number | null
+          old_price_id?: string | null
+          product_kind: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          interval?: string
+          new_amount_gbp?: number
+          new_price_id?: string
+          notes?: string | null
+          old_amount_gbp?: number | null
+          old_price_id?: string | null
+          product_kind?: string
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           key: string
