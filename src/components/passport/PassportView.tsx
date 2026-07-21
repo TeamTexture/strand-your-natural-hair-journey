@@ -206,22 +206,25 @@ const AudioPlayer = ({ bucket, path, transcript, label = "Voice note" }: {
   );
 };
 
-/** Section heading with icon + one-line context. */
+/** Section heading — engraved-passport eyebrow with gold hairline. */
 const SectionHeader = ({ icon: Icon, title, sub }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   sub?: string;
 }) => (
-  <div className="px-5 mt-6 mb-3 flex items-center gap-2.5">
-    <div className="size-8 rounded-full bg-primary/12 text-primary flex items-center justify-center">
-      <Icon className="size-4" />
+  <div className="px-5 mt-6 mb-4">
+    <div className="flex items-center gap-2 mb-1.5">
+      <Icon className="size-3.5 text-primary" strokeWidth={1.75} />
+      <span className="text-[9.5px] uppercase tracking-[0.32em] font-body font-semibold text-primary/80">
+        Section
+      </span>
+      <span className="flex-1 h-px bg-gradient-to-r from-primary/40 via-primary/15 to-transparent" />
     </div>
-    <div>
-      <h2 className="font-display text-lg text-foreground leading-tight">{title}</h2>
-      {sub && <p className="text-[11px] font-body text-muted-foreground leading-snug">{sub}</p>}
-    </div>
+    <h2 className="font-display text-[22px] leading-[1.05] text-foreground tracking-[-0.01em]">{title}</h2>
+    {sub && <p className="text-[11px] font-body text-muted-foreground leading-snug mt-1">{sub}</p>}
   </div>
 );
+
 
 /** Named subsection label — smaller, quieter than SectionHeader. */
 const SubLabel = ({ children }: { children: React.ReactNode }) => (
@@ -288,49 +291,101 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
 
   return (
     <>
-      {/* Identity card */}
+      {/* ============ PASSPORT COVER ============ */}
       <div className="px-5 mt-2">
-        <SurfaceCard tone="gold">
-          <div className="flex items-start gap-4">
-            {avatarIsHttp ? (
-              <img src={avatarUrl!} alt="" className="size-16 rounded-full object-cover border-2 border-primary/20 shrink-0" />
-            ) : avatarUrl ? (
-              <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-16 rounded-full overflow-hidden border-2 border-primary/20 shrink-0" />
-            ) : (
-              <ProAvatar name={d.clientName} size="size-16" className="bg-primary/15 text-primary shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-[20px] leading-tight text-foreground truncate">{d.clientName}</p>
-              <p className="text-[11px] text-muted-foreground font-body mt-0.5 truncate">
-                {d.authEmail ?? "No email on file"}
+        <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-[hsl(var(--foreground))] to-[hsl(var(--foreground)/0.88)] text-primary shadow-[0_10px_30px_-14px_hsl(var(--foreground)/0.55)]">
+          {/* Guilloche pattern — very subtle security-print aesthetic */}
+          <svg aria-hidden className="absolute inset-0 w-full h-full opacity-[0.12] pointer-events-none" viewBox="0 0 300 200" preserveAspectRatio="none">
+            <defs>
+              <pattern id="guilloche" width="30" height="30" patternUnits="userSpaceOnUse">
+                <path d="M0 15 Q7.5 0 15 15 T30 15" fill="none" stroke="currentColor" strokeWidth="0.4" />
+                <path d="M0 15 Q7.5 30 15 15 T30 15" fill="none" stroke="currentColor" strokeWidth="0.4" />
+              </pattern>
+            </defs>
+            <rect width="300" height="200" fill="url(#guilloche)" />
+          </svg>
+
+          <div className="relative px-5 pt-5 pb-4">
+            {/* Lockup */}
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" className="text-primary">
+                  <path d="M12 2 L14.5 8 L21 8.5 L16 12.8 L17.6 19.4 L12 15.8 L6.4 19.4 L8 12.8 L3 8.5 L9.5 8 Z"
+                    fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                </svg>
+                <p className="font-display text-[10.5px] uppercase tracking-[0.34em] text-primary/90 leading-none">
+                  Strand · Client Passport
+                </p>
+              </div>
+              <span className="text-[9px] font-body uppercase tracking-[0.24em] text-primary/60">
+                UK · {p?.country ? (humaniseValue(p.country) ?? "").slice(0, 3).toUpperCase() : "GBR"}
+              </span>
+            </div>
+
+            {/* Avatar + engraved name */}
+            <div className="flex items-end gap-4">
+              {avatarIsHttp ? (
+                <img src={avatarUrl!} alt="" className="size-[68px] rounded-[10px] object-cover border border-primary/40 shrink-0" />
+              ) : avatarUrl ? (
+                <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-[68px] rounded-[10px] overflow-hidden border border-primary/40 shrink-0" />
+              ) : (
+                <div className="size-[68px] rounded-[10px] border border-primary/40 bg-primary/10 flex items-center justify-center text-primary font-display text-2xl shrink-0">
+                  {d.clientName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-0 pb-0.5">
+                <p className="text-[9.5px] uppercase tracking-[0.28em] font-body text-primary/60 mb-1">Bearer</p>
+                <p className="font-display text-[22px] leading-[1.05] text-primary truncate tracking-[0.005em]">
+                  {d.clientName}
+                </p>
+              </div>
+            </div>
+
+            {/* Passport data strip */}
+            <div className="mt-4 pt-4 border-t border-primary/20 grid grid-cols-3 gap-3">
+              <div>
+                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Issued</p>
+                <p className="text-[11.5px] font-body text-primary/95 leading-tight">
+                  {d.memberSince ? formatMonth(d.memberSince) : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Age</p>
+                <p className="text-[11.5px] font-body text-primary/95 leading-tight">
+                  {p?.age != null ? `${p.age} yrs` : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[8.5px] uppercase tracking-[0.24em] font-body text-primary/55 mb-0.5">Region</p>
+                <p className="text-[11.5px] font-body text-primary/95 leading-tight truncate">
+                  {p?.postcode ?? humaniseValue(p?.country) ?? "—"}
+                </p>
+              </div>
+            </div>
+
+            {/* MRZ-style bottom band */}
+            <div className="mt-4 -mx-5 px-5 py-2 bg-primary/[0.08] border-t border-primary/20">
+              <p className="text-[9px] font-mono tracking-[0.14em] text-primary/70 truncate">
+                {`STR<<${d.clientName.replace(/\s+/g, "<").toUpperCase()}<<`.slice(0, 44).padEnd(44, "<")}
               </p>
-              {p?.age != null && (
-                <p className="text-[12px] text-foreground/80 font-body mt-1">
-                  {p.age} years old
-                  {p.heritage?.length ? ` · ${p.heritage.join(", ")}` : ""}
-                </p>
-              )}
-              {d.memberSince && (
-                <p className="text-[11px] text-muted-foreground font-body mt-0.5">
-                  Member since {formatMonth(d.memberSince)}
-                </p>
-              )}
             </div>
           </div>
+        </div>
 
-          {(p?.postcode || p?.country || hardWater) && (
-            <div className="mt-3 pt-3 border-t border-primary/20 flex flex-wrap gap-2">
-              {p?.postcode && <Chip tone="neutral">{p.postcode}</Chip>}
-              {p?.country && <Chip tone="neutral">{humaniseValue(p.country) ?? String(p.country)}</Chip>}
-              {hardWater && (
-                <Chip tone={hardWater.hardness === "very-hard" || hardWater.hardness === "hard" ? "warn" : "good"} icon={Droplet}>
-                  {hardWater.label} water
-                </Chip>
-              )}
-            </div>
-          )}
-        </SurfaceCard>
+        {/* Contact + location band directly below cover */}
+        {(d.authEmail || p?.postcode || hardWater) && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {d.authEmail && <Chip tone="neutral">{d.authEmail}</Chip>}
+            {p?.postcode && <Chip tone="neutral">{p.postcode}</Chip>}
+            {hardWater && (
+              <Chip tone={hardWater.hardness === "very-hard" || hardWater.hardness === "hard" ? "warn" : "good"} icon={Droplet}>
+                {hardWater.label} water
+              </Chip>
+            )}
+          </div>
+        )}
       </div>
+
 
       {/* Critical flags (chemical reaction + blood flag counts remain visible) */}
       {flags.chemicalReaction && (
@@ -451,15 +506,23 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
             push("Wash frequency", "wash_frequency");
             if (rows.length === 0) return <p className="text-[12px] text-muted-foreground font-body">No hair profile recorded.</p>;
             return (
-              <div className="divide-y divide-border">
+              <div className="space-y-3">
                 {rows.map(r => (
-                  <div key={r.label} className="flex gap-3 py-2.5 text-[13px] font-body">
-                    <span className={cn("w-[130px] shrink-0", r.tone === "warn" ? "text-warn font-medium" : "text-muted-foreground")}>{r.label}</span>
-                    <span className={cn("flex-1 break-words", r.tone === "warn" ? "text-warn font-medium" : "text-foreground")}>{r.value}</span>
+                  <div key={r.label}>
+                    <p className={cn("text-[9px] uppercase tracking-[0.28em] font-body mb-0.5",
+                      r.tone === "warn" ? "text-warn/80" : "text-primary/70")}>
+                      {r.label}
+                    </p>
+                    <p className={cn("text-[14px] font-display leading-tight",
+                      r.tone === "warn" ? "text-warn" : "text-foreground")}>
+                      {r.value}
+                    </p>
+                    <div className="mt-2 h-px bg-gradient-to-r from-primary/25 via-primary/10 to-transparent" />
                   </div>
                 ))}
               </div>
             );
+
           })()}
         </SurfaceCard>
       </div>
@@ -762,16 +825,39 @@ const valueColor: Record<Status, string> = { low: "text-warn", warn: "text-warn"
 
 const MarkerRow = ({ marker, value, unit, status }: { marker: string; value: number | null; unit: string | null; status: string | null }) => {
   const s = toRowStatus(status);
+  // Visual gauge: position derived from status band since numeric reference range isn't
+  // stored per row — in-range centres, low sits left, high sits right. Untested = flat rail.
+  const pos = s === "low" ? 18 : s === "warn" ? 82 : s === "normal" ? 50 : 50;
+  const barTint = s === "normal" ? "bg-good" : s === "untested" ? "bg-muted-foreground/30" : "bg-warn";
   return (
-    <div className="flex items-center gap-3 py-2.5">
-      <span className={cn("size-2.5 rounded-full shrink-0", dotColor[s])} />
-      <span className="flex-1 text-[13px] font-body text-foreground min-w-0">{humaniseValue(marker) ?? marker}</span>
-      <span className={cn("text-[12px] font-body font-medium text-right", valueColor[s])}>
-        {value != null ? `${value}${unit ? ` ${unit}` : ""}` : "Not tested"}
-      </span>
+    <div className="py-3">
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <span className="text-[12.5px] font-body text-foreground min-w-0 truncate flex-1">
+          {humaniseValue(marker) ?? marker}
+        </span>
+        <span className={cn("text-[12.5px] font-display tabular-nums text-right shrink-0", valueColor[s])}>
+          {value != null ? `${value}${unit ? ` ${unit}` : ""}` : "Not tested"}
+        </span>
+      </div>
+      <div className="relative h-[6px] rounded-full bg-muted overflow-visible">
+        {/* Reference rail */}
+        <div className="absolute inset-y-0 left-[25%] right-[25%] rounded-full bg-primary/12" />
+        {/* Marker dot */}
+        <div
+          className={cn("absolute -top-[3px] size-[12px] rounded-full border-2 border-background shadow-sm", barTint)}
+          style={{ left: `calc(${pos}% - 6px)` }}
+        />
+      </div>
+      {s !== "untested" && (
+        <p className={cn("text-[9.5px] uppercase tracking-[0.22em] font-body mt-1.5",
+          s === "normal" ? "text-good/80" : "text-warn/85")}>
+          {s === "normal" ? "In range" : s === "low" ? "Below range" : "Flagged"}
+        </p>
+      )}
     </div>
   );
 };
+
 
 const BloodAiCard = ({ payload, when }: { payload: unknown; when: string }) => {
   const p = payload as { html?: string; summary?: string } | string | null;
@@ -849,38 +935,36 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
           <EmptyLine msg="No blood panels recorded." />
         ) : (
           <>
-            {d.bloodPanels.map((panel, idx) => {
+            {d.bloodPanels.map((panel) => {
               const rows = resultsByPanel.get(panel.id) ?? [];
               const flagged = rows.filter(r => ["low", "high", "borderline"].includes(String(r.status ?? "").toLowerCase())).length;
-              const thumbPath = (panel as Record<string, unknown>).thumbnail_path as string | null | undefined;
+              const panelLabel = titleCase(humaniseValue(panel.label) ?? humaniseValue(panel.test_type) ?? "Blood panel");
+              const labLabel = panel.lab_name ? titleCase(humaniseValue(panel.lab_name) ?? String(panel.lab_name)) : null;
               return (
-                <Collapsible key={panel.id} defaultOpen={idx === 0} summary={
+                <Collapsible key={panel.id} defaultOpen={false} summary={
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[14px] font-body font-semibold text-foreground leading-tight">
-                        {humaniseValue(panel.label) ?? humaniseValue(panel.test_type) ?? "Blood panel"}
+                      <p className="text-[14px] font-display font-semibold text-foreground leading-tight">
+                        {panelLabel}
                       </p>
                       {flagged > 0 && <Chip tone="warn">{flagged} flagged</Chip>}
                     </div>
-                    <p className="text-[11.5px] text-muted-foreground font-body mt-0.5">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-primary/70 font-body mt-1">
                       {panel.panel_date ? formatDate(panel.panel_date) : "Undated"}
-                      {panel.lab_name ? ` · ${humaniseValue(panel.lab_name)}` : ""}
-                      {` · ${rows.length} marker${rows.length === 1 ? "" : "s"}`}
+                      {labLabel ? ` · ${labLabel}` : ""}
+                    </p>
+                    <p className="text-[11px] font-body text-muted-foreground mt-0.5">
+                      {rows.length} marker{rows.length === 1 ? "" : "s"}
                     </p>
                   </div>
                 }>
-                  {thumbPath && (
-                    <div className="mb-3">
-                      <Thumb bucket="blood-panel-thumbs" path={thumbPath} className="aspect-[4/3] rounded-lg" title={humaniseValue(panel.label) ?? "Blood panel"} />
-                    </div>
-                  )}
                   {panel.notes && (
                     <p className="text-[12.5px] italic text-muted-foreground font-body mb-3 leading-relaxed">"{panel.notes}"</p>
                   )}
                   {rows.length === 0 ? (
                     <p className="text-[12px] text-muted-foreground font-body">No markers recorded on this panel.</p>
                   ) : (
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border/60">
                       {rows.map(r => (
                         <MarkerRow key={r.id} marker={r.marker} value={r.value} unit={r.unit} status={r.status} />
                       ))}
@@ -889,6 +973,7 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
                 </Collapsible>
               );
             })}
+
             {resultsByPanel.get("__loose__") && (
               <Collapsible summary={
                 <div>
@@ -1547,19 +1632,24 @@ const NutritionAdviceCard = ({ payload, when, defaultOpen = false }: { payload: 
 };
 
 const NutritionSection = ({ d }: { d: PassportDataset }) => {
+  const latest = d.nutritionSummaries[0];
+  if (!latest) {
+    return (
+      <div className="px-5 mt-2">
+        <EmptyLine msg="No nutrition guidance generated yet." />
+      </div>
+    );
+  }
   return (
     <>
       <SubLabel>Nutrition & supplement guidance</SubLabel>
-      <div className="px-5 space-y-2">
-        {d.nutritionSummaries.length === 0 ? (
-          <EmptyLine msg="No nutrition guidance generated yet." />
-        ) : (
-          <NutritionAdviceCard payload={d.nutritionSummaries[0].payload} when={d.nutritionSummaries[0].created_at} defaultOpen />
-        )}
+      <div className="px-5">
+        <NutritionAdviceCard payload={latest.payload} when={latest.created_at} defaultOpen />
       </div>
     </>
   );
 };
+
 
 
 // ================================================================
@@ -1734,14 +1824,14 @@ const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void 
 
 const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> = {
   profile: User,
-  routine: Sparkles,
+  routine: Droplet,
   products: Package,
   nutrition: Leaf,
-  appointments: Clock,
-  journal: Heart,
-  colour: FlaskConical,
-  photos: Scissors,
-  goals: Heart,
+  appointments: CalendarDays,
+  journal: PenLine,
+  colour: Beaker,
+  photos: ImageIcon,
+  goals: Target,
 };
 
 const sectionSub: Record<Section, string> = {
@@ -1755,6 +1845,7 @@ const sectionSub: Record<Section, string> = {
   photos: "Milestones, before shots, moodboards",
   goals: "What they want and why they're here",
 };
+
 
 const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("profile");
@@ -1824,29 +1915,32 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           </SurfaceCard>
         </div>
 
-        {/* Sticky tab strip */}
-        <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pt-2 pb-3 -mx-0 px-5 border-b border-border/60">
+        {/* Sticky tab strip — gold-edged passport pages */}
+        <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-2.5 pb-3 px-5 border-b border-primary/15">
           <div className="overflow-x-auto scrollbar-hide -mx-5 px-5">
-            <div className="flex gap-2 min-w-max">
+            <div className="flex gap-1.5 min-w-max">
               {SECTIONS.map((s) => {
                 const count = s.count(data);
-                const active = section === s.key;
+                const isActive = section === s.key;
+                const TabIcon = sectionIcon[s.key];
                 return (
                   <button
                     key={s.key}
                     onClick={() => setSection(s.key)}
+                    aria-pressed={isActive}
                     className={cn(
-                      "px-3.5 py-1.5 rounded-full text-[12px] font-body border transition-colors min-h-[36px] inline-flex items-center gap-1.5 whitespace-nowrap",
-                      active
-                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                        : "bg-card border-border text-foreground",
+                      "px-3 py-1.5 rounded-full text-[10.5px] uppercase tracking-[0.16em] font-body font-semibold border transition-all min-h-[38px] inline-flex items-center gap-1.5 whitespace-nowrap",
+                      isActive
+                        ? "bg-foreground text-primary border-primary/60 shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_4px_12px_-6px_hsl(var(--foreground)/0.4)]"
+                        : "bg-card border-border/60 text-foreground/70 hover:text-foreground hover:border-primary/30",
                     )}
                   >
-                    {s.label}
+                    <TabIcon className={cn("size-3", isActive ? "text-primary" : "text-foreground/50")} strokeWidth={1.75} />
+                    <span>{s.label}</span>
                     {count > 0 && (
                       <span className={cn(
-                        "px-1.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-semibold flex items-center justify-center",
-                        active ? "bg-primary-foreground/25 text-primary-foreground" : "bg-primary/12 text-primary",
+                        "px-1.5 min-w-[16px] h-[16px] rounded-full text-[9px] font-semibold flex items-center justify-center tracking-normal",
+                        isActive ? "bg-primary/25 text-primary" : "bg-primary/10 text-primary/85",
                       )}>
                         {count}
                       </span>
@@ -1858,9 +1952,10 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           </div>
         </div>
 
+
         <SectionHeader icon={Icon} title={SECTIONS.find(s => s.key === section)?.label ?? "Passport"} sub={sectionSub[section]} />
 
-        <div className="pb-10">
+        <div className="pb-10 animate-fade-in" key={section}>
           {section === "profile" && <ProfileSection d={data} />}
           {section === "routine" && <RoutineSection d={data} />}
           {section === "products" && <ProductsSection d={data} />}
@@ -1871,6 +1966,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "photos" && <PhotosSection d={data} />}
           {section === "goals" && <GoalsSection d={data} />}
         </div>
+
 
 
         <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
