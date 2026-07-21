@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
+import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
 
 const Card = ({
   icon: Icon,
