@@ -8,23 +8,30 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, useBrandOfferTotals, STATUS_LABEL, SLOT_LABEL } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferTotals, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { format } from "date-fns";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
-const StatusPill = ({ status }: { status: string }) => {
+const StatusPill = ({ status }: { status: DerivedStatus }) => {
   const tone =
     status === "live" ? "bg-good/15 text-good" :
+    status === "upcoming" ? "bg-primary/15 text-primary" :
     status === "under_review" ? "bg-warn/15 text-warn" :
     status === "approved_unpaid" ? "bg-primary/15 text-primary" :
-    status === "paid_scheduled" ? "bg-primary/10 text-primary" :
+    status === "ended" ? "bg-muted text-muted-foreground" :
     status === "rejected" || status === "cancelled" ? "bg-destructive/10 text-destructive" :
     "bg-muted text-muted-foreground";
   return (
-    <span className={`text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium ${tone}`}>
-      {STATUS_LABEL[status as keyof typeof STATUS_LABEL] ?? status}
+    <span className={`inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium ${tone}`}>
+      {status === "live" && (
+        <span className="relative flex size-1.5">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" />
+          <span className="relative inline-flex size-1.5 rounded-full bg-good" />
+        </span>
+      )}
+      {STATUS_LABEL[status] ?? status}
     </span>
   );
 };
