@@ -107,16 +107,42 @@ const AdminBrandOffers = () => {
 
   if (isLoading) return <LoadingDot />;
 
+  const today = new Date().toISOString().slice(0, 10);
   const pending = offers.filter((o) => o.status === "under_review");
+  const liveOnly = offers.filter(
+    (o) =>
+      ["live", "paid_scheduled"].includes(o.status) &&
+      (!o.starts_on || o.starts_on <= today) &&
+      (!o.ends_on || o.ends_on >= today),
+  );
   const other = offers.filter((o) => o.status !== "under_review");
+
+  const showPending = !filter || filter === "pending";
+  const showLive = filter === "live" || filter === "brands";
+  const showOther = !filter;
+
+  const filterLabel =
+    filter === "pending" ? "Offer requests"
+      : filter === "live" ? "Live offers"
+        : filter === "brands" ? "Live brands"
+          : null;
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand offers" onBack={() => nav("/admin")} />
+      <TitleBar title={filterLabel ?? "Brand offers"} onBack={() => nav("/admin")} />
       <div className="px-5 pb-8 space-y-4">
+        {filter && (
+          <button
+            onClick={() => nav("/admin/brand-offers")}
+            className="text-[11px] text-primary font-body underline underline-offset-2 self-start"
+          >
+            ← Show all brand offers
+          </button>
+        )}
         <Button variant="outline" size="pill" onClick={() => nav("/admin/brand-calendar")} className="w-full">
           <CalendarIcon className="size-4 mr-1.5" /> Booking calendar
         </Button>
+
 
         <SectionLabel className="!px-0">Pending review ({pending.length})</SectionLabel>
         {pending.length === 0 ? (
