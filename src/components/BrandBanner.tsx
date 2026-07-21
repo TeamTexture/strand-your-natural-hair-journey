@@ -124,21 +124,12 @@ const BrandBanner = ({ slot }: Props) => {
             </div>
           )}
           {expanded ? (
-            <ChevronUp className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
+            <ChevronUp className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
           ) : (
-            <ChevronDown className="absolute right-9 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
           )}
         </div>
       </div>
-      <button
-        type="button"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={onDismiss}
-        aria-label="Dismiss sponsored banner"
-        className="absolute top-2 right-2 z-20 size-7 rounded-full bg-background/85 backdrop-blur border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground"
-      >
-        <X className="size-3.5" />
-      </button>
       {/* Grid-rows transition — expands the row 0fr → 1fr so the banner stays
        *  anchored at the top and content below flows down smoothly, with no
        *  scroll-jump / scroll-anchoring surprises. */}
