@@ -317,15 +317,31 @@ const ProApply = () => {
           />
         </Field>
 
-        <Button
-          variant="gold"
-          size="pill"
-          className="w-full"
-          onClick={submit}
-          disabled={saving}
-        >
-          {saving ? "Submitting…" : "Submit application →"}
-        </Button>
+        <div className="space-y-2 pt-1">
+          <Button
+            variant="gold"
+            size="pill"
+            className="w-full"
+            onClick={submit}
+            disabled={saving}
+          >
+            {saving ? "Saving…" : "Submit application →"}
+          </Button>
+          <Button
+            variant="outline"
+            size="pill"
+            className="w-full"
+            onClick={saveDraft}
+            disabled={saving}
+          >
+            Save & finish later
+          </Button>
+          <p className="text-[11px] text-muted-foreground font-body text-center leading-relaxed pt-1">
+            Your draft is stored on your account — come back any time to pick up where
+            you left off.
+          </p>
+        </div>
+
       </div>
     </ScreenLayout>
   );
