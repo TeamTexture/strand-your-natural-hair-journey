@@ -496,7 +496,7 @@ const ProfileStep1 = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  ageRef.current?.focus();
+                  phoneRef.current?.focus();
                 }
               }}
               className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]"
@@ -504,6 +504,36 @@ const ProfileStep1 = () => {
             {name.trim().length > 0 && <Check className="size-4 text-good mr-3 shrink-0" />}
           </FieldFrame>
           {submitted && errors.name && <FieldError>{errors.name}</FieldError>}
+        </label>
+
+        {/* Mobile Number */}
+        <label className="block">
+          <FieldLabel>Mobile Number</FieldLabel>
+          <FieldFrame
+            filled={phoneDigits.length >= 7}
+            invalid={submitted && !!errors.phone}
+          >
+            <input
+              ref={phoneRef}
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 07700 900123"
+              maxLength={20}
+              autoComplete="tel"
+              inputMode="tel"
+              enterKeyHint="next"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  ageRef.current?.focus();
+                }
+              }}
+              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]"
+            />
+            {phoneDigits.length >= 7 && <Check className="size-4 text-good mr-3 shrink-0" />}
+          </FieldFrame>
+          {submitted && errors.phone && <FieldError>{errors.phone}</FieldError>}
         </label>
 
         {/* Age */}
