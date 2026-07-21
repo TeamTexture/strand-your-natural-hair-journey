@@ -189,7 +189,11 @@ const LogAppointment = () => {
       follow_up_time: followUp && followUpTime.trim() ? followUpTime.trim() : null,
       outcome_notes: status === "completed" && outcomeNotes.trim() ? outcomeNotes.trim() : null,
       outcome_audio_path: status === "completed" ? outcomeAudio : null,
+      // Only carry the platform link when the user picked a LIVE professional
+      // (seed directory pros have no proUserId). Free-text entries stay unlinked.
+      linked_pro_user_id: pickedFromDirectory?.proUserId ?? null,
     };
+
 
     let savedId: string | null = null;
     if (fromId) {
