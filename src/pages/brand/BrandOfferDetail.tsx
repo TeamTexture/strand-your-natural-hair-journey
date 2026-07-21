@@ -404,4 +404,75 @@ const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label:
   </SurfaceCard>
 );
 
+type BrandProductRow = NonNullable<ReturnType<typeof useBrandOffer>["data"]>["brand_products"][number];
+
+const ProductInfoDialog = ({ product, onClose }: { product: BrandProductRow | null; onClose: () => void }) => {
+  const open = !!product;
+  const images = product?.image_urls ?? [];
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[520px] max-h-[85vh] overflow-y-auto p-4 bg-background">
+        {product && (
+          <div className="space-y-3">
+            {images.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto -mx-1 px-1">
+                {images.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={`${product.name} ${i + 1}`}
+                    className="size-32 rounded-lg object-cover flex-none bg-muted"
+                  />
+                ))}
+              </div>
+            )}
+            <div>
+              <p className="font-display text-lg leading-tight">{product.name}</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                {product.kind === "tool" ? (product.tool_kind ?? "Tool") : "Product"}
+              </p>
+            </div>
+            {product.description && (
+              <p className="text-[13px] text-foreground/80 whitespace-pre-wrap">{product.description}</p>
+            )}
+            {product.key_features?.length > 0 && (
+              <div>
+                <SectionLabel className="!px-0">Key features</SectionLabel>
+                <ul className="mt-1 space-y-1 text-[13px] list-disc pl-4">
+                  {product.key_features.map((f, i) => <li key={i}>{f}</li>)}
+                </ul>
+              </div>
+            )}
+            {product.materials?.length > 0 && (
+              <div>
+                <SectionLabel className="!px-0">Materials</SectionLabel>
+                <p className="text-[13px] mt-1">{product.materials.join(", ")}</p>
+              </div>
+            )}
+            {product.ingredients && product.ingredients.length > 0 && (
+              <div>
+                <SectionLabel className="!px-0">Ingredients</SectionLabel>
+                <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{product.ingredients.join(", ")}</p>
+              </div>
+            )}
+            {product.external_url && (
+              <Button
+                asChild
+                variant="outline"
+                size="pill"
+                className="w-full"
+              >
+                <a href={product.external_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="size-4 mr-1.5" /> Visit product page
+                </a>
+              </Button>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default BrandOfferDetail;
+
