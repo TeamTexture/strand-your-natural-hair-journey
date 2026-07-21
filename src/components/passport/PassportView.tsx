@@ -381,6 +381,7 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
         <>
           {d.bloodPanels.map(panel => {
             const rows = resultsByPanel.get(panel.id) ?? [];
+            const thumbPath = (panel as Record<string, unknown>).thumbnail_path as string | null | undefined;
             return (
               <Collapsible key={panel.id} defaultOpen summary={
                 <div>
@@ -392,15 +393,21 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
                   </p>
                 </div>
               }>
+                {thumbPath && <Thumb bucket="blood-panel-thumbs" path={thumbPath} className="aspect-[4/3] mb-3" title={panel.label ?? "Blood panel upload"} meta={<AllFields obj={panel as Record<string, unknown>} />} />}
+                <AllFields obj={panel as Record<string, unknown>} exclude={["thumbnail_path"]} />
                 {panel.notes && <p className="text-[12px] italic text-muted-foreground mb-2">{panel.notes}</p>}
                 <div className="space-y-1.5">
                   {rows.length === 0 ? <p className="text-xs text-muted-foreground">No markers recorded on this panel.</p> :
                     rows.map(r => (
-                      <div key={r.id} className="flex items-center justify-between gap-2 text-[12px]">
-                        <span className="font-medium break-words flex-1">{r.marker}</span>
-                        <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
-                        <StatusChip status={r.status} />
-                      </div>
+                      <Collapsible key={r.id} summary={
+                        <div className="flex items-center justify-between gap-2 text-[12px]">
+                          <span className="font-medium break-words flex-1">{r.marker}</span>
+                          <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
+                          <StatusChip status={r.status} />
+                        </div>
+                      }>
+                        <AllFields obj={r as Record<string, unknown>} />
+                      </Collapsible>
                     ))
                   }
                 </div>
@@ -416,11 +423,15 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
             }>
               <div className="space-y-1.5">
                 {(resultsByPanel.get("__loose__") ?? []).map(r => (
-                  <div key={r.id} className="flex items-center justify-between gap-2 text-[12px]">
-                    <span className="font-medium break-words flex-1">{r.marker}</span>
-                    <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
-                    <StatusChip status={r.status} />
-                  </div>
+                  <Collapsible key={r.id} summary={
+                    <div className="flex items-center justify-between gap-2 text-[12px]">
+                      <span className="font-medium break-words flex-1">{r.marker}</span>
+                      <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
+                      <StatusChip status={r.status} />
+                    </div>
+                  }>
+                    <AllFields obj={r as Record<string, unknown>} />
+                  </Collapsible>
                 ))}
               </div>
             </Collapsible>
@@ -599,9 +610,10 @@ const JournalSection = ({ d }: { d: PassportDataset }) => (
         )}
         {Array.isArray(j.photo_paths) && j.photo_paths.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {j.photo_paths.map((p, i) => <SignedImage key={i} bucket="journal-photos" path={p} className="aspect-square" />)}
+            {j.photo_paths.map((p, i) => <Thumb key={i} bucket="journal-photos" path={p} className="aspect-square" title={`${j.title ?? "Journal"} photo ${i + 1}`} meta={<AllFields obj={j as Record<string, unknown>} />} />)}
           </div>
         )}
+        <FullRecord obj={j as Record<string, unknown>} exclude={["photo_paths"]} />
       </Collapsible>
     )}
   />
@@ -630,13 +642,13 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
       empty="No products recorded."
       render={(p) => {
         const key = (p as Record<string, unknown>).product_key as string | undefined;
-        const photo = key ? photosByKey.get(key) : null;
+        const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
         const voicenotes = key ? notesByKey.get(key) ?? [] : [];
         const status = p.on_favourite ? "Favourite" : p.on_shelf ? "On shelf" : p.on_wishlist ? "Wishlist" : "Off shelf";
         return (
           <Collapsible key={p.id} summary={
             <div className="flex items-center gap-3">
-              <SignedImage bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" />
+              <Thumb bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-body font-semibold truncate">{p.name}</p>
                 <p className="text-[11px] text-muted-foreground truncate">
@@ -648,7 +660,7 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
               </div>
             </div>
           }>
-            <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url", "image_url", "storage_path", "key_ingredients", "ingredients"]} />
+            <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url"]} />
             {voicenotes.length > 0 && (
               <div className="mt-3">
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Voice notes</p>
@@ -702,12 +714,13 @@ const AppointmentsSection = ({ d }: { d: PassportDataset }) => {
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {photos.map(p => (
                   <div key={p.id}>
-                    <SignedImage bucket="appointment-photos" path={p.storage_path} className="aspect-square" />
+                    <Thumb bucket="appointment-photos" path={p.storage_path} className="aspect-square" title="Appointment photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
                     {p.caption && <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{p.caption}</p>}
                   </div>
                 ))}
               </div>
             )}
+            {photos.length > 0 && <FullRecord obj={{ photos }} title="Photo records" />}
           </Collapsible>
         );
       }}
@@ -720,12 +733,16 @@ const MedicationsSection = ({ d }: { d: PassportDataset }) => (
     items={d.medications}
     empty="No medications recorded."
     render={(m) => (
-      <SurfaceCard key={m.id}>
-        <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
-        <p className="text-[11px] text-muted-foreground">
-          {m.category ?? "—"} · added {format(new Date(m.created_at), "d MMM yyyy")}
-        </p>
-      </SurfaceCard>
+      <Collapsible key={m.id} summary={
+        <div>
+          <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {m.category ?? "—"} · added {format(new Date(m.created_at), "d MMM yyyy")}
+          </p>
+        </div>
+      }>
+        <AllFields obj={m as Record<string, unknown>} />
+      </Collapsible>
     )}
   />
 );
@@ -737,14 +754,14 @@ const ToolsSection = ({ d }: { d: PassportDataset }) => (
     render={(t) => (
       <Collapsible key={t.id} summary={
         <div className="flex items-center gap-3">
-          <SignedImage bucket="product-photos" path={(t.storage_path as string) ?? null} className="size-12 shrink-0" />
+          <Thumb bucket="product-photos" path={(t.storage_path as string) ?? null} className="size-12 shrink-0" title={String(t.name ?? "Tool image")} meta={<AllFields obj={t as Record<string, unknown>} />} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-body font-semibold truncate">{t.name ?? "Tool"}</p>
             <p className="text-[11px] text-muted-foreground truncate">{String(t.brand ?? "—")}{t.category ? ` · ${String(t.category)}` : ""}</p>
           </div>
         </div>
       }>
-        <AllFields obj={t as Record<string, unknown>} exclude={["image_url", "storage_path", "ai_analysis"]} />
+        <AllFields obj={t as Record<string, unknown>} />
       </Collapsible>
     )}
   />
@@ -757,7 +774,7 @@ const PhotosSection = ({ d }: { d: PassportDataset }) => (
       <div className="grid grid-cols-2 gap-2">
         {d.milestonePhotos.map(p => (
           <div key={p.id}>
-            <SignedImage bucket="milestone-photos" path={p.storage_path} className="aspect-square" />
+            <Thumb bucket="milestone-photos" path={p.storage_path} className="aspect-square" title="Milestone photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
             <p className="text-[10px] text-muted-foreground mt-1">{p.taken_on ? format(new Date(p.taken_on), "d MMM yyyy") : "—"}{p.caption ? ` · ${p.caption}` : ""}</p>
           </div>
         ))}
@@ -769,7 +786,7 @@ const PhotosSection = ({ d }: { d: PassportDataset }) => (
       <div className="grid grid-cols-2 gap-2">
         {d.beforePhotos.map(p => (
           <div key={p.id}>
-            <SignedImage bucket="before-photos" path={p.storage_path} className="aspect-square" />
+            <Thumb bucket="before-photos" path={p.storage_path} className="aspect-square" title="Before photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
             <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(p.created_at), "d MMM yyyy")}{p.caption ? ` · ${p.caption}` : ""}</p>
           </div>
         ))}
@@ -822,7 +839,7 @@ const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
               <div className="grid grid-cols-3 gap-2">
                 {imgs.map(i => (
                   <div key={i.id}>
-                    <SignedImage bucket="moodboard-images" path={i.storage_path} className="aspect-square" />
+                    <Thumb bucket="moodboard-images" path={i.storage_path} className="aspect-square" title={`${b.name ?? "Moodboard"} image`} meta={<AllFields obj={i as Record<string, unknown>} />} />
                     {i.caption && <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{i.caption}</p>}
                   </div>
                 ))}
