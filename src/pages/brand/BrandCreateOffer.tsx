@@ -175,6 +175,7 @@ const BrandCreateOffer = () => {
   const [scraping, setScraping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewMode, setPreviewMode] = useState<"collapsed" | "expanded">("collapsed");
+  const [showSafeArea, setShowSafeArea] = useState(true);
   const [catalogueOpen, setCatalogueOpen] = useState(false);
   const [catalogueKind, setCatalogueKind] = useState<CatalogueFilter>("all");
   const [catalogueSearch, setCatalogueSearch] = useState("");
