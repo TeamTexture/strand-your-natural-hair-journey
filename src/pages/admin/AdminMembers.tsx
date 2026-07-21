@@ -286,6 +286,32 @@ const AdminMembers = () => {
         </div>
       </div>
 
+      <div className="px-5 pt-3 flex items-center justify-between gap-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium">
+          Sort
+        </span>
+        <div className="inline-flex rounded-pill bg-primary/10 p-0.5">
+          {([
+            { key: "recent", label: "Newest" },
+            { key: "most_active", label: "Most active" },
+          ] as { key: SortKey; label: string }[]).map((s) => {
+            const active = sort === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => setSort(s.key)}
+                className={cn(
+                  "px-3 h-7 rounded-pill text-[11px] font-body transition-colors",
+                  active ? "bg-primary text-primary-foreground font-semibold" : "text-primary/70 hover:text-primary",
+                )}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="px-5 py-4 pb-8 space-y-2">
         {isLoading ? (
           <div className="flex items-center gap-2 text-sm text-foreground/60 py-6 justify-center">
@@ -297,24 +323,57 @@ const AdminMembers = () => {
           filtered.map((r) => {
             const badge = statusBadge(r);
             const isSelf = user?.id === r.user_id;
+            const level = activityLevel(r.sessions_last_30d);
+            const hasActivity = r.session_count > 0 && !!r.last_session;
             return (
               <SurfaceCard key={r.user_id}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-body font-semibold truncate">
-                      {r.display_name ?? "Unnamed member"}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-body font-semibold truncate">
+                        {r.display_name ?? "Unnamed member"}
+                      </p>
+                      {level && (
+                        <span
+                          title={level === "high" ? "Highly active user" : "Active user"}
+                          className={cn(
+                            "inline-flex items-center justify-center rounded-full shrink-0",
+                            level === "high"
+                              ? "size-4 bg-primary/20 text-primary"
+                              : "size-4 bg-primary/10 text-primary/80",
+                          )}
+                        >
+                          <Activity
+                            className={cn(
+                              level === "high" ? "size-2.5" : "size-2.5",
+                            )}
+                            strokeWidth={level === "high" ? 3 : 2.25}
+                          />
+                        </span>
+                      )}
+                    </div>
                     {r.email && (
                       <p className="text-[12px] text-muted-foreground truncate">{r.email}</p>
                     )}
                     <p className="text-[11px] text-muted-foreground truncate">
                       Joined {new Date(r.created_at).toLocaleDateString("en-GB")} · {r.user_id.slice(0, 8)}
                     </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {hasActivity ? (
+                        <>
+                          {r.session_count} session{r.session_count === 1 ? "" : "s"} · last active{" "}
+                          {formatDistanceToNow(new Date(r.last_session!), { addSuffix: true })}
+                        </>
+                      ) : (
+                        <span className="italic">— New tracking</span>
+                      )}
+                    </p>
                   </div>
                   <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
                     {badge.label}
                   </span>
                 </div>
+
                 <div className="mt-3 pt-3 border-t border-border">
                   <Button
                     variant="outline"
