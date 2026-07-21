@@ -133,15 +133,32 @@ const ColourReview = () => {
           value={(style?.colour ?? [])[0] ?? ""}
           kind={{ type: "chip-single", options: COLOUR }}
           autoEdit={editKey === "colour"}
-          onSave={(v) => upsertStyle({ current_colour_status: String(v) })}
+          onSave={(v) => {
+            const nextVal = String(v);
+            const patch: Record<string, unknown> = { current_colour_status: nextVal };
+            // Selecting "Natural (never coloured)" hides + clears the chemical
+            // and colour history sections.
+            if (nextVal === NATURAL_NEVER) {
+              patch.chemical_history = ["None"];
+              patch.colour_type = null;
+              patch.colour_product = null;
+              patch.colour_last_treated = "Never coloured";
+              patch.colour_reaction = false;
+              patch.colour_reaction_details = null;
+              patch.colour_reaction_audio_path = null;
+            }
+            return upsertStyle(patch);
+          }}
         />
-        <ReviewField
-          label="Chemical history"
-          value={style?.chemical_history ?? []}
-          hint="Tap all that apply."
-          kind={{ type: "chip-multi", options: CHEM_HIST }}
-          onSave={(v) => upsertStyle({ chemical_history: v as string[] })}
-        />
+        {(style?.colour ?? [])[0] !== NATURAL_NEVER && (
+          <ReviewField
+            label="Chemical history"
+            value={style?.chemical_history ?? []}
+            hint="Tap all that apply."
+            kind={{ type: "chip-multi", options: CHEM_HIST }}
+            onSave={(v) => upsertStyle({ chemical_history: v as string[] })}
+          />
+        )}
 
         {/* Current style + duration */}
         <div className="rounded-[14px] border border-border bg-card p-4">
