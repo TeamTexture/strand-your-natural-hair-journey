@@ -208,6 +208,7 @@ const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const { data: dropoff } = useAdminDropOffCounts();
 
   return (
     <ScreenLayout>
