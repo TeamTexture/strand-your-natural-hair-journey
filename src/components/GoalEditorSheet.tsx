@@ -15,6 +15,8 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
+import { useAuth } from "@/hooks/useAuth";
+import { queueHelloKleanPrompt } from "@/lib/discounts";
 
 /**
  * Track the iOS visual-viewport so the sheet can shrink/translate above
