@@ -277,8 +277,10 @@ const ProfileStep1 = () => {
       ageNumForPayload != null && Number.isFinite(ageNumForPayload) && ageNumForPayload >= 1 && ageNumForPayload <= 120
         ? new Date().getFullYear() - ageNumForPayload
         : null;
+    const trimmedPhone = phone.trim();
     const payload = {
       name: name.trim(),
+      phone: trimmedPhone,
       age,
       birth_year: birthYearForPayload,
       postcode: trimmedPostcode,
