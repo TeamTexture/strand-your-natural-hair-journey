@@ -337,7 +337,7 @@ const BrandCreateOffer = () => {
   return (
     <ScreenLayout>
       <TitleBar title={existingId ? "Edit offer" : "Create offer"} onBack={() => nav("/brand")} />
-      <div className="px-5 pb-32 space-y-5">
+      <div className="px-5 pb-4 space-y-5">
         <SectionLabel className="!px-0 !mt-0">Creative</SectionLabel>
         <SurfaceCard className="space-y-3">
           <div>
