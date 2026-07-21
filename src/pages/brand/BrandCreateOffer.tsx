@@ -209,11 +209,15 @@ const BrandCreateOffer = () => {
         } satisfies ProductDraft;
       }),
     );
-    const map: Record<PlacementSlot, string[]> = { home: [], products: [], wash_day: [] };
+    const enabled: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
+    const set = new Set<string>();
     (existing.brand_offer_placements ?? []).forEach((p) => {
-      map[p.slot as PlacementSlot].push(p.placement_date);
+      enabled[p.slot as PlacementSlot] = true;
+      set.add(p.placement_date);
     });
-    setSelectedByslot(map);
+    setEnabledSlots(enabled);
+    setSelectedDates(Array.from(set).sort());
+
   }, [existingId, existing]);
 
   const catalogueQuery = useQuery({
