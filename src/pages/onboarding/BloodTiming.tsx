@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 const DAYE_URL = "https://www.yourdaye.com/products/hormone-test/";
 const DAYE_CODE = "STRAND20";
+const LOLA_URL = "https://lolahealth.com/?srsltid=AfmBOopC3BcYrhp3GEEOOo1kCw-uXtlfLw6cfcDaHrkXcso14m5rdtDx";
 
 const BloodTiming = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const BloodTiming = () => {
 
       <div className="px-5 pb-8 space-y-4">
         <h2 className="font-display text-[22px] leading-tight text-center pt-2">
-          Have you had a blood test in the last 3 months?
+          Have you had a blood test in the last 6 months?
         </h2>
         <ItalicSub>
           Blood deficiencies are one of the most overlooked causes of hair shedding and slow growth.
@@ -59,8 +60,8 @@ const BloodTiming = () => {
             >
               <p className="text-sm font-medium font-body">
                 {v === "yes"
-                  ? "Yes — within the last 3 months"
-                  : "No — it's older than 3 months or I've never tested"}
+                  ? "Yes — within the last 6 months"
+                  : "No — it's older than 6 months or I've never tested"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {v === "yes"
@@ -89,6 +90,24 @@ const BloodTiming = () => {
               <Stethoscope className="size-4 mr-1.5" />
               See verified doctors →
             </Button>
+
+            <SurfaceCard tone="gold">
+              <p className="font-display text-base font-semibold mb-1">
+                Or — order an at-home kit with Lola Health
+              </p>
+              <p className="text-xs text-foreground/80 mb-3 font-body">
+                Simple at-home blood test kit — posted to your door with fast results.
+              </p>
+              <a
+                href={LOLA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground rounded-full px-5 py-3 text-sm font-medium hover:bg-primary/90 transition-colors min-h-[44px]"
+              >
+                Buy a Lola Health kit
+                <ExternalLink className="size-4" />
+              </a>
+            </SurfaceCard>
 
             <SurfaceCard tone="gold">
               <p className="font-display text-base font-semibold mb-1">
@@ -134,7 +153,7 @@ const BloodTiming = () => {
               onClick={() => navigate("/blood-upload?onboarding=1")}
             >
               <Upload className="size-4 mr-1.5" />
-              Upload PDF or Photo
+              Upload my tests
             </Button>
             <Button
               variant="goldOutline"
