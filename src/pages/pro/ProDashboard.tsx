@@ -83,6 +83,12 @@ const ProDashboard = () => {
   const nextApptSub = nextAppt
     ? `${(nextAppt.client_display_name ?? "Client").split(" ")[0]} · ${new Date(nextAppt.appointment_date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}${nextAppt.appointment_time ? ` · ${formatTime12h(nextAppt.appointment_time)}` : ""}`
     : "Bookings your clients link to you.";
+  const { data: proClients = [] } = useProClients();
+  const activeClientsCount = proClients.filter((c) => !c.revoked_at).length;
+  const clientsSub = activeClientsCount === 0
+    ? "Your client book — accepted enquiries land here."
+    : `${activeClientsCount} active · notes, history and passports.`;
+
   const [noticeDismissed, setNoticeDismissed] = useState(() => {
 
     if (typeof window === "undefined") return false;
