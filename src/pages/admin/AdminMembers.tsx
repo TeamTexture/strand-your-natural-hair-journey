@@ -26,6 +26,7 @@ import { toast } from "sonner";
 interface MemberRow {
   user_id: string;
   display_name: string | null;
+  email: string | null;
   complimentary_access: boolean;
   access_restricted: boolean;
   created_at: string;
