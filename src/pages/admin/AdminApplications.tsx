@@ -215,7 +215,29 @@ const AdminApplications = () => {
       </div>
 
       <div className="px-5 pt-4 space-y-3 pb-8">
-        {isLoading ? (
+        {tab === "incomplete" ? (
+          incompleteLoading ? (
+            <LoadingDot label="Loading drop-offs…" fullScreen={false} />
+          ) : filteredIncomplete.length === 0 ? (
+            query.trim() ? (
+              <EmptyState icon="✦" message="No matches" hint={`Nothing matches "${query.trim()}".`} tone="card" />
+            ) : (
+              <div className="pt-6 flex flex-col items-center opacity-60">
+                <span className="block w-16 h-px bg-primary mb-5" />
+                <p className="font-display italic text-[15px] text-foreground text-center">
+                  No incomplete applications
+                </p>
+                <p className="text-[10px] font-body font-medium uppercase tracking-[0.2em] mt-2 text-muted-foreground">
+                  Everyone submitted
+                </p>
+              </div>
+            )
+          ) : (
+            filteredIncomplete.map((row) => (
+              <IncompleteCard key={row.app.id} row={row} />
+            ))
+          )
+        ) : isLoading ? (
           <LoadingDot label="Loading applications…" fullScreen={false} />
         ) : filtered.length === 0 ? (
           query.trim() ? (
