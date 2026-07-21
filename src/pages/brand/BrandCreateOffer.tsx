@@ -425,14 +425,15 @@ const BrandCreateOffer = () => {
         offerId = data.id;
       }
 
-      const placementRows = SLOTS.flatMap((s) =>
-        selectedByslot[s].map((d) => ({
+      const placementRows = enabledSlotList.flatMap((s) =>
+        selectedDates.map((d) => ({
           offer_id: offerId!,
           slot: s,
           placement_date: d,
           daily_rate_pence: rates?.[s] ?? 0,
         })),
       );
+
       if (placementRows.length > 0) {
         const { error } = await supabase.from("brand_offer_placements").insert(placementRows);
         if (error) throw error;
