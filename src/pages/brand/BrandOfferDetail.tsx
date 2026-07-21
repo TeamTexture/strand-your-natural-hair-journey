@@ -19,6 +19,7 @@ import {
   usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision,
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
+import CountdownClock from "@/components/brand/CountdownClock";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
