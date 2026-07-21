@@ -83,23 +83,51 @@ const AdminApplications = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Applications" />
+      <TitleBar
+        title="Applications"
+        right={
+          pendingCount > 0 ? (
+            <span
+              aria-label={`${pendingCount} pending`}
+              className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none"
+            >
+              {pendingCount > 99 ? "99+" : pendingCount}
+            </span>
+          ) : null
+        }
+      />
       <div className="px-5 pt-1 pb-3">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px] whitespace-nowrap",
-                tab === t.key
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card border-border text-foreground",
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+          {tabs.map((t) => {
+            const active = tab === t.key;
+            const showCount = t.key === "pending" && pendingCount > 0;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px] whitespace-nowrap inline-flex items-center gap-1.5",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-foreground",
+                )}
+              >
+                <span>{t.label}</span>
+                {showCount && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold leading-none",
+                      active
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-primary text-primary-foreground",
+                    )}
+                  >
+                    {pendingCount > 99 ? "99+" : pendingCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
