@@ -35,11 +35,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === "SIGNED_OUT") {
         purgeStrandUserScopedKeys("SIGNED_OUT-event");
       }
+      if (event === "SIGNED_IN" && s?.user?.id) {
+        logUserSession(s.user.id, "auth-change");
+      }
     });
     // 2. Then load existing session
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+      if (data.session?.user?.id) {
+        logUserSession(data.session.user.id, "app-open");
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
