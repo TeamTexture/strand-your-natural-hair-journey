@@ -85,6 +85,7 @@ const AdminApplications = () => {
     <ScreenLayout>
       <TitleBar
         title="Applications"
+        onBack={() => nav("/admin")}
         right={
           pendingCount > 0 ? (
             <span
