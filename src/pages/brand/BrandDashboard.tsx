@@ -93,7 +93,7 @@ const BrandDashboard = () => {
     return (
       <button
         key={o.id}
-        onClick={() => nav(`/brand/offers/${o.id}`)}
+        onClick={() => nav(ownerOfferRoute(ownerMode, o.id))}
         className="w-full text-left"
       >
         <SurfaceCard className="py-3.5">
