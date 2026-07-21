@@ -75,6 +75,16 @@ import ProClientPassport from "./pages/pro/ProClientPassport";
 import ProClients from "./pages/pro/ProClients";
 import ProPastClient from "./pages/pro/ProPastClient";
 
+import BrandAuth from "./pages/brand/BrandAuth";
+import BrandDashboard from "./pages/brand/BrandDashboard";
+import BrandCreateOffer from "./pages/brand/BrandCreateOffer";
+import BrandOfferDetail from "./pages/brand/BrandOfferDetail";
+import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
+import OfferPage from "./pages/OfferPage";
+import AdminBrandOffers from "./pages/admin/AdminBrandOffers";
+import AdminBrandCalendar from "./pages/admin/AdminBrandCalendar";
+import AdminBrandOfferReview from "./pages/admin/AdminBrandOfferReview";
+
 
 
 // Main app
