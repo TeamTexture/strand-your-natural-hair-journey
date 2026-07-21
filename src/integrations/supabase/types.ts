@@ -261,6 +261,249 @@ export type Database = {
           },
         ]
       }
+      brand_offer_placements: {
+        Row: {
+          created_at: string
+          daily_rate_pence: number
+          id: string
+          offer_id: string
+          placement_date: string
+          slot: Database["public"]["Enums"]["brand_placement_slot"]
+        }
+        Insert: {
+          created_at?: string
+          daily_rate_pence: number
+          id?: string
+          offer_id: string
+          placement_date: string
+          slot: Database["public"]["Enums"]["brand_placement_slot"]
+        }
+        Update: {
+          created_at?: string
+          daily_rate_pence?: number
+          id?: string
+          offer_id?: string
+          placement_date?: string
+          slot?: Database["public"]["Enums"]["brand_placement_slot"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_placements_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_offer_stats: {
+        Row: {
+          created_at: string
+          id: string
+          impressions: number
+          offer_id: string
+          slot: Database["public"]["Enums"]["brand_placement_slot"] | null
+          stat_date: string
+          taps: number
+          updated_at: string
+          wishlist_adds: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          impressions?: number
+          offer_id: string
+          slot?: Database["public"]["Enums"]["brand_placement_slot"] | null
+          stat_date?: string
+          taps?: number
+          updated_at?: string
+          wishlist_adds?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          impressions?: number
+          offer_id?: string
+          slot?: Database["public"]["Enums"]["brand_placement_slot"] | null
+          stat_date?: string
+          taps?: number
+          updated_at?: string
+          wishlist_adds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_stats_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_offers: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body_copy: string | null
+          brand_user_id: string
+          created_at: string
+          currency: string
+          discount_code: string | null
+          ends_on: string | null
+          external_url: string | null
+          headline: string
+          hero_image_path: string | null
+          id: string
+          paid_at: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          starts_on: string | null
+          status: Database["public"]["Enums"]["brand_offer_status"]
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          submitted_at: string | null
+          total_price_pence: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_copy?: string | null
+          brand_user_id: string
+          created_at?: string
+          currency?: string
+          discount_code?: string | null
+          ends_on?: string | null
+          external_url?: string | null
+          headline: string
+          hero_image_path?: string | null
+          id?: string
+          paid_at?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          starts_on?: string | null
+          status?: Database["public"]["Enums"]["brand_offer_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          submitted_at?: string | null
+          total_price_pence?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_copy?: string | null
+          brand_user_id?: string
+          created_at?: string
+          currency?: string
+          discount_code?: string | null
+          ends_on?: string | null
+          external_url?: string | null
+          headline?: string
+          hero_image_path?: string | null
+          id?: string
+          paid_at?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          starts_on?: string | null
+          status?: Database["public"]["Enums"]["brand_offer_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          submitted_at?: string | null
+          total_price_pence?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      brand_products: {
+        Row: {
+          created_at: string
+          description: string | null
+          external_url: string | null
+          id: string
+          image_urls: string[] | null
+          ingredients: string[] | null
+          linked_product_id: string | null
+          name: string
+          offer_id: string
+          position: number
+          source_type: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          external_url?: string | null
+          id?: string
+          image_urls?: string[] | null
+          ingredients?: string[] | null
+          linked_product_id?: string | null
+          name: string
+          offer_id: string
+          position?: number
+          source_type: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          external_url?: string | null
+          id?: string
+          image_urls?: string[] | null
+          ingredients?: string[] | null
+          linked_product_id?: string | null
+          name?: string
+          offer_id?: string
+          position?: number
+          source_type?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_products_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_profiles: {
+        Row: {
+          brand_name: string
+          contact_name: string | null
+          created_at: string
+          id: string
+          logo_path: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          brand_name: string
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          logo_path?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          brand_name?: string
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          logo_path?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       consumer_subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -2022,7 +2265,17 @@ export type Database = {
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "consumer" | "professional" | "admin"
+      app_role: "consumer" | "professional" | "admin" | "brand"
+      brand_offer_status:
+        | "draft"
+        | "under_review"
+        | "approved_unpaid"
+        | "paid_scheduled"
+        | "live"
+        | "ended"
+        | "rejected"
+        | "cancelled"
+      brand_placement_slot: "home" | "products" | "wash_day"
       pro_application_status: "pending" | "approved" | "rejected" | "suspended"
       pro_discipline:
         | "Trichologist"
@@ -2159,7 +2412,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["consumer", "professional", "admin"],
+      app_role: ["consumer", "professional", "admin", "brand"],
+      brand_offer_status: [
+        "draft",
+        "under_review",
+        "approved_unpaid",
+        "paid_scheduled",
+        "live",
+        "ended",
+        "rejected",
+        "cancelled",
+      ],
+      brand_placement_slot: ["home", "products", "wash_day"],
       pro_application_status: ["pending", "approved", "rejected", "suspended"],
       pro_discipline: [
         "Trichologist",

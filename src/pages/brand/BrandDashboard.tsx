@@ -1,0 +1,110 @@
+import { useNavigate } from "react-router-dom";
+import { Plus, Sparkles, Archive, TrendingUp, CreditCard } from "lucide-react";
+import ScreenLayout from "@/components/ScreenLayout";
+import TitleBar from "@/components/TitleBar";
+import SurfaceCard from "@/components/SurfaceCard";
+import SectionLabel from "@/components/SectionLabel";
+import EmptyState from "@/components/EmptyState";
+import LoadingDot from "@/components/LoadingDot";
+import { Button } from "@/components/ui/button";
+import { useBrandProfile, useBrandOffers, STATUS_LABEL, SLOT_LABEL } from "@/hooks/useBrandOffers";
+import { format } from "date-fns";
+
+const money = (p: number) => `£${(p / 100).toFixed(2)}`;
+
+const StatusPill = ({ status }: { status: string }) => {
+  const tone =
+    status === "live" ? "bg-good/15 text-good" :
+    status === "under_review" ? "bg-warn/15 text-warn" :
+    status === "approved_unpaid" ? "bg-primary/15 text-primary" :
+    status === "paid_scheduled" ? "bg-primary/10 text-primary" :
+    status === "rejected" || status === "cancelled" ? "bg-destructive/10 text-destructive" :
+    "bg-muted text-muted-foreground";
+  return (
+    <span className={`text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium ${tone}`}>
+      {STATUS_LABEL[status as keyof typeof STATUS_LABEL] ?? status}
+    </span>
+  );
+};
+
+const BrandDashboard = () => {
+  const nav = useNavigate();
+  const { data: profile, isLoading: profileLoading } = useBrandProfile();
+  const { data: offers = [], isLoading } = useBrandOffers();
+
+  if (profileLoading || isLoading) return <LoadingDot />;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const live = offers.filter((o) => ["live", "paid_scheduled", "approved_unpaid", "under_review", "draft"].includes(o.status));
+  const past = offers.filter((o) => ["ended", "rejected", "cancelled"].includes(o.status));
+
+  const renderOffer = (o: typeof offers[number]) => {
+    const stats = { impressions: 0, taps: 0, wishlist: 0 };
+    const placements = o.brand_offer_placements ?? [];
+    const slotSet = Array.from(new Set(placements.map((p) => p.slot)));
+    const dates = placements.map((p) => p.placement_date).sort();
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+    return (
+      <button
+        key={o.id}
+        onClick={() => nav(`/brand/offers/${o.id}`)}
+        className="w-full text-left"
+      >
+        <SurfaceCard className="py-3.5">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-display text-[15px] leading-tight flex-1">{o.headline}</p>
+            <StatusPill status={o.status} />
+          </div>
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {slotSet.map((s) => (
+              <span key={s} className="text-[10px] font-body px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                {SLOT_LABEL[s]}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-body">
+            <span>
+              {startDate ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}` : "No dates"}
+            </span>
+            <span className="font-medium text-foreground">{money(o.total_price_pence)}</span>
+          </div>
+          {o.status === "approved_unpaid" && (
+            <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary font-body font-medium">
+              <CreditCard className="size-3" /> Complete payment to confirm placement
+            </div>
+          )}
+        </SurfaceCard>
+      </button>
+    );
+  };
+
+  return (
+    <ScreenLayout>
+      <TitleBar title={profile?.brand_name ?? "Brand"} subtitle="Brand dashboard" onBack={() => nav("/")} />
+      <div className="px-5 pb-8 space-y-5">
+        <Button variant="gold" size="pill" onClick={() => nav("/brand/offers/new")} className="w-full">
+          <Plus className="size-4 mr-1.5" /> Create new offer
+        </Button>
+
+        <div>
+          <SectionLabel className="!px-0 !mt-0">Live &amp; upcoming</SectionLabel>
+          {live.length === 0 ? (
+            <EmptyState icon="✦" message="No live offers yet. Create your first placement above." tone="card" />
+          ) : (
+            <div className="space-y-2">{live.map(renderOffer)}</div>
+          )}
+        </div>
+
+        {past.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Past offers</SectionLabel>
+            <div className="space-y-2">{past.map(renderOffer)}</div>
+          </div>
+        )}
+      </div>
+    </ScreenLayout>
+  );
+};
+
+export default BrandDashboard;
