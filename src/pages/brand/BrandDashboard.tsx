@@ -50,18 +50,23 @@ const BrandDashboard = () => {
 
   if (profileLoading || isLoading) return <LoadingDot />;
 
-  const drafts = offers.filter((o) => o.status === "draft");
-  const live = offers.filter((o) => ["live", "paid_scheduled", "approved_unpaid", "under_review"].includes(o.status));
-  const past = offers.filter((o) => ["ended", "rejected", "cancelled"].includes(o.status));
+  // Derive display status once so dashboard sections match what consumers see.
+  const withDerived = offers.map((o) => ({ ...o, _derived: deriveBrandOfferStatus(o) }));
+  const drafts = withDerived.filter((o) => o._derived === "draft");
+  const underReview = withDerived.filter((o) => o._derived === "under_review");
+  const awaitingPayment = withDerived.filter((o) => o._derived === "approved_unpaid");
+  const liveNow = withDerived.filter((o) => o._derived === "live");
+  const upcoming = withDerived.filter((o) => o._derived === "upcoming");
+  const past = withDerived.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived));
 
-  const renderOffer = (o: typeof offers[number]) => {
+  const renderOffer = (o: typeof withDerived[number]) => {
     const t = totals[o.id];
     const placements = o.brand_offer_placements ?? [];
     const slotSet = Array.from(new Set(placements.map((p) => p.slot)));
     const dates = placements.map((p) => p.placement_date).sort();
     const startDate = dates[0];
     const endDate = dates[dates.length - 1];
-    const showStats = t && ["live", "paid_scheduled", "ended"].includes(o.status);
+    const showStats = t && ["live", "upcoming", "ended"].includes(o._derived);
     return (
       <button
         key={o.id}
@@ -71,7 +76,7 @@ const BrandDashboard = () => {
         <SurfaceCard className="py-3.5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-display text-[15px] leading-tight flex-1">{o.headline}</p>
-            <StatusPill status={o.status} />
+            <StatusPill status={o._derived} />
           </div>
           <div className="flex flex-wrap gap-1 mt-1.5">
             {slotSet.map((s) => (
@@ -82,7 +87,11 @@ const BrandDashboard = () => {
           </div>
           <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-body">
             <span>
-              {startDate ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}` : "No dates"}
+              {o._derived === "upcoming" && startDate
+                ? `Starts ${format(new Date(startDate), "d MMM")}`
+                : startDate
+                  ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}`
+                  : "No dates"}
             </span>
             <span className="font-medium text-foreground">{money(o.total_price_pence)}</span>
           </div>
@@ -93,7 +102,7 @@ const BrandDashboard = () => {
               <span className="inline-flex items-center gap-1"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
             </div>
           )}
-          {o.status === "approved_unpaid" && (
+          {o._derived === "approved_unpaid" && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary font-body font-medium">
               <CreditCard className="size-3" /> Complete payment to confirm placement
             </div>
@@ -102,6 +111,7 @@ const BrandDashboard = () => {
       </button>
     );
   };
+
 
   return (
     <ScreenLayout>
