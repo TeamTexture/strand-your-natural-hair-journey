@@ -17,9 +17,10 @@ import BannerPreview from "@/components/brand/BannerPreview";
 import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer } from "@/hooks/useBrandOffers";
+import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
+import { AlertTriangle } from "lucide-react";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day"];
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
