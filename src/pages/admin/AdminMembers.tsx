@@ -441,6 +441,21 @@ const AdminMembers = () => {
                     </Button>
                   )}
                 </div>
+                <div className="mt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full h-9 rounded-pill text-[12px] font-body text-destructive hover:text-destructive hover:bg-destructive/10"
+                    disabled={isSelf || deleteUser.isPending}
+                    onClick={() => {
+                      setDeleteConfirm("");
+                      setDeleteTarget(r);
+                    }}
+                  >
+                    <Trash2 className="size-3.5 mr-1.5" />
+                    {isSelf ? "Cannot delete yourself" : "Delete account"}
+                  </Button>
+                </div>
               </SurfaceCard>
             );
           })
