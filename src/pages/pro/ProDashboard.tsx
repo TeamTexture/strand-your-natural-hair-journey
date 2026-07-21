@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar, Users } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -10,6 +10,8 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
 import { useProAppointments } from "@/hooks/useProAppointments";
+import { useProClients } from "@/hooks/useProClients";
+
 import { formatTime12h } from "@/lib/formatTime";
 
 
