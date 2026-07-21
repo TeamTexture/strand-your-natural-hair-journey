@@ -26,7 +26,9 @@ const Index = () => {
     try {
       const stored = localStorage.getItem("strand_last_display_name");
       if (stored) setFirstName(stored);
-    } catch {}
+    } catch {
+      // Ignore private browsing/storage failures.
+    }
   }, []);
 
   useEffect(() => {
@@ -98,7 +100,11 @@ const Index = () => {
       if (profile?.display_name) {
         const first = profile.display_name.split(" ")[0];
         setFirstName(first);
-        try { localStorage.setItem("strand_last_display_name", first); } catch {}
+        try {
+          localStorage.setItem("strand_last_display_name", first);
+        } catch {
+          // Ignore private browsing/storage failures.
+        }
       }
       setChecking(false);
     })();
