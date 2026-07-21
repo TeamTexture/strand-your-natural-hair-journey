@@ -272,6 +272,14 @@ const AdminBrandOfferReview = () => {
                 {["live", "upcoming"].includes(deriveBrandOfferStatus(offer)) && (
                   <div className="mt-2"><CountdownClock offer={offer} variant="block" /></div>
                 )}
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  <CampaignTypeBadge ownerType={ownerType} />
+                  {submitterName && (
+                    <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground truncate">
+                      {submitterName}
+                    </p>
+                  )}
+                </div>
                 {offer.headline && <p className="font-display text-lg mt-1">{offer.headline}</p>}
                 {offer.body_copy && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{offer.body_copy}</p>}
                 {offer.discount_code && <p className="text-[11px] text-primary mt-2 font-body">Code {offer.discount_code}</p>}
