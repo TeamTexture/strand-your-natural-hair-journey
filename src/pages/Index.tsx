@@ -7,10 +7,12 @@ import { useAuth } from "@/hooks/useAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 
+type Destination = { path: string; label: string; sub: string };
+
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [target, setTarget] = useState<string | null>(null);
+  const [destinations, setDestinations] = useState<Destination[] | null>(null);
   const [checking, setChecking] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
 
@@ -21,9 +23,6 @@ const Index = () => {
     } catch {}
   }, []);
 
-  // Once we have a user, check onboarding status + roles so we know where to
-  // send them WHEN they choose to enter. Pros land on /pro, admin-only on
-  // /admin/applications, multi-role and consumers on the consumer home.
   useEffect(() => {
     if (loading || !user) return;
     setChecking(true);
@@ -41,12 +40,21 @@ const Index = () => {
       const hasPro = roles.includes("professional");
       const hasAdmin = roles.includes("admin");
 
-      let next = "/home";
-      if (!hasConsumer && hasPro) next = "/pro";
-      else if (!hasConsumer && !hasPro && hasAdmin) next = "/admin/applications";
-      else next = profile?.onboarding_completed_at ? "/home" : "/onboarding/profile-step-1";
+      const consumerPath = profile?.onboarding_completed_at
+        ? "/home"
+        : "/onboarding/profile-step-1";
 
-      setTarget(next);
+      const dests: Destination[] = [];
+      if (hasConsumer)
+        dests.push({ path: consumerPath, label: "Enter STRAND", sub: "Your personal hair journal" });
+      if (hasPro)
+        dests.push({ path: "/pro", label: "Professional dashboard", sub: "Clients & enquiries" });
+      if (hasAdmin)
+        dests.push({ path: "/admin/applications", label: "Admin dashboard", sub: "Applications, members & settings" });
+
+      if (dests.length === 0) dests.push({ path: consumerPath, label: "Enter STRAND", sub: "Your personal hair journal" });
+
+      setDestinations(dests);
       if (profile?.display_name) {
         const first = profile.display_name.split(" ")[0];
         setFirstName(first);
@@ -58,9 +66,7 @@ const Index = () => {
 
   if (loading || (user && checking)) return <LoadingDot />;
 
-  // Signed-in users: show a welcome gate with an "Enter STRAND" button
-  // instead of auto-navigating them into the app.
-  if (user && target) {
+  if (user && destinations) {
     return (
       <>
         <title>STRAND — Welcome back</title>
@@ -88,13 +94,18 @@ const Index = () => {
             </div>
 
             <div className="w-full flex flex-col gap-3">
-              <Button
-                variant="gold"
-                size="pill"
-                onClick={() => navigate(target, { replace: true })}
-              >
-                Enter STRAND →
-              </Button>
+              {destinations.map((d) => (
+                <Button
+                  key={d.path}
+                  variant="gold"
+                  size="pill"
+                  onClick={() => navigate(d.path, { replace: true })}
+                  className="flex-col h-auto py-3"
+                >
+                  <span>{d.label} →</span>
+                  <span className="text-[11px] font-normal opacity-80">{d.sub}</span>
+                </Button>
+              ))}
               <button
                 type="button"
                 onClick={async () => {
