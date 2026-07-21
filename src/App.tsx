@@ -267,6 +267,22 @@ const App = () => (
               />
 
               <Route
+                path="/pro/clients"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProClients /></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/clients/:consumerId/past"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProPastClient /></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
                 path="/pro/clients/:consumerId"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
@@ -274,6 +290,7 @@ const App = () => (
                   </RoleGate>
                 }
               />
+
 
 
               <Route path="/profile/enquiries" element={<Paid><MyEnquiries /></Paid>} />
