@@ -11,6 +11,8 @@ interface Props {
   /** Optional caption above the code in `block` variant. Defaults to "Discount code". */
   label?: string;
   className?: string;
+  /** Fires when the code is successfully copied. Used to log analytics events. */
+  onCopy?: () => void;
 }
 
 /** Copy the given text to the clipboard with a webview-safe fallback.
@@ -50,7 +52,7 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
  *  fallback, "Copied ✓" flash, toast on success, text-selection fallback with
  *  a "press and hold" hint on failure. Stops propagation so tapping the code
  *  inside an expandable/link parent never collapses or navigates. */
-const DiscountCodeChip = ({ code, variant = "chip", label = "Discount code", className }: Props) => {
+const DiscountCodeChip = ({ code, variant = "chip", label = "Discount code", className, onCopy }: Props) => {
   const [copied, setCopied] = useState(false);
   const displayRef = useRef<HTMLSpanElement>(null);
   const timerRef = useRef<number | null>(null);
@@ -80,6 +82,7 @@ const DiscountCodeChip = ({ code, variant = "chip", label = "Discount code", cla
     if (ok) {
       flash();
       toast.success(`Code ${code} copied`);
+      try { onCopy?.(); } catch { /* analytics should never break UX */ }
     } else {
       selectText();
       toast.message("Press and hold to copy", {

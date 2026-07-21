@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart } from "lucide-react";
+import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart, Ticket, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -96,10 +96,12 @@ const BrandDashboard = () => {
             <span className="font-medium text-foreground">{money(o.total_price_pence)}</span>
           </div>
           {showStats && (
-            <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center gap-3 text-[11px] font-body text-foreground/80">
-              <span className="inline-flex items-center gap-1"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
-              <span className="inline-flex items-center gap-1"><MousePointerClick className="size-3 text-muted-foreground" /> {t.taps}</span>
-              <span className="inline-flex items-center gap-1"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
+            <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/80">
+              <span className="inline-flex items-center gap-1" title="Impressions"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
+              <span className="inline-flex items-center gap-1" title="Taps (banner opens)"><MousePointerClick className="size-3 text-muted-foreground" /> {t.taps}</span>
+              <span className="inline-flex items-center gap-1" title="Code copies"><Ticket className="size-3 text-muted-foreground" /> {t.code_copies}</span>
+              <span className="inline-flex items-center gap-1" title="Link clicks (visit offer)"><ExternalLink className="size-3 text-muted-foreground" /> {t.link_clicks}</span>
+              <span className="inline-flex items-center gap-1" title="Wishlist adds"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
             </div>
           )}
           {o._derived === "approved_unpaid" && (

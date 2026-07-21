@@ -84,7 +84,7 @@ const OfferPage = () => {
   if (isLoading || !offer) return <LoadingDot />;
 
   const goOffer = (url: string) => {
-    logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+    logStat.mutate({ offer_id: offer.id, slot, kind: "link_clicks" });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -242,7 +242,11 @@ const OfferPage = () => {
             {offer.body_copy && <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">{offer.body_copy}</p>}
             {offer.discount_code && (
               <div className="mt-3">
-                <DiscountCodeChip code={offer.discount_code} variant="block" />
+                <DiscountCodeChip
+                  code={offer.discount_code}
+                  variant="block"
+                  onCopy={() => logStat.mutate({ offer_id: offer.id, slot, kind: "code_copies" })}
+                />
               </div>
             )}
             {offer.external_url && (

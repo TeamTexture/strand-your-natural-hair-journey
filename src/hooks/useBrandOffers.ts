@@ -225,7 +225,7 @@ export function useLogBrandStat() {
     }: {
       offer_id: string;
       slot: PlacementSlot | null;
-      kind: "impressions" | "taps" | "wishlist_adds";
+      kind: "impressions" | "taps" | "wishlist_adds" | "code_copies" | "link_clicks";
     }) => {
       // Dedupe impressions per (offer, slot) per session so re-renders / route
       // revisits don't inflate counts.
@@ -258,12 +258,14 @@ export function useBrandOfferTotals(offerIds: string[]) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("brand_offer_totals" as never, { _offer_ids: offerIds } as never);
       if (error) throw error;
-      const map: Record<string, { impressions: number; taps: number; wishlist_adds: number }> = {};
-      for (const row of (data ?? []) as Array<{ offer_id: string; impressions: number; taps: number; wishlist_adds: number }>) {
+      const map: Record<string, { impressions: number; taps: number; wishlist_adds: number; code_copies: number; link_clicks: number }> = {};
+      for (const row of (data ?? []) as Array<{ offer_id: string; impressions: number; taps: number; wishlist_adds: number; code_copies: number; link_clicks: number }>) {
         map[row.offer_id] = {
           impressions: Number(row.impressions ?? 0),
           taps: Number(row.taps ?? 0),
           wishlist_adds: Number(row.wishlist_adds ?? 0),
+          code_copies: Number(row.code_copies ?? 0),
+          link_clicks: Number(row.link_clicks ?? 0),
         };
       }
       return map;

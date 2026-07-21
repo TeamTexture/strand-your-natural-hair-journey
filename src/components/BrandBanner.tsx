@@ -69,7 +69,7 @@ const BrandBanner = ({ slot }: Props) => {
 
   const visit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+    logStat.mutate({ offer_id: offer.id, slot, kind: "link_clicks" });
     if (offer.external_url) {
       window.open(offer.external_url, "_blank", "noopener,noreferrer");
     } else {
@@ -166,7 +166,11 @@ const BrandBanner = ({ slot }: Props) => {
                 )}
                 {offer.discount_code && (
                   <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                    <DiscountCodeChip code={offer.discount_code} variant="chip" />
+                    <DiscountCodeChip
+                      code={offer.discount_code}
+                      variant="chip"
+                      onCopy={() => logStat.mutate({ offer_id: offer.id, slot, kind: "code_copies" })}
+                    />
                   </div>
                 )}
                 <button
