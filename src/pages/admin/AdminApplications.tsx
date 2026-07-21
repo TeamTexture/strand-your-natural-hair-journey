@@ -174,7 +174,7 @@ const ApplicationCard = ({
     .toUpperCase();
 
   return (
-    <SurfaceCard>
+    <SurfaceCard tone={app.status === "pending" ? "gold" : "card"}>
       <div className="space-y-3 min-w-0">
         <div className="flex items-start gap-3 min-w-0">
           <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
