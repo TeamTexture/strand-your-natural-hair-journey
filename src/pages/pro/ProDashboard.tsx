@@ -146,7 +146,7 @@ const ProDashboard = () => {
               )}
               {isAdmin && (
                 <button
-                  onClick={() => nav("/admin/applications")}
+                  onClick={() => nav("/admin")}
                   className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
                 >
                   <ShieldCheck className="size-4 text-primary/70" />
@@ -159,36 +159,6 @@ const ProDashboard = () => {
                       {pendingCount > 99 ? "99+" : pendingCount}
                     </span>
                   )}
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => nav("/admin/audit")}
-                  className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-                >
-                  <ShieldCheck className="size-4 text-primary/70" />
-                  <span className="flex-1">Audit trail</span>
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => nav("/admin/members")}
-                  className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-                >
-                  <ShieldCheck className="size-4 text-primary/70" />
-                  <span className="flex-1">Members</span>
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => nav("/admin/settings")}
-                  className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-                >
-                  <ShieldCheck className="size-4 text-primary/70" />
-                  <span className="flex-1">Settings</span>
                   <ChevronRight className="size-3.5 text-muted-foreground" />
                 </button>
               )}
