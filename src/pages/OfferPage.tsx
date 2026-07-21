@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ExternalLink, Heart, Sparkles, Loader2 } from "lucide-react";
+import { ExternalLink, Heart, Sparkles, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -11,8 +11,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
+import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useQuery } from "@tanstack/react-query";
-import { buildAiContext } from "@/lib/aiContext";
+
+/** Deterministic product_key so a brand product only ever creates a single
+ *  user_products row per user — matches how manually-scanned products dedupe. */
+const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
 
 const OfferPage = () => {
   const { id } = useParams();
@@ -21,9 +25,9 @@ const OfferPage = () => {
   const nav = useNavigate();
   const { user } = useAuth();
   const logStat = useLogBrandStat();
+  const { allProducts, upsert } = useUserProducts();
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
-  const [analysingId, setAnalysingId] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<Record<string, { verdict: string; body: string }>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const { data: offer, isLoading } = useQuery({
     queryKey: ["brand-offer-public", id],
@@ -31,7 +35,7 @@ const OfferPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, brand_user_id, brand_products(*)")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_products(*), brand_profiles!inner(brand_name)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
@@ -49,50 +53,90 @@ const OfferPage = () => {
 
   if (isLoading || !offer) return <LoadingDot />;
 
-  const goOffer = (url: string, productName?: string) => {
+  const goOffer = (url: string) => {
     logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const addToWishlist = async (productName: string) => {
+  const brandName =
+    (offer as { brand_profiles?: { brand_name?: string } }).brand_profiles?.brand_name ?? null;
+
+  type BrandProductRow = {
+    id: string;
+    name: string;
+    ingredients: string[] | null;
+    image_urls: string[] | null;
+    external_url: string | null;
+  };
+
+  const normalize = (bp: BrandProductRow) => ({
+    id: bp.id,
+    name: bp.name,
+    brand_name: brandName,
+    ingredients: bp.ingredients,
+    image_url: bp.image_urls?.[0] ?? null,
+    external_url: bp.external_url,
+  });
+
+  const findExisting = (bp: { id: string; name: string; brand_name?: string | null }) =>
+    allProducts.find(
+      (row) =>
+        row.product_key === productKeyFor(bp.id) ||
+        row.linked_brand_product_id === bp.id ||
+        (row.name.trim().toLowerCase() === bp.name.trim().toLowerCase() &&
+          (row.brand ?? "").trim().toLowerCase() ===
+            (bp.brand_name ?? "").trim().toLowerCase()),
+    );
+
+  /** Upserts the brand product into the user's shelf/wishlist system and
+   *  preserves the sponsored context. Deduped by product_key first, then by
+   *  name+brand to avoid orphan duplicates for products already in the app. */
+  const upsertBrandProduct = async (
+    bp: { id: string; name: string; brand_name: string | null; ingredients: string[] | null; image_url: string | null; external_url: string | null },
+    opts: { wishlist: boolean },
+  ): Promise<UserProduct | null> => {
+    const existing = findExisting(bp);
+    const payload: Partial<UserProduct> & { product_key: string; name: string } = {
+      product_key: existing?.product_key ?? productKeyFor(bp.id),
+      name: bp.name,
+      brand: bp.brand_name,
+      ingredients: bp.ingredients ?? existing?.ingredients ?? [],
+      image_url: bp.image_url ?? existing?.image_url ?? null,
+      linked_brand_offer_id: offer.id,
+      linked_brand_product_id: bp.id,
+    };
+    if (opts.wishlist) {
+      payload.on_wishlist = true;
+    }
+    return upsert(payload);
+  };
+
+  const addToWishlist = async (bp: BrandProductRow) => {
     if (!user) return;
+    setBusyId(bp.id);
     try {
-      await supabase.from("user_products").insert({
-        user_id: user.id,
-        name: productName,
-        list: "wishlist" as never,
-      } as never);
-      logStat.mutate({ offer_id: offer.id, slot, kind: "wishlist_adds" });
-      toast.success("Added to wishlist");
-    } catch (e) {
-      toast.error("Couldn't add to wishlist");
+      const row = await upsertBrandProduct(normalize(bp), { wishlist: true });
+      if (row) {
+        logStat.mutate({ offer_id: offer.id, slot, kind: "wishlist_adds" });
+        toast.success("Added to your wishlist");
+      }
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const analyseFit = async (productId: string, product: { name: string; ingredients: string[] | null }) => {
+  /** Native AI analysis: mirror the existing ingredient-analysis UX by
+   *  upserting the product and jumping into the standard product profile
+   *  page, which already renders personalised suitability the exact way
+   *  users know from their shelf. */
+  const analyseForMe = async (bp: BrandProductRow) => {
     if (!user) return;
-    setAnalysingId(productId);
+    setBusyId(bp.id);
     try {
-      const ctx = await buildAiContext();
-      const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
-        body: {
-          productName: product.name,
-          ingredients: product.ingredients ?? [],
-          context: ctx,
-        },
-      });
-      if (error) throw error;
-      setAnalysis((prev) => ({
-        ...prev,
-        [productId]: {
-          verdict: data?.verdict ?? "Review below",
-          body: data?.summary ?? data?.body ?? "See full ingredient breakdown.",
-        },
-      }));
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Analysis failed");
+      const row = await upsertBrandProduct(normalize(bp), { wishlist: false });
+      if (row) nav(`/products/profile/${row.id}`);
     } finally {
-      setAnalysingId(null);
+      setBusyId(null);
     }
   };
 
@@ -123,39 +167,52 @@ const OfferPage = () => {
         {(offer.brand_products ?? []).length > 0 && (
           <>
             <SectionLabel className="!px-0">Products in this offer</SectionLabel>
-            {(offer.brand_products ?? []).map((p) => (
-              <SurfaceCard key={p.id} className="space-y-2.5">
-                <div>
-                  <p className="font-display text-[15px] leading-tight">{p.name}</p>
-                  {p.description && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{p.description}</p>}
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {p.external_url && (
-                    <Button variant="gold" size="pill" onClick={() => goOffer(p.external_url!, p.name)} className="text-[11px] px-2">
-                      Get offer
-                    </Button>
-                  )}
-                  <Button variant="outline" size="pill" onClick={() => addToWishlist(p.name)} className="text-[11px] px-2">
-                    <Heart className="size-3.5 mr-1" /> Wishlist
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="pill"
-                    onClick={() => analyseFit(p.id, { name: p.name, ingredients: p.ingredients })}
-                    disabled={analysingId === p.id}
-                    className="text-[11px] px-2"
-                  >
-                    {analysingId === p.id ? <Loader2 className="size-3.5 animate-spin" /> : <><Sparkles className="size-3.5 mr-1" /> For me?</>}
-                  </Button>
-                </div>
-                {analysis[p.id] && (
-                  <div className="rounded-lg bg-muted/60 p-2.5 text-[12px] leading-snug">
-                    <p className="font-body font-medium text-foreground">{analysis[p.id].verdict}</p>
-                    <p className="text-muted-foreground mt-1">{analysis[p.id].body}</p>
+            {(offer.brand_products ?? []).map((p) => {
+              const existing = findExisting(normalize(p));
+              const alreadyWishlisted = !!existing?.on_wishlist;
+              return (
+                <SurfaceCard key={p.id} className="space-y-2.5">
+                  <div>
+                    <p className="font-display text-[15px] leading-tight">{p.name}</p>
+                    {p.description && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{p.description}</p>}
                   </div>
-                )}
-              </SurfaceCard>
-            ))}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {p.external_url && (
+                      <Button variant="gold" size="pill" onClick={() => goOffer(p.external_url!)} className="text-[11px] px-2">
+                        Get offer
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="pill"
+                      onClick={() => addToWishlist(p)}
+                      disabled={busyId === p.id || alreadyWishlisted}
+                      className="text-[11px] px-2"
+                    >
+                      {alreadyWishlisted ? (
+                        <><Check className="size-3.5 mr-1" /> On list</>
+                      ) : (
+                        <><Heart className="size-3.5 mr-1" /> Wishlist</>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="pill"
+                      onClick={() => analyseForMe(p)}
+                      disabled={busyId === p.id}
+                      className="text-[11px] px-2"
+                    >
+                      {busyId === p.id
+                        ? <Loader2 className="size-3.5 animate-spin" />
+                        : <><Sparkles className="size-3.5 mr-1" /> For me?</>}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-snug">
+                    "For me?" opens the full personalised ingredient analysis you already use for your shelf.
+                  </p>
+                </SurfaceCard>
+              );
+            })}
           </>
         )}
       </div>

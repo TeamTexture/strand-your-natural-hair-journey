@@ -32,6 +32,15 @@ export interface UserProduct {
   use_count: number;
   created_at: string;
   updated_at: string;
+  linked_brand_offer_id: string | null;
+  linked_brand_product_id: string | null;
+}
+
+export interface SponsoredNote {
+  offerId: string;
+  headline: string;
+  discountCode: string | null;
+  endsOn: string | null;
 }
 
 type Filter = "shelf" | "wishlist" | "off-shelf" | "favourite" | "all";
@@ -40,11 +49,13 @@ type Filter = "shelf" | "wishlist" | "off-shelf" | "favourite" | "all";
 export function useUserProducts(filter: Filter = "all") {
   const { user } = useAuth();
   const [products, setProducts] = useState<UserProduct[]>([]);
+  const [sponsoredById, setSponsoredById] = useState<Record<string, SponsoredNote>>({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!user) {
       setProducts([]);
+      setSponsoredById({});
       setLoading(false);
       return;
     }
@@ -57,8 +68,44 @@ export function useUserProducts(filter: Filter = "all") {
     if (error) {
       console.error("user_products load failed", error);
       setProducts([]);
+      setSponsoredById({});
     } else {
-      setProducts((data as unknown as UserProduct[]) ?? []);
+      const list = (data as unknown as UserProduct[]) ?? [];
+      setProducts(list);
+      // Fetch sponsored context for any wishlist rows still linked to a live
+      // brand offer. Silent when nothing is linked.
+      const offerIds = Array.from(
+        new Set(list.map((p) => p.linked_brand_offer_id).filter((x): x is string => !!x)),
+      );
+      if (offerIds.length) {
+        const { data: offers } = await supabase
+          .from("brand_offers")
+          .select("id, headline, discount_code, ends_on, status, starts_on")
+          .in("id", offerIds);
+        const today = new Date().toISOString().slice(0, 10);
+        const byOffer: Record<string, SponsoredNote> = {};
+        for (const o of offers ?? []) {
+          const live = o.status === "live"
+            && (!o.starts_on || o.starts_on <= today)
+            && (!o.ends_on || o.ends_on >= today);
+          if (!live) continue;
+          byOffer[o.id] = {
+            offerId: o.id,
+            headline: o.headline,
+            discountCode: o.discount_code,
+            endsOn: o.ends_on,
+          };
+        }
+        const byUserProduct: Record<string, SponsoredNote> = {};
+        for (const p of list) {
+          if (p.linked_brand_offer_id && byOffer[p.linked_brand_offer_id]) {
+            byUserProduct[p.id] = byOffer[p.linked_brand_offer_id];
+          }
+        }
+        setSponsoredById(byUserProduct);
+      } else {
+        setSponsoredById({});
+      }
     }
     setLoading(false);
   }, [user]);
@@ -224,6 +271,7 @@ export function useUserProducts(filter: Filter = "all") {
   return {
     products: filtered,
     allProducts: products,
+    sponsoredById,
     loading,
     upsert,
     setShelf,

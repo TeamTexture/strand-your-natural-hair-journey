@@ -57,7 +57,7 @@ const Products = () => {
   const [confirmBulkOffShelf, setConfirmBulkOffShelf] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const {
-    products, loading, remove, reload, setFavourite,
+    products, loading, remove, reload, setFavourite, sponsoredById,
     bulkSetShelf, bulkSetFavourite, bulkRemove,
   } = useUserProducts("shelf");
   const { counts } = useVoicenoteCounts(products.map(p => p.product_key));
@@ -294,6 +294,16 @@ const Products = () => {
                               </span>
                             )}
                           </div>
+                          {sponsoredById[p.id] && (
+                            <p className="text-[9.5px] mt-1 leading-snug">
+                              <span className="uppercase tracking-wider text-muted-foreground">Sponsored</span>
+                              <span className="text-primary font-body font-medium">
+                                {" · On offer"}
+                                {sponsoredById[p.id].discountCode ? ` — code ${sponsoredById[p.id].discountCode}` : ""}
+                                {sponsoredById[p.id].endsOn ? ` until ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                              </span>
+                            </p>
+                          )}
                         </button>
                       </div>
                     </div>

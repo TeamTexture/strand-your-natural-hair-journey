@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
 import { useActiveBrandOffer, useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -7,12 +8,16 @@ interface Props {
   slot: PlacementSlot;
 }
 
+const dismissKey = (slot: PlacementSlot, offerId: string) =>
+  `strand:brand-banner:dismissed:${slot}:${offerId}`;
+
 /** Renders the paid+live brand offer holding this slot today. Silent when
  *  no offer is booked (no empty placeholder). Logs impressions and taps
- *  through the aggregated stats hook. */
+ *  through the aggregated stats hook. Dismissible for the session. */
 const BrandBanner = ({ slot }: Props) => {
   const { data } = useActiveBrandOffer(slot);
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
   const logStat = useLogBrandStat();
   const nav = useNavigate();
 
@@ -20,6 +25,13 @@ const BrandBanner = ({ slot }: Props) => {
 
   useEffect(() => {
     if (!offer) return;
+    // Session-scoped dismissal — one banner per page, hidden until next open.
+    try {
+      if (sessionStorage.getItem(dismissKey(slot, offer.id))) {
+        setDismissed(true);
+        return;
+      }
+    } catch { /* sessionStorage disabled */ }
     logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
     if (offer.hero_image_path) {
       supabase.storage.from("brand-assets").createSignedUrl(offer.hero_image_path, 60 * 60).then(({ data: d }) => {
@@ -29,33 +41,52 @@ const BrandBanner = ({ slot }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer?.id]);
 
-  if (!offer) return null;
+  if (!offer || dismissed) return null;
+
+  const onDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try { sessionStorage.setItem(dismissKey(slot, offer.id), "1"); } catch { /* noop */ }
+    // Track as a dismissal impression signal — reuses impressions bucket so
+    // brands see banner reach even when a user closes it.
+    logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
+    setDismissed(true);
+  };
 
   return (
-    <button
-      type="button"
-      onClick={() => {
-        logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
-        nav(`/offers/${offer.id}?slot=${slot}`);
-      }}
-      className="w-full text-left rounded-[14px] overflow-hidden border border-primary/20 bg-card relative group"
-    >
-      <span className="absolute top-2 right-2 z-10 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
-        Sponsored
-      </span>
-      {heroUrl && (
-        <div className="aspect-[16/7] overflow-hidden">
-          <img src={heroUrl} alt="" className="w-full h-full object-cover" />
-        </div>
-      )}
-      <div className="p-3">
-        <p className="font-display text-[14px] leading-tight">{offer.headline}</p>
-        {offer.body_copy && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-snug">{offer.body_copy}</p>}
-        {offer.discount_code && (
-          <p className="text-[10px] text-primary mt-1.5 font-body font-medium">Code {offer.discount_code}</p>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+          nav(`/offers/${offer.id}?slot=${slot}`);
+        }}
+        className="w-full text-left rounded-[14px] overflow-hidden border border-primary/20 bg-card"
+      >
+        <span className="absolute top-2 left-2 z-10 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
+          Sponsored
+        </span>
+        {heroUrl && (
+          <div className="aspect-[16/7] overflow-hidden">
+            <img src={heroUrl} alt="" className="w-full h-full object-cover" />
+          </div>
         )}
-      </div>
-    </button>
+        <div className="p-3 pr-9">
+          <p className="font-display text-[14px] leading-tight">{offer.headline}</p>
+          {offer.body_copy && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-snug">{offer.body_copy}</p>}
+          {offer.discount_code && (
+            <p className="text-[10px] text-primary mt-1.5 font-body font-medium">Code {offer.discount_code}</p>
+          )}
+        </div>
+      </button>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss sponsored banner"
+        className="absolute top-2 right-2 z-20 size-7 rounded-full bg-background/85 backdrop-blur border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground"
+      >
+        <X className="size-3.5" />
+      </button>
+    </div>
   );
 };
 

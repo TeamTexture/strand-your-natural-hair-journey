@@ -1760,6 +1760,8 @@ export type Database = {
           ingredients: string[]
           key_ingredients: Json
           last_used_at: string | null
+          linked_brand_offer_id: string | null
+          linked_brand_product_id: string | null
           match_score: number | null
           name: string
           off_shelf_reason: string | null
@@ -1789,6 +1791,8 @@ export type Database = {
           ingredients?: string[]
           key_ingredients?: Json
           last_used_at?: string | null
+          linked_brand_offer_id?: string | null
+          linked_brand_product_id?: string | null
           match_score?: number | null
           name: string
           off_shelf_reason?: string | null
@@ -1818,6 +1822,8 @@ export type Database = {
           ingredients?: string[]
           key_ingredients?: Json
           last_used_at?: string | null
+          linked_brand_offer_id?: string | null
+          linked_brand_product_id?: string | null
           match_score?: number | null
           name?: string
           off_shelf_reason?: string | null
