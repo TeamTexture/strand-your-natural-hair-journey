@@ -177,9 +177,14 @@ export function useTakenPlacements() {
       const { data, error } = await supabase
         .from("brand_offer_placements")
         .select("slot, placement_date, offer_id, brand_offers!inner(status)")
-        .in("brand_offers.status", ["approved_unpaid", "paid_scheduled", "live"]);
+        .in("brand_offers.status", ["under_review", "approved_unpaid", "paid_scheduled", "live"]);
       if (error) throw error;
-      return (data ?? []) as Array<{ slot: PlacementSlot; placement_date: string; offer_id: string }>;
+      return (data ?? []).map((row: any) => ({
+        slot: row.slot as PlacementSlot,
+        placement_date: row.placement_date as string,
+        offer_id: row.offer_id as string,
+        status: row.brand_offers?.status as BrandOfferStatus,
+      }));
     },
   });
 }
