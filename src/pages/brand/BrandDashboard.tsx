@@ -155,14 +155,21 @@ const BrandDashboard = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} />
+      <TitleBar
+        title={
+          ownerMode === "pro"
+            ? "Promoted campaigns"
+            : profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"
+        }
+      />
       <div className="px-5 pb-8 space-y-5">
         {/* Live-offer expiry banner — surfaces any offer ≤3h from ending
              with Extend / New offer actions. */}
         <ExpiringSoonBanner offers={withDerived.filter((o) => o._derived === "live")} now={now} />
 
-        {/* Subscription banner */}
-        {!subActive ? (
+        {/* Subscription banner — brand-only (pros use their pro subscription
+             which is managed elsewhere in the pro dashboard). */}
+        {ownerMode === "brand" && !subActive ? (
           <button
             onClick={() => nav("/brand/subscribe")}
             className="w-full text-left rounded-[14px] border border-primary/40 bg-primary/5 p-4 flex items-start gap-3"
@@ -183,7 +190,7 @@ const BrandDashboard = () => {
               </p>
             </div>
           </button>
-        ) : (
+        ) : ownerMode === "brand" ? (
           <button
             onClick={() => nav("/brand/billing")}
             className="w-full text-left rounded-[12px] border border-border bg-card p-3 flex items-center gap-3"
@@ -203,10 +210,29 @@ const BrandDashboard = () => {
             </div>
             <span className="text-[11px] text-primary font-body">Manage →</span>
           </button>
+        ) : null}
+
+        {ownerMode === "pro" && !subActive && (
+          <button
+            onClick={() => nav("/pro/billing")}
+            className="w-full text-left rounded-[14px] border border-primary/40 bg-primary/5 p-4 flex items-start gap-3"
+          >
+            <div className="size-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <AlertCircle className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-[14px] font-semibold leading-tight">
+                Activate STRAND Pro to launch a campaign
+              </p>
+              <p className="text-[11.5px] text-foreground/70 font-body leading-snug mt-0.5">
+                Your £12.99/mo membership is your platform access. Per-day placement fees apply per campaign.
+              </p>
+            </div>
+          </button>
         )}
 
-        <Button variant="gold" size="pill" onClick={() => nav("/brand/offers/new")} className="w-full">
-          <Plus className="size-4 mr-1.5" /> Create new offer
+        <Button variant="gold" size="pill" onClick={() => nav(ownerNewRoute(ownerMode))} className="w-full">
+          <Plus className="size-4 mr-1.5" /> {ownerMode === "pro" ? "Create new campaign" : "Create new offer"}
         </Button>
 
         {drafts.length > 0 && (
