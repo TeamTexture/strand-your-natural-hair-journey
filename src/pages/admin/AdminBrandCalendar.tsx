@@ -56,7 +56,7 @@ const AdminBrandCalendar = () => {
       const end = format(endOfMonth(month), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("brand_offer_placements")
-        .select("id, slot, placement_date, offer_id, brand_offers!inner(headline, status, starts_on, ends_on, brand_user_id)")
+        .select("id, slot, placement_date, offer_id, brand_offers!inner(headline, status, starts_on, ends_on, brand_user_id, owner_type)")
         .gte("placement_date", start)
         .lte("placement_date", end)
         .in("brand_offers.status", ["under_review", "approved_unpaid", "paid_scheduled", "live", "ended"]);
