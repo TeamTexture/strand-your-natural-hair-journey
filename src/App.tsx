@@ -45,6 +45,7 @@ import SuccessScreen from "./pages/onboarding/SuccessScreen";
 import ProfileStepPhotos from "./pages/onboarding/ProfileStepPhotos";
 import StrandSummary from "./pages/onboarding/StrandSummary";
 import MilestoneGallery from "./pages/MilestoneGallery";
+import Discounts from "./pages/Discounts";
 import BloodHistory from "./pages/BloodHistory";
 import BloodUpload from "./pages/BloodUpload";
 import BloodPanelReview from "./pages/BloodPanelReview";
