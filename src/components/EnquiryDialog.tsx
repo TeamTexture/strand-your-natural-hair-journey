@@ -237,19 +237,11 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
             </p>
           </div>
 
-          <label className="flex gap-2 items-start text-[12px] font-body leading-snug cursor-pointer">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="mt-0.5 size-4 accent-primary shrink-0"
-            />
-            <span>
-              Share my Strand passport with {proName} so they can prepare (hair profile,
-              goals, blood markers, products). You can revoke access at any time from
-              Profile → Data access.
-            </span>
-          </label>
+          <p className="text-[11px] font-body leading-snug text-muted-foreground">
+            Sending this enquiry shares your Strand passport with {proName} (hair profile,
+            goals, blood markers, products) so they can prepare. You can revoke access at any
+            time from Profile → Data access.
+          </p>
         </div>
 
         <DialogFooter className="gap-2">
