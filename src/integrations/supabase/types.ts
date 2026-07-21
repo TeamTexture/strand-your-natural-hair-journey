@@ -415,6 +415,8 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          attached_booking_url: string | null
+          attached_pro_offer_id: string | null
           body_copy: string | null
           brand_user_id: string
           created_at: string
@@ -425,6 +427,7 @@ export type Database = {
           headline: string | null
           hero_image_path: string | null
           id: string
+          owner_type: string
           paid_at: string | null
           rejected_at: string | null
           rejection_reason: string | null
@@ -439,6 +442,8 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          attached_booking_url?: string | null
+          attached_pro_offer_id?: string | null
           body_copy?: string | null
           brand_user_id: string
           created_at?: string
@@ -449,6 +454,7 @@ export type Database = {
           headline?: string | null
           hero_image_path?: string | null
           id?: string
+          owner_type?: string
           paid_at?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -463,6 +469,8 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          attached_booking_url?: string | null
+          attached_pro_offer_id?: string | null
           body_copy?: string | null
           brand_user_id?: string
           created_at?: string
@@ -473,6 +481,7 @@ export type Database = {
           headline?: string | null
           hero_image_path?: string | null
           id?: string
+          owner_type?: string
           paid_at?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -484,7 +493,15 @@ export type Database = {
           total_price_pence?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "brand_offers_attached_pro_offer_id_fkey"
+            columns: ["attached_pro_offer_id"]
+            isOneToOne: false
+            referencedRelation: "pro_offers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brand_products: {
         Row: {
@@ -2431,6 +2448,8 @@ export type Database = {
         Args: never
         Returns: {
           offer_id: string
+          owner_display_name: string
+          owner_type: string
           placement_date: string
           slot: Database["public"]["Enums"]["brand_placement_slot"]
           status: Database["public"]["Enums"]["brand_offer_status"]
@@ -2449,6 +2468,10 @@ export type Database = {
         Returns: boolean
       }
       has_active_pro_subscription: { Args: { _pro: string }; Returns: boolean }
+      has_active_promotion_eligibility: {
+        Args: { _owner_type: string; _user: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
