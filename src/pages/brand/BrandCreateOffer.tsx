@@ -114,6 +114,14 @@ const BrandCreateOffer = () => {
   const qc = useQueryClient();
   const { data: rates } = usePlacementRates();
   const { data: existing } = useBrandOffer(existingId);
+  const { data: pendingRevision } = usePendingRevision(existingId);
+  const submitRevision = useSubmitBrandOfferRevision();
+
+  // Revision mode = editing an already-live or paid-scheduled offer. Only creative
+  // fields (title, body, code, URL, banner, attached products/tools) can change;
+  // placements/dates are locked, no Stripe interaction, admin re-approves before
+  // consumers see the new creative.
+  const isRevisionMode = existing?.status === "paid_scheduled" || existing?.status === "live";
 
   const [headline, setHeadline] = useState(existing?.headline ?? "");
   const [bodyCopy, setBodyCopy] = useState(existing?.body_copy ?? "");
