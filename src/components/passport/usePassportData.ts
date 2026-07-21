@@ -26,6 +26,7 @@ export interface PassportDataset {
   bloodPanels: Array<{ id: string; panel_date: string | null; label: string | null; notes: string | null; test_type: string | null; lab_name: string | null; status: string | null }>;
   bloodResults: Array<{ id: string; panel_id: string | null; marker: string; value: number | null; unit: string | null; status: string | null; category: string | null; updated_at: string }>;
   bloodSummaries: Array<{ id: string; payload: unknown; created_at: string }>;
+  nutritionSummaries: Array<{ id: string; payload: unknown; created_at: string }>;
   strandSummaries: Array<{ id: string; overview: string | null; action_plan: unknown; routine_tips: unknown; created_at: string }>;
   washDays: Array<Record<string, unknown> & { id: string; wash_date: string }>;
   journal: Array<{ id: string; entry_date: string; title: string | null; note: string | null; mood: string | null; photo_paths: string[] | null; products_used: string[] | null }>;
@@ -49,7 +50,7 @@ const emptyDataset = (): PassportDataset => ({
   clientName: "Client", memberSince: null,
   profile: null, authEmail: null,
   hair: null, health: null, style: null, professional: null,
-  goals: [], goalUpdates: [], bloodPanels: [], bloodResults: [], bloodSummaries: [], strandSummaries: [],
+  goals: [], goalUpdates: [], bloodPanels: [], bloodResults: [], bloodSummaries: [], nutritionSummaries: [], strandSummaries: [],
   washDays: [], journal: [], shelf: [], productPhotos: [], productRatings: [], productVoicenotes: [],
   appointments: [], appointmentPhotos: [], medications: [], tools: [], milestonePhotos: [], beforePhotos: [],
   savedMeals: [], moodboards: [], moodboardImages: [], ingredientLists: [],
@@ -70,7 +71,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
 
       const [
         profile, hair, health, style, professional, goals, goalUpdates,
-        bloodPanels, bloodResults, bloodSummaries, strandSummaries,
+        bloodPanels, bloodResults, bloodSummaries, nutritionSummaries, strandSummaries,
         washDays, journal, shelf, productPhotos, productRatings, productVoicenotes,
         appointments, appointmentPhotos, medications, tools, milestonePhotos, beforePhotos,
         savedMeals, moodboards, moodboardImages, ingredientLists,
@@ -85,7 +86,8 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         sb.from("goal_updates").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("blood_panels").select("*").eq("user_id", userId).order("panel_date", { ascending: false, nullsFirst: false }),
         sb.from("blood_results").select("id, panel_id, marker, value, unit, status, category, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
-        sb.from("ai_summaries").select("id, payload, created_at").eq("user_id", userId).eq("kind", "blood").order("created_at", { ascending: false }),
+        sb.from("ai_summaries").select("id, payload, created_at").eq("user_id", userId).eq("kind", "blood_summary").order("created_at", { ascending: false }),
+        sb.from("ai_summaries").select("id, payload, created_at").eq("user_id", userId).eq("kind", "nutrition_plan").order("created_at", { ascending: false }),
         sb.from("hair_strand_summaries").select("id, overview, action_plan, routine_tips, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("wash_days").select("*").eq("user_id", userId).order("wash_date", { ascending: false }),
         sb.from("journal_entries").select("*").eq("user_id", userId).order("entry_date", { ascending: false }),
@@ -192,6 +194,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         bloodPanels: asArray(bloodPanels),
         bloodResults: asArray(bloodResults),
         bloodSummaries: asArray(bloodSummaries),
+        nutritionSummaries: asArray(nutritionSummaries),
         strandSummaries: asArray(strandSummaries),
         washDays: asArray(washDays),
         journal: asArray(journal),

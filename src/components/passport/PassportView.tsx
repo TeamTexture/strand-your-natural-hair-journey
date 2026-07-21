@@ -201,6 +201,40 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
         </Collapsible>
       ))}
 
+      <SectionLabel>Latest blood AI summary</SectionLabel>
+      {d.bloodSummaries.length === 0 ? <EmptyCard msg="No blood AI summary yet." /> : (() => {
+        const s = d.bloodSummaries[0];
+        return (
+          <Collapsible defaultOpen summary={
+            <div>
+              <p className="text-sm font-body font-semibold">Blood AI summary</p>
+              <p className="text-[11px] text-muted-foreground">Updated {format(new Date(s.created_at), "d MMM yyyy")}</p>
+            </div>
+          }>
+            <pre className="text-[12px] whitespace-pre-wrap break-words leading-relaxed">
+              {typeof s.payload === "string" ? s.payload : JSON.stringify(s.payload, null, 2)}
+            </pre>
+          </Collapsible>
+        );
+      })()}
+
+      <SectionLabel>Latest nutrition AI plan</SectionLabel>
+      {d.nutritionSummaries.length === 0 ? <EmptyCard msg="No nutrition AI plan yet." /> : (() => {
+        const s = d.nutritionSummaries[0];
+        return (
+          <Collapsible defaultOpen summary={
+            <div>
+              <p className="text-sm font-body font-semibold">Nutrition AI plan</p>
+              <p className="text-[11px] text-muted-foreground">Updated {format(new Date(s.created_at), "d MMM yyyy")}</p>
+            </div>
+          }>
+            <pre className="text-[12px] whitespace-pre-wrap break-words leading-relaxed">
+              {typeof s.payload === "string" ? s.payload : JSON.stringify(s.payload, null, 2)}
+            </pre>
+          </Collapsible>
+        );
+      })()}
+
       <SectionLabel>Goals</SectionLabel>
       {d.goals.length === 0 ? <EmptyCard msg="No goals set." /> : d.goals.map(g => {
         const updates = goalsById.get(g.id) ?? [];
