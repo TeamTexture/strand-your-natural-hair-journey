@@ -49,7 +49,8 @@ const AdminSettings = () => {
     mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
       const { error } = await supabase
         .from("platform_settings")
-        .upsert({ key, value }, { onConflict: "key" });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .upsert({ key, value } as any, { onConflict: "key" });
       if (error) throw error;
     },
     onSuccess: () => {
