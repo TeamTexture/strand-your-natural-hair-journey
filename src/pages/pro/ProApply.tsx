@@ -138,7 +138,7 @@ const ProApply = () => {
   if (existingStatus) {
     return (
       <ScreenLayout>
-        <TitleBar title="Apply as a Professional" backTo="/directory" />
+        <TitleBar title="Apply as a Professional" onBack={() => nav("/directory")} />
         <div className="px-5 py-6 space-y-4">
           <SurfaceCard tone="gold">
             <p className="text-sm font-body leading-relaxed">
@@ -167,7 +167,7 @@ const ProApply = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Apply as a Professional" backTo="/directory" />
+      <TitleBar title="Apply as a Professional" onBack={() => nav("/directory")} />
       <div className="px-5 py-4 space-y-4">
         <SurfaceCard tone="gold">
           <p className="text-xs font-body leading-snug">
