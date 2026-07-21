@@ -203,11 +203,11 @@ export function useLogBrandStat() {
         } catch { /* sessionStorage disabled — still log */ }
       }
       // Fire-and-forget atomic increment via SECURITY DEFINER RPC. Never blocks UI.
-      const { error } = await supabase.rpc("increment_brand_offer_stat", {
+      const { error } = await supabase.rpc("increment_brand_offer_stat" as never, {
         _offer_id: offer_id,
         _slot: slot,
         _kind: kind,
-      });
+      } as never);
       if (error) console.warn("brand stat log failed", error);
     },
   });
