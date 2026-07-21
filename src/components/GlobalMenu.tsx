@@ -28,6 +28,9 @@ import {
   FileText,
   ClipboardList,
   Settings,
+  Store,
+  Megaphone,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
