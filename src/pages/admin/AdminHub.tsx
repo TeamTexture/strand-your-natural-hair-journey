@@ -159,18 +159,23 @@ const StatCard = ({
 }: {
   label: string;
   value: number | string;
-  tone?: "warn" | "default";
+  tone?: "warn" | "urgent" | "default";
   onClick?: () => void;
 }) => {
   const content = (
-    <SurfaceCard className="py-3 relative h-full">
+    <SurfaceCard
+      className={cn(
+        "py-3 relative h-full",
+        tone === "urgent" && "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40",
+      )}
+    >
       <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium pr-4">
         {label}
       </p>
       <p
         className={cn(
           "font-display text-[26px] leading-none mt-1.5",
-          tone === "warn" ? "text-warn" : "text-foreground",
+          tone === "warn" ? "text-warn" : tone === "urgent" ? "text-destructive" : "text-foreground",
         )}
       >
         {value}
