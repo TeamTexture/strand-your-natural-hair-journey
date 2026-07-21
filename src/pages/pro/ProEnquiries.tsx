@@ -117,11 +117,13 @@ const EnquiryCard = ({
   preview,
   onAccept,
   onDecline,
+  onOpenPassport,
 }: {
   enquiry: Enquiry;
   preview?: PassportPreview;
   onAccept: () => void;
   onDecline: () => void;
+  onOpenPassport?: () => void;
 }) => {
   const first = preview?.firstName ?? "Client";
   return (
@@ -167,6 +169,14 @@ const EnquiryCard = ({
           </Button>
           <Button size="sm" onClick={onAccept} className="flex-1">
             Accept
+          </Button>
+        </div>
+      )}
+
+      {enquiry.status === "accepted" && onOpenPassport && (
+        <div className="mt-3">
+          <Button size="sm" onClick={onOpenPassport} className="w-full">
+            Open client passport
           </Button>
         </div>
       )}
@@ -295,9 +305,10 @@ const ProEnquiries = () => {
       <div className="px-5 pb-8 space-y-3">
         {tab === "accepted" && filtered.length > 0 && (
           <p className="text-[11px] text-muted-foreground italic">
-            Full passport arrives in the next update.
+            Tap a client to view their passport. They can revoke access at any time.
           </p>
         )}
+
 
         {isLoading ? (
           <LoadingDot label="Loading enquiries…" fullScreen={false} />
@@ -322,6 +333,11 @@ const ProEnquiries = () => {
                 }
               }}
               onDecline={() => setDeclineId(e.id)}
+              onOpenPassport={
+                e.status === "accepted"
+                  ? () => nav(`/pro/clients/${e.consumer_id}`)
+                  : undefined
+              }
             />
           ))
         )}

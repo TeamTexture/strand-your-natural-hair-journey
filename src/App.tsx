@@ -53,6 +53,8 @@ import ProEnquiries from "./pages/pro/ProEnquiries";
 import MyEnquiries from "./pages/MyEnquiries";
 import DataAccess from "./pages/DataAccess";
 import AdminApplications from "./pages/admin/AdminApplications";
+import AdminAudit from "./pages/admin/AdminAudit";
+import ProClientPassport from "./pages/pro/ProClientPassport";
 
 
 // Main app
@@ -229,6 +231,14 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/pro/clients/:consumerId"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProClientPassport />
+                  </RoleGate>
+                }
+              />
 
               <Route path="/profile/enquiries" element={<Protected><MyEnquiries /></Protected>} />
               <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
@@ -241,6 +251,15 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/admin/audit"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminAudit />
+                  </RoleGate>
+                }
+              />
+
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

@@ -756,6 +756,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_passport_views: {
+        Row: {
+          consumer_id: string
+          id: string
+          pro_user_id: string
+          section: string | null
+          viewed_at: string
+        }
+        Insert: {
+          consumer_id: string
+          id?: string
+          pro_user_id: string
+          section?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          consumer_id?: string
+          id?: string
+          pro_user_id?: string
+          section?: string | null
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       pro_profiles: {
         Row: {
           avatar_path: string | null
