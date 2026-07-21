@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Upload, X } from "lucide-react";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,29 @@ const disciplines: Discipline[] = [
   "Stylist",
 ];
 
+const DAYS = [
+  { key: "mon", label: "Monday" },
+  { key: "tue", label: "Tuesday" },
+  { key: "wed", label: "Wednesday" },
+  { key: "thu", label: "Thursday" },
+  { key: "fri", label: "Friday" },
+  { key: "sat", label: "Saturday" },
+  { key: "sun", label: "Sunday" },
+] as const;
+type DayKey = typeof DAYS[number]["key"];
+type DayHours = { closed: boolean; open: string; close: string };
+type OpeningHours = Record<DayKey, DayHours>;
+
+const defaultHours = (): OpeningHours =>
+  DAYS.reduce((acc, d) => {
+    acc[d.key] = {
+      closed: d.key === "sun",
+      open: "09:00",
+      close: "17:00",
+    };
+    return acc;
+  }, {} as OpeningHours);
+
 const BUCKET = "pro-photos";
 
 const useSignedUrl = (path: string | null | undefined) => {
@@ -62,6 +86,12 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
     </Label>
     {children}
   </div>
+);
+
+const SectionHead = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary pt-2">
+    {children}
+  </p>
 );
 
 const ProProfile = () => {
@@ -96,7 +126,15 @@ const ProProfile = () => {
     avatar_path: null as string | null,
     photos: [] as string[],
     services: [] as Service[],
+    specialisms: [] as string[],
+    business_phone: "",
+    business_email: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
   });
+  const [hours, setHours] = useState<OpeningHours>(defaultHours());
+  const [specInput, setSpecInput] = useState("");
 
   useEffect(() => {
     if (!profile) return;
@@ -115,7 +153,17 @@ const ProProfile = () => {
       services: Array.isArray(profile.services)
         ? (profile.services as unknown as Service[])
         : [],
+      specialisms: (profile.specialisms as string[] | null) ?? [],
+      business_phone: profile.business_phone ?? "",
+      business_email: profile.business_email ?? "",
+      address_line1: profile.address_line1 ?? "",
+      address_line2: profile.address_line2 ?? "",
+      city: profile.city ?? "",
     });
+    const savedHours = profile.opening_hours as OpeningHours | null;
+    if (savedHours && typeof savedHours === "object") {
+      setHours({ ...defaultHours(), ...savedHours });
+    }
   }, [profile]);
 
   const avatarUrl = useSignedUrl(form.avatar_path);
@@ -138,6 +186,13 @@ const ProProfile = () => {
           avatar_path: form.avatar_path,
           photos: form.photos,
           services: form.services as never,
+          specialisms: form.specialisms,
+          business_phone: form.business_phone || null,
+          business_email: form.business_email || null,
+          address_line1: form.address_line1 || null,
+          address_line2: form.address_line2 || null,
+          city: form.city || null,
+          opening_hours: hours as never,
         })
         .eq("user_id", user.id);
       if (error) throw error;
@@ -170,6 +225,24 @@ const ProProfile = () => {
 
   const removePhoto = (path: string) =>
     setForm((f) => ({ ...f, photos: f.photos.filter((p) => p !== path) }));
+
+  const addSpecialism = () => {
+    const v = specInput.trim();
+    if (!v) return;
+    if (form.specialisms.includes(v)) { setSpecInput(""); return; }
+    if (form.specialisms.length >= 12) {
+      toast("Max 12 specialisms");
+      return;
+    }
+    setForm((f) => ({ ...f, specialisms: [...f.specialisms, v] }));
+    setSpecInput("");
+  };
+
+  const removeSpecialism = (s: string) =>
+    setForm((f) => ({ ...f, specialisms: f.specialisms.filter((x) => x !== s) }));
+
+  const updateHours = (day: DayKey, patch: Partial<DayHours>) =>
+    setHours((h) => ({ ...h, [day]: { ...h[day], ...patch } }));
 
   if (isLoading) return <LoadingDot />;
 
@@ -204,6 +277,18 @@ const ProProfile = () => {
           </SurfaceCard>
         )}
 
+        {profile.is_published && (
+          <SurfaceCard>
+            <p className="text-xs font-body leading-snug text-foreground/80">
+              <span className="font-semibold uppercase tracking-[0.15em] text-good">
+                Live —{" "}
+              </span>
+              Changes save immediately and appear on your directory card for
+              every STRAND member.
+            </p>
+          </SurfaceCard>
+        )}
+
         <SectionLabel>Public listing</SectionLabel>
 
         <div className="flex items-center gap-4">
@@ -227,8 +312,13 @@ const ProProfile = () => {
                 }}
               />
             </label>
+            <p className="text-[11px] font-body text-muted-foreground leading-snug">
+              Shown as the round headshot on your directory card.
+            </p>
           </div>
         </div>
+
+        <SectionHead>Identity</SectionHead>
 
         <Field label="Display name">
           <Input
@@ -255,29 +345,188 @@ const ProProfile = () => {
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Location">
-            <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
-          </Field>
-          <Field label="Postcode">
-            <Input value={form.postcode} onChange={(e) => setForm((f) => ({ ...f, postcode: e.target.value }))} />
-          </Field>
+        <SectionHead>Specialisms</SectionHead>
+        <p className="text-[11px] font-body text-muted-foreground leading-snug -mt-1">
+          Short tags shown as chips on your card (e.g. "Afro Hair",
+          "Traction Alopecia"). Max 12.
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {form.specialisms.map((s) => (
+            <span
+              key={s}
+              className="inline-flex items-center gap-1 bg-primary/10 text-foreground text-[11px] px-2 py-1 rounded-full"
+            >
+              {s}
+              <button
+                onClick={() => removeSpecialism(s)}
+                className="text-muted-foreground hover:text-alert-dark"
+                aria-label={`Remove ${s}`}
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+          {form.specialisms.length === 0 && (
+            <span className="text-[11px] text-muted-foreground font-body">
+              None yet.
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={specInput}
+            onChange={(e) => setSpecInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addSpecialism();
+              }
+            }}
+            placeholder="Add a specialism"
+          />
+          <Button type="button" variant="outline" onClick={addSpecialism}>
+            <Plus className="size-4" />
+          </Button>
         </div>
 
-        <Field label="Contact email">
-          <Input type="email" value={form.contact_email} onChange={(e) => setForm((f) => ({ ...f, contact_email: e.target.value }))} />
+        <SectionHead>Location</SectionHead>
+        <Field label="Address line 1">
+          <Input
+            value={form.address_line1}
+            onChange={(e) => setForm((f) => ({ ...f, address_line1: e.target.value }))}
+            placeholder="12 Harley Street"
+          />
         </Field>
-        <Field label="Booking URL">
-          <Input value={form.booking_url} onChange={(e) => setForm((f) => ({ ...f, booking_url: e.target.value }))} placeholder="https://" />
+        <Field label="Address line 2">
+          <Input
+            value={form.address_line2}
+            onChange={(e) => setForm((f) => ({ ...f, address_line2: e.target.value }))}
+            placeholder="Optional"
+          />
         </Field>
-        <Field label="Website">
-          <Input value={form.website_url} onChange={(e) => setForm((f) => ({ ...f, website_url: e.target.value }))} placeholder="https://" />
+        <Field label="City / town">
+          <Input
+            value={form.city}
+            onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+            placeholder="London"
+          />
         </Field>
-        <Field label="Instagram">
-          <Input value={form.instagram_handle} onChange={(e) => setForm((f) => ({ ...f, instagram_handle: e.target.value }))} placeholder="@yourhandle" />
+        <Field label="Postcode">
+          <Input
+            value={form.postcode}
+            onChange={(e) => setForm((f) => ({ ...f, postcode: e.target.value }))}
+            placeholder="W1G 9PG"
+          />
+        </Field>
+        <Field label="Region / area served">
+          <Input
+            value={form.location}
+            onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+            placeholder="London & remote"
+          />
         </Field>
 
-        <SectionLabel>Services</SectionLabel>
+        <SectionHead>Contact & booking</SectionHead>
+        <Field label="Contact email">
+          <Input
+            type="email"
+            value={form.contact_email}
+            onChange={(e) => setForm((f) => ({ ...f, contact_email: e.target.value }))}
+            placeholder="hello@yourclinic.co.uk"
+          />
+        </Field>
+        <Field label="Business phone">
+          <Input
+            type="tel"
+            value={form.business_phone}
+            onChange={(e) => setForm((f) => ({ ...f, business_phone: e.target.value }))}
+            placeholder="+44 20 7946 0000"
+          />
+        </Field>
+        <Field label="Business email">
+          <Input
+            type="email"
+            value={form.business_email}
+            onChange={(e) => setForm((f) => ({ ...f, business_email: e.target.value }))}
+            placeholder="admin@yourclinic.co.uk"
+          />
+        </Field>
+        <Field label="Booking URL">
+          <Input
+            value={form.booking_url}
+            onChange={(e) => setForm((f) => ({ ...f, booking_url: e.target.value }))}
+            placeholder="https://"
+          />
+        </Field>
+        <Field label="Website">
+          <Input
+            value={form.website_url}
+            onChange={(e) => setForm((f) => ({ ...f, website_url: e.target.value }))}
+            placeholder="https://"
+          />
+        </Field>
+        <Field label="Instagram">
+          <Input
+            value={form.instagram_handle}
+            onChange={(e) => setForm((f) => ({ ...f, instagram_handle: e.target.value }))}
+            placeholder="@yourhandle"
+          />
+        </Field>
+
+        <SectionHead>Opening hours</SectionHead>
+        <p className="text-[11px] font-body text-muted-foreground leading-snug -mt-1">
+          Toggle off any day you're closed. 24-hour format.
+        </p>
+        <div className="rounded-[14px] border border-border bg-card divide-y divide-border">
+          {DAYS.map((d) => {
+            const dh = hours[d.key];
+            return (
+              <div key={d.key} className="p-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-body font-semibold text-foreground">
+                    {d.label}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-body text-muted-foreground">
+                      {dh.closed ? "Closed" : "Open"}
+                    </span>
+                    <Switch
+                      checked={!dh.closed}
+                      onCheckedChange={(v) => updateHours(d.key, { closed: !v })}
+                      aria-label={`${d.label} open`}
+                    />
+                  </div>
+                </div>
+                {!dh.closed && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-body uppercase tracking-[0.12em] text-muted-foreground">
+                        Opens
+                      </Label>
+                      <Input
+                        type="time"
+                        value={dh.open}
+                        onChange={(e) => updateHours(d.key, { open: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-body uppercase tracking-[0.12em] text-muted-foreground">
+                        Closes
+                      </Label>
+                      <Input
+                        type="time"
+                        value={dh.close}
+                        onChange={(e) => updateHours(d.key, { close: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <SectionHead>Services</SectionHead>
         <div className="space-y-2.5">
           {form.services.map((s, i) => (
             <SurfaceCard key={i}>
@@ -332,7 +581,7 @@ const ProProfile = () => {
           </Button>
         </div>
 
-        <SectionLabel>Photos</SectionLabel>
+        <SectionHead>Gallery</SectionHead>
         <div className="grid grid-cols-3 gap-2">
           {form.photos.map((p) => (
             <PhotoTile key={p} path={p} onRemove={() => removePhoto(p)} />
@@ -349,6 +598,20 @@ const ProProfile = () => {
               }}
             />
           </label>
+        </div>
+
+        <div className="rounded-[12px] border border-border bg-card p-3">
+          <p className="text-[11px] font-body text-muted-foreground leading-snug">
+            <span className="font-semibold text-foreground">Offers &amp; discounts</span>
+            {" "}are managed on the{" "}
+            <button
+              onClick={() => nav("/pro/offers")}
+              className="underline text-primary underline-offset-2"
+            >
+              Offers page
+            </button>
+            . The currently-live offer shows on your directory card.
+          </p>
         </div>
 
         <div className="pt-4">

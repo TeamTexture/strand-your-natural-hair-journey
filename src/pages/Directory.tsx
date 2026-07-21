@@ -218,11 +218,13 @@ const Directory = () => {
                   })()}
                 </div>
               </div>
-              <div className="bg-primary/15 px-4 py-2.5 text-xs">
-                <span className="font-semibold tracking-[0.1em] uppercase text-primary">
-                  {p.discount}
-                </span>
-              </div>
+              {p.discount && p.discount.trim().length > 0 && (
+                <div className="bg-primary/15 px-4 py-2.5 text-xs">
+                  <span className="font-semibold tracking-[0.1em] uppercase text-primary">
+                    {p.discount}
+                  </span>
+                </div>
+              )}
             </SurfaceCard>
           ))
         )}

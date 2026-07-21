@@ -9,6 +9,11 @@ import { PROFESSIONALS, type Professional, type ProType } from "@/data/professio
  *
  * Falls back gracefully to the static list if the network/DB call fails — the
  * directory is never empty.
+ *
+ * For LIVE pros (rows in `pro_profiles` with `is_published = true`) we also:
+ *   • sign their avatar_path so the card renders their real photo
+ *   • pull their currently-live pro_offer (if any) into the discount ribbon
+ *   • surface their specialisms as tag chips (same shape as seed rows)
  */
 export function useDirectoryProfessionals() {
   const [pros, setPros] = useState<Professional[]>(PROFESSIONALS);
@@ -31,7 +36,7 @@ export function useDirectoryProfessionals() {
             supabase
               .from("pro_profiles")
               .select(
-                "id,user_id,display_name,discipline,bio,services,location,postcode,contact_email,booking_url,website_url,instagram_handle,is_published,suspended_at",
+                "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at",
               )
               .eq("is_published", true)
               .is("suspended_at", null),
@@ -40,6 +45,49 @@ export function useDirectoryProfessionals() {
         if (cancelled) return;
         if (dbErr) throw dbErr;
         if (ppErr) console.warn("pro_profiles load failed:", ppErr);
+
+        // Sign live-pro avatars and pull any currently-active offer per pro
+        // in parallel — both are best-effort and downgrade silently on error.
+        const liveRows = proProfiles ?? [];
+        const proIds = liveRows.map((r) => r.user_id).filter(Boolean);
+
+        const avatarSigning = Promise.all(
+          liveRows.map(async (row) => {
+            if (!row.avatar_path) return [row.user_id, null] as const;
+            const { data: signed } = await supabase.storage
+              .from("pro-photos")
+              .createSignedUrl(row.avatar_path, 3600);
+            return [row.user_id, signed?.signedUrl ?? null] as const;
+          }),
+        );
+
+        const offersQuery =
+          proIds.length > 0
+            ? supabase
+                .from("pro_offers")
+                .select("pro_user_id,title,code,starts_at,ends_at,is_active,created_at")
+                .in("pro_user_id", proIds)
+                .eq("is_active", true)
+                .order("created_at", { ascending: false })
+            : Promise.resolve({ data: [], error: null } as const);
+
+        const [avatarPairs, { data: offers }] = await Promise.all([
+          avatarSigning,
+          offersQuery,
+        ]);
+        if (cancelled) return;
+
+        const avatarMap = new Map<string, string | null>(avatarPairs);
+        // Pick the newest active offer per pro whose window is currently open.
+        const nowMs = Date.now();
+        const offerMap = new Map<string, { title: string; code: string | null }>();
+        for (const o of offers ?? []) {
+          const starts = o.starts_at ? new Date(o.starts_at).getTime() : -Infinity;
+          const ends = o.ends_at ? new Date(o.ends_at).getTime() : Infinity;
+          if (starts <= nowMs && ends >= nowMs && !offerMap.has(o.pro_user_id)) {
+            offerMap.set(o.pro_user_id, { title: o.title, code: o.code ?? null });
+          }
+        }
 
         const dbPros: Professional[] = (data ?? []).map((row) => {
           const type = row.type as ProType;
@@ -74,7 +122,7 @@ export function useDirectoryProfessionals() {
         });
 
         // Live approved pros from pro_profiles.
-        const livePros: Professional[] = (proProfiles ?? []).map((row) => {
+        const livePros: Professional[] = liveRows.map((row) => {
           const t = row.discipline as string;
           const type: ProType =
             t === "Trichologist" || t === "Dermatologist"
@@ -82,9 +130,17 @@ export function useDirectoryProfessionals() {
               : "Curl Specialist";
           const emoji =
             type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
-          const insta = row.instagram_handle ? `@${row.instagram_handle}` : "";
-          const instaUrl = row.instagram_handle
-            ? `https://www.instagram.com/${row.instagram_handle.replace(/^@/, "")}/`
+          const rawHandle = row.instagram_handle?.replace(/^@/, "") ?? "";
+          const insta = rawHandle ? `@${rawHandle}` : "";
+          const instaUrl = rawHandle
+            ? `https://www.instagram.com/${rawHandle}/`
+            : "";
+          const specialisms = (row.specialisms as string[] | null) ?? [];
+          const offer = offerMap.get(row.user_id);
+          const discount = offer
+            ? offer.code
+              ? `${offer.code} — ${offer.title}`
+              : offer.title
             : "";
           return {
             id: row.id,
@@ -95,15 +151,16 @@ export function useDirectoryProfessionals() {
             verified: "Specialist",
             clinic: row.display_name,
             location: row.postcode ?? row.location ?? "",
-            specs: [],
+            specs: specialisms,
             bio: row.bio ?? "",
             insta,
             instaUrl,
             website: row.website_url ?? instaUrl,
-            bookCode: "",
-            discount: "",
+            bookCode: offer?.code ?? "",
+            discount,
             bookingUrl: row.booking_url ?? row.website_url ?? undefined,
             featured: true,
+            photoUrl: avatarMap.get(row.user_id) ?? undefined,
             gmcNumber: undefined,
             iotNumber: undefined,
             proUserId: row.user_id ?? undefined,
