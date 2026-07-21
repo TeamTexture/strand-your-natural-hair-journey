@@ -168,7 +168,7 @@ const OfferPage = () => {
           <>
             <SectionLabel className="!px-0">Products in this offer</SectionLabel>
             {(offer.brand_products ?? []).map((p) => {
-              const existing = findExisting(p);
+              const existing = findExisting(normalize(p));
               const alreadyWishlisted = !!existing?.on_wishlist;
               return (
                 <SurfaceCard key={p.id} className="space-y-2.5">
