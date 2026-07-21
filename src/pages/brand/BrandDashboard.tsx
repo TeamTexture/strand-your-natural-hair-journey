@@ -10,6 +10,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
