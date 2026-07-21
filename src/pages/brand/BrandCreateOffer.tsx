@@ -348,7 +348,15 @@ const BrandCreateOffer = () => {
     }
   };
 
+  const isCatalogueItemAttached = (item: CatalogueItem) =>
+    products.some((p) => p.linked_product_id === item.source_id && p.kind === item.kind);
+
   const attachCatalogueItem = (item: CatalogueItem) => {
+    if (isCatalogueItemAttached(item)) {
+      setProducts((prev) => prev.filter((p) => !(p.linked_product_id === item.source_id && p.kind === item.kind)));
+      toast.success(`${item.kind === "tool" ? "Tool" : "Product"} removed`);
+      return;
+    }
     const label = item.kind === "tool" ? "tool" : "product";
     setProducts((prev) => [
       ...prev,
