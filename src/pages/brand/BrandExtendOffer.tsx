@@ -27,8 +27,10 @@ const BrandExtendOffer = () => {
   const { id } = useParams();
   const nav = useNavigate();
   const { user } = useAuth();
+  const ownerMode = useOwnerMode();
   const { data: offer, isLoading } = useBrandOffer(id);
   const [cloning, setCloning] = useState(false);
+
 
   const [tick, setTick] = useState(() => new Date());
   useEffect(() => {
