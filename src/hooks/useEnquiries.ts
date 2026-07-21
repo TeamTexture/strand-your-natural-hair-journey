@@ -15,6 +15,23 @@ export interface Enquiry {
   decline_reason: string | null;
   created_at: string;
   updated_at: string;
+  service_interest: string | null;
+  preferred_timeframe: string | null;
+  contact_method: string | null;
+  contact_phone: string | null;
+  location_preference: string | null;
+  budget_range: string | null;
+}
+
+export interface CreateEnquiryInput {
+  pro_user_id: string;
+  note?: string | null;
+  service_interest?: string | null;
+  preferred_timeframe?: string | null;
+  contact_method?: string | null;
+  contact_phone?: string | null;
+  location_preference?: string | null;
+  budget_range?: string | null;
 }
 
 export interface ClientAccess {
