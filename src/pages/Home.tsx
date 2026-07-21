@@ -125,6 +125,7 @@ const Home = () => {
 
 
   // Resolve the display name from the profiles table first
+  const [helloKleanOpen, setHelloKleanOpen] = useState(false);
   useEffect(() => {
     if (!user) { setFirstName(""); return; }
     let cancelled = false;
@@ -136,15 +137,26 @@ const Home = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, postcode")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (!cancelled && data?.display_name) {
+      if (cancelled) return;
+      if (data?.display_name) {
         setFirstName(data.display_name.split(" ")[0]);
+      }
+      // If a goal was just saved and the user lives in a hard-water area,
+      // surface the Hello Klean member-perk popup on this Home visit.
+      const pending = consumeHelloKleanPrompt(user.id);
+      if (pending) {
+        const water = lookupHardWater(data?.postcode);
+        if (water && (water.hardness === "hard" || water.hardness === "very-hard")) {
+          setHelloKleanOpen(true);
+        }
       }
     })();
     return () => { cancelled = true; };
   }, [user]);
+
 
   // Next appointment
   useEffect(() => {
