@@ -386,7 +386,7 @@ const BrandCreateOffer = () => {
     if (!user) return;
     if (!asDraft && !headline.trim()) return toast.error("Add a headline.");
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
-    if (!asDraft && totalDays === 0) return toast.error("Select at least one placement date.");
+    if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
     if (!asDraft && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);
