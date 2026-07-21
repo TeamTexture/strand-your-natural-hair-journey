@@ -62,6 +62,7 @@ const ProfileStep1 = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [postcode, setPostcode] = useState("");
   const [country, setCountry] = useState("United Kingdom");
