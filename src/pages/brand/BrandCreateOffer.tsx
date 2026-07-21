@@ -622,7 +622,7 @@ const BrandCreateOffer = () => {
         </SurfaceCard>
 
         <SectionLabel className="!px-0">Live preview</SectionLabel>
-        <div className="flex flex-wrap gap-1.5 text-[11px]">
+        <div className="flex flex-wrap gap-1.5 text-[11px] items-center">
           <button
             type="button"
             onClick={() => setPreviewMode("collapsed")}
@@ -637,6 +637,15 @@ const BrandCreateOffer = () => {
           >
             Expanded
           </button>
+          <label className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground font-body cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showSafeArea}
+              onChange={(e) => setShowSafeArea(e.target.checked)}
+              className="accent-emerald-500"
+            />
+            Show safe area
+          </label>
         </div>
         <div className="w-full min-w-0 overflow-hidden rounded-[12px] bg-muted/40 p-2">
           <BannerPreview
@@ -647,8 +656,18 @@ const BrandCreateOffer = () => {
             productName={firstProduct?.name}
             productImageUrl={firstProductImage}
             expanded={previewMode === "expanded"}
+            showSafeArea={showSafeArea}
           />
         </div>
+        {showSafeArea && (
+          <p className="text-[11px] text-muted-foreground font-body leading-snug px-1 -mt-1">
+            <span className="inline-block w-2 h-2 rounded-sm bg-emerald-400 align-middle mr-1" />
+            Keep headlines, logos & key product imagery inside the dashed safe zone.
+            <span className="inline-block w-2 h-2 rounded-sm bg-red-500/70 align-middle mx-1" />
+            The outer 4–10% is bleed — on some phones it may be cropped, so avoid placing text right against the edge.
+          </p>
+        )}
+
 
         <SectionLabel className="!px-0">Attach products &amp; tools</SectionLabel>
         <SurfaceCard className="space-y-3">
