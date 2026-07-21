@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Loader2, ShieldOff, ShieldCheck, Activity } from "lucide-react";
+import { Search, Loader2, ShieldOff, ShieldCheck, Activity, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -66,6 +66,8 @@ const AdminMembers = () => {
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
   const [restrictTarget, setRestrictTarget] = useState<MemberRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
@@ -194,6 +196,23 @@ const AdminMembers = () => {
     },
     onError: (err) => {
       toast.error((err as Error).message ?? "Could not unrestrict");
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      return data as { ok: boolean };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      toast.success("Member deleted. All their data has been removed.");
+    },
+    onError: (err) => {
+      toast.error((err as Error).message ?? "Could not delete member");
     },
   });
 
@@ -422,6 +441,21 @@ const AdminMembers = () => {
                     </Button>
                   )}
                 </div>
+                <div className="mt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full h-9 rounded-pill text-[12px] font-body text-destructive hover:text-destructive hover:bg-destructive/10"
+                    disabled={isSelf || deleteUser.isPending}
+                    onClick={() => {
+                      setDeleteConfirm("");
+                      setDeleteTarget(r);
+                    }}
+                  >
+                    <Trash2 className="size-3.5 mr-1.5" />
+                    {isSelf ? "Cannot delete yourself" : "Delete account"}
+                  </Button>
+                </div>
               </SurfaceCard>
             );
           })
@@ -459,6 +493,67 @@ const AdminMembers = () => {
               }}
             >
               Restrict
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDeleteTarget(null);
+            setDeleteConfirm("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this member?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This permanently deletes{" "}
+                  <span className="font-semibold">
+                    {deleteTarget?.display_name ?? deleteTarget?.email ?? "this member"}
+                  </span>{" "}
+                  and every record they own — profile, wash days, journals, products, appointments,
+                  moodboards, blood work, subscriptions and role. This cannot be undone.
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-foreground/75">
+                  <li>Any active Stripe subscription (consumer and/or pro) will be cancelled first.</li>
+                  <li>The auth account is removed — they'll need to sign up again to return.</li>
+                </ul>
+                <p className="pt-2">
+                  Type <span className="font-mono font-semibold">DELETE</span> to confirm:
+                </p>
+                <Input
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE"
+                  autoFocus
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteConfirm !== "DELETE" || deleteUser.isPending}
+              onClick={(e) => {
+                if (deleteConfirm !== "DELETE") {
+                  e.preventDefault();
+                  return;
+                }
+                if (deleteTarget) {
+                  deleteUser.mutate(deleteTarget.user_id);
+                  setDeleteTarget(null);
+                  setDeleteConfirm("");
+                }
+              }}
+            >
+              Delete permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
