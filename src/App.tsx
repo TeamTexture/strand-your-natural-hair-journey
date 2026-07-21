@@ -161,6 +161,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ViewAsProvider>
         <AuthProvider>
           <BackButtonProvider>
             <GlobalEffects />
@@ -356,6 +357,7 @@ const App = () => (
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />
               <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
               <Route path="/admin/professionals" element={<RoleGate allow={["admin"]}><AdminProfessionals /></RoleGate>} />
+              <Route path="/admin/view-as" element={<RoleGate allow={["admin"]}><AdminViewAs /></RoleGate>} />
 
               {/* Brand routes */}
               <Route path="/brand/auth" element={<BrandAuth />} />
@@ -397,6 +399,7 @@ const App = () => (
           </PhoneShell>
         </BackButtonProvider>
         </AuthProvider>
+        </ViewAsProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
