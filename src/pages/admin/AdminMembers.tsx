@@ -497,6 +497,67 @@ const AdminMembers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDeleteTarget(null);
+            setDeleteConfirm("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this member?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This permanently deletes{" "}
+                  <span className="font-semibold">
+                    {deleteTarget?.display_name ?? deleteTarget?.email ?? "this member"}
+                  </span>{" "}
+                  and every record they own — profile, wash days, journals, products, appointments,
+                  moodboards, blood work, subscriptions and role. This cannot be undone.
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-foreground/75">
+                  <li>Any active Stripe subscription (consumer and/or pro) will be cancelled first.</li>
+                  <li>The auth account is removed — they'll need to sign up again to return.</li>
+                </ul>
+                <p className="pt-2">
+                  Type <span className="font-mono font-semibold">DELETE</span> to confirm:
+                </p>
+                <Input
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE"
+                  autoFocus
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteConfirm !== "DELETE" || deleteUser.isPending}
+              onClick={(e) => {
+                if (deleteConfirm !== "DELETE") {
+                  e.preventDefault();
+                  return;
+                }
+                if (deleteTarget) {
+                  deleteUser.mutate(deleteTarget.user_id);
+                  setDeleteTarget(null);
+                  setDeleteConfirm("");
+                }
+              }}
+            >
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
