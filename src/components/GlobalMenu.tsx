@@ -59,6 +59,7 @@ const HIDDEN_PREFIXES = ["/auth", "/onboarding", "/walkthrough", "/setup", "/.lo
 
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
+  const { isConsumer, isProfessional, isAdmin } = useRoles();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -70,6 +71,25 @@ const GlobalMenu = () => {
     HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
 
   if (hidden) return null;
+
+  const path = location.pathname;
+  const activeView: "consumer" | "pro" | "admin" = path.startsWith("/admin")
+    ? "admin"
+    : path.startsWith("/pro")
+      ? "pro"
+      : "consumer";
+
+  const roleCount = [isConsumer, isProfessional, isAdmin].filter(Boolean).length;
+  const showViewSwitcher = roleCount > 1;
+
+  const viewMeta = {
+    consumer: { label: "My STRAND", icon: HomeIcon, to: "/home" },
+    pro: { label: "Professional", icon: Briefcase, to: "/pro" },
+    admin: { label: "Admin", icon: ShieldCheck, to: "/admin/applications" },
+  } as const;
+
+  const ActiveIcon = viewMeta[activeView].icon;
+
 
   const go = (to: string) => {
     setOpen(false);
