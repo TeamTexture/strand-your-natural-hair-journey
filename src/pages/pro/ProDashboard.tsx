@@ -152,6 +152,16 @@ const ProDashboard = () => {
                   <ChevronRight className="size-3.5 text-muted-foreground" />
                 </button>
               )}
+              {isAdmin && (
+                <button
+                  onClick={() => nav("/admin/audit")}
+                  className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+                >
+                  <ShieldCheck className="size-4 text-primary/70" />
+                  <span className="flex-1">Audit trail</span>
+                  <ChevronRight className="size-3.5 text-muted-foreground" />
+                </button>
+              )}
             </div>
           </>
         )}
