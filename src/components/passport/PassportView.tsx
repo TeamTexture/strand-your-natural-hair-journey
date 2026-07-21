@@ -1200,11 +1200,16 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d.productPhotos]);
 
+  const openProduct = useContext(OpenProductContext);
   const renderProductRow = (p: PassportDataset["shelf"][number]) => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
     const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
     return (
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        onClick={() => openProduct?.(p as PassportProduct)}
+        className="w-full flex items-start gap-3 text-left hover:opacity-90 active:opacity-75 transition-opacity"
+      >
         <Thumb bucket="product-photos" path={photo ?? null} className="size-11 shrink-0 rounded-lg" title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
           <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
@@ -1217,38 +1222,8 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
             </p>
           )}
         </div>
-      </div>
-    );
-  };
-
-  const ProductInner = ({ p }: { p: PassportDataset["shelf"][number] }) => {
-    const key = (p as Record<string, unknown>).product_key as string | undefined;
-    const voicenotes = key ? d.productVoicenotes.filter(v => v.product_key === key) : [];
-    const ingredients = Array.isArray((p as Record<string, unknown>).ingredients) ? ((p as Record<string, unknown>).ingredients as unknown[]).map(String) : [];
-    return (
-      <>
-        <HumanFields obj={p as Record<string, unknown>} exclude={["name", "brand", "category", "rating", "off_shelf_voice_url", "ingredients"]} />
-        {ingredients.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Ingredients</p>
-            <p className="text-[12px] font-body leading-relaxed text-foreground/85">{ingredients.join(", ")}</p>
-          </div>
-        )}
-        {voicenotes.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Voice notes</p>
-            <div className="space-y-2">
-              {voicenotes.map(v => (
-                <div key={v.id} className="border-l-2 border-primary/30 pl-3">
-                  <p className="text-[11px] text-muted-foreground font-body">{formatDate(v.created_at)}</p>
-                  <AudioPlayer bucket="voicenotes" path={v.audio_url} transcript={v.transcript} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <AudioPlayer bucket="voicenotes" path={((p as Record<string, unknown>).off_shelf_voice_url as string | null) ?? null} label="Off-shelf voice note" />
-      </>
+        <ChevronDown className="size-4 text-muted-foreground/60 shrink-0 mt-1 -rotate-90" />
+      </button>
     );
   };
 
@@ -1267,15 +1242,16 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
         </p>
         <div className="space-y-2">
           {list.slice(0, n).map(p => (
-            <Collapsible key={p.id} summary={renderProductRow(p)}>
-              <ProductInner p={p} />
-            </Collapsible>
+            <SurfaceCard key={p.id}>
+              {renderProductRow(p)}
+            </SurfaceCard>
           ))}
           <LoadMore shown={Math.min(n, list.length)} total={list.length} onMore={() => setN(x => x + 8)} />
         </div>
       </div>
     );
   };
+
 
   return (
     <>
