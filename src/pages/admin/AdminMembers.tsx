@@ -34,6 +34,9 @@ interface MemberRow {
   subscription_status: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
+  session_count: number;
+  last_session: string | null;
+  sessions_last_30d: number;
 }
 
 function statusBadge(row: MemberRow) {
@@ -47,6 +50,13 @@ function statusBadge(row: MemberRow) {
 }
 
 type Filter = "all" | "active" | "complimentary" | "restricted";
+type SortKey = "recent" | "most_active";
+
+function activityLevel(sessions30d: number): "high" | "active" | null {
+  if (sessions30d >= 15) return "high";
+  if (sessions30d >= 5) return "active";
+  return null;
+}
 
 const AdminMembers = () => {
   const nav = useNavigate();
