@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { usePassportData, type PassportDataset } from "./usePassportData";
 import SignedImage from "./SignedImage";
+import { lookupHardWater } from "@/lib/hardWater";
 
 type Section =
   | "overview" | "blood" | "colour" | "wash" | "journal" | "shelf"
@@ -211,21 +212,41 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d]);
 
+  const hardWater = d.profile?.postcode ? lookupHardWater(d.profile.postcode) : null;
+  const avatarUrl = d.profile?.avatar_url ?? null;
+  const avatarIsHttp = typeof avatarUrl === "string" && /^https?:\/\//.test(avatarUrl);
+
   return (
     <>
       <SectionLabel>Identity</SectionLabel>
       <SurfaceCard>
         {d.profile ? (
-          <div className="space-y-1.5">
-            <Row label="Name" value={d.profile.display_name} />
-            <Row label="Email" value={d.authEmail} />
-            <Row label="Age" value={d.profile.age != null ? `${d.profile.age} (born ${d.profile.birth_year})` : null} />
-            <Row label="Heritage" value={d.profile.heritage.length ? d.profile.heritage.join(", ") : null} />
-            <Row label="Postcode" value={d.profile.postcode} />
-            <Row label="Country" value={d.profile.country} />
-            <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
-            <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
-            <AllFields obj={d.profile} exclude={["display_name", "avatar_url", "birth_year", "age", "heritage", "postcode", "country", "created_at", "onboarding_completed_at"]} />
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              {avatarIsHttp ? (
+                <img src={avatarUrl!} alt="" className="size-16 rounded-full object-cover border border-border" />
+              ) : avatarUrl ? (
+                <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-16 rounded-full overflow-hidden border border-border" />
+              ) : (
+                <div className="size-16 rounded-full bg-muted border border-border flex items-center justify-center text-lg font-body font-semibold text-muted-foreground">
+                  {(d.profile.display_name ?? "?").trim().charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-body font-semibold truncate">{d.profile.display_name ?? "—"}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{d.authEmail ?? "—"}</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Row label="Age" value={d.profile.age != null ? `${d.profile.age} (born ${d.profile.birth_year})` : null} />
+              <Row label="Heritage" value={d.profile.heritage.length ? d.profile.heritage.join(", ") : null} />
+              <Row label="Postcode" value={d.profile.postcode} />
+              <Row label="Water hardness" value={hardWater ? `${hardWater.label} (${hardWater.area}) — ${hardWater.explanation}` : null} />
+              <Row label="Country" value={d.profile.country} />
+              <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
+              <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
+              <AllFields obj={d.profile} exclude={["display_name", "avatar_url", "birth_year", "age", "heritage", "postcode", "country", "created_at", "onboarding_completed_at"]} />
+            </div>
           </div>
         ) : <p className="text-xs text-muted-foreground">No profile recorded.</p>}
       </SurfaceCard>
@@ -644,47 +665,63 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d]);
 
+  const renderProduct = (p: PassportDataset["shelf"][number]) => {
+    const key = (p as Record<string, unknown>).product_key as string | undefined;
+    const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
+    const voicenotes = key ? notesByKey.get(key) ?? [] : [];
+    const status = p.on_favourite ? "Favourite" : p.on_shelf ? "On shelf" : p.on_wishlist ? "Wishlist" : "Off shelf";
+    return (
+      <Collapsible key={p.id} summary={
+        <div className="flex items-center gap-3">
+          <Thumb bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-body font-semibold truncate">{p.name}</p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-primary mt-0.5">
+              {status}{p.rating != null ? ` · ★ ${String(p.rating)}` : ""}
+            </p>
+          </div>
+        </div>
+      }>
+        <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url"]} />
+        {voicenotes.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Voice notes</p>
+            {voicenotes.map(v => (
+              <div key={v.id} className="border-l-2 border-primary/30 pl-2.5 mb-2">
+                <p className="text-[11px] text-muted-foreground">{format(new Date(v.created_at), "d MMM yyyy")}</p>
+                <AudioButton bucket="voicenotes" path={v.audio_url} transcriptFallback={v.transcript} />
+              </div>
+            ))}
+          </div>
+        )}
+        <AudioButton bucket="voicenotes" path={(p as Record<string, unknown>).off_shelf_voice_url as string | null} />
+      </Collapsible>
+    );
+  };
+
+  const favourites = d.shelf.filter(p => p.on_favourite);
+  const onShelf = d.shelf.filter(p => !p.on_favourite && p.on_shelf);
+  const wishlist = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && p.on_wishlist);
+  const offShelf = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && !p.on_wishlist);
+
+  const Group = ({ title, list }: { title: string; list: PassportDataset["shelf"] }) => (
+    <>
+      <SectionLabel>{title} ({list.length})</SectionLabel>
+      {list.length === 0 ? <EmptyCard msg="Nothing here." /> : <PaginatedList items={list} empty="Nothing here." render={renderProduct} />}
+    </>
+  );
+
+  if (d.shelf.length === 0) return <EmptyCard msg="No products recorded." />;
   return (
-    <PaginatedList
-      items={d.shelf}
-      empty="No products recorded."
-      render={(p) => {
-        const key = (p as Record<string, unknown>).product_key as string | undefined;
-        const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
-        const voicenotes = key ? notesByKey.get(key) ?? [] : [];
-        const status = p.on_favourite ? "Favourite" : p.on_shelf ? "On shelf" : p.on_wishlist ? "Wishlist" : "Off shelf";
-        return (
-          <Collapsible key={p.id} summary={
-            <div className="flex items-center gap-3">
-              <Thumb bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-body font-semibold truncate">{p.name}</p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}
-                </p>
-                <p className="text-[10px] uppercase tracking-[0.1em] text-primary mt-0.5">
-                  {status}{p.rating != null ? ` · ★ ${String(p.rating)}` : ""}
-                </p>
-              </div>
-            </div>
-          }>
-            <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url"]} />
-            {voicenotes.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Voice notes</p>
-                {voicenotes.map(v => (
-                  <div key={v.id} className="border-l-2 border-primary/30 pl-2.5 mb-2">
-                    <p className="text-[11px] text-muted-foreground">{format(new Date(v.created_at), "d MMM yyyy")}</p>
-                    <AudioButton bucket="voicenotes" path={v.audio_url} transcriptFallback={v.transcript} />
-                  </div>
-                ))}
-              </div>
-            )}
-            <AudioButton bucket="voicenotes" path={(p as Record<string, unknown>).off_shelf_voice_url as string | null} />
-          </Collapsible>
-        );
-      }}
-    />
+    <>
+      <Group title="On shelf" list={onShelf} />
+      <Group title="Favourites" list={favourites} />
+      <Group title="Wishlist" list={wishlist} />
+      <Group title="Off shelf" list={offShelf} />
+    </>
   );
 };
 
@@ -803,22 +840,60 @@ const PhotosSection = ({ d }: { d: PassportDataset }) => (
   </>
 );
 
-const NutritionSection = ({ d }: { d: PassportDataset }) => (
-  <PaginatedList
-    items={d.savedMeals}
-    empty="No saved meals."
-    render={(m) => (
-      <Collapsible key={m.id} summary={
-        <div>
-          <p className="text-sm font-body font-semibold">{String(m.emoji ?? "🍲")} {m.name ?? "Meal"}</p>
-          <p className="text-[11px] text-muted-foreground">{String(m.cuisine ?? "—")}{m.time_minutes ? ` · ${String(m.time_minutes)}m` : ""}</p>
-        </div>
-      }>
-        <AllFields obj={m as Record<string, unknown>} exclude={["emoji"]} />
-      </Collapsible>
-    )}
-  />
-);
+const NutritionSection = ({ d }: { d: PassportDataset }) => {
+  if (d.nutritionSummaries.length === 0) {
+    return <EmptyCard msg="No nutrition guidance generated yet." />;
+  }
+  return (
+    <>
+      <SectionLabel>Nutrition & supplement guidance</SectionLabel>
+      {d.nutritionSummaries.map((s, idx) => (
+        <Collapsible key={s.id} defaultOpen={idx === 0} summary={
+          <div>
+            <p className="text-sm font-body font-semibold">{idx === 0 ? "Latest nutrition plan" : "Previous plan"}</p>
+            <p className="text-[11px] text-muted-foreground">Generated {format(new Date(s.created_at), "d MMM yyyy")}</p>
+          </div>
+        }>
+          {(() => {
+            const p = s.payload as Record<string, unknown> | string | null;
+            if (typeof p === "string") {
+              return <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{p}</p>;
+            }
+            if (!p || typeof p !== "object") {
+              return <p className="text-xs text-muted-foreground">No plan data.</p>;
+            }
+            const summary = typeof p.summary === "string" ? p.summary : null;
+            const supplements = Array.isArray(p.supplements) ? p.supplements as Array<Record<string, unknown>> : [];
+            const diet = Array.isArray(p.diet) ? p.diet as Array<Record<string, unknown>> : [];
+            const CardList = ({ items, title }: { items: Array<Record<string, unknown>>; title: string }) => (
+              items.length === 0 ? null : (
+                <div className="mt-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">{title}</p>
+                  <div className="space-y-2">
+                    {items.map((it, i) => (
+                      <div key={i} className="border-l-2 border-primary/40 pl-2.5">
+                        {it.title ? <p className="text-[13px] font-semibold">{String(it.title)}</p> : null}
+                        {it.dose ? <p className="text-[11px] text-muted-foreground">{String(it.dose)}</p> : null}
+                        {it.body ? <p className="text-[12px] whitespace-pre-wrap leading-relaxed mt-1">{String(it.body)}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            );
+            return (
+              <div>
+                {summary && <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{summary}</p>}
+                <CardList items={supplements} title="Supplement guidance" />
+                <CardList items={diet} title="Dietary guidance" />
+              </div>
+            );
+          })()}
+        </Collapsible>
+      ))}
+    </>
+  );
+};
 
 const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
   const byBoard = useMemo(() => {
@@ -861,34 +936,51 @@ const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
 };
 
 const IngredientsSection = ({ d }: { d: PassportDataset }) => {
-  const avoid = d.ingredientLists.filter(l => l.list_kind === "avoid");
-  const favourite = d.ingredientLists.filter(l => l.list_kind === "favourite");
-  const other = d.ingredientLists.filter(l => l.list_kind !== "avoid" && l.list_kind !== "favourite");
-  const Section = ({ title, list }: { title: string; list: typeof d.ingredientLists }) => (
+  // Compute ingredients that appear in 3+ of the user's products.
+  const shared = useMemo(() => {
+    const counts = new Map<string, { label: string; count: number; products: string[] }>();
+    for (const p of d.shelf) {
+      const list = (p as Record<string, unknown>).ingredients as unknown;
+      if (!Array.isArray(list)) continue;
+      const seenThisProduct = new Set<string>();
+      for (const raw of list) {
+        if (typeof raw !== "string") continue;
+        const label = raw.trim();
+        if (!label) continue;
+        const key = label.toLowerCase();
+        if (seenThisProduct.has(key)) continue;
+        seenThisProduct.add(key);
+        const cur = counts.get(key) ?? { label, count: 0, products: [] };
+        cur.count += 1;
+        cur.products.push(String(p.name ?? "Product"));
+        counts.set(key, cur);
+      }
+    }
+    return Array.from(counts.values())
+      .filter(x => x.count >= 3)
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  }, [d.shelf]);
+
+  return (
     <>
-      <SectionLabel>{title}</SectionLabel>
-      {list.length === 0 ? <EmptyCard msg="Nothing here." /> : (
+      <SectionLabel>Ingredients across 3+ products</SectionLabel>
+      {shared.length === 0 ? (
+        <EmptyCard msg="No ingredient appears in 3 or more of this member's products yet." />
+      ) : (
         <SurfaceCard>
-          <div className="space-y-1.5">
-            {list.map(i => (
-              <div key={i.id} className="text-[12px] flex justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium break-words">{i.ingredient}</p>
-                  {i.reason && <p className="text-[11px] text-muted-foreground leading-snug">{i.reason}</p>}
+          <div className="space-y-2">
+            {shared.map((i) => (
+              <div key={i.label} className="text-[12px]">
+                <div className="flex justify-between gap-2">
+                  <p className="font-medium break-words flex-1">{i.label}</p>
+                  <span className="text-[11px] text-muted-foreground shrink-0">{i.count} products</span>
                 </div>
-                {i.product_count != null && <span className="text-[11px] text-muted-foreground">{i.product_count} prod</span>}
+                <p className="text-[11px] text-muted-foreground leading-snug truncate">{i.products.slice(0, 6).join(", ")}{i.products.length > 6 ? "…" : ""}</p>
               </div>
             ))}
           </div>
         </SurfaceCard>
       )}
-    </>
-  );
-  return (
-    <>
-      <Section title="Avoid list" list={avoid} />
-      <Section title="Favourites" list={favourite} />
-      {other.length > 0 && <Section title="Other" list={other} />}
     </>
   );
 };
