@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, Check, X, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, Check, X, CreditCard, Eye, MousePointerClick, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -10,15 +10,42 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import LiveOfferCard from "@/components/brand/LiveOfferCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, londonToday, useAllPendingRevisions, useOfferRevisionCounts, useOffersWithPendingRevisions } from "@/hooks/useBrandOffers";
+import {
+  STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, DerivedStatus,
+  useAllPendingRevisions, useOfferRevisionCounts, useOffersWithPendingRevisions,
+  useBrandOfferTotals,
+} from "@/hooks/useBrandOffers";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
+
+const StatusPill = ({ status }: { status: DerivedStatus }) => {
+  const tone =
+    status === "live" ? "bg-good/15 text-good" :
+    status === "upcoming" ? "bg-primary/15 text-primary" :
+    status === "under_review" ? "bg-warn/15 text-warn" :
+    status === "approved_unpaid" ? "bg-primary/15 text-primary" :
+    status === "ended" ? "bg-muted text-muted-foreground" :
+    status === "rejected" || status === "cancelled" ? "bg-destructive/10 text-destructive" :
+    "bg-muted text-muted-foreground";
+  return (
+    <span className={`inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium ${tone}`}>
+      {status === "live" && (
+        <span className="relative flex size-1.5">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" />
+          <span className="relative inline-flex size-1.5 rounded-full bg-good" />
+        </span>
+      )}
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  );
+};
 
 const AdminBrandOffers = () => {
   const nav = useNavigate();
@@ -36,7 +63,6 @@ const AdminBrandOffers = () => {
         .select("*, brand_profiles!brand_offers_brand_user_id_fkey(brand_name), brand_offer_placements(*), brand_products(id)")
         .order("submitted_at", { ascending: false, nullsFirst: false });
       if (error) {
-        // Fallback if fk name differs; fetch without join.
         const alt = await supabase.from("brand_offers").select("*, brand_offer_placements(*), brand_products(id)").order("created_at", { ascending: false });
         return alt.data ?? [];
       }
@@ -44,7 +70,6 @@ const AdminBrandOffers = () => {
     },
   });
 
-  // Pull brand subscription statuses for every brand featured in this list.
   const brandIds = Array.from(new Set(offers.map((o) => (o as { brand_user_id?: string }).brand_user_id).filter((v): v is string => !!v)));
   const { data: subsById = {} } = useQuery({
     queryKey: ["admin", "brand-subscriptions", brandIds.sort().join(",")],
@@ -109,21 +134,31 @@ const AdminBrandOffers = () => {
   const { data: revisionCounts = {} } = useOfferRevisionCounts(allIds);
   const { data: pendingRevSet = new Set<string>() } = useOffersWithPendingRevisions(allIds);
 
+  // Derive display status once per offer.
+  const withDerived = useMemo(
+    () => offers.map((o) => ({ ...o, _derived: deriveBrandOfferStatus(o) })),
+    [offers],
+  );
+
+  const trackedOfferIds = useMemo(
+    () => withDerived.filter((o) => ["live", "upcoming", "ended"].includes(o._derived)).map((o) => o.id),
+    [withDerived],
+  );
+  const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
+
   if (isLoading) return <LoadingDot />;
 
-  const today = londonToday();
-  // Derive display status once per offer so admin agrees with what the brand
-  // and consumer are actually seeing.
-  const withDerived = offers.map((o) => ({ ...o, _derived: deriveBrandOfferStatus(o, today) }));
-  const pending = withDerived.filter((o) => o._derived === "under_review");
-  const liveOnly = withDerived.filter((o) => o._derived === "live");
-  const other = withDerived.filter((o) => o._derived !== "under_review");
+  const drafts = withDerived.filter((o) => o._derived === "draft");
+  const underReview = withDerived.filter((o) => o._derived === "under_review");
+  const awaitingPayment = withDerived.filter((o) => o._derived === "approved_unpaid");
+  const liveNow = withDerived.filter((o) => o._derived === "live");
+  const upcoming = withDerived.filter((o) => o._derived === "upcoming");
+  const past = withDerived.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived));
 
-
-
-  const showPending = !filter || filter === "pending";
-  const showLive = filter === "live" || filter === "brands";
-  const showOther = !filter;
+  const showAll = !filter;
+  const showPending = showAll || filter === "pending";
+  const showLive = showAll || filter === "live" || filter === "brands";
+  const showOther = showAll;
 
   const filterLabel =
     filter === "pending" ? "Offer requests"
@@ -131,10 +166,84 @@ const AdminBrandOffers = () => {
         : filter === "brands" ? "Live brands"
           : null;
 
+  const brandNameOf = (o: typeof withDerived[number]) =>
+    (o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand";
+
+  const renderOffer = (o: typeof withDerived[number]) => {
+    const t = totals[o.id];
+    const placements = o.brand_offer_placements ?? [];
+    const slotSet = Array.from(new Set(placements.map((p) => p.slot)));
+    const dates = placements.map((p) => p.placement_date).sort();
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+    const showStats = t && ["live", "upcoming", "ended"].includes(o._derived);
+    return (
+      <button
+        key={o.id}
+        onClick={() => nav(`/admin/brand-offers/${o.id}`)}
+        className="w-full text-left"
+      >
+        <SurfaceCard className="py-3.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-[15px] leading-tight">{o.headline}</p>
+              <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+                {brandNameOf(o)} · {money(o.total_price_pence)}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <StatusPill status={o._derived} />
+              {pendingRevSet.has(o.id) ? (
+                <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-body font-medium">
+                  Revision pending
+                </span>
+              ) : revisionCounts[o.id] ? (
+                <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-muted text-foreground/70 font-body font-medium">
+                  Revised · {revisionCounts[o.id]}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {slotSet.map((s) => (
+              <span key={s} className="text-[10px] font-body px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                {SLOT_LABEL[s as PlacementSlot]}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-body">
+            <span>
+              {o._derived === "upcoming" && startDate
+                ? `Starts ${format(new Date(startDate), "d MMM")}`
+                : startDate
+                  ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}`
+                  : "No dates"}
+            </span>
+            <ChevronRight className="size-3.5 text-muted-foreground" />
+          </div>
+          {showStats && (
+            <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/80">
+              <span className="inline-flex items-center gap-1" title="Impressions"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
+              <span className="inline-flex items-center gap-1" title="Taps (banner opens)"><MousePointerClick className="size-3 text-muted-foreground" /> {t.taps}</span>
+              <span className="inline-flex items-center gap-1" title="Code copies"><Ticket className="size-3 text-muted-foreground" /> {t.code_copies}</span>
+              <span className="inline-flex items-center gap-1" title="Link clicks (visit offer)"><ExternalLink className="size-3 text-muted-foreground" /> {t.link_clicks}</span>
+              <span className="inline-flex items-center gap-1" title="Wishlist adds"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
+            </div>
+          )}
+          {o._derived === "approved_unpaid" && (
+            <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary font-body font-medium">
+              <CreditCard className="size-3" /> Awaiting brand payment
+            </div>
+          )}
+        </SurfaceCard>
+      </button>
+    );
+  };
+
   return (
     <ScreenLayout>
       <TitleBar title={filterLabel ?? "Brand offers"} onBack={() => nav("/admin")} />
-      <div className="px-5 pb-8 space-y-4">
+      <div className="px-5 pb-8 space-y-5">
         {filter && (
           <button
             onClick={() => nav("/admin/brand-offers")}
@@ -147,111 +256,134 @@ const AdminBrandOffers = () => {
           <CalendarIcon className="size-4 mr-1.5" /> Booking calendar
         </Button>
 
-
         {showPending && (
-          <>
-            <SectionLabel className="!px-0">Pending review ({pending.length})</SectionLabel>
-            {pending.length === 0 ? (
+          <div>
+            <SectionLabel className="!px-0">Pending review ({underReview.length})</SectionLabel>
+            {underReview.length === 0 ? (
               <EmptyState icon="✦" message="No offers pending review." tone="card" />
-            ) : pending.map((o) => (
-              <SurfaceCard key={o.id} className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[15px] leading-tight">{o.headline}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {money(o.total_price_pence)}
-                    </p>
-                    {(() => {
-                      const b = subBadge((o as { brand_user_id?: string }).brand_user_id);
-                      if (!b) return null;
-                      const cls = b.tone === "good"
-                        ? "bg-good/15 text-good"
-                        : b.tone === "warn"
-                          ? "bg-warn/20 text-warn"
-                          : "bg-muted text-muted-foreground";
-                      return (
-                        <span className={`inline-block mt-1 text-[9.5px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded font-body ${cls}`}>
-                          Brand access · {b.label}
+            ) : (
+              <div className="space-y-2">
+                {underReview.map((o) => (
+                  <SurfaceCard key={o.id} className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display text-[15px] leading-tight">{o.headline}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {brandNameOf(o)} · {money(o.total_price_pence)}
+                        </p>
+                        {(() => {
+                          const b = subBadge((o as { brand_user_id?: string }).brand_user_id);
+                          if (!b) return null;
+                          const cls = b.tone === "good"
+                            ? "bg-good/15 text-good"
+                            : b.tone === "warn"
+                              ? "bg-warn/20 text-warn"
+                              : "bg-muted text-muted-foreground";
+                          return (
+                            <span className={`inline-block mt-1 text-[9.5px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded font-body ${cls}`}>
+                              Brand access · {b.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      <StatusPill status={o._derived} />
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {Array.from(new Set((o.brand_offer_placements ?? []).map((p) => p.slot))).map((s) => (
+                        <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
+                          {SLOT_LABEL[s as PlacementSlot]}
                         </span>
-                      );
-                    })()}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {Array.from(new Set((o.brand_offer_placements ?? []).map((p) => p.slot))).map((s) => (
-                    <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
-                      {SLOT_LABEL[s as PlacementSlot]}
-                    </span>
-                  ))}
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
-                    {(o.brand_offer_placements ?? []).length} days
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
-                    {(o.brand_products ?? []).length} product{(o.brand_products ?? []).length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="pill" onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="flex-1 text-[12px]">
-                    Review
-                  </Button>
-                  <Button variant="gold" size="pill" onClick={() => approve(o.id)} className="flex-1 text-[12px]">
-                    <Check className="size-3.5 mr-1" /> Approve
-                  </Button>
-                  <Button variant="outline" size="pill" onClick={() => setRejectFor(o.id)} className="text-[12px]">
-                    <X className="size-3.5" />
-                  </Button>
-                </div>
-              </SurfaceCard>
-            ))}
-          </>
+                      ))}
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
+                        {(o.brand_offer_placements ?? []).length} days
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
+                        {(o.brand_products ?? []).length} product{(o.brand_products ?? []).length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="pill" onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="flex-1 text-[12px]">
+                        Review
+                      </Button>
+                      <Button variant="gold" size="pill" onClick={() => approve(o.id)} className="flex-1 text-[12px]">
+                        <Check className="size-3.5 mr-1" /> Approve
+                      </Button>
+                      <Button variant="outline" size="pill" onClick={() => setRejectFor(o.id)} className="text-[12px]">
+                        <X className="size-3.5" />
+                      </Button>
+                    </div>
+                  </SurfaceCard>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {showPending && <PendingRevisionsSection />}
 
-        {showLive && (
-          <>
-            <SectionLabel className="!px-0">
-              {filter === "brands" ? "Live brands" : "Live offers"} ({liveOnly.length})
-            </SectionLabel>
-            {liveOnly.length === 0 ? (
-              <EmptyState icon="✦" message="Nothing running today." tone="card" />
-            ) : liveOnly.map((o) => (
-              <button key={o.id} onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="w-full text-left">
-                <SurfaceCard className="py-2.5 flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[14px] leading-tight truncate">{o.headline}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {STATUS_LABEL[o._derived]}
-                    </p>
-                  </div>
-                  <RevisionBadge pending={pendingRevSet.has(o.id)} count={revisionCounts[o.id]} />
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </SurfaceCard>
-              </button>
-            ))}
-
-          </>
+        {showAll && awaitingPayment.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Awaiting payment</SectionLabel>
+            <div className="space-y-2">{awaitingPayment.map(renderOffer)}</div>
+          </div>
         )}
 
-        {showOther && (
-          <>
-            <SectionLabel className="!px-0">All offers</SectionLabel>
-            {other.map((o) => (
-              <button key={o.id} onClick={() => nav(`/admin/brand-offers/${o.id}`)} className="w-full text-left">
-                <SurfaceCard className="py-2.5 flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[14px] leading-tight truncate">{o.headline}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {STATUS_LABEL[o._derived]} · {money(o.total_price_pence)}
-                    </p>
-                  </div>
-                  <RevisionBadge pending={pendingRevSet.has(o.id)} count={revisionCounts[o.id]} />
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </SurfaceCard>
-              </button>
-            ))}
+        {showLive && (
+          <div>
+            <SectionLabel className="!px-0">
+              {filter === "brands" ? "Live brands" : "Live"} ({liveNow.length})
+            </SectionLabel>
+            {liveNow.length === 0 ? (
+              <EmptyState icon="✦" message="Nothing running today." tone="card" />
+            ) : (
+              <div className="space-y-3">
+                {liveNow.map((o) => {
+                  const placements = o.brand_offer_placements ?? [];
+                  const dates = placements.map((p) => p.placement_date).sort();
+                  return (
+                    <div key={o.id} className="space-y-1">
+                      <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground px-0.5">
+                        {brandNameOf(o)}
+                      </p>
+                      <LiveOfferCard
+                        id={o.id}
+                        headline={o.headline}
+                        heroImagePath={o.hero_image_path}
+                        slots={placements.map((p) => p.slot)}
+                        startDate={dates[0]}
+                        endDate={dates[dates.length - 1]}
+                        totals={totals[o.id]}
+                        hasPendingRevision={pendingRevSet.has(o.id)}
+                        revisionCount={revisionCounts[o.id]}
+                        onReview={() => nav(`/admin/brand-offers/${o.id}`)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
-          </>
+        {showAll && upcoming.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Upcoming</SectionLabel>
+            <div className="space-y-2">{upcoming.map(renderOffer)}</div>
+          </div>
+        )}
+
+        {showAll && drafts.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Drafts</SectionLabel>
+            <div className="space-y-2">{drafts.map(renderOffer)}</div>
+          </div>
+        )}
+
+        {showOther && past.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Past</SectionLabel>
+            <div className="space-y-2">{past.map(renderOffer)}</div>
+          </div>
         )}
       </div>
 
@@ -274,7 +406,7 @@ const PendingRevisionsSection = () => {
   const { data: revisions = [] } = useAllPendingRevisions();
   if (revisions.length === 0) return null;
   return (
-    <>
+    <div className="space-y-2">
       <div className="flex items-center gap-2 pt-1">
         <SectionLabel className="!px-0 !text-destructive">Urgent — pending revisions ({revisions.length})</SectionLabel>
         <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
@@ -307,25 +439,8 @@ const PendingRevisionsSection = () => {
           </button>
         );
       })}
-    </>
-  );
-};
-
-const RevisionBadge = ({ pending, count }: { pending: boolean; count: number | undefined }) => {
-  if (pending) {
-    return (
-      <span className="shrink-0 text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-body font-medium">
-        Revision pending
-      </span>
-    );
-  }
-  if (!count) return null;
-  return (
-    <span className="shrink-0 text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-muted text-foreground/70 font-body font-medium">
-      Revised · {count}
-    </span>
+    </div>
   );
 };
 
 export default AdminBrandOffers;
-
