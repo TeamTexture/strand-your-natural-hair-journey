@@ -156,7 +156,7 @@ const SplashScreen = () => {
           New to Strand? Create an account
         </button>
 
-        <div className="mt-4 pt-4 border-t border-border/60 text-center">
+        <div className="mt-4 pt-4 border-t border-border/60 text-center space-y-1">
           <p className="text-[11px] text-muted-foreground font-body">
             Are you a professional?{" "}
             <button
@@ -165,6 +165,16 @@ const SplashScreen = () => {
               className="text-primary underline underline-offset-2 hover:text-primary/80"
             >
               Apply to join
+            </button>
+          </p>
+          <p className="text-[11px] text-muted-foreground font-body">
+            Are you a brand?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/brand/auth")}
+              className="text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              Place offers
             </button>
           </p>
         </div>
