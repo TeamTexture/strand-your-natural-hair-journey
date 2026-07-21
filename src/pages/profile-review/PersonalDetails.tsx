@@ -44,7 +44,7 @@ const PersonalDetailsReview = () => {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "display_name, birth_year, postcode, country, heritage, avatar_url",
+          "display_name, phone_number, birth_year, postcode, country, heritage, avatar_url",
         )
         .eq("user_id", user.id)
         .maybeSingle();
