@@ -254,9 +254,12 @@ const ProfileStep1 = () => {
   };
 
   // Per-field validity (only surface errors after submit-attempt).
+  const phoneDigits = phone.replace(/\D/g, "");
   const errors = {
     photo: !avatarPath ? "Add a profile photo to continue" : "",
     name: name.trim().length === 0 ? "Enter your full name" : "",
+    phone:
+      phoneDigits.length < 7 ? "Enter your mobile number" : "",
     age: age === "" ? "Select your age" : "",
     postcode:
       postcode.trim().length < 3 ? "Enter a postcode (at least 3 characters)" : "",
