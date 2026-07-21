@@ -163,10 +163,10 @@ const App = () => (
 
               {/* Main app */}
               <Route path="/home" element={<Paid><Home /></Paid>} />
-              <Route path="/profile/personal" element={<Protected><PersonalDetailsReview /></Protected>} />
-              <Route path="/profile/health" element={<Protected><HealthReview /></Protected>} />
-              <Route path="/profile/hair" element={<Protected><HairReview /></Protected>} />
-              <Route path="/profile/colour" element={<Protected><ColourReview /></Protected>} />
+              <Route path="/profile/personal" element={<Onboard><PersonalDetailsReview /></Onboard>} />
+              <Route path="/profile/health" element={<Onboard><HealthReview /></Onboard>} />
+              <Route path="/profile/hair" element={<Onboard><HairReview /></Onboard>} />
+              <Route path="/profile/colour" element={<Onboard><ColourReview /></Onboard>} />
               <Route path="/home/style" element={<Paid><SetCurrentStyle /></Paid>} />
               <Route path="/wash-day" element={<Paid><WashDayHub /></Paid>} />
               <Route path="/wash-day/:id" element={<Paid><WashDayDetail /></Paid>} />
@@ -194,11 +194,11 @@ const App = () => (
               <Route path="/appointments" element={<Paid><Appointments /></Paid>} />
               <Route path="/appointments/log" element={<Paid><LogAppointment /></Paid>} />
               <Route path="/directory" element={<Directory />} />
-              <Route path="/profile" element={<Protected><Profile /></Protected>} />
-              <Route path="/profile/milestones" element={<Protected><MilestoneGallery /></Protected>} />
-              <Route path="/blood-history" element={<Protected><BloodHistory /></Protected>} />
-              <Route path="/blood-upload" element={<Protected><BloodUpload /></Protected>} />
-              <Route path="/blood-panel/:id" element={<Protected><BloodPanelReview /></Protected>} />
+              <Route path="/profile" element={<Onboard><Profile /></Onboard>} />
+              <Route path="/profile/milestones" element={<Onboard><MilestoneGallery /></Onboard>} />
+              <Route path="/blood-history" element={<Onboard><BloodHistory /></Onboard>} />
+              <Route path="/blood-upload" element={<Onboard><BloodUpload /></Onboard>} />
+              <Route path="/blood-panel/:id" element={<Onboard><BloodPanelReview /></Onboard>} />
 
               <Route path="/nutrition-plan" element={<Paid><NutritionPlan /></Paid>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />

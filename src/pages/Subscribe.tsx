@@ -28,6 +28,7 @@ import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
+import { isSafeInternalPath } from "@/lib/consumerOnboarding";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -93,6 +94,13 @@ const Subscribe = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const nextPath = params.get("next");
+  const [storedNextPath, setStoredNextPath] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("strand_subscribe_next");
+    } catch {
+      return null;
+    }
+  });
   const {
     subscription, stripeActive, complimentary, isAdminOrPro, hasAccess, isLoading, refetch,
   } = useConsumerSubscription();
@@ -113,6 +121,12 @@ const Subscribe = () => {
   });
 
   useEffect(() => {
+    if (isSafeInternalPath(nextPath)) {
+      try {
+        localStorage.setItem("strand_subscribe_next", nextPath);
+      } catch {}
+      setStoredNextPath(nextPath);
+    }
     const c = params.get("checkout");
     if (c === "success") {
       toast.success("Welcome to STRAND. Your membership is active.");
@@ -129,6 +143,10 @@ const Subscribe = () => {
 
   const startCheckout = async () => {
     setBusy("subscribe");
+    const returnTo = isSafeInternalPath(nextPath) ? nextPath : isSafeInternalPath(storedNextPath) ? storedNextPath : "/home";
+    try {
+      localStorage.setItem("strand_subscribe_next", returnTo);
+    } catch {}
     try {
       const { data, error } = await supabase.functions.invoke("consumer-checkout");
       if (error) throw error;
@@ -155,6 +173,7 @@ const Subscribe = () => {
 
   const price = priceQ.data ?? 9.99;
   const perDay = (price / 30).toFixed(2);
+  const returnTo = isSafeInternalPath(nextPath) ? nextPath : isSafeInternalPath(storedNextPath) ? storedNextPath : "/home";
 
   const CtaBlock = () => {
     if (isLoading) {
@@ -178,7 +197,7 @@ const Subscribe = () => {
             {busy === "portal" ? <Loader2 className="size-4 animate-spin" /> : "Manage subscription"}
           </Button>
         ) : complimentary || isAdminOrPro ? (
-          <Button variant="gold" size="pill" className="w-full" onClick={() => nav(nextPath ?? "/home")}>
+          <Button variant="gold" size="pill" className="w-full" onClick={() => nav(returnTo)}>
             Continue to STRAND
           </Button>
         ) : (

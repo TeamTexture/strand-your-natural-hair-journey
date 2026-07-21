@@ -7,6 +7,11 @@ import HairStrandIcon from "./HairStrandIcon";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  getConsumerAccessForUser,
+  getConsumerOnboardingStatus,
+  getSubscribePath,
+} from "@/lib/consumerOnboarding";
 
 const safeNext = (raw: string | null, fallback: string) => {
   if (!raw) return fallback;
@@ -33,18 +38,16 @@ const SplashScreen = () => {
   const next = safeNext(nextParam, "/home");
 
   const getPostSignInTarget = async (userId: string) => {
-    const [{ data: profile }, { data: roleRows }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("onboarding_completed_at")
-        .eq("user_id", userId)
-        .maybeSingle(),
+    const [{ data: roleRows }, onboardingStatus] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
+      getConsumerOnboardingStatus(userId),
     ]);
 
     const roles = (roleRows ?? []).map((row) => row.role as string);
     if (roles.includes("admin") || roles.includes("professional")) return "/";
-    if (!profile?.onboarding_completed_at) return "/onboarding/profile-step-1";
+    if (!onboardingStatus.completed) return "/onboarding/profile-step-1";
+    const hasAccess = await getConsumerAccessForUser(userId, roles);
+    if (!hasAccess) return getSubscribePath(onboardingStatus.analysisPath);
     return next;
   };
 
