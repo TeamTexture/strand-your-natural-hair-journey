@@ -83,6 +83,11 @@ const BrandCreateOffer = () => {
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scraping, setScraping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"collapsed" | "expanded">("collapsed");
+
+  // Cropper state — one dialog reused for banner or a specific product image.
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropTarget, setCropTarget] = useState<{ kind: "banner" } | { kind: "product"; index: number } | null>(null);
 
   const heroPreview = useHeroPreview(heroPath);
 
@@ -102,14 +107,49 @@ const BrandCreateOffer = () => {
     }));
   };
 
-  const uploadHero = async (file: File) => {
-    if (!user) return;
-    setUploadingHero(true);
+  const uploadBlob = async (blob: Blob, prefix: string): Promise<string> => {
+    if (!user) throw new Error("Not signed in");
+    const path = `${user.id}/${prefix}-${crypto.randomUUID()}.webp`;
+    const { error } = await supabase.storage
+      .from("brand-assets")
+      .upload(path, blob, { upsert: false, contentType: "image/webp" });
+    if (error) throw error;
+    return path;
+  };
+
+  const signPath = async (path: string): Promise<string | null> => {
+    const { data } = await supabase.storage.from("brand-assets").createSignedUrl(path, 60 * 60);
+    return data?.signedUrl ?? null;
+  };
+
+  const onBannerFilePicked = (file: File) => {
+    setCropTarget({ kind: "banner" });
+    setCropFile(file);
+  };
+
+  const onProductFilePicked = (index: number, file: File) => {
+    setCropTarget({ kind: "product", index });
+    setCropFile(file);
+  };
+
+  const onCropped = async (blob: Blob) => {
+    const target = cropTarget;
+    setCropFile(null);
+    setCropTarget(null);
+    if (!target) return;
     try {
-      const path = `${user.id}/${crypto.randomUUID()}-${file.name}`;
-      const { error } = await supabase.storage.from("brand-assets").upload(path, file, { upsert: false });
-      if (error) throw error;
-      setHeroPath(path);
+      if (target.kind === "banner") {
+        setUploadingHero(true);
+        const path = await uploadBlob(blob, "banner");
+        setHeroPath(path);
+      } else {
+        const path = await uploadBlob(blob, "product");
+        const url = await signPath(path);
+        if (!url) throw new Error("Could not sign uploaded image");
+        setProducts((prev) =>
+          prev.map((p, i) => (i === target.index ? { ...p, image_urls: [url, ...p.image_urls] } : p)),
+        );
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -150,9 +190,13 @@ const BrandCreateOffer = () => {
 
   const { isActive: brandSubActive } = useBrandSubscription();
 
+  const firstProduct = products[0];
+  const firstProductImage = firstProduct?.image_urls?.[0] ?? null;
+
   const submit = async (asDraft: boolean) => {
     if (!user) return;
     if (!headline.trim()) return toast.error("Add a headline.");
+    if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
     if (!asDraft && totalDays === 0) return toast.error("Select at least one placement date.");
     if (!asDraft && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
@@ -192,7 +236,6 @@ const BrandCreateOffer = () => {
         offerId = data.id;
       }
 
-      // Placements
       const placementRows = SLOTS.flatMap((s) =>
         selectedByslot[s].map((d) => ({
           offer_id: offerId!,
@@ -206,7 +249,6 @@ const BrandCreateOffer = () => {
         if (error) throw error;
       }
 
-      // Products
       if (products.length > 0) {
         const productRows = products.map((p, i) => ({
           offer_id: offerId!,
@@ -260,38 +302,59 @@ const BrandCreateOffer = () => {
             <Input type="url" value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://" />
           </div>
           <div>
-            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Banner image</Label>
-            <label className="flex items-center gap-2 mt-1 p-3 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50">
+            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Banner image *</Label>
+            <p className="text-[11px] text-muted-foreground font-body mt-0.5 leading-snug">
+              1500×320px (4.7:1). Keep the focal point in the RIGHT third — your headline
+              renders on the left. <span className="font-medium">No text in the image:</span> headline, copy
+              and discount code come from the fields above.
+            </p>
+            <label className="flex items-center gap-2 mt-2 p-3 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50">
               <ImageIcon className="size-4 text-muted-foreground" />
               <span className="text-[12px] font-body text-muted-foreground flex-1">
-                {uploadingHero ? "Uploading…" : heroPath ? "Replace image" : "Upload banner image"}
+                {uploadingHero ? "Uploading…" : heroPath ? "Replace banner image" : "Upload banner image (JPG/PNG/WebP up to 2MB)"}
               </span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && uploadHero(e.target.files[0])}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onBannerFilePicked(f);
+                  e.target.value = "";
+                }}
               />
             </label>
           </div>
         </SurfaceCard>
 
         <SectionLabel className="!px-0">Live preview</SectionLabel>
-        <SurfaceCard padded={false} className="overflow-hidden">
-          <div className="aspect-[16/9] bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
-            {heroPreview ? (
-              <img src={heroPreview} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <ImageIcon className="size-8 text-primary/40" />
-            )}
-            <span className="absolute top-2 right-2 text-[9px] uppercase tracking-wider bg-background/80 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground">Sponsored</span>
-          </div>
-          <div className="p-3">
-            <p className="font-display text-[15px] leading-tight">{headline || "Your headline"}</p>
-            {bodyCopy && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{bodyCopy}</p>}
-            {discountCode && <p className="text-[11px] text-primary mt-2 font-body font-medium">Code: {discountCode}</p>}
-          </div>
-        </SurfaceCard>
+        <div className="flex gap-1.5 text-[11px]">
+          <button
+            type="button"
+            onClick={() => setPreviewMode("collapsed")}
+            className={`px-3 py-1 rounded-pill border ${previewMode === "collapsed" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}
+          >
+            Collapsed strip
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreviewMode("expanded")}
+            className={`px-3 py-1 rounded-pill border ${previewMode === "expanded" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}
+          >
+            Expanded
+          </button>
+        </div>
+        <div className="rounded-[12px] bg-muted/40 p-3">
+          <BannerPreview
+            heroUrl={heroPreview}
+            headline={headline}
+            bodyCopy={bodyCopy}
+            discountCode={discountCode}
+            productName={firstProduct?.name}
+            productImageUrl={firstProductImage}
+            expanded={previewMode === "expanded"}
+          />
+        </div>
 
         <SectionLabel className="!px-0">Attach products</SectionLabel>
         <SurfaceCard className="space-y-3">
@@ -331,6 +394,30 @@ const BrandCreateOffer = () => {
               >
                 <Trash2 className="size-3.5" />
               </button>
+            </div>
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Product image (1:1, min 800×800)</Label>
+              <div className="flex gap-2 mt-1 items-start">
+                <div className="size-16 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
+                  {p.image_urls[0] && <img src={p.image_urls[0]} alt="" className="w-full h-full object-cover" />}
+                </div>
+                <label className="flex-1 flex items-center gap-2 p-2 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50">
+                  <Plus className="size-3.5 text-muted-foreground" />
+                  <span className="text-[11px] font-body text-muted-foreground">
+                    {p.image_urls[0] ? "Replace image" : "Upload square image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) onProductFilePicked(i, f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
             </div>
             <Input
               value={p.name}
@@ -413,6 +500,13 @@ const BrandCreateOffer = () => {
           </Button>
         </div>
       </div>
+
+      <ImageCropDialog
+        file={cropFile}
+        mode={cropTarget?.kind === "product" ? "product" : "banner"}
+        onCancel={() => { setCropFile(null); setCropTarget(null); }}
+        onCropped={onCropped}
+      />
     </ScreenLayout>
   );
 };
