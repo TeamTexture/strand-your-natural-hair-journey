@@ -61,7 +61,7 @@ RULES
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const auth = await requireAuthedUser(req);
-  if (!auth.ok) return auth.response;
+  if (auth instanceof Response) return auth;
 
   let body: Body;
   try {
