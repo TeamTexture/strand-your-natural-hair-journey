@@ -30,14 +30,21 @@ const PlacementCalendarPicker = ({
   excludeOfferId,
 }: Props) => {
   const { data: taken = [] } = useTakenPlacements();
-  const takenSet = useMemo(() => {
+  const takenMap = useMemo(() => {
     const activeSlots = slots && slots.length > 0 ? slots : slot ? [slot] : [];
-    if (activeSlots.length === 0) return new Set<string>();
-    return new Set(
-      taken
-        .filter((t) => activeSlots.includes(t.slot as PlacementSlot) && t.offer_id !== excludeOfferId)
-        .map((t) => t.placement_date),
-    );
+    const map = new Map<string, "pending" | "live">();
+    if (activeSlots.length === 0) return map;
+    for (const t of taken) {
+      if (!activeSlots.includes(t.slot as PlacementSlot)) continue;
+      if (t.offer_id === excludeOfferId) continue;
+      const kind: "pending" | "live" =
+        t.status === "under_review" || t.status === "approved_unpaid" ? "pending" : "live";
+      // "live" wins over "pending" on the same date
+      const existing = map.get(t.placement_date);
+      if (existing === "live") continue;
+      map.set(t.placement_date, kind);
+    }
+    return map;
   }, [taken, slot, slots, excludeOfferId]);
 
 
