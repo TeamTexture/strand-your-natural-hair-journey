@@ -146,14 +146,21 @@ const BrandCreateOffer = () => {
       } satisfies ProductDraft;
     }),
   );
-  const [selectedByslot, setSelectedByslot] = useState<Record<PlacementSlot, string[]>>(() => {
-    const map: Record<PlacementSlot, string[]> = { home: [], products: [], wash_day: [] };
+  const initialEnabled = (): Record<PlacementSlot, boolean> => {
+    const map: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
     (existing?.brand_offer_placements ?? []).forEach((p) => {
-      map[p.slot as PlacementSlot].push(p.placement_date);
+      map[p.slot as PlacementSlot] = true;
     });
     return map;
-  });
-  const [activeSlot, setActiveSlot] = useState<PlacementSlot>("home");
+  };
+  const initialDates = (): string[] => {
+    const set = new Set<string>();
+    (existing?.brand_offer_placements ?? []).forEach((p) => set.add(p.placement_date));
+    return Array.from(set).sort();
+  };
+  const [enabledSlots, setEnabledSlots] = useState<Record<PlacementSlot, boolean>>(initialEnabled);
+  const [selectedDates, setSelectedDates] = useState<string[]>(initialDates);
+
   const [month, setMonth] = useState(() => new Date());
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scraping, setScraping] = useState(false);
