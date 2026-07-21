@@ -691,6 +691,34 @@ const Profile = () => {
         </button>
       </div>
 
+      {(isProfessional || isAdmin) && (
+        <>
+          <SectionLabel>Switch view</SectionLabel>
+          <div className="px-5 pb-4 space-y-1">
+            {isProfessional && (
+              <button
+                onClick={() => navigate("/pro")}
+                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+              >
+                <ArrowLeftRight className="size-4 text-primary/70" />
+                <span className="flex-1">Professional dashboard</span>
+                <ChevronRight className="size-3.5 text-muted-foreground" />
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin/applications")}
+                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+              >
+                <ShieldCheck className="size-4 text-primary/70" />
+                <span className="flex-1">Admin panel</span>
+                <ChevronRight className="size-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
       {/* Accessibility — global text size */}
       <SectionLabel>Accessibility</SectionLabel>
       <div className="px-5 pb-4">
