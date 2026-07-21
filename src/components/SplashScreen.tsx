@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
+  getBrandEntryPath,
   getConsumerAccessForUser,
   getConsumerOnboardingStatus,
   getSubscribePath,
@@ -31,20 +32,34 @@ const SplashScreen = () => {
     try {
       const stored = localStorage.getItem("strand_last_display_name");
       if (stored) setFirstName(stored);
-    } catch {}
+    } catch {
+      // Ignore private browsing/storage failures.
+    }
   }, []);
 
   const nextParam = searchParams.get("next");
   const next = safeNext(nextParam, "/home");
 
   const getPostSignInTarget = async (userId: string) => {
-    const [{ data: roleRows }, onboardingStatus] = await Promise.all([
+    const [{ data: roleRows }, { data: brandProfile }, { data: proApp }, onboardingStatus] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("brand_profiles").select("id").eq("user_id", userId).maybeSingle(),
+      supabase
+        .from("pro_applications")
+        .select("id, status")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
       getConsumerOnboardingStatus(userId),
     ]);
 
     const roles = (roleRows ?? []).map((row) => row.role as string);
     if (roles.includes("admin") || roles.includes("professional")) return "/";
+    if ((roles.includes("brand") || brandProfile) && !roles.includes("admin") && !roles.includes("professional")) {
+      return getBrandEntryPath(userId, roles);
+    }
+    if (proApp) return "/pro/landing";
     if (!onboardingStatus.completed) return "/onboarding/profile-step-1";
     const hasAccess = await getConsumerAccessForUser(userId, roles);
     if (!hasAccess) return getSubscribePath(onboardingStatus.analysisPath);

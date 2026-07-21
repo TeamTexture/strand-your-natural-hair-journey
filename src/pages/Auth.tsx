@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { getBrandEntryPath } from "@/lib/consumerOnboarding";
 
 // Only allow same-origin relative paths for redirect to avoid open-redirect
 // attacks via crafted ?next=https://evil.com links.
@@ -20,17 +21,29 @@ const safeNext = (raw: string | null, fallback: string) => {
 };
 
 const getPostSignInTarget = async (userId: string, requestedNext: string | null) => {
-  const [{ data: profile }, { data: roleRows }] = await Promise.all([
+  const [{ data: profile }, { data: roleRows }, { data: brandProfile }, { data: proApp }] = await Promise.all([
     supabase
       .from("profiles")
       .select("onboarding_completed_at")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", userId),
+    supabase.from("brand_profiles").select("id").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("pro_applications")
+      .select("id, status")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const roles = (roleRows ?? []).map((row) => row.role as string);
   if (roles.includes("admin") || roles.includes("professional")) return "/";
+  if ((roles.includes("brand") || brandProfile) && !roles.includes("admin") && !roles.includes("professional")) {
+    return getBrandEntryPath(userId, roles);
+  }
+  if (proApp) return "/pro/landing";
   if (!profile?.onboarding_completed_at) return "/onboarding/profile-step-1";
   return requestedNext ? safeNext(requestedNext, "/") : "/";
 };

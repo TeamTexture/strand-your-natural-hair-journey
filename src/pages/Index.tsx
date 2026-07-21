@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  getBrandEntryPath,
   getConsumerAccessForUser,
   getConsumerOnboardingStatus,
   getSubscribePath,
@@ -25,7 +26,9 @@ const Index = () => {
     try {
       const stored = localStorage.getItem("strand_last_display_name");
       if (stored) setFirstName(stored);
-    } catch {}
+    } catch {
+      // Ignore private browsing/storage failures.
+    }
   }, []);
 
   useEffect(() => {
@@ -66,9 +69,11 @@ const Index = () => {
         return;
       }
 
-      // Brand-intent shortcut: brand accounts skip consumer onboarding.
-      if (brandProf && hasBrand && !hasConsumer && !hasPro && !hasAdmin) {
-        navigate("/brand", { replace: true });
+      // Brand accounts skip the consumer onboarding/paywall entirely. The
+      // default consumer role can still exist on older accounts, so don't use
+      // it as evidence that this is an end-user login.
+      if (brandProf && hasBrand && !hasPro && !hasAdmin) {
+        navigate(await getBrandEntryPath(user.id, roles), { replace: true });
         return;
       }
 
@@ -95,7 +100,11 @@ const Index = () => {
       if (profile?.display_name) {
         const first = profile.display_name.split(" ")[0];
         setFirstName(first);
-        try { localStorage.setItem("strand_last_display_name", first); } catch {}
+        try {
+          localStorage.setItem("strand_last_display_name", first);
+        } catch {
+          // Ignore private browsing/storage failures.
+        }
       }
       setChecking(false);
     })();
