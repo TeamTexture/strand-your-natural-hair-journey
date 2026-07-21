@@ -31,13 +31,13 @@ interface PassportData {
   hair: Record<string, unknown> | null;
   health: Record<string, unknown> | null;
   style: Record<string, unknown> | null;
-  goals: Array<{ id: string; title: string; status: string | null; target_metric: string | null }>;
-  bloodSummary: { html: string | null; created_at: string } | null;
-  bloodResults: Array<{ marker: string; value: number | null; unit: string | null; status: string | null; created_at: string }>;
+  goals: Array<{ id: string; title: string; status: string | null; target_text: string | null }>;
+  bloodSummary: { payload: unknown; created_at: string } | null;
+  bloodResults: Array<{ marker: string; value: number | null; unit: string | null; status: string | null; updated_at: string }>;
   washDays: Array<{ id: string; wash_date: string; steps: unknown; scalp_feel: string | null; breakage: string | null }>;
-  journal: Array<{ id: string; entry_date: string; style_name: string | null; notes: string | null; photo_paths: string[] | null }>;
-  shelf: Array<{ id: string; name: string; brand: string | null; category: string | null; status: string | null; user_rating: number | null }>;
-  appointments: Array<{ id: string; scheduled_at: string; pro_type: string | null; pro_name: string | null; clinic: string | null; reason: string | null; outcome_notes: string | null; status: string | null }>;
+  journal: Array<{ id: string; entry_date: string; title: string | null; note: string | null; photo_paths: string[] | null }>;
+  shelf: Array<{ id: string; name: string; brand: string | null; category: string | null; on_shelf: boolean | null; on_favourite: boolean | null; rating: number | null }>;
+  appointments: Array<{ id: string; appointment_date: string; appointment_time: string | null; professional_type: string | null; professional_name: string | null; clinic_name: string | null; reason: string | null; outcome_notes: string | null; status: string | null }>;
 }
 
 const logView = async (consumerId: string, section: Section) => {
@@ -71,13 +71,13 @@ const usePassport = (consumerId: string | undefined, active: boolean) => {
         supabase.from("user_hair_profile").select("*").eq("user_id", consumerId).maybeSingle(),
         supabase.from("user_health_profile").select("*").eq("user_id", consumerId).maybeSingle(),
         supabase.from("user_style_profile").select("*").eq("user_id", consumerId).maybeSingle(),
-        supabase.from("user_goals").select("id, title, status, target_metric").eq("user_id", consumerId).order("created_at", { ascending: false }),
-        supabase.from("ai_summaries").select("html, created_at").eq("user_id", consumerId).eq("kind", "blood").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("blood_results").select("marker, value, unit, status, created_at").eq("user_id", consumerId).in("status", ["low", "high", "borderline"]).order("created_at", { ascending: false }).limit(30),
+        supabase.from("user_goals").select("id, title, status, target_text").eq("user_id", consumerId).order("created_at", { ascending: false }),
+        supabase.from("ai_summaries").select("payload, created_at").eq("user_id", consumerId).eq("kind", "blood").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("blood_results").select("marker, value, unit, status, updated_at").eq("user_id", consumerId).in("status", ["low", "high", "borderline"]).order("updated_at", { ascending: false }).limit(30),
         supabase.from("wash_days").select("id, wash_date, steps, scalp_feel, breakage").eq("user_id", consumerId).order("wash_date", { ascending: false }).limit(10),
-        supabase.from("journal_entries").select("id, entry_date, style_name, notes, photo_paths").eq("user_id", consumerId).order("entry_date", { ascending: false }).limit(10),
-        supabase.from("user_products").select("id, name, brand, category, status, user_rating").eq("user_id", consumerId).order("updated_at", { ascending: false }).limit(40),
-        supabase.from("appointments").select("id, scheduled_at, pro_type, pro_name, clinic, reason, outcome_notes, status").eq("user_id", consumerId).order("scheduled_at", { ascending: false }).limit(15),
+        supabase.from("journal_entries").select("id, entry_date, title, note, photo_paths").eq("user_id", consumerId).order("entry_date", { ascending: false }).limit(10),
+        supabase.from("user_products").select("id, name, brand, category, on_shelf, on_favourite, rating").eq("user_id", consumerId).order("updated_at", { ascending: false }).limit(40),
+        supabase.from("appointments").select("id, appointment_date, appointment_time, professional_type, professional_name, clinic_name, reason, outcome_notes, status").eq("user_id", consumerId).order("appointment_date", { ascending: false }).limit(15),
       ]);
 
       if (cancelled) return;
