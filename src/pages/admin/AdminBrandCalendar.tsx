@@ -170,11 +170,17 @@ const AdminBrandCalendar = () => {
             <span className="text-muted-foreground">Booked / scheduled</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-muted-foreground/40" />
+            <span className="inline-flex items-center justify-center size-3 rounded-full bg-muted-foreground/40 text-[7px] font-body font-bold leading-none">—</span>
             <span className="text-muted-foreground">Ended</span>
           </div>
-        </div>
-      </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center size-3 rounded-full bg-foreground text-background text-[7px] font-body font-bold leading-none">B</span>
+            <span className="text-muted-foreground">Brand campaign</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center size-3 rounded-full bg-primary text-primary-foreground text-[7px] font-body font-bold leading-none">P</span>
+            <span className="text-muted-foreground">Pro campaign</span>
+          </div>
     </ScreenLayout>
   );
 };
