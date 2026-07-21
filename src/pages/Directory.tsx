@@ -189,7 +189,7 @@ const Directory = () => {
                         }}
                         className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
                       >
-                        Book Now
+                        Enquire Now
                       </a>
                     ) : (
                       <button
@@ -197,7 +197,7 @@ const Directory = () => {
                         onClick={() => toast("Booking unavailable")}
                         className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary/60 text-primary-foreground rounded-md font-medium min-h-[44px]"
                       >
-                        Book Now
+                        Enquire Now
                       </button>
                     );
                   })()}
