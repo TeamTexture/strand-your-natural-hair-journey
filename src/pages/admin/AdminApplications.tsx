@@ -135,30 +135,42 @@ const ApplicationCard = ({
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState(app.admin_notes ?? "");
 
+  const initials = app.full_name
+    ?.split(" ")
+    .map((n) => n[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
     <SurfaceCard>
-      <div className="space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-display text-base leading-tight">{app.full_name}</p>
-            <p className="text-xs text-muted-foreground font-body">
+      <div className="space-y-3 min-w-0">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <span className="font-display text-sm text-primary">{initials || "•"}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-base leading-tight truncate">{app.full_name}</p>
+            <p className="text-xs text-muted-foreground font-body truncate">
               {app.discipline}
               {app.business_name ? ` · ${app.business_name}` : ""}
             </p>
-            <p className="text-[11px] text-muted-foreground font-body">
+            <p className="text-[11px] text-muted-foreground font-body truncate">
               {app.email}
             </p>
           </div>
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="text-[11px] uppercase tracking-[0.1em] text-primary"
+            className="shrink-0 text-[11px] uppercase tracking-[0.1em] text-primary font-body"
           >
             {expanded ? "Hide" : "Details"}
           </button>
         </div>
 
         {expanded && (
-          <div className="pt-2 space-y-2 text-xs font-body leading-relaxed">
+          <div className="pt-1 space-y-2.5 text-xs font-body leading-relaxed border-t border-border/60 min-w-0">
+            <div className="pt-2.5" />
             {app.qualifications && (
               <Row label="Qualifications">{app.qualifications}</Row>
             )}
@@ -184,8 +196,8 @@ const ApplicationCard = ({
             )}
             {app.why_strand && <Row label="Why STRAND">{app.why_strand}</Row>}
 
-            <div className="pt-2 space-y-1.5">
-              <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+            <div className="pt-1 space-y-1.5">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                 Admin notes
               </p>
               <Textarea
@@ -193,13 +205,14 @@ const ApplicationCard = ({
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Internal notes (optional)"
+                className="text-xs"
               />
             </div>
           </div>
         )}
 
         {app.status === "pending" && (
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <Button
               size="sm"
               className="flex-1"
@@ -221,11 +234,11 @@ const ApplicationCard = ({
         )}
 
         {app.status === "approved" && (
-          <div className="flex gap-2 pt-2">
+          <div className="pt-1">
             <Button
               size="sm"
               variant="outline"
-              className="flex-1"
+              className="w-full"
               disabled={busy}
               onClick={() => onDecide("suspended", notes || undefined)}
             >
@@ -235,10 +248,10 @@ const ApplicationCard = ({
         )}
 
         {app.status === "suspended" && (
-          <div className="flex gap-2 pt-2">
+          <div className="pt-1">
             <Button
               size="sm"
-              className="flex-1"
+              className="w-full"
               disabled={busy}
               onClick={() => onDecide("approved", notes || undefined)}
             >
@@ -252,11 +265,11 @@ const ApplicationCard = ({
 };
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div>
-    <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+  <div className="min-w-0">
+    <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
       {label}
     </p>
-    <p className="text-foreground">{children}</p>
+    <p className="text-foreground break-words">{children}</p>
   </div>
 );
 
