@@ -333,6 +333,7 @@ const Home = () => {
 
 
       <div className="px-5 space-y-4 pb-6">
+        <BrandBanner slot="home" />
         {/* current style — editorial terra card */}
         {style.current_hairstyle ? (
           <div data-tour="current-style" className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
