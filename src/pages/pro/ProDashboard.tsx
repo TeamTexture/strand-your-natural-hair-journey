@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar, Users } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -10,6 +10,8 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
 import { useProAppointments } from "@/hooks/useProAppointments";
+import { useProClients } from "@/hooks/useProClients";
+
 import { formatTime12h } from "@/lib/formatTime";
 
 
@@ -81,6 +83,12 @@ const ProDashboard = () => {
   const nextApptSub = nextAppt
     ? `${(nextAppt.client_display_name ?? "Client").split(" ")[0]} · ${new Date(nextAppt.appointment_date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}${nextAppt.appointment_time ? ` · ${formatTime12h(nextAppt.appointment_time)}` : ""}`
     : "Bookings your clients link to you.";
+  const { data: proClients = [] } = useProClients();
+  const activeClientsCount = proClients.filter((c) => !c.revoked_at).length;
+  const clientsSub = activeClientsCount === 0
+    ? "Your client book — accepted enquiries land here."
+    : `${activeClientsCount} active · notes, history and passports.`;
+
   const [noticeDismissed, setNoticeDismissed] = useState(() => {
 
     if (typeof window === "undefined") return false;
@@ -152,12 +160,20 @@ const ProDashboard = () => {
             count={pendingEnquiries}
           />
           <Card
+            icon={Users}
+            title="Clients"
+            sub={hasProAccess ? clientsSub : "Subscribe to open your client book."}
+            onClick={() => nav("/pro/clients")}
+            count={activeClientsCount}
+          />
+          <Card
             icon={Calendar}
             title="Appointments"
             sub={hasProAccess ? nextApptSub : "Subscribe to see linked appointments."}
             onClick={() => nav("/pro/appointments")}
             count={upcomingAppointments.length}
           />
+
 
           <Card
             icon={CreditCard}

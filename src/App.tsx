@@ -71,6 +71,9 @@ import AdminApplications from "./pages/admin/AdminApplications";
 import AdminAudit from "./pages/admin/AdminAudit";
 import AdminHub from "./pages/admin/AdminHub";
 import ProClientPassport from "./pages/pro/ProClientPassport";
+import ProClients from "./pages/pro/ProClients";
+import ProPastClient from "./pages/pro/ProPastClient";
+
 
 
 // Main app
@@ -264,6 +267,22 @@ const App = () => (
               />
 
               <Route
+                path="/pro/clients"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProClients /></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/clients/:consumerId/past"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProPastClient /></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
                 path="/pro/clients/:consumerId"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
@@ -271,6 +290,7 @@ const App = () => (
                   </RoleGate>
                 }
               />
+
 
 
               <Route path="/profile/enquiries" element={<Paid><MyEnquiries /></Paid>} />

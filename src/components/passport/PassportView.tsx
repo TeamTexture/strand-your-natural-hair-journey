@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp } from "lucide-react";
+import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp, StickyNote } from "lucide-react";
+import ProClientNotes from "@/components/pro/ProClientNotes";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -24,7 +26,7 @@ import { formatTime12h } from "@/lib/formatTime";
 
 type Section =
   | "profile" | "routine" | "products" | "nutrition"
-  | "appointments" | "journal" | "photos" | "goals";
+  | "appointments" | "journal" | "photos" | "goals" | "notes";
 
 interface SectionSpec {
   key: Section;
@@ -32,7 +34,7 @@ interface SectionSpec {
   count: (d: PassportDataset) => number;
 }
 
-const SECTIONS: SectionSpec[] = [
+const BASE_SECTIONS: SectionSpec[] = [
   { key: "profile", label: "Profile", count: () => 0 },
   { key: "routine", label: "Routine", count: (d) => d.washDays.length },
   { key: "products", label: "Products", count: (d) => d.shelf.length },
@@ -42,6 +44,9 @@ const SECTIONS: SectionSpec[] = [
   { key: "photos", label: "Photos", count: (d) => d.milestonePhotos.length + d.beforePhotos.length + d.moodboards.length },
   { key: "goals", label: "Goals", count: (d) => d.goals.length },
 ];
+
+const NOTES_SECTION: SectionSpec = { key: "notes", label: "Notes", count: () => 0 };
+
 
 const PAGE = 15;
 
@@ -1754,6 +1759,7 @@ const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> 
   journal: PenLine,
   photos: ImageIcon,
   goals: Target,
+  notes: StickyNote,
 };
 
 const sectionSub: Record<Section, string> = {
@@ -1765,7 +1771,9 @@ const sectionSub: Record<Section, string> = {
   journal: "Entries with notes, mood and photos",
   photos: "Milestones, before shots, moodboards",
   goals: "What they want and why they're here",
+  notes: "Your private working notes on this client",
 };
+
 
 
 // ================================================================
@@ -1906,6 +1914,12 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
   const [section, setSection] = useState<Section>("profile");
   const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
 
+  // Notes tab exists only in pro mode — admins are excluded by design from
+  // a professional's private working notes.
+  const SECTIONS = useMemo<SectionSpec[]>(
+    () => (mode === "pro" ? [...BASE_SECTIONS, NOTES_SECTION] : BASE_SECTIONS),
+    [mode],
+  );
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
@@ -1913,8 +1927,11 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
 
   useEffect(() => {
     if (!active || accessEnded) return;
+    // Notes are the pro's own content, not client data — never log a view.
+    if (section === "notes") return;
     logView(userId, section);
   }, [userId, section, active, accessEnded]);
+
 
 
 
@@ -2027,6 +2044,8 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "journal" && <JournalSection d={data} />}
           {section === "photos" && <PhotosSection d={data} />}
           {section === "goals" && <GoalsSection d={data} />}
+          {section === "notes" && mode === "pro" && <ProClientNotes consumerId={userId} />}
+
         </div>
 
 
