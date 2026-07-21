@@ -139,16 +139,17 @@ export function useBrandProfile() {
   });
 }
 
-export function useBrandOffers() {
+export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["brand-offers", user?.id],
+    queryKey: ["brand-offers", ownerType, user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
         .select("*, brand_offer_placements(*), brand_products(*)")
         .eq("brand_user_id", user!.id)
+        .eq("owner_type", ownerType)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
