@@ -69,6 +69,8 @@ const BrandProductPage = () => {
   const [analysis, setAnalysis] = useState<AnalysisPayload | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [guidance, setGuidance] = useState<GuidancePayload | null>(null);
+  const [guidanceLoading, setGuidanceLoading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["brand-product-page", offerId, productId],
