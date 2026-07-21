@@ -58,6 +58,26 @@ const OfferPage = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const brandName =
+    (offer as { brand_profiles?: { brand_name?: string } }).brand_profiles?.brand_name ?? null;
+
+  type BrandProductRow = {
+    id: string;
+    name: string;
+    ingredients: string[] | null;
+    image_urls: string[] | null;
+    external_url: string | null;
+  };
+
+  const normalize = (bp: BrandProductRow) => ({
+    id: bp.id,
+    name: bp.name,
+    brand_name: brandName,
+    ingredients: bp.ingredients,
+    image_url: bp.image_urls?.[0] ?? null,
+    external_url: bp.external_url,
+  });
+
   const findExisting = (bp: { id: string; name: string; brand_name?: string | null }) =>
     allProducts.find(
       (row) =>
@@ -91,13 +111,11 @@ const OfferPage = () => {
     return upsert(payload);
   };
 
-  const addToWishlist = async (bp: {
-    id: string; name: string; brand_name: string | null; ingredients: string[] | null; image_url: string | null; external_url: string | null;
-  }) => {
+  const addToWishlist = async (bp: BrandProductRow) => {
     if (!user) return;
     setBusyId(bp.id);
     try {
-      const row = await upsertBrandProduct(bp, { wishlist: true });
+      const row = await upsertBrandProduct(normalize(bp), { wishlist: true });
       if (row) {
         logStat.mutate({ offer_id: offer.id, slot, kind: "wishlist_adds" });
         toast.success("Added to your wishlist");
@@ -111,13 +129,11 @@ const OfferPage = () => {
    *  upserting the product and jumping into the standard product profile
    *  page, which already renders personalised suitability the exact way
    *  users know from their shelf. */
-  const analyseForMe = async (bp: {
-    id: string; name: string; brand_name: string | null; ingredients: string[] | null; image_url: string | null; external_url: string | null;
-  }) => {
+  const analyseForMe = async (bp: BrandProductRow) => {
     if (!user) return;
     setBusyId(bp.id);
     try {
-      const row = await upsertBrandProduct(bp, { wishlist: false });
+      const row = await upsertBrandProduct(normalize(bp), { wishlist: false });
       if (row) nav(`/products/profile/${row.id}`);
     } finally {
       setBusyId(null);
