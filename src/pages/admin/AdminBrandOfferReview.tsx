@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
+import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBadge";
 
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
