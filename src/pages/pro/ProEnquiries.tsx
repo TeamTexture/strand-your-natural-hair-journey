@@ -52,9 +52,10 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
       // fields plus counts pulled by lightweight RPC-style selects. If those
       // return nothing (Phase F not yet live) we degrade gracefully.
       const [profiles, hair, blood, goals] = await Promise.all([
-        supabase.from("profiles").select("user_id, display_name").in("user_id", ids),
         supabase
-          .from("user_hair_profile")
+          .from("profiles")
+          .select("user_id, display_name, phone_number, postcode, country")
+          .in("user_id", ids),
           .select("user_id, surface_texture, density, porosity")
           .in("user_id", ids),
         supabase
