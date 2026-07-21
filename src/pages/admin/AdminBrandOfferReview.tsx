@@ -29,25 +29,21 @@ const useSignedUrl = (path: string | null | undefined) => {
   return url;
 };
 
-/** Highlight cell if the "before" value differs from the "after" value. */
-const DiffField = ({ label, before, after }: { label: string; before: string | null | undefined; after: string | null | undefined }) => {
-  const changed = (before ?? "") !== (after ?? "");
+const cleanValue = (value: string | null | undefined) => (value ?? "").trim();
+
+const ChangeField = ({ label, value }: { label: string; value: string | null | undefined }) => {
   return (
-    <div className={`rounded-[10px] border p-2.5 ${changed ? "border-warn/40 bg-warn/5" : "border-border bg-background"}`}>
-      <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">{label}{changed && " · changed"}</p>
-      <div className="grid grid-cols-2 gap-2 mt-1.5">
-        <div className="text-[11.5px] font-body">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Before</p>
-          <p className={`leading-snug ${before ? "" : "text-muted-foreground italic"}`}>{before || "—"}</p>
-        </div>
-        <div className="text-[11.5px] font-body">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">After</p>
-          <p className={`leading-snug ${after ? "" : "text-muted-foreground italic"}`}>{after || "—"}</p>
-        </div>
-      </div>
+    <div className="rounded-[10px] border border-warn/40 bg-warn/5 p-2.5">
+      <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">{label} changed to</p>
+      <p className={`text-[12px] font-body leading-snug mt-1 ${cleanValue(value) ? "" : "text-muted-foreground italic"}`}>
+        {cleanValue(value) || "Removed"}
+      </p>
     </div>
   );
 };
+
+const arraysMatch = (a: unknown[] = [], b: unknown[] = []) =>
+  JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
 
 const RevisionDiff = ({ offer, revision }: {
   offer: NonNullable<ReturnType<typeof useBrandOffer>["data"]>;
