@@ -263,56 +263,46 @@ const OfferPage = () => {
             {(offer.brand_products ?? []).map((raw) => {
               const p = raw as unknown as BrandItemRow;
               const tool = isTool(p);
-              const alreadyWishlisted = tool
-                ? !!findExistingTool(p)
-                : !!findExistingProduct(p)?.on_wishlist;
+              const thumb = p.image_urls?.[0] ?? null;
+              const goProduct = () => {
+                logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+                nav(`/offers/${offer.id}/product/${p.id}${slot ? `?slot=${slot}` : ""}`);
+              };
               return (
-                <SurfaceCard key={p.id} className="space-y-2.5">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-display text-[15px] leading-tight">{p.name}</p>
-                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground border border-border rounded-pill px-1.5 py-[1px]">
-                        {tool ? "Tool" : "Product"}
-                      </span>
+                <SurfaceCard
+                  key={p.id}
+                  className="cursor-pointer active:opacity-80 transition-opacity"
+                  onClick={goProduct}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      goProduct();
+                    }
+                  }}
+                >
+                  <div className="flex gap-3">
+                    <div className="w-[72px] h-[72px] shrink-0 rounded-lg overflow-hidden bg-muted border border-border">
+                      {thumb && <img src={thumb} alt="" className="w-full h-full object-cover" />}
                     </div>
-                    {p.description && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{p.description}</p>}
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {p.external_url && (
-                      <Button variant="gold" size="pill" onClick={() => goOffer(p.external_url!)} className="text-[11px] px-2">
-                        Get offer
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="pill"
-                      onClick={() => addToWishlist(p)}
-                      disabled={busyId === p.id || alreadyWishlisted}
-                      className="text-[11px] px-2"
-                    >
-                      {alreadyWishlisted ? (
-                        <><Check className="size-3.5 mr-1" /> On list</>
-                      ) : (
-                        <><Heart className="size-3.5 mr-1" /> Wishlist</>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-display text-[15px] leading-tight truncate">{p.name}</p>
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground border border-border rounded-pill px-1.5 py-[1px] shrink-0">
+                          {tool ? "Tool" : "Product"}
+                        </span>
+                      </div>
+                      {p.description && (
+                        <p className="text-[12px] text-muted-foreground mt-1 leading-snug line-clamp-2">
+                          {p.description}
+                        </p>
                       )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="pill"
-                      onClick={() => analyseForMe(p)}
-                      disabled={busyId === p.id}
-                      className="text-[11px] px-2"
-                    >
-                      {busyId === p.id
-                        ? <Loader2 className="size-3.5 animate-spin" />
-                        : <><Sparkles className="size-3.5 mr-1" /> For me?</>}
-                    </Button>
+                      <p className="text-[11px] text-primary font-body mt-1.5">
+                        Open · Is this right for my hair?
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground leading-snug">
-                    {tool
-                      ? '"For me?" checks this tool against your hair profile the same way your Tools section does.'
-                      : '"For me?" opens the full personalised ingredient analysis you already use for your shelf.'}
-                  </p>
                 </SurfaceCard>
               );
             })}
@@ -332,3 +322,4 @@ const OfferPage = () => {
 };
 
 export default OfferPage;
+
