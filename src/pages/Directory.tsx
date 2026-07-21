@@ -292,7 +292,8 @@ const Directory = () => {
                 </div>
               )}
             </SurfaceCard>
-          ))
+            );
+          })
         )}
 
         {/* Pro application CTA — surfaced under the listings so consumers
