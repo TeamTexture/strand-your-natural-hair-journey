@@ -872,7 +872,7 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
     return m;
   }, [d.bloodResults]);
 
-  const latestSummary = d.bloodSummaries[0] ?? null;
+  
   const outOfRange = d.bloodResults.filter(r => ["low", "high", "borderline"].includes(String(r.status ?? "").toLowerCase())).length;
   const inRange = d.bloodResults.filter(r => ["in_range", "normal"].includes(String(r.status ?? "").toLowerCase())).length;
   const total = d.bloodResults.length;
