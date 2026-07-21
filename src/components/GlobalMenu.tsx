@@ -85,7 +85,7 @@ const GlobalMenu = () => {
   const viewMeta = {
     consumer: { label: "My STRAND", icon: HomeIcon, to: "/home" },
     pro: { label: "Professional", icon: Briefcase, to: "/pro" },
-    admin: { label: "Admin", icon: ShieldCheck, to: "/admin/applications" },
+    admin: { label: "Admin", icon: ShieldCheck, to: "/admin" },
   } as const;
 
   const ActiveIcon = viewMeta[activeView].icon;

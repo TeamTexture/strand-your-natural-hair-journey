@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -24,6 +25,7 @@ const tabs: { key: Status; label: string }[] = [
 
 const AdminApplications = () => {
   const [tab, setTab] = useState<Status>("pending");
+  const nav = useNavigate();
   const qc = useQueryClient();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
 
@@ -85,6 +87,7 @@ const AdminApplications = () => {
     <ScreenLayout>
       <TitleBar
         title="Applications"
+        onBack={() => nav("/admin")}
         right={
           pendingCount > 0 ? (
             <span
