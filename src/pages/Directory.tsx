@@ -162,7 +162,14 @@ const Directory = () => {
                 <div className="flex gap-3">
                   <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-display text-base font-semibold leading-tight">{p.name}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-display text-base font-semibold leading-tight">{p.name}</p>
+                      {enq && (
+                        <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
+                          {enqLabel}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <span className="text-[11px] text-muted-foreground">{p.title}</span>
                       <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
