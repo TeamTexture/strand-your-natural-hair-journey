@@ -273,65 +273,35 @@ const Subscribe = () => {
         {/* Pillars */}
         <div className="relative">
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-56 h-56 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative grid grid-cols-2 gap-3">
+          <div className="relative space-y-2.5">
             {PILLARS.map((p, i) => {
               const Icon = p.icon;
-              const isBrown = i % 2 === 0;
               return (
                 <div
                   key={p.title}
-                  className={cn(
-                    "relative overflow-hidden rounded-[14px] p-3.5 min-h-[178px] flex flex-col border",
-                    isBrown
-                      ? "bg-brown border-primary/30 text-brown-foreground"
-                      : "bg-gradient-to-br from-primary/12 to-primary/5 border-primary/25 text-foreground"
-                  )}
+                  className="relative overflow-hidden rounded-[14px] p-4 flex items-center gap-4 border border-primary/30 bg-brown text-brown-foreground"
                 >
-                  <div
-                    className={cn(
-                      "absolute top-0 left-0 right-0 h-[2px]",
-                      isBrown ? "bg-primary" : "bg-brown"
-                    )}
-                  />
-                  <div
-                    className={cn(
-                      "size-9 rounded-full flex items-center justify-center mb-3 border",
-                      isBrown
-                        ? "bg-primary/15 text-primary border-primary/25"
-                        : "bg-brown/10 text-brown border-brown/20"
-                    )}
-                  >
-                    <Icon className="size-[18px]" strokeWidth={1.6} />
+                  <div className="absolute top-0 left-0 bottom-0 w-[2px] bg-primary" />
+                  <div className="size-11 shrink-0 rounded-full flex items-center justify-center bg-primary/15 text-primary border border-primary/30">
+                    <Icon className="size-[20px]" strokeWidth={1.6} />
                   </div>
-                  <p
-                    className={cn(
-                      "text-[9px] font-body font-bold uppercase tracking-[0.22em] mb-1",
-                      isBrown ? "text-primary/80" : "text-brown/70"
-                    )}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </p>
-                  <h3
-                    className={cn(
-                      "font-display text-[15px] font-semibold leading-[1.15] mb-2",
-                      isBrown ? "text-brown-foreground" : "text-foreground"
-                    )}
-                  >
-                    {p.title}
-                  </h3>
-                  <p
-                    className={cn(
-                      "font-body text-[11.5px] leading-snug mt-auto",
-                      isBrown ? "text-brown-foreground/80" : "text-foreground/75"
-                    )}
-                  >
-                    {p.benefit}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] font-body font-bold uppercase tracking-[0.22em] text-primary/80 mb-0.5">
+                      {String(i + 1).padStart(2, "0")}
+                    </p>
+                    <h3 className="font-display text-[15px] font-semibold leading-[1.2] text-brown-foreground mb-0.5">
+                      {p.title}
+                    </h3>
+                    <p className="font-body text-[11.5px] leading-snug text-brown-foreground/80">
+                      {p.benefit}
+                    </p>
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
+
 
         {/* Author voice pull-quote */}
         <SurfaceCard className="!p-5 text-center space-y-3 bg-primary/5 border-primary/20">
