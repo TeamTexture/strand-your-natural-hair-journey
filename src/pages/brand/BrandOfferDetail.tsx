@@ -34,6 +34,7 @@ const BrandOfferDetail = () => {
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [heroOpen, setHeroOpen] = useState(false);
+  const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const deleteOffer = useDeleteBrandOffer();
 
   useEffect(() => {
