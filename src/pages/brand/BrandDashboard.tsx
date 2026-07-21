@@ -126,7 +126,7 @@ const BrandDashboard = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} onBack={() => nav("/")} />
+      <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} />
       <div className="px-5 pb-8 space-y-5">
         {/* Subscription banner */}
         {!subActive ? (
