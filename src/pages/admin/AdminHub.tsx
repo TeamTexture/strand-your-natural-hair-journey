@@ -22,6 +22,7 @@ import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
+import { useAllPendingRevisions } from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
 
 interface Stats {
@@ -158,18 +159,23 @@ const StatCard = ({
 }: {
   label: string;
   value: number | string;
-  tone?: "warn" | "default";
+  tone?: "warn" | "urgent" | "default";
   onClick?: () => void;
 }) => {
   const content = (
-    <SurfaceCard className="py-3 relative h-full">
+    <SurfaceCard
+      className={cn(
+        "py-3 relative h-full",
+        tone === "urgent" && "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40",
+      )}
+    >
       <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium pr-4">
         {label}
       </p>
       <p
         className={cn(
           "font-display text-[26px] leading-none mt-1.5",
-          tone === "warn" ? "text-warn" : "text-foreground",
+          tone === "warn" ? "text-warn" : tone === "urgent" ? "text-destructive" : "text-foreground",
         )}
       >
         {value}
@@ -197,6 +203,7 @@ const NavCard = ({
   description,
   onClick,
   badge,
+  badgeTone,
   context,
 }: {
   icon: typeof ClipboardCheck;
@@ -204,6 +211,7 @@ const NavCard = ({
   description: string;
   onClick: () => void;
   badge?: number;
+  badgeTone?: "urgent" | "default";
   context?: string;
 }) => (
   <button
@@ -220,7 +228,14 @@ const NavCard = ({
             {title}
           </p>
           {badge !== undefined && badge > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none">
+            <span
+              className={cn(
+                "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-body font-semibold leading-none",
+                badgeTone === "urgent"
+                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                  : "bg-primary text-primary-foreground",
+              )}
+            >
               {badge > 99 ? "99+" : badge}
             </span>
           )}
@@ -229,7 +244,14 @@ const NavCard = ({
           {description}
         </p>
         {context && (
-          <p className="text-[11px] text-primary/80 font-body mt-0.5">{context}</p>
+          <p
+            className={cn(
+              "text-[11px] font-body mt-0.5",
+              badgeTone === "urgent" ? "text-destructive" : "text-primary/80",
+            )}
+          >
+            {context}
+          </p>
         )}
       </div>
       <ChevronRight className="size-4 text-muted-foreground shrink-0" />
@@ -248,6 +270,8 @@ const AdminHub = () => {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
   const { data: dropoff } = useAdminDropOffCounts();
+  const { data: pendingRevisions = [] } = useAllPendingRevisions();
+  const revisionCount = pendingRevisions.length;
 
   return (
     <ScreenLayout>
@@ -255,6 +279,7 @@ const AdminHub = () => {
 
       <div className="px-5 pb-8 space-y-4">
         <SectionLabel className="!px-0 !mt-0">Overview</SectionLabel>
+
 
         {statsLoading || !stats ? (
           <LoadingDot label="Loading overview…" fullScreen={false} />
@@ -316,6 +341,29 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/brand-offers?filter=pending")}
               />
             </div>
+            {revisionCount > 0 && (
+              <button
+                type="button"
+                onClick={() => nav("/admin/brand-offers?filter=pending")}
+                className="w-full text-left transition-transform active:scale-[0.99]"
+              >
+                <SurfaceCard className="py-2.5 border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40 flex items-center gap-2.5">
+                  <span className="relative flex size-2 shrink-0">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-70 animate-ping" />
+                    <span className="relative inline-flex size-2 rounded-full bg-destructive" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[13.5px] leading-tight text-destructive">
+                      Urgent · {revisionCount} live ad revision{revisionCount === 1 ? "" : "s"} awaiting review
+                    </p>
+                    <p className="text-[11px] text-destructive/80 font-body leading-snug">
+                      Edits to already-live campaigns — approve or reject now.
+                    </p>
+                  </div>
+                  <ChevronRight className="size-4 text-destructive shrink-0" />
+                </SurfaceCard>
+              </button>
+            )}
           </>
         )}
 
@@ -363,10 +411,13 @@ const AdminHub = () => {
             icon={Megaphone}
             title="Brand offers"
             description="Review, approve or decline brand campaigns"
-            badge={stats?.brandOfferRequests}
+            badge={(stats?.brandOfferRequests ?? 0) + revisionCount}
+            badgeTone={revisionCount > 0 ? "urgent" : "default"}
             context={
               stats
-                ? `${stats.liveBrandOffers} live · ${stats.brandOfferRequests} awaiting review`
+                ? `${stats.liveBrandOffers} live · ${stats.brandOfferRequests} awaiting review${
+                    revisionCount > 0 ? ` · ${revisionCount} urgent revision${revisionCount === 1 ? "" : "s"}` : ""
+                  }`
                 : undefined
             }
             onClick={() => nav("/admin/brand-offers")}

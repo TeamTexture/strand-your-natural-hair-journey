@@ -265,25 +265,34 @@ const PendingRevisionsSection = () => {
   if (revisions.length === 0) return null;
   return (
     <>
-      <SectionLabel className="!px-0">Pending revisions ({revisions.length})</SectionLabel>
-      <p className="text-[11px] text-muted-foreground font-body -mt-1 leading-snug">
-        Live campaigns with creative edits awaiting review. Original creative stays live until you approve.
+      <div className="flex items-center gap-2 pt-1">
+        <SectionLabel className="!px-0 !text-destructive">Urgent — pending revisions ({revisions.length})</SectionLabel>
+        <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-destructive-foreground opacity-70 animate-ping" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-destructive-foreground" />
+          </span>
+          Review now
+        </span>
+      </div>
+      <p className="text-[11px] text-destructive/80 font-body -mt-1 leading-snug">
+        Live campaigns with creative edits awaiting review. The original creative stays live until you approve — approve or reject promptly.
       </p>
       {revisions.map((r) => {
         const offer = (r as unknown as { offer?: { headline?: string; brand_user_id?: string } }).offer;
         return (
           <button key={r.id} onClick={() => nav(`/admin/brand-offers/${r.offer_id}?revision=${r.id}`)} className="w-full text-left">
-            <SurfaceCard className="py-2.5 flex items-center gap-2">
+            <SurfaceCard className="py-2.5 flex items-center gap-2 border-destructive/60 bg-destructive/5 ring-1 ring-destructive/30">
               <div className="flex-1 min-w-0">
                 <p className="font-display text-[14px] leading-tight truncate">{r.headline ?? offer?.headline ?? "Revision"}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Revision · submitted {format(new Date(r.submitted_at), "d MMM · HH:mm")}
+                  Revision on live ad · submitted {format(new Date(r.submitted_at), "d MMM · HH:mm")}
                 </p>
               </div>
-              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-warn/15 text-warn font-body font-medium">
-                Review
+              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
+                Urgent
               </span>
-              <ChevronRight className="size-4 text-muted-foreground" />
+              <ChevronRight className="size-4 text-destructive" />
             </SurfaceCard>
           </button>
         );
