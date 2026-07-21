@@ -106,6 +106,7 @@ export function useDirectoryProfessionals() {
             featured: true,
             gmcNumber: undefined,
             iotNumber: undefined,
+            proUserId: row.user_id ?? undefined,
           };
         });
 

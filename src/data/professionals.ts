@@ -30,6 +30,9 @@ export interface Professional {
   gmcNumber?: string;
   /** IOT membership number (Trichologists) — auto-filled in ProDetails when picked. */
   iotNumber?: string;
+  /** When present, this pro has a live `pro_profiles` row and enquiries
+   *  should go through the in-app flow instead of an external link. */
+  proUserId?: string;
 }
 
 export const PROFESSIONALS: Professional[] = [

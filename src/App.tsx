@@ -49,6 +49,9 @@ import ProDashboard from "./pages/pro/ProDashboard";
 import ProProfile from "./pages/pro/ProProfile";
 import ProOffers from "./pages/pro/ProOffers";
 import ProBilling from "./pages/pro/ProBilling";
+import ProEnquiries from "./pages/pro/ProEnquiries";
+import MyEnquiries from "./pages/MyEnquiries";
+import DataAccess from "./pages/DataAccess";
 import AdminApplications from "./pages/admin/AdminApplications";
 
 
@@ -218,6 +221,17 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/pro/enquiries"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProEnquiries />
+                  </RoleGate>
+                }
+              />
+
+              <Route path="/profile/enquiries" element={<Protected><MyEnquiries /></Protected>} />
+              <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
 
               <Route
                 path="/admin/applications"
