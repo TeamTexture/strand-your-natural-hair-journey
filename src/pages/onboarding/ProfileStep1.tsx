@@ -508,7 +508,7 @@ const ProfileStep1 = () => {
 
         {/* Mobile Number */}
         <label className="block">
-          <FieldLabel>Mobile Number</FieldLabel>
+          <FieldLabel>Mobile Number <span className="text-primary">*</span></FieldLabel>
           <FieldFrame
             filled={phoneDigits.length >= 7}
             invalid={submitted && !!errors.phone}
