@@ -93,6 +93,24 @@ const BloodTiming = () => {
 
             <SurfaceCard tone="gold">
               <p className="font-display text-base font-semibold mb-1">
+                Or — order an at-home kit with Lola Health
+              </p>
+              <p className="text-xs text-foreground/80 mb-3 font-body">
+                Simple at-home blood test kit — posted to your door with fast results.
+              </p>
+              <a
+                href={LOLA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground rounded-full px-5 py-3 text-sm font-medium hover:bg-primary/90 transition-colors min-h-[44px]"
+              >
+                Buy a Lola Health kit
+                <ExternalLink className="size-4" />
+              </a>
+            </SurfaceCard>
+
+            <SurfaceCard tone="gold">
+              <p className="font-display text-base font-semibold mb-1">
                 Or — order an at-home kit with Daye
               </p>
               <p className="text-xs text-foreground/80 mb-3 font-body">
@@ -135,7 +153,7 @@ const BloodTiming = () => {
               onClick={() => navigate("/blood-upload?onboarding=1")}
             >
               <Upload className="size-4 mr-1.5" />
-              Upload PDF or Photo
+              Upload my tests
             </Button>
             <Button
               variant="goldOutline"
