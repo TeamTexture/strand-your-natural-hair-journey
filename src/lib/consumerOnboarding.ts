@@ -65,6 +65,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
 
 export async function getConsumerAccessForUser(userId: string, roles: string[] = []) {
   if (roles.includes("admin") || roles.includes("professional")) return true;
+  if (roles.includes("brand")) return false;
 
   const [profileRes, subRes] = await Promise.all([
     supabase
