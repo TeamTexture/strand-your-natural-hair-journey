@@ -65,13 +65,7 @@ const BrandBanner = ({ slot }: Props) => {
     setDismissed(true);
   };
 
-  const copyCode = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!offer.discount_code) return;
-    navigator.clipboard.writeText(offer.discount_code).then(() => {
-      toast.success(`Code ${offer.discount_code} copied`);
-    }).catch(() => toast.error("Could not copy"));
-  };
+
 
   const visit = (e: React.MouseEvent) => {
     e.stopPropagation();
