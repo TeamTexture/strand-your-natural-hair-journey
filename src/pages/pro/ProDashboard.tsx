@@ -154,12 +154,20 @@ const ProDashboard = () => {
             count={pendingEnquiries}
           />
           <Card
+            icon={Users}
+            title="Clients"
+            sub={hasProAccess ? clientsSub : "Subscribe to open your client book."}
+            onClick={() => nav("/pro/clients")}
+            count={activeClientsCount}
+          />
+          <Card
             icon={Calendar}
             title="Appointments"
             sub={hasProAccess ? nextApptSub : "Subscribe to see linked appointments."}
             onClick={() => nav("/pro/appointments")}
             count={upcomingAppointments.length}
           />
+
 
           <Card
             icon={CreditCard}
