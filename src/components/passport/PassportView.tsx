@@ -368,18 +368,6 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
           </div>
         </div>
 
-        {/* Contact + location band directly below cover */}
-        {(d.authEmail || p?.postcode || hardWater) && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {d.authEmail && <Chip tone="neutral">{d.authEmail}</Chip>}
-            {p?.postcode && <Chip tone="neutral">{p.postcode}</Chip>}
-            {hardWater && (
-              <Chip tone={hardWater.hardness === "very-hard" || hardWater.hardness === "hard" ? "warn" : "good"} icon={Droplet}>
-                {hardWater.label} water
-              </Chip>
-            )}
-          </div>
-        )}
       </div>
 
 
