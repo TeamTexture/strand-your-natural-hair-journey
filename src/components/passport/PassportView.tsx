@@ -26,7 +26,7 @@ import { formatTime12h } from "@/lib/formatTime";
 
 type Section =
   | "profile" | "routine" | "products" | "nutrition"
-  | "appointments" | "journal" | "photos" | "goals";
+  | "appointments" | "journal" | "photos" | "goals" | "notes";
 
 interface SectionSpec {
   key: Section;
@@ -34,7 +34,7 @@ interface SectionSpec {
   count: (d: PassportDataset) => number;
 }
 
-const SECTIONS: SectionSpec[] = [
+const BASE_SECTIONS: SectionSpec[] = [
   { key: "profile", label: "Profile", count: () => 0 },
   { key: "routine", label: "Routine", count: (d) => d.washDays.length },
   { key: "products", label: "Products", count: (d) => d.shelf.length },
@@ -44,6 +44,9 @@ const SECTIONS: SectionSpec[] = [
   { key: "photos", label: "Photos", count: (d) => d.milestonePhotos.length + d.beforePhotos.length + d.moodboards.length },
   { key: "goals", label: "Goals", count: (d) => d.goals.length },
 ];
+
+const NOTES_SECTION: SectionSpec = { key: "notes", label: "Notes", count: () => 0 };
+
 
 const PAGE = 15;
 
