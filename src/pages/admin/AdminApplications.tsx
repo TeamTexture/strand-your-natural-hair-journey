@@ -93,6 +93,13 @@ const AdminApplications = () => {
       }
       const { data: me } = await supabase.auth.getUser();
       const { error } = await supabase
+      const { data: me } = await supabase.auth.getUser();
+      const { data: appRow } = await supabase
+        .from("pro_applications")
+        .select("user_id")
+        .eq("id", id)
+        .maybeSingle();
+      const { error } = await supabase
         .from("pro_applications")
         .update({
           status,
@@ -102,10 +109,23 @@ const AdminApplications = () => {
         })
         .eq("id", id);
       if (error) throw error;
+      // On rejection, auto-cancel the applicant's Stripe subscription so
+      // they don't keep paying after being declined. Fire-and-forget: if
+      // it fails we still complete the rejection.
+      if (status === "rejected" && appRow?.user_id) {
+        try {
+          await supabase.functions.invoke("pro-cancel-subscription", {
+            body: { user_id: appRow.user_id, immediate: false },
+          });
+        } catch (err) {
+          console.error("pro-cancel-subscription on reject failed", err);
+        }
+      }
     },
     onSuccess: (_d, vars) => {
       toast.success(`Application ${vars.status}.`);
       qc.invalidateQueries({ queryKey: ["admin", "pro_applications"] });
+      qc.invalidateQueries({ queryKey: ["admin", "pending-applications-count"] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-applications-count"] });
     },
     onError: (err) => {
