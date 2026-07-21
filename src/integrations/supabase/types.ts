@@ -298,9 +298,11 @@ export type Database = {
       }
       brand_offer_stats: {
         Row: {
+          code_copies: number
           created_at: string
           id: string
           impressions: number
+          link_clicks: number
           offer_id: string
           slot: Database["public"]["Enums"]["brand_placement_slot"] | null
           stat_date: string
@@ -309,9 +311,11 @@ export type Database = {
           wishlist_adds: number
         }
         Insert: {
+          code_copies?: number
           created_at?: string
           id?: string
           impressions?: number
+          link_clicks?: number
           offer_id: string
           slot?: Database["public"]["Enums"]["brand_placement_slot"] | null
           stat_date?: string
@@ -320,9 +324,11 @@ export type Database = {
           wishlist_adds?: number
         }
         Update: {
+          code_copies?: number
           created_at?: string
           id?: string
           impressions?: number
+          link_clicks?: number
           offer_id?: string
           slot?: Database["public"]["Enums"]["brand_placement_slot"] | null
           stat_date?: string
@@ -2344,7 +2350,9 @@ export type Database = {
       brand_offer_totals: {
         Args: { _offer_ids: string[] }
         Returns: {
+          code_copies: number
           impressions: number
+          link_clicks: number
           offer_id: string
           taps: number
           wishlist_adds: number
