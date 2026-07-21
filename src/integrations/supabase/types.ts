@@ -908,6 +908,7 @@ export type Database = {
           photos: string[]
           postcode: string | null
           services: Json
+          specialisms: string[]
           suspended_at: string | null
           updated_at: string
           user_id: string
@@ -935,6 +936,7 @@ export type Database = {
           photos?: string[]
           postcode?: string | null
           services?: Json
+          specialisms?: string[]
           suspended_at?: string | null
           updated_at?: string
           user_id: string
@@ -962,6 +964,7 @@ export type Database = {
           photos?: string[]
           postcode?: string | null
           services?: Json
+          specialisms?: string[]
           suspended_at?: string | null
           updated_at?: string
           user_id?: string
