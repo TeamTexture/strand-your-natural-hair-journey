@@ -69,7 +69,7 @@ const AdminMembers = () => {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
     queryFn: async (): Promise<MemberRow[]> => {
-      const [profilesRes, subsRes, emailsRes] = await Promise.all([
+      const [profilesRes, subsRes, emailsRes, activityRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, display_name, complimentary_access, access_restricted, created_at")
@@ -79,10 +79,12 @@ const AdminMembers = () => {
           .from("consumer_subscriptions")
           .select("user_id, status, current_period_end, cancel_at_period_end"),
         supabase.rpc("admin_list_member_emails"),
+        supabase.rpc("admin_list_member_activity"),
       ]);
       if (profilesRes.error) throw profilesRes.error;
       if (subsRes.error) throw subsRes.error;
       if (emailsRes.error) throw emailsRes.error;
+      if (activityRes.error) throw activityRes.error;
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
           s.user_id,
@@ -99,17 +101,38 @@ const AdminMembers = () => {
           e.email,
         ]),
       );
-      return (profilesRes.data ?? []).map((p) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        email: emailMap.get(p.user_id) ?? null,
-        complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
-        access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
-        created_at: p.created_at,
-        subscription_status: subMap.get(p.user_id)?.subscription_status ?? null,
-        current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
-        cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
-      }));
+      const activityMap = new Map(
+        ((activityRes.data ?? []) as Array<{
+          user_id: string;
+          session_count: number | string;
+          last_session: string | null;
+          sessions_last_30d: number | string;
+        }>).map((a) => [
+          a.user_id,
+          {
+            session_count: Number(a.session_count) || 0,
+            last_session: a.last_session,
+            sessions_last_30d: Number(a.sessions_last_30d) || 0,
+          },
+        ]),
+      );
+      return (profilesRes.data ?? []).map((p) => {
+        const act = activityMap.get(p.user_id);
+        return {
+          user_id: p.user_id,
+          display_name: p.display_name,
+          email: emailMap.get(p.user_id) ?? null,
+          complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
+          access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
+          created_at: p.created_at,
+          subscription_status: subMap.get(p.user_id)?.subscription_status ?? null,
+          current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
+          cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
+          session_count: act?.session_count ?? 0,
+          last_session: act?.last_session ?? null,
+          sessions_last_30d: act?.sessions_last_30d ?? 0,
+        };
+      });
     },
   });
 
