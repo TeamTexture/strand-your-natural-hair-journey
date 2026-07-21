@@ -195,6 +195,13 @@ const Directory = () => {
 
                 <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
 
+                {enq && (
+                  <p className="text-[11px] text-muted-foreground mt-3">
+                    You enquired {formatDistanceToNow(new Date(enq.created_at), { addSuffix: true })}
+                    {activeEnq ? " — awaiting response." : "."}
+                  </p>
+                )}
+
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {/* Plain anchor tags so the iframe sandbox / popup-blocker
                       treats them as a user-initiated navigation. window.open
