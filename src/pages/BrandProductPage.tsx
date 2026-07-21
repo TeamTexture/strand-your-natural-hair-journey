@@ -48,9 +48,6 @@ const BrandProductPage = () => {
   const { tools: userTools, reload: reloadTools } = useUserTools();
   const { goals } = useGoals();
   const [busy, setBusy] = useState(false);
-  const [analysis, setAnalysis] = useState<AnalysisPayload | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
   const [guidance, setGuidance] = useState<GuidancePayload | null>(null);
   const [guidanceLoading, setGuidanceLoading] = useState(false);
 
