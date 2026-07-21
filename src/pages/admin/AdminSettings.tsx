@@ -386,7 +386,7 @@ const AdminSettings = () => {
         </SurfaceCard>
 
         {/* Not-connected banner */}
-        {!q.isLoading && !stripeKeyConfigured && (
+        {q.isSuccess && !stripeKeyConfigured && (
           <div className="rounded-xl border border-destructive/30 bg-destructive/[0.06] p-3 flex items-start gap-2.5">
             <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
             <div className="text-[12px] font-body leading-relaxed">
