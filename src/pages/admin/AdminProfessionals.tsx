@@ -390,6 +390,7 @@ const AdminProfessionals = () => {
           filtered.map((r) => {
             const sub = subLabel(r);
             const isExpanded = expanded === r.user_id;
+            const level = activityLevel(r.sessions_last_30d);
             const renews = r.sub_current_period_end
               ? format(new Date(r.sub_current_period_end), "d MMM yyyy")
               : null;
@@ -406,6 +407,17 @@ const AdminProfessionals = () => {
                         <p className="text-sm font-body font-semibold truncate">
                           {r.display_name ?? "Unnamed"}
                         </p>
+                        {level && (
+                          <span
+                            title={level === "high" ? "Highly active user" : "Active user"}
+                            className={cn(
+                              "inline-flex items-center justify-center rounded-full shrink-0 size-4",
+                              level === "high" ? "bg-primary/20 text-primary" : "bg-primary/10 text-primary/80",
+                            )}
+                          >
+                            <Activity className="size-2.5" strokeWidth={level === "high" ? 3 : 2.25} />
+                          </span>
+                        )}
                         <span className={cn(
                           "text-[9px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider",
                           r.is_published ? "bg-good/15 text-good" : "bg-muted text-muted-foreground",
