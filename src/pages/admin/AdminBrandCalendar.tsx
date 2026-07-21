@@ -117,7 +117,17 @@ const AdminBrandCalendar = () => {
                       !inMonth && "opacity-40",
                     )}
                   >
-                    <p className={cn("font-medium", !dayStatus && "text-muted-foreground")}>{d.getDate()}</p>
+                    <div className="flex items-center justify-between gap-0.5">
+                      <p className={cn("font-medium", !dayStatus && "text-muted-foreground")}>{d.getDate()}</p>
+                      <div className="flex items-center gap-0.5">
+                        {slotBookings.some((b) => (b.brand_offers as { owner_type?: string | null }).owner_type === "brand") && (
+                          <span className="inline-flex items-center justify-center size-3 rounded-full bg-foreground text-background text-[7px] font-body font-bold leading-none" title="Brand campaign">B</span>
+                        )}
+                        {slotBookings.some((b) => (b.brand_offers as { owner_type?: string | null }).owner_type === "pro") && (
+                          <span className="inline-flex items-center justify-center size-3 rounded-full bg-primary text-primary-foreground text-[7px] font-body font-bold leading-none" title="Pro campaign">P</span>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex flex-col gap-0.5 mt-0.5">
                       {(["home", "products", "wash_day"] as PlacementSlot[]).map((s) => {
                         const booking = slots[s];
