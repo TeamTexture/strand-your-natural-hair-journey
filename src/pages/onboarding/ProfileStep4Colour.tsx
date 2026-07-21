@@ -82,7 +82,7 @@ const COLOUR_TIMEFRAMES = [
 
 const ProfileStep4Colour = () => {
   const navigate = useNavigate();
-  const [colour, setColour] = useState(["Natural"]);
+  const [colour, setColour] = useState([NATURAL_NEVER]);
   const [chemHist, setChemHist] = useState(["None"]);
   const [style, setStyle] = useState(["Box braids"]);
   const [howLongNum, setHowLongNum] = useState("9");
@@ -102,7 +102,10 @@ const ProfileStep4Colour = () => {
   const [colourLast, setColourLast] = useState<string>("Never coloured");
   const [colourReaction, setColourReaction] = useState<"yes" | "no">("no");
   const [colourReactionDetails, setColourReactionDetails] = useState("");
+  const [colourReactionAudioPath, setColourReactionAudioPath] = useState<string | null>(null);
+  const [reactionError, setReactionError] = useState(false);
 
+  const isNaturalNever = colour[0] === NATURAL_NEVER;
   const isChanging = plansToChange === "yes";
 
   return (
