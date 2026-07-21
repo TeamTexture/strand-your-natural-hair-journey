@@ -133,7 +133,8 @@ const washHadClarifier = (steps: unknown): boolean => {
   });
 };
 
-export function useHomeAlerts() {
+export function useHomeAlerts(opts?: { static?: boolean }) {
+  const isStatic = !!opts?.static;
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<HomeAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,8 +145,12 @@ export function useHomeAlerts() {
   // alerts stay dynamic: once the user fixes the underlying issue (e.g. logs
   // a wash day, books a blood test, adds a milestone), the corresponding
   // alert disappears immediately without needing a full page reload.
+  //
+  // When `static` is true (e.g. the Home screen) we DELIBERATELY skip these
+  // subscriptions: alerts are computed once on mount and stay frozen while
+  // the user is on the page — fresh data reloads on next mount.
   useEffect(() => {
-    if (!user) return;
+    if (!user || isStatic) return;
     const bump = () => setRefreshTick((t) => t + 1);
     const tables = [
       "wash_days",
@@ -184,7 +189,7 @@ export function useHomeAlerts() {
       document.removeEventListener("visibilitychange", onVisible);
       window.clearInterval(interval);
     };
-  }, [user]);
+  }, [user, isStatic]);
 
   useEffect(() => {
     if (!user) {
