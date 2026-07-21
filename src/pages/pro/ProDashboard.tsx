@@ -151,6 +151,14 @@ const ProDashboard = () => {
                 >
                   <ShieldCheck className="size-4 text-primary/70" />
                   <span className="flex-1">Admin panel</span>
+                  {pendingCount > 0 && (
+                    <span
+                      aria-label={`${pendingCount} pending applications`}
+                      className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none"
+                    >
+                      {pendingCount > 99 ? "99+" : pendingCount}
+                    </span>
+                  )}
                   <ChevronRight className="size-3.5 text-muted-foreground" />
                 </button>
               )}
