@@ -359,9 +359,10 @@ const BrandCreateOffer = () => {
           <div>
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Banner image *</Label>
             <p className="text-[11px] text-muted-foreground font-body mt-0.5 leading-snug">
-              1500×320px (4.7:1). Keep the focal point in the RIGHT third — your headline
-              renders on the left. <span className="font-medium">No text in the image:</span> headline, copy
-              and discount code come from the fields above.
+              1500×320px (4.7:1). Keep the focal point in the RIGHT third — your app-rendered headline
+              overlays the left. <span className="font-medium">Text on the image is allowed</span> —
+              keep it <span className="font-medium">bold, large and minimal</span> (2–4 words max) so it stays legible
+              at the 80px collapsed strip. Avoid small print, paragraphs or logos with fine detail.
             </p>
             <label className="flex items-center gap-2 mt-2 p-3 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50">
               <ImageIcon className="size-4 text-muted-foreground" />
