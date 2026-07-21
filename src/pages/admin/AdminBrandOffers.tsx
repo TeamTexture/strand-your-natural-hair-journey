@@ -23,6 +23,8 @@ const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 const AdminBrandOffers = () => {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [params] = useSearchParams();
+  const filter = params.get("filter"); // "pending" | "live" | "brands" | null
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
