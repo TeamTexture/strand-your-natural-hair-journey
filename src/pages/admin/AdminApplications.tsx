@@ -352,16 +352,34 @@ const ApplicationCard = ({
         )}
 
         {app.status === "approved" && (
-          <div className="pt-3">
+          <div className="pt-3 flex gap-2">
             <Button
               size="sm"
               variant="outline"
-              className="w-full"
+              className="flex-1"
               disabled={busy}
               onClick={() => onDecide("suspended", notes || undefined)}
             >
               Suspend
             </Button>
+            {app.user_id && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                disabled={busy}
+                onClick={async () => {
+                  if (!confirm("Restrict this professional's app access? Their subscriptions will be cancelled and their directory listing unpublished.")) return;
+                  const { error } = await supabase.functions.invoke("admin-restrict-user", {
+                    body: { user_id: app.user_id },
+                  });
+                  if (error) toast.error(error.message ?? "Could not restrict");
+                  else toast.success("Access restricted.");
+                }}
+              >
+                Restrict
+              </Button>
+            )}
           </div>
         )}
 
