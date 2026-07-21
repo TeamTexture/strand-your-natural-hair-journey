@@ -920,14 +920,6 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
         </div>
       )}
 
-      {latestSummary && (
-        <>
-          <SubLabel>Latest AI analysis</SubLabel>
-          <div className="px-5">
-            <BloodAiCard payload={latestSummary.payload} when={latestSummary.created_at} />
-          </div>
-        </>
-      )}
 
       <SubLabel>Panels</SubLabel>
       <div className="px-5 space-y-2">
