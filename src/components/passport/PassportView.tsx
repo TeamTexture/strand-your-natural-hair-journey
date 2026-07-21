@@ -2044,6 +2044,8 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "journal" && <JournalSection d={data} />}
           {section === "photos" && <PhotosSection d={data} />}
           {section === "goals" && <GoalsSection d={data} />}
+          {section === "notes" && mode === "pro" && <ProClientNotes consumerId={userId} />}
+
         </div>
 
 
