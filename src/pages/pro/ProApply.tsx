@@ -213,9 +213,11 @@ const ProApply = () => {
               Vetted directory —{" "}
             </span>
             Share your credentials and the Strand Council will be in touch. No payment
-            is taken at application — you'll only subscribe once accepted.
+            is taken at application — you'll only subscribe once accepted. You can
+            save your progress and come back to finish any time.
           </p>
         </SurfaceCard>
+
 
         <Field label="Full name *">
           <Input
