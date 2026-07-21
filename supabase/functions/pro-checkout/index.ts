@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) return json({ error: "Stripe not configured" }, 500);
 
-    // Resolve price id: prefer secret STRIPE_PRO_PRICE_ID, fall back to platform_settings
-    let priceId = Deno.env.get("STRIPE_PRO_PRICE_ID") ?? "";
+    // Resolve price id: prefer STRIPE_PRO_PRICE_ID, fall back to legacy STRIPE_PRICE_ID, then platform_settings
+    let priceId = Deno.env.get("STRIPE_PRO_PRICE_ID") ?? Deno.env.get("STRIPE_PRICE_ID") ?? "";
     if (!priceId) {
       const admin = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
         .select("value")
         .eq("key", "stripe_pro_price_id")
         .maybeSingle();
-      priceId = (ps?.value as string | null) ?? "";
+      const raw = ps?.value;
+      priceId = typeof raw === "string" ? raw : "";
     }
     if (!priceId) return json({ error: "Stripe price id not configured" }, 500);
 
