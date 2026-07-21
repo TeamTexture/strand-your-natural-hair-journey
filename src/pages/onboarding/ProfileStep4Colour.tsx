@@ -4,7 +4,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import Tag from "@/components/Tag";
-import FormField from "@/components/FormField";
+
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import VoiceNoteField from "@/components/VoiceNoteField";
+
+const NATURAL_NEVER = "Natural (never coloured)";
 
 const HAIRSTYLE_OPTIONS = [
   "Loose natural",
@@ -79,7 +82,7 @@ const COLOUR_TIMEFRAMES = [
 
 const ProfileStep4Colour = () => {
   const navigate = useNavigate();
-  const [colour, setColour] = useState(["Natural"]);
+  const [colour, setColour] = useState([NATURAL_NEVER]);
   const [chemHist, setChemHist] = useState(["None"]);
   const [style, setStyle] = useState(["Box braids"]);
   const [howLongNum, setHowLongNum] = useState("9");
@@ -99,7 +102,10 @@ const ProfileStep4Colour = () => {
   const [colourLast, setColourLast] = useState<string>("Never coloured");
   const [colourReaction, setColourReaction] = useState<"yes" | "no">("no");
   const [colourReactionDetails, setColourReactionDetails] = useState("");
+  const [colourReactionAudioPath, setColourReactionAudioPath] = useState<string | null>(null);
+  const [reactionError, setReactionError] = useState(false);
 
+  const isNaturalNever = colour[0] === NATURAL_NEVER;
   const isChanging = plansToChange === "yes";
 
   return (
@@ -110,78 +116,93 @@ const ProfileStep4Colour = () => {
       <div className="px-5 pb-8 space-y-5">
         <TagGroup
           label="Current Colour Status"
-          options={["Natural", "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"]}
+          options={[NATURAL_NEVER, "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"]}
           value={colour} onChange={setColour}
           multi={false}
         />
-        <TagGroup
-          label="Chemical History"
-          options={["Relaxer current", "Relaxer past", "Texturiser", "Curly perm", "Heat damage", "None"]}
-          value={chemHist} onChange={setChemHist}
-        />
 
-        <div className="border-t border-border" />
-
-        {/* ── Colour History ── */}
-        <div className="space-y-3">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
-            Colour History
-          </div>
-
-          <div>
-            <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Colour type</div>
-            <Select value={colourType} onValueChange={setColourType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {COLOUR_TYPES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Product used</div>
-            <Select value={colourProduct} onValueChange={setColourProduct}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {COLOUR_PRODUCTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground mt-1 italic">
-              Not sure? Select 'Not sure' and your professional will confirm at your appointment.
-            </p>
-          </div>
-
-          <div>
-            <div className="text-[11px] font-medium text-foreground/80 mb-1.5">
-              When was your last colour treatment?
-            </div>
-            <Select value={colourLast} onValueChange={setColourLast}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {COLOUR_TIMEFRAMES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <TagGroup
-            label="Have you ever had a reaction to hair colour?"
-            options={["Yes", "No"]}
-            value={colourReaction === "yes" ? ["Yes"] : ["No"]}
-            onChange={(v) => setColourReaction(v.includes("Yes") ? "yes" : "no")}
-            multi={false}
-          />
-
-          {colourReaction === "yes" && (
-            <FormField
-              label="What happened? (optional)"
-              value={colourReactionDetails}
-              onChange={(e) => setColourReactionDetails(e.target.value)}
-              placeholder="e.g. scalp burning, itch, patchy shedding…"
+        {!isNaturalNever && (
+          <>
+            <TagGroup
+              label="Chemical History"
+              options={["Relaxer current", "Relaxer past", "Texturiser", "Curly perm", "Heat damage", "None"]}
+              value={chemHist} onChange={setChemHist}
             />
-          )}
-        </div>
 
-        <div className="border-t border-border" />
+            <div className="border-t border-border" />
+
+            {/* ── Colour History ── */}
+            <div className="space-y-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+                Colour History
+              </div>
+
+              <div>
+                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Colour type</div>
+                <Select value={colourType} onValueChange={setColourType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COLOUR_TYPES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Product used</div>
+                <Select value={colourProduct} onValueChange={setColourProduct}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COLOUR_PRODUCTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1 italic">
+                  Not sure? Select 'Not sure' and your professional will confirm at your appointment.
+                </p>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">
+                  When was your last colour treatment?
+                </div>
+                <Select value={colourLast} onValueChange={setColourLast}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COLOUR_TIMEFRAMES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <TagGroup
+                label="Have you ever had a reaction to hair colour?"
+                options={["Yes", "No"]}
+                value={colourReaction === "yes" ? ["Yes"] : ["No"]}
+                onChange={(v) => {
+                  setColourReaction(v.includes("Yes") ? "yes" : "no");
+                  setReactionError(false);
+                }}
+                multi={false}
+              />
+
+              {colourReaction === "yes" && (
+                <VoiceNoteField
+                  label="What happened?"
+                  placeholder="e.g. scalp burning, itch, patchy shedding…"
+                  value={colourReactionDetails}
+                  onChange={(v) => { setColourReactionDetails(v); if (v.trim()) setReactionError(false); }}
+                  audioPath={colourReactionAudioPath}
+                  onAudioPathChange={(p) => { setColourReactionAudioPath(p); if (p) setReactionError(false); }}
+                  folder="colour-reaction"
+                  required
+                  errorMessage={reactionError ? "Please describe what happened, or record a voice note." : undefined}
+                />
+              )}
+            </div>
+
+            <div className="border-t border-border" />
+          </>
+        )}
+
+
 
 
         <TagGroup
@@ -285,6 +306,18 @@ const ProfileStep4Colour = () => {
           size="pill"
           className="mt-4"
           onClick={async () => {
+            // Require reaction details (text or voice note) when a reaction is flagged.
+            if (
+              !isNaturalNever &&
+              colourReaction === "yes" &&
+              !colourReactionDetails.trim() &&
+              !colourReactionAudioPath
+            ) {
+              setReactionError(true);
+              toast.error("Please describe what happened, or record a voice note.");
+              return;
+            }
+
             const num = parseInt(howLongNum, 10);
             const unit = howLongUnit;
             const days = Number.isFinite(num)
@@ -314,8 +347,15 @@ const ProfileStep4Colour = () => {
               ).toISOString();
             }
 
-            // Use the same shape as SetCurrentStyle / Home so the value
-            // pulls through to the "Current Style" card on the homescreen.
+            // When "Natural (never coloured)" is selected, chemical + colour history
+            // sections are hidden — persist neutral values so stale data can't leak
+            // through to advice.
+            const chemHistToSave = isNaturalNever ? ["None"] : chemHist;
+            const colourTypeToSave = isNaturalNever ? null : colourType;
+            const colourProductToSave = isNaturalNever ? null : colourProduct;
+            const colourLastToSave = isNaturalNever ? "Never coloured" : colourLast;
+            const reactionFlag = !isNaturalNever && colourReaction === "yes";
+
             localStorage.setItem(
               "strand_current_style",
               JSON.stringify({
@@ -332,7 +372,7 @@ const ProfileStep4Colour = () => {
                 changingTo,
                 defaultStyle,
                 colour,
-                chemHist,
+                chemHist: chemHistToSave,
               }),
             );
             // Dual-write to user_style_profile. PHASE_1_PLAN.md §15.
@@ -345,19 +385,19 @@ const ProfileStep4Colour = () => {
                     {
                       user_id: u.user.id,
                       current_colour_status: colour[0] ?? null,
-                      chemical_history: chemHist,
+                      chemical_history: chemHistToSave,
                       current_hairstyle: style[0] ?? null,
                       style_set_at,
                       planned_next_style: changingTo[0] ?? null,
                       planned_change_date,
                       default_styles: defaultStyle,
-                      colour_type: colourType,
-                      colour_product: colourProduct,
-                      colour_last_treated: colourLast,
-                      colour_reaction: colourReaction === "yes",
-                      colour_reaction_details:
-                        colourReaction === "yes" ? colourReactionDetails || null : null,
-                    },
+                      colour_type: colourTypeToSave,
+                      colour_product: colourProductToSave,
+                      colour_last_treated: colourLastToSave,
+                      colour_reaction: reactionFlag,
+                      colour_reaction_details: reactionFlag ? colourReactionDetails || null : null,
+                      colour_reaction_audio_path: reactionFlag ? colourReactionAudioPath : null,
+                    } as never,
                     { onConflict: "user_id" },
                   );
                 if (error) throw error;

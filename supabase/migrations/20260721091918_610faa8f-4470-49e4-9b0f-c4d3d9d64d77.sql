@@ -1,0 +1,1 @@
+ALTER TABLE public.user_style_profile ADD COLUMN IF NOT EXISTS colour_reaction_audio_path text;
