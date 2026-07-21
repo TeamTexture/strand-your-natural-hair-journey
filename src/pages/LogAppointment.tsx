@@ -90,7 +90,10 @@ const LogAppointment = () => {
       // Default to "completed" for follow-ups from the home alert, but keep
       // the actual saved status if the user is editing an existing record.
       setStatus((data.status as "upcoming" | "completed") ?? "completed");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setExistingLinkedProId(((data as any).linked_pro_user_id ?? null) as string | null);
       setPrefilled(true);
+
     })();
     return () => {
       cancelled = true;
