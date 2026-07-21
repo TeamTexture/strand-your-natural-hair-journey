@@ -247,8 +247,7 @@ const Subscribe = () => {
           </h1>
           <p className="font-body text-[13.5px] text-foreground/75 leading-relaxed max-w-[320px] mx-auto">
             Not another routine tracker. STRAND reads your hair, your bloodwork, your
-            products and your history — then guides you, in the voice of Paige Lewin, one
-            wash day at a time.
+            products and your history — then guides you, one wash day at a time.
           </p>
         </div>
 
