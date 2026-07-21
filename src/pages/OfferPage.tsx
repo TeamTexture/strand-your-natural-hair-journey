@@ -238,7 +238,7 @@ const OfferPage = () => {
           {heroUrl && <img src={heroUrl} alt="" className="w-full aspect-[16/9] object-cover" />}
           <div className="p-4">
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-body">Sponsored</p>
-            <p className="font-display text-xl mt-1">{offer.headline}</p>
+            <p className="font-display text-xl mt-1">{offer.headline || offer.brand_profiles?.brand_name || "Featured offer"}</p>
             {offer.body_copy && <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">{offer.body_copy}</p>}
             {offer.discount_code && (
               <div className="mt-3">
