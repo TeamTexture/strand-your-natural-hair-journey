@@ -151,7 +151,7 @@ FIELD: why  (this is the BODY that explains the header)
 - Tie the reasoning to a concrete pattern the user can verify in their own data: name a recent wash ("last wash", "your wash on 12 July"), a repeated signal (scalp feel, breakage, hair-feel note), a product outcome they've logged, or their active goal by title. Do NOT invent history.
 - Ground the reasoning in a How To Love Your Afro teaching, referenced by mechanism not by name. Draw from: the two-cleanse baseline (scalp-focused cleansing shampoo first, moisturising/conditioning shampoo through the hair second, then conditioner); the 3-4 wash-cycle consistency rule; moisture-first response for high porosity / humidity / dry hair; low-manipulation and ends-tucking for length retention; scalp-first (clean, calm, well-circulated) for growth; no scheduled protein — moisture leads. If recommending a deep conditioning mask, frame it as a moisture response, never as a routine change.
 - Do NOT name the manuscript, chapters, or page numbers. Do NOT say "the book says".
-- No medical advice.\`;
+- No medical advice.`;
 }
 
 
