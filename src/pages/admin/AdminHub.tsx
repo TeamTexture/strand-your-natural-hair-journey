@@ -330,9 +330,9 @@ const AdminHub = () => {
               />
             </div>
 
-            <SectionLabel className="!px-0">Brands</SectionLabel>
+            <SectionLabel className="!px-0">Campaigns</SectionLabel>
             <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
-              Paying brand partners — kept separate from consumer members.
+              Promoted placements from brands and professionals — shared inventory.
             </p>
             <div className="grid grid-cols-3 gap-2.5">
               <StatCard
@@ -341,14 +341,24 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/brand-offers?filter=brands")}
               />
               <StatCard
-                label="Live offers"
+                label="Live campaigns"
                 value={stats.liveBrandOffers}
+                sublabel={
+                  stats.liveBrandOffers > 0
+                    ? `${stats.liveBrandOffersBrand} brand · ${stats.liveBrandOffersPro} pro`
+                    : undefined
+                }
                 onClick={() => nav("/admin/brand-offers?filter=live")}
               />
               <StatCard
-                label="Offer requests"
+                label="Requests"
                 value={stats.brandOfferRequests}
                 tone={stats.brandOfferRequests > 0 ? "warn" : "default"}
+                sublabel={
+                  stats.brandOfferRequests > 0
+                    ? `${stats.brandOfferRequestsBrand} brand · ${stats.brandOfferRequestsPro} pro`
+                    : undefined
+                }
                 onClick={() => nav("/admin/brand-offers?filter=pending")}
               />
             </div>
