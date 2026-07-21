@@ -407,7 +407,7 @@ const BrandCreateOffer = () => {
         starts_on: null as string | null,
         ends_on: null as string | null,
       };
-      const allDates = SLOTS.flatMap((s) => selectedByslot[s]).sort();
+      const allDates = [...selectedDates].sort();
       if (allDates.length > 0) {
         payload.starts_on = allDates[0];
         payload.ends_on = allDates[allDates.length - 1];
