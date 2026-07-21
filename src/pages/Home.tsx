@@ -24,6 +24,9 @@ import {
 import BrandLink from "@/components/BrandLink";
 import HomeTour from "@/components/HomeTour";
 import AppointmentFollowUpDialog from "@/components/AppointmentFollowUpDialog";
+import HelloKleanDialog from "@/components/HelloKleanDialog";
+import { consumeHelloKleanPrompt } from "@/lib/discounts";
+import { lookupHardWater } from "@/lib/hardWater";
 import { useSmartInline } from "@/lib/smartInline";
 
 
