@@ -87,7 +87,6 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const [location, setLocation] = useState<string | null>(null);
   const [budget, setBudget] = useState("");
   const [note, setNote] = useState("");
-  const [consent, setConsent] = useState(false);
   const create = useCreateEnquiry();
 
   useEffect(() => {
@@ -99,7 +98,6 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
       setLocation(null);
       setBudget("");
       setNote("");
-      setConsent(false);
     }
   }, [open]);
 
@@ -107,7 +105,6 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const canSubmit =
     !!service &&
     !!timeframe &&
-    consent &&
     (!phoneNeeded || phone.trim().length >= 6) &&
     note.trim().length > 0;
 
