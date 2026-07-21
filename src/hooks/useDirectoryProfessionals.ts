@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PROFESSIONALS, type Professional, type ProType } from "@/data/professionals";
+import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/lib/socialLinks";
 
 /**
  * Fetches the professionals_directory table from the backend and merges the
