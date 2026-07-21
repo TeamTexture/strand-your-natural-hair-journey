@@ -223,9 +223,10 @@ export function londonToday(): string {
  *  Read-time date logic: an offer is "live" from starts_on..ends_on inclusive
  *  regardless of whether the stored status has been flipped to `live` yet. */
 export function useActiveBrandOffer(slot: PlacementSlot) {
+  useBrandOfferLiveSync();
   return useQuery({
     queryKey: ["active-brand-offer", slot, londonToday()],
-    staleTime: 60_000,
+    staleTime: 15_000,
     queryFn: async () => {
       const today = londonToday();
       const { data, error } = await supabase
@@ -246,9 +247,10 @@ export function useActiveBrandOffer(slot: PlacementSlot) {
 
 /** All currently paid+in-window offers for the profile Discounts area. */
 export function useAllLiveBrandOffers() {
+  useBrandOfferLiveSync();
   return useQuery({
     queryKey: ["all-live-brand-offers", londonToday()],
-    staleTime: 60_000,
+    staleTime: 15_000,
     queryFn: async () => {
       const today = londonToday();
       const { data, error } = await supabase
