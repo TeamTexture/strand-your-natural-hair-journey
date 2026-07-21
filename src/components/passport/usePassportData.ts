@@ -26,6 +26,7 @@ export interface PassportDataset {
   bloodPanels: Array<{ id: string; panel_date: string | null; label: string | null; notes: string | null; test_type: string | null; lab_name: string | null; status: string | null }>;
   bloodResults: Array<{ id: string; panel_id: string | null; marker: string; value: number | null; unit: string | null; status: string | null; category: string | null; updated_at: string }>;
   bloodSummaries: Array<{ id: string; payload: unknown; created_at: string }>;
+  nutritionSummaries: Array<{ id: string; payload: unknown; created_at: string }>;
   strandSummaries: Array<{ id: string; overview: string | null; action_plan: unknown; routine_tips: unknown; created_at: string }>;
   washDays: Array<Record<string, unknown> & { id: string; wash_date: string }>;
   journal: Array<{ id: string; entry_date: string; title: string | null; note: string | null; mood: string | null; photo_paths: string[] | null; products_used: string[] | null }>;
