@@ -1834,36 +1834,16 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
     );
   }
 
-  const firstName = data.clientName.split(" ")[0];
   const Icon = sectionIcon[section];
 
   return (
     <ImagePreviewContext.Provider value={setImagePreview}>
       <ScreenLayout>
-        <TitleBar title={firstName} onBack={accessEndedAction} />
-
-        {/* Consent / mode badge */}
-        <div className="px-5 pb-2 pt-1">
-          <SurfaceCard tone="gold" padded={false}>
-            <div className="flex items-center gap-2.5 px-3 py-2">
-              <div className={cn("size-7 rounded-full flex items-center justify-center shrink-0",
-                mode === "admin" ? "bg-primary/20 text-primary" : "bg-good/20 text-good")}>
-                {mode === "admin" ? <Shield className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-body font-semibold uppercase tracking-[0.16em] text-primary">
-                  {mode === "admin" ? "Admin view · read-only" : "Client consent · logged"}
-                </p>
-                <p className="text-[10.5px] text-muted-foreground font-body leading-snug">
-                  Every section you open is logged and visible to the member.
-                </p>
-              </div>
-            </div>
-          </SurfaceCard>
-        </div>
+        <TitleBar title={mode === "admin" ? "Member passport" : "Client passport"} onBack={accessEndedAction} />
 
         {/* Sticky tab strip — gold-edged passport pages */}
         <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-2.5 pb-3 px-5 border-b border-primary/15">
+
           <div className="overflow-x-auto scrollbar-hide -mx-5 px-5">
             <div className="flex gap-1.5 min-w-max">
               {SECTIONS.map((s) => {
