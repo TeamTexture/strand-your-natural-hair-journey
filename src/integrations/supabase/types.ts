@@ -2510,6 +2510,19 @@ export type Database = {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined
       }
+      send_enquiry_with_access: {
+        Args: {
+          _budget_range: string
+          _contact_method: string
+          _contact_phone: string
+          _location_preference: string
+          _note: string
+          _preferred_timeframe: string
+          _pro_user_id: string
+          _service_interest: string
+        }
+        Returns: string
+      }
       strand_today_london: { Args: never; Returns: string }
       submit_brand_offer_revision: {
         Args: {
