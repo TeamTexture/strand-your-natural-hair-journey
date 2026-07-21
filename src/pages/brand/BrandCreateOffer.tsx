@@ -510,12 +510,12 @@ const BrandCreateOffer = () => {
 
       let offerId = existingId;
       if (offerId) {
-        const { error } = await supabase.from("brand_offers").update(payload).eq("id", offerId);
+        const { error } = await supabase.from("brand_offers").update(payload as unknown as never).eq("id", offerId);
         if (error) throw error;
         await supabase.from("brand_offer_placements").delete().eq("offer_id", offerId);
         await supabase.from("brand_products").delete().eq("offer_id", offerId);
       } else {
-        const { data, error } = await supabase.from("brand_offers").insert(payload).select("id").single();
+        const { data, error } = await supabase.from("brand_offers").insert(payload as unknown as never).select("id").single();
         if (error) throw error;
         offerId = data.id;
       }
