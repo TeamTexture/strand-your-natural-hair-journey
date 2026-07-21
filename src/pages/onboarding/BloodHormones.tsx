@@ -12,6 +12,9 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { getSubscribePath } from "@/lib/consumerOnboarding";
 
 
 const MARKERS = [
@@ -27,6 +30,7 @@ const MARKERS = [
 
 const BloodHormones = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { values, setValue } = useBloodValues();
   const { unknown, setUnknown } = useUnknownMarkers();
 
@@ -37,7 +41,13 @@ const BloodHormones = () => {
       toast.error("Could not save. Check your connection.");
       return;
     }
-    navigate("/onboarding/blood-ai-summary");
+    if (user?.id) {
+      await supabase
+        .from("profiles")
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+    }
+    navigate(getSubscribePath());
   };
 
   return (

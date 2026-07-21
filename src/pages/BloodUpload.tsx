@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
+import { getSubscribePath } from "@/lib/consumerOnboarding";
 
 
 interface ExtractedRow {
@@ -445,10 +446,11 @@ export default function BloodUpload() {
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
-        // Stay on the upload screen so the user can add more tests before moving on.
-        setSavedCount((n) => n + 1);
-        setSavedInOnboarding(true);
-        resetForNextUpload();
+        await supabase
+          .from("profiles")
+          .update({ onboarding_completed_at: new Date().toISOString() })
+          .eq("user_id", user.id);
+        navigate(getSubscribePath());
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
