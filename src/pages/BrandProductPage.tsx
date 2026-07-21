@@ -22,6 +22,8 @@ const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
 const analysisCacheKind = (brandProductId: string) =>
   `brand_product_analysis:${brandProductId}`;
+const guidanceCacheKind = (brandProductId: string) =>
+  `brand_product_guidance:${brandProductId}`;
 
 interface IngredientFlag {
   name: string;
@@ -37,6 +39,14 @@ type AnalysisPayload = {
   verdict?: string | null;
   rationale?: string | null;
   cautions?: string[];
+};
+
+type GuidancePayload = {
+  headline: string;
+  fit_summary: string;
+  how_to_use: string[];
+  benefits_for_you: string[];
+  cautions: string[];
 };
 
 const formatDate = (iso: string | null | undefined) => {
