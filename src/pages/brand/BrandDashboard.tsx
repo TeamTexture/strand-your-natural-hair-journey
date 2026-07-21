@@ -8,6 +8,8 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
+import CountdownClock from "@/components/brand/CountdownClock";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
@@ -52,6 +54,16 @@ const BrandDashboard = () => {
   const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
   const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions(offers.map((o) => o.id));
   const { data: revisionCounts = {} } = useOfferRevisionCounts(offers.map((o) => o.id));
+
+  // One ticking clock drives the "expiring soon" banner + inline chips so the
+  // brand sees the countdown update live without every offer card holding its
+  // own interval.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
 
 
   if (profileLoading || isLoading) return <LoadingDot />;
