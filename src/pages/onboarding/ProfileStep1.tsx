@@ -81,6 +81,7 @@ const ProfileStep1 = () => {
 
   // Refs for keyboard "Next" key focus advance.
   const ageRef = useRef<HTMLSelectElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
   const postcodeRef = useRef<HTMLInputElement>(null);
 
   
