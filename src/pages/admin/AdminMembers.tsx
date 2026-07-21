@@ -254,6 +254,16 @@ const AdminMembers = () => {
                     {badge.label}
                   </span>
                 </div>
+                <div className="mt-3 pt-3 border-t border-border">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-9 rounded-pill text-[12px] font-body"
+                    onClick={() => nav(`/admin/members/${r.user_id}/passport`)}
+                  >
+                    View passport
+                  </Button>
+                </div>
                 <div className="mt-3 flex items-center justify-between gap-3 pt-3 border-t border-border">
                   <div className="min-w-0">
                     <p className="text-[12px] font-body font-medium">Complimentary access</p>
