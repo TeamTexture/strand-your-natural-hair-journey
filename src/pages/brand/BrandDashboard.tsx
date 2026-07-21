@@ -47,7 +47,7 @@ const BrandDashboard = () => {
     [offers],
   );
   const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
-  const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions();
+  const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions(offers.map((o) => o.id));
 
   if (profileLoading || isLoading) return <LoadingDot />;
 
