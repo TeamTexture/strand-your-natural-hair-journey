@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp, Beaker } from "lucide-react";
+import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -24,7 +24,7 @@ import { formatTime12h } from "@/lib/formatTime";
 
 type Section =
   | "profile" | "routine" | "products" | "nutrition"
-  | "appointments" | "journal" | "colour" | "photos" | "goals";
+  | "appointments" | "journal" | "photos" | "goals";
 
 interface SectionSpec {
   key: Section;
@@ -39,11 +39,6 @@ const SECTIONS: SectionSpec[] = [
   { key: "appointments", label: "Appts", count: (d) => d.appointments.length },
   { key: "nutrition", label: "Nutrition", count: (d) => d.nutritionSummaries.length },
   { key: "journal", label: "Journal", count: (d) => d.journal.length },
-  { key: "colour", label: "Colour", count: (d) => {
-    const style = d.style ?? {};
-    const history = Array.isArray(style.colour_history) ? (style.colour_history as unknown[]).length : 0;
-    return history + (style.colour_reaction === true ? 1 : 0);
-  } },
   { key: "photos", label: "Photos", count: (d) => d.milestonePhotos.length + d.beforePhotos.length + d.moodboards.length },
   { key: "goals", label: "Goals", count: (d) => d.goals.length },
 ];
@@ -387,27 +382,6 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
       </div>
 
 
-      {/* Critical flags (chemical reaction + blood flag counts remain visible) */}
-      {flags.chemicalReaction && (
-        <>
-          <SubLabel>Critical safety flag</SubLabel>
-          <div className="px-5">
-            <SurfaceCard className="border-destructive/40 bg-destructive/[0.05]">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-body font-semibold text-destructive">Chemical reaction reported</p>
-                  {flags.chemicalReaction.details && (
-                    <p className="text-[13px] text-foreground/95 mt-1.5 leading-relaxed">"{flags.chemicalReaction.details}"</p>
-                  )}
-                  <AudioPlayer bucket="voicenotes" path={flags.chemicalReaction.audio} label="Reaction voice note" />
-                </div>
-              </div>
-            </SurfaceCard>
-          </div>
-        </>
-      )}
-
       {/* Personal information */}
       <SubLabel>Personal information</SubLabel>
       <div className="px-5">
@@ -526,6 +500,9 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
           })()}
         </SurfaceCard>
       </div>
+
+      {/* Colour & chemical history — part of the profile dossier */}
+      <ColourSection d={d} />
 
       {/* Latest Strand summary — most recent only */}
       {latestStrand && (
@@ -1801,19 +1778,17 @@ const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> 
   appointments: CalendarDays,
   nutrition: Leaf,
   journal: PenLine,
-  colour: Beaker,
   photos: ImageIcon,
   goals: Target,
 };
 
 const sectionSub: Record<Section, string> = {
-  profile: "Identity, health, medications, hair and blood work",
+  profile: "Identity, health, medications, hair, colour and blood work",
   routine: "Wash days in full detail",
   products: "Shelf, favourites, wishlist and off-shelf",
   appointments: "Upcoming and past visits",
   nutrition: "Latest supplement and dietary guidance",
   journal: "Entries with notes, mood and photos",
-  colour: "Colour history and chemical reactions",
   photos: "Milestones, before shots, moodboards",
   goals: "What they want and why they're here",
 };
@@ -1932,9 +1907,8 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "routine" && <RoutineSection d={data} />}
           {section === "products" && <ProductsSection d={data} />}
           {section === "appointments" && <AppointmentsSection d={data} />}
-          {section === "nutrition" && <NutritionSection d={data} />}
+          {section === "nutrition" && <NutritionSection:Section d={data} />}
           {section === "journal" && <JournalSection d={data} />}
-          {section === "colour" && <ColourSection d={data} />}
           {section === "photos" && <PhotosSection d={data} />}
           {section === "goals" && <GoalsSection d={data} />}
         </div>
