@@ -102,7 +102,9 @@ const ProBilling = () => {
     }
   };
 
-  const status = statusLabel(subscription?.status);
+  const status = isAdmin && !isActive
+    ? { label: "Admin", tone: "good" as const }
+    : statusLabel(subscription?.status);
   const price = priceQ.data ?? 12.99;
 
   return (
