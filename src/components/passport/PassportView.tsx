@@ -1907,7 +1907,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "routine" && <RoutineSection d={data} />}
           {section === "products" && <ProductsSection d={data} />}
           {section === "appointments" && <AppointmentsSection d={data} />}
-          {section === "nutrition" && <NutritionSection:Section d={data} />}
+          {section === "nutrition" && <NutritionSection d={data} />}
           {section === "journal" && <JournalSection d={data} />}
           {section === "photos" && <PhotosSection d={data} />}
           {section === "goals" && <GoalsSection d={data} />}
