@@ -2427,6 +2427,15 @@ export type Database = {
           wishlist_adds: number
         }[]
       }
+      brand_taken_placements: {
+        Args: never
+        Returns: {
+          offer_id: string
+          placement_date: string
+          slot: Database["public"]["Enums"]["brand_placement_slot"]
+          status: Database["public"]["Enums"]["brand_offer_status"]
+        }[]
+      }
       has_active_brand_subscription: {
         Args: { _user: string }
         Returns: boolean

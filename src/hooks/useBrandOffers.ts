@@ -198,16 +198,17 @@ export function useTakenPlacements() {
     queryKey: ["brand-placements-taken"],
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("brand_offer_placements")
-        .select("slot, placement_date, offer_id, brand_offers!inner(status)")
-        .in("brand_offers.status", ["under_review", "approved_unpaid", "paid_scheduled", "live"]);
+      // Uses a SECURITY DEFINER RPC so brands can see slot+date pairs held by
+      // other brands' offers that are still under_review (RLS hides those
+      // rows directly to protect competitors' creative). Without this,
+      // brands could double-book pending slots.
+      const { data, error } = await supabase.rpc("brand_taken_placements");
       if (error) throw error;
       return (data ?? []).map((row: any) => ({
         slot: row.slot as PlacementSlot,
         placement_date: row.placement_date as string,
         offer_id: row.offer_id as string,
-        status: row.brand_offers?.status as BrandOfferStatus,
+        status: row.status as BrandOfferStatus,
       }));
     },
   });
