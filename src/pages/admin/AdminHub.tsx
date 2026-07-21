@@ -11,6 +11,7 @@ import {
   Eye,
   Mail,
   Sparkles,
+  Megaphone,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
