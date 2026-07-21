@@ -195,6 +195,16 @@ const AdminApplications = () => {
                     {pendingCount > 99 ? "99+" : pendingCount}
                   </span>
                 )}
+                {t.key === "incomplete" && incompleteCount > 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-semibold leading-none",
+                      active ? "bg-warn text-warn-foreground" : "bg-warn/20 text-warn",
+                    )}
+                  >
+                    {incompleteCount > 99 ? "99+" : incompleteCount}
+                  </span>
+                )}
                 {active && (
                   <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-primary rounded-full" />
                 )}
