@@ -44,7 +44,11 @@ const useAdminStats = () =>
     queryFn: async (): Promise<Stats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const [pending, live, proSubs, profiles, comps, views] = await Promise.all([
-        supabase.from("pro_applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase
+          .from("pro_applications")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending")
+          .not("payment_confirmed_at", "is", null),
         supabase.from("pro_profiles").select("user_id", { count: "exact", head: true }).eq("is_published", true),
         supabase
           .from("pro_subscriptions")
