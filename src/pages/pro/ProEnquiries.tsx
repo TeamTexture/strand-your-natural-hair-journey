@@ -29,6 +29,8 @@ interface PassportPreview {
   hairSummary: string;
   flaggedMarkers: number;
   goals: string[];
+  phone: string | null;
+  location: string | null;
 }
 
 const usePassportPreviews = (enquiries: Enquiry[]) => {
@@ -50,7 +52,10 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
       // fields plus counts pulled by lightweight RPC-style selects. If those
       // return nothing (Phase F not yet live) we degrade gracefully.
       const [profiles, hair, blood, goals] = await Promise.all([
-        supabase.from("profiles").select("user_id, display_name").in("user_id", ids),
+        supabase
+          .from("profiles")
+          .select("user_id, display_name, phone_number, postcode, country")
+          .in("user_id", ids),
         supabase
           .from("user_hair_profile")
           .select("user_id, surface_texture, density, porosity")
@@ -95,11 +100,14 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
         if (den) hairBits.push(`${den} density`);
         if (por) hairBits.push(`${por} porosity`);
 
+        const locBits = [p?.postcode, p?.country].filter(Boolean) as string[];
         out[id] = {
           firstName,
           hairSummary: hairBits.length ? hairBits.join(" · ") : "Hair profile pending",
           flaggedMarkers: flagged,
           goals: gs,
+          phone: (p?.phone_number as string | null) ?? null,
+          location: locBits.length ? locBits.join(" · ") : null,
         };
       }
 
@@ -119,20 +127,36 @@ const EnquiryCard = ({
   onAccept,
   onDecline,
   onOpenPassport,
+  onBookAppointment,
 }: {
   enquiry: Enquiry;
   preview?: PassportPreview;
   onAccept: () => void;
   onDecline: () => void;
   onOpenPassport?: () => void;
+  onBookAppointment?: () => void;
 }) => {
   const first = preview?.firstName ?? "Client";
+  const phone = preview?.phone ?? enquiry.contact_phone ?? null;
+  const contactMethod = enquiry.contact_method ?? null;
+  const location = preview?.location ?? enquiry.location_preference ?? null;
   return (
     <SurfaceCard>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="font-display text-base font-semibold leading-tight">{first}</p>
-          <p className="text-[11px] text-muted-foreground">
+          {(phone || contactMethod) && (
+            <p className="text-[11.5px] font-body text-foreground/85 mt-0.5 leading-snug truncate">
+              {phone ? phone : contactMethod}
+              {phone && contactMethod ? ` · ${contactMethod}` : ""}
+            </p>
+          )}
+          {location && (
+            <p className="text-[11px] font-body text-muted-foreground leading-snug truncate">
+              {location}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             {formatDistanceToNow(new Date(enquiry.created_at), { addSuffix: true })}
           </p>
         </div>
@@ -186,10 +210,9 @@ const EnquiryCard = ({
         </div>
       )}
 
-      {(enquiry.contact_method || enquiry.contact_phone) && (
-        <p className="mt-2 text-[11px] font-body text-muted-foreground">
-          Contact via <span className="text-foreground">{enquiry.contact_method ?? "In-app"}</span>
-          {enquiry.contact_phone ? ` · ${enquiry.contact_phone}` : ""}
+      {enquiry.note && (
+        <p className="text-sm font-body mt-2 leading-snug border-l-2 border-primary/40 pl-2">
+          "{enquiry.note}"
         </p>
       )}
 
@@ -229,11 +252,27 @@ const EnquiryCard = ({
         </div>
       )}
 
-      {enquiry.status === "accepted" && onOpenPassport && (
-        <div className="mt-3">
-          <Button size="sm" onClick={onOpenPassport} className="w-full">
-            Open client passport
-          </Button>
+      {enquiry.status === "accepted" && (onOpenPassport || onBookAppointment) && (
+        <div className="mt-3 space-y-2">
+          {onOpenPassport && (
+            <Button
+              size="sm"
+              onClick={onOpenPassport}
+              className="w-full uppercase tracking-[0.08em]"
+            >
+              OPEN CLIENT PASSPORT
+            </Button>
+          )}
+          {onBookAppointment && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onBookAppointment}
+              className="w-full uppercase tracking-[0.08em]"
+            >
+              BOOK APPOINTMENT
+            </Button>
+          )}
         </div>
       )}
 
@@ -393,6 +432,11 @@ const ProEnquiries = () => {
               onOpenPassport={
                 e.status === "accepted"
                   ? () => nav(`/pro/clients/${e.consumer_id}`)
+                  : undefined
+              }
+              onBookAppointment={
+                e.status === "accepted"
+                  ? () => nav(`/pro/appointments?client=${e.consumer_id}`)
                   : undefined
               }
             />
