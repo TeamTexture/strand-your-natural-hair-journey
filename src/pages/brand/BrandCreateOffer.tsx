@@ -213,19 +213,15 @@ const BrandCreateOffer = () => {
     queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
     enabled: catalogueOpen,
     queryFn: async (): Promise<CatalogueItem[]> => {
-      const client = supabase as unknown as {
-        rpc: (
-          fn: "brand_catalogue_items",
-          args: { _kind: string; _search: string | null; _limit: number },
-        ) => Promise<{ data: CatalogueItem[] | null; error: { message?: string } | null }>;
-      };
-      const { data, error } = await client.rpc("brand_catalogue_items", {
-        _kind: catalogueKind,
-        _search: catalogueSearch.trim() || null,
-        _limit: 80,
+      const { data, error } = await supabase.functions.invoke("brand-catalogue", {
+        body: {
+          _kind: catalogueKind,
+          _search: catalogueSearch.trim() || null,
+          _limit: 80,
+        },
       });
       if (error) throw new Error(error.message ?? "Catalogue unavailable");
-      return data ?? [];
+      return Array.isArray(data?.items) ? data.items : [];
     },
   });
 
