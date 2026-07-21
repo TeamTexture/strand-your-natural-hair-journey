@@ -254,6 +254,8 @@ const AdminHub = () => {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
   const { data: dropoff } = useAdminDropOffCounts();
+  const { data: pendingRevisions = [] } = useAllPendingRevisions();
+  const revisionCount = pendingRevisions.length;
 
   return (
     <ScreenLayout>
@@ -261,6 +263,7 @@ const AdminHub = () => {
 
       <div className="px-5 pb-8 space-y-4">
         <SectionLabel className="!px-0 !mt-0">Overview</SectionLabel>
+
 
         {statsLoading || !stats ? (
           <LoadingDot label="Loading overview…" fullScreen={false} />
