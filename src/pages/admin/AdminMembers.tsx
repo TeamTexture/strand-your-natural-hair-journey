@@ -172,7 +172,11 @@ const AdminMembers = () => {
         if (!active || r.access_restricted) return false;
       }
       if (!t) return true;
-      return (r.display_name ?? "").toLowerCase().includes(t) || r.user_id.includes(t);
+      return (
+        (r.display_name ?? "").toLowerCase().includes(t) ||
+        (r.email ?? "").toLowerCase().includes(t) ||
+        r.user_id.includes(t)
+      );
     });
   }, [rows, q, filter]);
 
