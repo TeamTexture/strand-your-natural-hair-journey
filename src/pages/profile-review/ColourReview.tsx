@@ -278,48 +278,60 @@ const ColourReview = () => {
           onSave={(v) => upsertStyle({ default_styles: v as string[] })}
         />
 
-        {/* ── Colour History ── */}
-        <div className="pt-3">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground font-body mb-2">
-            Colour History
-          </div>
-          <p className="text-[13px] text-muted-foreground leading-snug pb-2">
-            Shared with your professional pre-consultation.
-          </p>
-        </div>
+        {(style?.colour ?? [])[0] !== NATURAL_NEVER && (
+          <>
+            {/* ── Colour History ── */}
+            <div className="pt-3">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground font-body mb-2">
+                Colour History
+              </div>
+              <p className="text-[13px] text-muted-foreground leading-snug pb-2">
+                Shared with your professional pre-consultation.
+              </p>
+            </div>
 
-        <ReviewField
-          label="Colour type"
-          value={style?.colour_type ?? ""}
-          kind={{ type: "chip-single", options: COLOUR_TYPES }}
-          onSave={(v) => upsertStyle({ colour_type: String(v) })}
-        />
-        <ReviewField
-          label="Product used"
-          value={style?.colour_product ?? ""}
-          hint="Not sure? Select 'Not sure' and your professional will confirm at your appointment."
-          kind={{ type: "chip-single", options: COLOUR_PRODUCTS }}
-          onSave={(v) => upsertStyle({ colour_product: String(v) })}
-        />
-        <ReviewField
-          label="Last colour treatment"
-          value={style?.colour_last_treated ?? ""}
-          kind={{ type: "chip-single", options: COLOUR_TIMEFRAMES }}
-          onSave={(v) => upsertStyle({ colour_last_treated: String(v) })}
-        />
-        <ReviewField
-          label="Ever reacted to hair colour?"
-          value={style?.colour_reaction === true ? "Yes" : style?.colour_reaction === false ? "No" : ""}
-          kind={{ type: "chip-single", options: ["Yes", "No"] }}
-          onSave={(v) => upsertStyle({ colour_reaction: String(v) === "Yes" })}
-        />
-        {style?.colour_reaction === true && (
-          <ReviewField
-            label="Reaction details"
-            value={style?.colour_reaction_details ?? ""}
-            kind={{ type: "text", placeholder: "e.g. scalp burning, itch…" }}
-            onSave={(v) => upsertStyle({ colour_reaction_details: String(v) || null })}
-          />
+            <ReviewField
+              label="Colour type"
+              value={style?.colour_type ?? ""}
+              kind={{ type: "chip-single", options: COLOUR_TYPES }}
+              onSave={(v) => upsertStyle({ colour_type: String(v) })}
+            />
+            <ReviewField
+              label="Product used"
+              value={style?.colour_product ?? ""}
+              hint="Not sure? Select 'Not sure' and your professional will confirm at your appointment."
+              kind={{ type: "chip-single", options: COLOUR_PRODUCTS }}
+              onSave={(v) => upsertStyle({ colour_product: String(v) })}
+            />
+            <ReviewField
+              label="Last colour treatment"
+              value={style?.colour_last_treated ?? ""}
+              kind={{ type: "chip-single", options: COLOUR_TIMEFRAMES }}
+              onSave={(v) => upsertStyle({ colour_last_treated: String(v) })}
+            />
+            <ReviewField
+              label="Ever reacted to hair colour?"
+              value={style?.colour_reaction === true ? "Yes" : style?.colour_reaction === false ? "No" : ""}
+              kind={{ type: "chip-single", options: ["Yes", "No"] }}
+              onSave={(v) => upsertStyle({ colour_reaction: String(v) === "Yes" })}
+            />
+            {style?.colour_reaction === true && (
+              <ReviewField
+                label="What happened?"
+                hint="Required — describe your reaction so your professional can review it."
+                value={style?.colour_reaction_details ?? ""}
+                kind={{ type: "text", placeholder: "e.g. scalp burning, itch…" }}
+                onSave={(v) => {
+                  const text = String(v).trim();
+                  if (!text) {
+                    toast.error("Please describe what happened.");
+                    return Promise.reject(new Error("required"));
+                  }
+                  return upsertStyle({ colour_reaction_details: text });
+                }}
+              />
+            )}
+          </>
         )}
       </div>
     </ScreenLayout>
