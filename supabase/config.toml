@@ -2,3 +2,6 @@ project_id = "wibimeglifveruvtvaxe"
 
 [functions.journal-encouragement]
 verify_jwt = false
+
+[functions.pro-stripe-webhook]
+verify_jwt = false
