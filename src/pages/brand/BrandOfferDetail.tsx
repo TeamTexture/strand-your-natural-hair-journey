@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2 } from "lucide-react";
+import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -9,7 +9,11 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot } from "@/hooks/useBrandOffers";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -17,8 +21,10 @@ const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 const BrandOfferDetail = () => {
   const { id } = useParams();
   const nav = useNavigate();
-  const { data: offer, isLoading, refetch } = useBrandOffer(id);
+  const { data: offer, isLoading } = useBrandOffer(id);
   const [paying, setPaying] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteOffer = useDeleteBrandOffer();
 
   if (isLoading || !offer) return <LoadingDot />;
 
@@ -37,8 +43,21 @@ const BrandOfferDetail = () => {
     return acc;
   }, {});
 
-  const canEdit = ["draft", "rejected"].includes(offer.status);
+  const canEdit = ["draft", "rejected", "under_review"].includes(offer.status);
   const needsPayment = offer.status === "approved_unpaid";
+  // Brands can pull an offer any time BEFORE it's paid/live — including while under review.
+  // Live/paid campaigns must be ended, not deleted, so they aren't listed here.
+  const canDelete = !["paid_scheduled", "live"].includes(offer.status);
+
+  const handleDelete = async () => {
+    try {
+      await deleteOffer.mutateAsync(offer.id);
+      toast.success("Offer deleted");
+      nav("/brand");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  };
 
   const startCheckout = async () => {
     setPaying(true);
@@ -118,7 +137,38 @@ const BrandOfferDetail = () => {
             <Edit className="size-4 mr-1.5" /> Edit offer
           </Button>
         )}
+
+        {canDelete && (
+          <Button
+            variant="outline"
+            size="pill"
+            onClick={() => setConfirmDelete(true)}
+            disabled={deleteOffer.isPending}
+            className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+          >
+            <Trash2 className="size-4 mr-1.5" /> Delete offer
+          </Button>
+        )}
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this offer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {offer.status === "under_review"
+                ? "This will withdraw the offer from admin review and permanently remove all the copy, images, products and placement dates you added."
+                : "This permanently removes the offer copy, images, products and any selected placement dates. You can't undo this."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep offer</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };

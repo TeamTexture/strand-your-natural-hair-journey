@@ -11,6 +11,7 @@ import {
   Eye,
   Mail,
   Sparkles,
+  Megaphone,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -31,6 +32,9 @@ interface Stats {
   activePaidMembers: number;
   complimentaryMembers: number;
   viewsLast7d: number;
+  liveBrands: number;
+  liveBrandOffers: number;
+  brandOfferRequests: number;
 }
 
 interface ActivityRow {
@@ -46,7 +50,8 @@ const useAdminStats = () =>
     staleTime: 30_000,
     queryFn: async (): Promise<Stats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const [pending, live, proSubs, profiles, comps, views] = await Promise.all([
+      const today = new Date().toISOString().slice(0, 10);
+      const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, liveOffersQ, brandReqQ] = await Promise.all([
         supabase
           .from("pro_applications")
           .select("id", { count: "exact", head: true })
@@ -66,6 +71,20 @@ const useAdminStats = () =>
           .from("pro_passport_views")
           .select("id", { count: "exact", head: true })
           .gte("viewed_at", sevenDaysAgo),
+        supabase
+          .from("brand_subscriptions")
+          .select("brand_user_id", { count: "exact", head: true })
+          .in("status", ["active", "trialing"]),
+        supabase
+          .from("brand_offers")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["live", "paid_scheduled"])
+          .lte("starts_on", today)
+          .gte("ends_on", today),
+        supabase
+          .from("brand_offers")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "under_review"),
       ]);
       const activePaid = await supabase
         .from("consumer_subscriptions")
@@ -79,6 +98,9 @@ const useAdminStats = () =>
         activePaidMembers: activePaid.count ?? 0,
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
+        liveBrands: liveBrandsQ.count ?? 0,
+        liveBrandOffers: liveOffersQ.count ?? 0,
+        brandOfferRequests: brandReqQ.count ?? 0,
       };
     },
   });
@@ -271,6 +293,29 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/members?filter=complimentary")}
               />
             </div>
+
+            <SectionLabel className="!px-0">Brands</SectionLabel>
+            <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
+              Paying brand partners — kept separate from consumer members.
+            </p>
+            <div className="grid grid-cols-3 gap-2.5">
+              <StatCard
+                label="Live brands"
+                value={stats.liveBrands}
+                onClick={() => nav("/admin/brand-offers?filter=brands")}
+              />
+              <StatCard
+                label="Live offers"
+                value={stats.liveBrandOffers}
+                onClick={() => nav("/admin/brand-offers?filter=live")}
+              />
+              <StatCard
+                label="Offer requests"
+                value={stats.brandOfferRequests}
+                tone={stats.brandOfferRequests > 0 ? "warn" : "default"}
+                onClick={() => nav("/admin/brand-offers?filter=pending")}
+              />
+            </div>
           </>
         )}
 
@@ -313,6 +358,19 @@ const AdminHub = () => {
             onClick={() => nav("/admin/members")}
           />
 
+
+          <NavCard
+            icon={Megaphone}
+            title="Brand offers"
+            description="Review, approve or decline brand campaigns"
+            badge={stats?.brandOfferRequests}
+            context={
+              stats
+                ? `${stats.liveBrandOffers} live · ${stats.brandOfferRequests} awaiting review`
+                : undefined
+            }
+            onClick={() => nav("/admin/brand-offers")}
+          />
 
           <NavCard
             icon={ScrollText}
