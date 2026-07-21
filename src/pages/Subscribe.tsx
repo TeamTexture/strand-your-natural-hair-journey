@@ -44,7 +44,7 @@ const PILLARS: Pillar[] = [
   {
     icon: BookOpen,
     title: "Your personal guide",
-    benefit: "Advice in Paige's voice, tailored to your hair, health and history.",
+    benefit: "Expert guidance tailored to your hair, health and history.",
   },
   {
     icon: Droplet,
