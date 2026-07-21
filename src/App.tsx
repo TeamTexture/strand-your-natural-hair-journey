@@ -71,6 +71,9 @@ import AdminApplications from "./pages/admin/AdminApplications";
 import AdminAudit from "./pages/admin/AdminAudit";
 import AdminHub from "./pages/admin/AdminHub";
 import ProClientPassport from "./pages/pro/ProClientPassport";
+import ProClients from "./pages/pro/ProClients";
+import ProPastClient from "./pages/pro/ProPastClient";
+
 
 
 // Main app
