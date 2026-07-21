@@ -58,6 +58,7 @@ import MyEnquiries from "./pages/MyEnquiries";
 import DataAccess from "./pages/DataAccess";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminAudit from "./pages/admin/AdminAudit";
+import AdminHub from "./pages/admin/AdminHub";
 import ProClientPassport from "./pages/pro/ProClientPassport";
 
 
