@@ -29,8 +29,23 @@ const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
+  const { data: myEnquiries } = useMyEnquiries();
+  const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
   const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
+
+  // Latest enquiry (if any) per pro user id — so directory cards show that
+  // the consumer has already reached out and can jump to the enquiries list.
+  const enquiryByPro = useMemo(() => {
+    const map = new Map<string, { status: EnquiryStatus; created_at: string }>();
+    for (const e of myEnquiries ?? []) {
+      const existing = map.get(e.pro_user_id);
+      if (!existing || new Date(e.created_at) > new Date(existing.created_at)) {
+        map.set(e.pro_user_id, { status: e.status, created_at: e.created_at });
+      }
+    }
+    return map;
+  }, [myEnquiries]);
 
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
