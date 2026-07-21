@@ -163,7 +163,7 @@ const Directory = () => {
                       was being silently blocked in the embedded preview. */}
                   {p.website ? (
                     <a
-                      href={p.website}
+                      href={normalizeWebsiteUrl(p.website)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
@@ -193,7 +193,7 @@ const Directory = () => {
                         </button>
                       );
                     }
-                    const bookUrl = p.bookingUrl || p.website;
+                    const bookUrl = normalizeWebsiteUrl(p.bookingUrl || p.website);
                     return bookUrl ? (
                       <a
                         href={bookUrl}
@@ -217,6 +217,16 @@ const Directory = () => {
                     );
                   })()}
                 </div>
+                {p.instaUrl && (
+                  <a
+                    href={p.instaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 block text-center py-2 text-[11px] uppercase tracking-[0.1em] bg-card border border-border text-foreground rounded-md min-h-[36px]"
+                  >
+                    Instagram {p.insta}
+                  </a>
+                )}
               </div>
               {p.discount && p.discount.trim().length > 0 && (
                 <div className="bg-primary/15 px-4 py-2.5 text-xs">
