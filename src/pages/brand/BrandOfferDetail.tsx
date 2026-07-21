@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle } from "lucide-react";
+import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
