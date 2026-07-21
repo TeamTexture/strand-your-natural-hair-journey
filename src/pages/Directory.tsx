@@ -12,7 +12,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
+import { useMyEnquiries, type EnquiryStatus } from "@/hooks/useEnquiries";
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
+import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
@@ -26,8 +29,23 @@ const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
+  const { data: myEnquiries } = useMyEnquiries();
+  const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
   const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
+
+  // Latest enquiry (if any) per pro user id — so directory cards show that
+  // the consumer has already reached out and can jump to the enquiries list.
+  const enquiryByPro = useMemo(() => {
+    const map = new Map<string, { status: EnquiryStatus; created_at: string }>();
+    for (const e of myEnquiries ?? []) {
+      const existing = map.get(e.pro_user_id);
+      if (!existing || new Date(e.created_at) > new Date(existing.created_at)) {
+        map.set(e.pro_user_id, { status: e.status, created_at: e.created_at });
+      }
+    }
+    return map;
+  }, [myEnquiries]);
 
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
@@ -126,13 +144,32 @@ const Directory = () => {
             hint="Try a postcode, name, or specialism."
           />
         ) : (
-          results.map((p) => (
+          results.map((p) => {
+            const enq = p.proUserId ? enquiryByPro.get(p.proUserId) : undefined;
+            const activeEnq = enq && enq.status !== "withdrawn" && enq.status !== "declined";
+            const enqLabel =
+              enq?.status === "accepted" ? "Accepted"
+              : enq?.status === "pending" ? "Enquiry sent"
+              : enq?.status === "declined" ? "Declined"
+              : "Withdrawn";
+            const enqCls =
+              enq?.status === "accepted" ? "bg-good/15 text-good"
+              : enq?.status === "pending" ? "bg-warn/15 text-warn"
+              : "bg-muted text-muted-foreground";
+            return (
             <SurfaceCard key={p.id} padded={false} className="overflow-hidden">
               <div className="p-4">
                 <div className="flex gap-3">
                   <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-display text-base font-semibold leading-tight">{p.name}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-display text-base font-semibold leading-tight">{p.name}</p>
+                      {enq && (
+                        <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
+                          {enqLabel}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <span className="text-[11px] text-muted-foreground">{p.title}</span>
                       <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
@@ -158,6 +195,13 @@ const Directory = () => {
 
                 <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
 
+                {enq && (
+                  <p className="text-[11px] text-muted-foreground mt-3">
+                    You enquired {formatDistanceToNow(new Date(enq.created_at), { addSuffix: true })}
+                    {activeEnq ? " — awaiting response." : "."}
+                  </p>
+                )}
+
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {/* Plain anchor tags so the iframe sandbox / popup-blocker
                       treats them as a user-initiated navigation. window.open
@@ -182,6 +226,17 @@ const Directory = () => {
                   )}
                   {(() => {
                     if (p.proUserId) {
+                      if (activeEnq) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => navigate("/profile/enquiries")}
+                            className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground border border-primary/40 rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                          >
+                            View enquiry
+                          </button>
+                        );
+                      }
                       return (
                         <button
                           type="button"
@@ -190,7 +245,7 @@ const Directory = () => {
                           }
                           className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
                         >
-                          Enquire Now
+                          {enq ? "Enquire again" : "Enquire Now"}
                         </button>
                       );
                     }
@@ -237,7 +292,8 @@ const Directory = () => {
                 </div>
               )}
             </SurfaceCard>
-          ))
+            );
+          })
         )}
 
         {/* Pro application CTA — surfaced under the listings so consumers
