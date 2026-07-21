@@ -179,7 +179,7 @@ const NavCard = ({
             </span>
           )}
         </div>
-        <p className="text-[12px] text-muted-foreground font-body leading-snug truncate">
+        <p className="text-[12px] text-muted-foreground font-body leading-snug">
           {description}
         </p>
         {context && (
