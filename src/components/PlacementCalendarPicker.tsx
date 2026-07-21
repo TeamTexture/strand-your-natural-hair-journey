@@ -99,7 +99,6 @@ const PlacementCalendarPicker = ({
               className={cn(
                 "aspect-square rounded-md text-[11px] font-body transition-colors",
                 !inMonth && "opacity-30",
-                past && !inMonth === false && "text-muted-foreground/40 line-through cursor-not-allowed",
                 past && "text-muted-foreground/40 line-through cursor-not-allowed",
                 isTaken && takenKind === "pending" && "bg-orange-500/20 text-orange-700 dark:text-orange-300 cursor-not-allowed",
                 isTaken && takenKind === "live" && "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 cursor-not-allowed",
