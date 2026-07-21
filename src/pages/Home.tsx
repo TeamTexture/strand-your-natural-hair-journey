@@ -325,6 +325,13 @@ const Home = () => {
             <HelpCircle className="size-5" />
           </button>
           <button
+            onClick={() => navigate("/profile/discounts")}
+            aria-label="Offers & discounts"
+            className="size-11 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors"
+          >
+            <Tag className="size-5" />
+          </button>
+          <button
             onClick={() => navigate("/profile")}
             aria-label="Profile"
             className="size-11 rounded-full overflow-hidden shadow-sm"
