@@ -20,12 +20,16 @@ import {
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
+import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
 const BrandOfferDetail = () => {
   const { id } = useParams();
   const nav = useNavigate();
+  const ownerMode = useOwnerMode();
+  const homeRoute = ownerHomeRoute(ownerMode);
+  const editRoute = (oid: string) => `${ownerOfferRoute(ownerMode, oid)}/edit`;
   const { data: offer, isLoading } = useBrandOffer(id);
   const { data: pendingRevision } = usePendingRevision(id);
   const { data: allRevisions = [] } = useOfferRevisions(id);
