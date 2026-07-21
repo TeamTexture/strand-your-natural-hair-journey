@@ -7,6 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
+import EnquiryDialog from "@/components/EnquiryDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType } from "@/data/professionals";
