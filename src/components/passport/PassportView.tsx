@@ -936,34 +936,51 @@ const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
 };
 
 const IngredientsSection = ({ d }: { d: PassportDataset }) => {
-  const avoid = d.ingredientLists.filter(l => l.list_kind === "avoid");
-  const favourite = d.ingredientLists.filter(l => l.list_kind === "favourite");
-  const other = d.ingredientLists.filter(l => l.list_kind !== "avoid" && l.list_kind !== "favourite");
-  const Section = ({ title, list }: { title: string; list: typeof d.ingredientLists }) => (
+  // Compute ingredients that appear in 3+ of the user's products.
+  const shared = useMemo(() => {
+    const counts = new Map<string, { label: string; count: number; products: string[] }>();
+    for (const p of d.shelf) {
+      const list = (p as Record<string, unknown>).ingredients as unknown;
+      if (!Array.isArray(list)) continue;
+      const seenThisProduct = new Set<string>();
+      for (const raw of list) {
+        if (typeof raw !== "string") continue;
+        const label = raw.trim();
+        if (!label) continue;
+        const key = label.toLowerCase();
+        if (seenThisProduct.has(key)) continue;
+        seenThisProduct.add(key);
+        const cur = counts.get(key) ?? { label, count: 0, products: [] };
+        cur.count += 1;
+        cur.products.push(String(p.name ?? "Product"));
+        counts.set(key, cur);
+      }
+    }
+    return Array.from(counts.values())
+      .filter(x => x.count >= 3)
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  }, [d.shelf]);
+
+  return (
     <>
-      <SectionLabel>{title}</SectionLabel>
-      {list.length === 0 ? <EmptyCard msg="Nothing here." /> : (
+      <SectionLabel>Ingredients across 3+ products</SectionLabel>
+      {shared.length === 0 ? (
+        <EmptyCard msg="No ingredient appears in 3 or more of this member's products yet." />
+      ) : (
         <SurfaceCard>
-          <div className="space-y-1.5">
-            {list.map(i => (
-              <div key={i.id} className="text-[12px] flex justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium break-words">{i.ingredient}</p>
-                  {i.reason && <p className="text-[11px] text-muted-foreground leading-snug">{i.reason}</p>}
+          <div className="space-y-2">
+            {shared.map((i) => (
+              <div key={i.label} className="text-[12px]">
+                <div className="flex justify-between gap-2">
+                  <p className="font-medium break-words flex-1">{i.label}</p>
+                  <span className="text-[11px] text-muted-foreground shrink-0">{i.count} products</span>
                 </div>
-                {i.product_count != null && <span className="text-[11px] text-muted-foreground">{i.product_count} prod</span>}
+                <p className="text-[11px] text-muted-foreground leading-snug truncate">{i.products.slice(0, 6).join(", ")}{i.products.length > 6 ? "…" : ""}</p>
               </div>
             ))}
           </div>
         </SurfaceCard>
       )}
-    </>
-  );
-  return (
-    <>
-      <Section title="Avoid list" list={avoid} />
-      <Section title="Favourites" list={favourite} />
-      {other.length > 0 && <Section title="Other" list={other} />}
     </>
   );
 };
