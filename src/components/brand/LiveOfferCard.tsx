@@ -16,7 +16,7 @@ interface Props {
   id: string;
   headline: string | null;
   heroImagePath: string | null;
-  slots: BrandPlacementSlot[];
+  slots: PlacementSlot[];
   startDate?: string;
   endDate?: string;
   totals?: Totals;
