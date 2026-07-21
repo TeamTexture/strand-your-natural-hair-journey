@@ -5,9 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 export interface PassportDataset {
   clientName: string;
   memberSince: string | null;
+  profile: {
+    display_name: string | null;
+    avatar_url: string | null;
+    birth_year: number | null;
+    age: number | null;
+    heritage: string[];
+    postcode: string | null;
+    country: string | null;
+    onboarding_completed_at: string | null;
+    created_at: string | null;
+  } | null;
+  authEmail: string | null;
   hair: Record<string, unknown> | null;
   health: Record<string, unknown> | null;
   style: Record<string, unknown> | null;
+  professional: Record<string, unknown> | null;
   goals: Array<Record<string, unknown> & { id: string }>;
   goalUpdates: Array<{ id: string; goal_id: string; note: string | null; voice_url: string | null; created_at: string }>;
   bloodPanels: Array<{ id: string; panel_date: string | null; label: string | null; notes: string | null; test_type: string | null; lab_name: string | null; status: string | null }>;
@@ -34,7 +47,8 @@ export interface PassportDataset {
 
 const emptyDataset = (): PassportDataset => ({
   clientName: "Client", memberSince: null,
-  hair: null, health: null, style: null,
+  profile: null, authEmail: null,
+  hair: null, health: null, style: null, professional: null,
   goals: [], goalUpdates: [], bloodPanels: [], bloodResults: [], bloodSummaries: [], strandSummaries: [],
   washDays: [], journal: [], shelf: [], productPhotos: [], productRatings: [], productVoicenotes: [],
   appointments: [], appointmentPhotos: [], medications: [], tools: [], milestonePhotos: [], beforePhotos: [],
@@ -53,23 +67,20 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
     setAccessEnded(false);
     (async () => {
       const sb = supabase;
-      const eq = (t: string, cols = "*") =>
-        (sb.from(t as never) as never as { select: (c: string) => { eq: (k: string, v: string) => { order: (k: string, o?: unknown) => Promise<{ data: unknown[] | null }> } } })
-          .select(cols)
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false });
 
       const [
-        profile, hair, health, style, goals, goalUpdates,
+        profile, hair, health, style, professional, goals, goalUpdates,
         bloodPanels, bloodResults, bloodSummaries, strandSummaries,
         washDays, journal, shelf, productPhotos, productRatings, productVoicenotes,
         appointments, appointmentPhotos, medications, tools, milestonePhotos, beforePhotos,
         savedMeals, moodboards, moodboardImages, ingredientLists,
+        decryptRes, emailRes,
       ] = await Promise.all([
-        sb.from("profiles").select("display_name, created_at").eq("user_id", userId).maybeSingle(),
+        sb.from("profiles").select("display_name, avatar_url, birth_year, heritage, postcode, country, onboarding_completed_at, created_at").eq("user_id", userId).maybeSingle(),
         sb.from("user_hair_profile").select("*").eq("user_id", userId).maybeSingle(),
         sb.from("user_health_profile").select("*").eq("user_id", userId).maybeSingle(),
         sb.from("user_style_profile").select("*").eq("user_id", userId).maybeSingle(),
+        sb.from("user_professionals").select("*").eq("user_id", userId).maybeSingle(),
         sb.from("user_goals").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("goal_updates").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("blood_panels").select("*").eq("user_id", userId).order("panel_date", { ascending: false, nullsFirst: false }),
@@ -92,6 +103,15 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         sb.from("moodboards").select("id, name, emoji, is_favourites, cover_storage_path").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("moodboard_images").select("id, board_id, storage_path, caption, is_favourite").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("ingredient_lists").select("id, list_kind, ingredient, reason, product_count, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
+        sb.functions.invoke("passport-decrypt", { body: { target_user_id: userId } }).catch(() => ({ data: null })),
+        // Admins can read auth emails; pros cannot. Ignore errors.
+        sb.rpc("admin_list_member_emails" as never).then(
+          (r) => {
+            const rows = (r.data ?? []) as Array<{ user_id: string; email: string }>;
+            return rows.find((e) => e.user_id === userId)?.email ?? null;
+          },
+          () => null,
+        ),
       ]);
 
       if (cancelled) return;
@@ -110,15 +130,63 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
       }
 
       const asArray = <T,>(r: { data: unknown[] | null }): T[] => (r.data ?? []) as T[];
-      const p = profile.data as { display_name?: string | null; created_at?: string | null } | null;
+      const p = profile.data as {
+        display_name?: string | null; avatar_url?: string | null; birth_year?: number | null;
+        heritage?: string[] | null; postcode?: string | null; country?: string | null;
+        onboarding_completed_at?: string | null; created_at?: string | null;
+      } | null;
+
+      // Merge decrypted clinical fields into hair/health/professional.
+      const dec = (decryptRes as { data?: {
+        hair?: { scalp_condition: string | null; diagnosed_conditions: string[] } | null;
+        health?: { life_stage: string | null; contraception: string[]; medical_conditions: string[] } | null;
+        professional?: { gmc_number: string | null; iot_number: string | null; notes: string | null } | null;
+        medications?: Array<{ id: string; name: string | null; category: string | null }>;
+      } | null })?.data ?? null;
+
+      const hairMerged = hair.data
+        ? { ...(hair.data as Record<string, unknown>), ...(dec?.hair ?? {}) }
+        : null;
+      const healthMerged = health.data
+        ? { ...(health.data as Record<string, unknown>), ...(dec?.health ?? {}) }
+        : null;
+      const professionalMerged = professional.data
+        ? { ...(professional.data as Record<string, unknown>), ...(dec?.professional ?? {}) }
+        : null;
+
+      const medsMerged = (medications.data ?? []).map((m) => {
+        const decMed = dec?.medications?.find((x) => x.id === (m as { id: string }).id);
+        return {
+          id: (m as { id: string }).id,
+          name: decMed?.name ?? (m as { name?: string | null }).name ?? null,
+          category: decMed?.category ?? (m as { category?: string | null }).category ?? null,
+          created_at: (m as { created_at: string }).created_at,
+        };
+      });
+
+      const currentYear = new Date().getFullYear();
+      const age = p?.birth_year ? currentYear - p.birth_year : null;
 
       setData({
         ...emptyDataset(),
         clientName: p?.display_name || "Client",
         memberSince: p?.created_at ?? null,
-        hair: hair.data as Record<string, unknown> | null,
-        health: health.data as Record<string, unknown> | null,
+        profile: p ? {
+          display_name: p.display_name ?? null,
+          avatar_url: p.avatar_url ?? null,
+          birth_year: p.birth_year ?? null,
+          age,
+          heritage: p.heritage ?? [],
+          postcode: p.postcode ?? null,
+          country: p.country ?? null,
+          onboarding_completed_at: p.onboarding_completed_at ?? null,
+          created_at: p.created_at ?? null,
+        } : null,
+        authEmail: (emailRes as string | null) ?? null,
+        hair: hairMerged,
+        health: healthMerged,
         style: style.data as Record<string, unknown> | null,
+        professional: professionalMerged,
         goals: asArray(goals),
         goalUpdates: asArray(goalUpdates),
         bloodPanels: asArray(bloodPanels),
@@ -133,7 +201,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         productVoicenotes: asArray(productVoicenotes),
         appointments: asArray(appointments),
         appointmentPhotos: asArray(appointmentPhotos),
-        medications: asArray(medications),
+        medications: medsMerged,
         tools: asArray(tools),
         milestonePhotos: asArray(milestonePhotos),
         beforePhotos: asArray(beforePhotos),
