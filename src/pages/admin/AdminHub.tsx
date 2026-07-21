@@ -203,6 +203,7 @@ const NavCard = ({
   description,
   onClick,
   badge,
+  badgeTone,
   context,
 }: {
   icon: typeof ClipboardCheck;
@@ -210,6 +211,7 @@ const NavCard = ({
   description: string;
   onClick: () => void;
   badge?: number;
+  badgeTone?: "urgent" | "default";
   context?: string;
 }) => (
   <button
@@ -226,7 +228,14 @@ const NavCard = ({
             {title}
           </p>
           {badge !== undefined && badge > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none">
+            <span
+              className={cn(
+                "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-body font-semibold leading-none",
+                badgeTone === "urgent"
+                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                  : "bg-primary text-primary-foreground",
+              )}
+            >
               {badge > 99 ? "99+" : badge}
             </span>
           )}
@@ -235,7 +244,14 @@ const NavCard = ({
           {description}
         </p>
         {context && (
-          <p className="text-[11px] text-primary/80 font-body mt-0.5">{context}</p>
+          <p
+            className={cn(
+              "text-[11px] font-body mt-0.5",
+              badgeTone === "urgent" ? "text-destructive" : "text-primary/80",
+            )}
+          >
+            {context}
+          </p>
         )}
       </div>
       <ChevronRight className="size-4 text-muted-foreground shrink-0" />
