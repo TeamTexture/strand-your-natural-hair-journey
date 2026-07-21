@@ -840,22 +840,60 @@ const PhotosSection = ({ d }: { d: PassportDataset }) => (
   </>
 );
 
-const NutritionSection = ({ d }: { d: PassportDataset }) => (
-  <PaginatedList
-    items={d.savedMeals}
-    empty="No saved meals."
-    render={(m) => (
-      <Collapsible key={m.id} summary={
-        <div>
-          <p className="text-sm font-body font-semibold">{String(m.emoji ?? "🍲")} {m.name ?? "Meal"}</p>
-          <p className="text-[11px] text-muted-foreground">{String(m.cuisine ?? "—")}{m.time_minutes ? ` · ${String(m.time_minutes)}m` : ""}</p>
-        </div>
-      }>
-        <AllFields obj={m as Record<string, unknown>} exclude={["emoji"]} />
-      </Collapsible>
-    )}
-  />
-);
+const NutritionSection = ({ d }: { d: PassportDataset }) => {
+  if (d.nutritionSummaries.length === 0) {
+    return <EmptyCard msg="No nutrition guidance generated yet." />;
+  }
+  return (
+    <>
+      <SectionLabel>Nutrition & supplement guidance</SectionLabel>
+      {d.nutritionSummaries.map((s, idx) => (
+        <Collapsible key={s.id} defaultOpen={idx === 0} summary={
+          <div>
+            <p className="text-sm font-body font-semibold">{idx === 0 ? "Latest nutrition plan" : "Previous plan"}</p>
+            <p className="text-[11px] text-muted-foreground">Generated {format(new Date(s.created_at), "d MMM yyyy")}</p>
+          </div>
+        }>
+          {(() => {
+            const p = s.payload as Record<string, unknown> | string | null;
+            if (typeof p === "string") {
+              return <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{p}</p>;
+            }
+            if (!p || typeof p !== "object") {
+              return <p className="text-xs text-muted-foreground">No plan data.</p>;
+            }
+            const summary = typeof p.summary === "string" ? p.summary : null;
+            const supplements = Array.isArray(p.supplements) ? p.supplements as Array<Record<string, unknown>> : [];
+            const diet = Array.isArray(p.diet) ? p.diet as Array<Record<string, unknown>> : [];
+            const CardList = ({ items, title }: { items: Array<Record<string, unknown>>; title: string }) => (
+              items.length === 0 ? null : (
+                <div className="mt-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">{title}</p>
+                  <div className="space-y-2">
+                    {items.map((it, i) => (
+                      <div key={i} className="border-l-2 border-primary/40 pl-2.5">
+                        {it.title ? <p className="text-[13px] font-semibold">{String(it.title)}</p> : null}
+                        {it.dose ? <p className="text-[11px] text-muted-foreground">{String(it.dose)}</p> : null}
+                        {it.body ? <p className="text-[12px] whitespace-pre-wrap leading-relaxed mt-1">{String(it.body)}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            );
+            return (
+              <div>
+                {summary && <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{summary}</p>}
+                <CardList items={supplements} title="Supplement guidance" />
+                <CardList items={diet} title="Dietary guidance" />
+              </div>
+            );
+          })()}
+        </Collapsible>
+      ))}
+    </>
+  );
+};
 
 const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
   const byBoard = useMemo(() => {
