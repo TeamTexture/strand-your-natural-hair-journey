@@ -224,10 +224,12 @@ const AdminBrandOffers = () => {
                       {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {STATUS_LABEL[o._derived]}
                     </p>
                   </div>
+                  <RevisionBadge pending={pendingRevSet.has(o.id)} count={revisionCounts[o.id]} />
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </SurfaceCard>
               </button>
             ))}
+
           </>
         )}
 
