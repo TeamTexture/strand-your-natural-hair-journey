@@ -224,6 +224,20 @@ const BrandDashboard = () => {
             <div className="space-y-2">{past.map(renderOffer)}</div>
           </div>
         )}
+
+        <div className="pt-6">
+          <Button
+            variant="outline"
+            size="pill"
+            onClick={async () => {
+              await signOut();
+              nav("/", { replace: true });
+            }}
+            className="w-full"
+          >
+            Sign out
+          </Button>
+        </div>
       </div>
     </ScreenLayout>
   );
