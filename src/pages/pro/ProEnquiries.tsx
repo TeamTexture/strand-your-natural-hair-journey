@@ -434,6 +434,11 @@ const ProEnquiries = () => {
                   ? () => nav(`/pro/clients/${e.consumer_id}`)
                   : undefined
               }
+              onBookAppointment={
+                e.status === "accepted"
+                  ? () => nav(`/pro/appointments?client=${e.consumer_id}`)
+                  : undefined
+              }
             />
           ))
         )}
