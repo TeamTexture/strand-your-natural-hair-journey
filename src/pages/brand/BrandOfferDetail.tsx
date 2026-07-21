@@ -89,7 +89,7 @@ const BrandOfferDetail = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={offer.headline} onBack={() => nav("/brand")} />
+      <TitleBar title={offer.headline ?? "Offer"} onBack={() => nav("/brand")} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-1">
           <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">
