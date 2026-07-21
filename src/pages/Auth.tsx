@@ -149,7 +149,8 @@ const Auth = () => {
             .eq("user_id", uid)
             .maybeSingle();
           if (prof?.onboarding_completed_at) {
-            navigate(safeNext(params.get("next"), "/home"), { replace: true });
+            const nextParam = params.get("next");
+            navigate(nextParam ? safeNext(nextParam, "/") : "/", { replace: true });
             return;
           }
           navigate("/onboarding/profile-step-1", { replace: true });
