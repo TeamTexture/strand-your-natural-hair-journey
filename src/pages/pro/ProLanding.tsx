@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useProSubscription } from "@/hooks/useProSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -23,24 +24,30 @@ type AppRow = {
 
 /**
  * Post-signup landing for professionals. Behaviour by state:
- * - Approved pros → immediately redirected to /pro dashboard.
- * - Paid, submitted application → "Application received" pending screen.
- * - Rejected → respectful declined screen with contact.
- * - Draft (unpaid) or nothing yet → simple welcome with Apply CTA.
+ * - Approved pro + active subscription → dashboard.
+ * - Approved pro without active sub → /pro/welcome (acceptance + subscribe).
+ * - Submitted, still pending → "Application received" screen.
+ * - Rejected → respectful declined screen.
+ * - No application yet / draft → welcome + Apply CTA.
  */
 const ProLanding = () => {
   const nav = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
-  const { isProfessional, loading: rolesLoading } = useRoles();
+  const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
+  const { isActive, isLoading: subLoading } = useProSubscription();
 
   useEffect(() => {
     if (!authLoading && !user) nav("/pro/auth", { replace: true });
   }, [authLoading, user, nav]);
 
-  // Approved pros go straight to the dashboard.
+  // Approved pros → welcome (if unpaid) or dashboard (if paid).
   useEffect(() => {
-    if (!rolesLoading && isProfessional) nav("/pro", { replace: true });
-  }, [rolesLoading, isProfessional, nav]);
+    if (rolesLoading || subLoading) return;
+    if (isAdmin && !isProfessional) return; // admins land normally
+    if (isProfessional) {
+      nav(isActive ? "/pro" : "/pro/welcome", { replace: true });
+    }
+  }, [rolesLoading, subLoading, isProfessional, isAdmin, isActive, nav]);
 
   const { data: latest, isLoading: appLoading } = useQuery({
     queryKey: ["pro_application", user?.id],
@@ -58,12 +65,12 @@ const ProLanding = () => {
     },
   });
 
-  if (authLoading || rolesLoading || appLoading) return <LoadingDot />;
+  if (authLoading || rolesLoading || subLoading || appLoading) return <LoadingDot />;
   if (!user) return null;
 
-  const paid = latest?.payment_confirmed_at != null;
-  const submittedPending = paid && latest?.status === "pending";
-  const rejected = paid && latest?.status === "rejected";
+  const submitted = latest?.payment_confirmed_at != null;
+  const submittedPending = submitted && latest?.status === "pending";
+  const rejected = submitted && latest?.status === "rejected";
   const displayName = latest?.full_name || user.email?.split("@")[0] || "Practitioner";
 
   const submittedDate = latest?.payment_confirmed_at
@@ -84,7 +91,11 @@ const ProLanding = () => {
             The Strand Council
           </p>
           <h2 className="font-display text-2xl font-semibold text-foreground mt-1.5">
-            {submittedPending ? "Application received" : rejected ? "Application closed" : `Welcome, ${displayName.split(" ")[0]}`}
+            {submittedPending
+              ? "Application received"
+              : rejected
+                ? "Application closed"
+                : `Welcome, ${displayName.split(" ")[0]}`}
           </h2>
           {latest?.discipline && !submittedPending && !rejected && (
             <p className="font-body text-[12px] uppercase tracking-[0.15em] text-primary mt-1.5">
@@ -125,8 +136,8 @@ const ProLanding = () => {
             </span>
             <p className="font-body text-sm text-foreground/85 leading-relaxed">
               After careful consideration, your application wasn't accepted at this
-              time. Your subscription has been cancelled. We'd love to hear from you if
-              your practice evolves — please reach out any time.
+              time. We'd love to hear from you if your practice evolves — please reach
+              out any time.
             </p>
             <a
               href="mailto:info@teamtexture.co.uk"
@@ -161,8 +172,8 @@ const ProLanding = () => {
             </Button>
 
             <p className="text-[11px] text-foreground/60 font-body text-center leading-relaxed">
-              Applications include payment for STRAND Pro membership. You'll only be
-              charged once — access unlocks after review.
+              No payment is taken at application. You'll only subscribe once accepted by
+              the Strand Council.
             </p>
           </>
         )}
