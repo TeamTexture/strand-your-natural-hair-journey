@@ -213,7 +213,7 @@ const AdminBrandOffers = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-display text-[14px] leading-tight truncate">{o.headline}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {STATUS_LABEL[o.status]}
+                      {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {STATUS_LABEL[o._derived]}
                     </p>
                   </div>
                   <ChevronRight className="size-4 text-muted-foreground" />
@@ -232,7 +232,7 @@ const AdminBrandOffers = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-display text-[14px] leading-tight truncate">{o.headline}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {STATUS_LABEL[o.status]} · {money(o.total_price_pence)}
+                      {STATUS_LABEL[o._derived]} · {money(o.total_price_pence)}
                     </p>
                   </div>
                   <ChevronRight className="size-4 text-muted-foreground" />
