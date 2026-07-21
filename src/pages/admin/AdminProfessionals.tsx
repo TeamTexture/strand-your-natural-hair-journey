@@ -182,8 +182,14 @@ const ProDetailPanel = ({ userId }: { userId: string }) => {
 const AdminProfessionals = () => {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialFilter = ((): Filter => {
+    const f = searchParams.get("filter");
+    const valid: Filter[] = ["all", "published", "unpublished", "subscribed", "suspended"];
+    return (valid as string[]).includes(f ?? "") ? (f as Filter) : "all";
+  })();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [sort, setSort] = useState<SortKey>("most_active");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [restrictTarget, setRestrictTarget] = useState<ProUsageRow | null>(null);
