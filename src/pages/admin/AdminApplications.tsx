@@ -18,6 +18,7 @@ import {
   useIncompleteProApplications,
   type IncompleteProRow,
 } from "@/hooks/useIncompleteProApplications";
+import { normalizeWebsiteUrl, instagramUrl, normalizeInstagramHandle, externalLinkProps } from "@/lib/socialLinks";
 import type { Database } from "@/integrations/supabase/types";
 
 type Application = Database["public"]["Tables"]["pro_applications"]["Row"];
