@@ -45,6 +45,9 @@ import HairReview from "./pages/profile-review/HairReview";
 import ColourReview from "./pages/profile-review/ColourReview";
 import RoleGate from "./components/RoleGate";
 import ProApply from "./pages/pro/ProApply";
+import ProDashboard from "./pages/pro/ProDashboard";
+import ProProfile from "./pages/pro/ProProfile";
+import ProOffers from "./pages/pro/ProOffers";
 import AdminApplications from "./pages/admin/AdminApplications";
 
 
