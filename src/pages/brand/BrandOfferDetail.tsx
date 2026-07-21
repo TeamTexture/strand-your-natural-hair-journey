@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2 } from "lucide-react";
+import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -33,8 +33,10 @@ const BrandOfferDetail = () => {
       impressions: acc.impressions + (s.impressions ?? 0),
       taps: acc.taps + (s.taps ?? 0),
       wishlist: acc.wishlist + (s.wishlist_adds ?? 0),
+      codeCopies: acc.codeCopies + ((s as { code_copies?: number }).code_copies ?? 0),
+      linkClicks: acc.linkClicks + ((s as { link_clicks?: number }).link_clicks ?? 0),
     }),
-    { impressions: 0, taps: 0, wishlist: 0 },
+    { impressions: 0, taps: 0, wishlist: 0, codeCopies: 0, linkClicks: 0 },
   );
 
   const placements = offer.brand_offer_placements ?? [];
@@ -124,8 +126,13 @@ const BrandOfferDetail = () => {
         <div className="grid grid-cols-3 gap-2">
           <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
           <StatBox icon={MousePointerClick} label="Taps" value={stats.taps} />
+          <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
+          <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
           <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
         </div>
+        <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
+          Taps = banner opened. Code copies = discount code copied. Link clicks = tapped through to your site.
+        </p>
 
         {(offer.brand_products ?? []).length > 0 && (
           <>
