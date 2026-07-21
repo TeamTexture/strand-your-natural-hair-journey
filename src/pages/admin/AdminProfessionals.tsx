@@ -38,6 +38,9 @@ interface ProUsageRow {
   active_clients: number;
   views_last_30d: number;
   offers_live: number;
+  appointments_total: number;
+  appointments_upcoming: number;
+
   created_at: string;
 }
 
