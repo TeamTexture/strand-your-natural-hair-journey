@@ -50,7 +50,7 @@ function statusBadge(row: MemberRow) {
   return { label: "No sub", cls: "bg-muted text-muted-foreground" };
 }
 
-type Filter = "all" | "active" | "complimentary" | "restricted";
+type Filter = "all" | "active" | "complimentary" | "restricted" | "incomplete";
 type SortKey = "recent" | "most_active";
 
 function activityLevel(sessions30d: number): "high" | "active" | null {
