@@ -11,6 +11,7 @@ import Subscribe from "./pages/Subscribe";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import GlobalMenu from "@/components/GlobalMenu";
+import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 
@@ -128,6 +129,7 @@ const App = () => (
                 <GlobalMenu />
                 <div className="flex-1 min-h-0 overflow-y-auto">
 
+                <AccessRestrictedGate>
                 <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
@@ -288,6 +290,8 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
                 </Routes>
+                </AccessRestrictedGate>
+
 
               </div>
             </div>

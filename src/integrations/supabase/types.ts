@@ -1070,6 +1070,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_restricted: boolean
           avatar_url: string | null
           birth_year: number | null
           complimentary_access: boolean
@@ -1084,6 +1085,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_restricted?: boolean
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean
@@ -1098,6 +1100,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_restricted?: boolean
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean
@@ -1814,6 +1817,8 @@ export type Database = {
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
+      admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
+      admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
       approve_pro_application: {
         Args: { _admin_notes?: string; _application_id: string }
         Returns: string
@@ -1834,6 +1839,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "consumer" | "professional" | "admin"

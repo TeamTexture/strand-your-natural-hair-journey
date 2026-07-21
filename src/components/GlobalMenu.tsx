@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useAccessRestricted } from "@/hooks/useAccessRestricted";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { useBackButtonContext } from "@/components/BackButtonContext";
@@ -86,6 +87,7 @@ const GlobalMenu = () => {
   const { isConsumer, isProfessional, isAdmin } = useRoles();
   const { isActive: proSubActive } = useProSubscription();
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
+  const { isRestricted } = useAccessRestricted();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -93,6 +95,7 @@ const GlobalMenu = () => {
 
   const hidden =
     !session ||
+    isRestricted ||
     location.pathname === "/" ||
     HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
 
