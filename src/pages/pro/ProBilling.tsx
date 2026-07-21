@@ -7,6 +7,7 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useRoles } from "@/hooks/useRoles";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
