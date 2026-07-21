@@ -127,6 +127,20 @@ const AdminBrandOffers = () => {
                 <p className="text-[11px] text-muted-foreground">
                   {(o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand"} · {money(o.total_price_pence)}
                 </p>
+                {(() => {
+                  const b = subBadge((o as { brand_user_id?: string }).brand_user_id);
+                  if (!b) return null;
+                  const cls = b.tone === "good"
+                    ? "bg-good/15 text-good"
+                    : b.tone === "warn"
+                      ? "bg-warn/20 text-warn"
+                      : "bg-muted text-muted-foreground";
+                  return (
+                    <span className={`inline-block mt-1 text-[9.5px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded font-body ${cls}`}>
+                      Brand access · {b.label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
             <div className="flex flex-wrap gap-1">
