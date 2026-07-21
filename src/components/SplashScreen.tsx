@@ -32,6 +32,22 @@ const SplashScreen = () => {
   const nextParam = searchParams.get("next");
   const next = safeNext(nextParam, "/home");
 
+  const getPostSignInTarget = async (userId: string) => {
+    const [{ data: profile }, { data: roleRows }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("onboarding_completed_at")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+    ]);
+
+    const roles = (roleRows ?? []).map((row) => row.role as string);
+    if (roles.includes("admin") || roles.includes("professional")) return "/";
+    if (!profile?.onboarding_completed_at) return "/onboarding/profile-step-1";
+    return next;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || password.length < 6) {
@@ -40,13 +56,14 @@ const SplashScreen = () => {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
       toast.success("Signed in");
-      navigate(next, { replace: true });
+      const target = data.user?.id ? await getPostSignInTarget(data.user.id) : "/";
+      navigate(target, { replace: true });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
       toast.error(msg);

@@ -19,6 +19,22 @@ const safeNext = (raw: string | null, fallback: string) => {
   return raw;
 };
 
+const getPostSignInTarget = async (userId: string, requestedNext: string | null) => {
+  const [{ data: profile }, { data: roleRows }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("onboarding_completed_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", userId),
+  ]);
+
+  const roles = (roleRows ?? []).map((row) => row.role as string);
+  if (roles.includes("admin") || roles.includes("professional")) return "/";
+  if (!profile?.onboarding_completed_at) return "/onboarding/profile-step-1";
+  return requestedNext ? safeNext(requestedNext, "/") : "/";
+};
+
 const Auth = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -40,15 +56,7 @@ const Auth = () => {
       // If already signed in, send to the welcome gate so multi-role users
       // (consumer + pro + admin) can pick which area to enter.
       (async () => {
-        const { data } = await supabase
-          .from("profiles")
-          .select("onboarding_completed_at")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        const nextParam = params.get("next");
-        const target = data?.onboarding_completed_at
-          ? (nextParam ? safeNext(nextParam, "/") : "/")
-          : "/onboarding/profile-step-1";
+        const target = await getPostSignInTarget(user.id, params.get("next"));
         navigate(target, { replace: true });
       })();
     }
@@ -143,17 +151,8 @@ const Auth = () => {
         // After sign-in, check onboarding status so completed users go straight to /home.
         const uid = signInData.user?.id;
         if (uid) {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("onboarding_completed_at")
-            .eq("user_id", uid)
-            .maybeSingle();
-          if (prof?.onboarding_completed_at) {
-            const nextParam = params.get("next");
-            navigate(nextParam ? safeNext(nextParam, "/") : "/", { replace: true });
-            return;
-          }
-          navigate("/onboarding/profile-step-1", { replace: true });
+          const target = await getPostSignInTarget(uid, params.get("next"));
+          navigate(target, { replace: true });
           return;
         }
       }
