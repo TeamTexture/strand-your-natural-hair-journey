@@ -148,6 +148,9 @@ const ProfileStep1 = () => {
       if (prefillName) {
         setName((current) => (current.trim() ? current : prefillName));
       }
+      if (data?.phone_number) {
+        setPhone((current) => (current.trim() ? current : String(data.phone_number)));
+      }
       if (data?.birth_year && Number.isFinite(data.birth_year)) {
         const derivedAge = new Date().getFullYear() - data.birth_year;
         if (derivedAge >= 16 && derivedAge <= 100) {
