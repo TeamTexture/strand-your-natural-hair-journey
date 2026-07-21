@@ -736,7 +736,6 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
-      <div className="px-5 pt-2"><BrandBanner slot="home" /></div>
       <SectionLabel>Quick actions</SectionLabel>
       <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-3">
 
