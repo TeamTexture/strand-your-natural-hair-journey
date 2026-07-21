@@ -150,6 +150,12 @@ const ProDashboard = () => {
             sub="One-off promotions on your profile."
             onClick={() => nav("/pro/offers")}
           />
+          <Card
+            icon={Megaphone}
+            title="Promote"
+            sub="Paid banner campaigns across the app."
+            onClick={() => nav("/pro/campaigns")}
+          />
         </div>
 
         <SectionLabel>Clients</SectionLabel>
