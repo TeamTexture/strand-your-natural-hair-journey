@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import VoiceNoteField from "@/components/VoiceNoteField";
+
+const NATURAL_NEVER = "Natural (never coloured)";
 
 const HAIRSTYLE_OPTIONS = [
   "Loose natural",
