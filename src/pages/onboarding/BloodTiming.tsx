@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 const DAYE_URL = "https://www.yourdaye.com/products/hormone-test/";
 const DAYE_CODE = "STRAND20";
+const LOLA_URL = "https://lolahealth.com/?srsltid=AfmBOopC3BcYrhp3GEEOOo1kCw-uXtlfLw6cfcDaHrkXcso14m5rdtDx";
 
 const BloodTiming = () => {
   const navigate = useNavigate();
