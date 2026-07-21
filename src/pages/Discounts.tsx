@@ -27,14 +27,6 @@ interface OfferProps {
 }
 
 const OfferCard = ({ icon: Icon, brand, tagline, blurb, code, url, cta, sponsored }: OfferProps) => {
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      toast.success(`Copied ${code}`);
-    } catch {
-      toast.error("Couldn't copy — long-press the code to copy manually.");
-    }
-  };
   return (
     <div className="relative rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 space-y-3">
       {sponsored && (
@@ -54,15 +46,7 @@ const OfferCard = ({ icon: Icon, brand, tagline, blurb, code, url, cta, sponsore
         </div>
       </div>
       <p className="text-[12.5px] leading-snug font-body text-foreground/85">{blurb}</p>
-      {code ? (
-        <button
-          onClick={copy}
-          className="w-full rounded-[12px] border border-dashed border-primary/40 bg-background/70 py-2.5 flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
-        >
-          <span className="font-display text-[16px] tracking-wide text-primary">{code}</span>
-          <Copy className="size-3.5 text-muted-foreground" />
-        </button>
-      ) : null}
+      {code ? <DiscountCodeChip code={code} variant="block" /> : null}
       {url ? (
         <Button
           variant="gold"
