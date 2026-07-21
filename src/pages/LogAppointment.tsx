@@ -109,11 +109,36 @@ const LogAppointment = () => {
     }
   }, [date]);
 
+  // Pull the current user's active consent relationships so we can float
+  // "their" pros to the top of the picker matches.
+  const [consentedProIds, setConsentedProIds] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("pro_client_access")
+        .select("pro_user_id")
+        .eq("consumer_id", user.id)
+        .is("revoked_at", null);
+      if (cancelled) return;
+      setConsentedProIds(new Set((data ?? []).map((r) => r.pro_user_id)));
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const matches = useMemo(() => {
     const q = query.trim();
     if (q.length < 2 || pickedFromDirectory) return [];
-    return searchProfessionalsIn(pros, q).slice(0, 5);
-  }, [pros, query, pickedFromDirectory]);
+    const results = searchProfessionalsIn(pros, q);
+    // Sort: consented pros first, then other live pros, then seed pros.
+    const scored = results.map((p) => {
+      const consented = p.proUserId && consentedProIds.has(p.proUserId) ? 0 : p.proUserId ? 1 : 2;
+      return { p, consented };
+    });
+    scored.sort((a, b) => a.consented - b.consented);
+    return scored.slice(0, 5).map((s) => s.p);
+  }, [pros, query, pickedFromDirectory, consentedProIds]);
 
   const applyPro = (p: Professional) => {
     setProName(p.name);
@@ -127,6 +152,7 @@ const LogAppointment = () => {
     setPickedFromDirectory(null);
     setQuery("");
   };
+
 
   const canSave = proName.trim().length > 0 && date.trim().length > 0 && !saving;
 
