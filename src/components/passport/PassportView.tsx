@@ -1,11 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
-import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play } from "lucide-react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
+import ProAvatar from "@/components/ProAvatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -13,98 +13,96 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePassportData, type PassportDataset } from "./usePassportData";
 import SignedImage from "./SignedImage";
 import { lookupHardWater } from "@/lib/hardWater";
+import { humaniseKey, humaniseValue, valueTone, shouldHideField } from "@/lib/humanise";
+import { formatDate, formatDateTime, formatMonth, formatRelative } from "@/lib/formatPassportDate";
+import { formatTime12h } from "@/lib/formatTime";
+
+// ================================================================
+// Section registry — priority order tuned for consultation prep.
+// ================================================================
 
 type Section =
-  | "overview" | "blood" | "colour" | "wash" | "journal" | "shelf"
-  | "appointments" | "medications" | "tools" | "photos" | "nutrition"
-  | "moodboards" | "ingredients";
+  | "snapshot" | "goals" | "hair" | "colour" | "blood"
+  | "routine" | "journal" | "lifestyle" | "appointments";
 
-const SECTIONS: { key: Section; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "blood", label: "Blood work" },
-  { key: "colour", label: "Colour" },
-  { key: "wash", label: "Wash days" },
-  { key: "journal", label: "Journal" },
-  { key: "shelf", label: "Shelf" },
-  { key: "appointments", label: "Appointments" },
-  { key: "medications", label: "Medications" },
-  { key: "tools", label: "Tools" },
-  { key: "photos", label: "Photos" },
-  { key: "nutrition", label: "Nutrition" },
-  { key: "moodboards", label: "Moodboards" },
-  { key: "ingredients", label: "Ingredients" },
+interface SectionSpec {
+  key: Section;
+  label: string;
+  count: (d: PassportDataset) => number;
+}
+
+const SECTIONS: SectionSpec[] = [
+  { key: "snapshot", label: "Snapshot", count: () => 0 },
+  { key: "goals", label: "Goals", count: (d) => d.goals.length },
+  { key: "hair", label: "Hair", count: () => 0 },
+  { key: "colour", label: "Colour", count: (d) => {
+    const style = d.style ?? {};
+    const history = Array.isArray(style.colour_history) ? (style.colour_history as unknown[]).length : 0;
+    return history + (style.colour_reaction === true ? 1 : 0);
+  } },
+  { key: "blood", label: "Blood", count: (d) => d.bloodPanels.length },
+  { key: "routine", label: "Routine", count: (d) => d.washDays.length },
+  { key: "journal", label: "Journal", count: (d) => d.journal.length },
+  { key: "lifestyle", label: "Lifestyle", count: (d) => d.medications.length + d.tools.length },
+  { key: "appointments", label: "Appts", count: (d) => d.appointments.length },
 ];
 
-const PAGE = 20;
+const PAGE = 15;
+
+// ================================================================
+// Cross-cutting primitives (retained, cleaned up)
+// ================================================================
 
 interface ImagePreviewState {
   url: string | null;
   title: string;
   meta?: React.ReactNode;
 }
-
 const ImagePreviewContext = createContext<((preview: ImagePreviewState) => void) | null>(null);
 
 const logView = async (consumerId: string, section: Section) => {
   try { await supabase.functions.invoke("passport-view-log", { body: { consumer_id: consumerId, section } }); } catch { /* best-effort */ }
 };
 
-const oneOf = (v: unknown): string | null => {
-  if (v == null || v === "") return null;
-  if (Array.isArray(v)) return v.filter(Boolean).join(", ") || null;
-  if (typeof v === "boolean") return v ? "Yes" : "No";
-  if (typeof v === "object") return null;
-  return String(v);
-};
-
-const formatMaybeDate = (key: string, v: unknown) => {
-  if (typeof v !== "string") return null;
-  if (!/(^|_)(date|at|on)$/.test(key) && !key.endsWith("_date") && !key.endsWith("_at")) return null;
-  const dt = new Date(v);
-  if (Number.isNaN(dt.getTime())) return null;
-  return v.includes("T") ? format(dt, "d MMM yyyy, HH:mm") : format(dt, "d MMM yyyy");
-};
-
-const tidyLabel = (key: string) => key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-
-const FieldValue = ({ fieldKey, value }: { fieldKey: string; value: unknown }) => {
-  const maybeDate = formatMaybeDate(fieldKey, value);
-  if (maybeDate) return <>{maybeDate}</>;
-  if (Array.isArray(value)) return <>{value.filter(Boolean).map(String).join(", ") || "—"}</>;
-  if (typeof value === "boolean") return <>{value ? "Yes" : "No"}</>;
-  if (typeof value === "object" && value !== null) {
-    return <pre className="text-[11px] whitespace-pre-wrap break-words bg-muted/40 rounded p-2">{JSON.stringify(value, null, 2)}</pre>;
-  }
-  return <>{oneOf(value) ?? "—"}</>;
-};
-
-const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex gap-3 text-[13px]">
-    <span className="text-muted-foreground w-[120px] shrink-0">{label}</span>
-    <span className="flex-1 break-words">{value ?? "—"}</span>
+/** Compact humanised key/value row — replaces old Row + AllFields dumps. */
+const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <div className="flex gap-3 text-[13px] leading-relaxed">
+    <span className="text-muted-foreground w-[128px] shrink-0 font-body">{label}</span>
+    <span className="flex-1 break-words text-foreground">{value ?? "—"}</span>
   </div>
 );
 
-const AllFields = ({ obj, exclude = [] }: { obj: Record<string, unknown> | null; exclude?: string[] }) => {
-  if (!obj) return <p className="text-xs text-muted-foreground">Nothing recorded.</p>;
-  const skip = new Set(["id", "user_id", ...exclude, ...Object.keys(obj).filter(k => k.endsWith("_enc") || k.endsWith("_hash") || k.endsWith("_snapshot"))]);
-  const entries = Object.entries(obj).filter(([k, v]) => !skip.has(k) && v != null && v !== "" && !(Array.isArray(v) && v.length === 0));
-  if (entries.length === 0) return <p className="text-xs text-muted-foreground">Nothing recorded.</p>;
+/**
+ * Humanised object renderer — replaces AllFields.
+ * Filters ids/paths/enc/hash automatically, humanises keys and values,
+ * routes dates through the formatter, and outputs nothing at all when empty.
+ */
+const HumanFields = ({ obj, exclude = [] }: { obj: Record<string, unknown> | null | undefined; exclude?: string[] }) => {
+  if (!obj) return null;
+  const entries: Array<[string, unknown]> = [];
+  for (const [k, v] of Object.entries(obj)) {
+    if (shouldHideField(k, exclude)) continue;
+    if (v == null || v === "") continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    if (typeof v === "object" && !Array.isArray(v)) continue; // structured objects handled bespokely
+    entries.push([k, v]);
+  }
+  if (entries.length === 0) return null;
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {entries.map(([k, v]) => {
-        return <Row key={k} label={tidyLabel(k)} value={<FieldValue fieldKey={k} value={v} />} />;
+        // Route timestamps through the formatter.
+        let rendered: React.ReactNode;
+        if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}(T|$)/.test(v)) {
+          rendered = v.includes("T") ? formatDateTime(v) : formatDate(v);
+        } else {
+          rendered = humaniseValue(v) ?? "—";
+        }
+        return <Field key={k} label={humaniseKey(k)} value={rendered} />;
       })}
     </div>
   );
 };
-
-const FullRecord = ({ obj, title = "Full record", exclude = [] }: { obj: Record<string, unknown> | null; title?: string; exclude?: string[] }) => (
-  <div className="mt-3 pt-3 border-t border-border">
-    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">{title}</p>
-    <AllFields obj={obj} exclude={exclude} />
-  </div>
-);
 
 const Thumb = ({ bucket, path, alt, className, title, meta }: {
   bucket: string;
@@ -134,15 +132,17 @@ const Thumb = ({ bucket, path, alt, className, title, meta }: {
   );
 };
 
-const Collapsible = ({ summary, children, defaultOpen = false }: { summary: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) => {
+const Collapsible = ({ summary, children, defaultOpen = false, className }: {
+  summary: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean; className?: string;
+}) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <SurfaceCard>
+    <SurfaceCard className={className}>
       <button type="button" onClick={() => setOpen(o => !o)} className="w-full flex items-start justify-between gap-3 text-left">
         <div className="flex-1 min-w-0">{summary}</div>
         {open ? <ChevronUp className="size-4 text-muted-foreground shrink-0 mt-1" /> : <ChevronDown className="size-4 text-muted-foreground shrink-0 mt-1" />}
       </button>
-      {open && <div className="mt-3 pt-3 border-t border-border">{children}</div>}
+      {open && <div className="mt-4 pt-4 border-t border-border">{children}</div>}
     </SurfaceCard>
   );
 };
@@ -156,53 +156,315 @@ const LoadMore = ({ shown, total, onMore }: { shown: number; total: number; onMo
   );
 };
 
-const EmptyCard = ({ msg }: { msg: string }) => (
-  <SurfaceCard><p className="text-xs text-muted-foreground">{msg}</p></SurfaceCard>
+const EmptyLine = ({ msg }: { msg: string }) => (
+  <SurfaceCard><p className="text-[12px] text-muted-foreground font-body">{msg}</p></SurfaceCard>
 );
 
-const StatusChip = ({ status }: { status: string | null }) => {
-  if (!status) return null;
-  return (
-    <span className={cn(
-      "text-[10px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wider",
-      status === "low" && "bg-alert-dark/15 text-alert-dark",
-      (status === "high" || status === "borderline") && "bg-warn/15 text-warn",
-      status === "in_range" && "bg-good/15 text-good",
-      !["low", "high", "borderline", "in_range"].includes(status) && "bg-muted text-muted-foreground",
-    )}>{status.replace(/_/g, " ")}</span>
-  );
-};
+const Chip = ({ tone = "neutral", children, icon: Icon }: {
+  tone?: "good" | "warn" | "alert" | "neutral" | "gold";
+  children: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+}) => (
+  <span className={cn(
+    "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-body font-semibold border whitespace-nowrap",
+    tone === "good" && "bg-good/10 text-good border-good/25",
+    tone === "warn" && "bg-warn/10 text-warn border-warn/30",
+    tone === "alert" && "bg-destructive/10 text-destructive border-destructive/30",
+    tone === "gold" && "bg-primary/12 text-primary border-primary/30",
+    tone === "neutral" && "bg-muted text-foreground/75 border-foreground/10",
+  )}>
+    {Icon && <Icon className="size-3" />}
+    <span>{children}</span>
+  </span>
+);
 
-const AudioButton = ({ bucket, path, transcriptFallback }: { bucket: string; path: string | null; transcriptFallback?: string | null }) => {
+const AudioPlayer = ({ bucket, path, transcript, label = "Voice note" }: {
+  bucket: string; path: string | null | undefined; transcript?: string | null; label?: string;
+}) => {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  if (!path && !transcript) return null;
   const load = async () => {
     if (!path || url) return;
     setLoading(true);
-    // Some audio_url values are already full URLs — pass through.
     if (path.startsWith("http")) { setUrl(path); setLoading(false); return; }
     const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
     if (data?.signedUrl) setUrl(data.signedUrl);
     setLoading(false);
   };
-  if (!path && !transcriptFallback) return null;
   return (
     <div className="mt-2 space-y-1.5">
       {path && !url && (
-        <button type="button" onClick={load} className="inline-flex items-center gap-1.5 text-[11px] text-primary">
-          <Play className="size-3" /> {loading ? "Loading…" : "Play voice note"}
+        <button type="button" onClick={load} className="inline-flex items-center gap-1.5 text-[12px] font-body text-primary hover:underline">
+          <Play className="size-3.5" /> {loading ? "Loading…" : `Play ${label.toLowerCase()}`}
         </button>
       )}
-      {url && <audio controls src={url} className="w-full h-8" />}
-      {transcriptFallback && <p className="text-[11px] italic text-muted-foreground leading-snug">“{transcriptFallback}”</p>}
+      {url && <audio controls src={url} className="w-full h-9" />}
+      {transcript && <p className="text-[11px] italic text-muted-foreground leading-snug">"{transcript}"</p>}
     </div>
   );
 };
 
-// ================= Section renderers =================
+/** Section heading with icon + one-line context. */
+const SectionHeader = ({ icon: Icon, title, sub }: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  sub?: string;
+}) => (
+  <div className="px-5 mt-6 mb-3 flex items-center gap-2.5">
+    <div className="size-8 rounded-full bg-primary/12 text-primary flex items-center justify-center">
+      <Icon className="size-4" />
+    </div>
+    <div>
+      <h2 className="font-display text-lg text-foreground leading-tight">{title}</h2>
+      {sub && <p className="text-[11px] font-body text-muted-foreground leading-snug">{sub}</p>}
+    </div>
+  </div>
+);
 
-const OverviewSection = ({ d }: { d: PassportDataset }) => {
-  const goalsById = useMemo(() => {
+/** Named subsection label — smaller, quieter than SectionHeader. */
+const SubLabel = ({ children }: { children: React.ReactNode }) => (
+  <p className="px-5 mt-5 mb-2 text-[10.5px] uppercase tracking-[0.22em] font-body font-semibold text-primary">
+    {children}
+  </p>
+);
+
+const PaginatedList = <T,>({ items, render, empty, pageSize = PAGE }: {
+  items: T[]; render: (t: T, i: number) => React.ReactNode; empty: string; pageSize?: number;
+}) => {
+  const [n, setN] = useState(pageSize);
+  if (items.length === 0) return <EmptyLine msg={empty} />;
+  return (
+    <>
+      {items.slice(0, n).map(render)}
+      <LoadMore shown={Math.min(n, items.length)} total={items.length} onMore={() => setN(x => x + pageSize)} />
+    </>
+  );
+};
+
+// ================================================================
+// Helpers — critical flags computed from PassportDataset
+// ================================================================
+
+interface CriticalFlags {
+  chemicalReaction: { details: string | null; audio: string | null } | null;
+  bloodOutOfRange: number;
+  medicationsCount: number;
+  medicalConditions: string | null;
+  hasProfessional: boolean;
+}
+
+const computeFlags = (d: PassportDataset): CriticalFlags => {
+  const style = d.style ?? {};
+  const reactionOn = style.colour_reaction === true || String(style.colour_reaction ?? "").toLowerCase() === "yes";
+  const outOfRange = d.bloodResults.filter(r => ["low", "high", "borderline"].includes(String(r.status ?? "").toLowerCase())).length;
+  const conds = d.health?.medical_conditions;
+  const medicalConditions = humaniseValue(conds);
+  return {
+    chemicalReaction: reactionOn ? {
+      details: humaniseValue(style.colour_reaction_details),
+      audio: (style.colour_reaction_audio_path as string | null) ?? null,
+    } : null,
+    bloodOutOfRange: outOfRange,
+    medicationsCount: d.medications.length,
+    medicalConditions,
+    hasProfessional: !!d.professional,
+  };
+};
+
+// ================================================================
+// Section: Snapshot — the first two seconds
+// ================================================================
+
+const SnapshotSection = ({ d, goTo }: { d: PassportDataset; goTo: (s: Section) => void }) => {
+  const flags = computeFlags(d);
+  const hardWater = d.profile?.postcode ? lookupHardWater(d.profile.postcode) : null;
+  const avatarUrl = d.profile?.avatar_url ?? null;
+  const avatarIsHttp = typeof avatarUrl === "string" && /^https?:\/\//.test(avatarUrl);
+
+  const hair = d.hair ?? {};
+  const chips: Array<{ icon: React.ComponentType<{ className?: string }>; label: string; value: string; tone: "good" | "warn" | "alert" | "neutral" | "gold" }> = [];
+  const curl = humaniseValue(hair.curl_pattern) ?? humaniseValue(hair.hair_type);
+  if (curl) chips.push({ icon: Scissors, label: "Texture", value: curl, tone: "gold" });
+  const porosity = humaniseValue(hair.porosity);
+  if (porosity) chips.push({ icon: Droplet, label: "Porosity", value: porosity, tone: valueTone(hair.porosity) === "alert" ? "warn" : "gold" });
+  const density = humaniseValue(hair.density);
+  if (density) chips.push({ icon: FlaskConical, label: "Density", value: density, tone: "gold" });
+
+  const latestStrand = d.strandSummaries[0] ?? null;
+
+  return (
+    <>
+      {/* Identity card */}
+      <div className="px-5 mt-2">
+        <SurfaceCard tone="gold">
+          <div className="flex items-start gap-4">
+            {avatarIsHttp ? (
+              <img src={avatarUrl!} alt="" className="size-16 rounded-full object-cover border-2 border-primary/20 shrink-0" />
+            ) : avatarUrl ? (
+              <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-16 rounded-full overflow-hidden border-2 border-primary/20 shrink-0" />
+            ) : (
+              <ProAvatar name={d.clientName} size="size-16" className="bg-primary/15 text-primary shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-[20px] leading-tight text-foreground truncate">{d.clientName}</p>
+              <p className="text-[11px] text-muted-foreground font-body mt-0.5 truncate">
+                {d.authEmail ?? "No email on file"}
+              </p>
+              {d.profile?.age != null && (
+                <p className="text-[12px] text-foreground/80 font-body mt-1">
+                  {d.profile.age} years old
+                  {d.profile.heritage?.length ? ` · ${d.profile.heritage.join(", ")}` : ""}
+                </p>
+              )}
+              {d.memberSince && (
+                <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+                  Member since {formatMonth(d.memberSince)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {(d.profile?.postcode || hardWater) && (
+            <div className="mt-3 pt-3 border-t border-primary/20 flex flex-wrap gap-2">
+              {d.profile?.postcode && <Chip tone="neutral">{d.profile.postcode}</Chip>}
+              {hardWater && (
+                <Chip tone={hardWater.hardness === "very-hard" || hardWater.hardness === "hard" ? "warn" : "good"} icon={Droplet}>
+                  {hardWater.label} water
+                </Chip>
+              )}
+            </div>
+          )}
+        </SurfaceCard>
+      </div>
+
+      {/* Hair at a glance */}
+      {chips.length > 0 && (
+        <>
+          <SubLabel>Hair at a glance</SubLabel>
+          <div className="px-5">
+            <SurfaceCard>
+              <div className="flex flex-wrap gap-2">
+                {chips.map((c) => (
+                  <Chip key={c.label} tone={c.tone} icon={c.icon}>
+                    <span className="opacity-70 mr-1">{c.label}</span> {c.value}
+                  </Chip>
+                ))}
+              </div>
+            </SurfaceCard>
+          </div>
+        </>
+      )}
+
+      {/* Critical flags */}
+      <SubLabel>Critical flags</SubLabel>
+      <div className="px-5">
+        <SurfaceCard>
+          {flags.chemicalReaction || flags.bloodOutOfRange || flags.medicationsCount || flags.medicalConditions ? (
+            <div className="space-y-3">
+              {flags.chemicalReaction && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/[0.06] p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-body font-semibold text-destructive uppercase tracking-wider">Chemical reaction reported</p>
+                      {flags.chemicalReaction.details && (
+                        <p className="text-[13px] text-foreground/90 mt-1 leading-relaxed">"{flags.chemicalReaction.details}"</p>
+                      )}
+                      <AudioPlayer bucket="voicenotes" path={flags.chemicalReaction.audio} label="Reaction voice note" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {flags.bloodOutOfRange > 0 && (
+                  <button type="button" onClick={() => goTo("blood")}>
+                    <Chip tone="warn" icon={FlaskConical}>{flags.bloodOutOfRange} blood marker{flags.bloodOutOfRange === 1 ? "" : "s"} flagged</Chip>
+                  </button>
+                )}
+                {flags.medicationsCount > 0 && (
+                  <button type="button" onClick={() => goTo("lifestyle")}>
+                    <Chip tone="gold" icon={Pill}>{flags.medicationsCount} current medication{flags.medicationsCount === 1 ? "" : "s"}</Chip>
+                  </button>
+                )}
+                {flags.medicalConditions && (
+                  <Chip tone="warn" icon={Heart}>Health: {flags.medicalConditions}</Chip>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[12px] text-muted-foreground font-body">No safety flags recorded.</p>
+          )}
+        </SurfaceCard>
+      </div>
+
+      {/* Preferred professional */}
+      {flags.hasProfessional && (
+        <>
+          <SubLabel>Preferred professional</SubLabel>
+          <div className="px-5">
+            <SurfaceCard>
+              <HumanFields obj={d.professional} />
+            </SurfaceCard>
+          </div>
+        </>
+      )}
+
+      {/* Latest Strand summary — typographic, not raw */}
+      {latestStrand && (
+        <>
+          <SubLabel>Latest Strand summary</SubLabel>
+          <div className="px-5">
+            <SurfaceCard>
+              <p className="text-[10.5px] font-body text-muted-foreground uppercase tracking-wider mb-2">
+                Updated {formatDate(latestStrand.created_at)} · {formatRelative(latestStrand.created_at)}
+              </p>
+              {latestStrand.overview && (
+                <p className="text-[13.5px] leading-relaxed text-foreground font-body whitespace-pre-wrap">
+                  {latestStrand.overview}
+                </p>
+              )}
+              {Array.isArray(latestStrand.action_plan) && (latestStrand.action_plan as unknown[]).length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Action plan</p>
+                  <ul className="space-y-1.5">
+                    {(latestStrand.action_plan as unknown[]).map((a, i) => (
+                      <li key={i} className="text-[13px] font-body leading-relaxed pl-3 relative before:content-['·'] before:absolute before:left-0 before:text-primary">
+                        {typeof a === "string" ? a : humaniseValue(a) ?? ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {d.strandSummaries.length > 1 && (
+                <details className="mt-4 pt-4 border-t border-border">
+                  <summary className="text-[11px] font-body text-primary cursor-pointer hover:underline">
+                    Previous summaries ({d.strandSummaries.length - 1})
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {d.strandSummaries.slice(1).map((s) => (
+                      <div key={s.id} className="text-[11.5px] text-muted-foreground font-body pl-3 border-l-2 border-primary/20">
+                        <p className="font-semibold text-foreground/80">{formatDate(s.created_at)}</p>
+                        {s.overview && <p className="mt-0.5 line-clamp-2">{s.overview}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </SurfaceCard>
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+// ================================================================
+// Section: Goals & concerns — "why they're here"
+// ================================================================
+
+const GoalsSection = ({ d }: { d: PassportDataset }) => {
+  const updatesByGoal = useMemo(() => {
     const m = new Map<string, typeof d.goalUpdates>();
     d.goalUpdates.forEach(u => {
       const arr = m.get(u.goal_id) ?? [];
@@ -210,168 +472,270 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
       m.set(u.goal_id, arr);
     });
     return m;
-  }, [d]);
+  }, [d.goalUpdates]);
 
-  const hardWater = d.profile?.postcode ? lookupHardWater(d.profile.postcode) : null;
-  const avatarUrl = d.profile?.avatar_url ?? null;
-  const avatarIsHttp = typeof avatarUrl === "string" && /^https?:\/\//.test(avatarUrl);
+  const concerns = humaniseValue(d.hair?.areas_of_concern);
 
   return (
     <>
-      <SectionLabel>Identity</SectionLabel>
-      <SurfaceCard>
-        {d.profile ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              {avatarIsHttp ? (
-                <img src={avatarUrl!} alt="" className="size-16 rounded-full object-cover border border-border" />
-              ) : avatarUrl ? (
-                <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-16 rounded-full overflow-hidden border border-border" />
-              ) : (
-                <div className="size-16 rounded-full bg-muted border border-border flex items-center justify-center text-lg font-body font-semibold text-muted-foreground">
-                  {(d.profile.display_name ?? "?").trim().charAt(0).toUpperCase()}
+      {concerns && (
+        <>
+          <SubLabel>Areas of concern</SubLabel>
+          <div className="px-5">
+            <SurfaceCard>
+              <p className="text-[13.5px] font-body leading-relaxed">{concerns}</p>
+            </SurfaceCard>
+          </div>
+        </>
+      )}
+
+      <SubLabel>Goals</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.goals.length === 0 ? <EmptyLine msg="No goals set yet." /> : d.goals.map(g => {
+          const updates = updatesByGoal.get(g.id) ?? [];
+          const title = humaniseValue(g.title) ?? humaniseValue(g.challenge) ?? "Goal";
+          const target = humaniseValue(g.target_text) ?? humaniseValue(g.target);
+          const status = humaniseValue(g.status) ?? "Active";
+          return (
+            <Collapsible key={g.id} summary={
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[14px] font-body font-semibold text-foreground leading-tight">{title}</p>
+                  <Chip tone={valueTone(g.status) === "good" ? "good" : "gold"}>{status}</Chip>
+                </div>
+                {target && <p className="text-[12px] text-muted-foreground font-body mt-1">Target: {target}</p>}
+                {updates.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground font-body mt-1">
+                    {updates.length} progress update{updates.length === 1 ? "" : "s"}
+                  </p>
+                )}
+              </div>
+            }>
+              <HumanFields obj={g as Record<string, unknown>} exclude={["title", "challenge", "target_text", "target", "status", "challenge_voice_url", "target_voice_url"]} />
+              <AudioPlayer bucket="voicenotes" path={(g.challenge_voice_url as string | null) ?? null} label="Challenge voice note" />
+              <AudioPlayer bucket="voicenotes" path={(g.target_voice_url as string | null) ?? null} label="Target voice note" />
+              {updates.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Progress timeline</p>
+                  <div className="space-y-3">
+                    {updates.map(u => (
+                      <div key={u.id} className="border-l-2 border-primary/30 pl-3">
+                        <p className="text-[11px] text-muted-foreground font-body">
+                          {formatDate(u.created_at)} · {formatRelative(u.created_at)}
+                        </p>
+                        {u.note && <p className="text-[12.5px] font-body leading-relaxed mt-0.5">{u.note}</p>}
+                        <AudioPlayer bucket="voicenotes" path={u.voice_url} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              <div className="min-w-0">
-                <p className="text-sm font-body font-semibold truncate">{d.profile.display_name ?? "—"}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{d.authEmail ?? "—"}</p>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Row label="Age" value={d.profile.age != null ? `${d.profile.age} (born ${d.profile.birth_year})` : null} />
-              <Row label="Heritage" value={d.profile.heritage.length ? d.profile.heritage.join(", ") : null} />
-              <Row label="Postcode" value={d.profile.postcode} />
-              <Row label="Water hardness" value={hardWater ? `${hardWater.label} (${hardWater.area}) — ${hardWater.explanation}` : null} />
-              <Row label="Country" value={d.profile.country} />
-              <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
-              <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
-              <AllFields obj={d.profile} exclude={["display_name", "avatar_url", "birth_year", "age", "heritage", "postcode", "country", "created_at", "onboarding_completed_at"]} />
-            </div>
-          </div>
-        ) : <p className="text-xs text-muted-foreground">No profile recorded.</p>}
-      </SurfaceCard>
+            </Collapsible>
+          );
+        })}
+      </div>
+    </>
+  );
+};
 
-      <SectionLabel>Clinical snapshot</SectionLabel>
-      <SurfaceCard>
-        <div className="space-y-2">
-          <Row label="Bodily health" value={d.health?.medical_conditions ? oneOf(d.health.medical_conditions) : oneOf(d.health?.life_stage)} />
-          <Row label="Lifestyle" value={[d.health?.diet, d.health?.exercise, d.health?.sleep_quality].filter(Boolean).map(String).join(" · ") || null} />
-          <Row label="Medications" value={d.medications.length ? d.medications.map(m => [m.name, m.category].filter(Boolean).join(" — ")).join(", ") : null} />
-          <Row label="Hair concerns" value={d.hair?.areas_of_concern ? oneOf(d.hair.areas_of_concern) : null} />
-          <Row label="Scalp / diagnoses" value={[oneOf(d.hair?.scalp_condition), oneOf(d.hair?.diagnosed_conditions)].filter(Boolean).join(" · ") || null} />
-        </div>
-      </SurfaceCard>
+// ================================================================
+// Section: Hair profile — mirror the consumer Profile screen
+// ================================================================
 
-      <SectionLabel>Hair profile</SectionLabel>
-      <SurfaceCard><AllFields obj={d.hair} /></SurfaceCard>
+const HairSection = ({ d }: { d: PassportDataset }) => {
+  const hair = d.hair ?? {};
+  const rows: Array<{ label: string; value: React.ReactNode; icon?: React.ComponentType<{ className?: string }>; tone?: "warn" }> = [];
+  const push = (label: string, key: string, tone?: "warn") => {
+    const v = humaniseValue(hair[key]);
+    if (v) rows.push({ label, value: v, tone });
+  };
+  push("Texture", "curl_pattern");
+  push("Porosity", "porosity", valueTone(hair.porosity) === "alert" ? "warn" : undefined);
+  push("Density", "density");
+  push("Diameter", "hair_width");
+  push("Elasticity", "elasticity");
+  push("Length", "current_length");
+  push("Scalp condition", "scalp_condition");
+  const diagnosed = humaniseValue(hair.diagnosed_conditions);
+  if (diagnosed) rows.push({ label: "Diagnoses", value: diagnosed, tone: "warn" });
+  push("Areas of concern", "areas_of_concern");
+  push("Wash frequency", "wash_frequency");
 
-      <SectionLabel>Health profile</SectionLabel>
-      <SurfaceCard><AllFields obj={d.health} /></SurfaceCard>
-
-      <SectionLabel>Medications</SectionLabel>
-      {d.medications.length === 0 ? <EmptyCard msg="No medications recorded." /> : d.medications.map(m => (
-        <Collapsible key={m.id} summary={
-          <div>
-            <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
-            <p className="text-[11px] text-muted-foreground">{m.category ?? "—"}{m.created_at ? ` · added ${format(new Date(m.created_at), "d MMM yyyy")}` : ""}</p>
-          </div>
-        }>
-          <AllFields obj={m as Record<string, unknown>} />
-        </Collapsible>
-      ))}
-
-      <SectionLabel>Style profile</SectionLabel>
-      <SurfaceCard><AllFields obj={d.style} exclude={["colour_history", "chemical_history", "colour_reaction_audio_path"]} /></SurfaceCard>
-
-      <SectionLabel>Preferred professional</SectionLabel>
-      <SurfaceCard><AllFields obj={d.professional} /></SurfaceCard>
-
-      <SectionLabel>Strand summaries</SectionLabel>
-      {d.strandSummaries.length === 0 ? <EmptyCard msg="No Strand summary yet." /> : d.strandSummaries.map(s => (
-        <Collapsible key={s.id} summary={
-          <div>
-            <p className="text-sm font-body font-semibold">Strand summary</p>
-            <p className="text-[11px] text-muted-foreground">{format(new Date(s.created_at), "d MMM yyyy")}</p>
-          </div>
-        }>
-          {s.overview && <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{s.overview}</p>}
-          {Array.isArray(s.action_plan) && (s.action_plan as unknown[]).length > 0 && (
-            <div className="mt-3">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Action plan</p>
-              <ul className="text-[12px] list-disc pl-4 space-y-1">
-                {(s.action_plan as unknown[]).map((a, i) => <li key={i}>{typeof a === "string" ? a : JSON.stringify(a)}</li>)}
-              </ul>
+  return (
+    <>
+      <SubLabel>Hair profile</SubLabel>
+      <div className="px-5">
+        <SurfaceCard>
+          {rows.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground font-body">No hair profile recorded.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {rows.map((r) => (
+                <div key={r.label} className="flex gap-3 py-2.5 text-[13px] font-body">
+                  <span className={cn("w-[130px] shrink-0", r.tone === "warn" ? "text-warn font-medium" : "text-muted-foreground")}>{r.label}</span>
+                  <span className={cn("flex-1 break-words", r.tone === "warn" ? "text-warn font-medium" : "text-foreground")}>{r.value}</span>
+                </div>
+              ))}
             </div>
           )}
-        </Collapsible>
-      ))}
+        </SurfaceCard>
+      </div>
 
-      <SectionLabel>Latest blood AI summary</SectionLabel>
-      {d.bloodSummaries.length === 0 ? <EmptyCard msg="No blood AI summary yet." /> : (() => {
-        const s = d.bloodSummaries[0];
-        return (
-          <Collapsible defaultOpen summary={
-            <div>
-              <p className="text-sm font-body font-semibold">Blood AI summary</p>
-              <p className="text-[11px] text-muted-foreground">Updated {format(new Date(s.created_at), "d MMM yyyy")}</p>
+      <SubLabel>Health context</SubLabel>
+      <div className="px-5">
+        <SurfaceCard>
+          <HumanFields obj={d.health} exclude={["notes"]} />
+          {d.health?.notes && typeof d.health.notes === "string" && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1">Notes</p>
+              <p className="text-[12.5px] font-body leading-relaxed">{d.health.notes}</p>
             </div>
-          }>
-            <pre className="text-[12px] whitespace-pre-wrap break-words leading-relaxed">
-              {typeof s.payload === "string" ? s.payload : JSON.stringify(s.payload, null, 2)}
-            </pre>
-          </Collapsible>
-        );
-      })()}
+          )}
+          {!d.health && <p className="text-[12px] text-muted-foreground font-body">No health context recorded.</p>}
+        </SurfaceCard>
+      </div>
+    </>
+  );
+};
 
-      <SectionLabel>Latest nutrition AI plan</SectionLabel>
-      {d.nutritionSummaries.length === 0 ? <EmptyCard msg="No nutrition AI plan yet." /> : (() => {
-        const s = d.nutritionSummaries[0];
-        return (
-          <Collapsible defaultOpen summary={
-            <div>
-              <p className="text-sm font-body font-semibold">Nutrition AI plan</p>
-              <p className="text-[11px] text-muted-foreground">Updated {format(new Date(s.created_at), "d MMM yyyy")}</p>
+// ================================================================
+// Section: Colour & chemistry — safety-critical for stylists
+// ================================================================
+
+const ColourSection = ({ d }: { d: PassportDataset }) => {
+  const style = d.style ?? {};
+  const history = Array.isArray(style.colour_history) ? style.colour_history as Array<Record<string, unknown>> : [];
+  const chem = Array.isArray(style.chemical_history) ? (style.chemical_history as unknown[]).map(String) : [];
+  const reactionOn = style.colour_reaction === true || String(style.colour_reaction ?? "").toLowerCase() === "yes";
+
+  return (
+    <>
+      {reactionOn && (
+        <>
+          <SubLabel>Chemical reaction — flagged</SubLabel>
+          <div className="px-5">
+            <SurfaceCard className="border-destructive/40 bg-destructive/[0.05]">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-body font-semibold text-destructive">The client has reported a chemical reaction.</p>
+                  {style.colour_reaction_details && (
+                    <p className="text-[13px] font-body text-foreground/95 mt-2 leading-relaxed">
+                      "{humaniseValue(style.colour_reaction_details)}"
+                    </p>
+                  )}
+                  <AudioPlayer bucket="voicenotes" path={(style.colour_reaction_audio_path as string | null) ?? null} label="Reaction voice note" />
+                </div>
+              </div>
+            </SurfaceCard>
+          </div>
+        </>
+      )}
+
+      <SubLabel>Current colour & style</SubLabel>
+      <div className="px-5">
+        <SurfaceCard>
+          <div className="divide-y divide-border">
+            {[
+              ["Status", style.current_colour_status],
+              ["Current style", style.current_hairstyle],
+              ["Colour type", style.colour_type],
+              ["Product", style.colour_product],
+              ["Last treated", style.colour_last_treated],
+              ["Reaction on record?", style.colour_reaction],
+            ].map(([label, v]) => {
+              const val = humaniseValue(v);
+              if (!val) return null;
+              return (
+                <div key={label as string} className="flex gap-3 py-2.5 text-[13px] font-body">
+                  <span className="text-muted-foreground w-[130px] shrink-0">{label as string}</span>
+                  <span className="flex-1 break-words text-foreground">{val}</span>
+                </div>
+              );
+            })}
+          </div>
+        </SurfaceCard>
+      </div>
+
+      <SubLabel>Chemical history</SubLabel>
+      <div className="px-5">
+        {chem.length === 0 ? <EmptyLine msg="No chemical treatments recorded." /> : (
+          <SurfaceCard>
+            <div className="flex flex-wrap gap-2">
+              {chem.map((c, i) => (
+                <Chip key={i} tone="warn" icon={FlaskConical}>{humaniseValue(c) ?? c}</Chip>
+              ))}
             </div>
-          }>
-            <pre className="text-[12px] whitespace-pre-wrap break-words leading-relaxed">
-              {typeof s.payload === "string" ? s.payload : JSON.stringify(s.payload, null, 2)}
-            </pre>
-          </Collapsible>
-        );
-      })()}
+          </SurfaceCard>
+        )}
+      </div>
 
-      <SectionLabel>Goals</SectionLabel>
-      {d.goals.length === 0 ? <EmptyCard msg="No goals set." /> : d.goals.map(g => {
-        const updates = goalsById.get(g.id) ?? [];
-        return (
-          <Collapsible key={g.id} summary={
+      <SubLabel>Colour history</SubLabel>
+      <div className="px-5 space-y-2">
+        {history.length === 0 ? <EmptyLine msg="No colour history entries." /> : history.map((c, i) => (
+          <Collapsible key={i} summary={
             <div>
-              <p className="text-sm font-body font-semibold">{String(g.title ?? "Goal")}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {String(g.status ?? "active")}{g.target_text ? ` · ${String(g.target_text)}` : ""}
-                {updates.length > 0 && ` · ${updates.length} update${updates.length === 1 ? "" : "s"}`}
+              <p className="text-[13.5px] font-body font-semibold text-foreground">{humaniseValue(c.type) ?? "Colour treatment"}</p>
+              <p className="text-[11.5px] font-body text-muted-foreground mt-0.5">
+                {humaniseValue(c.timeframe) ?? "—"}
+                {c.product ? ` · ${humaniseValue(c.product)}` : ""}
               </p>
             </div>
           }>
-            <AllFields obj={g as Record<string, unknown>} exclude={["challenge_voice_url", "target_voice_url"]} />
-            {updates.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Progress timeline</p>
-                <div className="space-y-2">
-                  {updates.map(u => (
-                    <div key={u.id} className="border-l-2 border-primary/30 pl-2.5">
-                      <p className="text-[11px] text-muted-foreground">{format(new Date(u.created_at), "d MMM yyyy")}</p>
-                      {u.note && <p className="text-[12px] leading-snug">{u.note}</p>}
-                      <AudioButton bucket="voicenotes" path={u.voice_url} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <HumanFields obj={c} />
           </Collapsible>
-        );
-      })}
+        ))}
+      </div>
     </>
+  );
+};
+
+// ================================================================
+// Section: Blood work — consumer-style visuals
+// ================================================================
+
+type Status = "low" | "normal" | "warn" | "untested";
+const toRowStatus = (s: string | null): Status => {
+  const v = String(s ?? "").toLowerCase();
+  if (v === "low") return "low";
+  if (v === "high" || v === "borderline") return "warn";
+  if (v === "in_range" || v === "normal") return "normal";
+  return "untested";
+};
+const dotColor: Record<Status, string> = { low: "bg-warn", warn: "bg-warn", normal: "bg-good", untested: "bg-muted-foreground/40" };
+const valueColor: Record<Status, string> = { low: "text-warn", warn: "text-warn", normal: "text-good", untested: "text-muted-foreground" };
+
+const MarkerRow = ({ marker, value, unit, status }: { marker: string; value: number | null; unit: string | null; status: string | null }) => {
+  const s = toRowStatus(status);
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <span className={cn("size-2.5 rounded-full shrink-0", dotColor[s])} />
+      <span className="flex-1 text-[13px] font-body text-foreground min-w-0">{humaniseValue(marker) ?? marker}</span>
+      <span className={cn("text-[12px] font-body font-medium text-right", valueColor[s])}>
+        {value != null ? `${value}${unit ? ` ${unit}` : ""}` : "Not tested"}
+      </span>
+    </div>
+  );
+};
+
+const BloodAiCard = ({ payload, when }: { payload: unknown; when: string }) => {
+  const p = payload as { html?: string; summary?: string } | string | null;
+  const body = typeof p === "string" ? p : (p?.html ?? p?.summary ?? null);
+  return (
+    <SurfaceCard tone="gold">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="size-4 text-primary" />
+        <p className="font-display text-[15px] leading-tight text-foreground">AI blood summary</p>
+      </div>
+      <p className="text-[10.5px] uppercase tracking-wider text-primary/80 font-body mb-3">
+        Updated {formatDate(when)} · {formatRelative(when)}
+      </p>
+      {body ? (
+        <div className="text-[13px] leading-relaxed font-body prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
+      ) : (
+        <p className="text-[12px] text-muted-foreground font-body">No summary content available.</p>
+      )}
+    </SurfaceCard>
   );
 };
 
@@ -385,320 +749,249 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
       m.set(key, arr);
     });
     return m;
-  }, [d]);
+  }, [d.bloodResults]);
+
+  const latestSummary = d.bloodSummaries[0] ?? null;
+  const outOfRange = d.bloodResults.filter(r => ["low", "high", "borderline"].includes(String(r.status ?? "").toLowerCase())).length;
+  const inRange = d.bloodResults.filter(r => ["in_range", "normal"].includes(String(r.status ?? "").toLowerCase())).length;
+  const total = d.bloodResults.length;
 
   return (
     <>
-      <SectionLabel>AI summaries · full history</SectionLabel>
-      {d.bloodSummaries.length === 0 ? <EmptyCard msg="No AI summaries yet." /> : d.bloodSummaries.map(s => {
-        const p = s.payload as { html?: string; summary?: string } | null;
-        const body = p?.html ?? p?.summary ?? null;
-        return (
-          <Collapsible key={s.id} summary={
-            <div>
-              <p className="text-sm font-body font-semibold">Blood summary</p>
-              <p className="text-[11px] text-muted-foreground">{format(new Date(s.created_at), "d MMM yyyy")}</p>
-            </div>
-          }>
-            {body ? <div className="text-[13px] leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: body }} /> : <p className="text-xs text-muted-foreground">No content.</p>}
-          </Collapsible>
-        );
-      })}
-
-      <SectionLabel>Panels &amp; markers</SectionLabel>
-      {d.bloodPanels.length === 0 && resultsByPanel.size === 0 ? <EmptyCard msg="No blood panels recorded." /> : (
-        <>
-          {d.bloodPanels.map(panel => {
-            const rows = resultsByPanel.get(panel.id) ?? [];
-            const thumbPath = (panel as Record<string, unknown>).thumbnail_path as string | null | undefined;
-            return (
-              <Collapsible key={panel.id} defaultOpen summary={
-                <div>
-                  <p className="text-sm font-body font-semibold">{panel.label ?? panel.test_type ?? "Blood panel"}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {panel.panel_date ? format(new Date(panel.panel_date), "d MMM yyyy") : "Undated"}
-                    {panel.lab_name ? ` · ${panel.lab_name}` : ""}
-                    {` · ${rows.length} marker${rows.length === 1 ? "" : "s"}`}
-                  </p>
-                </div>
-              }>
-                {thumbPath && <Thumb bucket="blood-panel-thumbs" path={thumbPath} className="aspect-[4/3] mb-3" title={panel.label ?? "Blood panel upload"} meta={<AllFields obj={panel as Record<string, unknown>} />} />}
-                <AllFields obj={panel as Record<string, unknown>} exclude={["thumbnail_path"]} />
-                {panel.notes && <p className="text-[12px] italic text-muted-foreground mb-2">{panel.notes}</p>}
-                <div className="space-y-1.5">
-                  {rows.length === 0 ? <p className="text-xs text-muted-foreground">No markers recorded on this panel.</p> :
-                    rows.map(r => (
-                      <Collapsible key={r.id} summary={
-                        <div className="flex items-center justify-between gap-2 text-[12px]">
-                          <span className="font-medium break-words flex-1">{r.marker}</span>
-                          <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
-                          <StatusChip status={r.status} />
-                        </div>
-                      }>
-                        <AllFields obj={r as Record<string, unknown>} />
-                      </Collapsible>
-                    ))
-                  }
-                </div>
-              </Collapsible>
-            );
-          })}
-          {resultsByPanel.get("__loose__") && (
-            <Collapsible summary={
-              <div>
-                <p className="text-sm font-body font-semibold">Unlinked markers</p>
-                <p className="text-[11px] text-muted-foreground">{(resultsByPanel.get("__loose__") ?? []).length} entries</p>
+      {/* Summary bar */}
+      {total > 0 && (
+        <div className="px-5 mt-2">
+          <SurfaceCard>
+            <div className="flex items-center gap-4 text-[12px] font-body">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-good" />
+                <span className="text-foreground"><strong>{inRange}</strong> in range</span>
               </div>
-            }>
-              <div className="space-y-1.5">
-                {(resultsByPanel.get("__loose__") ?? []).map(r => (
-                  <Collapsible key={r.id} summary={
-                    <div className="flex items-center justify-between gap-2 text-[12px]">
-                      <span className="font-medium break-words flex-1">{r.marker}</span>
-                      <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
-                      <StatusChip status={r.status} />
-                    </div>
-                  }>
-                    <AllFields obj={r as Record<string, unknown>} />
-                  </Collapsible>
+              <div className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-warn" />
+                <span className="text-foreground"><strong>{outOfRange}</strong> flagged</span>
+              </div>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-muted-foreground">{total} marker{total === 1 ? "" : "s"}</span>
+              </div>
+            </div>
+          </SurfaceCard>
+        </div>
+      )}
+
+      {latestSummary && (
+        <>
+          <SubLabel>Latest AI analysis</SubLabel>
+          <div className="px-5">
+            <BloodAiCard payload={latestSummary.payload} when={latestSummary.created_at} />
+          </div>
+          {d.bloodSummaries.length > 1 && (
+            <details className="px-5 mt-2">
+              <summary className="text-[11px] font-body text-primary cursor-pointer hover:underline">
+                Previous AI summaries ({d.bloodSummaries.length - 1})
+              </summary>
+              <div className="mt-2 space-y-2">
+                {d.bloodSummaries.slice(1).map(s => (
+                  <BloodAiCard key={s.id} payload={s.payload} when={s.created_at} />
                 ))}
               </div>
-            </Collapsible>
+            </details>
           )}
         </>
       )}
+
+      <SubLabel>Panels</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.bloodPanels.length === 0 && resultsByPanel.size === 0 ? (
+          <EmptyLine msg="No blood panels recorded." />
+        ) : (
+          <>
+            {d.bloodPanels.map((panel, idx) => {
+              const rows = resultsByPanel.get(panel.id) ?? [];
+              const flagged = rows.filter(r => ["low", "high", "borderline"].includes(String(r.status ?? "").toLowerCase())).length;
+              const thumbPath = (panel as Record<string, unknown>).thumbnail_path as string | null | undefined;
+              return (
+                <Collapsible key={panel.id} defaultOpen={idx === 0} summary={
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[14px] font-body font-semibold text-foreground leading-tight">
+                        {humaniseValue(panel.label) ?? humaniseValue(panel.test_type) ?? "Blood panel"}
+                      </p>
+                      {flagged > 0 && <Chip tone="warn">{flagged} flagged</Chip>}
+                    </div>
+                    <p className="text-[11.5px] text-muted-foreground font-body mt-0.5">
+                      {panel.panel_date ? formatDate(panel.panel_date) : "Undated"}
+                      {panel.lab_name ? ` · ${humaniseValue(panel.lab_name)}` : ""}
+                      {` · ${rows.length} marker${rows.length === 1 ? "" : "s"}`}
+                    </p>
+                  </div>
+                }>
+                  {thumbPath && (
+                    <div className="mb-3">
+                      <Thumb bucket="blood-panel-thumbs" path={thumbPath} className="aspect-[4/3] rounded-lg" title={humaniseValue(panel.label) ?? "Blood panel"} />
+                    </div>
+                  )}
+                  {panel.notes && (
+                    <p className="text-[12.5px] italic text-muted-foreground font-body mb-3 leading-relaxed">"{panel.notes}"</p>
+                  )}
+                  {rows.length === 0 ? (
+                    <p className="text-[12px] text-muted-foreground font-body">No markers recorded on this panel.</p>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {rows.map(r => (
+                        <MarkerRow key={r.id} marker={r.marker} value={r.value} unit={r.unit} status={r.status} />
+                      ))}
+                    </div>
+                  )}
+                </Collapsible>
+              );
+            })}
+            {resultsByPanel.get("__loose__") && (
+              <Collapsible summary={
+                <div>
+                  <p className="text-[14px] font-body font-semibold text-foreground">Standalone markers</p>
+                  <p className="text-[11.5px] text-muted-foreground font-body">
+                    {(resultsByPanel.get("__loose__") ?? []).length} entries not linked to a panel
+                  </p>
+                </div>
+              }>
+                <div className="divide-y divide-border">
+                  {(resultsByPanel.get("__loose__") ?? []).map(r => (
+                    <MarkerRow key={r.id} marker={r.marker} value={r.value} unit={r.unit} status={r.status} />
+                  ))}
+                </div>
+              </Collapsible>
+            )}
+          </>
+        )}
+      </div>
     </>
   );
 };
 
-const ColourSection = ({ d }: { d: PassportDataset }) => {
-  const style = d.style ?? {};
-  const history = Array.isArray(style.colour_history) ? style.colour_history as Array<Record<string, unknown>> : [];
-  const chem = Array.isArray(style.chemical_history) ? style.chemical_history as string[] : [];
+// ================================================================
+// Section: Routine — wash days + product shelf
+// ================================================================
+
+const WashDaySummary = ({ w }: { w: PassportDataset["washDays"][number] }) => {
+  const products = Array.isArray(w.product_ids) ? (w.product_ids as unknown[]).length : 0;
+  const steps = Array.isArray(w.steps) ? (w.steps as unknown[]).filter((s: any) => s?.name?.trim?.()).length : 0;
+  const style = humaniseValue(w.style_after) ?? "Wash & condition";
+  const dur = typeof w.duration_min === "number" && w.duration_min > 0 ? w.duration_min : null;
   return (
-    <>
-      <SectionLabel>Current colour &amp; style</SectionLabel>
-      <SurfaceCard>
-        <div className="space-y-1.5">
-          <Row label="Status" value={oneOf(style.current_colour_status)} />
-          <Row label="Current style" value={oneOf(style.current_hairstyle)} />
-          <Row label="Colour type" value={oneOf(style.colour_type)} />
-          <Row label="Product" value={oneOf(style.colour_product)} />
-          <Row label="Last treated" value={oneOf(style.colour_last_treated)} />
-          <Row label="Reaction?" value={oneOf(style.colour_reaction)} />
-          {style.colour_reaction_details ? <Row label="Reaction details" value={String(style.colour_reaction_details)} /> : null}
-          <AudioButton bucket="voicenotes" path={style.colour_reaction_audio_path as string | null} />
+    <div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[14px] font-body font-semibold text-foreground leading-tight">
+            {formatDate(w.wash_date)}
+          </p>
+          <p className="text-[12px] text-foreground/85 font-body mt-0.5 truncate">{style}</p>
         </div>
-      </SurfaceCard>
-
-      <SectionLabel>Chemical history</SectionLabel>
-      {chem.length === 0 ? <EmptyCard msg="No chemical treatments recorded." /> : (
-        <SurfaceCard><p className="text-[13px]">{chem.join(", ")}</p></SurfaceCard>
-      )}
-
-      <SectionLabel>Colour history</SectionLabel>
-      {history.length === 0 ? <EmptyCard msg="No colour history entries." /> : history.map((c, i) => (
-        <Collapsible key={i} summary={
-          <div>
-            <p className="text-sm font-body font-semibold">{oneOf(c.type) ?? "Colour entry"}</p>
-            <p className="text-[11px] text-muted-foreground">{oneOf(c.timeframe) ?? "—"}{c.product ? ` · ${String(c.product)}` : ""}</p>
+        <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-body shrink-0 mt-1">
+          {formatRelative(w.wash_date)}
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <div className="rounded-lg bg-primary/[0.06] border border-primary/15 px-2.5 py-1.5">
+          <div className="flex items-center gap-1 text-primary">
+            <Package className="size-3" />
+            <span className="font-display text-[15px]">{products}</span>
           </div>
-        }>
-          <AllFields obj={c} />
-        </Collapsible>
-      ))}
-    </>
+          <span className="text-[9px] uppercase tracking-[0.14em] text-foreground/60 font-body">
+            Product{products === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="rounded-lg bg-primary/[0.06] border border-primary/15 px-2.5 py-1.5">
+          <div className="flex items-center gap-1 text-primary">
+            <ListChecks className="size-3" />
+            <span className="font-display text-[15px]">{steps}</span>
+          </div>
+          <span className="text-[9px] uppercase tracking-[0.14em] text-foreground/60 font-body">
+            Step{steps === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="rounded-lg bg-primary/[0.06] border border-primary/15 px-2.5 py-1.5">
+          <div className="flex items-center gap-1 text-primary">
+            <Clock className="size-3" />
+            <span className="font-display text-[13px]">{dur ? `${dur}m` : "—"}</span>
+          </div>
+          <span className="text-[9px] uppercase tracking-[0.14em] text-foreground/60 font-body">
+            Duration
+          </span>
+        </div>
+      </div>
+      {(w.scalp_feel || w.breakage || w.hair_feel_voice_url) && (
+        <div className="flex flex-wrap items-center gap-1.5 mt-3">
+          {w.scalp_feel && <Chip tone={valueTone(w.scalp_feel) as any}>Scalp: {humaniseValue(w.scalp_feel)}</Chip>}
+          {w.breakage && <Chip tone={valueTone(w.breakage) as any}>Breakage: {humaniseValue(w.breakage)}</Chip>}
+          {w.hair_feel_voice_url && <Mic className="size-3.5 text-primary" />}
+        </div>
+      )}
+    </div>
   );
 };
 
-const PaginatedList = <T,>({ items, render, empty }: { items: T[]; render: (t: T) => React.ReactNode; empty: string }) => {
-  const [n, setN] = useState(PAGE);
-  if (items.length === 0) return <EmptyCard msg={empty} />;
-  return (
-    <>
-      {items.slice(0, n).map(render)}
-      <LoadMore shown={Math.min(n, items.length)} total={items.length} onMore={() => setN(x => x + PAGE)} />
-    </>
-  );
-};
-
-const WashSection = ({ d }: { d: PassportDataset }) => {
+const RoutineSection = ({ d }: { d: PassportDataset }) => {
   const productsById = useMemo(() => {
     const m = new Map<string, PassportDataset["shelf"][number]>();
     d.shelf.forEach(p => m.set(p.id, p));
     return m;
-  }, [d]);
-  const productPhotoByKey = useMemo(() => {
-    const m = new Map<string, string>();
-    d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
-    return m;
-  }, [d]);
-
-  const ProductRow = ({ productId }: { productId: string }) => {
-    const p = productsById.get(productId);
-    const key = p?.product_key as string | undefined;
-    const path = (p?.storage_path as string | null | undefined) ?? (key ? productPhotoByKey.get(key) : null);
-    if (!p) return <p className="text-[12px] text-muted-foreground break-words">Product ID: {productId}</p>;
-    return (
-      <Collapsible summary={
-        <div className="flex items-center gap-3">
-          <Thumb bucket="product-photos" path={path} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium truncate">{p.name}</p>
-            <p className="text-[11px] text-muted-foreground truncate">{String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}</p>
-          </div>
-        </div>
-      }>
-        <AllFields obj={p as Record<string, unknown>} />
-      </Collapsible>
-    );
-  };
-
-  return (
-    <PaginatedList
-      items={d.washDays}
-      empty="No wash days logged."
-      render={(w) => {
-        const steps = Array.isArray(w.steps) ? w.steps as Array<Record<string, unknown>> : [];
-        const productIds = Array.isArray(w.product_ids) ? w.product_ids.map(String) : [];
-        const styling = (w.styling && typeof w.styling === "object") ? w.styling as Record<string, unknown> : null;
-        const heatTreatment = (w.heat_treatment && typeof w.heat_treatment === "object") ? w.heat_treatment as Record<string, unknown> : null;
-        const stylingPhotoPaths = Array.isArray(styling?.photoPaths) ? styling.photoPaths.map(String) : [];
-        const stylingProductIds = Array.isArray(styling?.productIds) ? styling.productIds.map(String) : [];
-        return (
-          <Collapsible key={w.id} summary={
-            <div>
-              <p className="text-sm font-body font-semibold">{format(new Date(w.wash_date), "EEE d MMM yyyy")}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {w.scalp_feel ? `Scalp: ${String(w.scalp_feel)}` : ""}{w.breakage ? ` · Breakage: ${String(w.breakage)}` : ""}{w.duration_min ? ` · ${String(w.duration_min)}m` : ""}
-              </p>
-            </div>
-          }>
-            <AllFields obj={w as Record<string, unknown>} exclude={["steps", "product_ids", "heat_treatment", "styling", "hair_feel_voice_url"]} />
-            {productIds.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Products used in wash</p>
-                <div className="space-y-2">{productIds.map(id => <ProductRow key={id} productId={id} />)}</div>
-              </div>
-            )}
-            {steps.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Every wash step</p>
-                <div className="space-y-2">
-                  {steps.map((s, i) => (
-                    <Collapsible key={i} summary={
-                      <div>
-                        <p className="text-[12px] font-medium">{String(s.name ?? s.step ?? `Step ${i + 1}`)}</p>
-                        <p className="text-[11px] text-muted-foreground">{Object.keys(s).length} field{Object.keys(s).length === 1 ? "" : "s"}</p>
-                      </div>
-                    }>
-                      <AllFields obj={s} />
-                    </Collapsible>
-                  ))}
-                </div>
-              </div>
-            )}
-            {heatTreatment && <FullRecord obj={heatTreatment} title="Heat treatment details" />}
-            {styling && (
-              <div className="mt-3 pt-3 border-t border-border space-y-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Styling details</p>
-                  <AllFields obj={styling} exclude={["audioPath", "photoPaths", "productIds"]} />
-                </div>
-                {stylingProductIds.length > 0 && <div className="space-y-2">{stylingProductIds.map(id => <ProductRow key={id} productId={id} />)}</div>}
-                {stylingPhotoPaths.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {stylingPhotoPaths.map((p, i) => <Thumb key={p} bucket="journal-photos" path={p} className="aspect-square" title={`Styling photo ${i + 1}`} meta={<AllFields obj={styling} />} />)}
-                  </div>
-                )}
-                <AudioButton bucket="voicenotes" path={styling.audioPath as string | null} transcriptFallback={styling.transcript as string | null} />
-              </div>
-            )}
-            <AudioButton bucket="voicenotes" path={w.hair_feel_voice_url as string | null} />
-          </Collapsible>
-        );
-      }}
-    />
-  );
-};
-
-const JournalSection = ({ d }: { d: PassportDataset }) => (
-  <PaginatedList
-    items={d.journal}
-    empty="No journal entries."
-    render={(j) => (
-      <Collapsible key={j.id} summary={
-        <div>
-          <p className="text-sm font-body font-semibold">{j.title ?? "Style entry"}</p>
-          <p className="text-[11px] text-muted-foreground">{format(new Date(j.entry_date), "d MMM yyyy")}{j.mood ? ` · ${j.mood}` : ""}</p>
-        </div>
-      }>
-        {j.note && <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{j.note}</p>}
-        {Array.isArray(j.products_used) && j.products_used.length > 0 && (
-          <p className="text-[11px] text-muted-foreground mt-2">Products: {j.products_used.join(", ")}</p>
-        )}
-        {Array.isArray(j.photo_paths) && j.photo_paths.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            {j.photo_paths.map((p, i) => <Thumb key={i} bucket="journal-photos" path={p} className="aspect-square" title={`${j.title ?? "Journal"} photo ${i + 1}`} meta={<AllFields obj={j as Record<string, unknown>} />} />)}
-          </div>
-        )}
-        <FullRecord obj={j as Record<string, unknown>} exclude={["photo_paths"]} />
-      </Collapsible>
-    )}
-  />
-);
-
-const ShelfSection = ({ d }: { d: PassportDataset }) => {
+  }, [d.shelf]);
   const photosByKey = useMemo(() => {
     const m = new Map<string, string>();
     d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
     return m;
-  }, [d]);
-  const notesByKey = useMemo(() => {
-    const m = new Map<string, typeof d.productVoicenotes>();
-    d.productVoicenotes.forEach(v => {
-      if (!v.product_key) return;
-      const arr = m.get(v.product_key) ?? [];
-      arr.push(v);
-      m.set(v.product_key, arr);
-    });
-    return m;
-  }, [d]);
+  }, [d.productPhotos]);
 
-  const renderProduct = (p: PassportDataset["shelf"][number]) => {
+  const renderProductRow = (p: PassportDataset["shelf"][number], size: "sm" | "md" = "sm") => {
     const key = (p as Record<string, unknown>).product_key as string | undefined;
     const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
-    const voicenotes = key ? notesByKey.get(key) ?? [] : [];
-    const status = p.on_favourite ? "Favourite" : p.on_shelf ? "On shelf" : p.on_wishlist ? "Wishlist" : "Off shelf";
     return (
-      <Collapsible key={p.id} summary={
-        <div className="flex items-center gap-3">
-          <Thumb bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-body font-semibold truncate">{p.name}</p>
-            <p className="text-[11px] text-muted-foreground truncate">
-              {String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}
+      <div className="flex items-center gap-3">
+        <Thumb bucket="product-photos" path={photo ?? null} className={size === "sm" ? "size-11 shrink-0 rounded-lg" : "size-14 shrink-0 rounded-lg"} title={String(p.name ?? "Product image")} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{p.name}</p>
+          <p className="text-[11px] text-muted-foreground font-body truncate">
+            {humaniseValue(p.brand) ?? "—"}{p.category ? ` · ${humaniseValue(p.category)}` : ""}
+          </p>
+          {p.rating != null && (
+            <p className="text-[10.5px] uppercase tracking-[0.15em] text-primary font-body font-semibold mt-0.5">
+              ★ {String(p.rating)}
             </p>
-            <p className="text-[10px] uppercase tracking-[0.1em] text-primary mt-0.5">
-              {status}{p.rating != null ? ` · ★ ${String(p.rating)}` : ""}
-            </p>
-          </div>
+          )}
         </div>
-      }>
-        <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url"]} />
-        {voicenotes.length > 0 && (
-          <div className="mt-3">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Voice notes</p>
-            {voicenotes.map(v => (
-              <div key={v.id} className="border-l-2 border-primary/30 pl-2.5 mb-2">
-                <p className="text-[11px] text-muted-foreground">{format(new Date(v.created_at), "d MMM yyyy")}</p>
-                <AudioButton bucket="voicenotes" path={v.audio_url} transcriptFallback={v.transcript} />
-              </div>
-            ))}
+      </div>
+    );
+  };
+
+  const ProductInner = ({ p }: { p: PassportDataset["shelf"][number] }) => {
+    const key = (p as Record<string, unknown>).product_key as string | undefined;
+    const voicenotes = key ? d.productVoicenotes.filter(v => v.product_key === key) : [];
+    const ingredients = Array.isArray((p as Record<string, unknown>).ingredients) ? ((p as Record<string, unknown>).ingredients as unknown[]).map(String) : [];
+    return (
+      <>
+        <HumanFields obj={p as Record<string, unknown>} exclude={["name", "brand", "category", "rating", "off_shelf_voice_url", "ingredients"]} />
+        {ingredients.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Ingredients</p>
+            <p className="text-[12px] font-body leading-relaxed text-foreground/85">{ingredients.join(", ")}</p>
           </div>
         )}
-        <AudioButton bucket="voicenotes" path={(p as Record<string, unknown>).off_shelf_voice_url as string | null} />
-      </Collapsible>
+        {voicenotes.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Voice notes</p>
+            <div className="space-y-2">
+              {voicenotes.map(v => (
+                <div key={v.id} className="border-l-2 border-primary/30 pl-3">
+                  <p className="text-[11px] text-muted-foreground font-body">{formatDate(v.created_at)}</p>
+                  <AudioPlayer bucket="voicenotes" path={v.audio_url} transcript={v.transcript} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <AudioPlayer bucket="voicenotes" path={((p as Record<string, unknown>).off_shelf_voice_url as string | null) ?? null} label="Off-shelf voice note" />
+      </>
     );
   };
 
@@ -707,196 +1000,137 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
   const wishlist = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && p.on_wishlist);
   const offShelf = d.shelf.filter(p => !p.on_favourite && !p.on_shelf && !p.on_wishlist);
 
-  const Group = ({ title, list }: { title: string; list: PassportDataset["shelf"] }) => (
-    <>
-      <SectionLabel>{title} ({list.length})</SectionLabel>
-      {list.length === 0 ? <EmptyCard msg="Nothing here." /> : <PaginatedList items={list} empty="Nothing here." render={renderProduct} />}
-    </>
-  );
-
-  if (d.shelf.length === 0) return <EmptyCard msg="No products recorded." />;
-  return (
-    <>
-      <Group title="On shelf" list={onShelf} />
-      <Group title="Favourites" list={favourites} />
-      <Group title="Wishlist" list={wishlist} />
-      <Group title="Off shelf" list={offShelf} />
-    </>
-  );
-};
-
-const AppointmentsSection = ({ d }: { d: PassportDataset }) => {
-  const photosById = useMemo(() => {
-    const m = new Map<string, typeof d.appointmentPhotos>();
-    d.appointmentPhotos.forEach(p => {
-      const arr = m.get(p.appointment_id) ?? [];
-      arr.push(p);
-      m.set(p.appointment_id, arr);
-    });
-    return m;
-  }, [d]);
-
-  return (
-    <PaginatedList
-      items={d.appointments}
-      empty="No appointments logged."
-      render={(a) => {
-        const photos = photosById.get(a.id) ?? [];
-        return (
-          <Collapsible key={a.id} summary={
-            <div>
-              <p className="text-sm font-body font-semibold">{String(a.professional_name ?? a.professional_type ?? "Appointment")}</p>
-              <p className="text-[11px] text-muted-foreground">
-                {format(new Date(a.appointment_date), "d MMM yyyy")}
-                {a.appointment_time ? `, ${String(a.appointment_time)}` : ""}
-                {a.clinic_name ? ` · ${String(a.clinic_name)}` : ""}
-              </p>
-            </div>
-          }>
-            <AllFields obj={a as Record<string, unknown>} exclude={["outcome_audio_path", "appointment_date"]} />
-            <AudioButton bucket="voicenotes" path={a.outcome_audio_path as string | null} />
-            {photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                {photos.map(p => (
-                  <div key={p.id}>
-                    <Thumb bucket="appointment-photos" path={p.storage_path} className="aspect-square" title="Appointment photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
-                    {p.caption && <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{p.caption}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-            {photos.length > 0 && <FullRecord obj={{ photos }} title="Photo records" />}
-          </Collapsible>
-        );
-      }}
-    />
-  );
-};
-
-const MedicationsSection = ({ d }: { d: PassportDataset }) => (
-  <PaginatedList
-    items={d.medications}
-    empty="No medications recorded."
-    render={(m) => (
-      <Collapsible key={m.id} summary={
-        <div>
-          <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
-          <p className="text-[11px] text-muted-foreground">
-            {m.category ?? "—"} · added {format(new Date(m.created_at), "d MMM yyyy")}
-          </p>
+  const ProductGroup = ({ title, list }: { title: string; list: PassportDataset["shelf"] }) => {
+    const [n, setN] = useState(8);
+    if (list.length === 0) return null;
+    return (
+      <div>
+        <p className="text-[10.5px] uppercase tracking-[0.18em] text-primary font-body font-semibold mb-2">
+          {title} · {list.length}
+        </p>
+        <div className="space-y-2">
+          {list.slice(0, n).map(p => (
+            <Collapsible key={p.id} summary={renderProductRow(p)}>
+              <ProductInner p={p} />
+            </Collapsible>
+          ))}
+          <LoadMore shown={Math.min(n, list.length)} total={list.length} onMore={() => setN(x => x + 8)} />
         </div>
-      }>
-        <AllFields obj={m as Record<string, unknown>} />
-      </Collapsible>
-    )}
-  />
-);
-
-const ToolsSection = ({ d }: { d: PassportDataset }) => (
-  <PaginatedList
-    items={d.tools}
-    empty="No tools recorded."
-    render={(t) => (
-      <Collapsible key={t.id} summary={
-        <div className="flex items-center gap-3">
-          <Thumb bucket="product-photos" path={(t.storage_path as string) ?? null} className="size-12 shrink-0" title={String(t.name ?? "Tool image")} meta={<AllFields obj={t as Record<string, unknown>} />} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-body font-semibold truncate">{t.name ?? "Tool"}</p>
-            <p className="text-[11px] text-muted-foreground truncate">{String(t.brand ?? "—")}{t.category ? ` · ${String(t.category)}` : ""}</p>
-          </div>
-        </div>
-      }>
-        <AllFields obj={t as Record<string, unknown>} />
-      </Collapsible>
-    )}
-  />
-);
-
-const PhotosSection = ({ d }: { d: PassportDataset }) => (
-  <>
-    <SectionLabel>Milestone photos</SectionLabel>
-    {d.milestonePhotos.length === 0 ? <EmptyCard msg="No milestone photos." /> : (
-      <div className="grid grid-cols-2 gap-2">
-        {d.milestonePhotos.map(p => (
-          <div key={p.id}>
-            <Thumb bucket="milestone-photos" path={p.storage_path} className="aspect-square" title="Milestone photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
-            <p className="text-[10px] text-muted-foreground mt-1">{p.taken_on ? format(new Date(p.taken_on), "d MMM yyyy") : "—"}{p.caption ? ` · ${p.caption}` : ""}</p>
-          </div>
-        ))}
       </div>
-    )}
+    );
+  };
 
-    <SectionLabel>Before photos</SectionLabel>
-    {d.beforePhotos.length === 0 ? <EmptyCard msg="No before photos." /> : (
-      <div className="grid grid-cols-2 gap-2">
-        {d.beforePhotos.map(p => (
-          <div key={p.id}>
-            <Thumb bucket="before-photos" path={p.storage_path} className="aspect-square" title="Before photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
-            <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(p.created_at), "d MMM yyyy")}{p.caption ? ` · ${p.caption}` : ""}</p>
-          </div>
-        ))}
-      </div>
-    )}
-  </>
-);
-
-const NutritionSection = ({ d }: { d: PassportDataset }) => {
-  if (d.nutritionSummaries.length === 0) {
-    return <EmptyCard msg="No nutrition guidance generated yet." />;
-  }
   return (
     <>
-      <SectionLabel>Nutrition & supplement guidance</SectionLabel>
-      {d.nutritionSummaries.map((s, idx) => (
-        <Collapsible key={s.id} defaultOpen={idx === 0} summary={
-          <div>
-            <p className="text-sm font-body font-semibold">{idx === 0 ? "Latest nutrition plan" : "Previous plan"}</p>
-            <p className="text-[11px] text-muted-foreground">Generated {format(new Date(s.created_at), "d MMM yyyy")}</p>
-          </div>
-        }>
-          {(() => {
-            const p = s.payload as Record<string, unknown> | string | null;
-            if (typeof p === "string") {
-              return <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{p}</p>;
-            }
-            if (!p || typeof p !== "object") {
-              return <p className="text-xs text-muted-foreground">No plan data.</p>;
-            }
-            const summary = typeof p.summary === "string" ? p.summary : null;
-            const supplements = Array.isArray(p.supplements) ? p.supplements as Array<Record<string, unknown>> : [];
-            const diet = Array.isArray(p.diet) ? p.diet as Array<Record<string, unknown>> : [];
-            const CardList = ({ items, title }: { items: Array<Record<string, unknown>>; title: string }) => (
-              items.length === 0 ? null : (
-                <div className="mt-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">{title}</p>
-                  <div className="space-y-2">
-                    {items.map((it, i) => (
-                      <div key={i} className="border-l-2 border-primary/40 pl-2.5">
-                        {it.title ? <p className="text-[13px] font-semibold">{String(it.title)}</p> : null}
-                        {it.dose ? <p className="text-[11px] text-muted-foreground">{String(it.dose)}</p> : null}
-                        {it.body ? <p className="text-[12px] whitespace-pre-wrap leading-relaxed mt-1">{String(it.body)}</p> : null}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            );
+      <SubLabel>Wash days</SubLabel>
+      <div className="px-5 space-y-2">
+        <PaginatedList
+          items={d.washDays}
+          empty="No wash days logged yet."
+          render={(w) => {
+            const productIds = Array.isArray(w.product_ids) ? w.product_ids.map(String) : [];
+            const steps = Array.isArray(w.steps) ? w.steps as Array<Record<string, unknown>> : [];
+            const styling = (w.styling && typeof w.styling === "object") ? w.styling as Record<string, unknown> : null;
+            const heatTreatment = (w.heat_treatment && typeof w.heat_treatment === "object") ? w.heat_treatment as Record<string, unknown> : null;
+            const stylingPhotos = Array.isArray(styling?.photoPaths) ? styling.photoPaths.map(String) : [];
+            const stylingProductIds = Array.isArray(styling?.productIds) ? styling.productIds.map(String) : [];
             return (
-              <div>
-                {summary && <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{summary}</p>}
-                <CardList items={supplements} title="Supplement guidance" />
-                <CardList items={diet} title="Dietary guidance" />
-              </div>
+              <Collapsible key={w.id} summary={<WashDaySummary w={w} />}>
+                <HumanFields obj={w as Record<string, unknown>} exclude={["wash_date", "steps", "product_ids", "heat_treatment", "styling", "hair_feel_voice_url", "scalp_feel", "breakage", "style_after", "duration_min"]} />
+                {productIds.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Products used</p>
+                    <div className="space-y-2">
+                      {productIds.map(id => {
+                        const p = productsById.get(id);
+                        if (!p) return null;
+                        return (
+                          <Collapsible key={id} summary={renderProductRow(p)}>
+                            <ProductInner p={p} />
+                          </Collapsible>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {steps.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Wash steps</p>
+                    <ol className="space-y-1.5">
+                      {steps.map((s, i) => (
+                        <li key={i} className="text-[12.5px] font-body leading-snug pl-6 relative">
+                          <span className="absolute left-0 top-0 size-4 rounded-full bg-primary/12 text-primary text-[10px] flex items-center justify-center font-semibold">{i + 1}</span>
+                          {humaniseValue(s.name) ?? humaniseValue(s.step) ?? `Step ${i + 1}`}
+                          {s.product_name && <span className="text-muted-foreground"> — {humaniseValue(s.product_name)}</span>}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {heatTreatment && Object.values(heatTreatment).some(v => v != null && v !== "") && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Heat treatment</p>
+                    <HumanFields obj={heatTreatment} />
+                  </div>
+                )}
+                {styling && (
+                  <div className="mt-3 pt-3 border-t border-border space-y-3">
+                    <div>
+                      <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Styling</p>
+                      <HumanFields obj={styling} exclude={["audioPath", "photoPaths", "productIds", "transcript"]} />
+                    </div>
+                    {stylingProductIds.length > 0 && (
+                      <div className="space-y-2">
+                        {stylingProductIds.map(id => {
+                          const p = productsById.get(id);
+                          if (!p) return null;
+                          return (
+                            <Collapsible key={id} summary={renderProductRow(p)}>
+                              <ProductInner p={p} />
+                            </Collapsible>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {stylingPhotos.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {stylingPhotos.map((p, i) => (
+                          <Thumb key={p} bucket="journal-photos" path={p} className="aspect-square rounded-lg" title={`Styling photo ${i + 1}`} />
+                        ))}
+                      </div>
+                    )}
+                    <AudioPlayer bucket="voicenotes" path={(styling.audioPath as string | null) ?? null} transcript={(styling.transcript as string | null) ?? null} label="Styling voice note" />
+                  </div>
+                )}
+                <AudioPlayer bucket="voicenotes" path={(w.hair_feel_voice_url as string | null) ?? null} label="Hair feel voice note" />
+              </Collapsible>
             );
-          })()}
-        </Collapsible>
-      ))}
+          }}
+          pageSize={8}
+        />
+      </div>
+
+      <SubLabel>Product shelf</SubLabel>
+      <div className="px-5 space-y-5">
+        {d.shelf.length === 0 ? <EmptyLine msg="No products on this client's shelf." /> : (
+          <>
+            <ProductGroup title="On shelf" list={onShelf} />
+            <ProductGroup title="Favourites" list={favourites} />
+            <ProductGroup title="Wishlist" list={wishlist} />
+            <ProductGroup title="Off shelf" list={offShelf} />
+          </>
+        )}
+      </div>
     </>
   );
 };
 
-const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
-  const byBoard = useMemo(() => {
+// ================================================================
+// Section: Journal & photos
+// ================================================================
+
+const JournalSection = ({ d }: { d: PassportDataset }) => {
+  const boardImages = useMemo(() => {
     const m = new Map<string, typeof d.moodboardImages>();
     d.moodboardImages.forEach(img => {
       const arr = m.get(img.board_id) ?? [];
@@ -904,88 +1138,448 @@ const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
       m.set(img.board_id, arr);
     });
     return m;
-  }, [d]);
+  }, [d.moodboardImages]);
 
-  if (d.moodboards.length === 0) return <EmptyCard msg="No moodboards." />;
   return (
     <>
-      {d.moodboards.map(b => {
-        const imgs = byBoard.get(b.id) ?? [];
-        return (
-          <Collapsible key={b.id} defaultOpen={imgs.length > 0} summary={
-            <div>
-              <p className="text-sm font-body font-semibold">{b.emoji ?? "🎨"} {b.name ?? "Moodboard"}</p>
-              <p className="text-[11px] text-muted-foreground">{imgs.length} image{imgs.length === 1 ? "" : "s"}{b.is_favourites ? " · Favourites" : ""}</p>
-            </div>
-          }>
-            {imgs.length === 0 ? <p className="text-xs text-muted-foreground">Empty board.</p> : (
-              <div className="grid grid-cols-3 gap-2">
-                {imgs.map(i => (
-                  <div key={i.id}>
-                    <Thumb bucket="moodboard-images" path={i.storage_path} className="aspect-square" title={`${b.name ?? "Moodboard"} image`} meta={<AllFields obj={i as Record<string, unknown>} />} />
-                    {i.caption && <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{i.caption}</p>}
+      <SubLabel>Journal entries</SubLabel>
+      <div className="px-5 space-y-2">
+        <PaginatedList
+          items={d.journal}
+          empty="No journal entries."
+          render={(j) => {
+            const photos = Array.isArray(j.photo_paths) ? j.photo_paths : [];
+            const products = Array.isArray(j.products_used) ? j.products_used : [];
+            return (
+              <Collapsible key={j.id} summary={
+                <div className="flex gap-3">
+                  {photos.length > 0 && (
+                    <Thumb bucket="journal-photos" path={photos[0]} className="size-14 shrink-0 rounded-lg" title={j.title ?? "Journal entry"} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-body font-semibold text-foreground leading-tight truncate">{j.title ?? "Journal entry"}</p>
+                    <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+                      {formatDate(j.entry_date)} · {formatRelative(j.entry_date)}
+                    </p>
+                    {j.mood && (
+                      <div className="mt-1"><Chip tone={valueTone(j.mood) as any}>{humaniseValue(j.mood)}</Chip></div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </Collapsible>
-        );
-      })}
-    </>
-  );
-};
-
-const IngredientsSection = ({ d }: { d: PassportDataset }) => {
-  // Compute ingredients that appear in 3+ of the user's products.
-  const shared = useMemo(() => {
-    const counts = new Map<string, { label: string; count: number; products: string[] }>();
-    for (const p of d.shelf) {
-      const list = (p as Record<string, unknown>).ingredients as unknown;
-      if (!Array.isArray(list)) continue;
-      const seenThisProduct = new Set<string>();
-      for (const raw of list) {
-        if (typeof raw !== "string") continue;
-        const label = raw.trim();
-        if (!label) continue;
-        const key = label.toLowerCase();
-        if (seenThisProduct.has(key)) continue;
-        seenThisProduct.add(key);
-        const cur = counts.get(key) ?? { label, count: 0, products: [] };
-        cur.count += 1;
-        cur.products.push(String(p.name ?? "Product"));
-        counts.set(key, cur);
-      }
-    }
-    return Array.from(counts.values())
-      .filter(x => x.count >= 3)
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-  }, [d.shelf]);
-
-  return (
-    <>
-      <SectionLabel>Ingredients across 3+ products</SectionLabel>
-      {shared.length === 0 ? (
-        <EmptyCard msg="No ingredient appears in 3 or more of this member's products yet." />
-      ) : (
-        <SurfaceCard>
-          <div className="space-y-2">
-            {shared.map((i) => (
-              <div key={i.label} className="text-[12px]">
-                <div className="flex justify-between gap-2">
-                  <p className="font-medium break-words flex-1">{i.label}</p>
-                  <span className="text-[11px] text-muted-foreground shrink-0">{i.count} products</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-snug truncate">{i.products.slice(0, 6).join(", ")}{i.products.length > 6 ? "…" : ""}</p>
-              </div>
-            ))}
+              }>
+                {j.note && (
+                  <p className="text-[13px] font-body leading-relaxed whitespace-pre-wrap">{j.note}</p>
+                )}
+                {products.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">Products used</p>
+                    <p className="text-[12px] font-body text-foreground/85">
+                      {products.map(id => humaniseValue(id) ?? String(id)).join(", ")}
+                    </p>
+                  </div>
+                )}
+                {photos.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border grid grid-cols-3 gap-2">
+                    {photos.map((p, i) => (
+                      <Thumb key={i} bucket="journal-photos" path={p} className="aspect-square rounded-lg" title={`${j.title ?? "Journal"} photo ${i + 1}`} />
+                    ))}
+                  </div>
+                )}
+              </Collapsible>
+            );
+          }}
+          pageSize={8}
+        />
+      </div>
+
+      {d.milestonePhotos.length > 0 && (
+        <>
+          <SubLabel>Milestone photos</SubLabel>
+          <div className="px-5">
+            <div className="grid grid-cols-3 gap-2">
+              {d.milestonePhotos.map(p => (
+                <div key={p.id}>
+                  <Thumb bucket="milestone-photos" path={p.storage_path} className="aspect-square rounded-lg" title={p.caption ?? "Milestone"} />
+                  <p className="text-[10px] text-muted-foreground font-body mt-1 truncate">
+                    {p.taken_on ? formatDate(p.taken_on) : "—"}
+                  </p>
+                  {p.caption && <p className="text-[10.5px] text-foreground/80 font-body leading-snug">{p.caption}</p>}
+                </div>
+              ))}
+            </div>
           </div>
-        </SurfaceCard>
+        </>
+      )}
+
+      {d.beforePhotos.length > 0 && (
+        <>
+          <SubLabel>Before photos</SubLabel>
+          <div className="px-5">
+            <div className="grid grid-cols-3 gap-2">
+              {d.beforePhotos.map(p => (
+                <div key={p.id}>
+                  <Thumb bucket="before-photos" path={p.storage_path} className="aspect-square rounded-lg" title={p.caption ?? "Before photo"} />
+                  <p className="text-[10px] text-muted-foreground font-body mt-1">{formatDate(p.created_at)}</p>
+                  {p.caption && <p className="text-[10.5px] text-foreground/80 font-body leading-snug">{p.caption}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {d.moodboards.length > 0 && (
+        <>
+          <SubLabel>Moodboards</SubLabel>
+          <div className="px-5 space-y-2">
+            {d.moodboards.map(b => {
+              const imgs = boardImages.get(b.id) ?? [];
+              return (
+                <Collapsible key={b.id} defaultOpen={imgs.length > 0 && imgs.length <= 6} summary={
+                  <div>
+                    <p className="text-[13.5px] font-body font-semibold text-foreground">
+                      {b.emoji ?? "🎨"} {b.name ?? "Moodboard"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+                      {imgs.length} image{imgs.length === 1 ? "" : "s"}{b.is_favourites ? " · Favourites" : ""}
+                    </p>
+                  </div>
+                }>
+                  {imgs.length === 0 ? (
+                    <p className="text-[12px] text-muted-foreground font-body">Empty board.</p>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {imgs.map(i => (
+                        <div key={i.id}>
+                          <Thumb bucket="moodboard-images" path={i.storage_path} className="aspect-square rounded-lg" title={i.caption ?? "Moodboard image"} />
+                          {i.caption && <p className="text-[10px] text-muted-foreground font-body mt-1 leading-snug">{i.caption}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Collapsible>
+              );
+            })}
+          </div>
+        </>
       )}
     </>
   );
 };
 
-// ================= Main =================
+// ================================================================
+// Section: Lifestyle — nutrition, medications, tools
+// ================================================================
+
+const NutritionAdviceCard = ({ payload, when, defaultOpen = false }: { payload: unknown; when: string; defaultOpen?: boolean }) => {
+  const p = typeof payload === "object" && payload ? payload as Record<string, unknown> : null;
+  const summary = typeof p?.summary === "string" ? p.summary : (typeof payload === "string" ? payload : null);
+  const supplements = Array.isArray(p?.supplements) ? p.supplements as Array<Record<string, unknown>> : [];
+  const diet = Array.isArray(p?.diet) ? p.diet as Array<Record<string, unknown>> : [];
+  const avoid = Array.isArray(p?.avoid) ? p.avoid as Array<Record<string, unknown>> : [];
+
+  return (
+    <Collapsible defaultOpen={defaultOpen} summary={
+      <div>
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          <p className="text-[14px] font-body font-semibold text-foreground">Nutrition & supplement guidance</p>
+        </div>
+        <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+          {formatDate(when)} · {formatRelative(when)}
+        </p>
+      </div>
+    }>
+      {summary && (
+        <p className="text-[13px] font-body leading-relaxed whitespace-pre-wrap text-foreground/90">{summary}</p>
+      )}
+      {supplements.length > 0 && (
+        <div className="mt-4">
+          <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2 flex items-center gap-1.5">
+            <Pill className="size-3.5" /> Supplement guidance
+          </p>
+          <div className="space-y-2">
+            {supplements.map((s, i) => (
+              <SurfaceCard key={i} className="border-l-4 border-l-primary">
+                <div className="flex gap-2.5">
+                  <div className="size-9 rounded-full bg-primary/15 flex items-center justify-center text-lg shrink-0">
+                    {String(s.emoji ?? "💊")}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[15px] leading-tight">{humaniseValue(s.name) ?? humaniseValue(s.title) ?? "Supplement"}</p>
+                    {s.dose && (
+                      <p className="text-[11px] font-body font-medium text-primary mt-0.5">{humaniseValue(s.dose)}</p>
+                    )}
+                    {s.body && (
+                      <p className="text-[12.5px] font-body leading-relaxed mt-1.5 whitespace-pre-wrap">{humaniseValue(s.body)}</p>
+                    )}
+                  </div>
+                </div>
+              </SurfaceCard>
+            ))}
+          </div>
+        </div>
+      )}
+      {diet.length > 0 && (
+        <div className="mt-4">
+          <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2 flex items-center gap-1.5">
+            <Leaf className="size-3.5" /> Dietary guidance
+          </p>
+          <div className="space-y-2">
+            {diet.map((c, i) => (
+              <SurfaceCard key={i} className="border-l-4 border-l-good">
+                <div className="flex gap-2.5">
+                  <div className="size-9 rounded-full bg-good/15 flex items-center justify-center text-lg shrink-0">
+                    {String(c.emoji ?? "🥗")}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[15px] leading-tight">{humaniseValue(c.name) ?? "Recommendation"}</p>
+                    {c.body && (
+                      <p className="text-[12.5px] font-body leading-relaxed mt-1 whitespace-pre-wrap">{humaniseValue(c.body)}</p>
+                    )}
+                  </div>
+                </div>
+              </SurfaceCard>
+            ))}
+          </div>
+        </div>
+      )}
+      {avoid.length > 0 && (
+        <div className="mt-4">
+          <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2 flex items-center gap-1.5">
+            <Ban className="size-3.5" /> Foods to limit
+          </p>
+          <div className="space-y-2">
+            {avoid.map((c, i) => (
+              <SurfaceCard key={i} className="border-l-4 border-l-warn">
+                <div className="flex gap-2.5">
+                  <div className="size-9 rounded-full bg-warn/15 flex items-center justify-center text-lg shrink-0">
+                    {String(c.emoji ?? "⚠️")}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[15px] leading-tight">{humaniseValue(c.name) ?? "Watch for"}</p>
+                    {c.body && (
+                      <p className="text-[12.5px] font-body leading-relaxed mt-1 whitespace-pre-wrap">{humaniseValue(c.body)}</p>
+                    )}
+                  </div>
+                </div>
+              </SurfaceCard>
+            ))}
+          </div>
+        </div>
+      )}
+    </Collapsible>
+  );
+};
+
+const LifestyleSection = ({ d }: { d: PassportDataset }) => {
+  return (
+    <>
+      <SubLabel>Nutrition & supplements</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.nutritionSummaries.length === 0 ? (
+          <EmptyLine msg="No nutrition guidance generated yet." />
+        ) : (
+          <>
+            <NutritionAdviceCard payload={d.nutritionSummaries[0].payload} when={d.nutritionSummaries[0].created_at} defaultOpen />
+            {d.nutritionSummaries.length > 1 && (
+              <details>
+                <summary className="text-[11px] font-body text-primary cursor-pointer hover:underline py-2">
+                  Previous plans ({d.nutritionSummaries.length - 1})
+                </summary>
+                <div className="mt-2 space-y-2">
+                  {d.nutritionSummaries.slice(1).map(s => (
+                    <NutritionAdviceCard key={s.id} payload={s.payload} when={s.created_at} />
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
+        )}
+      </div>
+
+      <SubLabel>Medications</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.medications.length === 0 ? <EmptyLine msg="No medications recorded." /> : d.medications.map(m => (
+          <Collapsible key={m.id} summary={
+            <div className="flex items-start gap-3">
+              <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                <Pill className="size-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground">{humaniseValue(m.name) ?? "Medication"}</p>
+                <p className="text-[11px] text-muted-foreground font-body">
+                  {humaniseValue(m.category) ?? "—"} · added {formatDate(m.created_at)}
+                </p>
+              </div>
+            </div>
+          }>
+            <HumanFields obj={m as Record<string, unknown>} exclude={["name", "category"]} />
+          </Collapsible>
+        ))}
+      </div>
+
+      <SubLabel>Tools</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.tools.length === 0 ? <EmptyLine msg="No tools recorded." /> : d.tools.map(t => (
+          <Collapsible key={t.id} summary={
+            <div className="flex items-center gap-3">
+              <Thumb bucket="product-photos" path={(t.storage_path as string | null) ?? null} className="size-11 shrink-0 rounded-lg" title={String(t.name ?? "Tool")} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{humaniseValue(t.name) ?? "Tool"}</p>
+                <p className="text-[11px] text-muted-foreground font-body truncate">
+                  {humaniseValue(t.brand) ?? "—"}{t.category ? ` · ${humaniseValue(t.category)}` : ""}
+                </p>
+              </div>
+            </div>
+          }>
+            <HumanFields obj={t as Record<string, unknown>} exclude={["name", "brand", "category"]} />
+          </Collapsible>
+        ))}
+      </div>
+    </>
+  );
+};
+
+// ================================================================
+// Section: Appointments — consumer AppointmentCard styling
+// ================================================================
+
+const AppointmentsSection = ({ d }: { d: PassportDataset }) => {
+  const photosByAppt = useMemo(() => {
+    const m = new Map<string, typeof d.appointmentPhotos>();
+    d.appointmentPhotos.forEach(p => {
+      const arr = m.get(p.appointment_id) ?? [];
+      arr.push(p);
+      m.set(p.appointment_id, arr);
+    });
+    return m;
+  }, [d.appointmentPhotos]);
+
+  const now = Date.now();
+  const upcoming = d.appointments.filter(a => new Date(a.appointment_date).getTime() >= now);
+  const past = d.appointments.filter(a => new Date(a.appointment_date).getTime() < now);
+
+  const renderCard = (a: PassportDataset["appointments"][number], variant: "upcoming" | "past") => {
+    const photos = photosByAppt.get(a.id) ?? [];
+    const kicker = humaniseValue(a.professional_type) ?? "Appointment";
+    const time = a.appointment_time ? formatTime12h(String(a.appointment_time)) : "";
+    const isUpcoming = variant === "upcoming";
+    return (
+      <div key={a.id} className={cn(
+        "rounded-[20px] border overflow-hidden",
+        isUpcoming
+          ? "border-primary/30 bg-[hsl(30_25%_18%)] text-primary-foreground"
+          : "border-border bg-secondary/60",
+      )}>
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className={cn("text-[10px] uppercase tracking-[0.2em] font-body font-semibold",
+                isUpcoming ? "text-primary/80" : "text-muted-foreground")}>{kicker}</p>
+              <p className={cn("font-display text-[18px] leading-tight mt-0.5",
+                isUpcoming ? "text-primary-foreground" : "text-foreground")}>
+                {formatDate(a.appointment_date)}
+              </p>
+              {time && (
+                <p className={cn("text-[12px] font-body font-bold mt-0.5",
+                  isUpcoming ? "text-primary" : "text-foreground/80")}>{time}</p>
+              )}
+            </div>
+            <Chip tone={isUpcoming ? "gold" : (a.status === "completed" ? "good" : "neutral")}>
+              {isUpcoming ? formatRelative(a.appointment_date) : (humaniseValue(a.status) ?? "Past")}
+            </Chip>
+          </div>
+
+          <div className="flex items-center gap-3 mb-3">
+            <ProAvatar
+              name={String(a.professional_name ?? "Professional")}
+              size="size-11"
+              className={isUpcoming ? "bg-primary/20 text-primary rounded-[12px]" : "bg-muted text-muted-foreground rounded-[12px]"}
+            />
+            <div className="flex-1 min-w-0">
+              <p className={cn("font-display text-[15px] font-semibold leading-tight truncate",
+                isUpcoming ? "text-primary-foreground" : "text-foreground")}>
+                {humaniseValue(a.professional_name) ?? "—"}
+              </p>
+              <p className={cn("text-[11.5px] font-body truncate",
+                isUpcoming ? "text-primary-foreground/75" : "text-muted-foreground")}>
+                {[humaniseValue(a.clinic_name), humaniseValue(a.reason)].filter(Boolean).join(" · ") || "—"}
+              </p>
+            </div>
+          </div>
+
+          {(a.notes || a.outcome_notes) && (
+            <div className={cn("pt-3 mt-3 border-t space-y-1.5",
+              isUpcoming ? "border-primary/20" : "border-border")}>
+              {a.outcome_notes && (
+                <p className={cn("text-[12px] font-body leading-relaxed",
+                  isUpcoming ? "text-primary-foreground/90" : "text-foreground/85")}>
+                  <span className={cn("font-semibold", isUpcoming ? "text-primary" : "text-foreground")}>How it went: </span>
+                  {a.outcome_notes as string}
+                </p>
+              )}
+              {a.notes && (
+                <p className={cn("text-[12px] font-body leading-relaxed",
+                  isUpcoming ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                  {a.notes as string}
+                </p>
+              )}
+            </div>
+          )}
+
+          <AudioPlayer bucket="voicenotes" path={(a.outcome_audio_path as string | null) ?? null} label="Outcome voice note" />
+
+          {photos.length > 0 && (
+            <div className={cn("mt-3 pt-3 border-t grid grid-cols-3 gap-2",
+              isUpcoming ? "border-primary/20" : "border-border")}>
+              {photos.map(p => (
+                <div key={p.id}>
+                  <Thumb bucket="appointment-photos" path={p.storage_path} className="aspect-square rounded-lg" title="Appointment photo" />
+                  {p.caption && <p className={cn("text-[10px] font-body mt-1 leading-snug",
+                    isUpcoming ? "text-primary-foreground/70" : "text-muted-foreground")}>{p.caption}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {upcoming.length > 0 && (
+        <>
+          <SubLabel>Upcoming</SubLabel>
+          <div className="px-5 space-y-2">
+            {upcoming.map(a => renderCard(a, "upcoming"))}
+          </div>
+        </>
+      )}
+
+      <SubLabel>History</SubLabel>
+      <div className="px-5 space-y-2">
+        {past.length === 0 && upcoming.length === 0 ? (
+          <EmptyLine msg="No appointments logged." />
+        ) : past.length === 0 ? (
+          <EmptyLine msg="No past appointments." />
+        ) : (
+          <PaginatedList
+            items={past}
+            empty="No past appointments."
+            render={(a) => renderCard(a, "past")}
+            pageSize={8}
+          />
+        )}
+      </div>
+    </>
+  );
+};
+
+// ================================================================
+// Main shell
+// ================================================================
 
 export interface PassportViewProps {
   userId: string;
@@ -1001,7 +1595,7 @@ const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void 
   <div className="px-5 py-8 space-y-4">
     <SurfaceCard tone="gold">
       <div className="flex items-start gap-3">
-        <div className="size-10 rounded-full bg-alert-dark/15 text-alert-dark flex items-center justify-center shrink-0">
+        <div className="size-10 rounded-full bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
           <ShieldOff className="size-5" />
         </div>
         <div className="flex-1">
@@ -1017,15 +1611,48 @@ const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void 
   </div>
 );
 
-const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
-  const [section, setSection] = useState<Section>("overview");
+const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> = {
+  snapshot: User,
+  goals: Heart,
+  hair: Scissors,
+  colour: FlaskConical,
+  blood: FlaskConical,
+  routine: Sparkles,
+  journal: Package,
+  lifestyle: Leaf,
+  appointments: Clock,
+};
+
+const sectionSub: Record<Section, string> = {
+  snapshot: "Identity, safety flags, latest summary",
+  goals: "What they want and why they're here",
+  hair: "Type, porosity, density and health context",
+  colour: "Colour history and chemical reactions",
+  blood: "Panels, markers and AI analysis",
+  routine: "Wash days and product shelf",
+  journal: "Entries, milestones, moodboards",
+  lifestyle: "Nutrition, medications, tools",
+  appointments: "Upcoming and past visits",
+};
+
+const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
+  const [section, setSection] = useState<Section>("snapshot");
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!active || accessEnded) return;
     logView(userId, section);
   }, [userId, section, active, accessEnded]);
+
+  const goTo = (s: Section) => {
+    setSection(s);
+    // Scroll section content into view under the sticky tab bar.
+    setTimeout(() => {
+      tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 20);
+  };
 
   if (showAccessEnded) {
     return (
@@ -1053,93 +1680,93 @@ const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnde
   }
 
   const firstName = data.clientName.split(" ")[0];
-  const counts = [
-    `${data.washDays.length} wash${data.washDays.length === 1 ? "" : "es"}`,
-    `${data.journal.length} journal`,
-    `${data.shelf.length} products`,
-    `${data.appointments.length} appts`,
-  ].join(" · ");
+  const Icon = sectionIcon[section];
 
   return (
     <ImagePreviewContext.Provider value={setImagePreview}>
-    <ScreenLayout>
-      <TitleBar title={firstName} onBack={accessEndedAction} />
+      <ScreenLayout>
+        <TitleBar title={firstName} onBack={accessEndedAction} />
 
-      <div className="px-5 pb-3 space-y-3">
-        <SurfaceCard tone="gold">
-          <div className="flex items-start gap-3">
-            <div className={cn("size-9 rounded-full flex items-center justify-center shrink-0",
-              mode === "admin" ? "bg-primary/15 text-primary" : "bg-good/15 text-good")}>
-              {mode === "admin" ? <Shield className="size-4" /> : <ShieldCheck className="size-4" />}
+        {/* Consent / mode badge */}
+        <div className="px-5 pb-2 pt-1">
+          <SurfaceCard tone="gold" padded={false}>
+            <div className="flex items-center gap-2.5 px-3 py-2">
+              <div className={cn("size-7 rounded-full flex items-center justify-center shrink-0",
+                mode === "admin" ? "bg-primary/20 text-primary" : "bg-good/20 text-good")}>
+                {mode === "admin" ? <Shield className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-body font-semibold uppercase tracking-[0.16em] text-primary">
+                  {mode === "admin" ? "Admin view · read-only" : "Client consent · logged"}
+                </p>
+                <p className="text-[10.5px] text-muted-foreground font-body leading-snug">
+                  Every section you open is logged and visible to the member.
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-xs font-body font-semibold uppercase tracking-[0.15em] text-primary">
-                {mode === "admin" ? "Admin view" : "Access granted"}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                {mode === "admin"
-                  ? "Read-only passport access as a STRAND admin. Every section you open is logged and visible to the member."
-                  : "Access granted by the client. They can revoke at any time. Every section you open is logged and visible to them."}
-              </p>
+          </SurfaceCard>
+        </div>
+
+        {/* Sticky tab strip */}
+        <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pt-2 pb-3 -mx-0 px-5 border-b border-border/60">
+          <div className="overflow-x-auto scrollbar-hide -mx-5 px-5">
+            <div className="flex gap-2 min-w-max">
+              {SECTIONS.map((s) => {
+                const count = s.count(data);
+                const active = section === s.key;
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => setSection(s.key)}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-full text-[12px] font-body border transition-colors min-h-[36px] inline-flex items-center gap-1.5 whitespace-nowrap",
+                      active
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-card border-border text-foreground",
+                    )}
+                  >
+                    {s.label}
+                    {count > 0 && (
+                      <span className={cn(
+                        "px-1.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-semibold flex items-center justify-center",
+                        active ? "bg-primary-foreground/25 text-primary-foreground" : "bg-primary/12 text-primary",
+                      )}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </SurfaceCard>
-
-        <div>
-          <p className="text-sm font-body font-semibold">{data.clientName}</p>
-          <p className="text-[11px] text-muted-foreground">
-            {data.memberSince ? `Member since ${format(new Date(data.memberSince), "MMM yyyy")} · ` : ""}{counts}
-          </p>
         </div>
-      </div>
 
-      <div className="px-5 pb-3 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 min-w-max">
-          {SECTIONS.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setSection(s.key)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
-                section === s.key
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card border-border text-foreground",
-              )}
-            >
-              {s.label}
-            </button>
-          ))}
+        <SectionHeader icon={Icon} title={SECTIONS.find(s => s.key === section)?.label ?? "Passport"} sub={sectionSub[section]} />
+
+        <div className="pb-10">
+          {section === "snapshot" && <SnapshotSection d={data} goTo={goTo} />}
+          {section === "goals" && <GoalsSection d={data} />}
+          {section === "hair" && <HairSection d={data} />}
+          {section === "colour" && <ColourSection d={data} />}
+          {section === "blood" && <BloodSection d={data} />}
+          {section === "routine" && <RoutineSection d={data} />}
+          {section === "journal" && <JournalSection d={data} />}
+          {section === "lifestyle" && <LifestyleSection d={data} />}
+          {section === "appointments" && <AppointmentsSection d={data} />}
         </div>
-      </div>
 
-      <div className="px-5 pb-8 space-y-3">
-        {section === "overview" && <OverviewSection d={data} />}
-        {section === "blood" && <BloodSection d={data} />}
-        {section === "colour" && <ColourSection d={data} />}
-        {section === "wash" && <WashSection d={data} />}
-        {section === "journal" && <JournalSection d={data} />}
-        {section === "shelf" && <ShelfSection d={data} />}
-        {section === "appointments" && <AppointmentsSection d={data} />}
-        {section === "medications" && <MedicationsSection d={data} />}
-        {section === "tools" && <ToolsSection d={data} />}
-        {section === "photos" && <PhotosSection d={data} />}
-        {section === "nutrition" && <NutritionSection d={data} />}
-        {section === "moodboards" && <MoodboardsSection d={data} />}
-        {section === "ingredients" && <IngredientsSection d={data} />}
-      </div>
-
-      <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
-        <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] rounded-[20px] p-4 gap-3 max-h-[82vh] overflow-y-auto">
-          <DialogTitle className="font-display text-base leading-tight pr-8">{imagePreview?.title ?? "Uploaded image"}</DialogTitle>
-          {imagePreview?.url ? (
-            <img src={imagePreview.url} alt={imagePreview.title} className="w-full rounded-md object-contain max-h-[46vh] bg-muted" />
-          ) : (
-            <div className="aspect-square rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">Loading image…</div>
-          )}
-          {imagePreview?.meta && <div className="pt-2 border-t border-border">{imagePreview.meta}</div>}
-        </DialogContent>
-      </Dialog>
-    </ScreenLayout>
+        <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
+          <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] rounded-[20px] p-4 gap-3 max-h-[82vh] overflow-y-auto">
+            <DialogTitle className="font-display text-base leading-tight pr-8">{imagePreview?.title ?? "Image"}</DialogTitle>
+            {imagePreview?.url ? (
+              <img src={imagePreview.url} alt={imagePreview.title} className="w-full rounded-md object-contain max-h-[46vh] bg-muted" />
+            ) : (
+              <div className="aspect-square rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">Loading image…</div>
+            )}
+            {imagePreview?.meta && <div className="pt-2 border-t border-border">{imagePreview.meta}</div>}
+          </DialogContent>
+        </Dialog>
+      </ScreenLayout>
     </ImagePreviewContext.Provider>
   );
 };

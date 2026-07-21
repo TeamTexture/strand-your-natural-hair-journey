@@ -1,163 +1,92 @@
-# STRAND Professional Portal — Implementation Plan
+# Passport Redesign — Consultation-Grade Client Dossier
 
-Same app, three roles: `consumer` (existing, untouched), `professional` (new), `admin` (new). Role determines which shell renders after login. Consumer routes and data model are not modified — the professional side is layered on top with new tables, new RLS, and a role-aware router.
+The passport becomes a mirror of the member's own app for professionals: same cards, same icons, same visuals — reorganised under clean tab navigation, prioritised by what a professional needs first, and stripped of every raw database artifact.
 
-Assumption: the pro portal ships inside the existing app (a `/pro/*` route tree) rather than a separate deployment. Confirm if you'd prefer a subdomain instead.
+No data is removed. This is a hierarchy, presentation, and reuse rework.
 
-## 1. Roles & auth
+## Foundations (built first, used everywhere)
 
-No `user_roles` table exists yet. Introduce the standard pattern:
+New shared helpers so nothing raw leaks into the UI:
 
-- `app_role` enum: `consumer | professional | admin`
-- `user_roles(user_id, role)` table (unique per pair), RLS: user reads own rows; only `service_role` writes
-- `has_role(_user_id uuid, _role app_role)` — SECURITY DEFINER, used in every new RLS policy
-- On signup, trigger assigns `consumer` by default (does not touch existing users; a one-off backfill inserts `consumer` for everyone currently in `profiles`)
-- `admin` is granted manually via SQL for the founder/team — no self-serve path
-- `professional` is granted only when an admin approves a pro application (edge function using service role)
+- `src/lib/humanise.ts` — one entry point. Handles snake_case → sentence, hair-type codes (`type_4c` → "Type 4C"), porosity/density/scalp values, blood-result status vocab (`in_range` / `borderline` / `low` / `high` → "In range" / "Borderline" / "Low" / "High"), enquiry/appointment status, and boolean/nullable formatting. Central label maps mean adding a term later is a one-line change.
+- `src/lib/formatPassportDate.ts` — thin wrappers: `formatDate(iso)` → "12 Mar 2026", `formatRelative(iso)` → "3 weeks ago" (built on `date-fns`; no new dep). Every passport date renders through this — no more ad-hoc `toLocaleDateString`.
+- All existing passport primitives (`AllFields`, `FullRecord`, `tidyLabel`, raw JSON dumps, `Thumb` metadata dumps, ISO strings in relative fields) are retired inside the passport. `AllFields` remains only as an internal fallback for the very last "raw record" disclosure — hidden by default, opt-in per section, and rendered through the humaniser so keys and enum values read as English.
 
-Route guard: a new `<RoleGate allow={...}>` wrapper reads roles once at session hydrate. `/pro/*` requires `professional`, `/admin/*` requires `admin`. Consumer routes stay behind the existing `<Protected>`.
+## Section order (rewritten around professional consultation psychology)
 
-## 2. Data model (new tables)
+The tab bar keeps its existing sticky bubble pattern (refined spacing, active-state contrast tuned to the sand/gold palette) and reorders to:
 
-All in `public`, all with the four-step pattern (CREATE → GRANT → ENABLE RLS → POLICIES) and `updated_at` triggers.
+1. **Snapshot** — new hero header (see below).
+2. **Goals & concerns** — user goals + goal updates timeline + concerns from health profile + the enquiry note that opened access.
+3. **Hair profile** — full detail rendered like the consumer `Profile` screen.
+4. **Colour & chemistry** — colour history + chemical reactions front and centre.
+5. **Blood work** — consumer bloodwork visuals + latest AI summary.
+6. **Routine** — wash days + product shelf (grouped by On shelf / Favourites / Wishlist / Off shelf, retained from previous work).
+7. **Journal & photos** — journal entries, milestones, before/after.
+8. **Lifestyle** — nutrition plan, medications, tools.
+9. **Appointments** — history + follow-up state.
 
-**`pro_applications`** — vetting queue
-- `user_id` (nullable — applicants may not have accounts yet; link on approval), `email`, `full_name`, `business_name`, `discipline` (enum matching `pro_type` + `Colourist`, `Stylist`), `qualifications`, `insurance_provider`, `insurance_policy_no`, `insurance_expiry`, `location`, `postcode`, `website_url`, `instagram_handle`, `why_strand` (text), `status` (`pending|approved|rejected|suspended`), `admin_notes`, `reviewed_by`, `reviewed_at`
-- RLS: applicant reads/inserts own row (matched by email while unauthenticated is not possible — so applications are gated behind a lightweight "create account to apply" step); admins read/update all
+The tab labels stay short; counts (goals, wash days, panels, appointments, medications, etc.) appear on the tab as subtle numeric badges — the pro sees volume before tapping in.
 
-**`pro_profiles`** — the pro's editable directory listing (replaces the static seed for approved pros; the existing `professionals_directory` stays as the read-only public catalogue and gets a nullable `pro_profile_id` FK so seeded entries can be migrated later)
-- `user_id` (FK to auth.users, unique), `display_name`, `discipline`, `bio`, `services` (jsonb: name/description/price), `location`, `postcode`, `contact_email`, `booking_url`, `website_url`, `instagram_handle`, `avatar_path`, `cover_path`, `photos` (text[] of storage paths), `is_published` (bool, admin-controlled), `suspended_at`
-- RLS: pro reads/updates own row; anyone reads rows where `is_published = true`; admin full access
+## Client Snapshot (new hero — the first two seconds)
 
-**`pro_offers`** — one-off promotions on a pro's profile
-- `pro_user_id`, `title`, `description`, `code` (nullable), `starts_at`, `ends_at`, `is_active`
-- RLS: pro manages own; public reads active offers of published pros
+A single card that opens the passport:
 
-**`pro_enquiries`** — replaces booking
-- `consumer_id`, `pro_user_id`, `note`, `share_passport_consent` (bool, must be true to insert), `status` (`pending|accepted|declined|withdrawn`), `responded_at`, `decline_reason`
-- RLS: consumer reads/inserts/withdraws own; pro reads enquiries addressed to them and updates status; admin read-only
+- Avatar (existing `SignedImage`), display name, member since, age, heritage, postcode + water hardness.
+- Hair-at-a-glance strip: three elegant chips — Texture · Porosity · Density — using the same visual language as consumer `ProfileRow` (icon + humanised value, warn tone when porosity reads high). Uses the humaniser.
+- **Critical flags row** — the safety-first block:
+  - Chemical reaction — red-tone flag if `style.colour_reaction` is true, with the client's own words (`colour_reaction_details`) inline and the voice note (if any) playable via `AudioButton`.
+  - Blood markers out of range — a single chip: "N markers flagged" (counts `blood_results.status` in `low` / `high` / `borderline`), tap scrolls to Blood work.
+  - Medications — "N current medications" chip, tap scrolls to Lifestyle.
+  - Medical conditions — chip if `health.medical_conditions` has content (this is where allergies live today; no separate allergies field exists, so this is our proxy — flagged as an assumption).
+  - Preferred professional — small line if `d.professional` present.
 
-**`pro_client_access`** — the consent record; the one table that gates passport RLS
-- `pro_user_id`, `consumer_id`, `enquiry_id`, `granted_at`, `revoked_at` (nullable), unique on (pro_user_id, consumer_id) where revoked_at is null
-- Row is inserted by a SECURITY DEFINER function `accept_enquiry(enquiry_id)` when the pro accepts; consumer revocation sets `revoked_at = now()`
-- Helper: `has_active_client_access(_pro uuid, _consumer uuid) returns boolean` — SECURITY DEFINER, used by every passport RLS policy
+Flags render only when they carry information. No empty chips.
 
-**`pro_passport_views`** — audit log
-- `pro_user_id`, `consumer_id`, `viewed_at`, `section` (text), `ip` (optional)
-- RLS: pro inserts own; consumer reads own; admin reads all
-- Written by an edge function `passport-view-log` called on the pro's passport screen (client can't be trusted to log itself, but a service-role edge function called on view is enough for v1)
+## Consumer components lifted into the passport
 
-**`pro_subscriptions`** — Stripe state
-- `pro_user_id` (unique), `stripe_customer_id`, `stripe_subscription_id`, `status` (`active|past_due|canceled|incomplete|trialing`), `current_period_end`, `price_id`, `cancel_at_period_end`
-- RLS: pro reads own; only service role writes (webhook)
-- Helper: `has_active_pro_subscription(_pro uuid) returns boolean` used to gate enquiry inbox and passport RLS
+Where the consumer app already renders something well, the passport uses the same component (or a passport-friendly wrapper of it) rather than re-drawing it:
 
-**`platform_settings`** — admin-configurable
-- Single-row `key/value` (jsonb) for `pro_monthly_price_gbp`, Stripe price id, etc.
-- RLS: admin write, everyone reads
+- **Wash days** — `WashDayCard` (consumer) is the summary tile. Tapping expands the passport's existing detail collapsible (kept for full data: products, tools, health, photos, voice notes) so nothing captured is lost.
+- **Blood work** — `BloodResultRow` + `BloodSummaryBar` (consumer) render each panel's markers with the same dot/colour language the client sees. Latest `ai_summaries` (kind `blood_summary`) renders through the consumer `BloodChangeAnalysis` presentation; older panels grouped by date behind a "Previous panels" disclosure.
+- **Nutrition** — the consumer `NutritionPlan` `IconBubble` / `AiCard` tiles for supplements, diet, and (retained) avoid guidance, driven by the same `ai_summaries` payload the client sees. Meals list stays out; the guidance is what matters.
+- **Journal** — cards match the consumer Journal list (photo strip, mood, title, note preview); details expand in place with full photo grid + voicenotes + products used.
+- **Product shelf** — retains the four-group split; each row uses the consumer thumbnail + rating stars visual.
+- **Goals** — consumer `GoalDetailSheet`'s read-only timeline is reused inline (challenge/target header + timestamped update stream with text/voice) — no bespoke goal list.
+- **Appointments** — consumer `AppointmentCard` with `variant="past"` / `variant="upcoming"`; follow-up state surfaces automatically.
+- **Hair profile** — the consumer `Profile` page's `ProfileRow` block is the template; the passport reuses the same icon/label/value rhythm inside a `SurfaceCard`.
 
-## 3. RLS design for the passport (the critical bit)
+Shared consumer components are exported (or lightly extracted) as needed. No visual duplication.
 
-The passport is read-only for pros and includes rows from many existing consumer tables: `blood_results`, `blood_panels`, `ai_summaries`, `user_hair_profile`, `user_health_profile`, `user_style_profile` (incl. colour history), `wash_days`, `journal_entries`, `user_goals`, `goal_updates`, `user_products`, `user_medications`, `appointments`, `hair_strand_summaries`.
+## Strand summary handling
 
-For each of those tables, **add** (do not modify existing consumer policies) one new SELECT policy:
+Only the most recent `hair_strand_summaries` entry renders — typographically, using display font for headings and body font for prose, proper paragraph rhythm, no raw text dump. Prior summaries collapse behind a subtle "Previous summaries" disclosure showing date + first line only.
 
-```sql
-create policy "Pros with active consent can read"
-on public.<table> for select
-to authenticated
-using (
-  public.has_role(auth.uid(), 'professional')
-  and public.has_active_pro_subscription(auth.uid())
-  and public.has_active_client_access(auth.uid(), user_id)
-);
-```
+## Clean-up pass (applies to every section)
 
-Two guarantees this gives us:
-- A pro cannot query a consumer's data without an active `pro_client_access` row → revocation cuts access instantly.
-- A lapsed subscription flips `has_active_pro_subscription` to false → passport queries return zero rows even if consent exists. Profile editing keeps working because `pro_profiles` policies don't check subscription.
+- No storage paths, URLs, UUIDs, or ids visible anywhere. Audio renders as a player only — never as text.
+- No ISO timestamps — every date goes through `formatDate` / `formatRelative`.
+- No `snake_case` labels or raw enum values — everything through `humanise`.
+- No JSON blobs, square brackets, or braces on screen.
+- Dedup rule: data appears in full in its primary section; secondary mentions link back rather than reprint.
+- Every empty state is a designed line ("No wash days logged yet."), not a bare "—".
 
-Admin gets a separate `has_role(auth.uid(), 'admin')` SELECT policy on the same tables — used only in the admin panel, and only for moderation/support flows we scope later. Not part of v1 UI.
+## Navigation, RLS, logging
 
-Existing consumer policies (`auth.uid() = user_id`) remain untouched, so the consumer app behaves identically.
+Tab bar stays sticky; section anchors get scroll-into-view when tapped from a Snapshot chip. `passport-view-log` calls, RLS gating, consent expiry (`accessEnded`), and admin decrypt path are untouched. `usePassportData` gains no new queries — the data already needed is already fetched.
 
-## 4. Screens
+## Verification
 
-**Consumer side (minimal changes)**
-- Directory card: `Book` → `Enquire` button (already partly renamed to "Enquire Now" — extend to route into the enquiry sheet instead of an external link when the pro has a `pro_profiles` row)
-- Enquiry sheet: optional note + mandatory consent checkbox → creates `pro_enquiries` row
-- New "My Enquiries" section under Profile: pending/accepted/declined list, per-pro "Revoke access" button
-- New "Data access" settings row: list of pros with active access, revoke individually
+- `npm run build` for typecheck.
+- Playwright pass logged in as the founder account, opening the founder's own admin passport (admin RLS lets this through) to confirm real-data rendering, section order, no raw artifacts, and 375px integrity. Screenshots per section.
 
-**Pro portal (`/pro/*`)**
-- `/pro/onboarding` — post-approval welcome + subscribe CTA
-- `/pro/profile` — edit `pro_profiles`, upload photos, manage services, manage offers
-- `/pro/enquiries` — inbox: pending / accepted / declined tabs; each row shows consumer name + passport preview (hair discipline, latest blood flags count, goals) + accept/decline; gated behind active subscription
-- `/pro/clients/:consumerId` — full passport viewer (sections mirror the consumer's own home + PDF export); logs a view on mount; gated behind active subscription AND active consent
-- `/pro/billing` — subscription status, manage via Stripe customer portal
+## Technical notes
 
-**Admin portal (`/admin/*`)**
-- `/admin/applications` — pending queue, approve/reject with notes
-- `/admin/pros` — list all pros, suspend/reinstate, unpublish
-- `/admin/settings` — set monthly price, Stripe price id
-- `/admin/audit` — recent passport views, recent enquiries (read-only)
+- Files touched: `src/components/passport/PassportView.tsx` (major restructure into per-section modules under `src/components/passport/sections/*.tsx` — one file per tab, so future edits are surgical), `src/components/passport/usePassportData.ts` (unchanged shape; may expose small derived selectors like `criticalFlags` for the Snapshot), new `src/lib/humanise.ts`, new `src/lib/formatPassportDate.ts`.
+- Consumer components made reusable where they currently live inside a page: minimal extraction only where necessary (e.g. lift a `BloodMarkerCard` presentational bit out of `BloodPanelReview` if it isn't already exported). No behavioural change to consumer screens.
+- No new dependencies, no palette additions — Playfair / Jost, sand / gold / ink only.
+- No schema or RLS changes.
 
-**Public entry point**
-- Directory gets an "Apply as a professional" CTA → `/pro/apply` (public form, requires creating an account to submit)
+## Open assumption to flag
 
-## 5. Stripe subscription
-
-Use Lovable's built-in Stripe payments (seamless, no BYOK).
-
-- Single recurring product "STRAND Pro Membership" at £12.99/month (price id stored in `platform_settings` so admin can swap it)
-- On approval, admin panel creates the pro's Stripe customer via edge function; the pro subscribes from `/pro/billing` via a hosted checkout session
-- Webhook edge function `stripe-pro-webhook` handles `customer.subscription.{created,updated,deleted}` and `invoice.payment_failed` → upserts `pro_subscriptions.status` and `current_period_end`
-- `has_active_pro_subscription` returns true when `status in ('active','trialing')` and `current_period_end > now()` — so lapse is automatic
-- No proration UI, no plan switching in v1
-
-## 6. Build order
-
-**Phase A — Foundations (no user-visible change)**
-1. `user_roles` + `has_role` + backfill `consumer` for existing users
-2. `RoleGate` route wrapper; consumer app continues to work with role = consumer
-
-**Phase B — Application + admin**
-3. `pro_applications` table + public `/pro/apply` form
-4. `/admin/applications` panel; admin approval edge function that grants `professional` role and creates `pro_profiles` row
-
-**Phase C — Pro profile editing (no gating)**
-5. `pro_profiles`, `pro_offers`, storage buckets for pro photos
-6. `/pro/profile` screens
-7. Consumer directory reads published `pro_profiles` alongside the existing static seed
-
-**Phase D — Stripe subscription**
-8. `pro_subscriptions`, `platform_settings`, checkout + webhook
-9. `/pro/billing`
-
-**Phase E — Enquiries + consent**
-10. `pro_enquiries`, `pro_client_access`, helper functions
-11. Consumer Enquire sheet + "My Enquiries" + revoke UI
-12. `/pro/enquiries` inbox (gated by subscription)
-
-**Phase F — Passport**
-13. Add pro-read RLS policies to every consumer data table (single migration, additive only)
-14. `pro_passport_views` + logging edge function
-15. `/pro/clients/:consumerId` viewer
-16. `/admin/audit`
-
-Each phase is independently shippable and leaves the consumer app functional.
-
-## 7. Risks & mitigations
-
-- **Breaking consumer RLS.** Only additive policies on consumer tables; never touch existing `auth.uid() = user_id` policies. Verify with a smoke test signed in as a consumer after each Phase F migration.
-- **Passport leakage via `select *` in client code.** Client-side queries can still ask for extra fields; RLS is the actual guard. All new pro screens go through a small `passport.ts` helper that names the exact columns and filters by `consumerId`, so a bug in one screen doesn't leak more than intended.
-- **Consent race conditions.** Revocation must be instant. `has_active_client_access` reads a single row with `revoked_at is null`; there's no cache. Consumer revocation is a simple UPDATE.
-- **Subscription lapse UX.** `/pro/enquiries` and `/pro/clients/*` render a "subscription required" state when `pro_subscriptions.status` isn't active — no half-broken screens. Profile stays fully editable.
-- **Stripe webhook reliability.** Idempotent upserts keyed on `stripe_subscription_id`; retries safe.
-- **Static directory vs `pro_profiles`.** The seeded `professionals_directory` rows aren't linked to real accounts. Keep both sources for now — the directory reads a union. When an existing seeded pro joins, admin merges by setting `professionals_directory.pro_profile_id` and hiding the seed row.
-- **Existing "Enquire Now" button already opens an external booking URL.** Route it into the in-app enquiry sheet only when the pro row has a `pro_profiles` id; otherwise fall back to the existing external link so seeded pros aren't broken.
-- **Data-access audit correctness.** View logging happens server-side (edge function called from the passport screen) so a pro can't disable it by editing the client. Every section fetch also passes through RLS regardless.
-
-## 8. Explicitly out of scope (per your brief)
-
-Messaging, analytics, calendars, POS, consumer subscriptions, per-search credits, permanent platform-wide discounts. None of these appear in the schema or screens above.
+There is no `allergies` column in the schema — allergies are captured today inside `user_health_profile.medical_conditions_enc`. The Snapshot surfaces "Medical conditions" as the safety chip until/unless a dedicated allergies field is added. Called out explicitly so it can be corrected before shipping.
