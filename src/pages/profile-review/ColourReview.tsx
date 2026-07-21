@@ -30,6 +30,9 @@ const HAIRSTYLES = [
   "Twist-out", "Finger comb coils",
   "Low manipulation natural style", "Bald", "Low cut",
 ];
+const COLOUR_TYPES = ["Professional colour", "Box dye", "Henna", "Not sure"];
+const COLOUR_PRODUCTS = ["Colour", "Lightener (bleach)", "Not sure"];
+const COLOUR_TIMEFRAMES = ["Within 8 weeks", "8–12 weeks", "3 months", "6 months", "Over 6 months", "Never coloured"];
 
 type Unit = "days" | "weeks" | "months";
 const daysFrom = (n: number, unit: Unit) =>
