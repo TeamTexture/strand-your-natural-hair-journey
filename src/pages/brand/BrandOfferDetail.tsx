@@ -137,7 +137,38 @@ const BrandOfferDetail = () => {
             <Edit className="size-4 mr-1.5" /> Edit offer
           </Button>
         )}
+
+        {canDelete && (
+          <Button
+            variant="outline"
+            size="pill"
+            onClick={() => setConfirmDelete(true)}
+            disabled={deleteOffer.isPending}
+            className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+          >
+            <Trash2 className="size-4 mr-1.5" /> Delete offer
+          </Button>
+        )}
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this offer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {offer.status === "under_review"
+                ? "This will withdraw the offer from admin review and permanently remove all the copy, images, products and placement dates you added."
+                : "This permanently removes the offer copy, images, products and any selected placement dates. You can't undo this."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep offer</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
