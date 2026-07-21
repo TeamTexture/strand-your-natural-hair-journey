@@ -146,14 +146,21 @@ const BrandCreateOffer = () => {
       } satisfies ProductDraft;
     }),
   );
-  const [selectedByslot, setSelectedByslot] = useState<Record<PlacementSlot, string[]>>(() => {
-    const map: Record<PlacementSlot, string[]> = { home: [], products: [], wash_day: [] };
+  const initialEnabled = (): Record<PlacementSlot, boolean> => {
+    const map: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
     (existing?.brand_offer_placements ?? []).forEach((p) => {
-      map[p.slot as PlacementSlot].push(p.placement_date);
+      map[p.slot as PlacementSlot] = true;
     });
     return map;
-  });
-  const [activeSlot, setActiveSlot] = useState<PlacementSlot>("home");
+  };
+  const initialDates = (): string[] => {
+    const set = new Set<string>();
+    (existing?.brand_offer_placements ?? []).forEach((p) => set.add(p.placement_date));
+    return Array.from(set).sort();
+  };
+  const [enabledSlots, setEnabledSlots] = useState<Record<PlacementSlot, boolean>>(initialEnabled);
+  const [selectedDates, setSelectedDates] = useState<string[]>(initialDates);
+
   const [month, setMonth] = useState(() => new Date());
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scraping, setScraping] = useState(false);
@@ -202,11 +209,15 @@ const BrandCreateOffer = () => {
         } satisfies ProductDraft;
       }),
     );
-    const map: Record<PlacementSlot, string[]> = { home: [], products: [], wash_day: [] };
+    const enabled: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
+    const set = new Set<string>();
     (existing.brand_offer_placements ?? []).forEach((p) => {
-      map[p.slot as PlacementSlot].push(p.placement_date);
+      enabled[p.slot as PlacementSlot] = true;
+      set.add(p.placement_date);
     });
-    setSelectedByslot(map);
+    setEnabledSlots(enabled);
+    setSelectedDates(Array.from(set).sort());
+
   }, [existingId, existing]);
 
   const catalogueQuery = useQuery({
@@ -225,40 +236,28 @@ const BrandCreateOffer = () => {
     },
   });
 
+  const enabledSlotList = useMemo(
+    () => SLOTS.filter((s) => enabledSlots[s]),
+    [enabledSlots],
+  );
+
   const total = useMemo(() => {
     if (!rates) return 0;
-    return SLOTS.reduce((sum, s) => sum + selectedByslot[s].length * rates[s], 0);
-  }, [selectedByslot, rates]);
+    return enabledSlotList.reduce((sum, s) => sum + selectedDates.length * rates[s], 0);
+  }, [enabledSlotList, selectedDates, rates]);
 
-  const totalDays = SLOTS.reduce((n, s) => n + selectedByslot[s].length, 0);
+  const totalDays = selectedDates.length;
 
-  const [multiSlot, setMultiSlot] = useState(false);
-
-  const toggleDate = (slot: PlacementSlot, date: string) => {
-    setSelectedByslot((prev) => {
-      // "Apply to all 3 slots" mode: toggle the date on every slot at once.
-      // If it's already fully-selected across the three slots, remove from all;
-      // otherwise add it to any slot that doesn't have it yet.
-      if (multiSlot) {
-        const fully = SLOTS.every((s) => prev[s].includes(date));
-        const next = { ...prev };
-        SLOTS.forEach((s) => {
-          if (fully) {
-            next[s] = prev[s].filter((d) => d !== date);
-          } else if (!prev[s].includes(date)) {
-            next[s] = [...prev[s], date];
-          }
-        });
-        return next;
-      }
-      return {
-        ...prev,
-        [slot]: prev[slot].includes(date)
-          ? prev[slot].filter((d) => d !== date)
-          : [...prev[slot], date],
-      };
-    });
+  const toggleSlot = (slot: PlacementSlot) => {
+    setEnabledSlots((prev) => ({ ...prev, [slot]: !prev[slot] }));
   };
+
+  const toggleDate = (date: string) => {
+    setSelectedDates((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date].sort(),
+    );
+  };
+
 
   const uploadBlob = async (blob: Blob, prefix: string): Promise<string> => {
     if (!user) throw new Error("Not signed in");
@@ -387,7 +386,7 @@ const BrandCreateOffer = () => {
     if (!user) return;
     if (!asDraft && !headline.trim()) return toast.error("Add a headline.");
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
-    if (!asDraft && totalDays === 0) return toast.error("Select at least one placement date.");
+    if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
     if (!asDraft && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);
@@ -408,7 +407,7 @@ const BrandCreateOffer = () => {
         starts_on: null as string | null,
         ends_on: null as string | null,
       };
-      const allDates = SLOTS.flatMap((s) => selectedByslot[s]).sort();
+      const allDates = [...selectedDates].sort();
       if (allDates.length > 0) {
         payload.starts_on = allDates[0];
         payload.ends_on = allDates[allDates.length - 1];
@@ -426,14 +425,15 @@ const BrandCreateOffer = () => {
         offerId = data.id;
       }
 
-      const placementRows = SLOTS.flatMap((s) =>
-        selectedByslot[s].map((d) => ({
+      const placementRows = enabledSlotList.flatMap((s) =>
+        selectedDates.map((d) => ({
           offer_id: offerId!,
           slot: s,
           placement_date: d,
           daily_rate_pence: rates?.[s] ?? 0,
         })),
       );
+
       if (placementRows.length > 0) {
         const { error } = await supabase.from("brand_offer_placements").insert(placementRows);
         if (error) throw error;
@@ -771,59 +771,60 @@ const BrandCreateOffer = () => {
         ))}
 
         <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
+        <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">
+          Pick one or more banner slots, then choose the dates in the calendar below.
+          Your total updates automatically.
+        </p>
         <div className="grid grid-cols-3 gap-1.5">
-          {SLOTS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setActiveSlot(s)}
-              className={`p-2 rounded-lg border text-left transition-colors ${
-                activeSlot === s ? "border-primary bg-primary/5" : "border-border"
-              }`}
-            >
-              <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {rates ? money(rates[s]) : "…"}/day
-              </p>
-              <p className="text-[10px] text-primary font-medium mt-0.5">
-                {selectedByslot[s].length} day{selectedByslot[s].length === 1 ? "" : "s"}
-              </p>
-            </button>
-          ))}
+          {SLOTS.map((s) => {
+            const on = enabledSlots[s];
+            return (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleSlot(s)}
+                className={`p-2 rounded-lg border text-left transition-colors ${
+                  on
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background hover:bg-primary/5"
+                }`}
+              >
+                <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
+                <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
+                  {rates ? money(rates[s]) : "…"}/day
+                </p>
+                <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
+                  {on ? "Selected" : "Tap to add"}
+                </p>
+              </button>
+            );
+          })}
         </div>
-
-        <label className="flex items-start gap-2 px-1 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={multiSlot}
-            onChange={(e) => setMultiSlot(e.target.checked)}
-            className="mt-0.5 accent-primary"
-          />
-          <span className="text-[11px] leading-snug font-body text-foreground/80">
-            <span className="font-medium">Apply date to all 3 slots.</span>{" "}
-            <span className="text-muted-foreground">
-              While on, each date you tap gets added to Home, Products <em>and</em> Wash Day at once
-              (charged per slot per day). Turn off to book slots individually.
-            </span>
-          </span>
-        </label>
 
         <SurfaceCard>
           <PlacementCalendarPicker
             month={month}
-            slot={activeSlot}
-            selection={selectedByslot[activeSlot]}
-            onToggleDate={(d) => toggleDate(activeSlot, d)}
+            slots={enabledSlotList}
+            selection={selectedDates}
+            onToggleDate={(d) => toggleDate(d)}
             onMonthChange={setMonth}
             excludeOfferId={existingId}
           />
+          {enabledSlotList.length === 0 && (
+            <p className="text-[11px] font-body text-muted-foreground mt-2 text-center">
+              Select at least one banner slot above to book dates.
+            </p>
+          )}
         </SurfaceCard>
 
         <SurfaceCard className="flex items-center justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
             <p className="font-display text-2xl">{money(total)}</p>
-            <p className="text-[11px] text-muted-foreground">{totalDays} placement day{totalDays === 1 ? "" : "s"}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {totalDays} day{totalDays === 1 ? "" : "s"} × {enabledSlotList.length} slot{enabledSlotList.length === 1 ? "" : "s"}
+            </p>
           </div>
         </SurfaceCard>
 
@@ -834,13 +835,14 @@ const BrandCreateOffer = () => {
         )}
 
         <div className="sticky bottom-0 -mx-5 bg-background/95 backdrop-blur border-t border-border px-5 pt-2 pb-2 flex gap-2">
-          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px]">
-            Save draft
+          <Button variant="outline" size="pill" onClick={() => submit(true)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+            SAVE DRAFT
           </Button>
-          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px]">
-            {brandSubActive ? "Review" : "Unlock"}
+          <Button variant="gold" size="pill" onClick={() => submit(false)} disabled={submitting} className="flex-1 min-w-0 w-auto px-2 text-[11px] uppercase tracking-wide">
+            {brandSubActive ? "SUBMIT FOR REVIEW" : "UNLOCK"}
           </Button>
         </div>
+
       </div>
 
       <Dialog open={catalogueOpen} onOpenChange={setCatalogueOpen}>
