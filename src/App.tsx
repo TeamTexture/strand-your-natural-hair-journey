@@ -6,6 +6,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
 import RequireAuth from "@/components/RequireAuth";
+import PaidGate from "@/components/PaidGate";
+import Subscribe from "./pages/Subscribe";
+import AdminMembers from "./pages/admin/AdminMembers";
+import AdminSettings from "./pages/admin/AdminSettings";
 import GlobalMenu from "@/components/GlobalMenu";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
@@ -96,6 +100,7 @@ const queryClient = new QueryClient();
 
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
+const Paid = ({ children }: { children: React.ReactNode }) => <PaidGate>{children}</PaidGate>;
 
 // Mounts global side-effects (e.g. keyboard-aware input scrolling) inside the
 // React tree so they're active for every screen in the app.
