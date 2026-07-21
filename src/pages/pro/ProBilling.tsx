@@ -43,6 +43,7 @@ const ProBilling = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const { subscription, isActive, isLoading, refetch } = useProSubscription();
+  const { isAdmin } = useRoles();
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
 
   // Fetch price from platform_settings
