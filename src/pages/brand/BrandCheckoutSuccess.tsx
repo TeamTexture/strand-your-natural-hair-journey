@@ -33,7 +33,7 @@ const BrandCheckoutSuccess = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Payment" onBack={() => nav("/brand")} />
+      <TitleBar title="Payment" onBack={() => nav(home)} />
       <div className="px-5 pt-8 flex flex-col items-center text-center">
         {status === "verifying" && <Loader2 className="size-10 animate-spin text-primary" />}
         {status === "paid" && <CheckCircle2 className="size-12 text-good" />}
@@ -49,7 +49,7 @@ const BrandCheckoutSuccess = () => {
             {status === "pending" && "It's on its way — refresh in a moment."}
             {status === "error" && "Please contact us if this persists."}
           </p>
-          <Button variant="gold" size="pill" onClick={() => nav("/brand")} className="mt-4 w-full">
+          <Button variant="gold" size="pill" onClick={() => nav(home)} className="mt-4 w-full">
             Back to dashboard
           </Button>
         </SurfaceCard>
