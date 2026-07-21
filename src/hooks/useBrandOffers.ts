@@ -16,16 +16,50 @@ export const SLOT_LABEL: Record<PlacementSlot, string> = {
   wash_day: "Wash day banner",
 };
 
-export const STATUS_LABEL: Record<BrandOfferStatus, string> = {
+export const STATUS_LABEL: Record<BrandOfferStatus | "upcoming", string> = {
   draft: "Draft",
   under_review: "Under review",
   approved_unpaid: "Approved — payment required",
   paid_scheduled: "Paid — scheduled",
+  upcoming: "Upcoming",
   live: "Live",
   ended: "Ended",
   rejected: "Rejected",
   cancelled: "Cancelled",
 };
+
+/** Display status derived from stored status + date window in Europe/London.
+ *  This is the single source of truth for what the UI shows so paid+in-window
+ *  offers always read as "Live" (matching what consumers see), paid+future as
+ *  "Upcoming", and paid+past as "Ended" — regardless of whether a background
+ *  job has flipped the stored `status` yet. */
+export type DerivedStatus =
+  | "draft"
+  | "under_review"
+  | "approved_unpaid"
+  | "upcoming"
+  | "live"
+  | "ended"
+  | "rejected"
+  | "cancelled";
+
+export function deriveBrandOfferStatus(
+  offer: { status: BrandOfferStatus | string; starts_on?: string | null; ends_on?: string | null },
+  today: string = londonToday(),
+): DerivedStatus {
+  const s = offer.status as string;
+  if (s === "paid_scheduled" || s === "live") {
+    if (offer.starts_on && today < offer.starts_on) return "upcoming";
+    if (offer.ends_on && today > offer.ends_on) return "ended";
+    // Missing dates fall through to "live" — same behaviour as consumer read.
+    return "live";
+  }
+  if (s === "ended") return "ended";
+  if (s === "draft" || s === "under_review" || s === "approved_unpaid" || s === "rejected" || s === "cancelled") {
+    return s;
+  }
+  return s as DerivedStatus;
+}
 
 export function useBrandProfile() {
   const { user } = useAuth();

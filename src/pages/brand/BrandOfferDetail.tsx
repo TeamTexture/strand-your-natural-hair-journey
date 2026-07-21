@@ -13,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer } from "@/hooks/useBrandOffers";
+import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -43,11 +43,12 @@ const BrandOfferDetail = () => {
     return acc;
   }, {});
 
+  const derived = deriveBrandOfferStatus(offer);
   const canEdit = ["draft", "rejected", "under_review"].includes(offer.status);
   const needsPayment = offer.status === "approved_unpaid";
   // Brands can pull an offer any time BEFORE it's paid/live — including while under review.
   // Live/paid campaigns must be ended, not deleted, so they aren't listed here.
-  const canDelete = !["paid_scheduled", "live"].includes(offer.status);
+  const canDelete = !["paid_scheduled", "live"].includes(offer.status) && derived !== "live";
 
   const handleDelete = async () => {
     try {
@@ -78,8 +79,14 @@ const BrandOfferDetail = () => {
       <TitleBar title={offer.headline} onBack={() => nav("/brand")} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-1">
-          <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium">
-            {STATUS_LABEL[offer.status]}
+          <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">
+            {derived === "live" && (
+              <span className="relative flex size-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-good" />
+              </span>
+            )}
+            {STATUS_LABEL[derived]}
           </p>
           {offer.status === "rejected" && offer.rejection_reason && (
             <p className="text-[12px] text-destructive mt-1">{offer.rejection_reason}</p>

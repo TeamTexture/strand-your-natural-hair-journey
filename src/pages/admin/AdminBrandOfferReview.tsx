@@ -11,7 +11,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot } from "@/hooks/useBrandOffers";
+import { useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus } from "@/hooks/useBrandOffers";
 import { useQueryClient } from "@tanstack/react-query";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -55,7 +55,7 @@ const AdminBrandOfferReview = () => {
         <SurfaceCard padded={false} className="overflow-hidden">
           {heroUrl && <img src={heroUrl} alt="" className="w-full aspect-[16/9] object-cover" />}
           <div className="p-3">
-            <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium">{STATUS_LABEL[offer.status]}</p>
+            <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">{deriveBrandOfferStatus(offer) === "live" && (<span className="relative flex size-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" /><span className="relative inline-flex size-1.5 rounded-full bg-good" /></span>)}{STATUS_LABEL[deriveBrandOfferStatus(offer)]}</p>
             <p className="font-display text-lg mt-1">{offer.headline}</p>
             {offer.body_copy && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{offer.body_copy}</p>}
             {offer.discount_code && <p className="text-[11px] text-primary mt-2 font-body">Code {offer.discount_code}</p>}
