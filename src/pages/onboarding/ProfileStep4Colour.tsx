@@ -306,6 +306,18 @@ const ProfileStep4Colour = () => {
           size="pill"
           className="mt-4"
           onClick={async () => {
+            // Require reaction details (text or voice note) when a reaction is flagged.
+            if (
+              !isNaturalNever &&
+              colourReaction === "yes" &&
+              !colourReactionDetails.trim() &&
+              !colourReactionAudioPath
+            ) {
+              setReactionError(true);
+              toast.error("Please describe what happened, or record a voice note.");
+              return;
+            }
+
             const num = parseInt(howLongNum, 10);
             const unit = howLongUnit;
             const days = Number.isFinite(num)
@@ -335,8 +347,15 @@ const ProfileStep4Colour = () => {
               ).toISOString();
             }
 
-            // Use the same shape as SetCurrentStyle / Home so the value
-            // pulls through to the "Current Style" card on the homescreen.
+            // When "Natural (never coloured)" is selected, chemical + colour history
+            // sections are hidden — persist neutral values so stale data can't leak
+            // through to advice.
+            const chemHistToSave = isNaturalNever ? ["None"] : chemHist;
+            const colourTypeToSave = isNaturalNever ? null : colourType;
+            const colourProductToSave = isNaturalNever ? null : colourProduct;
+            const colourLastToSave = isNaturalNever ? "Never coloured" : colourLast;
+            const reactionFlag = !isNaturalNever && colourReaction === "yes";
+
             localStorage.setItem(
               "strand_current_style",
               JSON.stringify({
@@ -353,7 +372,7 @@ const ProfileStep4Colour = () => {
                 changingTo,
                 defaultStyle,
                 colour,
-                chemHist,
+                chemHist: chemHistToSave,
               }),
             );
             // Dual-write to user_style_profile. PHASE_1_PLAN.md §15.
@@ -366,19 +385,19 @@ const ProfileStep4Colour = () => {
                     {
                       user_id: u.user.id,
                       current_colour_status: colour[0] ?? null,
-                      chemical_history: chemHist,
+                      chemical_history: chemHistToSave,
                       current_hairstyle: style[0] ?? null,
                       style_set_at,
                       planned_next_style: changingTo[0] ?? null,
                       planned_change_date,
                       default_styles: defaultStyle,
-                      colour_type: colourType,
-                      colour_product: colourProduct,
-                      colour_last_treated: colourLast,
-                      colour_reaction: colourReaction === "yes",
-                      colour_reaction_details:
-                        colourReaction === "yes" ? colourReactionDetails || null : null,
-                    },
+                      colour_type: colourTypeToSave,
+                      colour_product: colourProductToSave,
+                      colour_last_treated: colourLastToSave,
+                      colour_reaction: reactionFlag,
+                      colour_reaction_details: reactionFlag ? colourReactionDetails || null : null,
+                      colour_reaction_audio_path: reactionFlag ? colourReactionAudioPath : null,
+                    } as never,
                     { onConflict: "user_id" },
                   );
                 if (error) throw error;
