@@ -199,7 +199,7 @@ const AdminMembers = () => {
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       if (filter === "restricted" && !r.access_restricted) return false;
       if (filter === "complimentary" && !r.complimentary_access) return false;
       if (filter === "active") {
@@ -213,7 +213,16 @@ const AdminMembers = () => {
         r.user_id.includes(t)
       );
     });
-  }, [rows, q, filter]);
+    if (sort === "most_active") {
+      return [...list].sort((a, b) => {
+        if (b.sessions_last_30d !== a.sessions_last_30d) {
+          return b.sessions_last_30d - a.sessions_last_30d;
+        }
+        return b.session_count - a.session_count;
+      });
+    }
+    return list;
+  }, [rows, q, filter, sort]);
 
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "All" },
