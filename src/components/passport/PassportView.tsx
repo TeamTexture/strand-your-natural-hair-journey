@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -7,6 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { usePassportData, type PassportDataset } from "./usePassportData";
@@ -35,6 +36,14 @@ const SECTIONS: { key: Section; label: string }[] = [
 
 const PAGE = 20;
 
+interface ImagePreviewState {
+  url: string | null;
+  title: string;
+  meta?: React.ReactNode;
+}
+
+const ImagePreviewContext = createContext<((preview: ImagePreviewState) => void) | null>(null);
+
 const logView = async (consumerId: string, section: Section) => {
   try { await supabase.functions.invoke("passport-view-log", { body: { consumer_id: consumerId, section } }); } catch { /* best-effort */ }
 };
@@ -47,6 +56,27 @@ const oneOf = (v: unknown): string | null => {
   return String(v);
 };
 
+const formatMaybeDate = (key: string, v: unknown) => {
+  if (typeof v !== "string") return null;
+  if (!/(^|_)(date|at|on)$/.test(key) && !key.endsWith("_date") && !key.endsWith("_at")) return null;
+  const dt = new Date(v);
+  if (Number.isNaN(dt.getTime())) return null;
+  return v.includes("T") ? format(dt, "d MMM yyyy, HH:mm") : format(dt, "d MMM yyyy");
+};
+
+const tidyLabel = (key: string) => key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+const FieldValue = ({ fieldKey, value }: { fieldKey: string; value: unknown }) => {
+  const maybeDate = formatMaybeDate(fieldKey, value);
+  if (maybeDate) return <>{maybeDate}</>;
+  if (Array.isArray(value)) return <>{value.filter(Boolean).map(String).join(", ") || "—"}</>;
+  if (typeof value === "boolean") return <>{value ? "Yes" : "No"}</>;
+  if (typeof value === "object" && value !== null) {
+    return <pre className="text-[11px] whitespace-pre-wrap break-words bg-muted/40 rounded p-2">{JSON.stringify(value, null, 2)}</pre>;
+  }
+  return <>{oneOf(value) ?? "—"}</>;
+};
+
 const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex gap-3 text-[13px]">
     <span className="text-muted-foreground w-[120px] shrink-0">{label}</span>
@@ -56,20 +86,50 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 const AllFields = ({ obj, exclude = [] }: { obj: Record<string, unknown> | null; exclude?: string[] }) => {
   if (!obj) return <p className="text-xs text-muted-foreground">Nothing recorded.</p>;
-  const skip = new Set(["id", "user_id", "created_at", "updated_at", ...exclude, ...Object.keys(obj).filter(k => k.endsWith("_enc") || k.endsWith("_hash") || k.endsWith("_snapshot"))]);
+  const skip = new Set(["id", "user_id", ...exclude, ...Object.keys(obj).filter(k => k.endsWith("_enc") || k.endsWith("_hash") || k.endsWith("_snapshot"))]);
   const entries = Object.entries(obj).filter(([k, v]) => !skip.has(k) && v != null && v !== "" && !(Array.isArray(v) && v.length === 0));
   if (entries.length === 0) return <p className="text-xs text-muted-foreground">Nothing recorded.</p>;
   return (
     <div className="space-y-1.5">
       {entries.map(([k, v]) => {
-        const label = k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-        let display: React.ReactNode;
-        if (Array.isArray(v)) display = (v as unknown[]).map(String).join(", ");
-        else if (typeof v === "object") display = <pre className="text-[11px] whitespace-pre-wrap break-words bg-muted/40 rounded p-2">{JSON.stringify(v, null, 2)}</pre>;
-        else display = oneOf(v);
-        return <Row key={k} label={label} value={display} />;
+        return <Row key={k} label={tidyLabel(k)} value={<FieldValue fieldKey={k} value={v} />} />;
       })}
     </div>
+  );
+};
+
+const FullRecord = ({ obj, title = "Full record", exclude = [] }: { obj: Record<string, unknown> | null; title?: string; exclude?: string[] }) => (
+  <div className="mt-3 pt-3 border-t border-border">
+    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">{title}</p>
+    <AllFields obj={obj} exclude={exclude} />
+  </div>
+);
+
+const Thumb = ({ bucket, path, alt, className, title, meta }: {
+  bucket: string;
+  path: string | null | undefined;
+  alt?: string;
+  className?: string;
+  title: string;
+  meta?: React.ReactNode;
+}) => {
+  const openPreview = useContext(ImagePreviewContext);
+  const open = async (url: string | null) => {
+    if (!openPreview) return;
+    openPreview({ url, title, meta });
+    if (!url && path) {
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+      if (data?.signedUrl) openPreview({ url: data.signedUrl, title, meta });
+    }
+  };
+  return (
+    <SignedImage
+      bucket={bucket}
+      path={path}
+      alt={alt ?? title}
+      className={className}
+      onClick={openPreview ? open : undefined}
+    />
   );
 };
 
@@ -149,7 +209,7 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
       m.set(u.goal_id, arr);
     });
     return m;
-  }, [d.goalUpdates]);
+  }, [d]);
 
   return (
     <>
@@ -165,8 +225,20 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
             <Row label="Country" value={d.profile.country} />
             <Row label="Member since" value={d.profile.created_at ? format(new Date(d.profile.created_at), "d MMM yyyy") : null} />
             <Row label="Onboarded" value={d.profile.onboarding_completed_at ? format(new Date(d.profile.onboarding_completed_at), "d MMM yyyy") : null} />
+            <AllFields obj={d.profile} exclude={["display_name", "avatar_url", "birth_year", "age", "heritage", "postcode", "country", "created_at", "onboarding_completed_at"]} />
           </div>
         ) : <p className="text-xs text-muted-foreground">No profile recorded.</p>}
+      </SurfaceCard>
+
+      <SectionLabel>Clinical snapshot</SectionLabel>
+      <SurfaceCard>
+        <div className="space-y-2">
+          <Row label="Bodily health" value={d.health?.medical_conditions ? oneOf(d.health.medical_conditions) : oneOf(d.health?.life_stage)} />
+          <Row label="Lifestyle" value={[d.health?.diet, d.health?.exercise, d.health?.sleep_quality].filter(Boolean).map(String).join(" · ") || null} />
+          <Row label="Medications" value={d.medications.length ? d.medications.map(m => [m.name, m.category].filter(Boolean).join(" — ")).join(", ") : null} />
+          <Row label="Hair concerns" value={d.hair?.areas_of_concern ? oneOf(d.hair.areas_of_concern) : null} />
+          <Row label="Scalp / diagnoses" value={[oneOf(d.hair?.scalp_condition), oneOf(d.hair?.diagnosed_conditions)].filter(Boolean).join(" · ") || null} />
+        </div>
       </SurfaceCard>
 
       <SectionLabel>Hair profile</SectionLabel>
@@ -174,6 +246,18 @@ const OverviewSection = ({ d }: { d: PassportDataset }) => {
 
       <SectionLabel>Health profile</SectionLabel>
       <SurfaceCard><AllFields obj={d.health} /></SurfaceCard>
+
+      <SectionLabel>Medications</SectionLabel>
+      {d.medications.length === 0 ? <EmptyCard msg="No medications recorded." /> : d.medications.map(m => (
+        <Collapsible key={m.id} summary={
+          <div>
+            <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
+            <p className="text-[11px] text-muted-foreground">{m.category ?? "—"}{m.created_at ? ` · added ${format(new Date(m.created_at), "d MMM yyyy")}` : ""}</p>
+          </div>
+        }>
+          <AllFields obj={m as Record<string, unknown>} />
+        </Collapsible>
+      ))}
 
       <SectionLabel>Style profile</SectionLabel>
       <SurfaceCard><AllFields obj={d.style} exclude={["colour_history", "chemical_history", "colour_reaction_audio_path"]} /></SurfaceCard>
@@ -280,7 +364,7 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
       m.set(key, arr);
     });
     return m;
-  }, [d.bloodResults]);
+  }, [d]);
 
   return (
     <>
@@ -305,6 +389,7 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
         <>
           {d.bloodPanels.map(panel => {
             const rows = resultsByPanel.get(panel.id) ?? [];
+            const thumbPath = (panel as Record<string, unknown>).thumbnail_path as string | null | undefined;
             return (
               <Collapsible key={panel.id} defaultOpen summary={
                 <div>
@@ -316,15 +401,21 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
                   </p>
                 </div>
               }>
+                {thumbPath && <Thumb bucket="blood-panel-thumbs" path={thumbPath} className="aspect-[4/3] mb-3" title={panel.label ?? "Blood panel upload"} meta={<AllFields obj={panel as Record<string, unknown>} />} />}
+                <AllFields obj={panel as Record<string, unknown>} exclude={["thumbnail_path"]} />
                 {panel.notes && <p className="text-[12px] italic text-muted-foreground mb-2">{panel.notes}</p>}
                 <div className="space-y-1.5">
                   {rows.length === 0 ? <p className="text-xs text-muted-foreground">No markers recorded on this panel.</p> :
                     rows.map(r => (
-                      <div key={r.id} className="flex items-center justify-between gap-2 text-[12px]">
-                        <span className="font-medium break-words flex-1">{r.marker}</span>
-                        <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
-                        <StatusChip status={r.status} />
-                      </div>
+                      <Collapsible key={r.id} summary={
+                        <div className="flex items-center justify-between gap-2 text-[12px]">
+                          <span className="font-medium break-words flex-1">{r.marker}</span>
+                          <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
+                          <StatusChip status={r.status} />
+                        </div>
+                      }>
+                        <AllFields obj={r as Record<string, unknown>} />
+                      </Collapsible>
                     ))
                   }
                 </div>
@@ -340,11 +431,15 @@ const BloodSection = ({ d }: { d: PassportDataset }) => {
             }>
               <div className="space-y-1.5">
                 {(resultsByPanel.get("__loose__") ?? []).map(r => (
-                  <div key={r.id} className="flex items-center justify-between gap-2 text-[12px]">
-                    <span className="font-medium break-words flex-1">{r.marker}</span>
-                    <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
-                    <StatusChip status={r.status} />
-                  </div>
+                  <Collapsible key={r.id} summary={
+                    <div className="flex items-center justify-between gap-2 text-[12px]">
+                      <span className="font-medium break-words flex-1">{r.marker}</span>
+                      <span className="text-muted-foreground">{r.value ?? "—"} {r.unit ?? ""}</span>
+                      <StatusChip status={r.status} />
+                    </div>
+                  }>
+                    <AllFields obj={r as Record<string, unknown>} />
+                  </Collapsible>
                 ))}
               </div>
             </Collapsible>
@@ -406,41 +501,105 @@ const PaginatedList = <T,>({ items, render, empty }: { items: T[]; render: (t: T
   );
 };
 
-const WashSection = ({ d }: { d: PassportDataset }) => (
-  <PaginatedList
-    items={d.washDays}
-    empty="No wash days logged."
-    render={(w) => {
-      const steps = Array.isArray(w.steps) ? w.steps as Array<Record<string, unknown>> : [];
-      return (
-        <Collapsible key={w.id} summary={
-          <div>
-            <p className="text-sm font-body font-semibold">{format(new Date(w.wash_date), "EEE d MMM yyyy")}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              {w.scalp_feel ? `Scalp: ${String(w.scalp_feel)}` : ""}{w.breakage ? ` · Breakage: ${String(w.breakage)}` : ""}{w.duration_min ? ` · ${String(w.duration_min)}m` : ""}
-            </p>
+const WashSection = ({ d }: { d: PassportDataset }) => {
+  const productsById = useMemo(() => {
+    const m = new Map<string, PassportDataset["shelf"][number]>();
+    d.shelf.forEach(p => m.set(p.id, p));
+    return m;
+  }, [d]);
+  const productPhotoByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
+    return m;
+  }, [d]);
+
+  const ProductRow = ({ productId }: { productId: string }) => {
+    const p = productsById.get(productId);
+    const key = p?.product_key as string | undefined;
+    const path = (p?.storage_path as string | null | undefined) ?? (key ? productPhotoByKey.get(key) : null);
+    if (!p) return <p className="text-[12px] text-muted-foreground break-words">Product ID: {productId}</p>;
+    return (
+      <Collapsible summary={
+        <div className="flex items-center gap-3">
+          <Thumb bucket="product-photos" path={path} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-medium truncate">{p.name}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{String(p.brand ?? "—")}{p.category ? ` · ${String(p.category)}` : ""}</p>
           </div>
-        }>
-          <AllFields obj={w as Record<string, unknown>} exclude={["steps", "product_ids", "heat_treatment", "styling", "hair_feel_voice_url", "wash_date"]} />
-          {steps.length > 0 && (
-            <div className="mt-3">
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Steps</p>
-              <div className="space-y-2">
-                {steps.map((s, i) => (
-                  <div key={i} className="border-l-2 border-primary/30 pl-2.5">
-                    <p className="text-[12px] font-medium">{String(s.name ?? s.step ?? `Step ${i + 1}`)}</p>
-                    <pre className="text-[11px] whitespace-pre-wrap text-muted-foreground">{JSON.stringify(s, null, 2)}</pre>
-                  </div>
-                ))}
-              </div>
+        </div>
+      }>
+        <AllFields obj={p as Record<string, unknown>} />
+      </Collapsible>
+    );
+  };
+
+  return (
+    <PaginatedList
+      items={d.washDays}
+      empty="No wash days logged."
+      render={(w) => {
+        const steps = Array.isArray(w.steps) ? w.steps as Array<Record<string, unknown>> : [];
+        const productIds = Array.isArray(w.product_ids) ? w.product_ids.map(String) : [];
+        const styling = (w.styling && typeof w.styling === "object") ? w.styling as Record<string, unknown> : null;
+        const heatTreatment = (w.heat_treatment && typeof w.heat_treatment === "object") ? w.heat_treatment as Record<string, unknown> : null;
+        const stylingPhotoPaths = Array.isArray(styling?.photoPaths) ? styling.photoPaths.map(String) : [];
+        const stylingProductIds = Array.isArray(styling?.productIds) ? styling.productIds.map(String) : [];
+        return (
+          <Collapsible key={w.id} summary={
+            <div>
+              <p className="text-sm font-body font-semibold">{format(new Date(w.wash_date), "EEE d MMM yyyy")}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {w.scalp_feel ? `Scalp: ${String(w.scalp_feel)}` : ""}{w.breakage ? ` · Breakage: ${String(w.breakage)}` : ""}{w.duration_min ? ` · ${String(w.duration_min)}m` : ""}
+              </p>
             </div>
-          )}
-          <AudioButton bucket="voicenotes" path={w.hair_feel_voice_url as string | null} />
-        </Collapsible>
-      );
-    }}
-  />
-);
+          }>
+            <AllFields obj={w as Record<string, unknown>} exclude={["steps", "product_ids", "heat_treatment", "styling", "hair_feel_voice_url"]} />
+            {productIds.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Products used in wash</p>
+                <div className="space-y-2">{productIds.map(id => <ProductRow key={id} productId={id} />)}</div>
+              </div>
+            )}
+            {steps.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Every wash step</p>
+                <div className="space-y-2">
+                  {steps.map((s, i) => (
+                    <Collapsible key={i} summary={
+                      <div>
+                        <p className="text-[12px] font-medium">{String(s.name ?? s.step ?? `Step ${i + 1}`)}</p>
+                        <p className="text-[11px] text-muted-foreground">{Object.keys(s).length} field{Object.keys(s).length === 1 ? "" : "s"}</p>
+                      </div>
+                    }>
+                      <AllFields obj={s} />
+                    </Collapsible>
+                  ))}
+                </div>
+              </div>
+            )}
+            {heatTreatment && <FullRecord obj={heatTreatment} title="Heat treatment details" />}
+            {styling && (
+              <div className="mt-3 pt-3 border-t border-border space-y-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Styling details</p>
+                  <AllFields obj={styling} exclude={["audioPath", "photoPaths", "productIds"]} />
+                </div>
+                {stylingProductIds.length > 0 && <div className="space-y-2">{stylingProductIds.map(id => <ProductRow key={id} productId={id} />)}</div>}
+                {stylingPhotoPaths.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {stylingPhotoPaths.map((p, i) => <Thumb key={p} bucket="journal-photos" path={p} className="aspect-square" title={`Styling photo ${i + 1}`} meta={<AllFields obj={styling} />} />)}
+                  </div>
+                )}
+                <AudioButton bucket="voicenotes" path={styling.audioPath as string | null} transcriptFallback={styling.transcript as string | null} />
+              </div>
+            )}
+            <AudioButton bucket="voicenotes" path={w.hair_feel_voice_url as string | null} />
+          </Collapsible>
+        );
+      }}
+    />
+  );
+};
 
 const JournalSection = ({ d }: { d: PassportDataset }) => (
   <PaginatedList
@@ -459,9 +618,10 @@ const JournalSection = ({ d }: { d: PassportDataset }) => (
         )}
         {Array.isArray(j.photo_paths) && j.photo_paths.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {j.photo_paths.map((p, i) => <SignedImage key={i} bucket="journal-photos" path={p} className="aspect-square" />)}
+            {j.photo_paths.map((p, i) => <Thumb key={i} bucket="journal-photos" path={p} className="aspect-square" title={`${j.title ?? "Journal"} photo ${i + 1}`} meta={<AllFields obj={j as Record<string, unknown>} />} />)}
           </div>
         )}
+        <FullRecord obj={j as Record<string, unknown>} exclude={["photo_paths"]} />
       </Collapsible>
     )}
   />
@@ -472,7 +632,7 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
     const m = new Map<string, string>();
     d.productPhotos.forEach(p => { if (p.product_key && p.storage_path) m.set(p.product_key, p.storage_path); });
     return m;
-  }, [d.productPhotos]);
+  }, [d]);
   const notesByKey = useMemo(() => {
     const m = new Map<string, typeof d.productVoicenotes>();
     d.productVoicenotes.forEach(v => {
@@ -482,7 +642,7 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
       m.set(v.product_key, arr);
     });
     return m;
-  }, [d.productVoicenotes]);
+  }, [d]);
 
   return (
     <PaginatedList
@@ -490,13 +650,13 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
       empty="No products recorded."
       render={(p) => {
         const key = (p as Record<string, unknown>).product_key as string | undefined;
-        const photo = key ? photosByKey.get(key) : null;
+        const photo = ((p as Record<string, unknown>).storage_path as string | null | undefined) ?? (key ? photosByKey.get(key) : null);
         const voicenotes = key ? notesByKey.get(key) ?? [] : [];
         const status = p.on_favourite ? "Favourite" : p.on_shelf ? "On shelf" : p.on_wishlist ? "Wishlist" : "Off shelf";
         return (
           <Collapsible key={p.id} summary={
             <div className="flex items-center gap-3">
-              <SignedImage bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" />
+              <Thumb bucket="product-photos" path={photo ?? null} className="size-12 shrink-0" title={String(p.name ?? "Product image")} meta={<AllFields obj={p as Record<string, unknown>} />} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-body font-semibold truncate">{p.name}</p>
                 <p className="text-[11px] text-muted-foreground truncate">
@@ -508,7 +668,7 @@ const ShelfSection = ({ d }: { d: PassportDataset }) => {
               </div>
             </div>
           }>
-            <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url", "image_url", "storage_path", "key_ingredients", "ingredients"]} />
+            <AllFields obj={p as Record<string, unknown>} exclude={["off_shelf_voice_url"]} />
             {voicenotes.length > 0 && (
               <div className="mt-3">
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Voice notes</p>
@@ -537,7 +697,7 @@ const AppointmentsSection = ({ d }: { d: PassportDataset }) => {
       m.set(p.appointment_id, arr);
     });
     return m;
-  }, [d.appointmentPhotos]);
+  }, [d]);
 
   return (
     <PaginatedList
@@ -562,12 +722,13 @@ const AppointmentsSection = ({ d }: { d: PassportDataset }) => {
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {photos.map(p => (
                   <div key={p.id}>
-                    <SignedImage bucket="appointment-photos" path={p.storage_path} className="aspect-square" />
+                    <Thumb bucket="appointment-photos" path={p.storage_path} className="aspect-square" title="Appointment photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
                     {p.caption && <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{p.caption}</p>}
                   </div>
                 ))}
               </div>
             )}
+            {photos.length > 0 && <FullRecord obj={{ photos }} title="Photo records" />}
           </Collapsible>
         );
       }}
@@ -580,12 +741,16 @@ const MedicationsSection = ({ d }: { d: PassportDataset }) => (
     items={d.medications}
     empty="No medications recorded."
     render={(m) => (
-      <SurfaceCard key={m.id}>
-        <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
-        <p className="text-[11px] text-muted-foreground">
-          {m.category ?? "—"} · added {format(new Date(m.created_at), "d MMM yyyy")}
-        </p>
-      </SurfaceCard>
+      <Collapsible key={m.id} summary={
+        <div>
+          <p className="text-sm font-body font-semibold">{m.name ?? "Medication"}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {m.category ?? "—"} · added {format(new Date(m.created_at), "d MMM yyyy")}
+          </p>
+        </div>
+      }>
+        <AllFields obj={m as Record<string, unknown>} />
+      </Collapsible>
     )}
   />
 );
@@ -597,14 +762,14 @@ const ToolsSection = ({ d }: { d: PassportDataset }) => (
     render={(t) => (
       <Collapsible key={t.id} summary={
         <div className="flex items-center gap-3">
-          <SignedImage bucket="product-photos" path={(t.storage_path as string) ?? null} className="size-12 shrink-0" />
+          <Thumb bucket="product-photos" path={(t.storage_path as string) ?? null} className="size-12 shrink-0" title={String(t.name ?? "Tool image")} meta={<AllFields obj={t as Record<string, unknown>} />} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-body font-semibold truncate">{t.name ?? "Tool"}</p>
             <p className="text-[11px] text-muted-foreground truncate">{String(t.brand ?? "—")}{t.category ? ` · ${String(t.category)}` : ""}</p>
           </div>
         </div>
       }>
-        <AllFields obj={t as Record<string, unknown>} exclude={["image_url", "storage_path", "ai_analysis"]} />
+        <AllFields obj={t as Record<string, unknown>} />
       </Collapsible>
     )}
   />
@@ -617,7 +782,7 @@ const PhotosSection = ({ d }: { d: PassportDataset }) => (
       <div className="grid grid-cols-2 gap-2">
         {d.milestonePhotos.map(p => (
           <div key={p.id}>
-            <SignedImage bucket="milestone-photos" path={p.storage_path} className="aspect-square" />
+            <Thumb bucket="milestone-photos" path={p.storage_path} className="aspect-square" title="Milestone photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
             <p className="text-[10px] text-muted-foreground mt-1">{p.taken_on ? format(new Date(p.taken_on), "d MMM yyyy") : "—"}{p.caption ? ` · ${p.caption}` : ""}</p>
           </div>
         ))}
@@ -629,7 +794,7 @@ const PhotosSection = ({ d }: { d: PassportDataset }) => (
       <div className="grid grid-cols-2 gap-2">
         {d.beforePhotos.map(p => (
           <div key={p.id}>
-            <SignedImage bucket="before-photos" path={p.storage_path} className="aspect-square" />
+            <Thumb bucket="before-photos" path={p.storage_path} className="aspect-square" title="Before photo" meta={<AllFields obj={p as Record<string, unknown>} />} />
             <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(p.created_at), "d MMM yyyy")}{p.caption ? ` · ${p.caption}` : ""}</p>
           </div>
         ))}
@@ -664,7 +829,7 @@ const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
       m.set(img.board_id, arr);
     });
     return m;
-  }, [d.moodboardImages]);
+  }, [d]);
 
   if (d.moodboards.length === 0) return <EmptyCard msg="No moodboards." />;
   return (
@@ -682,7 +847,7 @@ const MoodboardsSection = ({ d }: { d: PassportDataset }) => {
               <div className="grid grid-cols-3 gap-2">
                 {imgs.map(i => (
                   <div key={i.id}>
-                    <SignedImage bucket="moodboard-images" path={i.storage_path} className="aspect-square" />
+                    <Thumb bucket="moodboard-images" path={i.storage_path} className="aspect-square" title={`${b.name ?? "Moodboard"} image`} meta={<AllFields obj={i as Record<string, unknown>} />} />
                     {i.caption && <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{i.caption}</p>}
                   </div>
                 ))}
@@ -762,6 +927,7 @@ const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void 
 
 const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("overview");
+  const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
 
   useEffect(() => {
@@ -803,6 +969,7 @@ const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnde
   ].join(" · ");
 
   return (
+    <ImagePreviewContext.Provider value={setImagePreview}>
     <ScreenLayout>
       <TitleBar title={firstName} onBack={accessEndedAction} />
 
@@ -868,7 +1035,20 @@ const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnde
         {section === "moodboards" && <MoodboardsSection d={data} />}
         {section === "ingredients" && <IngredientsSection d={data} />}
       </div>
+
+      <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
+        <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] rounded-[20px] p-4 gap-3 max-h-[82vh] overflow-y-auto">
+          <DialogTitle className="font-display text-base leading-tight pr-8">{imagePreview?.title ?? "Uploaded image"}</DialogTitle>
+          {imagePreview?.url ? (
+            <img src={imagePreview.url} alt={imagePreview.title} className="w-full rounded-md object-contain max-h-[46vh] bg-muted" />
+          ) : (
+            <div className="aspect-square rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">Loading image…</div>
+          )}
+          {imagePreview?.meta && <div className="pt-2 border-t border-border">{imagePreview.meta}</div>}
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
+    </ImagePreviewContext.Provider>
   );
 };
 
