@@ -919,6 +919,7 @@ const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void 
 
 const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("overview");
+  const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded } = usePassportData(userId, active);
 
   useEffect(() => {
@@ -960,6 +961,7 @@ const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnde
   ].join(" · ");
 
   return (
+    <ImagePreviewContext.Provider value={setImagePreview}>
     <ScreenLayout>
       <TitleBar title={firstName} onBack={accessEndedAction} />
 
@@ -1025,7 +1027,20 @@ const PassportView = ({ userId, mode, backTo, active, subLoading, showAccessEnde
         {section === "moodboards" && <MoodboardsSection d={data} />}
         {section === "ingredients" && <IngredientsSection d={data} />}
       </div>
+
+      <Dialog open={!!imagePreview} onOpenChange={(open) => !open && setImagePreview(null)}>
+        <DialogContent className="w-[calc(100vw-32px)] max-w-[360px] rounded-[20px] p-4 gap-3 max-h-[82vh] overflow-y-auto">
+          <DialogTitle className="font-display text-base leading-tight pr-8">{imagePreview?.title ?? "Uploaded image"}</DialogTitle>
+          {imagePreview?.url ? (
+            <img src={imagePreview.url} alt={imagePreview.title} className="w-full rounded-md object-contain max-h-[46vh] bg-muted" />
+          ) : (
+            <div className="aspect-square rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">Loading image…</div>
+          )}
+          {imagePreview?.meta && <div className="pt-2 border-t border-border">{imagePreview.meta}</div>}
+        </DialogContent>
+      </Dialog>
     </ScreenLayout>
+    </ImagePreviewContext.Provider>
   );
 };
 
