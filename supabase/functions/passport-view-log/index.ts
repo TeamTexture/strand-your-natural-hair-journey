@@ -1,5 +1,7 @@
-// Logs a pro's passport view. Called from the client on mount and section
-// change. Runs with service_role so pros cannot suppress logging.
+// Logs a passport view. Called from the client on mount and section change.
+// Runs with service_role so viewers cannot suppress logging.
+// Accepts both professional viewers (with active client access) and admins
+// (verified server-side via has_role).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
@@ -32,14 +34,23 @@ Deno.serve(async (req) => {
   }
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  // Verify the caller has active consent for this consumer before logging.
-  // Prevents spurious log rows if a client bug fires with the wrong id.
-  const { data: hasAccess, error: accessErr } = await admin.rpc(
-    "has_active_client_access",
-    { _pro: user.id, _consumer: consumerId },
-  );
-  if (accessErr) return json(500, { error: accessErr.message });
-  if (!hasAccess) return json(403, { error: "no active client access" });
+  // Admins can view any member's passport without a consent record.
+  // Verified server-side so the client cannot forge admin status.
+  const { data: isAdmin, error: adminErr } = await admin.rpc("has_role", {
+    _user_id: user.id,
+    _role: "admin",
+  });
+  if (adminErr) return json(500, { error: adminErr.message });
+
+  if (!isAdmin) {
+    // Non-admin viewers must be pros with an active consent link.
+    const { data: hasAccess, error: accessErr } = await admin.rpc(
+      "has_active_client_access",
+      { _pro: user.id, _consumer: consumerId },
+    );
+    if (accessErr) return json(500, { error: accessErr.message });
+    if (!hasAccess) return json(403, { error: "no active client access" });
+  }
 
   const { error } = await admin.from("pro_passport_views").insert({
     pro_user_id: user.id,
