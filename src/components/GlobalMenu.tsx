@@ -84,6 +84,8 @@ const HIDDEN_PREFIXES = ["/auth", "/onboarding", "/walkthrough", "/setup", "/.lo
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
   const { isConsumer, isProfessional, isAdmin } = useRoles();
+  const { isActive: proSubActive } = useProSubscription();
+  const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
