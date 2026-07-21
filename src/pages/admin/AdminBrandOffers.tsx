@@ -200,6 +200,8 @@ const AdminBrandOffers = () => {
           </>
         )}
 
+        {showPending && <PendingRevisionsSection />}
+
         {showLive && (
           <>
             <SectionLabel className="!px-0">
