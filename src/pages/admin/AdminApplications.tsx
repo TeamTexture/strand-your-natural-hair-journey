@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNowStrict } from "date-fns";
-import { MapPin, Search, ArrowUpDown } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -129,8 +129,8 @@ const AdminApplications = () => {
       />
 
       {/* Search + sort */}
-      <div className="px-5 pt-1 pb-3 flex gap-2">
-        <div className="flex-1 relative">
+      <div className="px-5 pt-1 pb-3">
+        <div className="relative">
           <Search className="size-4 text-primary absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             value={query}
@@ -139,14 +139,6 @@ const AdminApplications = () => {
             className="w-full h-9 pl-9 pr-3 rounded-full bg-card border border-primary/20 shadow-sm text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
           />
         </div>
-        <button
-          type="button"
-          aria-label={sortDesc ? "Newest first" : "Oldest first"}
-          onClick={() => setSortDesc((v) => !v)}
-          className="size-9 shrink-0 rounded-full bg-card border border-primary/20 shadow-sm text-primary flex items-center justify-center"
-        >
-          <ArrowUpDown className="size-4" />
-        </button>
       </div>
 
       {/* Underline filter tabs */}
