@@ -707,5 +707,3 @@ const IncompleteCard = ({ row }: { row: IncompleteProRow }) => {
 };
 
 export default AdminApplications;
-
-export default AdminApplications;
