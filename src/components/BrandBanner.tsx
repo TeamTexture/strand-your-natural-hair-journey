@@ -69,8 +69,13 @@ const BrandBanner = ({ slot }: Props) => {
   const openProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
     logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
-    nav(`/offers/${offer.id}?slot=${slot}`);
+    if (product) {
+      nav(`/offers/${offer.id}/product/${product.id}?slot=${slot}`);
+    } else {
+      nav(`/offers/${offer.id}?slot=${slot}`);
+    }
   };
+
 
   const toggleExpand = () => {
     setExpanded((v) => {
