@@ -32,6 +32,15 @@ export interface UserProduct {
   use_count: number;
   created_at: string;
   updated_at: string;
+  linked_brand_offer_id: string | null;
+  linked_brand_product_id: string | null;
+}
+
+export interface SponsoredNote {
+  offerId: string;
+  headline: string;
+  discountCode: string | null;
+  endsOn: string | null;
 }
 
 type Filter = "shelf" | "wishlist" | "off-shelf" | "favourite" | "all";
