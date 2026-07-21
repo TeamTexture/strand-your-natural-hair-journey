@@ -71,6 +71,15 @@ const OfferPage = () => {
     }
   }, [offer?.hero_image_path]);
 
+  // Record an impression the first time this offer page renders for the user
+  // this session (dedupe handled inside the hook). Also counts as a tap since
+  // reaching this page means the banner was engaged.
+  useEffect(() => {
+    if (!offer?.id) return;
+    logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offer?.id]);
+
   if (isLoading || !offer) return <LoadingDot />;
 
   const goOffer = (url: string) => {
