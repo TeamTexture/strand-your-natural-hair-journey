@@ -22,6 +22,7 @@ import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
+import { useAllPendingRevisions } from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
 
 interface Stats {
