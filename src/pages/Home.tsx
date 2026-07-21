@@ -836,6 +836,7 @@ const Home = () => {
 
       <HomeTour />
       <AppointmentFollowUpDialog />
+      <HelloKleanDialog open={helloKleanOpen} onOpenChange={setHelloKleanOpen} userId={user?.id} />
     </ScreenLayout>
 
   );
