@@ -243,6 +243,11 @@ const AdminHub = () => {
             title="Applications"
             description="Vet and approve Strand Council professionals"
             badge={stats?.pendingApplications}
+            context={
+              dropoff && dropoff.incompleteApplications > 0
+                ? `${dropoff.incompleteApplications} incomplete`
+                : undefined
+            }
             onClick={() => nav("/admin/applications")}
           />
           <NavCard
@@ -259,10 +264,17 @@ const AdminHub = () => {
             title="Members"
             description="Subscriptions and complimentary access"
             context={
-              stats ? `${stats.activePaidMembers} paid · ${stats.complimentaryMembers} comp` : undefined
+              stats
+                ? `${stats.activePaidMembers} paid · ${stats.complimentaryMembers} comp${
+                    dropoff && dropoff.incompleteMembers > 0
+                      ? ` · ${dropoff.incompleteMembers} incomplete`
+                      : ""
+                  }`
+                : undefined
             }
             onClick={() => nav("/admin/members")}
           />
+
 
           <NavCard
             icon={ScrollText}
