@@ -183,6 +183,7 @@ const BrandCreateOffer = () => {
   // Cropper state — one dialog reused for banner or a specific product image.
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropTarget, setCropTarget] = useState<{ kind: "banner" } | { kind: "product"; index: number } | null>(null);
+  const [isDraggingBanner, setIsDraggingBanner] = useState(false);
 
   const heroPreview = useHeroPreview(heroPath);
 
