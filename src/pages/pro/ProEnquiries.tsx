@@ -208,10 +208,9 @@ const EnquiryCard = ({
         </div>
       )}
 
-      {(enquiry.contact_method || enquiry.contact_phone) && (
-        <p className="mt-2 text-[11px] font-body text-muted-foreground">
-          Contact via <span className="text-foreground">{enquiry.contact_method ?? "In-app"}</span>
-          {enquiry.contact_phone ? ` · ${enquiry.contact_phone}` : ""}
+      {enquiry.note && (
+        <p className="text-sm font-body mt-2 leading-snug border-l-2 border-primary/40 pl-2">
+          "{enquiry.note}"
         </p>
       )}
 
