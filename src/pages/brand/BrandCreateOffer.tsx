@@ -114,10 +114,12 @@ const BrandCreateOffer = () => {
   const nav = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const ownerMode = useOwnerMode();
   const { data: rates } = usePlacementRates();
   const { data: existing } = useBrandOffer(existingId);
   const { data: pendingRevision } = usePendingRevision(existingId);
   const submitRevision = useSubmitBrandOfferRevision();
+  const { isActive: proSubActive } = useProSubscription();
 
   // Revision mode = editing an already-live or paid-scheduled offer. Only creative
   // fields (title, body, code, URL, banner, attached products/tools) can change;
