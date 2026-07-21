@@ -20,6 +20,7 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { cn } from "@/lib/utils";
 
 interface Stats {
@@ -207,6 +208,7 @@ const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const { data: dropoff } = useAdminDropOffCounts();
 
   return (
     <ScreenLayout>
@@ -241,6 +243,11 @@ const AdminHub = () => {
             title="Applications"
             description="Vet and approve Strand Council professionals"
             badge={stats?.pendingApplications}
+            context={
+              dropoff && dropoff.incompleteApplications > 0
+                ? `${dropoff.incompleteApplications} incomplete`
+                : undefined
+            }
             onClick={() => nav("/admin/applications")}
           />
           <NavCard
@@ -257,10 +264,17 @@ const AdminHub = () => {
             title="Members"
             description="Subscriptions and complimentary access"
             context={
-              stats ? `${stats.activePaidMembers} paid · ${stats.complimentaryMembers} comp` : undefined
+              stats
+                ? `${stats.activePaidMembers} paid · ${stats.complimentaryMembers} comp${
+                    dropoff && dropoff.incompleteMembers > 0
+                      ? ` · ${dropoff.incompleteMembers} incomplete`
+                      : ""
+                  }`
+                : undefined
             }
             onClick={() => nav("/admin/members")}
           />
+
 
           <NavCard
             icon={ScrollText}
