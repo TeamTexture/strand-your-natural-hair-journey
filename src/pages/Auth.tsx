@@ -37,20 +37,23 @@ const Auth = () => {
   const { user, loading: authLoading } = useAuth();
   useEffect(() => {
     if (!authLoading && user) {
-      // If already signed in, route based on onboarding status.
+      // If already signed in, send to the welcome gate so multi-role users
+      // (consumer + pro + admin) can pick which area to enter.
       (async () => {
         const { data } = await supabase
           .from("profiles")
           .select("onboarding_completed_at")
           .eq("user_id", user.id)
           .maybeSingle();
+        const nextParam = params.get("next");
         const target = data?.onboarding_completed_at
-          ? safeNext(params.get("next"), "/home")
+          ? (nextParam ? safeNext(nextParam, "/") : "/")
           : "/onboarding/profile-step-1";
         navigate(target, { replace: true });
       })();
     }
   }, [authLoading, user, navigate, params]);
+
 
   const passwordsMatch = mode !== "signup" || password === confirmPassword;
   const canSubmit =
@@ -146,7 +149,8 @@ const Auth = () => {
             .eq("user_id", uid)
             .maybeSingle();
           if (prof?.onboarding_completed_at) {
-            navigate(safeNext(params.get("next"), "/home"), { replace: true });
+            const nextParam = params.get("next");
+            navigate(nextParam ? safeNext(nextParam, "/") : "/", { replace: true });
             return;
           }
           navigate("/onboarding/profile-step-1", { replace: true });
