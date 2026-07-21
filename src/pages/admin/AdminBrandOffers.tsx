@@ -12,6 +12,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
 import CountdownClock from "@/components/brand/CountdownClock";
+import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
@@ -51,8 +53,9 @@ const StatusPill = ({ status }: { status: DerivedStatus }) => {
 const AdminBrandOffers = () => {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const filter = params.get("filter"); // "pending" | "live" | "brands" | null
+  const typeFilter = (params.get("type") as OwnerType | null) ?? null;
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -68,6 +71,28 @@ const AdminBrandOffers = () => {
         return alt.data ?? [];
       }
       return data;
+    },
+  });
+
+  // Resolve professional display names for pro-owned campaigns so the
+  // submitter is always visible next to the campaign title.
+  const proUserIds = Array.from(new Set(
+    offers
+      .filter((o) => (o as { owner_type?: string }).owner_type === "pro")
+      .map((o) => (o as { brand_user_id?: string }).brand_user_id)
+      .filter((v): v is string => !!v),
+  ));
+  const { data: proNamesById = {} } = useQuery({
+    queryKey: ["admin", "brand-offers", "pro-names", proUserIds.sort().join(",")],
+    enabled: proUserIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pro_profiles")
+        .select("user_id, display_name")
+        .in("user_id", proUserIds);
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((r) => { if (r.user_id) map[r.user_id] = r.display_name ?? "Professional"; });
+      return map;
     },
   });
 
@@ -141,20 +166,36 @@ const AdminBrandOffers = () => {
     [offers],
   );
 
+  // Split by campaign type so we can build filters + counts.
+  const ownerOf = (o: { owner_type?: string | null }): OwnerType =>
+    (o.owner_type === "pro" ? "pro" : "brand");
+
+  const typeFiltered = useMemo(
+    () => (typeFilter ? withDerived.filter((o) => ownerOf(o) === typeFilter) : withDerived),
+    [withDerived, typeFilter],
+  );
+
   const trackedOfferIds = useMemo(
-    () => withDerived.filter((o) => ["live", "upcoming", "ended"].includes(o._derived)).map((o) => o.id),
-    [withDerived],
+    () => typeFiltered.filter((o) => ["live", "upcoming", "ended"].includes(o._derived)).map((o) => o.id),
+    [typeFiltered],
   );
   const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
 
   if (isLoading) return <LoadingDot />;
 
-  const drafts = withDerived.filter((o) => o._derived === "draft");
-  const underReview = withDerived.filter((o) => o._derived === "under_review");
-  const awaitingPayment = withDerived.filter((o) => o._derived === "approved_unpaid");
-  const liveNow = withDerived.filter((o) => o._derived === "live");
-  const upcoming = withDerived.filter((o) => o._derived === "upcoming");
-  const past = withDerived.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived));
+  const drafts = typeFiltered.filter((o) => o._derived === "draft");
+  const underReview = typeFiltered.filter((o) => o._derived === "under_review");
+  const awaitingPayment = typeFiltered.filter((o) => o._derived === "approved_unpaid");
+  const liveNow = typeFiltered.filter((o) => o._derived === "live");
+  const upcoming = typeFiltered.filter((o) => o._derived === "upcoming");
+  const past = typeFiltered.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived));
+
+  // Full-set (unfiltered by type) counts for filter chips.
+  const chipCounts = {
+    all: withDerived.length,
+    brand: withDerived.filter((o) => ownerOf(o) === "brand").length,
+    pro: withDerived.filter((o) => ownerOf(o) === "pro").length,
+  };
 
   const showAll = !filter;
   const showPending = showAll || filter === "pending";
@@ -162,13 +203,25 @@ const AdminBrandOffers = () => {
   const showOther = showAll;
 
   const filterLabel =
-    filter === "pending" ? "Offer requests"
-      : filter === "live" ? "Live offers"
+    filter === "pending" ? "Campaign requests"
+      : filter === "live" ? "Live campaigns"
         : filter === "brands" ? "Live brands"
           : null;
 
-  const brandNameOf = (o: typeof withDerived[number]) =>
-    (o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand";
+  const submitterOf = (o: typeof withDerived[number]): string => {
+    const owner = ownerOf(o);
+    const brandUserId = (o as { brand_user_id?: string }).brand_user_id;
+    if (owner === "pro") {
+      return brandUserId ? (proNamesById[brandUserId] ?? "Professional") : "Professional";
+    }
+    return (o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand";
+  };
+
+  const updateType = (t: OwnerType | null) => {
+    const next = new URLSearchParams(params);
+    if (t) next.set("type", t); else next.delete("type");
+    setParams(next, { replace: true });
+  };
 
   const renderOffer = (o: typeof withDerived[number]) => {
     const t = totals[o.id];
@@ -187,9 +240,12 @@ const AdminBrandOffers = () => {
         <SurfaceCard className="py-3.5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <p className="font-display text-[15px] leading-tight">{o.headline}</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <CampaignTypeBadge ownerType={ownerOf(o)} />
+                <p className="font-display text-[15px] leading-tight truncate">{o.headline || "Untitled campaign"}</p>
+              </div>
               <p className="text-[11px] text-muted-foreground font-body mt-0.5">
-                {brandNameOf(o)} · {money(o.total_price_pence)}
+                {submitterOf(o)} · {money(o.total_price_pence)}
               </p>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -260,6 +316,39 @@ const AdminBrandOffers = () => {
           <CalendarIcon className="size-4 mr-1.5" /> Booking calendar
         </Button>
 
+        {/* Campaign type filter — All / Brand / Pro */}
+        <div className="flex items-center gap-1.5" role="tablist" aria-label="Filter by campaign type">
+          {([
+            { key: null, label: "All", count: chipCounts.all },
+            { key: "brand" as const, label: "Brand", count: chipCounts.brand },
+            { key: "pro" as const, label: "Pro", count: chipCounts.pro },
+          ]).map((chip) => {
+            const active = typeFilter === chip.key;
+            return (
+              <button
+                key={chip.label}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => updateType(chip.key)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-body font-medium transition-colors",
+                  active
+                    ? chip.key === "pro"
+                      ? "bg-primary text-primary-foreground"
+                      : chip.key === "brand"
+                        ? "bg-foreground text-background"
+                        : "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
+                )}
+              >
+                {chip.label}
+                <span className={cn("text-[10px] opacity-80", active ? "" : "")}>· {chip.count}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {showPending && (
           <div>
             <SectionLabel className="!px-0">Pending review ({underReview.length})</SectionLabel>
@@ -271,9 +360,12 @@ const AdminBrandOffers = () => {
                   <SurfaceCard key={o.id} className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="font-display text-[15px] leading-tight">{o.headline}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {brandNameOf(o)} · {money(o.total_price_pence)}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <CampaignTypeBadge ownerType={ownerOf(o)} />
+                          <p className="font-display text-[15px] leading-tight truncate">{o.headline || "Untitled campaign"}</p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {submitterOf(o)} · {money(o.total_price_pence)}
                         </p>
                         {(() => {
                           const b = subBadge((o as { brand_user_id?: string }).brand_user_id);
@@ -323,7 +415,14 @@ const AdminBrandOffers = () => {
           </div>
         )}
 
-        {showPending && <PendingRevisionsSection />}
+        {showPending && (
+          <PendingRevisionsSection
+            ownerInfo={Object.fromEntries(
+              withDerived.map((o) => [o.id, { owner: ownerOf(o), submitter: submitterOf(o) }]),
+            )}
+            typeFilter={typeFilter}
+          />
+        )}
 
         {showAll && awaitingPayment.length > 0 && (
           <div>
@@ -347,9 +446,12 @@ const AdminBrandOffers = () => {
                   return (
                     <div key={o.id} className="space-y-1">
                       <div className="flex items-center justify-between gap-2 px-0.5">
-                        <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground">
-                          {brandNameOf(o)}
-                        </p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <CampaignTypeBadge ownerType={ownerOf(o)} />
+                          <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground truncate">
+                            {submitterOf(o)}
+                          </p>
+                        </div>
                         <CountdownClock offer={o} />
                       </div>
                       <LiveOfferCard
@@ -408,14 +510,25 @@ const AdminBrandOffers = () => {
   );
 };
 
-const PendingRevisionsSection = () => {
+const PendingRevisionsSection = ({
+  ownerInfo,
+  typeFilter,
+}: {
+  ownerInfo: Record<string, { owner: OwnerType; submitter: string }>;
+  typeFilter: OwnerType | null;
+}) => {
   const nav = useNavigate();
   const { data: revisions = [] } = useAllPendingRevisions();
-  if (revisions.length === 0) return null;
+  const filtered = revisions.filter((r) => {
+    if (!typeFilter) return true;
+    const info = ownerInfo[r.offer_id];
+    return info ? info.owner === typeFilter : true;
+  });
+  if (filtered.length === 0) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 pt-1">
-        <SectionLabel className="!px-0 !text-destructive">Urgent — pending revisions ({revisions.length})</SectionLabel>
+        <SectionLabel className="!px-0 !text-destructive">Urgent — pending revisions ({filtered.length})</SectionLabel>
         <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex h-full w-full rounded-full bg-destructive-foreground opacity-70 animate-ping" />
@@ -427,15 +540,19 @@ const PendingRevisionsSection = () => {
       <p className="text-[11px] text-destructive/80 font-body -mt-1 leading-snug">
         Live campaigns with creative edits awaiting review. The original creative stays live until you approve — approve or reject promptly.
       </p>
-      {revisions.map((r) => {
+      {filtered.map((r) => {
         const offer = (r as unknown as { offer?: { headline?: string; brand_user_id?: string } }).offer;
+        const info = ownerInfo[r.offer_id];
         return (
           <button key={r.id} onClick={() => nav(`/admin/brand-offers/${r.offer_id}?revision=${r.id}`)} className="w-full text-left">
             <SurfaceCard className="py-2.5 flex items-center gap-2 border-destructive/60 bg-destructive/5 ring-1 ring-destructive/30">
               <div className="flex-1 min-w-0">
-                <p className="font-display text-[14px] leading-tight truncate">{r.headline ?? offer?.headline ?? "Revision"}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  Revision on live ad · submitted {format(new Date(r.submitted_at), "d MMM · HH:mm")}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {info && <CampaignTypeBadge ownerType={info.owner} />}
+                  <p className="font-display text-[14px] leading-tight truncate">{r.headline ?? offer?.headline ?? "Revision"}</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {info?.submitter ? `${info.submitter} · ` : ""}Revision on live ad · submitted {format(new Date(r.submitted_at), "d MMM · HH:mm")}
                 </p>
               </div>
               <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">

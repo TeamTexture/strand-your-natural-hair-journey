@@ -56,7 +56,7 @@ const AdminBrandCalendar = () => {
       const end = format(endOfMonth(month), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("brand_offer_placements")
-        .select("id, slot, placement_date, offer_id, brand_offers!inner(headline, status, starts_on, ends_on, brand_user_id)")
+        .select("id, slot, placement_date, offer_id, brand_offers!inner(headline, status, starts_on, ends_on, brand_user_id, owner_type)")
         .gte("placement_date", start)
         .lte("placement_date", end)
         .in("brand_offers.status", ["under_review", "approved_unpaid", "paid_scheduled", "live", "ended"]);
@@ -117,7 +117,17 @@ const AdminBrandCalendar = () => {
                       !inMonth && "opacity-40",
                     )}
                   >
-                    <p className={cn("font-medium", !dayStatus && "text-muted-foreground")}>{d.getDate()}</p>
+                    <div className="flex items-center justify-between gap-0.5">
+                      <p className={cn("font-medium", !dayStatus && "text-muted-foreground")}>{d.getDate()}</p>
+                      <div className="flex items-center gap-0.5">
+                        {slotBookings.some((b) => (b.brand_offers as { owner_type?: string | null }).owner_type === "brand") && (
+                          <span className="inline-flex items-center justify-center size-3 rounded-full bg-foreground text-background text-[7px] font-body font-bold leading-none" title="Brand campaign">B</span>
+                        )}
+                        {slotBookings.some((b) => (b.brand_offers as { owner_type?: string | null }).owner_type === "pro") && (
+                          <span className="inline-flex items-center justify-center size-3 rounded-full bg-primary text-primary-foreground text-[7px] font-body font-bold leading-none" title="Pro campaign">P</span>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex flex-col gap-0.5 mt-0.5">
                       {(["home", "products", "wash_day"] as PlacementSlot[]).map((s) => {
                         const booking = slots[s];
@@ -160,8 +170,16 @@ const AdminBrandCalendar = () => {
             <span className="text-muted-foreground">Booked / scheduled</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-muted-foreground/40" />
+            <span className="inline-flex items-center justify-center size-3 rounded-full bg-muted-foreground/40 text-[7px] font-body font-bold leading-none">—</span>
             <span className="text-muted-foreground">Ended</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center size-3 rounded-full bg-foreground text-background text-[7px] font-body font-bold leading-none">B</span>
+            <span className="text-muted-foreground">Brand campaign</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center size-3 rounded-full bg-primary text-primary-foreground text-[7px] font-body font-bold leading-none">P</span>
+            <span className="text-muted-foreground">Pro campaign</span>
           </div>
         </div>
       </div>

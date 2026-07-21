@@ -36,6 +36,10 @@ interface Stats {
   liveBrands: number;
   liveBrandOffers: number;
   brandOfferRequests: number;
+  brandOfferRequestsBrand: number;
+  brandOfferRequestsPro: number;
+  liveBrandOffersBrand: number;
+  liveBrandOffersPro: number;
 }
 
 interface ActivityRow {
@@ -78,15 +82,18 @@ const useAdminStats = () =>
           .in("status", ["active", "trialing"]),
         supabase
           .from("brand_offers")
-          .select("id", { count: "exact", head: true })
+          .select("id, owner_type")
           .in("status", ["live", "paid_scheduled"])
           .lte("starts_on", today)
           .gte("ends_on", today),
         supabase
           .from("brand_offers")
-          .select("id", { count: "exact", head: true })
+          .select("id, owner_type")
           .eq("status", "under_review"),
       ]);
+      const liveOffersRows = (liveOffersQ.data ?? []) as { owner_type: string | null }[];
+      const brandReqRows = (brandReqQ.data ?? []) as { owner_type: string | null }[];
+      const isPro = (r: { owner_type: string | null }) => r.owner_type === "pro";
       const activePaid = await supabase
         .from("consumer_subscriptions")
         .select("user_id", { count: "exact", head: true })
@@ -100,8 +107,12 @@ const useAdminStats = () =>
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
         liveBrands: liveBrandsQ.count ?? 0,
-        liveBrandOffers: liveOffersQ.count ?? 0,
-        brandOfferRequests: brandReqQ.count ?? 0,
+        liveBrandOffers: liveOffersRows.length,
+        liveBrandOffersPro: liveOffersRows.filter(isPro).length,
+        liveBrandOffersBrand: liveOffersRows.filter((r) => !isPro(r)).length,
+        brandOfferRequests: brandReqRows.length,
+        brandOfferRequestsPro: brandReqRows.filter(isPro).length,
+        brandOfferRequestsBrand: brandReqRows.filter((r) => !isPro(r)).length,
       };
     },
   });
@@ -155,11 +166,13 @@ const StatCard = ({
   label,
   value,
   tone,
+  sublabel,
   onClick,
 }: {
   label: string;
   value: number | string;
   tone?: "warn" | "urgent" | "default";
+  sublabel?: string;
   onClick?: () => void;
 }) => {
   const content = (
@@ -180,6 +193,11 @@ const StatCard = ({
       >
         {value}
       </p>
+      {sublabel && (
+        <p className="text-[9.5px] font-body text-muted-foreground mt-1 leading-tight">
+          {sublabel}
+        </p>
+      )}
       {onClick && (
         <ChevronRight className="size-3.5 text-muted-foreground absolute top-3 right-3" />
       )}
@@ -319,9 +337,9 @@ const AdminHub = () => {
               />
             </div>
 
-            <SectionLabel className="!px-0">Brands</SectionLabel>
+            <SectionLabel className="!px-0">Campaigns</SectionLabel>
             <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
-              Paying brand partners — kept separate from consumer members.
+              Promoted placements from brands and professionals — shared inventory.
             </p>
             <div className="grid grid-cols-3 gap-2.5">
               <StatCard
@@ -330,14 +348,24 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/brand-offers?filter=brands")}
               />
               <StatCard
-                label="Live offers"
+                label="Live campaigns"
                 value={stats.liveBrandOffers}
+                sublabel={
+                  stats.liveBrandOffers > 0
+                    ? `${stats.liveBrandOffersBrand} brand · ${stats.liveBrandOffersPro} pro`
+                    : undefined
+                }
                 onClick={() => nav("/admin/brand-offers?filter=live")}
               />
               <StatCard
-                label="Offer requests"
+                label="Requests"
                 value={stats.brandOfferRequests}
                 tone={stats.brandOfferRequests > 0 ? "warn" : "default"}
+                sublabel={
+                  stats.brandOfferRequests > 0
+                    ? `${stats.brandOfferRequestsBrand} brand · ${stats.brandOfferRequestsPro} pro`
+                    : undefined
+                }
                 onClick={() => nav("/admin/brand-offers?filter=pending")}
               />
             </div>

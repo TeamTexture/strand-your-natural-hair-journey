@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
+import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBadge";
 
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
@@ -181,6 +182,34 @@ const AdminBrandOfferReview = () => {
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [heroOpen, setHeroOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [submitterName, setSubmitterName] = useState<string | null>(null);
+
+  const ownerType: OwnerType = ((offer as { owner_type?: string | null } | undefined)?.owner_type === "pro" ? "pro" : "brand");
+  const brandUserId = (offer as { brand_user_id?: string | null } | undefined)?.brand_user_id ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!brandUserId) { setSubmitterName(null); return; }
+    (async () => {
+      if (ownerType === "pro") {
+        const { data } = await supabase
+          .from("pro_profiles")
+          .select("display_name")
+          .eq("user_id", brandUserId)
+          .maybeSingle();
+        if (!cancelled) setSubmitterName((data as { display_name?: string } | null)?.display_name ?? "Professional");
+      } else {
+        const { data } = await supabase
+          .from("brand_profiles")
+          .select("brand_name")
+          .eq("user_id", brandUserId)
+          .maybeSingle();
+        if (!cancelled) setSubmitterName((data as { brand_name?: string } | null)?.brand_name ?? "Brand");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [brandUserId, ownerType]);
+
 
 
   useEffect(() => {
@@ -243,6 +272,14 @@ const AdminBrandOfferReview = () => {
                 {["live", "upcoming"].includes(deriveBrandOfferStatus(offer)) && (
                   <div className="mt-2"><CountdownClock offer={offer} variant="block" /></div>
                 )}
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  <CampaignTypeBadge ownerType={ownerType} />
+                  {submitterName && (
+                    <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground truncate">
+                      {submitterName}
+                    </p>
+                  )}
+                </div>
                 {offer.headline && <p className="font-display text-lg mt-1">{offer.headline}</p>}
                 {offer.body_copy && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{offer.body_copy}</p>}
                 {offer.discount_code && <p className="text-[11px] text-primary mt-2 font-body">Code {offer.discount_code}</p>}
