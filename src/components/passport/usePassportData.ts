@@ -15,7 +15,7 @@ export interface PassportDataset {
     country: string | null;
     onboarding_completed_at: string | null;
     created_at: string | null;
-  } | null;
+  } & Record<string, unknown> | null;
   authEmail: string | null;
   hair: Record<string, unknown> | null;
   health: Record<string, unknown> | null;
@@ -23,27 +23,27 @@ export interface PassportDataset {
   professional: Record<string, unknown> | null;
   goals: Array<Record<string, unknown> & { id: string }>;
   goalUpdates: Array<{ id: string; goal_id: string; note: string | null; voice_url: string | null; created_at: string }>;
-  bloodPanels: Array<{ id: string; panel_date: string | null; label: string | null; notes: string | null; test_type: string | null; lab_name: string | null; status: string | null }>;
-  bloodResults: Array<{ id: string; panel_id: string | null; marker: string; value: number | null; unit: string | null; status: string | null; category: string | null; updated_at: string }>;
+  bloodPanels: Array<Record<string, unknown> & { id: string; panel_date: string | null; label: string | null; notes: string | null; test_type: string | null; lab_name: string | null; status: string | null }>;
+  bloodResults: Array<Record<string, unknown> & { id: string; panel_id: string | null; marker: string; value: number | null; unit: string | null; status: string | null; category: string | null; updated_at: string }>;
   bloodSummaries: Array<{ id: string; payload: unknown; created_at: string }>;
   nutritionSummaries: Array<{ id: string; payload: unknown; created_at: string }>;
   strandSummaries: Array<{ id: string; overview: string | null; action_plan: unknown; routine_tips: unknown; created_at: string }>;
   washDays: Array<Record<string, unknown> & { id: string; wash_date: string }>;
-  journal: Array<{ id: string; entry_date: string; title: string | null; note: string | null; mood: string | null; photo_paths: string[] | null; products_used: string[] | null }>;
+  journal: Array<Record<string, unknown> & { id: string; entry_date: string; title: string | null; note: string | null; mood: string | null; photo_paths: string[] | null; products_used: string[] | null }>;
   shelf: Array<Record<string, unknown> & { id: string; name: string }>;
-  productPhotos: Array<{ id: string; product_key: string | null; storage_path: string | null }>;
-  productRatings: Array<{ id: string; product_key: string | null; product_name: string | null; rating: number | null; created_at: string }>;
-  productVoicenotes: Array<{ id: string; product_key: string | null; product_name: string | null; audio_url: string | null; duration_sec: number | null; transcript: string | null; created_at: string }>;
+  productPhotos: Array<Record<string, unknown> & { id: string; product_key: string | null; storage_path: string | null }>;
+  productRatings: Array<Record<string, unknown> & { id: string; product_key: string | null; product_name: string | null; rating: number | null; created_at: string }>;
+  productVoicenotes: Array<Record<string, unknown> & { id: string; product_key: string | null; product_name: string | null; audio_url: string | null; duration_sec: number | null; transcript: string | null; created_at: string }>;
   appointments: Array<Record<string, unknown> & { id: string; appointment_date: string }>;
-  appointmentPhotos: Array<{ id: string; appointment_id: string; storage_path: string; caption: string | null }>;
-  medications: Array<{ id: string; name: string | null; category: string | null; created_at: string }>;
+  appointmentPhotos: Array<Record<string, unknown> & { id: string; appointment_id: string; storage_path: string; caption: string | null }>;
+  medications: Array<Record<string, unknown> & { id: string; name: string | null; category: string | null; created_at: string }>;
   tools: Array<Record<string, unknown> & { id: string; name: string | null }>;
-  milestonePhotos: Array<{ id: string; storage_path: string; caption: string | null; taken_on: string | null }>;
-  beforePhotos: Array<{ id: string; storage_path: string; caption: string | null; created_at: string }>;
+  milestonePhotos: Array<Record<string, unknown> & { id: string; storage_path: string; caption: string | null; taken_on: string | null }>;
+  beforePhotos: Array<Record<string, unknown> & { id: string; storage_path: string; caption: string | null; created_at: string }>;
   savedMeals: Array<Record<string, unknown> & { id: string; name: string | null }>;
-  moodboards: Array<{ id: string; name: string | null; emoji: string | null; is_favourites: boolean | null; cover_storage_path: string | null }>;
-  moodboardImages: Array<{ id: string; board_id: string; storage_path: string; caption: string | null; is_favourite: boolean | null }>;
-  ingredientLists: Array<{ id: string; list_kind: string | null; ingredient: string | null; reason: string | null; product_count: number | null; updated_at: string }>;
+  moodboards: Array<Record<string, unknown> & { id: string; name: string | null; emoji: string | null; is_favourites: boolean | null; cover_storage_path: string | null }>;
+  moodboardImages: Array<Record<string, unknown> & { id: string; board_id: string; storage_path: string; caption: string | null; is_favourite: boolean | null }>;
+  ingredientLists: Array<Record<string, unknown> & { id: string; list_kind: string | null; ingredient: string | null; reason: string | null; product_count: number | null; updated_at: string }>;
 }
 
 const emptyDataset = (): PassportDataset => ({
@@ -77,7 +77,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         savedMeals, moodboards, moodboardImages, ingredientLists,
         decryptRes, emailRes,
       ] = await Promise.all([
-        sb.from("profiles").select("display_name, avatar_url, birth_year, heritage, postcode, country, onboarding_completed_at, created_at").eq("user_id", userId).maybeSingle(),
+        sb.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         sb.from("user_hair_profile").select("*").eq("user_id", userId).maybeSingle(),
         sb.from("user_health_profile").select("*").eq("user_id", userId).maybeSingle(),
         sb.from("user_style_profile").select("*").eq("user_id", userId).maybeSingle(),
@@ -85,26 +85,26 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         sb.from("user_goals").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("goal_updates").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("blood_panels").select("*").eq("user_id", userId).order("panel_date", { ascending: false, nullsFirst: false }),
-        sb.from("blood_results").select("id, panel_id, marker, value, unit, status, category, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
+        sb.from("blood_results").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
         sb.from("ai_summaries").select("id, payload, created_at").eq("user_id", userId).eq("kind", "blood_summary").order("created_at", { ascending: false }),
         sb.from("ai_summaries").select("id, payload, created_at").eq("user_id", userId).eq("kind", "nutrition_plan").order("created_at", { ascending: false }),
         sb.from("hair_strand_summaries").select("id, overview, action_plan, routine_tips, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("wash_days").select("*").eq("user_id", userId).order("wash_date", { ascending: false }),
         sb.from("journal_entries").select("*").eq("user_id", userId).order("entry_date", { ascending: false }),
         sb.from("user_products").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
-        sb.from("user_product_photos").select("id, product_key, storage_path").eq("user_id", userId),
-        sb.from("product_ratings").select("id, product_key, product_name, rating, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
-        sb.from("product_voicenotes").select("id, product_key, product_name, audio_url, duration_sec, transcript, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+        sb.from("user_product_photos").select("*").eq("user_id", userId),
+        sb.from("product_ratings").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+        sb.from("product_voicenotes").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("appointments").select("*").eq("user_id", userId).order("appointment_date", { ascending: false }),
-        sb.from("appointment_photos").select("id, appointment_id, storage_path, caption").eq("user_id", userId),
-        sb.from("user_medications").select("id, name, category, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+        sb.from("appointment_photos").select("*").eq("user_id", userId),
+        sb.from("user_medications").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("user_tools").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
-        sb.from("user_milestone_photos").select("id, storage_path, caption, taken_on").eq("user_id", userId).order("taken_on", { ascending: false, nullsFirst: false }),
-        sb.from("user_before_photos").select("id, storage_path, caption, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+        sb.from("user_milestone_photos").select("*").eq("user_id", userId).order("taken_on", { ascending: false, nullsFirst: false }),
+        sb.from("user_before_photos").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("user_saved_meals").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-        sb.from("moodboards").select("id, name, emoji, is_favourites, cover_storage_path").eq("user_id", userId).order("created_at", { ascending: false }),
-        sb.from("moodboard_images").select("id, board_id, storage_path, caption, is_favourite").eq("user_id", userId).order("created_at", { ascending: false }),
-        sb.from("ingredient_lists").select("id, list_kind, ingredient, reason, product_count, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
+        sb.from("moodboards").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+        sb.from("moodboard_images").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+        sb.from("ingredient_lists").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
         sb.functions.invoke("passport-decrypt", { body: { target_user_id: userId } }).catch(() => ({ data: null })),
         // Admins can read auth emails; pros cannot. Ignore errors.
         sb.rpc("admin_list_member_emails" as never).then(
@@ -132,7 +132,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
       }
 
       const asArray = <T,>(r: { data: unknown[] | null }): T[] => (r.data ?? []) as T[];
-      const p = profile.data as {
+      const p = profile.data as Record<string, unknown> & {
         display_name?: string | null; avatar_url?: string | null; birth_year?: number | null;
         heritage?: string[] | null; postcode?: string | null; country?: string | null;
         onboarding_completed_at?: string | null; created_at?: string | null;
@@ -159,6 +159,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
       const medsMerged = (medications.data ?? []).map((m) => {
         const decMed = dec?.medications?.find((x) => x.id === (m as { id: string }).id);
         return {
+          ...(m as Record<string, unknown>),
           id: (m as { id: string }).id,
           name: decMed?.name ?? (m as { name?: string | null }).name ?? null,
           category: decMed?.category ?? (m as { category?: string | null }).category ?? null,
@@ -174,6 +175,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         clientName: p?.display_name || "Client",
         memberSince: p?.created_at ?? null,
         profile: p ? {
+          ...p,
           display_name: p.display_name ?? null,
           avatar_url: p.avatar_url ?? null,
           birth_year: p.birth_year ?? null,
