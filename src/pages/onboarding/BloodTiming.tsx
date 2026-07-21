@@ -34,7 +34,7 @@ const BloodTiming = () => {
 
       <div className="px-5 pb-8 space-y-4">
         <h2 className="font-display text-[22px] leading-tight text-center pt-2">
-          Have you had a blood test in the last 3 months?
+          Have you had a blood test in the last 6 months?
         </h2>
         <ItalicSub>
           Blood deficiencies are one of the most overlooked causes of hair shedding and slow growth.
@@ -60,8 +60,8 @@ const BloodTiming = () => {
             >
               <p className="text-sm font-medium font-body">
                 {v === "yes"
-                  ? "Yes — within the last 3 months"
-                  : "No — it's older than 3 months or I've never tested"}
+                  ? "Yes — within the last 6 months"
+                  : "No — it's older than 6 months or I've never tested"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {v === "yes"
