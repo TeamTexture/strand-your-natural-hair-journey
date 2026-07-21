@@ -146,7 +146,7 @@ const AdminApplications = () => {
 
       {/* Underline filter tabs */}
       <div className="px-5 border-b border-primary/10">
-        <div className="flex gap-5 overflow-x-auto no-scrollbar">
+        <div className="flex gap-5">
           {tabs.map((t) => {
             const active = tab === t.key;
             return (
