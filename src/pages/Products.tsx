@@ -286,7 +286,6 @@ const Products = () => {
                           className="flex-1 min-w-0 text-left"
                         >
                           <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
-                          <p className="text-sm font-medium font-body leading-snug break-words">{p.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Stars n={stars} />
                             {noteCount > 0 && (
