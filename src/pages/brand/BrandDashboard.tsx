@@ -175,18 +175,41 @@ const BrandDashboard = () => {
           </div>
         )}
 
+        {underReview.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Under review</SectionLabel>
+            <div className="space-y-2">{underReview.map(renderOffer)}</div>
+          </div>
+        )}
+
+        {awaitingPayment.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Awaiting payment</SectionLabel>
+            <div className="space-y-2">{awaitingPayment.map(renderOffer)}</div>
+          </div>
+        )}
+
         <div>
-          <SectionLabel className={`!px-0 ${drafts.length > 0 ? "" : "!mt-0"}`}>Live &amp; upcoming</SectionLabel>
-          {live.length === 0 ? (
-            <EmptyState icon="✦" message="No live offers yet. Create your first placement above." tone="card" />
+          <SectionLabel className={`!px-0 ${drafts.length + underReview.length + awaitingPayment.length > 0 ? "" : "!mt-0"}`}>
+            Live
+          </SectionLabel>
+          {liveNow.length === 0 ? (
+            <EmptyState icon="✦" message="Nothing running right now." tone="card" />
           ) : (
-            <div className="space-y-2">{live.map(renderOffer)}</div>
+            <div className="space-y-2">{liveNow.map(renderOffer)}</div>
           )}
         </div>
 
+        {upcoming.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Upcoming</SectionLabel>
+            <div className="space-y-2">{upcoming.map(renderOffer)}</div>
+          </div>
+        )}
+
         {past.length > 0 && (
           <div>
-            <SectionLabel className="!px-0">Past offers</SectionLabel>
+            <SectionLabel className="!px-0">Past</SectionLabel>
             <div className="space-y-2">{past.map(renderOffer)}</div>
           </div>
         )}
