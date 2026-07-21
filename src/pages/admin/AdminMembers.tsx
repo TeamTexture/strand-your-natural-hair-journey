@@ -260,6 +260,9 @@ const AdminMembers = () => {
                     <p className="text-sm font-body font-semibold truncate">
                       {r.display_name ?? "Unnamed member"}
                     </p>
+                    {r.email && (
+                      <p className="text-[12px] text-muted-foreground truncate">{r.email}</p>
+                    )}
                     <p className="text-[11px] text-muted-foreground truncate">
                       Joined {new Date(r.created_at).toLocaleDateString("en-GB")} · {r.user_id.slice(0, 8)}
                     </p>
