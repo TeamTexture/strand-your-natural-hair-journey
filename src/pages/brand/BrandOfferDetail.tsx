@@ -106,6 +106,55 @@ const BrandOfferDetail = () => {
           )}
         </SurfaceCard>
 
+        {pendingRevision && (
+          <SurfaceCard className="bg-warn/5 border-warn/40">
+            <div className="flex items-start gap-2.5">
+              <Clock className="size-4 text-warn mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px]">Changes under review</p>
+                <p className="text-[11.5px] text-muted-foreground font-body mt-0.5 leading-snug">
+                  Your original creative is still running to members. When the admin approves your edit, the banner updates on next load —
+                  the date window, placements and stats stay the same. No new payment.
+                </p>
+                <p className="text-[10.5px] text-muted-foreground font-body mt-1">
+                  Submitted {format(new Date(pendingRevision.submitted_at), "d MMM · HH:mm")}
+                </p>
+                <div className="flex gap-1.5 mt-2">
+                  <Button variant="outline" size="pill" onClick={() => nav(`/brand/offers/${offer.id}/edit`)} className="flex-1 text-[11px]">
+                    Update changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="pill"
+                    onClick={() => setConfirmWithdraw(true)}
+                    disabled={withdrawRevision.isPending}
+                    className="flex-1 text-[11px] text-destructive border-destructive/30 hover:bg-destructive/5"
+                  >
+                    Withdraw
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
+
+        {!pendingRevision && lastRejectedRevision?.rejection_reason && (
+          <SurfaceCard className="bg-destructive/5 border-destructive/30">
+            <div className="flex items-start gap-2.5">
+              <XCircle className="size-4 text-destructive mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px]">Last edit rejected</p>
+                <p className="text-[11.5px] text-foreground/80 font-body mt-0.5 leading-snug">
+                  {lastRejectedRevision.rejection_reason}
+                </p>
+                <p className="text-[10.5px] text-muted-foreground font-body mt-1">
+                  Your original creative is still running. You can submit new changes any time.
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
+
         {needsPayment && (
           <SurfaceCard className="bg-primary/5 border-primary/40">
             <p className="font-display text-[15px]">Approved — complete payment to confirm your placement</p>
