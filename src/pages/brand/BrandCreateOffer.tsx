@@ -384,7 +384,7 @@ const BrandCreateOffer = () => {
 
   const submit = async (asDraft: boolean) => {
     if (!user) return;
-    if (!asDraft && !headline.trim()) return toast.error("Add a headline.");
+    // Headline is optional — no validation required.
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
     if (!asDraft && !brandSubActive) {
