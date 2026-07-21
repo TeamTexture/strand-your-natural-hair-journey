@@ -104,6 +104,8 @@ const GlobalMenu = () => {
 
   if (hidden) return null;
 
+  const isOnboarding = ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p));
+
   const path = location.pathname;
   const activeView: "consumer" | "pro" | "admin" = path.startsWith("/admin")
     ? "admin"
