@@ -158,7 +158,7 @@ const SplashScreen = () => {
             Are you a professional?{" "}
             <button
               type="button"
-              onClick={() => navigate("/pro/apply")}
+              onClick={() => navigate("/pro/auth")}
               className="text-primary underline underline-offset-2 hover:text-primary/80"
             >
               Apply to join
