@@ -341,6 +341,18 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
     cur.row("Default styles", toText(style.default_styles));
     cur.row("Current colour status", toText(style.colour));
     cur.row("Chemical history", toText(style.chemical_history));
+    // ── Colour history (consultation data) ──
+    cur.row("Colour type", toText(style.colour_type));
+    cur.row("Colour product", toText(style.colour_product));
+    cur.row("Last colour treatment", toText(style.colour_last_treated));
+    cur.row(
+      "Reaction to hair colour",
+      style.colour_reaction === true ? "Yes" : style.colour_reaction === false ? "No" : "—",
+      style.colour_reaction === true ? COLORS.warn : COLORS.charcoal,
+    );
+    if (style.colour_reaction === true) {
+      cur.row("Reaction details", toText(style.colour_reaction_details));
+    }
   }
 
   // ── Health & lifestyle ──

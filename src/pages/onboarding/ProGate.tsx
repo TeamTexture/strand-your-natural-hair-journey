@@ -63,10 +63,22 @@ const ProGate = () => {
           variant="gold"
           size="pill"
           className="mt-4"
-          onClick={() => navigate(choice === "yes" ? "/onboarding/pro-details" : "/onboarding/pro-book")}
+          onClick={() =>
+            navigate(
+              choice === "yes"
+                ? "/onboarding/pro-details"
+                : "/directory?consultation=1",
+            )
+          }
         >
-          Continue →
+          {choice === "yes" ? "Continue →" : "See verified professionals →"}
         </Button>
+        {choice === "no" && (
+          <p className="text-[12px] text-muted-foreground text-center leading-snug pt-2">
+            You'll need a recent professional hair consultation to unlock STRAND.
+            Book with a vetted expert — your profile will be waiting when you're ready.
+          </p>
+        )}
       </div>
     </ScreenLayout>
   );

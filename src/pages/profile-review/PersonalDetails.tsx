@@ -15,6 +15,7 @@ import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
+import HardWaterHint from "@/components/HardWaterHint";
 
 const AVATAR_BUCKET = "avatars";
 
@@ -287,6 +288,7 @@ const PersonalDetailsReview = () => {
             await saveField({ postcode: pc });
           }}
         />
+        <HardWaterHint postcode={profile?.postcode} className="-mt-1" />
 
         <ReviewField
           label="Country"

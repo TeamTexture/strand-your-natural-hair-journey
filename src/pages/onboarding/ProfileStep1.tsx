@@ -1,12 +1,13 @@
 import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, X } from "lucide-react";
+import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, Stethoscope, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
+import HardWaterHint from "@/components/HardWaterHint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
@@ -342,6 +343,31 @@ const ProfileStep1 = () => {
       <ProgressDots total={9} current={1} />
       <ItalicSub>This shapes every recommendation Strand makes.</ItalicSub>
 
+      <div className="px-5 pt-1 pb-3">
+        <SurfaceCard tone="gold" className="!py-3">
+          <div className="flex gap-2.5">
+            <Stethoscope className="size-4 text-primary shrink-0 mt-0.5" />
+            <div className="text-[12.5px] leading-snug font-body">
+              <p className="font-semibold text-foreground">
+                Before you invest time here — STRAND unlocks with two things on file:
+              </p>
+              <ul className="mt-1 space-y-0.5 text-foreground/85">
+                <li>• A blood test within the last 3 months</li>
+                <li>• A professional hair consultation within the last 3 months</li>
+              </ul>
+              <button
+                type="button"
+                onClick={() => navigate("/directory")}
+                className="mt-1.5 text-primary text-[12px] font-semibold underline underline-offset-2"
+              >
+                Browse verified professionals →
+              </button>
+            </div>
+          </div>
+        </SurfaceCard>
+      </div>
+
+
       <form
         className="px-5 space-y-4 pb-8"
         onClick={dismissKeyboard}
@@ -525,7 +551,9 @@ const ProfileStep1 = () => {
             />
           </FieldFrame>
           {submitted && errors.postcode && <FieldError>{errors.postcode}</FieldError>}
+          <HardWaterHint postcode={postcode} />
         </label>
+
 
         {/* Country */}
         <label className="block">

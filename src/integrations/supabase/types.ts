@@ -1203,6 +1203,11 @@ export type Database = {
       user_style_profile: {
         Row: {
           chemical_history: string[]
+          colour_last_treated: string | null
+          colour_product: string | null
+          colour_reaction: boolean | null
+          colour_reaction_details: string | null
+          colour_type: string | null
           created_at: string
           current_colour_status: string | null
           current_hairstyle: string | null
@@ -1216,6 +1221,11 @@ export type Database = {
         }
         Insert: {
           chemical_history?: string[]
+          colour_last_treated?: string | null
+          colour_product?: string | null
+          colour_reaction?: boolean | null
+          colour_reaction_details?: string | null
+          colour_type?: string | null
           created_at?: string
           current_colour_status?: string | null
           current_hairstyle?: string | null
@@ -1229,6 +1239,11 @@ export type Database = {
         }
         Update: {
           chemical_history?: string[]
+          colour_last_treated?: string | null
+          colour_product?: string | null
+          colour_reaction?: boolean | null
+          colour_reaction_details?: string | null
+          colour_type?: string | null
           created_at?: string
           current_colour_status?: string | null
           current_hairstyle?: string | null

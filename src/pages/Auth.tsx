@@ -173,6 +173,25 @@ const Auth = () => {
           </p>
         </div>
 
+        {mode === "signup" && (
+          <div className="mb-5 rounded-[14px] border border-primary/40 bg-primary/5 p-3.5">
+            <p className="text-[12.5px] font-semibold text-foreground leading-snug">
+              STRAND unlocks with two things on file:
+            </p>
+            <ul className="mt-1.5 text-[12px] text-foreground/85 leading-snug space-y-0.5 font-body">
+              <li>• A blood test within the last 3 months</li>
+              <li>• A professional hair consultation within the last 3 months</li>
+            </ul>
+            <button
+              type="button"
+              onClick={() => navigate("/directory")}
+              className="mt-2 text-primary text-[12px] font-semibold underline underline-offset-2"
+            >
+              Not there yet? Browse verified professionals →
+            </button>
+          </div>
+        )}
+
         <form onSubmit={submit} className="space-y-4 selectable">
           {mode === "signup" && (
             <div className="space-y-1.5">

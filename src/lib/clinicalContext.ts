@@ -57,6 +57,12 @@ export interface StyleSlice {
   default_styles: string[];
   colour: string[];
   chemical_history: string[];
+  // ── Colour history ──
+  colour_type?: string | null;
+  colour_product?: string | null;
+  colour_last_treated?: string | null;
+  colour_reaction?: boolean | null;
+  colour_reaction_details?: string | null;
   // Legacy localStorage fields kept for compatibility with code that reads
   // `style.howLong` / `style.plans` / `style.style` / `style.style_set_on`.
   howLong?: string;
@@ -478,7 +484,7 @@ export async function loadClinicalContext(
         supabase
           .from("user_style_profile")
           .select(
-            "current_colour_status, chemical_history, current_hairstyle, style_set_at, planned_next_style, planned_change_date, default_styles",
+            "current_colour_status, chemical_history, current_hairstyle, style_set_at, planned_next_style, planned_change_date, default_styles, colour_type, colour_product, colour_last_treated, colour_reaction, colour_reaction_details",
           )
           .eq("user_id", userId)
           .maybeSingle(),
@@ -594,6 +600,11 @@ export async function loadClinicalContext(
         chemical_history: styleRow.chemical_history ?? [],
         chemHist: styleRow.chemical_history ?? [],
         style: styleRow.current_hairstyle ? [styleRow.current_hairstyle] : [],
+        colour_type: (styleRow as { colour_type?: string | null }).colour_type ?? null,
+        colour_product: (styleRow as { colour_product?: string | null }).colour_product ?? null,
+        colour_last_treated: (styleRow as { colour_last_treated?: string | null }).colour_last_treated ?? null,
+        colour_reaction: (styleRow as { colour_reaction?: boolean | null }).colour_reaction ?? null,
+        colour_reaction_details: (styleRow as { colour_reaction_details?: string | null }).colour_reaction_details ?? null,
       };
     }
 
