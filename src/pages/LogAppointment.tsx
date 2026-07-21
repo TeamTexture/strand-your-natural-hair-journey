@@ -273,7 +273,7 @@ const LogAppointment = () => {
         follow_up_needed: false,
         follow_up_date: null,
         follow_up_time: null,
-        linked_pro_user_id: pickedFromDirectory?.proUserId ?? null,
+        linked_pro_user_id: pickedFromDirectory?.proUserId ?? existingLinkedProId ?? null,
       };
 
       const { error: followErr } = await supabase.from("appointments").insert(followPayload);
