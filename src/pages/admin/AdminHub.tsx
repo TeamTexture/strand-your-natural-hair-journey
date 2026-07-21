@@ -387,29 +387,6 @@ const AdminHub = () => {
               </SurfaceCard>
             </button>
 
-            {revisionCount > 0 && (
-              <button
-                type="button"
-                onClick={() => nav("/admin/brand-offers?filter=pending")}
-                className="w-full text-left transition-transform active:scale-[0.99]"
-              >
-                <SurfaceCard className="py-2.5 border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40 flex items-center gap-2.5">
-                  <span className="relative flex size-2 shrink-0">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-70 animate-ping" />
-                    <span className="relative inline-flex size-2 rounded-full bg-destructive" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[13.5px] leading-tight text-destructive">
-                      Urgent · {revisionCount} live ad revision{revisionCount === 1 ? "" : "s"} awaiting review
-                    </p>
-                    <p className="text-[11px] text-destructive/80 font-body leading-snug">
-                      Edits to already-live campaigns — approve or reject now.
-                    </p>
-                  </div>
-                  <ChevronRight className="size-4 text-destructive shrink-0" />
-                </SurfaceCard>
-              </button>
-            )}
           </>
         )}
 
