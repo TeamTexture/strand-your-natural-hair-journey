@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Sparkles, Image as ImageIcon, Trash2, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Trash2, Loader2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import PlacementCalendarPicker from "@/components/PlacementCalendarPicker";
+import BannerPreview from "@/components/brand/BannerPreview";
+import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer } from "@/hooks/useBrandOffers";
