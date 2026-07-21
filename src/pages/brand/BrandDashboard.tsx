@@ -133,8 +133,18 @@ const BrandDashboard = () => {
           <Plus className="size-4 mr-1.5" /> Create new offer
         </Button>
 
+        {drafts.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0 !mt-0">Drafts</SectionLabel>
+            <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-1.5 leading-snug">
+              Half-finished offers you can pick back up. Nothing is submitted until you tap Review.
+            </p>
+            <div className="space-y-2">{drafts.map(renderOffer)}</div>
+          </div>
+        )}
+
         <div>
-          <SectionLabel className="!px-0 !mt-0">Live &amp; upcoming</SectionLabel>
+          <SectionLabel className={`!px-0 ${drafts.length > 0 ? "" : "!mt-0"}`}>Live &amp; upcoming</SectionLabel>
           {live.length === 0 ? (
             <EmptyState icon="✦" message="No live offers yet. Create your first placement above." tone="card" />
           ) : (
