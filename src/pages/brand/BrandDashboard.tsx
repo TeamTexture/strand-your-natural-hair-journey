@@ -10,6 +10,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
@@ -38,6 +39,7 @@ const StatusPill = ({ status }: { status: DerivedStatus }) => {
 
 const BrandDashboard = () => {
   const nav = useNavigate();
+  const { signOut } = useAuth();
   const { data: profile, isLoading: profileLoading } = useBrandProfile();
   const { data: offers = [], isLoading } = useBrandOffers();
   const { subscription, isActive: subActive, isAdminOverride } = useBrandSubscription();
@@ -125,7 +127,7 @@ const BrandDashboard = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} onBack={() => nav("/")} />
+      <TitleBar title={profile?.brand_name ? `${profile.brand_name} · Brand` : "Brand"} />
       <div className="px-5 pb-8 space-y-5">
         {/* Subscription banner */}
         {!subActive ? (
@@ -223,6 +225,20 @@ const BrandDashboard = () => {
             <div className="space-y-2">{past.map(renderOffer)}</div>
           </div>
         )}
+
+        <div className="pt-6">
+          <Button
+            variant="outline"
+            size="pill"
+            onClick={async () => {
+              await signOut();
+              nav("/", { replace: true });
+            }}
+            className="w-full"
+          >
+            Sign out
+          </Button>
+        </div>
       </div>
     </ScreenLayout>
   );
