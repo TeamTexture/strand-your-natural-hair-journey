@@ -22,6 +22,8 @@ const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
 const analysisCacheKind = (brandProductId: string) =>
   `brand_product_analysis:${brandProductId}`;
+const guidanceCacheKind = (brandProductId: string) =>
+  `brand_product_guidance:${brandProductId}`;
 
 interface IngredientFlag {
   name: string;
@@ -37,6 +39,14 @@ type AnalysisPayload = {
   verdict?: string | null;
   rationale?: string | null;
   cautions?: string[];
+};
+
+type GuidancePayload = {
+  headline: string;
+  fit_summary: string;
+  how_to_use: string[];
+  benefits_for_you: string[];
+  cautions: string[];
 };
 
 const formatDate = (iso: string | null | undefined) => {
@@ -59,6 +69,8 @@ const BrandProductPage = () => {
   const [analysis, setAnalysis] = useState<AnalysisPayload | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [guidance, setGuidance] = useState<GuidancePayload | null>(null);
+  const [guidanceLoading, setGuidanceLoading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["brand-product-page", offerId, productId],
@@ -251,6 +263,75 @@ const BrandProductPage = () => {
         setAiError(e instanceof Error ? e.message : "Analysis failed");
       } finally {
         if (!cancelled) setAiLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, user?.id, offer?.id]);
+
+  // ── Personalised usage guidance: "how to get the most out of this" ──
+  useEffect(() => {
+    if (!product || !user || !offer) return;
+    let cancelled = false;
+    const cacheKind = guidanceCacheKind(product.id);
+
+    (async () => {
+      setGuidanceLoading(true);
+      try {
+        const { data: cached } = await supabase
+          .from("ai_summaries")
+          .select("payload")
+          .eq("user_id", user.id)
+          .eq("kind", cacheKind)
+          .maybeSingle();
+        if (cancelled) return;
+        if (cached?.payload) {
+          setGuidance(cached.payload as GuidancePayload);
+          setGuidanceLoading(false);
+          return;
+        }
+
+        const context = await buildAiContext();
+        const { data: res, error } = await supabase.functions.invoke(
+          "brand-product-guidance",
+          {
+            body: {
+              product: {
+                id: product.id,
+                name: product.name,
+                brand: brandName,
+                description: product.description,
+                kind: product.kind,
+                tool_kind: product.tool_kind,
+                external_url: product.external_url,
+                ingredients: product.ingredients ?? [],
+                key_features: product.key_features ?? [],
+                materials: product.materials ?? [],
+              },
+              context,
+            },
+          },
+        );
+        if (error) throw error;
+        if (res?.error) throw new Error(String(res.error));
+        const g = res?.guidance as GuidancePayload | undefined;
+        if (!g || cancelled) return;
+        setGuidance(g);
+        await supabase.from("ai_summaries").upsert(
+          {
+            user_id: user.id,
+            kind: cacheKind,
+            payload: g as unknown as Record<string, unknown>,
+          } as never,
+          { onConflict: "user_id,kind" },
+        );
+      } catch {
+        // Silent — the other AI panel still renders.
+      } finally {
+        if (!cancelled) setGuidanceLoading(false);
       }
     })();
 
@@ -458,6 +539,73 @@ const BrandProductPage = () => {
             </>
           )}
         </SurfaceCard>
+
+        {/* Personalised usage playbook */}
+        {(guidanceLoading || guidance) && (
+          <SurfaceCard className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              <SectionLabel className="!px-0 !mt-0">Get the most out of this</SectionLabel>
+            </div>
+            {guidanceLoading && !guidance && (
+              <div className="flex items-center gap-2 text-[12px] text-muted-foreground font-body">
+                <Loader2 className="size-3.5 animate-spin" /> Building your usage playbook…
+              </div>
+            )}
+            {guidance && (
+              <>
+                {guidance.headline && (
+                  <p className="font-display text-[15px] leading-tight">{guidance.headline}</p>
+                )}
+                {guidance.fit_summary && (
+                  <p className="text-[13px] text-foreground/85 leading-relaxed font-body">
+                    {guidance.fit_summary}
+                  </p>
+                )}
+                {guidance.how_to_use.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-body mb-1.5">
+                      How to use it for your hair
+                    </p>
+                    <ul className="space-y-1">
+                      {guidance.how_to_use.map((s, i) => (
+                        <li key={i} className="text-[12.5px] leading-snug font-body flex gap-2">
+                          <span className="text-primary shrink-0">•</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {guidance.benefits_for_you.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-body mb-1.5">
+                      What you can expect
+                    </p>
+                    <ul className="space-y-1">
+                      {guidance.benefits_for_you.map((s, i) => (
+                        <li key={i} className="text-[12.5px] leading-snug font-body flex gap-2">
+                          <span className="text-good shrink-0">•</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {guidance.cautions.length > 0 && (
+                  <div className="pt-1 space-y-1">
+                    {guidance.cautions.map((c, i) => (
+                      <p key={i} className="text-[11px] text-alert-dark leading-snug font-body">
+                        • {c}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </SurfaceCard>
+        )}
+
 
         {/* Actions */}
         <div className="space-y-2">
