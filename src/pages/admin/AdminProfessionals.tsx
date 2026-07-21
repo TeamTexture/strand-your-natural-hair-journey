@@ -226,6 +226,9 @@ const AdminProfessionals = () => {
         active_clients: toNum(r.active_clients),
         views_last_30d: toNum(r.views_last_30d),
         offers_live: toNum(r.offers_live),
+        appointments_total: toNum(r.appointments_total),
+        appointments_upcoming: toNum(r.appointments_upcoming),
+
         created_at: r.created_at as string,
       }));
     },
