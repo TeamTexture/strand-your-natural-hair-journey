@@ -130,15 +130,16 @@ const ProDashboard = () => {
           <Card
             icon={Inbox}
             title="Enquiries"
-            sub={subActive ? "Client requests and passport previews." : "Subscribe to receive enquiries."}
+            sub={hasProAccess ? "Client requests and passport previews." : "Subscribe to receive enquiries."}
             onClick={() => nav("/pro/enquiries")}
+            count={pendingEnquiries}
           />
           <Card
             icon={CreditCard}
             title="Billing"
-            sub={subLoading ? "Loading…" : subActive ? "Manage your subscription." : "Subscribe to STRAND Pro."}
+            sub={subLoading ? "Loading…" : hasProAccess ? "Manage your subscription." : "Subscribe to STRAND Pro."}
             onClick={() => nav("/pro/billing")}
-            badge={subActive ? "Active" : "Inactive"}
+            badge={isAdmin && !subActive ? "Admin" : subActive ? "Active" : "Inactive"}
           />
         </div>
 
