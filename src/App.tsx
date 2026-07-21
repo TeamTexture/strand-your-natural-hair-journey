@@ -138,28 +138,28 @@ const App = () => (
                 <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
-              <Route path="/setup" element={<Protected><SetupGuide /></Protected>} />
+              <Route path="/setup" element={<Onboard><SetupGuide /></Onboard>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/walkthrough" element={<Protected><Walkthrough /></Protected>} />
+              <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
 
               {/* Onboarding (auth required so data persists) */}
-              <Route path="/onboarding/profile-step-1" element={<Protected><ProfileStep1 /></Protected>} />
-              <Route path="/onboarding/profile-step-2" element={<Protected><ProfileStep2 /></Protected>} />
-              <Route path="/onboarding/pro-gate" element={<Protected><ProGate /></Protected>} />
-              <Route path="/onboarding/pro-book" element={<Protected><ProBook /></Protected>} />
-              <Route path="/onboarding/pro-details" element={<Protected><ProDetails /></Protected>} />
-              <Route path="/onboarding/profile-step-3-hair" element={<Protected><ProfileStep3Hair /></Protected>} />
-              <Route path="/onboarding/profile-step-4-colour" element={<Protected><ProfileStep4Colour /></Protected>} />
-              <Route path="/onboarding/blood-timing" element={<Protected><BloodTiming /></Protected>} />
-              <Route path="/onboarding/blood-iron-vitamins" element={<Protected><BloodIronVitamins /></Protected>} />
-              <Route path="/onboarding/blood-minerals" element={<Protected><BloodMinerals /></Protected>} />
-              <Route path="/onboarding/blood-thyroid" element={<Protected><BloodThyroid /></Protected>} />
-              <Route path="/onboarding/blood-hormones" element={<Protected><BloodHormones /></Protected>} />
-              <Route path="/onboarding/blood-ai-summary" element={<Protected><BloodAiSummary /></Protected>} />
-              <Route path="/onboarding/photos" element={<Protected><ProfileStepPhotos /></Protected>} />
-              <Route path="/onboarding/strand-summary" element={<Protected><StrandSummary /></Protected>} />
-              <Route path="/onboarding/success" element={<Protected><SuccessScreen /></Protected>} />
+              <Route path="/onboarding/profile-step-1" element={<Onboard><ProfileStep1 /></Onboard>} />
+              <Route path="/onboarding/profile-step-2" element={<Onboard><ProfileStep2 /></Onboard>} />
+              <Route path="/onboarding/pro-gate" element={<Onboard><ProGate /></Onboard>} />
+              <Route path="/onboarding/pro-book" element={<Onboard><ProBook /></Onboard>} />
+              <Route path="/onboarding/pro-details" element={<Onboard><ProDetails /></Onboard>} />
+              <Route path="/onboarding/profile-step-3-hair" element={<Onboard><ProfileStep3Hair /></Onboard>} />
+              <Route path="/onboarding/profile-step-4-colour" element={<Onboard><ProfileStep4Colour /></Onboard>} />
+              <Route path="/onboarding/blood-timing" element={<Onboard><BloodTiming /></Onboard>} />
+              <Route path="/onboarding/blood-iron-vitamins" element={<Onboard><BloodIronVitamins /></Onboard>} />
+              <Route path="/onboarding/blood-minerals" element={<Onboard><BloodMinerals /></Onboard>} />
+              <Route path="/onboarding/blood-thyroid" element={<Onboard><BloodThyroid /></Onboard>} />
+              <Route path="/onboarding/blood-hormones" element={<Onboard><BloodHormones /></Onboard>} />
+              <Route path="/onboarding/blood-ai-summary" element={<Onboard><BloodAiSummary /></Onboard>} />
+              <Route path="/onboarding/photos" element={<Onboard><ProfileStepPhotos /></Onboard>} />
+              <Route path="/onboarding/strand-summary" element={<Onboard><StrandSummary /></Onboard>} />
+              <Route path="/onboarding/success" element={<Onboard><SuccessScreen /></Onboard>} />
 
               {/* Main app */}
               <Route path="/home" element={<Paid><Home /></Paid>} />
