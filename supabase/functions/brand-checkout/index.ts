@@ -1,5 +1,9 @@
-// Brand — Stripe Checkout Session (mode: payment) for approved offer.
+// Brand/Pro campaign — Stripe Checkout Session (mode: payment) for approved offer.
 // Creates dynamic per-placement line items and stores session on the offer.
+// Owner-agnostic: works for brand offers (owner_type='brand') and pro
+// promoted campaigns (owner_type='pro'). Eligibility is enforced via
+// has_active_promotion_eligibility so brands need annual access, pros need
+// their pro subscription, and admins pass either way.
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
@@ -34,7 +38,7 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: offer } = await admin
       .from("brand_offers")
-      .select("id, brand_user_id, status, headline")
+      .select("id, brand_user_id, status, headline, owner_type")
       .eq("id", offer_id)
       .maybeSingle();
     if (!offer) return new Response(JSON.stringify({ error: "Offer not found" }), { status: 404, headers: corsHeaders });
@@ -43,6 +47,28 @@ Deno.serve(async (req) => {
     }
     if (offer.status !== "approved_unpaid") {
       return new Response(JSON.stringify({ error: `Offer status is ${offer.status}, not approved_unpaid` }), { status: 400, headers: corsHeaders });
+    }
+
+    const ownerType = (offer as { owner_type?: string }).owner_type ?? "brand";
+
+    // Enforce per-owner platform eligibility (brand annual / pro monthly;
+    // admins bypass). Uses SECURITY DEFINER helper.
+    const { data: eligible, error: eligErr } = await admin.rpc("has_active_promotion_eligibility", {
+      _user: userId,
+      _owner_type: ownerType,
+    });
+    if (eligErr) {
+      return new Response(JSON.stringify({ error: eligErr.message }), { status: 500, headers: corsHeaders });
+    }
+    if (!eligible) {
+      return new Response(
+        JSON.stringify({
+          error: ownerType === "pro"
+            ? "An active STRAND Pro subscription is required to launch a campaign."
+            : "An active STRAND Brand membership is required to launch a campaign.",
+        }),
+        { status: 402, headers: corsHeaders },
+      );
     }
 
     const { data: placements } = await admin
@@ -75,12 +101,15 @@ Deno.serve(async (req) => {
       },
     }));
 
+    const successBase = ownerType === "pro" ? "/pro/campaigns" : "/brand";
+    const cancelPath = ownerType === "pro" ? `/pro/campaigns/${offer_id}` : `/brand/offers/${offer_id}`;
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
-      success_url: `${origin}/brand/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/brand/offers/${offer_id}`,
-      metadata: { offer_id, brand_user_id: userId },
+      success_url: `${origin}${successBase}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}${cancelPath}`,
+      metadata: { offer_id, brand_user_id: userId, owner_type: ownerType },
     });
 
     await admin.from("brand_offers").update({ stripe_session_id: session.id }).eq("id", offer_id);
