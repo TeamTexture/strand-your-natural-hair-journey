@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CreditCard, AlertCircle } from "lucide-react";
+import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -7,7 +8,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, STATUS_LABEL, SLOT_LABEL } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferTotals, STATUS_LABEL, SLOT_LABEL } from "@/hooks/useBrandOffers";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { format } from "date-fns";
 
