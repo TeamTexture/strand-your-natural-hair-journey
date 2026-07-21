@@ -8,12 +8,15 @@ interface Props {
   productName?: string | null;
   productImageUrl?: string | null;
   expanded?: boolean;
+  showSafeArea?: boolean;
 }
 
 /** Live preview of a brand banner at true mobile proportions (375px shell).
  *  Renders both collapsed (~80px strip) and expanded (drop-down with product
  *  card) states so brands see exactly what STRAND members will see.
- *  When headline is empty, renders image-only (no scrim/text overlay). */
+ *  When headline is empty, renders image-only (no scrim/text overlay).
+ *  When showSafeArea, overlays a dashed guide marking the "keep text & logos
+ *  inside" zone (6% margin) so brands don't push copy to the bleed edge. */
 const BannerPreview = ({
   heroUrl,
   headline,
@@ -22,6 +25,7 @@ const BannerPreview = ({
   productName,
   productImageUrl,
   expanded = false,
+  showSafeArea = false,
 }: Props) => {
   const hasHeadline = Boolean(headline && headline.trim());
   return (
@@ -47,7 +51,22 @@ const BannerPreview = ({
           </div>
         )}
         <ChevronDown className={`absolute right-2 top-1/2 -translate-y-1/2 size-4 ${hasHeadline || heroUrl ? "text-white/85 drop-shadow" : "text-muted-foreground"}`} />
+        {showSafeArea && (
+          <>
+            {/* Bleed edge — outer 6% is at risk of being cropped on some devices */}
+            <div className="pointer-events-none absolute inset-0 ring-1 ring-red-500/60 ring-inset" />
+            {/* Safe zone — keep headline, logos & key product imagery INSIDE this */}
+            <div
+              className="pointer-events-none absolute border border-dashed border-emerald-400"
+              style={{ top: "10%", bottom: "10%", left: "4%", right: "4%" }}
+            />
+            <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 translate-y-[9%] text-[8px] uppercase tracking-wider font-body px-1 rounded bg-emerald-500/90 text-white">
+              Safe zone
+            </span>
+          </>
+        )}
       </div>
+
 
 
       {expanded && (
