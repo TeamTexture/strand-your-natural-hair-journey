@@ -58,19 +58,22 @@ const BrandAuth = () => {
           },
         });
         if (error) throw error;
-        const uid = data.user?.id;
-        if (uid) {
-          await supabase.from("brand_profiles").insert({
-            user_id: uid,
-            brand_name: brandName.trim(),
-            contact_name: contactName.trim() || null,
-            website: website.trim() || null,
+        // Session may or may not exist depending on email-confirmation
+        // settings. If it does, immediately provision the brand role +
+        // profile via the edge function (uses service role — bypasses RLS).
+        if (data.session) {
+          const { error: fnErr } = await supabase.functions.invoke("brand-signup", {
+            body: {
+              brand_name: brandName.trim(),
+              contact_name: contactName.trim() || null,
+              website: website.trim() || null,
+            },
           });
-          // Grant the brand role so RLS admits them into /brand/*.
-          await supabase.from("user_roles").insert({ user_id: uid, role: "brand" as never });
+          if (fnErr) throw fnErr;
         }
         toast.success("Brand account created");
-        nav("/brand", { replace: true });
+        // Brands pay the annual access fee BEFORE landing in the dashboard.
+        nav("/brand/subscribe", { replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
