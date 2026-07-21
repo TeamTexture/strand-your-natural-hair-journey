@@ -29,6 +29,7 @@ import { consumeHelloKleanPrompt } from "@/lib/discounts";
 import { lookupHardWater } from "@/lib/hardWater";
 import { useSmartInline } from "@/lib/smartInline";
 import BrandBanner from "@/components/BrandBanner";
+import { titleCase } from "@/lib/humanise";
 
 
 // Rich text rendering is delegated to useSmartInline() inside the component
