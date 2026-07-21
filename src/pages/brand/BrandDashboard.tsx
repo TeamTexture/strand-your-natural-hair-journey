@@ -36,8 +36,8 @@ const BrandDashboard = () => {
 
   if (profileLoading || isLoading) return <LoadingDot />;
 
-  const today = new Date().toISOString().slice(0, 10);
-  const live = offers.filter((o) => ["live", "paid_scheduled", "approved_unpaid", "under_review", "draft"].includes(o.status));
+  const drafts = offers.filter((o) => o.status === "draft");
+  const live = offers.filter((o) => ["live", "paid_scheduled", "approved_unpaid", "under_review"].includes(o.status));
   const past = offers.filter((o) => ["ended", "rejected", "cancelled"].includes(o.status));
 
   const renderOffer = (o: typeof offers[number]) => {
