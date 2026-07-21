@@ -214,7 +214,7 @@ const SectionHeader = ({ icon: Icon, title, sub }: {
 }) => (
   <div className="px-5 mt-6 mb-4">
     <div className="flex items-center gap-2 mb-1.5">
-      <Icon className="size-3.5 text-primary" strokeWidth={1.75} />
+      <Icon className="size-3.5 text-primary" />
       <span className="text-[9.5px] uppercase tracking-[0.32em] font-body font-semibold text-primary/80">
         Section
       </span>
@@ -1935,7 +1935,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
                         : "bg-card border-border/60 text-foreground/70 hover:text-foreground hover:border-primary/30",
                     )}
                   >
-                    <TabIcon className={cn("size-3", isActive ? "text-primary" : "text-foreground/50")} strokeWidth={1.75} />
+                    <TabIcon className={cn("size-3", isActive ? "text-primary" : "text-foreground/50")} />
                     <span>{s.label}</span>
                     {count > 0 && (
                       <span className={cn(
