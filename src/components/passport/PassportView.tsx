@@ -2043,6 +2043,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           </DialogContent>
         </Dialog>
       </ScreenLayout>
+      </OpenProductContext.Provider>
     </ImagePreviewContext.Provider>
   );
 };
