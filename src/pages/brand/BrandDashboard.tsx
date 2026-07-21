@@ -285,7 +285,7 @@ const BrandDashboard = () => {
                       totals={totals[o.id]}
                       hasPendingRevision={withPendingSet.has(o.id)}
                       revisionCount={revisionCounts[o.id]}
-                      onReview={() => nav(`/brand/offers/${o.id}`)}
+                      onReview={() => nav(ownerOfferRoute(ownerMode, o.id))}
                     />
                   </div>
                 );
