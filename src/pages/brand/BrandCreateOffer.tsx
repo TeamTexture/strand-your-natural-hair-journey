@@ -213,13 +213,13 @@ const BrandCreateOffer = () => {
     queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
     enabled: catalogueOpen,
     queryFn: async (): Promise<CatalogueItem[]> => {
-      const rpc = (supabase as unknown as {
+      const client = supabase as unknown as {
         rpc: (
           fn: "brand_catalogue_items",
           args: { _kind: string; _search: string | null; _limit: number },
         ) => Promise<{ data: CatalogueItem[] | null; error: { message?: string } | null }>;
-      }).rpc;
-      const { data, error } = await rpc("brand_catalogue_items", {
+      };
+      const { data, error } = await client.rpc("brand_catalogue_items", {
         _kind: catalogueKind,
         _search: catalogueSearch.trim() || null,
         _limit: 80,
@@ -871,6 +871,16 @@ const BrandCreateOffer = () => {
             <div className="max-h-[54vh] overflow-y-auto pr-1 space-y-2">
               {catalogueQuery.isLoading ? (
                 <div className="py-8"><LoadingDot /></div>
+              ) : catalogueQuery.isError ? (
+                <div className="rounded-[12px] border border-destructive/30 bg-destructive/5 px-3 py-4 text-center">
+                  <p className="text-[12px] font-medium text-destructive">Catalogue could not load.</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {catalogueQuery.error instanceof Error ? catalogueQuery.error.message : "Please try again."}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => catalogueQuery.refetch()}>
+                    Try again
+                  </Button>
+                </div>
               ) : catalogueQuery.data?.length ? (
                 catalogueQuery.data.map((item) => (
                   <button
