@@ -299,17 +299,25 @@ const BrandCreateOffer = () => {
       if (products.length > 0) {
         const productRows = products.map((p, i) => ({
           offer_id: offerId!,
-          name: p.name || "Untitled product",
+          name: p.name || (p.kind === "tool" ? "Untitled tool" : "Untitled product"),
           description: p.description || null,
           external_url: p.external_url || null,
           image_urls: p.image_urls,
-          ingredients: p.ingredients,
+          ingredients: p.kind === "product" ? p.ingredients : [],
+          kind: p.kind,
+          tool_kind: p.kind === "tool" ? p.tool_kind : null,
+          key_features: p.kind === "tool" ? p.key_features : [],
+          materials: p.kind === "tool" ? p.materials : [],
           source_type: p.source_type,
           source_url: p.source_url ?? null,
           linked_product_id: p.linked_product_id ?? null,
           position: i,
         }));
-        const { error } = await supabase.from("brand_products").insert(productRows);
+        // Cast: brand_products was just extended with kind/tool_kind/key_features/materials;
+        // generated types will catch up on the next codegen.
+        const { error } = await supabase
+          .from("brand_products")
+          .insert(productRows as unknown as never);
         if (error) throw error;
       }
 
