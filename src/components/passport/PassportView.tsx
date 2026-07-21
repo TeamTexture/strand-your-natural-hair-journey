@@ -318,20 +318,20 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
             </div>
 
             {/* Avatar + engraved name */}
-            <div className="flex items-end gap-4">
+            <div className="flex flex-col items-center gap-3">
               {avatarIsHttp ? (
-                <img src={avatarUrl!} alt="" className="size-[204px] rounded-[16px] object-cover border border-primary/40 shrink-0" />
+                <img src={avatarUrl!} alt="" className="size-[204px] rounded-[16px] object-cover border border-primary/40" />
               ) : avatarUrl ? (
-                <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-[204px] rounded-[16px] overflow-hidden border border-primary/40 shrink-0" />
+                <SignedImage bucket="avatars" path={avatarUrl} alt="" className="size-[204px] rounded-[16px] overflow-hidden border border-primary/40" />
               ) : (
-                <div className="size-[204px] rounded-[16px] border border-primary/40 bg-primary/10 flex items-center justify-center text-primary font-display text-6xl shrink-0">
+                <div className="size-[204px] rounded-[16px] border border-primary/40 bg-primary/10 flex items-center justify-center text-primary font-display text-6xl">
                   {d.clientName.charAt(0).toUpperCase()}
                 </div>
               )}
 
-              <div className="flex-1 min-w-0 pb-0.5">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.26em] font-body text-primary/75 mb-1">Bearer</p>
-                <p className="font-display font-bold text-[24px] leading-[1.05] text-primary truncate tracking-[0.005em]">
+              <div className="text-center">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.26em] font-body text-primary/75 mb-1">Client</p>
+                <p className="font-display font-bold text-[24px] leading-[1.05] text-primary tracking-[0.005em]">
                   {d.clientName}
                 </p>
               </div>
