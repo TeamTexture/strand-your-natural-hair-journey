@@ -155,8 +155,8 @@ const ImageCropDialog = ({ file, mode, onCancel, onCropped }: Props) => {
         </DialogHeader>
         <p className="text-[12px] text-muted-foreground font-body leading-snug -mt-2">
           {mode === "banner"
-            ? "Locked to 4.7:1 (1500×320). Keep the focal point on the RIGHT — headline text renders on the left."
-            : "Locked to 1:1. Centre the product with a little breathing room."}
+            ? "Locked to 4.7:1 (1500×320). Keep headline text & logos inside the green dashed SAFE ZONE — the red edge may crop on some phones."
+            : "Locked to 1:1. Keep the product inside the green dashed SAFE ZONE so nothing important is trimmed."}
         </p>
         {warning && (
           <p className="text-[11px] text-amber-700 dark:text-amber-400 font-body">{warning}</p>
@@ -186,8 +186,29 @@ const ImageCropDialog = ({ file, mode, onCancel, onCropped }: Props) => {
             {mode === "banner" && (
               <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-black/40 to-transparent pointer-events-none" />
             )}
+            {/* Bleed edge — red inset marks the risky outer margin */}
+            <div className="pointer-events-none absolute inset-0 ring-1 ring-red-500/70 ring-inset rounded-lg" />
+            {/* Safe zone — dashed green: keep text, logos & product focal point inside */}
+            <div
+              className="pointer-events-none absolute border border-dashed border-emerald-400 rounded-md"
+              style={
+                mode === "banner"
+                  ? { top: "10%", bottom: "10%", left: "4%", right: "4%" }
+                  : { inset: "6%" }
+              }
+            />
+            <span className="pointer-events-none absolute top-1 left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-wider font-body px-1.5 py-0.5 rounded bg-emerald-500/90 text-white">
+              Safe zone
+            </span>
           </div>
         </div>
+        <p className="text-[10px] text-muted-foreground font-body leading-snug px-1">
+          <span className="inline-block w-2 h-2 rounded-sm bg-emerald-400 align-middle mr-1" />
+          Keep inside dashed line ·
+          <span className="inline-block w-2 h-2 rounded-sm bg-red-500/70 align-middle mx-1" />
+          Bleed edge may crop
+        </p>
+
         <div className="px-1">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-body">Zoom</p>
           <Slider min={1} max={3} step={0.05} value={[zoom && img ? zoom / Math.max(VIEW_W / img.width, VIEW_H / img.height) : 1]} onValueChange={(v) => onZoom(v[0])} />
