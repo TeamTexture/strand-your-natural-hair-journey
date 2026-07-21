@@ -114,6 +114,8 @@ const AdminBrandOffers = () => {
   const pending = withDerived.filter((o) => o._derived === "under_review");
   const liveOnly = withDerived.filter((o) => o._derived === "live");
   const other = withDerived.filter((o) => o._derived !== "under_review");
+  const allIds = withDerived.map((o) => o.id);
+
 
   const showPending = !filter || filter === "pending";
   const showLive = filter === "live" || filter === "brands";
