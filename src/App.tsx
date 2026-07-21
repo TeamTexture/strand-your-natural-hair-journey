@@ -163,7 +163,7 @@ const App = () => (
               <Route path="/journal/moodboards/:id" element={<Protected><MoodboardBoard /></Protected>} />
               <Route path="/appointments" element={<Protected><Appointments /></Protected>} />
               <Route path="/appointments/log" element={<Protected><LogAppointment /></Protected>} />
-              <Route path="/directory" element={<Protected><Directory /></Protected>} />
+              <Route path="/directory" element={<Directory />} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/profile/milestones" element={<Protected><MilestoneGallery /></Protected>} />
               <Route path="/blood-history" element={<Protected><BloodHistory /></Protected>} />
