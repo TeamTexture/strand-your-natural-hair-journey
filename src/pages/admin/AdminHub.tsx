@@ -360,6 +360,19 @@ const AdminHub = () => {
 
 
           <NavCard
+            icon={Megaphone}
+            title="Brand offers"
+            description="Review, approve or decline brand campaigns"
+            badge={stats?.brandOfferRequests}
+            context={
+              stats
+                ? `${stats.liveBrandOffers} live · ${stats.brandOfferRequests} awaiting review`
+                : undefined
+            }
+            onClick={() => nav("/admin/brand-offers")}
+          />
+
+          <NavCard
             icon={ScrollText}
             title="Audit trail"
             description="Passport views and enquiry history"
