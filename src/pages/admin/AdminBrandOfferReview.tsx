@@ -234,7 +234,15 @@ const AdminBrandOfferReview = () => {
                 </button>
               ) : null}
               <div className="p-3">
-                <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">{deriveBrandOfferStatus(offer) === "live" && (<span className="relative flex size-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" /><span className="relative inline-flex size-1.5 rounded-full bg-good" /></span>)}{STATUS_LABEL[deriveBrandOfferStatus(offer)]}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">{deriveBrandOfferStatus(offer) === "live" && (<span className="relative flex size-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" /><span className="relative inline-flex size-1.5 rounded-full bg-good" /></span>)}{STATUS_LABEL[deriveBrandOfferStatus(offer)]}</p>
+                  {["live", "upcoming"].includes(deriveBrandOfferStatus(offer)) && (
+                    <CountdownClock offer={offer} />
+                  )}
+                </div>
+                {["live", "upcoming"].includes(deriveBrandOfferStatus(offer)) && (
+                  <div className="mt-2"><CountdownClock offer={offer} variant="block" /></div>
+                )}
                 {offer.headline && <p className="font-display text-lg mt-1">{offer.headline}</p>}
                 {offer.body_copy && <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{offer.body_copy}</p>}
                 {offer.discount_code && <p className="text-[11px] text-primary mt-2 font-body">Code {offer.discount_code}</p>}
