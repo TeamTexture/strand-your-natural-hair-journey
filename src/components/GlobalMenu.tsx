@@ -262,7 +262,7 @@ const GlobalMenu = () => {
             <SheetTitle className="font-display text-xl">Menu</SheetTitle>
           </SheetHeader>
           <nav className="flex-1 overflow-y-auto py-2">
-            {navItems.map(({ label, to, icon: Icon, badge }) => {
+            {!isOnboarding && navItems.map(({ label, to, icon: Icon, badge }) => {
               const active =
                 to === "/home" || to === "/pro" || to === "/admin"
                   ? location.pathname === to
