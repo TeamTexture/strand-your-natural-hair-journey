@@ -427,8 +427,20 @@ const ApplicationCard = ({
                 </>
               );
             })()}
-            {app.website_url && <Row label="Website">{app.website_url}</Row>}
-            {app.instagram_handle && <Row label="Instagram">{app.instagram_handle}</Row>}
+            {app.website_url && (
+              <Row label="Website">
+                <a href={normalizeWebsiteUrl(app.website_url)} {...externalLinkProps} className="text-primary underline underline-offset-2 break-all">
+                  {normalizeWebsiteUrl(app.website_url)}
+                </a>
+              </Row>
+            )}
+            {app.instagram_handle && (
+              <Row label="Instagram">
+                <a href={instagramUrl(app.instagram_handle)} {...externalLinkProps} className="text-primary underline underline-offset-2 break-all">
+                  @{normalizeInstagramHandle(app.instagram_handle)}
+                </a>
+              </Row>
+            )}
             {app.why_strand && <Row label="Why STRAND">{app.why_strand}</Row>}
 
             <div className="pt-1 space-y-1.5">
