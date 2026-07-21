@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronRight, Calendar, Eye, StickyNote, ShieldOff } from "lucide-react";
+import { Search, ChevronRight, Calendar, StickyNote, ShieldOff } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -75,47 +75,84 @@ const ProClients = () => {
 
   const renderActive = (c: ProClientRow) => {
     const name = firstName(c);
+    const open = () => nav(`/pro/clients/${c.consumer_id}`);
     return (
-      <button
+      <div
         key={c.access_id}
-        type="button"
-        onClick={() => nav(`/pro/clients/${c.consumer_id}`)}
-        className="w-full text-left rounded-[14px] border border-border bg-card p-4 flex items-center gap-3 hover:border-primary/40 transition-colors"
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            open();
+          }
+        }}
+        className="group w-full text-left rounded-[16px] border border-border bg-card p-4 space-y-3 hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer"
       >
-        <ProAvatar name={name} photoUrl={c.avatar_url ?? undefined} size="size-12" />
-        <div className="flex-1 min-w-0 space-y-1">
-          <p className="font-display text-[15px] font-semibold leading-tight truncate">{name}</p>
-          <p className="text-[11px] text-muted-foreground font-body">
-            Consent since {shortDate(c.granted_at)}
-          </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-body text-foreground/75 pt-0.5">
-            {c.next_appointment_date && (
+        <div className="flex items-center gap-3">
+          <ProAvatar name={name} photoUrl={c.avatar_url ?? undefined} size="size-14" />
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-[16px] font-semibold leading-tight truncate">{name}</p>
+            <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+              Client since {shortDate(c.granted_at)}
+            </p>
+          </div>
+          {c.next_appointment_date && (
+            <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/12 text-primary px-2.5 py-1 text-[10.5px] font-body font-medium uppercase tracking-wide">
+              <Calendar className="size-3" /> Upcoming
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-[12px] bg-secondary/40 border border-border/70 px-2.5 py-2 text-center">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-body">Appts</p>
+            <p className="font-display text-[17px] font-semibold leading-none mt-1">{c.appointment_count}</p>
+          </div>
+          <div className="rounded-[12px] bg-secondary/40 border border-border/70 px-2.5 py-2 text-center">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-body">Notes</p>
+            <p className="font-display text-[17px] font-semibold leading-none mt-1">{c.note_count}</p>
+          </div>
+          <div className="rounded-[12px] bg-secondary/40 border border-border/70 px-2.5 py-2 text-center">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-body">Last view</p>
+            <p className="font-body text-[11px] font-medium leading-none mt-1.5 truncate">
+              {c.last_view_at ? formatRelative(c.last_view_at) : "—"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex flex-col gap-0.5 text-[11px] font-body text-foreground/75 min-w-0">
+            {c.next_appointment_date ? (
               <span className="inline-flex items-center gap-1 text-primary">
                 <Calendar className="size-3" /> Next {shortDate(c.next_appointment_date)}
               </span>
-            )}
-            {!c.next_appointment_date && c.last_appointment_date && (
-              <span className="inline-flex items-center gap-1">
+            ) : c.last_appointment_date ? (
+              <span className="inline-flex items-center gap-1 text-muted-foreground">
                 <Calendar className="size-3" /> Last {shortDate(c.last_appointment_date)}
               </span>
-            )}
-            {c.appointment_count > 0 && (
-              <span className="text-muted-foreground">{c.appointment_count} appt{c.appointment_count === 1 ? "" : "s"}</span>
-            )}
-            {c.last_view_at && (
-              <span className="inline-flex items-center gap-1 text-muted-foreground">
-                <Eye className="size-3" /> Viewed {formatRelative(c.last_view_at)}
-              </span>
+            ) : (
+              <span className="text-muted-foreground">No appointments yet</span>
             )}
             {c.note_count > 0 && (
               <span className="inline-flex items-center gap-1 text-primary/85">
-                <StickyNote className="size-3" /> {c.note_count} note{c.note_count === 1 ? "" : "s"}
+                <StickyNote className="size-3" /> {c.note_count} private note{c.note_count === 1 ? "" : "s"}
               </span>
             )}
           </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              open();
+            }}
+            className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground px-4 h-9 text-[12px] font-body font-medium hover:opacity-90 transition-opacity"
+          >
+            Review <ChevronRight className="size-3.5" />
+          </button>
         </div>
-        <ChevronRight className="size-4 text-primary/70 shrink-0" />
-      </button>
+      </div>
     );
   };
 
