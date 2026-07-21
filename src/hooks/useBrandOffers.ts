@@ -222,7 +222,7 @@ export function useBrandOfferTotals(offerIds: string[]) {
     enabled: offerIds.length > 0,
     staleTime: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("brand_offer_totals", { _offer_ids: offerIds });
+      const { data, error } = await supabase.rpc("brand_offer_totals" as never, { _offer_ids: offerIds } as never);
       if (error) throw error;
       const map: Record<string, { impressions: number; taps: number; wishlist_adds: number }> = {};
       for (const row of (data ?? []) as Array<{ offer_id: string; impressions: number; taps: number; wishlist_adds: number }>) {
