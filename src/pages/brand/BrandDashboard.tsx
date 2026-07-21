@@ -240,19 +240,23 @@ const BrandDashboard = () => {
                 const placements = o.brand_offer_placements ?? [];
                 const dates = placements.map((p) => p.placement_date).sort();
                 return (
-                  <LiveOfferCard
-                    key={o.id}
-                    id={o.id}
-                    headline={o.headline}
-                    heroImagePath={o.hero_image_path}
-                    slots={placements.map((p) => p.slot)}
-                    startDate={dates[0]}
-                    endDate={dates[dates.length - 1]}
-                    totals={totals[o.id]}
-                    hasPendingRevision={withPendingSet.has(o.id)}
-                    revisionCount={revisionCounts[o.id]}
-                    onReview={() => nav(`/brand/offers/${o.id}`)}
-                  />
+                  <div key={o.id} className="space-y-1.5">
+                    <div className="flex justify-end px-0.5">
+                      <CountdownClock offer={o} />
+                    </div>
+                    <LiveOfferCard
+                      id={o.id}
+                      headline={o.headline}
+                      heroImagePath={o.hero_image_path}
+                      slots={placements.map((p) => p.slot)}
+                      startDate={dates[0]}
+                      endDate={dates[dates.length - 1]}
+                      totals={totals[o.id]}
+                      hasPendingRevision={withPendingSet.has(o.id)}
+                      revisionCount={revisionCounts[o.id]}
+                      onReview={() => nav(`/brand/offers/${o.id}`)}
+                    />
+                  </div>
                 );
               })}
             </div>
