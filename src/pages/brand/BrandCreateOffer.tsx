@@ -411,15 +411,31 @@ const BrandCreateOffer = () => {
           />
         </div>
 
-        <SectionLabel className="!px-0">Attach products</SectionLabel>
+        <SectionLabel className="!px-0">Attach products &amp; tools</SectionLabel>
         <SurfaceCard className="space-y-3">
           <div>
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
-              <Sparkles className="size-3 text-primary" /> AI product page
+              <Sparkles className="size-3 text-primary" /> AI page from a link
             </Label>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Paste a product URL — we'll draft a STRAND product page you can edit.
+              Paste any product or tool URL — we'll draft a STRAND page you can edit. Choose the item type first so the right fields are drafted (ingredients for products, key features for tools).
             </p>
+            <div className="flex gap-1.5 mt-1.5">
+              {(["product", "tool"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setScrapeKind(k)}
+                  className={`px-3 py-1 rounded-pill border text-[11px] capitalize ${
+                    scrapeKind === k
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-2 mt-1.5">
               <Input value={scrapeUrl} onChange={(e) => setScrapeUrl(e.target.value)} placeholder="https://" />
               <Button type="button" variant="outline" size="pill" onClick={runScrape} disabled={scraping || !scrapeUrl.trim()}>
@@ -427,20 +443,29 @@ const BrandCreateOffer = () => {
               </Button>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setProducts((p) => [...p, emptyProduct()])}
-            className="text-[12px] text-primary underline underline-offset-2"
-          >
-            + Add product manually
-          </button>
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setProducts((p) => [...p, emptyProduct("product")])}
+              className="text-[12px] text-primary underline underline-offset-2"
+            >
+              + Add product manually
+            </button>
+            <button
+              type="button"
+              onClick={() => setProducts((p) => [...p, emptyProduct("tool")])}
+              className="text-[12px] text-primary underline underline-offset-2"
+            >
+              + Add tool manually
+            </button>
+          </div>
         </SurfaceCard>
 
         {products.map((p, i) => (
           <SurfaceCard key={i} className="space-y-2">
             <div className="flex items-start justify-between gap-2">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">
-                Product {i + 1} · {p.source_type === "ai" ? "AI draft" : "Manual"}
+                {p.kind === "tool" ? "Tool" : "Product"} {i + 1} · {p.source_type === "ai" ? "AI draft" : "Manual"}
               </p>
               <button
                 type="button"
@@ -450,8 +475,31 @@ const BrandCreateOffer = () => {
                 <Trash2 className="size-3.5" />
               </button>
             </div>
+
+            {/* Product / Tool toggle */}
+            <div className="flex gap-1.5">
+              {(["product", "tool"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() =>
+                    setProducts((prev) => prev.map((x, xi) => (xi === i ? { ...x, kind: k } : x)))
+                  }
+                  className={`px-3 py-1 rounded-pill border text-[11px] capitalize ${
+                    p.kind === k
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground"
+                  }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+
             <div>
-              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Product image (1:1, min 800×800)</Label>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {p.kind === "tool" ? "Tool image" : "Product image"} (1:1, min 800×800)
+              </Label>
               <div className="flex gap-2 mt-1 items-start">
                 <div className="size-16 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
                   {p.image_urls[0] && <img src={p.image_urls[0]} alt="" className="w-full h-full object-cover" />}
@@ -477,7 +525,7 @@ const BrandCreateOffer = () => {
             <Input
               value={p.name}
               onChange={(e) => setProducts((prev) => prev.map((x, xi) => xi === i ? { ...x, name: e.target.value } : x))}
-              placeholder="Product name"
+              placeholder={p.kind === "tool" ? "Tool name" : "Product name"}
             />
             <Textarea
               value={p.description}
@@ -490,12 +538,71 @@ const BrandCreateOffer = () => {
               onChange={(e) => setProducts((prev) => prev.map((x, xi) => xi === i ? { ...x, external_url: e.target.value } : x))}
               placeholder="Buy URL"
             />
-            <Textarea
-              value={p.ingredients.join(", ")}
-              onChange={(e) => setProducts((prev) => prev.map((x, xi) => xi === i ? { ...x, ingredients: e.target.value.split(",").map(s => s.trim()).filter(Boolean) } : x))}
-              placeholder="Ingredients (comma-separated)"
-              rows={2}
-            />
+
+            {p.kind === "product" ? (
+              <Textarea
+                value={p.ingredients.join(", ")}
+                onChange={(e) =>
+                  setProducts((prev) =>
+                    prev.map((x, xi) =>
+                      xi === i
+                        ? { ...x, ingredients: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
+                        : x,
+                    ),
+                  )
+                }
+                placeholder="Ingredients (comma-separated)"
+                rows={2}
+              />
+            ) : (
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tool kind</Label>
+                  <select
+                    value={p.tool_kind ?? ""}
+                    onChange={(e) =>
+                      setProducts((prev) =>
+                        prev.map((x, xi) => (xi === i ? { ...x, tool_kind: e.target.value || null } : x)),
+                      )
+                    }
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-[13px] font-body"
+                  >
+                    <option value="">Select a type…</option>
+                    {TOOL_KINDS.map((tk) => (
+                      <option key={tk.value} value={tk.value}>{tk.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <Textarea
+                  value={p.key_features.join(", ")}
+                  onChange={(e) =>
+                    setProducts((prev) =>
+                      prev.map((x, xi) =>
+                        xi === i
+                          ? { ...x, key_features: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
+                          : x,
+                      ),
+                    )
+                  }
+                  placeholder="Key features (comma-separated) — e.g. adjustable heat, ionic, silk-lined"
+                  rows={2}
+                />
+                <Textarea
+                  value={p.materials.join(", ")}
+                  onChange={(e) =>
+                    setProducts((prev) =>
+                      prev.map((x, xi) =>
+                        xi === i
+                          ? { ...x, materials: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
+                          : x,
+                      ),
+                    )
+                  }
+                  placeholder="Materials (comma-separated) — e.g. satin, boar bristle, ceramic"
+                  rows={2}
+                />
+              </div>
+            )}
           </SurfaceCard>
         ))}
 
