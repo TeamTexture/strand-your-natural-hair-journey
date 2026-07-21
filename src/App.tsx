@@ -7,6 +7,7 @@ import PhoneShell from "@/components/PhoneShell";
 import { AuthProvider } from "@/hooks/useAuth";
 import RequireAuth from "@/components/RequireAuth";
 import PaidGate from "@/components/PaidGate";
+import OnboardingGate from "@/components/OnboardingGate";
 import Subscribe from "./pages/Subscribe";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminMemberPassport from "./pages/admin/AdminMemberPassport";
@@ -108,6 +109,9 @@ const queryClient = new QueryClient();
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
 const Paid = ({ children }: { children: React.ReactNode }) => <PaidGate>{children}</PaidGate>;
+const Onboard = ({ children }: { children: React.ReactNode }) => (
+  <OnboardingGate>{children}</OnboardingGate>
+);
 
 // Mounts global side-effects (e.g. keyboard-aware input scrolling) inside the
 // React tree so they're active for every screen in the app.
