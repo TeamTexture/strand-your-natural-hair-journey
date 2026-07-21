@@ -29,25 +29,21 @@ const useSignedUrl = (path: string | null | undefined) => {
   return url;
 };
 
-/** Highlight cell if the "before" value differs from the "after" value. */
-const DiffField = ({ label, before, after }: { label: string; before: string | null | undefined; after: string | null | undefined }) => {
-  const changed = (before ?? "") !== (after ?? "");
+const cleanValue = (value: string | null | undefined) => (value ?? "").trim();
+
+const ChangeField = ({ label, value }: { label: string; value: string | null | undefined }) => {
   return (
-    <div className={`rounded-[10px] border p-2.5 ${changed ? "border-warn/40 bg-warn/5" : "border-border bg-background"}`}>
-      <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">{label}{changed && " · changed"}</p>
-      <div className="grid grid-cols-2 gap-2 mt-1.5">
-        <div className="text-[11.5px] font-body">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Before</p>
-          <p className={`leading-snug ${before ? "" : "text-muted-foreground italic"}`}>{before || "—"}</p>
-        </div>
-        <div className="text-[11.5px] font-body">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">After</p>
-          <p className={`leading-snug ${after ? "" : "text-muted-foreground italic"}`}>{after || "—"}</p>
-        </div>
-      </div>
+    <div className="rounded-[10px] border border-warn/40 bg-warn/5 p-2.5">
+      <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">{label} changed to</p>
+      <p className={`text-[12px] font-body leading-snug mt-1 ${cleanValue(value) ? "" : "text-muted-foreground italic"}`}>
+        {cleanValue(value) || "Removed"}
+      </p>
     </div>
   );
 };
+
+const arraysMatch = (a: unknown[] = [], b: unknown[] = []) =>
+  JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
 
 const RevisionDiff = ({ offer, revision }: {
   offer: NonNullable<ReturnType<typeof useBrandOffer>["data"]>;
@@ -57,11 +53,32 @@ const RevisionDiff = ({ offer, revision }: {
   const approve = useApproveBrandOfferRevision();
   const reject = useRejectBrandOfferRevision();
   const [rejectReason, setRejectReason] = useState("");
-  const beforeHero = useSignedUrl(offer.hero_image_path);
   const afterHero = useSignedUrl(revision.hero_image_path ?? offer.hero_image_path);
   const heroChanged = (revision.hero_image_path ?? null) !== (offer.hero_image_path ?? null);
   const beforeProducts = offer.brand_products ?? [];
   const afterProducts = revision.products ?? [];
+  const textChanges = [
+    { label: "Headline", before: offer.headline, after: revision.headline },
+    { label: "Body copy", before: offer.body_copy, after: revision.body_copy },
+    { label: "Discount code", before: offer.discount_code, after: revision.discount_code },
+    { label: "Advert link", before: offer.external_url, after: revision.external_url },
+  ].filter((field) => cleanValue(field.before) !== cleanValue(field.after));
+  const changedProducts = afterProducts.filter((product, index) => {
+    const current = beforeProducts[index];
+    if (!current) return true;
+    return (
+      cleanValue(current.name) !== cleanValue(product.name) ||
+      cleanValue(current.description) !== cleanValue(product.description) ||
+      cleanValue(current.external_url) !== cleanValue(product.external_url) ||
+      !arraysMatch(current.image_urls ?? [], product.image_urls ?? []) ||
+      !arraysMatch(current.ingredients ?? [], product.ingredients ?? []) ||
+      cleanValue((current as typeof current & { tool_kind?: string | null }).tool_kind) !== cleanValue(product.tool_kind) ||
+      !arraysMatch((current as typeof current & { key_features?: string[] | null }).key_features ?? [], product.key_features ?? []) ||
+      !arraysMatch((current as typeof current & { materials?: string[] | null }).materials ?? [], product.materials ?? [])
+    );
+  });
+  const productsChanged = changedProducts.length > 0 || beforeProducts.length !== afterProducts.length;
+  const hasChanges = heroChanged || textChanges.length > 0 || productsChanged;
 
   return (
     <>
@@ -73,46 +90,41 @@ const RevisionDiff = ({ offer, revision }: {
         </p>
       </SurfaceCard>
 
-      <SectionLabel className="!px-0">Creative diff</SectionLabel>
+      <SectionLabel className="!px-0">Changes made</SectionLabel>
 
-      <div className={`rounded-[10px] border p-2.5 ${heroChanged ? "border-warn/40 bg-warn/5" : "border-border bg-background"}`}>
-        <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">Banner{heroChanged && " · changed"}</p>
-        <div className="grid grid-cols-2 gap-2 mt-1.5">
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Before</p>
-            {beforeHero ? <img src={beforeHero} alt="Before" className="w-full aspect-[16/9] object-cover rounded" /> : <div className="aspect-[16/9] bg-muted rounded" />}
-          </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">After</p>
-            {afterHero ? <img src={afterHero} alt="After" className="w-full aspect-[16/9] object-cover rounded" /> : <div className="aspect-[16/9] bg-muted rounded" />}
-          </div>
+      {!hasChanges && (
+        <SurfaceCard className="py-2.5">
+          <p className="text-[12px] text-muted-foreground font-body">No creative change was detected. Reject this revision or ask the brand to resubmit with updates.</p>
+        </SurfaceCard>
+      )}
+
+      {heroChanged && (
+        <div className="rounded-[10px] border border-warn/40 bg-warn/5 p-2.5">
+          <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">Banner image changed to</p>
+          {afterHero ? <img src={afterHero} alt="Updated advert banner" className="w-full aspect-[16/9] object-cover rounded mt-2" /> : <div className="aspect-[16/9] bg-muted rounded mt-2" />}
         </div>
-      </div>
+      )}
 
-      <DiffField label="Headline" before={offer.headline} after={revision.headline} />
-      <DiffField label="Body copy" before={offer.body_copy} after={revision.body_copy} />
-      <DiffField label="Discount code" before={offer.discount_code} after={revision.discount_code} />
-      <DiffField label="External URL" before={offer.external_url} after={revision.external_url} />
+      {textChanges.map((field) => (
+        <ChangeField key={field.label} label={field.label} value={field.after} />
+      ))}
 
-      <SectionLabel className="!px-0">Products / tools</SectionLabel>
-      <SurfaceCard>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">Before ({beforeProducts.length})</p>
-            <ul className="space-y-1">
-              {beforeProducts.length === 0 && <li className="text-[11.5px] text-muted-foreground italic">None</li>}
-              {beforeProducts.map((p) => <li key={p.id} className="text-[11.5px] font-body leading-snug">• {p.name}</li>)}
+      {productsChanged && (
+        <>
+          <SectionLabel className="!px-0">Attached products / tools changed to</SectionLabel>
+          <SurfaceCard>
+            <ul className="space-y-2">
+              {afterProducts.length === 0 && <li className="text-[12px] text-muted-foreground italic">All attached products removed</li>}
+              {afterProducts.map((p, i) => (
+                <li key={`${p.name}-${i}`} className="text-[12px] font-body leading-snug">
+                  <span className="font-medium">{p.name}</span>
+                  {p.description && <span className="text-muted-foreground"> — {p.description}</span>}
+                </li>
+              ))}
             </ul>
-          </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">After ({afterProducts.length})</p>
-            <ul className="space-y-1">
-              {afterProducts.length === 0 && <li className="text-[11.5px] text-muted-foreground italic">None</li>}
-              {afterProducts.map((p, i) => <li key={i} className="text-[11.5px] font-body leading-snug">• {p.name}</li>)}
-            </ul>
-          </div>
-        </div>
-      </SurfaceCard>
+          </SurfaceCard>
+        </>
+      )}
 
       <SectionLabel className="!px-0">Decision</SectionLabel>
       <div className="space-y-2">
