@@ -133,14 +133,18 @@ const GlobalMenu = () => {
   // is locked to the landing/welcome screen and we surface nothing.
   const proUnlocked = isAdmin || (isProfessional && proSubActive);
 
+  // Suppress the entire top bar for pros still in application / acceptance —
+  // the landing, apply and welcome screens have their own back affordances,
+  // and the hamburger isn't useful until they're actually inside the app.
+  if (activeView === "pro" && !proUnlocked) return null;
+
   const navItems: NavItem[] =
     activeView === "admin"
       ? ADMIN_NAV
       : activeView === "pro"
-        ? proUnlocked
-          ? PRO_NAV
-          : []
+        ? PRO_NAV
         : CONSUMER_NAV;
+
 
 
   const go = (to: string) => {
