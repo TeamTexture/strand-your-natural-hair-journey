@@ -200,19 +200,12 @@ const AdminBrands = () => {
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border">
-                  <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-body">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-body">
                     Category
-                  </label>
-                  <select
-                    value={r.category ?? ""}
-                    onChange={(e) => setCategory.mutate({ user_id: r.user_id, category: e.target.value })}
-                    className="mt-1 w-full text-sm p-2 rounded-[10px] border border-border bg-card"
-                  >
-                    <option value="">(uncategorised)</option>
-                    {BRAND_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                  </p>
+                  <p className="mt-1 text-sm font-body">
+                    {r.category ?? <span className="text-muted-foreground italic">Not set by brand yet</span>}
+                  </p>
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border flex gap-2">
