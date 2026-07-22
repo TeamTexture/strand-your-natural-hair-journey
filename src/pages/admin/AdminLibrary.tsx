@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Loader2, ChevronDown, ChevronRight, Upload, Link as LinkIcon, ExternalLink, Film } from "lucide-react";
