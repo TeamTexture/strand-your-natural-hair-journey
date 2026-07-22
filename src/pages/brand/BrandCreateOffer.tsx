@@ -943,32 +943,43 @@ const BrandCreateOffer = () => {
               Pick one or more banner slots, then choose the dates in the calendar below.
               Your total updates automatically.
             </p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {SLOTS.map((s) => {
-                const on = enabledSlots[s];
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => toggleSlot(s)}
-                    className={`p-2 rounded-lg border text-left transition-colors ${
-                      on
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background hover:bg-primary/5"
-                    }`}
-                  >
-                    <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
-                    <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
-                      {rates ? money(rates[s]) : "…"}/day
-                    </p>
-                    <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
-                      {on ? "Selected" : "Tap to add"}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
+            {(["consumer", "pro"] as const).map((audience) => {
+              const slotsForAudience = SLOTS.filter((s) => SLOT_AUDIENCE[s] === audience);
+              if (slotsForAudience.length === 0) return null;
+              return (
+                <div key={audience} className="space-y-1.5">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-body font-semibold px-1">
+                    {audience === "consumer" ? "For consumers" : "For professionals"}
+                  </p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {slotsForAudience.map((s) => {
+                      const on = enabledSlots[s];
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => toggleSlot(s)}
+                          className={`p-2 rounded-lg border text-left transition-colors ${
+                            on
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background hover:bg-primary/5"
+                          }`}
+                        >
+                          <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
+                          <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
+                            {rates ? money(rates[s]) : "…"}/day
+                          </p>
+                          <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
+                            {on ? "Selected" : "Tap to add"}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
 
             <SurfaceCard>
               <PlacementCalendarPicker
