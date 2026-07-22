@@ -351,7 +351,7 @@ const ChatThreadPage = () => {
               </div>
               {group.items.map((m) =>
                 m.kind === "system" ? (
-                  <SystemBubble key={m.id} text={m.body} />
+                  <SystemBubble key={m.id} m={m} isPro={isPro} />
                 ) : (
                   <MessageBubble key={m.id} m={m} mine={m.sender_id === user?.id} />
                 ),
