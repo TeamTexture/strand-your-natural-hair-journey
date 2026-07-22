@@ -416,6 +416,21 @@ const AdminHub = () => {
           />
 
           <NavCard
+            icon={Store}
+            title="Brands"
+            description="Registered brands, contacts and category"
+            context={stats ? `${stats.liveBrands} brand${stats.liveBrands === 1 ? "" : "s"}` : undefined}
+            onClick={() => nav("/admin/brands")}
+          />
+
+          <NavCard
+            icon={MessageSquare}
+            title="STRAND Team messages"
+            description="Direct chat with any member, pro or brand"
+            onClick={() => nav("/admin/messages")}
+          />
+
+          <NavCard
             icon={ScrollText}
             title="Audit trail"
             description="Passport views and enquiry history"
