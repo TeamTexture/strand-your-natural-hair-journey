@@ -166,6 +166,8 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   const [progress, setProgress] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const dropInputRef = useRef<HTMLInputElement | null>(null);
+  const [savedFiles, setSavedFiles] = useState<string[]>([]);
+  const [currentUpload, setCurrentUpload] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
