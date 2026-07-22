@@ -5,7 +5,7 @@ import { Loader2, MessageSquare, Calendar, BookOpen } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDate } from "@/lib/formatPassportDate";
+import { formatDate } from "@/lib/formatDate";
 
 const ForumTag = () => {
   const { tag = "" } = useParams();
@@ -71,7 +71,7 @@ const ForumTag = () => {
                     <li key={t.id}>
                       <Link to={`/forum/${t.id}`} className="block rounded-lg border border-border bg-card p-3 hover:border-primary/50 transition">
                         <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-foreground/50">
-                          <MessageSquare className="size-3" /> Thread · {formatPassportDate(t.created_at)}
+                          <MessageSquare className="size-3" /> Thread · {formatDate(t.created_at)}
                         </div>
                         <p className="mt-1 font-display text-[15px] font-semibold">{t.title}</p>
                         {t.body && <p className="mt-1 text-[12px] font-body text-foreground/70 line-clamp-2">{t.body}</p>}
@@ -90,7 +90,7 @@ const ForumTag = () => {
                     <li key={e.id}>
                       <Link to={`/plus/events/${e.id}`} className="block rounded-lg border border-border bg-card p-3 hover:border-primary/50 transition">
                         <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-foreground/50">
-                          <Calendar className="size-3" /> {e.location_type === "in_person" ? "In-person" : "Digital"} · {formatPassportDate(e.starts_at)}
+                          <Calendar className="size-3" /> {e.kind === "in_person" ? "In-person" : "Digital"} · {formatDate(e.starts_at)}
                         </div>
                         <p className="mt-1 font-display text-[15px] font-semibold">{e.title}</p>
                         {e.description && <p className="mt-1 text-[12px] font-body text-foreground/70 line-clamp-2">{e.description}</p>}
