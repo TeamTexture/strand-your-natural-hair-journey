@@ -26,7 +26,7 @@ const ForumTag = () => {
           .limit(30),
         supabase
           .from("events")
-          .select("id,title,description,starts_at,location_type")
+          .select("id,title,description,starts_at,kind")
           .or(`title.ilike.${like},description.ilike.${like}`)
           .order("starts_at", { ascending: false })
           .limit(30),
