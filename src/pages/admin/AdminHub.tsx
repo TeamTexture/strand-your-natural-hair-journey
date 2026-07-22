@@ -294,6 +294,11 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/professionals?filter=subscribed")}
               />
               <StatCard
+                label="Live brands"
+                value={stats.liveBrands}
+                onClick={() => nav("/admin/brands")}
+              />
+              <StatCard
                 label="Members total"
                 value={stats.membersTotal}
                 onClick={() => nav("/admin/members?filter=all")}
@@ -310,38 +315,25 @@ const AdminHub = () => {
               />
             </div>
 
-            <SectionLabel className="!px-0">Campaigns</SectionLabel>
+            <SectionLabel className="!px-0">Campaign calendar</SectionLabel>
             <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
-              Promoted placements from brands and professionals — shared inventory.
+              Brand and pro campaigns across every placement — tap a day to see who's running.
             </p>
-            <div className="grid grid-cols-3 gap-2.5">
-              <StatCard
-                label="Live brands"
-                value={stats.liveBrands}
-                onClick={() => nav("/admin/brands")}
-              />
-              <StatCard
-                label="Live campaigns"
-                value={stats.liveBrandOffers}
-                sublabel={
-                  stats.liveBrandOffers > 0
-                    ? `${stats.liveBrandOffersBrand} brand · ${stats.liveBrandOffersPro} pro`
-                    : undefined
-                }
-                onClick={() => nav("/admin/brand-offers?filter=live")}
-              />
-              <StatCard
-                label="Requests"
-                value={stats.brandOfferRequests}
-                tone={stats.brandOfferRequests > 0 ? "warn" : "default"}
-                sublabel={
-                  stats.brandOfferRequests > 0
-                    ? `${stats.brandOfferRequestsBrand} brand · ${stats.brandOfferRequestsPro} pro`
-                    : undefined
-                }
-                onClick={() => nav("/admin/brand-offers?filter=pending")}
-              />
-            </div>
+            <UnifiedCampaignCalendar onOpenSlotView={() => nav("/admin/brand-calendar")} />
+
+            <CampaignSection
+              title="Brand campaigns"
+              counts={stats.brand}
+              type="brand"
+              nav={nav}
+            />
+            <CampaignSection
+              title="Pro campaigns"
+              counts={stats.pro}
+              type="pro"
+              nav={nav}
+            />
+
             <button
               type="button"
               onClick={() => nav("/admin/brand-offers?filter=pending")}
@@ -390,6 +382,7 @@ const AdminHub = () => {
 
           </>
         )}
+
 
         <SectionLabel className="!px-0">Manage</SectionLabel>
         <div className="space-y-2">
