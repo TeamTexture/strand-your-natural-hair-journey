@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -11,6 +11,53 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
+
+interface BrandCard {
+  user_id: string;
+  brand_name: string;
+  category: string | null;
+  about: string | null;
+  website: string | null;
+  logo_path: string | null;
+  live_offers: number;
+}
+
+const BrandListItem = ({ brand, onOpen }: { brand: BrandCard; onOpen: () => void }) => {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!brand.logo_path) { setLogoUrl(null); return; }
+    supabase.storage.from("brand-assets").createSignedUrl(brand.logo_path, 60 * 60).then(({ data }) => {
+      if (!cancelled) setLogoUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [brand.logo_path]);
+  return (
+    <SurfaceCard onClick={onOpen} className="cursor-pointer hover:border-primary/50">
+      <div className="flex items-center gap-3">
+        <div className="size-11 rounded-xl bg-muted border border-border overflow-hidden shrink-0 flex items-center justify-center">
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-display text-primary text-sm">{brand.brand_name[0] ?? "✦"}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-[15px] leading-tight truncate">{brand.brand_name}</p>
+          <p className="text-[11px] text-muted-foreground truncate">
+            {brand.category ?? "Brand"}
+            {brand.live_offers > 0 ? ` · ${brand.live_offers} live offer${brand.live_offers === 1 ? "" : "s"}` : ""}
+          </p>
+        </div>
+        {brand.live_offers > 0 && (
+          <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-good/15 text-good font-body font-semibold shrink-0">
+            Live
+          </span>
+        )}
+      </div>
+    </SurfaceCard>
+  );
+};
 
 interface BrandCard {
   user_id: string;
@@ -109,22 +156,7 @@ const BrandsDirectory = () => {
         ) : (
           <div className="space-y-2">
             {filtered.map((b) => (
-              <SurfaceCard key={b.user_id} onClick={() => nav(`/brands/${b.user_id}`)} className="cursor-pointer hover:border-primary/50">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[15px] leading-tight truncate">{b.brand_name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {b.category ?? "Brand"}
-                      {b.live_offers > 0 ? ` · ${b.live_offers} live offer${b.live_offers === 1 ? "" : "s"}` : ""}
-                    </p>
-                  </div>
-                  {b.live_offers > 0 && (
-                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-good/15 text-good font-body font-semibold shrink-0">
-                      Live
-                    </span>
-                  )}
-                </div>
-              </SurfaceCard>
+              <BrandListItem key={b.user_id} brand={b} onOpen={() => nav(`/brands/${b.user_id}`)} />
             ))}
           </div>
         )}

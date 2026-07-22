@@ -32,10 +32,15 @@ Deno.serve(async (req) => {
     const userId = claims.claims.sub as string;
 
     const body = await req.json().catch(() => ({}));
-    const brandName = (body.brand_name ?? "").toString().trim();
-    const contactName = (body.contact_name ?? "").toString().trim() || null;
-    const website = (body.website ?? "").toString().trim() || null;
-    const category = (body.category ?? "").toString().trim() || null;
+    const norm = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    const brandName = norm(body.brand_name);
+    const contactName = norm(body.contact_name) || null;
+    const website = norm(body.website) || null;
+    const category = norm(body.category) || null;
+    const about = norm(body.about) || null;
+    const instagram = norm(body.instagram_handle).replace(/^@/, "") || null;
+    const tiktok = norm(body.tiktok_handle).replace(/^@/, "") || null;
+    const contactEmail = norm(body.contact_email) || null;
     if (!brandName) {
       return new Response(JSON.stringify({ error: "brand_name is required" }), {
         status: 400,
@@ -55,18 +60,21 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
 
+    const payload = {
+      brand_name: brandName,
+      contact_name: contactName,
+      website,
+      category,
+      about,
+      instagram_handle: instagram,
+      tiktok_handle: tiktok,
+      contact_email: contactEmail,
+    };
+
     if (existing) {
-      await admin.from("brand_profiles")
-        .update({ brand_name: brandName, contact_name: contactName, website, category })
-        .eq("user_id", userId);
+      await admin.from("brand_profiles").update(payload).eq("user_id", userId);
     } else {
-      await admin.from("brand_profiles").insert({
-        user_id: userId,
-        brand_name: brandName,
-        contact_name: contactName,
-        website,
-        category,
-      });
+      await admin.from("brand_profiles").insert({ user_id: userId, ...payload });
     }
 
     // Grant brand role (idempotent)
