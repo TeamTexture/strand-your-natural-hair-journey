@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { CheckCircle2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Loader2, ChevronDown, ChevronRight, Upload, Link as LinkIcon, ExternalLink, Film } from "lucide-react";
 import { toast } from "sonner";
@@ -165,6 +166,8 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   const [progress, setProgress] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const dropInputRef = useRef<HTMLInputElement | null>(null);
+  const [savedFiles, setSavedFiles] = useState<string[]>([]);
+  const [currentUpload, setCurrentUpload] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
@@ -238,6 +241,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       for (const f of list) {
         const kind = guessKindFromFile(f);
         const title = f.name.replace(/\.[^.]+$/, "");
+        setCurrentUpload(f.name);
         try {
           const path = await uploadFileToStorage(f);
           const { error } = await supabase.from("content_items").insert({
@@ -247,7 +251,8 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
             storage_path: path,
           });
           if (error) throw error;
-          toast.success(`Uploaded ${f.name}`);
+          setSavedFiles((prev) => [f.name, ...prev].slice(0, 8));
+          toast.success(`Saved ${f.name}`);
         } catch (e) {
           toast.error(`${f.name}: ${(e as Error).message ?? "upload failed"}`);
         }
@@ -256,6 +261,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
     } finally {
       setBusy(false);
       setProgress(null);
+      setCurrentUpload(null);
     }
   }, [collectionId, qc, uploadFileToStorage]);
 
@@ -314,10 +320,34 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       {progress !== null && (
         <div className="rounded-lg border border-primary/30 bg-card p-2.5 space-y-1.5">
           <div className="flex items-center justify-between text-[10.5px] font-body">
-            <span className="font-semibold text-primary">Uploading…</span>
+            <span className="font-semibold text-primary">
+              {progress >= 100 ? "Saving to library…" : "Uploading…"}
+              {currentUpload && <span className="text-foreground/60 font-normal"> · {currentUpload}</span>}
+            </span>
             <span className="text-foreground/70">{progress.toFixed(0)}%</span>
           </div>
           <Progress value={progress} className="h-1.5" />
+        </div>
+      )}
+
+      {savedFiles.length > 0 && (
+        <div className="rounded-lg border border-good/40 bg-good/10 p-2.5 space-y-1">
+          <p className="text-[10.5px] font-body font-bold uppercase tracking-wider text-good flex items-center gap-1">
+            <CheckCircle2 className="size-3" /> Saved to library
+          </p>
+          <ul className="space-y-0.5">
+            {savedFiles.map((n, i) => (
+              <li key={`${n}-${i}`} className="text-[11px] font-body text-foreground/80 truncate flex items-center gap-1">
+                <CheckCircle2 className="size-3 text-good shrink-0" /> {n}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={() => setSavedFiles([])}
+            className="text-[10px] font-body text-foreground/50 hover:text-foreground pt-0.5"
+          >
+            Clear
+          </button>
         </div>
       )}
 

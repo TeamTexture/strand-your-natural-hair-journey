@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 
-export type PlusAlertKind = "thread" | "event" | "message";
+export type PlusAlertKind = "thread" | "event" | "message" | "library";
 
 export interface PlusAlert {
   id: string;
@@ -20,7 +20,7 @@ export interface PlusAlert {
 }
 
 const SEEN_KEY = "strand_plus_seen_v1";
-type SeenMap = { threads?: string; events?: string; messages?: string };
+type SeenMap = { threads?: string; events?: string; messages?: string; library?: string };
 
 const readSeen = (): SeenMap => {
   try {
@@ -57,8 +57,9 @@ export function usePlusAlerts() {
     const sThreads = seen.threads ?? weekAgo;
     const sEvents = seen.events ?? weekAgo;
     const sMessages = seen.messages ?? weekAgo;
+    const sLibrary = seen.library ?? weekAgo;
 
-    const [threadsR, eventsR, messagesR] = await Promise.all([
+    const [threadsR, eventsR, messagesR, libraryR] = await Promise.all([
       supabase
         .from("forum_threads")
         .select("id, title, created_at, author_id, category_id")
@@ -80,6 +81,12 @@ export function usePlusAlerts() {
         .neq("sender_id", user.id)
         .eq("chat_threads.thread_type", "member_dm")
         .or(`member_a_id.eq.${user.id},member_b_id.eq.${user.id}`, { foreignTable: "chat_threads" })
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("content_items")
+        .select("id, title, kind, collection_id, created_at")
+        .gt("created_at", sLibrary)
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
@@ -116,6 +123,16 @@ export function usePlusAlerts() {
         createdAt: m.created_at,
       });
     });
+    (libraryR.data ?? []).forEach((it: any) => {
+      out.push({
+        id: `lib:${it.id}`,
+        kind: "library",
+        title: "New in the Library",
+        body: it.title,
+        to: `/plus/library/${it.collection_id}`,
+        createdAt: it.created_at,
+      });
+    });
 
     out.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     setAlerts(out.slice(0, 12));
@@ -145,6 +162,16 @@ export function usePlusAlerts() {
         { event: "INSERT", schema: "public", table: "chat_messages" },
         () => fetchAlerts(),
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "content_items" },
+        () => fetchAlerts(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "content_collections" },
+        () => fetchAlerts(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -157,7 +184,7 @@ export function usePlusAlerts() {
 
   const dismissAll = useCallback(() => {
     const now = new Date().toISOString();
-    writeSeen({ threads: now, events: now, messages: now });
+    writeSeen({ threads: now, events: now, messages: now, library: now });
     setAlerts([]);
   }, []);
 

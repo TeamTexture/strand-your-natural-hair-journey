@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Circle, Play, FileText, BookOpen, Loader2 } from "lucide-react";
@@ -18,6 +19,7 @@ const PlusLibraryCollection = () => {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const qc = useQueryClient();
+  useEffect(() => { markPlusSurfaceSeen("library"); }, []);
   const { user } = useAuth();
   const [opening, setOpening] = useState<string | null>(null);
   const [player, setPlayer] = useState<{ url: string; title: string } | null>(null);
