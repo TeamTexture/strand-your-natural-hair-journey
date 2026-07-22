@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow, format } from "date-fns";
 import {
-  Search, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, ShieldOff, ExternalLink, Activity,
+  Search, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, ShieldOff, ExternalLink, Activity, MessageSquarePlus,
 } from "lucide-react";
+import { useStartAdminSupportThread } from "@/hooks/useChat";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -495,6 +496,9 @@ const AdminProfessionals = () => {
                   >
                     {r.is_published ? <><EyeOff className="size-3.5 mr-1" /> Unpublish</> : <><Eye className="size-3.5 mr-1" /> Publish</>}
                   </Button>
+                </div>
+                <div className="mt-2">
+                  <MessageButton userId={r.user_id} />
                 </div>
                 {!r.access_restricted && (
                   <div className="mt-2">
