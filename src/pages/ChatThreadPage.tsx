@@ -100,23 +100,24 @@ const MessageBubble = ({ m, mine }: { m: ChatMessage; mine: boolean }) => (
     <div
       className={`max-w-[80%] px-3.5 py-2 rounded-[16px] text-sm font-body leading-snug whitespace-pre-wrap break-words ${
         mine
-          ? "bg-primary text-primary-foreground rounded-br-[6px]"
-          : "bg-card border border-border text-foreground rounded-bl-[6px]"
+          ? "bg-brown text-brown-foreground rounded-br-[6px]"
+          : "bg-primary text-primary-foreground rounded-bl-[6px]"
       }`}
     >
       {m.body}
-      <div className={`flex items-center justify-end gap-1 text-[9.5px] mt-0.5 ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+      <div className={`flex items-center justify-end gap-1 text-[9.5px] mt-0.5 ${mine ? "text-brown-foreground/70" : "text-primary-foreground/75"}`}>
         <span>{format(new Date(m.created_at), "HH:mm")}</span>
         {mine && (
           <DeliveryTicks
             readAt={m.read_at}
-            className={m.read_at ? "" : "text-primary-foreground/70"}
+            className={m.read_at ? "" : "text-brown-foreground/70"}
           />
         )}
       </div>
     </div>
   </div>
 );
+
 
 const ChatThreadPage = () => {
   const nav = useNavigate();
