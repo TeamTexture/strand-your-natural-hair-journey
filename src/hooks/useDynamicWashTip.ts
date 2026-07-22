@@ -36,7 +36,7 @@ async function loadContext(userId: string) {
     supabase.from("user_style_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("user_goals")
-      .select("title, category, status")
+      .select("title, kind, status")
       .eq("user_id", userId)
       .eq("status", "active")
       .limit(5),
@@ -50,7 +50,7 @@ async function loadContext(userId: string) {
   const hair = hairRes.data as Record<string, unknown> | null;
   const health = healthRes.data as Record<string, unknown> | null;
   const style = styleRes.data as Record<string, unknown> | null;
-  const goals = (goalsRes.data ?? []) as Array<{ title: string; category: string | null; status: string | null }>;
+  const goals = (goalsRes.data ?? []) as Array<{ title: string; kind: string | null; status: string | null }>;
   const bloodFlags = (bloodsRes.data ?? [])
     .filter((b) => b.status && String(b.status).toLowerCase() !== "normal")
     .map((b) => ({ marker: b.marker, status: b.status, value: b.value }));
