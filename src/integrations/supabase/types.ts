@@ -2601,6 +2601,26 @@ export type Database = {
           wishlist_adds: number
         }[]
       }
+      brand_public_catalogue: {
+        Args: { _brand_user_id: string }
+        Returns: {
+          brand: string
+          brand_product_id: string
+          category: string
+          image_url: string
+          kind: string
+          member_count: number
+          name: string
+          offer_id: string
+          source_url: string
+          storage_path: string
+          viewer_item_id: string
+          viewer_on_favourite: boolean
+          viewer_on_shelf: boolean
+          viewer_on_wishlist: boolean
+          viewer_previously_on_shelf: boolean
+        }[]
+      }
       brand_taken_placements: {
         Args: never
         Returns: {
