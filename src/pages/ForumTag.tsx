@@ -5,7 +5,7 @@ import { Loader2, MessageSquare, Calendar, BookOpen } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDate } from "@/lib/formatDate";
+import { formatDate } from "@/lib/formatPassportDate";
 
 const ForumTag = () => {
   const { tag = "" } = useParams();
