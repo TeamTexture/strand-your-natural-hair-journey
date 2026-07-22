@@ -3145,6 +3145,16 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      mention_search_all: {
+        Args: { _limit?: number; _query: string }
+        Returns: {
+          avatar_url: string
+          entity_id: string
+          kind: string
+          label: string
+          subtitle: string
+        }[]
+      }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined
