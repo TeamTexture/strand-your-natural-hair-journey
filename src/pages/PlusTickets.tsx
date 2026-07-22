@@ -42,7 +42,7 @@ const PlusTickets = () => {
         .is("cancelled_at", null)
         .eq("events.kind", "in_person")
         .gte("events.starts_at", cutoff)
-        .order("events(starts_at)", { ascending: true });
+        .order("starts_at", { referencedTable: "events", ascending: true });
       if (error) throw error;
 
       // Fetch attendee display name once.

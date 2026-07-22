@@ -35,6 +35,7 @@ import {
   ShieldAlert,
   Library,
   Sparkles as PlusSparkles,
+  Ticket,
 } from "lucide-react";
 import GlobalChatWidget from "@/components/GlobalChatWidget";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -191,7 +192,7 @@ const GlobalMenu = () => {
         { label: "Community forum", to: "/forum", icon: MessageSquare },
         { label: "STRAND+ Library", to: "/plus/library", icon: Library },
         { label: "STRAND+ Events", to: "/plus/events", icon: CalendarIcon },
-        { label: "My tickets", to: "/plus/tickets", icon: Sparkles },
+        { label: "My tickets", to: "/plus/tickets", icon: Ticket },
         ...CONSUMER_NAV.slice(6),
       ]
     : CONSUMER_NAV;
