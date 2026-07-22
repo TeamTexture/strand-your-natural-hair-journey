@@ -41,11 +41,21 @@ interface Stats {
   liveBrandOffersPro: number;
 }
 
-interface ActivityRow {
-  kind: "application" | "enquiry" | "view";
-  at: string;
-  primary: string;
-  secondary?: string;
+interface Stats {
+  pendingApplications: number;
+  livePros: number;
+  activeProSubs: number;
+  membersTotal: number;
+  activePaidMembers: number;
+  complimentaryMembers: number;
+  viewsLast7d: number;
+  liveBrands: number;
+  liveBrandOffers: number;
+  brandOfferRequests: number;
+  brandOfferRequestsBrand: number;
+  brandOfferRequestsPro: number;
+  liveBrandOffersBrand: number;
+  liveBrandOffersPro: number;
 }
 
 const useAdminStats = () =>
