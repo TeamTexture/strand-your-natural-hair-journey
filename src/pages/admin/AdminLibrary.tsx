@@ -265,15 +265,18 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
         setCurrentUpload(f.name);
         try {
           const path = await uploadFileToStorage(f);
-          const { error } = await supabase.from("content_items").insert({
+          const { data: inserted, error } = await supabase.from("content_items").insert({
             collection_id: collectionId,
             kind,
             title,
             storage_path: path,
-          });
+          }).select("id").single();
           if (error) throw error;
           setSavedFiles((prev) => [f.name, ...prev].slice(0, 8));
           toast.success(`Saved ${f.name}`);
+          if (kind === "video" && inserted?.id) {
+            setThumbPending({ itemId: inserted.id, file: f });
+          }
         } catch (e) {
           toast.error(`${f.name}: ${(e as Error).message ?? "upload failed"}`);
         }
