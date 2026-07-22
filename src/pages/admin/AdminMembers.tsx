@@ -35,6 +35,7 @@ interface MemberRow {
   access_restricted: boolean;
   created_at: string;
   subscription_status: string | null;
+  subscription_tier: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   session_count: number;
@@ -42,8 +43,16 @@ interface MemberRow {
   sessions_last_30d: number;
 }
 
+function isPlusMember(r: MemberRow): boolean {
+  if (r.access_restricted) return false;
+  if (r.complimentary_access) return true;
+  const active = r.subscription_status === "active" || r.subscription_status === "trialing";
+  return active && r.subscription_tier === "plus";
+}
+
 function statusBadge(row: MemberRow) {
   if (row.access_restricted) return { label: "Restricted", cls: "bg-destructive/15 text-destructive" };
+  if (isPlusMember(row) && !row.complimentary_access) return { label: "STRAND+", cls: "bg-primary/20 text-primary font-bold" };
   if (row.complimentary_access) return { label: "Complimentary", cls: "bg-primary/15 text-primary" };
   const s = row.subscription_status;
   if (s === "active" || s === "trialing") return { label: "Active", cls: "bg-good/15 text-good" };
@@ -52,7 +61,8 @@ function statusBadge(row: MemberRow) {
   return { label: "No sub", cls: "bg-muted text-muted-foreground" };
 }
 
-type Filter = "all" | "active" | "complimentary" | "restricted" | "incomplete";
+type Filter = "all" | "active" | "plus" | "complimentary" | "restricted" | "incomplete";
+
 type SortKey = "recent" | "most_active";
 
 function activityLevel(sessions30d: number): "high" | "active" | null {
@@ -68,7 +78,7 @@ const AdminMembers = () => {
   const [searchParams] = useSearchParams();
   const initialFilter = ((): Filter => {
     const f = searchParams.get("filter");
-    const valid: Filter[] = ["all", "active", "complimentary", "restricted", "incomplete"];
+    const valid: Filter[] = ["all", "active", "plus", "complimentary", "restricted", "incomplete"];
     return (valid as string[]).includes(f ?? "") ? (f as Filter) : "all";
   })();
   const [q, setQ] = useState("");
@@ -89,7 +99,7 @@ const AdminMembers = () => {
           .limit(500),
         supabase
           .from("consumer_subscriptions")
-          .select("user_id, status, current_period_end, cancel_at_period_end"),
+          .select("user_id, status, current_period_end, cancel_at_period_end, tier"),
         supabase.rpc("admin_list_member_emails"),
         supabase.rpc("admin_list_member_activity"),
         supabase.from("user_roles").select("user_id, role").eq("role", "professional"),
@@ -107,6 +117,7 @@ const AdminMembers = () => {
           s.user_id,
           {
             subscription_status: s.status,
+            subscription_tier: (s as { tier?: string | null }).tier ?? null,
             current_period_end: s.current_period_end,
             cancel_at_period_end: s.cancel_at_period_end,
           },
@@ -143,6 +154,7 @@ const AdminMembers = () => {
           access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
           created_at: p.created_at,
           subscription_status: subMap.get(p.user_id)?.subscription_status ?? null,
+          subscription_tier: subMap.get(p.user_id)?.subscription_tier ?? null,
           current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
           cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
           session_count: act?.session_count ?? 0,
@@ -235,6 +247,7 @@ const AdminMembers = () => {
     const list = rows.filter((r) => {
       if (filter === "restricted" && !r.access_restricted) return false;
       if (filter === "complimentary" && !r.complimentary_access) return false;
+      if (filter === "plus" && !isPlusMember(r)) return false;
       if (filter === "active") {
         const active = r.subscription_status === "active" || r.subscription_status === "trialing";
         if (!active || r.access_restricted) return false;
@@ -287,6 +300,7 @@ const AdminMembers = () => {
         (r) => !r.access_restricted && (r.subscription_status === "active" || r.subscription_status === "trialing"),
       ).length,
     },
+    { key: "plus", label: "STRAND+", count: rows.filter(isPlusMember).length },
     { key: "complimentary", label: "Complimentary", count: rows.filter((r) => r.complimentary_access).length },
     { key: "incomplete", label: "Incomplete", count: incompleteRows.length },
     { key: "restricted", label: "Restricted", count: rows.filter((r) => r.access_restricted).length },
