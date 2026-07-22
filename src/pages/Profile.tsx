@@ -146,6 +146,7 @@ const EditableSectionLabel = ({
 const Profile = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { hasPlus } = usePlusAccess();
   const { isProfessional, isAdmin } = useRoles();
   const { values: bloodValues } = useBloodValues();
 
