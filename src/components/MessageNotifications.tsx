@@ -99,6 +99,10 @@ const MessageNotifications = () => {
 
   useIncomingChatMessages((m: ChatMessage) => {
     if (activeThreadId === m.thread_id) return; // Already reading it.
+    // Scope notifications to the current role view: if the thread isn't
+    // in the view-scoped threads map, the message belongs to a different
+    // role (e.g. a brand-side chat while the user is in consumer view).
+    if (!threadIndex.has(m.thread_id)) return;
     const t = threadIndex.get(m.thread_id);
     const name = senderNameFor(t);
     toast(name, {
@@ -112,6 +116,7 @@ const MessageNotifications = () => {
       },
     });
   });
+
 
   // --- Return-to-app popup -------------------------------------------------
   const [returnState, setReturnState] = useState<{
