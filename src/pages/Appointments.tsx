@@ -288,8 +288,13 @@ const Appointments = () => {
               <div className="px-5 pb-4 space-y-3">
                 {upcoming.map((a) => {
                   const isNew = !seenIds.has(a.id);
+                  const highlight = focusApptId === a.id;
                   return (
-                    <div key={a.id} className="relative">
+                    <div
+                      key={a.id}
+                      id={`appt-${a.id}`}
+                      className={`relative rounded-[16px] transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+                    >
                       {isNew && (
                         <span className="absolute -top-1.5 left-3 z-10 text-[9px] font-semibold uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-primary text-primary-foreground shadow">
                           New booking
