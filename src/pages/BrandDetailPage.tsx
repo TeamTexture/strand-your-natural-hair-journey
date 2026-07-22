@@ -82,34 +82,69 @@ const PastOfferRow = ({ offer }: { offer: PastOffer }) => {
 };
 
 interface CatalogueItem {
-  id: string;
-  name: string;
   kind: string;
-  image_urls: string[] | null;
-  external_url: string | null;
-  offer_id: string;
+  name: string;
+  brand: string | null;
+  category: string | null;
+  image_url: string | null;
+  storage_path: string | null;
+  source_url: string | null;
+  member_count: number;
+  offer_id: string | null;
+  brand_product_id: string | null;
+  viewer_on_shelf: boolean;
+  viewer_on_wishlist: boolean;
+  viewer_on_favourite: boolean;
+  viewer_previously_on_shelf: boolean;
+  viewer_item_id: string | null;
 }
 
-const CatalogueTile = ({ item, onOpen }: { item: CatalogueItem; onOpen: () => void }) => {
-  const img = item.image_urls?.[0] ?? null;
+const statusChipsFor = (item: CatalogueItem): string[] => {
+  const chips: string[] = [];
+  if (item.viewer_on_shelf) chips.push("On shelf");
+  else if (item.viewer_previously_on_shelf) chips.push("Off shelf");
+  if (item.viewer_on_wishlist) chips.push("On wishlist");
+  if (item.viewer_on_favourite) chips.push("Favourited");
+  return chips;
+};
+
+const CatalogueRow = ({ item, onOpen }: { item: CatalogueItem; onOpen: () => void }) => {
+  const chips = statusChipsFor(item);
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="text-left rounded-[12px] border border-border bg-card overflow-hidden hover:border-primary/50 transition-colors"
+      className="w-full text-left rounded-[12px] border border-border bg-card p-2.5 flex items-start gap-3 hover:border-primary/50 transition-colors"
     >
-      <div className="aspect-square bg-muted">
-        {img ? (
-          <img src={img} alt={item.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-muted to-muted/40" />
-        )}
-      </div>
-      <div className="p-2">
-        <p className="text-[11.5px] font-body font-medium leading-tight line-clamp-2">{item.name}</p>
-        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-body mt-0.5">
-          {item.kind === "tool" ? "Tool" : "Product"}
-        </p>
+      <ProductThumb
+        imageUrl={item.image_url}
+        storagePath={item.storage_path}
+        alt={item.name}
+        brand={item.brand}
+        name={item.name}
+        cover
+        wrapperClassName="size-14 rounded-[10px] overflow-hidden bg-muted shrink-0"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="font-body text-[13px] font-medium leading-snug break-words">{item.name}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-body">
+            {item.kind === "tool" ? "Tool" : "Product"}
+          </span>
+          {chips.length > 0 && (
+            <>
+              <span className="text-[10px] text-muted-foreground">·</span>
+              <span className="text-[10.5px] font-body font-medium text-good">
+                {chips.join(" · ")}
+              </span>
+            </>
+          )}
+          {item.member_count > 1 && (
+            <span className="text-[10px] text-muted-foreground font-body ml-auto shrink-0">
+              {item.member_count} members
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );
@@ -124,7 +159,7 @@ const BrandDetailPage = () => {
     queryKey: ["brand-detail", brandUserId],
     enabled: !!brandUserId,
     queryFn: async () => {
-      const [brandRes, liveRes, pastRes] = await Promise.all([
+      const [brandRes, liveRes, pastRes, catRes] = await Promise.all([
         supabase
           .from("brand_profiles")
           .select("user_id, brand_name, category, about, website, logo_path, instagram_handle, tiktok_handle, contact_email, created_at")
@@ -145,46 +180,32 @@ const BrandDetailPage = () => {
           .eq("status", "ended")
           .order("ends_on", { ascending: false })
           .limit(10),
+        supabase.rpc("brand_public_catalogue", { _brand_user_id: brandUserId! }),
       ]);
-
-      // Products/tools this brand has featured across all of their offers.
-      const { data: prods } = await supabase
-        .from("brand_products")
-        .select("id, name, kind, image_urls, external_url, offer_id, brand_offers!inner(brand_user_id, status)")
-        .eq("brand_offers.brand_user_id", brandUserId!);
 
       return {
         brand: brandRes.data,
         live: liveRes.data ?? [],
         past: (pastRes.data ?? []) as PastOffer[],
-        products: (prods ?? []) as unknown as (CatalogueItem & { brand_offers: { status: string } })[],
+        catalogue: ((catRes.data ?? []) as CatalogueItem[]),
       };
     },
   });
 
   const brand = data?.brand;
   const logoUrl = useSignedUrl(brand?.logo_path ?? null);
+  const catalogue = data?.catalogue ?? [];
 
-  // Dedupe products by name, prefer entries linked to a live offer for the tap-through.
-  const catalogue = useMemo(() => {
-    if (!data?.products) return [] as CatalogueItem[];
-    const map = new Map<string, CatalogueItem>();
-    for (const p of data.products) {
-      const key = p.name?.trim().toLowerCase() ?? p.id;
-      const existing = map.get(key);
-      if (!existing) {
-        map.set(key, {
-          id: p.id,
-          name: p.name,
-          kind: p.kind,
-          image_urls: p.image_urls,
-          external_url: p.external_url,
-          offer_id: p.offer_id,
-        });
-      }
+  const openCatalogueItem = (item: CatalogueItem) => {
+    if (item.offer_id && item.brand_product_id) {
+      nav(`/offers/${item.offer_id}/product/${item.brand_product_id}`);
+    } else if (item.viewer_item_id) {
+      nav(item.kind === "tool" ? `/tools/${item.viewer_item_id}` : `/products/${item.viewer_item_id}`);
+    } else if (item.source_url) {
+      window.open(item.source_url, "_blank", "noopener,noreferrer");
     }
-    return Array.from(map.values()).slice(0, 24);
-  }, [data?.products]);
+  };
+
 
   if (isLoading) return <LoadingDot />;
 
