@@ -162,6 +162,16 @@ export function usePlusAlerts() {
         { event: "INSERT", schema: "public", table: "chat_messages" },
         () => fetchAlerts(),
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "content_items" },
+        () => fetchAlerts(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "content_collections" },
+        () => fetchAlerts(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
