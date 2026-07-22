@@ -57,8 +57,9 @@ export function usePlusAlerts() {
     const sThreads = seen.threads ?? weekAgo;
     const sEvents = seen.events ?? weekAgo;
     const sMessages = seen.messages ?? weekAgo;
+    const sLibrary = seen.library ?? weekAgo;
 
-    const [threadsR, eventsR, messagesR] = await Promise.all([
+    const [threadsR, eventsR, messagesR, libraryR] = await Promise.all([
       supabase
         .from("forum_threads")
         .select("id, title, created_at, author_id, category_id")
