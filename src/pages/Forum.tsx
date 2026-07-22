@@ -109,8 +109,10 @@ const Forum = () => {
               {threadsQ.data.map((t) => {
                 const author = authorsQ.data?.get(t.author_id);
                 const firstName = (author?.display_name ?? "Member").split(" ")[0];
-                const metaBits = [author?.goal_title, author?.hair_type, author?.city].filter(Boolean) as string[];
-                const metaLine = metaBits.length > 0 ? metaBits.join(" · ") : null;
+                const metaParts: string[] = [];
+                if (author?.goal_title) metaParts.push(`Goal: ${author.goal_title}`);
+                if (author?.current_style) metaParts.push(`Current Style: ${author.current_style}`);
+                const metaLine = metaParts.length > 0 ? metaParts.join(" · ") : null;
                 return (
                   <li key={t.id}>
                     <Link
