@@ -363,20 +363,35 @@ const ChatThreadPage = () => {
             </p>
           </div>
         ) : (
-          grouped.map((group) => (
+          grouped.map((group) => {
+            let prevSender: string | null = null;
+            return (
             <div key={group.label}>
               <div className="flex justify-center my-3">
                 <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{group.label}</span>
               </div>
-              {group.items.map((m) =>
-                m.kind === "system" ? (
-                  <SystemBubble key={m.id} m={m} isPro={isPro} />
-                ) : (
-                  <MessageBubble key={m.id} m={m} mine={m.sender_id === user?.id} />
-                ),
-              )}
+              {group.items.map((m) => {
+                if (m.kind === "system") {
+                  prevSender = null;
+                  return <SystemBubble key={m.id} m={m} isPro={isPro} />;
+                }
+                const mine = m.sender_id === user?.id;
+                const senderKey = mine ? "me" : (m.sender_id ?? "them");
+                const showName = prevSender !== senderKey;
+                prevSender = senderKey;
+                return (
+                  <MessageBubble
+                    key={m.id}
+                    m={m}
+                    mine={mine}
+                    senderName={mine ? "You" : (other?.name ?? "Them")}
+                    showName={showName}
+                  />
+                );
+              })}
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
