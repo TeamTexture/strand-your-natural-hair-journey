@@ -330,12 +330,15 @@ const BrandDetailPage = () => {
         {catalogue.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Products & tools</SectionLabel>
-            <div className="grid grid-cols-3 gap-2">
-              {catalogue.map((item) => (
-                <CatalogueTile
-                  key={item.id}
+            <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-2 leading-snug">
+              Everything from {brand.brand_name} that STRAND members are using.
+            </p>
+            <div className="space-y-2">
+              {catalogue.map((item, i) => (
+                <CatalogueRow
+                  key={`${item.kind}-${item.name}-${i}`}
                   item={item}
-                  onOpen={() => nav(`/offers/${item.offer_id}/product/${item.id}`)}
+                  onOpen={() => openCatalogueItem(item)}
                 />
               ))}
             </div>
