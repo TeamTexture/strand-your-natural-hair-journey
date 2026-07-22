@@ -1,6 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useMemo } from "react";
 import { Search, MessageSquarePlus } from "lucide-react";
