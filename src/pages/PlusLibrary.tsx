@@ -14,6 +14,7 @@ const KIND_LABEL: Record<string, string> = { course: "Course", ebook: "Ebook", v
 const KIND_ICON: Record<string, typeof BookOpen> = { course: Layers, ebook: BookOpen, video: Play, article: FileText };
 
 const PlusLibrary = () => {
+  useEffect(() => { markPlusSurfaceSeen("library"); }, []);
   const q = useQuery({
     queryKey: ["content_collections"],
     queryFn: async () => {
