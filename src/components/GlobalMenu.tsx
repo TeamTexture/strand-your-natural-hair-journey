@@ -109,23 +109,8 @@ const GlobalMenu = () => {
   const [open, setOpen] = useState(false);
   const { hasPageBackButton } = useBackButtonContext();
 
-  const hidden =
-    !session ||
-    isRestricted ||
-    location.pathname === "/" ||
-    HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
-
-  if (hidden) return null;
-
-  const isOnboarding = ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p));
-
   const path = location.pathname;
 
-  // The route-scoped view is unambiguous whenever the pathname is inside a
-  // role-owned area (/admin, /brand, /pro, /home). Everywhere else — shared
-  // pages like /messages, /help, /profile, /appointments, /directory — we
-  // remember the last role area the user was in this session so the switcher
-  // keeps telling the truth about which app the user is currently inside.
   const routeView: "consumer" | "pro" | "admin" | "brand" | null = path.startsWith("/admin")
     ? "admin"
     : path.startsWith("/brand")
@@ -153,7 +138,18 @@ const GlobalMenu = () => {
     }
   }, [routeView]);
 
+  const hidden =
+    !session ||
+    isRestricted ||
+    location.pathname === "/" ||
+    HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
+
+  if (hidden) return null;
+
+  const isOnboarding = ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p));
+
   const activeView: "consumer" | "pro" | "admin" | "brand" = routeView ?? rememberedView;
+
 
   const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
   const showViewSwitcher = roleCount > 1;
