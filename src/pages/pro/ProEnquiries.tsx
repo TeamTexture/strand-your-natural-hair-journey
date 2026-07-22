@@ -128,6 +128,7 @@ const EnquiryCard = ({
   onDecline,
   onOpenPassport,
   onBookAppointment,
+  onMessage,
 }: {
   enquiry: Enquiry;
   preview?: PassportPreview;
@@ -135,6 +136,7 @@ const EnquiryCard = ({
   onDecline: () => void;
   onOpenPassport?: () => void;
   onBookAppointment?: () => void;
+  onMessage?: () => void;
 }) => {
   const first = preview?.firstName ?? "Client";
   const phone = preview?.phone ?? enquiry.contact_phone ?? null;
