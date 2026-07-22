@@ -10,6 +10,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import ForumAvatar from "@/components/ForumAvatar";
 
 type Sort = "new" | "top";
 
