@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import { toast } from "sonner";
+import { BRAND_CATEGORIES, type BrandCategory } from "@/lib/brandCategories";
 
 /**
  * Dedicated brand auth surface. Signup collects brand_name + contact +
@@ -27,6 +28,7 @@ const BrandAuth = () => {
   const [brandName, setBrandName] = useState("");
   const [contactName, setContactName] = useState("");
   const [website, setWebsite] = useState("");
+  const [category, setCategory] = useState<BrandCategory | "">("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ const BrandAuth = () => {
     if (mode === "signup") {
       if (password !== confirm) return toast.error("Passwords don't match.");
       if (!brandName.trim()) return toast.error("Please enter your brand name.");
+      if (!category) return toast.error("Please choose a brand category.");
     }
     setBusy(true);
     try {
@@ -67,6 +70,7 @@ const BrandAuth = () => {
               brand_name: brandName.trim(),
               contact_name: contactName.trim() || null,
               website: website.trim() || null,
+              category: category || null,
             },
           });
           if (fnErr) throw fnErr;
@@ -103,6 +107,20 @@ const BrandAuth = () => {
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Brand name *</Label>
               <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="e.g. Hello Klean" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Brand category *</Label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as BrandCategory)}
+                required
+                className="w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60"
+              >
+                <option value="">Choose a category…</option>
+                {BRAND_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Contact name</Label>
