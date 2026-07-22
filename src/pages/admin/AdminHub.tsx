@@ -351,10 +351,17 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/members?filter=active")}
               />
               <StatCard
+                label="STRAND+"
+                value={stats.plusMembers}
+                sublabel="Premium tier"
+                onClick={() => nav("/admin/members?filter=plus")}
+              />
+              <StatCard
                 label="Complimentary"
                 value={stats.complimentaryMembers}
                 onClick={() => nav("/admin/members?filter=complimentary")}
               />
+
             </div>
 
             <SectionLabel className="!px-0">Campaign calendar</SectionLabel>
@@ -508,11 +515,24 @@ const AdminHub = () => {
             onClick={() => nav("/admin/audit")}
           />
           <NavCard
+            icon={Library}
+            title="STRAND+ Library"
+            description="Upload courses, ebooks, videos and articles"
+            onClick={() => nav("/admin/library")}
+          />
+          <NavCard
+            icon={ShieldAlert}
+            title="Forum moderation"
+            description="Hide, delete, lock or reply as STRAND Team"
+            onClick={() => nav("/admin/moderation")}
+          />
+          <NavCard
             icon={Eye}
             title="View as user"
             description="Shadow any account to see their app view"
             onClick={() => nav("/admin/view-as")}
           />
+
           <NavCard
             icon={SettingsIcon}
             title="Settings"
