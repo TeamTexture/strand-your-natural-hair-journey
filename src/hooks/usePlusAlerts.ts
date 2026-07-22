@@ -123,6 +123,16 @@ export function usePlusAlerts() {
         createdAt: m.created_at,
       });
     });
+    (libraryR.data ?? []).forEach((it: any) => {
+      out.push({
+        id: `lib:${it.id}`,
+        kind: "library",
+        title: "New in the Library",
+        body: it.title,
+        to: `/plus/library/${it.collection_id}`,
+        createdAt: it.created_at,
+      });
+    });
 
     out.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     setAlerts(out.slice(0, 12));
