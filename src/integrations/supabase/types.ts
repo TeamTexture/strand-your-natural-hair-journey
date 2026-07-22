@@ -909,6 +909,7 @@ export type Database = {
           kind: string
           sort_order: number
           storage_path: string | null
+          thumbnail_path: string | null
           title: string
           updated_at: string
         }
@@ -922,6 +923,7 @@ export type Database = {
           kind: string
           sort_order?: number
           storage_path?: string | null
+          thumbnail_path?: string | null
           title: string
           updated_at?: string
         }
@@ -935,6 +937,7 @@ export type Database = {
           kind?: string
           sort_order?: number
           storage_path?: string | null
+          thumbnail_path?: string | null
           title?: string
           updated_at?: string
         }

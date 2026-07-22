@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Loader2, ChevronDown, ChevronRight, Upload, Link as LinkIcon, ExternalLink, Film } from "lucide-react";
@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { tusUpload } from "@/lib/tusUpload";
+import VideoThumbnailPicker from "@/components/VideoThumbnailPicker";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
 const ITEM_KINDS = ["video", "pdf", "text", "audio", "image"] as const;
@@ -168,6 +169,22 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   const dropInputRef = useRef<HTMLInputElement | null>(null);
   const [savedFiles, setSavedFiles] = useState<string[]>([]);
   const [currentUpload, setCurrentUpload] = useState<string | null>(null);
+  const [thumbPending, setThumbPending] = useState<{ itemId: string; file: File } | null>(null);
+
+  const uploadThumbnail = async (itemId: string, blob: Blob) => {
+    const path = `${collectionId}/thumbs/${itemId}_${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage
+      .from("strand-plus-library")
+      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+    if (upErr) { toast.error(upErr.message); return; }
+    const { error } = await supabase
+      .from("content_items")
+      .update({ thumbnail_path: path })
+      .eq("id", itemId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cover saved");
+    qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
+  };
 
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
@@ -211,16 +228,20 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
     try {
       let storagePath: string | null = null;
       if (file) storagePath = await uploadFileToStorage(file);
-      const { error } = await supabase.from("content_items").insert({
+      const { data: inserted, error } = await supabase.from("content_items").insert({
         collection_id: collectionId,
         kind: itemKind,
         title: itemTitle.trim(),
         body_md: itemBody.trim() || null,
         storage_path: storagePath,
         external_url: itemUrl.trim() || null,
-      });
+      }).select("id").single();
       if (error) throw error;
       toast.success("Item added");
+      const isVideo = itemKind === "video" && file;
+      if (isVideo && inserted?.id) {
+        setThumbPending({ itemId: inserted.id, file: file! });
+      }
       reset();
       qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
     } catch (e) {
@@ -244,15 +265,18 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
         setCurrentUpload(f.name);
         try {
           const path = await uploadFileToStorage(f);
-          const { error } = await supabase.from("content_items").insert({
+          const { data: inserted, error } = await supabase.from("content_items").insert({
             collection_id: collectionId,
             kind,
             title,
             storage_path: path,
-          });
+          }).select("id").single();
           if (error) throw error;
           setSavedFiles((prev) => [f.name, ...prev].slice(0, 8));
           toast.success(`Saved ${f.name}`);
+          if (kind === "video" && inserted?.id) {
+            setThumbPending({ itemId: inserted.id, file: f });
+          }
         } catch (e) {
           toast.error(`${f.name}: ${(e as Error).message ?? "upload failed"}`);
         }
@@ -356,33 +380,12 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       ) : (
         <ul className="space-y-1.5">
           {(q.data ?? []).map((it) => (
-            <li key={it.id} className="flex items-center gap-2 rounded-lg bg-card border border-border px-2.5 py-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase font-body font-bold tracking-wider text-primary">{it.kind}</p>
-                <p className="text-[12.5px] font-body font-semibold truncate">{it.title}</p>
-                {it.storage_path && (
-                  <p className="text-[10px] text-foreground/50 truncate flex items-center gap-1">
-                    <Upload className="size-2.5" /> {it.storage_path}
-                  </p>
-                )}
-                {it.external_url && (
-                  <a
-                    href={it.external_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-primary truncate flex items-center gap-1 hover:underline"
-                  >
-                    <ExternalLink className="size-2.5" /> {it.external_url}
-                  </a>
-                )}
-              </div>
-              <button
-                onClick={() => removeItem(it.id, it.storage_path)}
-                className="text-alert-dark p-1"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </li>
+            <ItemRow
+              key={it.id}
+              item={it as any}
+              onDelete={() => removeItem(it.id, (it as any).storage_path)}
+              onCoverUpload={(blob) => uploadThumbnail(it.id, blob)}
+            />
           ))}
           {q.data?.length === 0 && (
             <p className="text-[11px] font-body text-foreground/55 text-center py-2">No items yet.</p>
@@ -453,7 +456,76 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
           </div>
         </div>
       )}
+
+      <VideoThumbnailPicker
+        open={!!thumbPending}
+        file={thumbPending?.file ?? null}
+        onClose={() => setThumbPending(null)}
+        onSkip={() => setThumbPending(null)}
+        onPick={async (blob) => {
+          const pending = thumbPending;
+          setThumbPending(null);
+          if (pending) await uploadThumbnail(pending.itemId, blob);
+        }}
+      />
     </div>
+  );
+};
+
+const ItemRow = ({
+  item, onDelete, onCoverUpload,
+}: {
+  item: { id: string; kind: string; title: string; storage_path: string | null; external_url: string | null; thumbnail_path: string | null };
+  onDelete: () => void;
+  onCoverUpload: (blob: Blob) => void | Promise<void>;
+}) => {
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const coverInput = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!item.thumbnail_path) { setThumbUrl(null); return; }
+      const { data } = await supabase.functions.invoke("library-signed-url", {
+        body: { bucket: "strand-plus-library", path: item.thumbnail_path },
+      });
+      if (!cancelled) setThumbUrl((data?.url as string) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [item.thumbnail_path]);
+
+  return (
+    <li className="flex items-center gap-2 rounded-lg bg-card border border-border px-2.5 py-2">
+      <div className="w-14 h-10 rounded-md bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center">
+        {thumbUrl ? (
+          <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Film className="size-4 text-foreground/40" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] uppercase font-body font-bold tracking-wider text-primary">{item.kind}</p>
+        <p className="text-[12.5px] font-body font-semibold truncate">{item.title}</p>
+        {item.storage_path && (
+          <p className="text-[10px] text-foreground/50 truncate">{item.storage_path}</p>
+        )}
+      </div>
+      <input
+        ref={coverInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onCoverUpload(f); e.target.value = ""; }}
+      />
+      <button
+        onClick={() => coverInput.current?.click()}
+        className="text-[10px] font-body font-semibold text-primary hover:underline px-1.5 shrink-0"
+        title="Set cover photo"
+      >
+        Cover
+      </button>
+      <button onClick={onDelete} className="text-alert-dark p-1"><Trash2 className="size-3.5" /></button>
+    </li>
   );
 };
 
