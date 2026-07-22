@@ -169,7 +169,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   const dropInputRef = useRef<HTMLInputElement | null>(null);
   const [savedFiles, setSavedFiles] = useState<string[]>([]);
   const [currentUpload, setCurrentUpload] = useState<string | null>(null);
-  const [thumbPending, setThumbPending] = useState<{ itemId: string; file: File } | null>(null);
+  const [thumbPending, setThumbPending] = useState<{ itemId: string; file?: File | null; sourceUrl?: string | null } | null>(null);
 
   const uploadThumbnail = async (itemId: string, blob: Blob) => {
     const path = `${collectionId}/thumbs/${itemId}_${Date.now()}.jpg`;
