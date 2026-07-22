@@ -198,6 +198,7 @@ export function usePlacementRates() {
         home: raw.home ?? 7500,
         products: raw.products ?? 5000,
         wash_day: raw.wash_day ?? 10000,
+        pro_welcome: raw.pro_welcome ?? 5000,
       };
     },
   });
