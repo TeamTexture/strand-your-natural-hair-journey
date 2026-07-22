@@ -722,6 +722,14 @@ const Profile = () => {
       <SectionLabel>Professionals</SectionLabel>
       <div className="px-5 pb-4 space-y-1">
         <button
+          onClick={() => navigate("/messages")}
+          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+        >
+          <MessageCircle className="size-4 text-primary/70" />
+          <span className="flex-1">Messages</span>
+          <ChevronRight className="size-3.5 text-muted-foreground" />
+        </button>
+        <button
           onClick={() => navigate("/profile/enquiries")}
           className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
         >
