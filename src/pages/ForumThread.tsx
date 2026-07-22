@@ -125,8 +125,10 @@ const ForumThread = () => {
   const authorAvatar = (uid: string) => authorsQ.data?.get(uid)?.avatar_url ?? null;
   const authorMetaLine = (uid: string) => {
     const a = authorsQ.data?.get(uid);
-    const bits = [a?.goal_title, a?.hair_type, a?.city].filter(Boolean) as string[];
-    return bits.length > 0 ? bits.join(" · ") : null;
+    const parts: string[] = [];
+    if (a?.goal_title) parts.push(`Goal: ${a.goal_title}`);
+    if (a?.current_style) parts.push(`Current Style: ${a.current_style}`);
+    return parts.length > 0 ? parts.join(" · ") : null;
   };
 
   return (
