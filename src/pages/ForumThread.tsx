@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { cn } from "@/lib/utils";
 import ForumAvatar from "@/components/ForumAvatar";
+import MentionTextarea from "@/components/MentionTextarea";
+import { renderMentions } from "@/lib/renderMentions";
 
 const ForumThread = () => {
   const { id } = useParams<{ id: string }>();
