@@ -677,13 +677,17 @@ const Home = () => {
                           </ul>
                         )}
                       </>
-                    ) : (
+                    ) : tipLoading ? (
                       <div className="flex items-center gap-2">
                         <span className="block size-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
                         <p className="text-xs text-muted-foreground italic">
                           Loading your Strand tip…
                         </p>
                       </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        Your next Strand tip will appear once you've logged a wash day or updated your goal.
+                      </p>
                     )}
                   </div>
                 </div>
