@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate } from "react-router-dom";
 import { Droplets, Flower2, HeartPulse, ExternalLink, Sparkles, Scissors } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -99,7 +100,7 @@ const Discounts = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Discounts & offers" onBack={() => navigate("/profile")} />
+      <TitleBar title="Discounts & offers" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pb-10 space-y-4">
         <p className="text-[12.5px] font-body text-foreground/80 leading-relaxed">
           A growing set of partner discounts, unlocked as part of your STRAND membership. Tap a

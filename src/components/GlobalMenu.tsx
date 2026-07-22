@@ -1,6 +1,6 @@
 // Inline top bar with hamburger menu — part of the app layout, not a floating overlay.
 // Reserves its own row above page content so pages never sit under it.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
@@ -120,13 +120,40 @@ const GlobalMenu = () => {
   const isOnboarding = ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p));
 
   const path = location.pathname;
-  const activeView: "consumer" | "pro" | "admin" | "brand" = path.startsWith("/admin")
+
+  // The route-scoped view is unambiguous whenever the pathname is inside a
+  // role-owned area (/admin, /brand, /pro, /home). Everywhere else — shared
+  // pages like /messages, /help, /profile, /appointments, /directory — we
+  // remember the last role area the user was in this session so the switcher
+  // keeps telling the truth about which app the user is currently inside.
+  const routeView: "consumer" | "pro" | "admin" | "brand" | null = path.startsWith("/admin")
     ? "admin"
     : path.startsWith("/brand")
       ? "brand"
       : path === "/pro" || path.startsWith("/pro/")
         ? "pro"
-        : "consumer";
+        : path === "/home" || path.startsWith("/home/")
+          ? "consumer"
+          : null;
+
+  const [rememberedView, setRememberedView] = useState<
+    "consumer" | "pro" | "admin" | "brand"
+  >(() => {
+    const stored = sessionStorage.getItem("strand.lastRoleView");
+    if (stored === "consumer" || stored === "pro" || stored === "admin" || stored === "brand") {
+      return stored;
+    }
+    return "consumer";
+  });
+
+  useEffect(() => {
+    if (routeView) {
+      sessionStorage.setItem("strand.lastRoleView", routeView);
+      setRememberedView(routeView);
+    }
+  }, [routeView]);
+
+  const activeView: "consumer" | "pro" | "admin" | "brand" = routeView ?? rememberedView;
 
   const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
   const showViewSwitcher = roleCount > 1;

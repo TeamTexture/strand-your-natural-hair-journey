@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, ImagePlus, Loader2, X } from "lucide-react";
@@ -154,7 +155,7 @@ const PersonalDetailsReview = () => {
     <ScreenLayout>
       <TitleBar
         title="Personal details"
-        onBack={() => navigate("/profile")}
+        onBack={smartBack(navigate, "/profile")}
         right={<span className="text-[12px] text-muted-foreground">Review</span>}
       />
 

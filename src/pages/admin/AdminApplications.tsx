@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -149,7 +150,7 @@ const AdminApplications = () => {
     <ScreenLayout>
       <TitleBar
         title="Applications"
-        onBack={() => nav("/admin")}
+        onBack={smartBack(nav, "/admin")}
         right={
           pendingCount > 0 ? (
             <span

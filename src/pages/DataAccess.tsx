@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -55,7 +56,7 @@ const DataAccess = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Data access" onBack={() => nav("/profile")} />
+      <TitleBar title="Data access" onBack={smartBack(nav, "/profile")} />
 
       <div className="px-5 pb-8 space-y-3">
         <p className="text-xs font-body text-muted-foreground leading-snug">

@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -311,7 +312,7 @@ const AdminBrandOffers = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={filterLabel ?? "Brand offers"} onBack={() => nav("/admin")} />
+      <TitleBar title={filterLabel ?? "Brand offers"} onBack={smartBack(nav, "/admin")} />
       <div className="px-5 pb-8 space-y-5">
         {/* Status filter — All / Pending / Live / Past */}
         <div className="flex items-center gap-1.5 flex-wrap" role="tablist" aria-label="Filter by status">

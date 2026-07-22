@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -101,7 +102,7 @@ const ProOffers = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Offers" onBack={() => nav("/pro")} />
+      <TitleBar title="Offers" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-8 space-y-4">
         <p className="text-xs text-foreground/70 font-body">
           One-off promotions on your public profile. No permanent platform-wide discounts.

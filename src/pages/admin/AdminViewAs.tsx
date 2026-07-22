@@ -4,6 +4,7 @@
 // Activating view-as swaps the id used by consumer read-hooks in `useAuth`
 // so every screen loads that user's data.
 
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -101,7 +102,7 @@ const AdminViewAs = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="View as user" onBack={() => nav("/admin")} />
+      <TitleBar title="View as user" onBack={smartBack(nav, "/admin")} />
       <div className="px-5 pb-8 space-y-4">
         <p className="text-[12px] font-body text-muted-foreground leading-snug">
           Enter any user's app as if signed in as them. Reads only — writes to

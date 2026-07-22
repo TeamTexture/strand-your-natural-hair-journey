@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -33,7 +34,7 @@ const BrandCheckoutSuccess = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Payment" onBack={() => nav(home)} />
+      <TitleBar title="Payment" onBack={smartBack(nav, home)} />
       <div className="px-5 pt-8 flex flex-col items-center text-center">
         {status === "verifying" && <Loader2 className="size-10 animate-spin text-primary" />}
         {status === "paid" && <CheckCircle2 className="size-12 text-good" />}

@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -78,7 +79,7 @@ const AdminAudit = () => {
   if (loading) {
     return (
       <ScreenLayout>
-        <TitleBar title="Audit" onBack={() => nav("/admin")} />
+        <TitleBar title="Audit" onBack={smartBack(nav, "/admin")} />
         <LoadingDot label="Loading audit…" fullScreen={false} />
       </ScreenLayout>
     );
@@ -86,7 +87,7 @@ const AdminAudit = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Audit" onBack={() => nav("/admin")} />
+      <TitleBar title="Audit" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-8 space-y-3">
         <SectionLabel>Recent passport views</SectionLabel>

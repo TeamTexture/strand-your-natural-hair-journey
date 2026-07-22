@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Check } from "lucide-react";
@@ -287,7 +288,7 @@ const LogAppointment = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Log Appointment" onBack={() => navigate("/appointments")} />
+      <TitleBar title="Log Appointment" onBack={smartBack(navigate, "/appointments")} />
 
       <div className="px-5 pb-8 space-y-4">
         {prefilled && (

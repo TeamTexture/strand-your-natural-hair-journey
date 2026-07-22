@@ -1,6 +1,7 @@
 // Blood tests hub — lists every blood test (logged + scheduled), shows a
 // calendar with week/month/year zoom, and provides quick actions to add,
 // edit, delete, or log results for scheduled tests.
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -324,7 +325,7 @@ const BloodHistory = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Blood tests" onBack={() => navigate("/profile")} />
+      <TitleBar title="Blood tests" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pt-2 pb-10 space-y-4">
         <p className="text-sm text-foreground/80 font-body leading-relaxed">
           Log every blood test and schedule the next one so STRAND can track how

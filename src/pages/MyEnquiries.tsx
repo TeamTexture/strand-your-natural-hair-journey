@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -60,7 +61,7 @@ const MyEnquiries = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="My enquiries" onBack={() => nav("/profile")} />
+      <TitleBar title="My enquiries" onBack={smartBack(nav, "/profile")} />
 
       <div className="px-5 pb-3">
         <p className="text-xs text-muted-foreground font-body leading-snug">

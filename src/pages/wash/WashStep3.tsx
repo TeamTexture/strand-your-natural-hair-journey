@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pause, Play } from "lucide-react";
@@ -93,7 +94,7 @@ const WashStep3 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>3 of 5</span>} onBack={() => navigate("/wash/step-2")} />
+      <TitleBar title="Wash Day" right={<span>3 of 5</span>} onBack={smartBack(navigate, "/wash/step-2")} />
       <ProgressDots total={5} current={3} />
       <ItalicSub>
         Moisture is in how your hair moves and feels — not a label. Tell us in your own words.

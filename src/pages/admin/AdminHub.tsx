@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -234,7 +235,7 @@ const AdminHub = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Admin" onBack={() => nav("/")} />
+      <TitleBar title="Admin" onBack={smartBack(nav, "/")} />
 
       <div className="px-5 pb-8 space-y-4">
         <SectionLabel className="!px-0 !mt-0">Overview</SectionLabel>

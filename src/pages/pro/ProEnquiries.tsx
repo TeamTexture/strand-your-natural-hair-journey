@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -351,7 +352,7 @@ const ProEnquiries = () => {
   if (!subLoading && !isActive && !isAdmin) {
     return (
       <ScreenLayout>
-        <TitleBar title="Enquiries" onBack={() => nav("/pro")} />
+        <TitleBar title="Enquiries" onBack={smartBack(nav, "/pro")} />
         <div className="px-5 pb-8">
           <SurfaceCard tone="gold">
             <div className="flex items-start gap-3">
@@ -388,7 +389,7 @@ const ProEnquiries = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Enquiries" onBack={() => nav("/pro")} />
+      <TitleBar title="Enquiries" onBack={smartBack(nav, "/pro")} />
 
       <div className="px-5 pb-3">
         <div className="flex gap-2">

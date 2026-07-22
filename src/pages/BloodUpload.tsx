@@ -1,5 +1,6 @@
 // Upload a blood test PDF or photo — AI extracts marker values, user reviews
 // and confirms, then saves as a new blood panel + results.
+import { smartBack } from "@/lib/smartBack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
@@ -471,7 +472,7 @@ export default function BloodUpload() {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Upload blood test" onBack={() => navigate(isOnboarding ? "/onboarding/profile-step-4-colour" : "/blood-history")} />
+      <TitleBar title="Upload blood test" onBack={smartBack(navigate, isOnboarding ? "/onboarding/profile-step-4-colour" : "/blood-history")} />
 
       <div className="px-5 pt-2 pb-10 space-y-4">
         <p className="text-sm text-foreground/80 font-body leading-relaxed">

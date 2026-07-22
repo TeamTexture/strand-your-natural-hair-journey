@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -585,7 +586,7 @@ const BrandCreateOffer = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={existingId ? "Edit offer" : "Create offer"} onBack={() => nav("/brand")} />
+      <TitleBar title={existingId ? "Edit offer" : "Create offer"} onBack={smartBack(nav, "/brand")} />
       <div className="px-5 pb-0 space-y-5 overflow-x-hidden">
         <SectionLabel className="!px-0 !mt-0">Creative</SectionLabel>
         <SurfaceCard className="space-y-3">

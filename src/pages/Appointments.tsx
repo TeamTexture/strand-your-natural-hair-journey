@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, Search, X } from "lucide-react";
@@ -113,6 +114,16 @@ const Appointments = () => {
     setDeleteTarget(null);
   };
 
+  // Track which appointment IDs the user has already seen. Anything created
+  // since the last visit gets a "NEW BOOKING" badge until the next open.
+  const seenKey = user ? `strand.viewedApptIds.${user.id}` : "strand.viewedApptIds";
+  const [seenIds, setSeenIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(seenKey);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set(); }
+  });
+
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -121,7 +132,7 @@ const Appointments = () => {
         .from("appointments")
         .select("*")
         .eq("user_id", user.id)
-        .order("appointment_date", { ascending: false });
+        .order("appointment_date", { ascending: true });
       if (cancelled) return;
       if (error) console.error("Appointments load failed:", error);
       else setAppts((data ?? []) as Appointment[]);
@@ -154,12 +165,29 @@ const Appointments = () => {
     });
   }, [appts, search]);
 
-  // Status is the source of truth: anything marked "completed" belongs in Past
-  // regardless of date; anything else is Upcoming unless its date has already
-  // slipped into the past (in which case we still show it under Past so it
-  // doesn't hang around the top of the list forever).
-  const upcoming = filteredAppts.filter((a) => a.status !== "completed" && a.appointment_date >= today);
-  const past = filteredAppts.filter((a) => a.status === "completed" || a.appointment_date < today);
+  // Upcoming: soonest first (ascending). Past: most recent first (descending).
+  const upcoming = filteredAppts
+    .filter((a) => a.status !== "completed" && a.appointment_date >= today)
+    .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date));
+  const past = filteredAppts
+    .filter((a) => a.status === "completed" || a.appointment_date < today)
+    .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date));
+
+  // After the upcoming list renders, mark those IDs as seen so the badge
+  // doesn't linger between visits.
+  useEffect(() => {
+    if (loading || upcoming.length === 0) return;
+    const next = new Set(seenIds);
+    let changed = false;
+    for (const a of upcoming) {
+      if (!next.has(a.id)) { next.add(a.id); changed = true; }
+    }
+    if (changed) {
+      setSeenIds(next);
+      try { localStorage.setItem(seenKey, JSON.stringify(Array.from(next))); } catch { /* ignore */ }
+    }
+  }, [loading, upcoming, seenIds, seenKey]);
+
 
   const goLog = () => navigate("/appointments/log");
 
@@ -167,7 +195,7 @@ const Appointments = () => {
     <ScreenLayout bottomNav>
       <TitleBar
         title="Appointments"
-        onBack={() => navigate("/profile")}
+        onBack={smartBack(navigate, "/profile")}
       />
 
       {/* Segmented control */}
@@ -258,17 +286,26 @@ const Appointments = () => {
             <>
               <SectionLabel>Upcoming</SectionLabel>
               <div className="px-5 pb-4 space-y-3">
-                {upcoming.map((a) => (
-                  <AppointmentCard
-                    key={a.id}
-                    appointment={a}
-                    variant="upcoming"
-                    onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
-                    onDelete={() => setDeleteTarget(a)}
-                  >
-                    <ApptPhotos appointmentId={a.id} />
-                  </AppointmentCard>
-                ))}
+                {upcoming.map((a) => {
+                  const isNew = !seenIds.has(a.id);
+                  return (
+                    <div key={a.id} className="relative">
+                      {isNew && (
+                        <span className="absolute -top-1.5 left-3 z-10 text-[9px] font-semibold uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-primary text-primary-foreground shadow">
+                          New booking
+                        </span>
+                      )}
+                      <AppointmentCard
+                        appointment={a}
+                        variant="upcoming"
+                        onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                        onDelete={() => setDeleteTarget(a)}
+                      >
+                        <ApptPhotos appointmentId={a.id} />
+                      </AppointmentCard>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

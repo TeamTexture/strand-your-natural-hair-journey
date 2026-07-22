@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CreditCard, CheckCircle2, AlertCircle, Loader2, Receipt } from "lucide-react";
@@ -115,7 +116,7 @@ const BrandBilling = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Billing" onBack={() => nav("/brand")} />
+      <TitleBar title="Billing" onBack={smartBack(nav, "/brand")} />
       <div className="px-5 pb-10 space-y-5">
         <SectionLabel>STRAND Brand Access</SectionLabel>
 

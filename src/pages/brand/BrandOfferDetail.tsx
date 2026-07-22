@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
@@ -120,7 +121,7 @@ const BrandOfferDetail = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={offer.headline ?? "Offer"} onBack={() => nav(homeRoute)} />
+      <TitleBar title={offer.headline ?? "Offer"} onBack={smartBack(nav, homeRoute)} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-2">
           <div className="flex items-start justify-between gap-2">

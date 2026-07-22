@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -132,7 +133,7 @@ const AdminBrands = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brands" onBack={() => nav("/admin")} />
+      <TitleBar title="Brands" onBack={smartBack(nav, "/admin")} />
       <div className="px-5 pb-8 space-y-3">
         <div className="relative">
           <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

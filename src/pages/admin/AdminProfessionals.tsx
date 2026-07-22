@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -312,7 +313,7 @@ const AdminProfessionals = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Professionals" onBack={() => nav("/admin")} />
+      <TitleBar title="Professionals" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-3">
         <div className="grid grid-cols-3 gap-2">

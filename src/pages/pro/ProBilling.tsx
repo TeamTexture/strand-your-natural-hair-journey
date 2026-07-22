@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CreditCard, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
@@ -109,7 +110,7 @@ const ProBilling = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Billing" onBack={() => nav("/pro")} />
+      <TitleBar title="Billing" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-10 space-y-5">
         <SectionLabel>STRAND Pro Membership</SectionLabel>
 

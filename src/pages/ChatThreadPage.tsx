@@ -1,8 +1,11 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
 import { BadgeCheck, Calendar, Send, User2 } from "lucide-react";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import TimePicker12h from "@/components/TimePicker12h";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import LoadingDot from "@/components/LoadingDot";
@@ -32,11 +35,13 @@ const BookAppointmentDialog = ({
   onCancel,
   onConfirm,
   submitting,
+  locationSuggestions,
 }: {
   open: boolean;
   onCancel: () => void;
   onConfirm: (v: { date: string; time: string; location: string; notes: string }) => void;
   submitting: boolean;
+  locationSuggestions: string[];
 }) => {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -54,14 +59,18 @@ const BookAppointmentDialog = ({
           Date
           <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
         </label>
-        <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Time
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
-        </label>
-        <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+          <div className="mt-1">
+            <TimePicker12h value={time} onChange={setTime} />
+          </div>
+        </div>
+        <div className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Location
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Clinic, address or link" className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
-        </label>
+          <div className="mt-1">
+            <LocationAutocomplete value={location} onChange={setLocation} suggestions={locationSuggestions} />
+          </div>
+        </div>
         <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Notes
           <textarea value={notes} rows={3} onChange={(e) => setNotes(e.target.value)} placeholder="What to bring, prep, etc." className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60" />
@@ -76,6 +85,8 @@ const BookAppointmentDialog = ({
     </div>
   );
 };
+
+
 
 const SystemBubble = ({ text }: { text: string }) => (
   <div className="flex justify-center my-2">
@@ -117,6 +128,41 @@ const ChatThreadPage = () => {
   const [draft, setDraft] = useState("");
   const [bookingOpen, setBookingOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Location autocomplete pool: any locations the current user has already
+  // used on appointments, plus (for pros) their registered clinic addresses.
+  // Purely a UX helper — free-text new locations are still allowed.
+  const { data: locationSuggestions = [] } = useQuery({
+    queryKey: ["chat_location_suggestions", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const set = new Set<string>();
+      const { data: appts } = await supabase
+        .from("appointments")
+        .select("clinic_name")
+        .or(`user_id.eq.${user!.id},linked_pro_user_id.eq.${user!.id}`)
+        .not("clinic_name", "is", null)
+        .limit(50);
+      for (const a of appts ?? []) {
+        if (a?.clinic_name) set.add(String(a.clinic_name));
+      }
+      const { data: proRow } = await supabase
+        .from("pro_profiles")
+        .select("address_line1, address_line2, city, location")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (proRow) {
+        const r = proRow as unknown as Record<string, unknown>;
+        for (const key of ["address_line1", "address_line2", "city", "location"]) {
+          const v = r[key];
+          if (typeof v === "string" && v.trim()) set.add(v.trim());
+        }
+      }
+      return Array.from(set);
+    },
+    staleTime: 5 * 60_000,
+  });
+
 
   const t = thread.data;
   const isSupport = t?.thread_type === "admin_support";
@@ -199,7 +245,7 @@ const ChatThreadPage = () => {
   if (!threadId) {
     return (
       <ScreenLayout>
-        <TitleBar title="Messages" onBack={() => nav("/messages")} />
+        <TitleBar title="Messages" onBack={smartBack(nav, "/messages")} />
         <EmptyState icon="💬" message="Thread not found" />
       </ScreenLayout>
     );
@@ -212,7 +258,7 @@ const ChatThreadPage = () => {
     <ScreenLayout>
       <TitleBar
         title={headerTitle}
-        onBack={() => nav(backTarget)}
+        onBack={smartBack(nav, backTarget)}
         right={
           !isSupport && isPro && t ? (
             <button
@@ -300,6 +346,7 @@ const ChatThreadPage = () => {
       <BookAppointmentDialog
         open={bookingOpen}
         submitting={book.isPending}
+        locationSuggestions={locationSuggestions}
         onCancel={() => setBookingOpen(false)}
         onConfirm={async ({ date, time, location, notes }) => {
           if (!threadId) return;
@@ -312,7 +359,17 @@ const ChatThreadPage = () => {
               notes: notes || undefined,
             });
             setBookingOpen(false);
-            toast.success("Appointment booked");
+            // Pros get a confirmation with a shortcut to their appointments hub.
+            if (isPro) {
+              toast.success("Appointment booked", {
+                action: {
+                  label: "View in appointments",
+                  onClick: () => nav("/pro/appointments"),
+                },
+              });
+            } else {
+              toast.success("Appointment booked");
+            }
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Could not book");
           }
@@ -323,3 +380,4 @@ const ChatThreadPage = () => {
 };
 
 export default ChatThreadPage;
+

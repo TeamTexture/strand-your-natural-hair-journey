@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -293,7 +294,7 @@ const AdminMembers = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Members" onBack={() => nav("/admin")} />
+      <TitleBar title="Members" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-4">
         <div className="relative">

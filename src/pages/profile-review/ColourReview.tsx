@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -122,7 +123,7 @@ const ColourReview = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Colour & style" onBack={() => navigate("/profile")} />
+      <TitleBar title="Colour & style" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pb-8 space-y-3">
         <p className="text-[13px] text-muted-foreground leading-snug pb-1">
           Tap the pencil to update just one field at a time.

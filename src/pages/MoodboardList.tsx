@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2, Plus, Camera, ImagePlus, X, Link as LinkIcon, Check } from "lucide-react";
@@ -224,7 +225,7 @@ const MoodboardList = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Mood Boards" onBack={() => navigate("/home")} />
+      <TitleBar title="Mood Boards" onBack={smartBack(navigate, "/home")} />
 
       <p className="text-[11px] text-muted-foreground px-5 pb-3">
         Save inspiration. Tap any image's heart to add it to your Favourites board.

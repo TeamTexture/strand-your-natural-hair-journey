@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -124,7 +125,7 @@ const BrandSubscribe = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand access" onBack={() => nav("/brand")} />
+      <TitleBar title="Brand access" onBack={smartBack(nav, "/brand")} />
 
       <div className="px-5 pb-12 space-y-6">
         {/* Hero */}

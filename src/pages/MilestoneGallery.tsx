@@ -1,6 +1,7 @@
 // Milestone photo gallery — 6-week progress check-ins.
 // Reachable from Profile and from the home alert ("Time for your 6-week photos").
 
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Plus, X } from "lucide-react";
@@ -87,7 +88,7 @@ const MilestoneGallery = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Progress Photos" onBack={() => navigate("/profile")} />
+      <TitleBar title="Progress Photos" onBack={smartBack(navigate, "/profile")} />
       <ItalicSub>
         A 6-week cadence is enough to see real change without obsessing day to day.
       </ItalicSub>
