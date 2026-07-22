@@ -320,10 +320,34 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       {progress !== null && (
         <div className="rounded-lg border border-primary/30 bg-card p-2.5 space-y-1.5">
           <div className="flex items-center justify-between text-[10.5px] font-body">
-            <span className="font-semibold text-primary">Uploading…</span>
+            <span className="font-semibold text-primary">
+              {progress >= 100 ? "Saving to library…" : "Uploading…"}
+              {currentUpload && <span className="text-foreground/60 font-normal"> · {currentUpload}</span>}
+            </span>
             <span className="text-foreground/70">{progress.toFixed(0)}%</span>
           </div>
           <Progress value={progress} className="h-1.5" />
+        </div>
+      )}
+
+      {savedFiles.length > 0 && (
+        <div className="rounded-lg border border-good/40 bg-good/10 p-2.5 space-y-1">
+          <p className="text-[10.5px] font-body font-bold uppercase tracking-wider text-good flex items-center gap-1">
+            <CheckCircle2 className="size-3" /> Saved to library
+          </p>
+          <ul className="space-y-0.5">
+            {savedFiles.map((n, i) => (
+              <li key={`${n}-${i}`} className="text-[11px] font-body text-foreground/80 truncate flex items-center gap-1">
+                <CheckCircle2 className="size-3 text-good shrink-0" /> {n}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={() => setSavedFiles([])}
+            className="text-[10px] font-body text-foreground/50 hover:text-foreground pt-0.5"
+          >
+            Clear
+          </button>
         </div>
       )}
 
