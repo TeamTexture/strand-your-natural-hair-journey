@@ -19,11 +19,18 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
-import EmptyState from "@/components/EmptyState";
+import UnifiedCampaignCalendar from "@/components/admin/UnifiedCampaignCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
-import { useAllPendingRevisions } from "@/hooks/useBrandOffers";
+import { useAllPendingRevisions, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
+
+interface CampaignCounts {
+  live: number;
+  requested: number;
+  scheduled: number;
+  expired: number;
+}
 
 interface Stats {
   pendingApplications: number;
@@ -34,13 +41,12 @@ interface Stats {
   complimentaryMembers: number;
   viewsLast7d: number;
   liveBrands: number;
-  liveBrandOffers: number;
-  brandOfferRequests: number;
-  brandOfferRequestsBrand: number;
-  brandOfferRequestsPro: number;
-  liveBrandOffersBrand: number;
-  liveBrandOffersPro: number;
+  brand: CampaignCounts;
+  pro: CampaignCounts;
+  totalRequests: number;
+  totalLive: number;
 }
+
 
 
 const useAdminStats = () =>
@@ -49,8 +55,9 @@ const useAdminStats = () =>
     staleTime: 30_000,
     queryFn: async (): Promise<Stats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const today = new Date().toISOString().slice(0, 10);
-      const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, liveOffersQ, brandReqQ] = await Promise.all([
+      const today = londonToday();
+
+      const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, allOffersQ] = await Promise.all([
         supabase
           .from("pro_applications")
           .select("id", { count: "exact", head: true })
@@ -75,18 +82,33 @@ const useAdminStats = () =>
           .select("user_id", { count: "exact", head: true }),
         supabase
           .from("brand_offers")
-          .select("id, owner_type")
-          .in("status", ["live", "paid_scheduled"])
-          .lte("starts_on", today)
-          .gte("ends_on", today),
-        supabase
-          .from("brand_offers")
-          .select("id, owner_type")
-          .eq("status", "under_review"),
+          .select("id, owner_type, status, starts_on, ends_on")
+          .in("status", ["under_review", "approved_unpaid", "paid_scheduled", "live", "ended"]),
       ]);
-      const liveOffersRows = (liveOffersQ.data ?? []) as { owner_type: string | null }[];
-      const brandReqRows = (brandReqQ.data ?? []) as { owner_type: string | null }[];
-      const isPro = (r: { owner_type: string | null }) => r.owner_type === "pro";
+      const offers = (allOffersQ.data ?? []) as {
+        owner_type: string | null;
+        status: string;
+        starts_on: string | null;
+        ends_on: string | null;
+      }[];
+      const empty = (): CampaignCounts => ({ live: 0, requested: 0, scheduled: 0, expired: 0 });
+      const brand = empty();
+      const pro = empty();
+      offers.forEach((o) => {
+        const bucket = o.owner_type === "pro" ? pro : brand;
+        // "Requested" = still awaiting review or approved and awaiting payment.
+        if (o.status === "under_review" || o.status === "approved_unpaid") {
+          bucket.requested += 1;
+          return;
+        }
+        const derived = deriveBrandOfferStatus(
+          { status: o.status, starts_on: o.starts_on, ends_on: o.ends_on },
+          today,
+        );
+        if (derived === "live") bucket.live += 1;
+        else if (derived === "upcoming") bucket.scheduled += 1;
+        else if (derived === "ended") bucket.expired += 1;
+      });
       const activePaid = await supabase
         .from("consumer_subscriptions")
         .select("user_id", { count: "exact", head: true })
@@ -100,15 +122,14 @@ const useAdminStats = () =>
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
         liveBrands: liveBrandsQ.count ?? 0,
-        liveBrandOffers: liveOffersRows.length,
-        liveBrandOffersPro: liveOffersRows.filter(isPro).length,
-        liveBrandOffersBrand: liveOffersRows.filter((r) => !isPro(r)).length,
-        brandOfferRequests: brandReqRows.length,
-        brandOfferRequestsPro: brandReqRows.filter(isPro).length,
-        brandOfferRequestsBrand: brandReqRows.filter((r) => !isPro(r)).length,
+        brand,
+        pro,
+        totalRequests: brand.requested + pro.requested,
+        totalLive: brand.live + pro.live,
       };
     },
   });
+
 
 
 const StatCard = ({
@@ -117,41 +138,51 @@ const StatCard = ({
   tone,
   sublabel,
   onClick,
+  compact = false,
 }: {
   label: string;
   value: number | string;
   tone?: "warn" | "urgent" | "default";
   sublabel?: string;
   onClick?: () => void;
+  compact?: boolean;
 }) => {
   const content = (
     <SurfaceCard
       className={cn(
-        "py-3 relative h-full",
+        "relative h-full",
+        compact ? "py-2 px-2.5" : "py-3",
         tone === "urgent" && "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40",
       )}
     >
-      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium pr-4">
+      <p
+        className={cn(
+          "uppercase tracking-[0.14em] text-muted-foreground font-body font-medium",
+          compact ? "text-[8.5px] leading-tight" : "text-[10px] pr-4 tracking-[0.18em]",
+        )}
+      >
         {label}
       </p>
       <p
         className={cn(
-          "font-display text-[26px] leading-none mt-1.5",
+          "font-display leading-none",
+          compact ? "text-[19px] mt-1" : "text-[26px] mt-1.5",
           tone === "warn" ? "text-warn" : tone === "urgent" ? "text-destructive" : "text-foreground",
         )}
       >
         {value}
       </p>
       {sublabel && (
-        <p className="text-[9.5px] font-body text-muted-foreground mt-1 leading-tight">
+        <p className={cn("font-body text-muted-foreground leading-tight", compact ? "text-[9px] mt-0.5" : "text-[9.5px] mt-1")}>
           {sublabel}
         </p>
       )}
-      {onClick && (
+      {onClick && !compact && (
         <ChevronRight className="size-3.5 text-muted-foreground absolute top-3 right-3" />
       )}
     </SurfaceCard>
   );
+
   if (!onClick) return content;
   return (
     <button
@@ -226,6 +257,39 @@ const NavCard = ({
   </button>
 );
 
+const CampaignSection = ({
+  title,
+  counts,
+  type,
+  nav,
+}: {
+  title: string;
+  counts: CampaignCounts;
+  type: "brand" | "pro";
+  nav: (path: string) => void;
+}) => {
+  const go = (filter: string) => nav(`/admin/brand-offers?filter=${filter}&type=${type}`);
+  return (
+    <div>
+      <SectionLabel className="!px-0">{title}</SectionLabel>
+      <div className="grid grid-cols-4 gap-1.5">
+        <StatCard compact label="Live" value={counts.live} onClick={() => go("live")} />
+        <StatCard
+          compact
+          label="Requested"
+          value={counts.requested}
+          tone={counts.requested > 0 ? "warn" : "default"}
+          onClick={() => go("pending")}
+        />
+        <StatCard compact label="Scheduled" value={counts.scheduled} onClick={() => go("scheduled")} />
+        <StatCard compact label="Expired" value={counts.expired} onClick={() => go("expired")} />
+      </div>
+    </div>
+  );
+};
+
+
+
 const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
@@ -263,6 +327,11 @@ const AdminHub = () => {
                 onClick={() => nav("/admin/professionals?filter=subscribed")}
               />
               <StatCard
+                label="Live brands"
+                value={stats.liveBrands}
+                onClick={() => nav("/admin/brands")}
+              />
+              <StatCard
                 label="Members total"
                 value={stats.membersTotal}
                 onClick={() => nav("/admin/members?filter=all")}
@@ -279,38 +348,25 @@ const AdminHub = () => {
               />
             </div>
 
-            <SectionLabel className="!px-0">Campaigns</SectionLabel>
+            <SectionLabel className="!px-0">Campaign calendar</SectionLabel>
             <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
-              Promoted placements from brands and professionals — shared inventory.
+              Brand and pro campaigns across every placement — tap a day to see who's running.
             </p>
-            <div className="grid grid-cols-3 gap-2.5">
-              <StatCard
-                label="Live brands"
-                value={stats.liveBrands}
-                onClick={() => nav("/admin/brands")}
-              />
-              <StatCard
-                label="Live campaigns"
-                value={stats.liveBrandOffers}
-                sublabel={
-                  stats.liveBrandOffers > 0
-                    ? `${stats.liveBrandOffersBrand} brand · ${stats.liveBrandOffersPro} pro`
-                    : undefined
-                }
-                onClick={() => nav("/admin/brand-offers?filter=live")}
-              />
-              <StatCard
-                label="Requests"
-                value={stats.brandOfferRequests}
-                tone={stats.brandOfferRequests > 0 ? "warn" : "default"}
-                sublabel={
-                  stats.brandOfferRequests > 0
-                    ? `${stats.brandOfferRequestsBrand} brand · ${stats.brandOfferRequestsPro} pro`
-                    : undefined
-                }
-                onClick={() => nav("/admin/brand-offers?filter=pending")}
-              />
-            </div>
+            <UnifiedCampaignCalendar onOpenSlotView={() => nav("/admin/brand-calendar")} />
+
+            <CampaignSection
+              title="Brand campaigns"
+              counts={stats.brand}
+              type="brand"
+              nav={nav}
+            />
+            <CampaignSection
+              title="Pro campaigns"
+              counts={stats.pro}
+              type="pro"
+              nav={nav}
+            />
+
             <button
               type="button"
               onClick={() => nav("/admin/brand-offers?filter=pending")}
@@ -360,6 +416,7 @@ const AdminHub = () => {
           </>
         )}
 
+
         <SectionLabel className="!px-0">Manage</SectionLabel>
         <div className="space-y-2">
           <NavCard
@@ -404,15 +461,16 @@ const AdminHub = () => {
             icon={Megaphone}
             title="Brand offers"
             description="Review, approve or decline brand campaigns"
-            badge={(stats?.brandOfferRequests ?? 0) + revisionCount}
+            badge={(stats?.totalRequests ?? 0) + revisionCount}
             badgeTone={revisionCount > 0 ? "urgent" : "default"}
             context={
               stats
-                ? `${stats.liveBrandOffers} live · ${stats.brandOfferRequests} awaiting review${
+                ? `${stats.totalLive} live · ${stats.totalRequests} awaiting review${
                     revisionCount > 0 ? ` · ${revisionCount} urgent revision${revisionCount === 1 ? "" : "s"}` : ""
                   }`
                 : undefined
             }
+
             onClick={() => nav("/admin/brand-offers")}
           />
 

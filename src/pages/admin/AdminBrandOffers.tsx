@@ -208,15 +208,19 @@ const AdminBrandOffers = () => {
   const showAll = !filter;
   const showPending = showAll || filter === "pending";
   const showLive = showAll || filter === "live" || filter === "brands";
-  const showOther = showAll || filter === "past";
-  const showPastOnly = filter === "past";
+  const showScheduled = showAll || filter === "scheduled";
+  const showDrafts = showAll;
+  const showOther = showAll || filter === "past" || filter === "expired";
 
   const filterLabel =
     filter === "pending" ? "Campaign requests"
       : filter === "live" ? "Live campaigns"
         : filter === "brands" ? "Live brands"
-          : filter === "past" ? "Past campaigns"
-            : null;
+          : filter === "scheduled" ? "Scheduled campaigns"
+            : filter === "expired" ? "Expired campaigns"
+              : filter === "past" ? "Past campaigns"
+                : null;
+
 
   const submitterOf = (o: typeof withDerived[number]): string => {
     const owner = ownerOf(o);
@@ -506,25 +510,27 @@ const AdminBrandOffers = () => {
           </div>
         )}
 
-        {showAll && upcoming.length > 0 && (
+        {showScheduled && upcoming.length > 0 && (
           <div>
-            <SectionLabel className="!px-0">Upcoming</SectionLabel>
+            <SectionLabel className="!px-0">Scheduled</SectionLabel>
             <div className="space-y-2">{upcoming.map(renderOffer)}</div>
           </div>
         )}
 
-        {showAll && drafts.length > 0 && (
+        {showDrafts && drafts.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Drafts</SectionLabel>
             <div className="space-y-2">{drafts.map(renderOffer)}</div>
           </div>
         )}
 
+
         {showOther && past.length > 0 && (
           <div>
-            <SectionLabel className="!px-0">Past</SectionLabel>
+            <SectionLabel className="!px-0">{filter === "expired" ? "Expired" : "Past"}</SectionLabel>
             <div className="grid grid-cols-1 gap-2.5">
-              {past.map((o) => {
+              {(filter === "expired" ? past.filter((o) => o._derived === "ended") : past).map((o) => {
+
                 const placements = o.brand_offer_placements ?? [];
                 const dates = placements.map((p) => p.placement_date).sort();
                 const interest = interestCounts[o.id];
