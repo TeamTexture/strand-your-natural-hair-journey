@@ -17,8 +17,18 @@ import VideoThumbnailPicker from "@/components/VideoThumbnailPicker";
 import MentionTextarea from "@/components/MentionTextarea";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
-const ITEM_KINDS = ["video", "pdf", "text", "audio", "image"] as const;
+const ITEM_KINDS = ["video", "pdf", "text", "audio", "image", "post", "article"] as const;
 type ItemKind = typeof ITEM_KINDS[number];
+
+const ITEM_KIND_LABELS: Record<ItemKind, string> = {
+  video: "Video",
+  pdf: "PDF",
+  text: "Text",
+  audio: "Audio",
+  image: "Image",
+  post: "Post (photos)",
+  article: "Article",
+};
 
 const guessKindFromFile = (f: File): ItemKind => {
   const t = (f.type || "").toLowerCase();
@@ -309,9 +319,18 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
 
   const addItem = async () => {
     if (!itemTitle.trim()) { toast.error("Title required"); return; }
-    if (itemKind !== "text" && !file && !itemUrl.trim()) {
-      toast.error("Drop a file or provide an external URL");
-      return;
+    if (itemKind === "article") {
+      if (!itemBody.trim()) { toast.error("Article body required"); return; }
+    } else if (itemKind === "post") {
+      if (!file) { toast.error("Add at least one photo"); return; }
+      if (!(file.type || "").toLowerCase().startsWith("image/")) {
+        toast.error("Posts must be image files"); return;
+      }
+    } else if (itemKind !== "text") {
+      if (!file && !itemUrl.trim()) {
+        toast.error("Drop a file or provide an external URL");
+        return;
+      }
     }
     setBusy(true);
     try {
@@ -501,22 +520,57 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
             <select
               className="w-full h-9 rounded-md border border-border bg-card px-3 text-[12px]"
               value={itemKind}
-              onChange={(e) => setItemKind(e.target.value as ItemKind)}
+              onChange={(e) => { setItemKind(e.target.value as ItemKind); setFile(null); setItemUrl(""); }}
             >
-              {ITEM_KINDS.map((t) => <option key={t} value={t}>{t}</option>)}
+              {ITEM_KINDS.map((t) => <option key={t} value={t}>{ITEM_KIND_LABELS[t]}</option>)}
             </select>
           </div>
           <div className="space-y-1">
             <Label className="text-[11px]">Title</Label>
-            <Input value={itemTitle} onChange={(e) => setItemTitle(e.target.value)} className="h-9 text-[12px]" />
+            <Input value={itemTitle} onChange={(e) => setItemTitle(e.target.value)} className="h-9 text-[12px]" placeholder={itemKind === "article" ? "Article headline" : "Title"} />
           </div>
+
+          {itemKind === "article" && (
+            <div className="space-y-1">
+              <Label className="text-[11px]">Article</Label>
+              <Textarea
+                rows={12}
+                value={itemBody}
+                onChange={(e) => setItemBody(e.target.value)}
+                className="text-[13px] font-body leading-relaxed"
+                placeholder="Write your article here. Blank lines start new paragraphs — members see it formatted with your typography and spacing."
+              />
+              <p className="text-[10px] text-foreground/55">Members read this formatted like a magazine article inside the collection.</p>
+            </div>
+          )}
+
           {itemKind === "text" && (
             <div className="space-y-1">
               <Label className="text-[11px]">Body (markdown)</Label>
               <Textarea rows={5} value={itemBody} onChange={(e) => setItemBody(e.target.value)} className="text-[12px]" />
             </div>
           )}
-          {itemKind !== "text" && (
+
+          {itemKind === "post" && (
+            <>
+              <div className="space-y-1">
+                <Label className="text-[11px] flex items-center gap-1"><Upload className="size-3" /> Photo</Label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-[11px] file:mr-2 file:h-8 file:px-3 file:rounded-full file:border-0 file:bg-primary file:text-primary-foreground file:text-[11px] file:font-semibold"
+                />
+                {file && <p className="text-[10px] text-foreground/60 truncate">{file.name} · {fmtSize(file.size)}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Caption <span className="text-foreground/50">(optional)</span></Label>
+                <Textarea rows={2} value={itemBody} onChange={(e) => setItemBody(e.target.value)} className="text-[12px]" placeholder="Short caption shown under the photo" />
+              </div>
+            </>
+          )}
+
+          {itemKind !== "text" && itemKind !== "article" && itemKind !== "post" && (
             <>
               <div className="space-y-1">
                 <Label className="text-[11px] flex items-center gap-1"><Upload className="size-3" /> Upload file</Label>

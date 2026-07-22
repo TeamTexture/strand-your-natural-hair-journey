@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { renderMentions } from "@/lib/renderMentions";
 
-const ITEM_ICON: Record<string, typeof BookOpen> = { video: Play, pdf: BookOpen, text: FileText, url: FileText, article: FileText, audio: Play };
+const ITEM_ICON: Record<string, typeof BookOpen> = { video: Play, pdf: BookOpen, text: FileText, url: FileText, article: FileText, audio: Play, post: FileText, image: FileText };
 
 const PlusLibraryCollection = () => {
   const { id } = useParams<{ id: string }>();
@@ -106,10 +106,60 @@ const PlusLibraryCollection = () => {
             {c?.description && (
               <p className="font-body text-[13px] text-foreground/75 leading-relaxed">{c.description}</p>
             )}
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {(itemsQ.data ?? []).map((item, i) => {
                 const Icon = ITEM_ICON[item.kind] ?? FileText;
                 const done = progressQ.data?.get(item.id);
+
+                // Article — full formatted read, no "Open" affordance.
+                if (item.kind === "article") {
+                  return (
+                    <li key={item.id} className="rounded-[14px] border border-border bg-card p-4 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <button onClick={() => toggleComplete(item.id)} className="shrink-0 mt-1">
+                          {done ? <CheckCircle2 className="size-5 text-good" /> : <Circle className="size-5 text-foreground/30" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">Article · {String(i + 1).padStart(2, "0")}</p>
+                          <h3 className="font-display text-[19px] font-semibold leading-snug mt-0.5">{item.title}</h3>
+                        </div>
+                      </div>
+                      {item.body_md?.trim() && (
+                        <div className="font-body text-[14px] text-foreground/85 leading-relaxed space-y-3">
+                          {item.body_md.split(/\n\s*\n/).map((para, idx) => (
+                            <p key={idx} className="whitespace-pre-wrap">{renderMentions(para)}</p>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  );
+                }
+
+                // Post — photo-forward, caption underneath.
+                if (item.kind === "post") {
+                  return (
+                    <li key={item.id} className="rounded-[14px] border border-border bg-card overflow-hidden">
+                      <PostPhoto path={(item as any).storage_path as string | null} />
+                      <div className="p-3 space-y-1.5">
+                        <div className="flex items-start gap-2">
+                          <button onClick={() => toggleComplete(item.id)} className="shrink-0 mt-0.5">
+                            {done ? <CheckCircle2 className="size-5 text-good" /> : <Circle className="size-5 text-foreground/30" />}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">Post · {String(i + 1).padStart(2, "0")}</p>
+                            <p className="font-body text-[13.5px] font-semibold leading-tight mt-0.5">{item.title}</p>
+                          </div>
+                        </div>
+                        {item.body_md?.trim() && (
+                          <p className="font-body text-[12.5px] text-foreground/75 leading-relaxed whitespace-pre-wrap pl-7">
+                            {renderMentions(item.body_md)}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                }
+
                 return (
                   <li key={item.id} className="rounded-[14px] border border-border bg-card p-3 space-y-2">
                     <div className="flex items-center gap-3">
@@ -169,6 +219,25 @@ const ItemThumb = ({ path, fallbackIcon: Icon }: { path: string | null; fallback
       {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <Icon className="size-4 text-foreground/40" />}
     </div>
   );
+};
+
+const PostPhoto = ({ path }: { path: string | null }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!path) { setUrl(null); return; }
+      const { data } = await supabase.functions.invoke("library-signed-url", {
+        body: { bucket: "strand-plus-library", path },
+      });
+      if (!cancelled) setUrl((data?.url as string) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [path]);
+  if (!url) {
+    return <div className="w-full aspect-square bg-muted flex items-center justify-center"><FileText className="size-6 text-foreground/30" /></div>;
+  }
+  return <img src={url} alt="" className="w-full max-h-[520px] object-cover" />;
 };
 
 export default PlusLibraryCollection;
