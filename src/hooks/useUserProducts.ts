@@ -71,7 +71,37 @@ export function useUserProducts(filter: Filter = "all", opts?: { static?: boolea
       setProducts([]);
       setSponsoredById({});
     } else {
-      const list = (data as unknown as UserProduct[]) ?? [];
+      let list = (data as unknown as UserProduct[]) ?? [];
+
+      // Backfill missing storage_path with the newest user_product_photos row
+      // for the same product_key. Scanned front photos land in
+      // user_products.storage_path directly, but products added via older
+      // flows only had images in user_product_photos, leaving shelf tiles
+      // blank. Falling back here means every scanned or uploaded photo
+      // shows up as the thumbnail consistently.
+      const keysNeedingPhoto = list
+        .filter((p) => !p.storage_path)
+        .map((p) => p.product_key);
+      if (keysNeedingPhoto.length) {
+        const { data: photos } = await supabase
+          .from("user_product_photos")
+          .select("product_key, storage_path, created_at")
+          .eq("user_id", user.id)
+          .in("product_key", keysNeedingPhoto)
+          .order("created_at", { ascending: false });
+        const latestByKey = new Map<string, string>();
+        for (const row of photos ?? []) {
+          if (!latestByKey.has(row.product_key) && row.storage_path) {
+            latestByKey.set(row.product_key, row.storage_path);
+          }
+        }
+        if (latestByKey.size) {
+          list = list.map((p) =>
+            p.storage_path ? p : { ...p, storage_path: latestByKey.get(p.product_key) ?? null },
+          );
+        }
+      }
+
       setProducts(list);
       // Fetch sponsored context for any wishlist rows still linked to a live
       // brand offer. Silent when nothing is linked.
