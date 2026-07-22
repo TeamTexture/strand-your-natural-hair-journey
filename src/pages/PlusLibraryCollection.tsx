@@ -143,4 +143,24 @@ const PlusLibraryCollection = () => {
   );
 };
 
+const ItemThumb = ({ path, fallbackIcon: Icon }: { path: string | null; fallbackIcon: typeof BookOpen }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!path) { setUrl(null); return; }
+      const { data } = await supabase.functions.invoke("library-signed-url", {
+        body: { bucket: "strand-plus-library", path },
+      });
+      if (!cancelled) setUrl((data?.url as string) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [path]);
+  return (
+    <div className="w-16 h-11 rounded-md overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center">
+      {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <Icon className="size-4 text-foreground/40" />}
+    </div>
+  );
+};
+
 export default PlusLibraryCollection;
