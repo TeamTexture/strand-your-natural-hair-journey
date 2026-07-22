@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
 import { BadgeCheck, Calendar, Send, User2 } from "lucide-react";
+import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import LoadingDot from "@/components/LoadingDot";
@@ -92,8 +93,14 @@ const MessageBubble = ({ m, mine }: { m: ChatMessage; mine: boolean }) => (
       }`}
     >
       {m.body}
-      <div className={`text-[9.5px] mt-0.5 ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-        {format(new Date(m.created_at), "HH:mm")}
+      <div className={`flex items-center justify-end gap-1 text-[9.5px] mt-0.5 ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+        <span>{format(new Date(m.created_at), "HH:mm")}</span>
+        {mine && (
+          <DeliveryTicks
+            readAt={m.read_at}
+            className={m.read_at ? "" : "text-primary-foreground/70"}
+          />
+        )}
       </div>
     </div>
   </div>

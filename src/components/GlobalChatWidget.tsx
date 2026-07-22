@@ -47,6 +47,19 @@ const GlobalChatWidget = () => {
     if (!open) setExpandedId(null);
   }, [open]);
 
+  // React to global "open chat widget" events (from message toasts and the
+  // return-to-app popup). Opens the popover and pre-expands the thread if
+  // provided.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent<{ threadId?: string }>).detail;
+      setOpen(true);
+      if (detail?.threadId) setExpandedId(detail.threadId);
+    };
+    window.addEventListener("strand:open-chat-widget", onOpen as EventListener);
+    return () => window.removeEventListener("strand:open-chat-widget", onOpen as EventListener);
+  }, []);
+
   const { pros, consumers } = useMemo(() => {
     if (!user?.id) return { pros: [] as string[], consumers: [] as string[] };
     const pros = new Set<string>();
