@@ -748,43 +748,59 @@ const Home = () => {
       </div>
 
       <SectionLabel>Quick actions</SectionLabel>
-      <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-3">
+      <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-2.5">
 
         <button
           data-tour="qa-wash"
           onClick={() => navigate("/wash-day")}
-          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
-          <div className="text-2xl mb-2">💧</div>
-          <p className="text-sm font-medium font-body leading-tight">Log Wash Day</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{lastWashSub}</p>
+          <div className="text-xl mb-1.5">💧</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Log Wash Day</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">{lastWashSub}</p>
         </button>
         <button
           data-tour="qa-product"
           onClick={() => navigate("/products")}
-          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
-          <div className="text-2xl mb-2">📸</div>
-          <p className="text-sm font-medium font-body leading-tight">Add Product</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Scan or screenshot</p>
+          <div className="text-xl mb-1.5">📸</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Add Product</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Scan or screenshot</p>
         </button>
         <button
           data-tour="qa-journal"
           onClick={() => navigate("/journal")}
-          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
-          <div className="text-2xl mb-2">📖</div>
-          <p className="text-sm font-medium font-body leading-tight">Style Journal</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Document your favourite styles</p>
+          <div className="text-xl mb-1.5">📖</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Style Journal</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Document your favourite styles</p>
         </button>
         <button
           data-tour="qa-appt"
           onClick={() => navigate("/appointments")}
-          className="text-left p-4 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
-          <div className="text-2xl mb-2">📅</div>
-          <p className="text-sm font-medium font-body leading-tight">Appointments</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{apptSub}</p>
+          <div className="text-xl mb-1.5">📅</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Appointments</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">{apptSub}</p>
+        </button>
+        <button
+          onClick={() => navigate("/brands")}
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-xl mb-1.5">✨</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Brand directory</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Explore STRAND brands</p>
+        </button>
+        <button
+          onClick={() => navigate("/profile/discounts")}
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-xl mb-1.5">🎁</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Discounts & offers</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Member-only perks</p>
         </button>
       </div>
 
