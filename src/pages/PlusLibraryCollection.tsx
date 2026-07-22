@@ -131,6 +131,11 @@ const PlusLibraryCollection = () => {
           </div>
         )}
       </ScreenLayout>
+      <VideoPlayerDialog
+        url={player?.url ?? null}
+        title={player?.title}
+        onClose={() => setPlayer(null)}
+      />
     </PlusGate>
   );
 };
