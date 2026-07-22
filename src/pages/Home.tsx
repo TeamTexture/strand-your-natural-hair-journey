@@ -462,67 +462,70 @@ const Home = () => {
           </SurfaceCard>
         )}
 
-        {hasPlus && (
-          <SurfaceCard padded={false} className="border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent">
-            <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
-              <span className="text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">
-                ✦ STRAND+ Alerts{plusAlerts.length > 0 ? ` (${plusAlerts.length})` : ""}
-              </span>
-              {plusAlerts.length > 0 && (
-                <button
-                  onClick={() => { dismissAllPlus(); toast("STRAND+ alerts cleared"); }}
-                  className="text-[11px] uppercase tracking-[0.15em] text-primary"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-            <div className="px-3 pb-3 space-y-2">
-              {plusAlerts.length === 0 ? (
-                <div className="grid grid-cols-3 gap-2 pt-1">
+        {hasPlus && (() => {
+          const totalCount = plusCounts.forum + plusCounts.events + plusCounts.messages + plusCounts.library;
+          const tiles: Array<{ key: string; label: string; sub: string; emoji: string; count: number; to: string }> = [
+            { key: "forum", label: "Forum", sub: "Threads & replies", emoji: "💬", count: plusCounts.forum, to: "/forum" },
+            { key: "events", label: "Events", sub: "See upcoming", emoji: "📅", count: plusCounts.events, to: "/plus/events" },
+            { key: "library", label: "Library", sub: "New uploads", emoji: "📚", count: plusCounts.library, to: "/plus/library" },
+            { key: "messages", label: "Messages", sub: "Member DMs", emoji: "✉️", count: plusCounts.messages, to: "/messages" },
+          ];
+          return (
+            <SurfaceCard padded={false} className="border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent">
+              <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+                <span className="text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">
+                  ✦ STRAND+ Alerts{totalCount > 0 ? ` (${totalCount})` : ""}
+                </span>
+                {totalCount > 0 && (
                   <button
-                    onClick={() => navigate("/forum")}
-                    className="rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors p-3 text-left"
+                    onClick={() => { dismissAllPlus(); toast("STRAND+ alerts cleared"); }}
+                    className="text-[11px] uppercase tracking-[0.15em] text-primary"
                   >
-                    <p className="text-base leading-none">💬</p>
-                    <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">Forum</p>
-                    <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">Open threads</p>
+                    Clear all
                   </button>
-                  <button
-                    onClick={() => navigate("/plus/events")}
-                    className="rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors p-3 text-left"
-                  >
-                    <p className="text-base leading-none">📅</p>
-                    <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">Events</p>
-                    <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">See upcoming</p>
-                  </button>
-                  <button
-                    onClick={() => navigate("/messages")}
-                    className="rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors p-3 text-left"
-                  >
-                    <p className="text-base leading-none">✉️</p>
-                    <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">Messages</p>
-                    <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">Member DMs</p>
-                  </button>
+                )}
+              </div>
+              <div className="px-3 pb-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {tiles.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => navigate(t.to)}
+                      className="relative rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors p-3 text-left"
+                    >
+                      {t.count > 0 && (
+                        <span className="absolute top-1.5 right-1.5 min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10.5px] font-bold flex items-center justify-center">
+                          {t.count > 99 ? "99+" : t.count}
+                        </span>
+                      )}
+                      <p className="text-base leading-none">{t.emoji}</p>
+                      <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">{t.label}</p>
+                      <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">
+                        {t.count > 0 ? `${t.count} new` : t.sub}
+                      </p>
+                    </button>
+                  ))}
                 </div>
-              ) : plusAlerts.map((a) => (
-                <div key={a.id} className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors">
-                  <button onClick={() => { dismissAllPlus(); navigate(a.to); }} className="w-full text-left">
-                    <p className="text-xs font-medium leading-tight text-foreground">
-                      {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : a.kind === "library" ? "📚" : "✉️"} {a.title}
-                    </p>
-                    <p className="text-[11px] mt-1 text-foreground/70 line-clamp-2">{a.body}</p>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); dismissPlus(a.id); }}
-                    aria-label="Dismiss"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center text-foreground/40 hover:text-foreground"
-                  >✕</button>
-                </div>
-              ))}
-            </div>
-          </SurfaceCard>
-        )}
+                {plusAlerts.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {plusAlerts.slice(0, 3).map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={() => { dismissPlus(a.id); navigate(a.to); }}
+                        className="w-full text-left p-2.5 rounded-[10px] border border-primary/30 bg-card/60 hover:border-primary/60 transition-colors"
+                      >
+                        <p className="text-[11.5px] font-medium leading-tight text-foreground">
+                          {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : a.kind === "library" ? "📚" : "✉️"} {a.title}
+                        </p>
+                        <p className="text-[10.5px] mt-0.5 text-foreground/65 line-clamp-1">{a.body}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </SurfaceCard>
+          );
+        })()}
 
 
 
