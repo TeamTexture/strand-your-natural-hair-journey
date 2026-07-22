@@ -208,15 +208,19 @@ const AdminBrandOffers = () => {
   const showAll = !filter;
   const showPending = showAll || filter === "pending";
   const showLive = showAll || filter === "live" || filter === "brands";
-  const showOther = showAll || filter === "past";
-  const showPastOnly = filter === "past";
+  const showScheduled = showAll || filter === "scheduled";
+  const showDrafts = showAll;
+  const showOther = showAll || filter === "past" || filter === "expired";
 
   const filterLabel =
     filter === "pending" ? "Campaign requests"
       : filter === "live" ? "Live campaigns"
         : filter === "brands" ? "Live brands"
-          : filter === "past" ? "Past campaigns"
-            : null;
+          : filter === "scheduled" ? "Scheduled campaigns"
+            : filter === "expired" ? "Expired campaigns"
+              : filter === "past" ? "Past campaigns"
+                : null;
+
 
   const submitterOf = (o: typeof withDerived[number]): string => {
     const owner = ownerOf(o);
