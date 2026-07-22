@@ -41,22 +41,6 @@ interface Stats {
   liveBrandOffersPro: number;
 }
 
-interface Stats {
-  pendingApplications: number;
-  livePros: number;
-  activeProSubs: number;
-  membersTotal: number;
-  activePaidMembers: number;
-  complimentaryMembers: number;
-  viewsLast7d: number;
-  liveBrands: number;
-  liveBrandOffers: number;
-  brandOfferRequests: number;
-  brandOfferRequestsBrand: number;
-  brandOfferRequestsPro: number;
-  liveBrandOffersBrand: number;
-  liveBrandOffersPro: number;
-}
 
 const useAdminStats = () =>
   useQuery({
