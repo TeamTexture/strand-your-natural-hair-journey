@@ -165,6 +165,29 @@ const BrandOfferDetail = () => {
           </button>
         )}
 
+        {offer.body_copy && (
+          <SurfaceCard className="py-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Body copy</p>
+            <p className="text-[13px] text-foreground/85 mt-1 whitespace-pre-wrap leading-snug">{offer.body_copy}</p>
+          </SurfaceCard>
+        )}
+
+        {offer.discount_code && (
+          <SurfaceCard className="py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Discount code</p>
+              {derived === "ended" && (
+                <span className="text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-body font-medium">
+                  Expired
+                </span>
+              )}
+            </div>
+            <p className={`font-display text-[16px] mt-1 tracking-wider ${derived === "ended" ? "line-through text-muted-foreground" : "text-foreground"}`}>
+              {offer.discount_code}
+            </p>
+          </SurfaceCard>
+        )}
+
         {offer.external_url && (
           <SurfaceCard className="py-2.5">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Advert link</p>
@@ -177,6 +200,20 @@ const BrandOfferDetail = () => {
               <ExternalLink className="size-3.5 shrink-0" />
               <span className="break-all">{offer.external_url}</span>
             </a>
+          </SurfaceCard>
+        )}
+
+        {offer.total_price_pence > 0 && ["paid_scheduled", "live", "ended"].includes(offer.status) && (
+          <SurfaceCard className="py-2.5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Amount paid</p>
+              <p className="font-display text-[16px] mt-0.5">{money(offer.total_price_pence)}</p>
+            </div>
+            {offer.starts_on && offer.ends_on && (
+              <p className="text-[11px] text-muted-foreground font-body text-right">
+                {format(new Date(offer.starts_on), "d MMM")} – {format(new Date(offer.ends_on), "d MMM yyyy")}
+              </p>
+            )}
           </SurfaceCard>
         )}
 
