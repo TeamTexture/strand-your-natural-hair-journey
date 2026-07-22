@@ -222,36 +222,31 @@ const ProAppointments = () => {
         )}
 
         {variant === "upcoming" && (
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-col gap-2 pt-1">
             <Button
-              variant="outline"
-              size="sm"
               disabled={busyId === a.id}
               onClick={() => updateStatus(a.id, "completed")}
-              className="flex-1 h-9 text-[11px]"
+              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
             >
-              <Check className="size-3.5 mr-1" /> Completed
+              <Check className="size-4 mr-2" /> Mark completed
             </Button>
             <Button
-              variant="outline"
-              size="sm"
               disabled={busyId === a.id}
               onClick={() => updateStatus(a.id, "no_show")}
-              className="flex-1 h-9 text-[11px]"
+              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
             >
-              <AlertTriangle className="size-3.5 mr-1" /> No-show
+              <AlertTriangle className="size-4 mr-2" /> Mark no-show
             </Button>
             <Button
-              variant="outline"
-              size="sm"
               disabled={busyId === a.id}
-              onClick={() => updateStatus(a.id, "cancelled")}
-              className="flex-1 h-9 text-[11px]"
+              onClick={() => setConfirmCancelId(a.id)}
+              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
             >
-              <XCircle className="size-3.5 mr-1" /> Cancel
+              <XCircle className="size-4 mr-2" /> Cancel
             </Button>
           </div>
         )}
+
       </div>
     );
   };
