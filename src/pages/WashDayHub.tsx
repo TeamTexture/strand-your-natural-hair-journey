@@ -439,6 +439,8 @@ const WashDayHub = () => {
         {latestTip && (
           <NextWashTipCard action={latestTip.action} why={latestTip.why} />
         )}
+        <DynamicWashTipCard />
+
         <div id="wash-calendar">
           <Calendar
             year={view.year}
