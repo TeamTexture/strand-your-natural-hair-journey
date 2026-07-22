@@ -1,14 +1,82 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Check, Heart } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useMyOfferInterest, useRegisterOfferInterest } from "@/hooks/useBrandOfferInterest";
+
+interface PastOffer {
+  id: string;
+  headline: string | null;
+  hero_image_path: string | null;
+  starts_on: string | null;
+  ends_on: string | null;
+}
+
+const PastOfferRow = ({ offer }: { offer: PastOffer }) => {
+  const { data: alreadyInterested } = useMyOfferInterest(offer.id);
+  const register = useRegisterOfferInterest();
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!offer.hero_image_path) { setHeroUrl(null); return; }
+    supabase.storage
+      .from("brand-assets")
+      .createSignedUrl(offer.hero_image_path, 60 * 60)
+      .then(({ data }) => { if (!cancelled) setHeroUrl(data?.signedUrl ?? null); });
+    return () => { cancelled = true; };
+  }, [offer.hero_image_path]);
+
+  return (
+    <SurfaceCard className="p-0 overflow-hidden">
+      <div className="relative h-[96px] w-full bg-muted">
+        {heroUrl ? (
+          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover grayscale-[35%] opacity-90" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/50" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+        <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.18em] font-body font-medium px-2 py-0.5 rounded-full bg-foreground/85 text-background">
+          Expired
+        </span>
+        <div className="absolute inset-x-0 bottom-0 p-2.5">
+          <p className="font-display text-white text-[14px] leading-tight line-clamp-2 drop-shadow-sm">
+            {offer.headline || "Offer"}
+          </p>
+        </div>
+      </div>
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+        <p className="text-[11px] font-body text-muted-foreground">
+          Ended {offer.ends_on ? format(new Date(offer.ends_on), "d MMM yyyy") : ""}
+        </p>
+        {alreadyInterested ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-body text-good">
+            <Check className="size-3.5" /> Interest registered
+          </span>
+        ) : (
+          <Button
+            variant="outline"
+            size="pill"
+            className="text-[11px] h-8"
+            onClick={() => register.mutate(offer.id)}
+            disabled={register.isPending}
+          >
+            <Heart className="size-3.5 mr-1" /> Show interest
+          </Button>
+        )}
+      </div>
+    </SurfaceCard>
+  );
+};
 
 const BrandDetailPage = () => {
   const nav = useNavigate();
@@ -35,13 +103,17 @@ const BrandDetailPage = () => {
           .order("starts_on"),
         supabase
           .from("brand_offers")
-          .select("id, headline, starts_on, ends_on")
+          .select("id, headline, hero_image_path, starts_on, ends_on")
           .eq("brand_user_id", brandUserId!)
           .eq("status", "ended")
           .order("ends_on", { ascending: false })
           .limit(10),
       ]);
-      return { brand: brandRes.data, live: liveRes.data ?? [], past: pastRes.data ?? [] };
+      return {
+        brand: brandRes.data,
+        live: liveRes.data ?? [],
+        past: (pastRes.data ?? []) as PastOffer[],
+      };
     },
   });
 
@@ -104,15 +176,13 @@ const BrandDetailPage = () => {
 
         {data!.past.length > 0 && (
           <div>
-            <SectionLabel className="!px-0">Past offers</SectionLabel>
-            <div className="space-y-2">
+            <SectionLabel className="!px-0">Previous offers</SectionLabel>
+            <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-2 leading-snug">
+              Missed one? Tap Show interest and we'll let the brand know — they may run it again.
+            </p>
+            <div className="grid grid-cols-1 gap-2.5">
               {data!.past.map((o) => (
-                <SurfaceCard key={o.id} className="opacity-75">
-                  <p className="font-display text-[14px] leading-tight truncate">{o.headline || "Offer"}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Ended {o.ends_on ? format(new Date(o.ends_on), "d MMM yyyy") : ""}
-                  </p>
-                </SurfaceCard>
+                <PastOfferRow key={o.id} offer={o} />
               ))}
             </div>
           </div>
