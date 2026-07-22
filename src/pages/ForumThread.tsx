@@ -54,14 +54,21 @@ const ForumThread = () => {
     return Array.from(set);
   }, [threadQ.data, repliesQ.data]);
 
-  type AuthorMeta = { display_name: string | null; avatar_url: string | null; city: string | null; goal_title: string | null; hair_type: string | null };
+  type AuthorMeta = {
+    display_name: string | null;
+    avatar_url: string | null;
+    city: string | null;
+    goal_title: string | null;
+    hair_type: string | null;
+    current_style: string | null;
+  };
   const authorsQ = useQuery({
     queryKey: ["forum_author_meta_thread", authorIds],
     enabled: authorIds.length > 0,
     queryFn: async () => {
       const { data } = await supabase.rpc("forum_author_meta", { _user_ids: authorIds });
       const map = new Map<string, AuthorMeta>();
-      (data ?? []).forEach((p) => map.set(p.user_id, p));
+      (data ?? []).forEach((p) => map.set(p.user_id, p as AuthorMeta));
       return map;
     },
   });
@@ -118,8 +125,10 @@ const ForumThread = () => {
   const authorAvatar = (uid: string) => authorsQ.data?.get(uid)?.avatar_url ?? null;
   const authorMetaLine = (uid: string) => {
     const a = authorsQ.data?.get(uid);
-    const bits = [a?.goal_title, a?.hair_type, a?.city].filter(Boolean) as string[];
-    return bits.length > 0 ? bits.join(" · ") : null;
+    const parts: string[] = [];
+    if (a?.goal_title) parts.push(`Goal: ${a.goal_title}`);
+    if (a?.current_style) parts.push(`Current Style: ${a.current_style}`);
+    return parts.length > 0 ? parts.join(" · ") : null;
   };
 
   return (

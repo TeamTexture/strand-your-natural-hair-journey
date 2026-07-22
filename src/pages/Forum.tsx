@@ -50,7 +50,14 @@ const Forum = () => {
     () => Array.from(new Set((threadsQ.data ?? []).map((t) => t.author_id))),
     [threadsQ.data],
   );
-  type AuthorMeta = { display_name: string | null; avatar_url: string | null; city: string | null; goal_title: string | null; hair_type: string | null };
+  type AuthorMeta = {
+    display_name: string | null;
+    avatar_url: string | null;
+    city: string | null;
+    goal_title: string | null;
+    hair_type: string | null;
+    current_style: string | null;
+  };
   const authorsQ = useQuery({
     queryKey: ["forum_author_meta", authorIds],
     enabled: authorIds.length > 0,
@@ -58,7 +65,7 @@ const Forum = () => {
       const { data, error } = await supabase.rpc("forum_author_meta", { _user_ids: authorIds });
       if (error) throw error;
       const map = new Map<string, AuthorMeta>();
-      (data ?? []).forEach((p) => map.set(p.user_id, p));
+      (data ?? []).forEach((p) => map.set(p.user_id, p as AuthorMeta));
       return map;
     },
   });
@@ -102,8 +109,10 @@ const Forum = () => {
               {threadsQ.data.map((t) => {
                 const author = authorsQ.data?.get(t.author_id);
                 const firstName = (author?.display_name ?? "Member").split(" ")[0];
-                const metaBits = [author?.goal_title, author?.hair_type, author?.city].filter(Boolean) as string[];
-                const metaLine = metaBits.length > 0 ? metaBits.join(" · ") : null;
+                const metaParts: string[] = [];
+                if (author?.goal_title) metaParts.push(`Goal: ${author.goal_title}`);
+                if (author?.current_style) metaParts.push(`Current Style: ${author.current_style}`);
+                const metaLine = metaParts.length > 0 ? metaParts.join(" · ") : null;
                 return (
                   <li key={t.id}>
                     <Link
