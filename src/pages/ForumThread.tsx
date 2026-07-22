@@ -200,11 +200,7 @@ const ForumThread = () => {
 
 const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null }) => (
   <Link to={`/member/${uid}`} className="flex items-start gap-2.5 group">
-    {avatar ? (
-      <img src={avatar} alt="" className="size-9 rounded-full object-cover shrink-0" />
-    ) : (
-      <div className="size-9 rounded-full bg-primary/15 text-primary text-[13px] flex items-center justify-center font-semibold shrink-0">{name[0]}</div>
-    )}
+    <ForumAvatar path={avatar} fallback={name[0]} className="size-9 text-[13px]" />
     <div className="min-w-0 flex-1">
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[12.5px] font-body font-semibold text-foreground/85 group-hover:text-primary leading-tight">{name}</span>
