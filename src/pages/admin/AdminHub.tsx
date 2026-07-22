@@ -12,6 +12,8 @@ import {
   Megaphone,
   Store,
   MessageSquare,
+  Library,
+  ShieldAlert,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -38,6 +40,7 @@ interface Stats {
   activeProSubs: number;
   membersTotal: number;
   activePaidMembers: number;
+  plusMembers: number;
   complimentaryMembers: number;
   viewsLast7d: number;
   liveBrands: number;
@@ -113,12 +116,18 @@ const useAdminStats = () =>
         .from("consumer_subscriptions")
         .select("user_id", { count: "exact", head: true })
         .in("status", ["active", "trialing"]);
+      const plusCountQ = await supabase
+        .from("consumer_subscriptions")
+        .select("user_id", { count: "exact", head: true })
+        .in("status", ["active", "trialing"])
+        .eq("tier", "plus");
       return {
         pendingApplications: pending.count ?? 0,
         livePros: live.count ?? 0,
         activeProSubs: proSubs.count ?? 0,
         membersTotal: profiles.count ?? 0,
         activePaidMembers: activePaid.count ?? 0,
+        plusMembers: plusCountQ.count ?? 0,
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
         liveBrands: liveBrandsQ.count ?? 0,
