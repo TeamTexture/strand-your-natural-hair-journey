@@ -188,4 +188,3 @@ const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: P
 
 export default UserAvatar;
 
-export default UserAvatar;

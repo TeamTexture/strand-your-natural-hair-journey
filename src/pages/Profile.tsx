@@ -547,7 +547,7 @@ const Profile = () => {
 
       {/* Identity */}
       <div className="px-5 pb-4 flex items-center gap-3">
-        <UserAvatar name={displayName || "?"} />
+        <UserAvatar name={displayName || "?"} plus={hasPlus} />
         <div className="flex-1 min-w-0">
           <p className="font-display text-xl font-semibold leading-tight truncate flex items-center gap-1.5">
             <span className="truncate">{displayName || "Welcome"}</span>
