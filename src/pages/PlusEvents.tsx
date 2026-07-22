@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -53,6 +54,7 @@ type EventRow = {
 };
 
 const PlusEvents = () => {
+  useEffect(() => { markPlusSurfaceSeen("events"); }, []);
   const { user } = useAuth();
   const qc = useQueryClient();
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, MessageSquare, ArrowUp, Pin, Lock } from "lucide-react";
@@ -15,6 +16,7 @@ import ForumAvatar from "@/components/ForumAvatar";
 type Sort = "new" | "top";
 
 const Forum = () => {
+  useEffect(() => { markPlusSurfaceSeen("forum"); markPlusSurfaceSeen("threads"); }, []);
   const [sort, setSort] = useState<Sort>("new");
   const [categoryId, setCategoryId] = useState<string | null>(null);
 

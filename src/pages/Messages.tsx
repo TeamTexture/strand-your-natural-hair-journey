@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -15,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { otherParticipantId, useChatThreads } from "@/hooks/useChat";
 
 const Messages = () => {
+  useEffect(() => { markPlusSurfaceSeen("messages"); }, []);
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
