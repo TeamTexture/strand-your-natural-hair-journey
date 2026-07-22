@@ -13,6 +13,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import ProAvatar from "@/components/ProAvatar";
+import { renderMentions } from "@/lib/renderMentions";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -419,7 +420,7 @@ const ThreadQuickView = ({
                       : "bg-brown text-brown-foreground rounded-bl-sm"
                   }`}
                 >
-                  {m.body}
+                  <span className="whitespace-pre-wrap">{renderMentions(m.body)}</span>
                 </div>
               </div>
             );

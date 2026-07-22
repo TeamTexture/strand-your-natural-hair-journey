@@ -12,6 +12,7 @@ import TitleBar from "@/components/TitleBar";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import MentionTextarea from "@/components/MentionTextarea";
+import { renderMentions } from "@/lib/renderMentions";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -144,7 +145,7 @@ const MessageBubble = ({
           : "bg-brown text-brown-foreground rounded-bl-[6px]"
       }`}
     >
-      {m.body}
+      {renderMentions(m.body)}
       <div className={`flex items-center justify-end gap-1 text-[9.5px] mt-0.5 ${mine ? "text-primary-foreground/75" : "text-brown-foreground/70"}`}>
         <span>{format(new Date(m.created_at), "HH:mm")}</span>
         {mine && (

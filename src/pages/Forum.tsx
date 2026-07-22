@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import ForumAvatar from "@/components/ForumAvatar";
+import { renderMentions } from "@/lib/renderMentions";
 
 type Sort = "new" | "top";
 
@@ -142,7 +143,7 @@ const Forum = () => {
                         </div>
                       </div>
                       <h3 className="font-display text-[15px] font-semibold leading-tight text-foreground">{t.title}</h3>
-                      {t.body && <p className="mt-1 font-body text-[12px] text-foreground/70 line-clamp-2">{t.body}</p>}
+                      {t.body && <p className="mt-1 font-body text-[12px] text-foreground/70 line-clamp-2">{renderMentions(t.body)}</p>}
                       <div className="mt-2 flex items-center gap-3 text-[11px] text-foreground/60 font-body">
                         <span className="inline-flex items-center gap-1"><ArrowUp className="size-3" /> {t.vote_count ?? 0}</span>
                         <span className="inline-flex items-center gap-1"><MessageSquare className="size-3" /> {t.reply_count ?? 0}</span>
