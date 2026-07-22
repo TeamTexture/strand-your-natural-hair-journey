@@ -58,6 +58,7 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useBackButtonContext } from "@/components/BackButtonContext";
+import { toast } from "sonner";
 
 type NavItem = {
   label: string;
