@@ -110,20 +110,27 @@ const PlusLibraryCollection = () => {
                 const Icon = ITEM_ICON[item.kind] ?? FileText;
                 const done = progressQ.data?.get(item.id);
                 return (
-                  <li key={item.id} className="rounded-[14px] border border-border bg-card p-3 flex items-center gap-3">
-                    <button onClick={() => toggleComplete(item.id)} className="shrink-0">
-                      {done ? <CheckCircle2 className="size-5 text-good" /> : <Circle className="size-5 text-foreground/30" />}
-                    </button>
-                    <ItemThumb path={(item as any).thumbnail_path as string | null} fallbackIcon={Icon} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-body font-bold uppercase tracking-wider text-foreground/50">{String(i + 1).padStart(2, "0")}</p>
-                      <p className="font-body text-[13px] font-semibold leading-tight truncate flex items-center gap-1.5">
-                        <Icon className="size-3.5 text-primary" /> {item.title}
-                      </p>
+                  <li key={item.id} className="rounded-[14px] border border-border bg-card p-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => toggleComplete(item.id)} className="shrink-0">
+                        {done ? <CheckCircle2 className="size-5 text-good" /> : <Circle className="size-5 text-foreground/30" />}
+                      </button>
+                      <ItemThumb path={(item as any).thumbnail_path as string | null} fallbackIcon={Icon} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-body font-bold uppercase tracking-wider text-foreground/50">{String(i + 1).padStart(2, "0")}</p>
+                        <p className="font-body text-[13px] font-semibold leading-tight truncate flex items-center gap-1.5">
+                          <Icon className="size-3.5 text-primary" /> {item.title}
+                        </p>
+                      </div>
+                      <Button variant="goldOutline" size="sm" className="rounded-full h-9 px-3 shrink-0" onClick={() => openItem(item)} disabled={opening === item.id}>
+                        {opening === item.id ? <Loader2 className="size-3.5 animate-spin" /> : "Open"}
+                      </Button>
                     </div>
-                    <Button variant="goldOutline" size="sm" className="rounded-full h-9 px-3 shrink-0" onClick={() => openItem(item)} disabled={opening === item.id}>
-                      {opening === item.id ? <Loader2 className="size-3.5 animate-spin" /> : "Open"}
-                    </Button>
+                    {item.body_md?.trim() && (
+                      <p className="font-body text-[12px] text-foreground/70 leading-relaxed whitespace-pre-wrap pl-8">
+                        {item.body_md}
+                      </p>
+                    )}
                   </li>
                 );
               })}

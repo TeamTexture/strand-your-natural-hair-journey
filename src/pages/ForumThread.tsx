@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { cn } from "@/lib/utils";
 import ForumAvatar from "@/components/ForumAvatar";
+import MentionTextarea from "@/components/MentionTextarea";
+import { renderMentions } from "@/lib/renderMentions";
 
 const ForumThread = () => {
   const { id } = useParams<{ id: string }>();
@@ -139,7 +141,7 @@ const ForumThread = () => {
           <article className="rounded-[14px] border border-border bg-card p-4">
             <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(t.author_id)} />
             <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight">{t.title}</h1>
-            {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{t.body}</p>}
+            {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{renderMentions(t.body)}</p>}
             <div className="mt-3 flex items-center gap-2">
               <button onClick={() => upvote("thread", t.id)} className="inline-flex items-center gap-1 h-8 px-3 rounded-full text-[11px] font-semibold border border-border bg-card hover:bg-primary/10">
                 <ArrowUp className="size-3.5" /> {t.vote_count ?? 0}
@@ -170,7 +172,7 @@ const ForumThread = () => {
           {(repliesQ.data ?? []).map((r) => (
             <div key={r.id} className="rounded-[14px] border border-border bg-card p-4">
               <PosterRow uid={r.author_id} name={authorName(r.author_id)} avatar={authorAvatar(r.author_id)} createdAt={r.created_at} meta={authorMetaLine(r.author_id)} />
-              <p className="mt-2 whitespace-pre-wrap font-body text-[13px] text-foreground/85 leading-relaxed">{r.body}</p>
+              <p className="mt-2 whitespace-pre-wrap font-body text-[13px] text-foreground/85 leading-relaxed">{renderMentions(r.body)}</p>
               <div className="mt-2 flex items-center gap-2">
                 <button onClick={() => upvote("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10.5px] font-semibold border border-border bg-card hover:bg-primary/10">
                   <ArrowUp className="size-3" /> {r.vote_count ?? 0}
@@ -195,7 +197,9 @@ const ForumThread = () => {
         ) : (
           <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t border-border p-3">
             <div className="flex gap-2 items-end">
-              <Textarea rows={2} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Add a reply…" className="flex-1 resize-none min-h-[44px]" maxLength={2000} />
+              <div className="flex-1">
+                <MentionTextarea rows={2} value={reply} onChange={setReply} placeholder="Add a reply… type @ to tag" maxLength={2000} className="resize-none min-h-[44px]" />
+              </div>
               <Button variant="gold" size="icon" className="rounded-full size-11 shrink-0" onClick={postReply} disabled={busy || !reply.trim()}>
                 {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </Button>
