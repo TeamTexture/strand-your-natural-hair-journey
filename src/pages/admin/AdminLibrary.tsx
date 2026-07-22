@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Loader2, ChevronDown, ChevronRight, Upload, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Loader2, ChevronDown, ChevronRight, Upload, Link as LinkIcon, ExternalLink, Film } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -9,11 +9,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { tusUpload } from "@/lib/tusUpload";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
 const ITEM_KINDS = ["video", "pdf", "text", "audio", "image"] as const;
 type ItemKind = typeof ITEM_KINDS[number];
+
+const guessKindFromFile = (f: File): ItemKind => {
+  const t = (f.type || "").toLowerCase();
+  if (t.startsWith("video/")) return "video";
+  if (t.startsWith("audio/")) return "audio";
+  if (t.startsWith("image/")) return "image";
+  if (t === "application/pdf") return "pdf";
+  const name = f.name.toLowerCase();
+  if (/\.(mp4|mov|m4v|webm|mkv)$/.test(name)) return "video";
+  if (/\.(mp3|m4a|wav|aac|ogg)$/.test(name)) return "audio";
+  if (/\.pdf$/.test(name)) return "pdf";
+  return "video";
+};
+
+const fmtSize = (bytes: number) =>
+  bytes >= 1024 * 1024 * 1024
+    ? `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 const AdminLibrary = () => {
   const qc = useQueryClient();
