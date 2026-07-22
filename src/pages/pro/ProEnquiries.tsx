@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -15,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useRoles } from "@/hooks/useRoles";
 import {
-import { smartBack } from "@/lib/smartBack";
   useProInbox,
   useAcceptEnquiry,
   useDeclineEnquiry,

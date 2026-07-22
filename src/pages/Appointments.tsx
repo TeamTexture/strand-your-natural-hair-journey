@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, Search, X } from "lucide-react";
@@ -16,7 +17,6 @@ import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-import { smartBack } from "@/lib/smartBack";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,

@@ -4,6 +4,7 @@
 // Activating view-as swaps the id used by consumer read-hooks in `useAuth`
 // so every screen loads that user's data.
 
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +20,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useViewAs } from "@/hooks/useViewAs";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { smartBack } from "@/lib/smartBack";
 
 interface Row {
   user_id: string;

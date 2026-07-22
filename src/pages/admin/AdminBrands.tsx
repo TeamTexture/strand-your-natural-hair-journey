@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -15,7 +16,6 @@ import { useStartAdminSupportThread } from "@/hooks/useChat";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
-import { smartBack } from "@/lib/smartBack";
 
 interface BrandRow {
   id: string;

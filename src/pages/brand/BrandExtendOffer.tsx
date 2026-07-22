@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, Zap, CalendarPlus } from "lucide-react";
@@ -13,7 +14,6 @@ import { useBrandOffer } from "@/hooks/useBrandOffers";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { getOfferExpiry, buildCountdown, formatCountdown } from "@/lib/offerExpiry";
 import { useOwnerMode, ownerOfferRoute } from "@/hooks/useOwnerMode";
-import { smartBack } from "@/lib/smartBack";
 
 /**
  * Extend an existing offer.

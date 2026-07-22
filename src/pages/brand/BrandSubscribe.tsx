@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -22,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import type { LucideIcon } from "lucide-react";
-import { smartBack } from "@/lib/smartBack";
 
 type Pillar = { icon: LucideIcon; title: string; benefit: string };
 

@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -21,7 +22,6 @@ import {
   BrandOfferRevision,
 } from "@/hooks/useBrandOffers";
 import { useQueryClient } from "@tanstack/react-query";
-import { smartBack } from "@/lib/smartBack";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 

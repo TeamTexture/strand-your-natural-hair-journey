@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -22,7 +23,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
-import { smartBack } from "@/lib/smartBack";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
 const disciplines: Discipline[] = [

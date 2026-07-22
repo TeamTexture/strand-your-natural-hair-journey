@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Check } from "lucide-react";
@@ -16,7 +17,6 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import { Camera, X } from "lucide-react";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
-import { smartBack } from "@/lib/smartBack";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 

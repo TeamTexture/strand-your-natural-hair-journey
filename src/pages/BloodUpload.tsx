@@ -1,5 +1,6 @@
 // Upload a blood test PDF or photo — AI extracts marker values, user reviews
 // and confirms, then saves as a new blood panel + results.
+import { smartBack } from "@/lib/smartBack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
@@ -32,7 +33,6 @@ import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath } from "@/lib/consumerOnboarding";
 import { titleCase } from "@/lib/humanise";
-import { smartBack } from "@/lib/smartBack";
 
 
 interface ExtractedRow {

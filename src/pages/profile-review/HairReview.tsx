@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,7 +29,6 @@ const DIAGNOSED = [
 ];
 const AREAS = ["Edges / hairline", "Temples", "Crown", "Nape", "Overall thinning", "None"];
 import { HAIR_LENGTH_BUCKETS, bucketFromInches } from "@/lib/hairLength";
-import { smartBack } from "@/lib/smartBack";
 const LENGTH_BUCKETS = HAIR_LENGTH_BUCKETS.map((b) => b.label);
 
 const HairReview = () => {

@@ -3,6 +3,7 @@
 // and is recorded in user_before_photos so future progress screens have a
 // baseline to compare against.
 
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, X, Plus } from "lucide-react";
@@ -15,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
-import { smartBack } from "@/lib/smartBack";
 
 const MAX_PHOTOS = 4;
 

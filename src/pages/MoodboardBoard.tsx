@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useRef, useState } from "react";
 import { Heart, Trash2, Loader2, ImagePlus, Camera, Share2, Link as LinkIcon, Star } from "lucide-react";
 import MoodboardLinkImportDialog from "@/components/MoodboardLinkImportDialog";
@@ -12,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMoodboardImages, type MoodboardImage } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
-import { smartBack } from "@/lib/smartBack";
 
 interface BoardMeta {
   id: string;

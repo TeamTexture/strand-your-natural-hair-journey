@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -25,7 +26,6 @@ import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { AlertTriangle } from "lucide-react";
 
 import { SLOT_AUDIENCE } from "@/hooks/useBrandOffers";
-import { smartBack } from "@/lib/smartBack";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day", "pro_welcome"];
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;

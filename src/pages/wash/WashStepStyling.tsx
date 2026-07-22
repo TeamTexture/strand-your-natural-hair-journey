@@ -2,6 +2,7 @@
 // products they used to style it, how long it took, this week's stress, an
 // optional voicenote (transcribable), and optional photos that can be saved
 // as a Style Journal entry on the final review step.
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Camera, X } from "lucide-react";
@@ -22,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
-import { smartBack } from "@/lib/smartBack";
 
 const PHOTO_BUCKET = "journal-photos";
 

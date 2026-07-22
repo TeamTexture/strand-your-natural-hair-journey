@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CreditCard, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
@@ -10,7 +11,6 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { useRoles } from "@/hooks/useRoles";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { smartBack } from "@/lib/smartBack";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";

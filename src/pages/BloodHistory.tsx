@@ -1,6 +1,7 @@
 // Blood tests hub — lists every blood test (logged + scheduled), shows a
 // calendar with week/month/year zoom, and provides quick actions to add,
 // edit, delete, or log results for scheduled tests.
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -62,7 +63,6 @@ import { AlertCircle } from "lucide-react";
 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { smartBack } from "@/lib/smartBack";
 
 type PanelStatus = "logged" | "scheduled";
 

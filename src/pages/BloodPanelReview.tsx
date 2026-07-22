@@ -6,6 +6,7 @@
 //  - Markers are grouped by category and each row expands to a plain-English
 //    explanation of what the marker is and why it matters for hair.
 //  - Header clearly states test name, test type, lab/brand and date.
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -52,7 +53,6 @@ import {
 } from "@/data/bloodMarkerExplanations";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { smartBack } from "@/lib/smartBack";
 
 interface PanelRow {
   id: string;

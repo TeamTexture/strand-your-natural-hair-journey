@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyEnquiries, useWithdrawEnquiry, type EnquiryStatus } from "@/hooks/useEnquiries";
-import { smartBack } from "@/lib/smartBack";
 
 const STATUS_STYLE: Record<EnquiryStatus, { label: string; cls: string }> = {
   pending: { label: "Pending", cls: "bg-warn/15 text-warn" },

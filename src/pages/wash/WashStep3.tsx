@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pause, Play } from "lucide-react";
@@ -10,7 +11,6 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { smartBack } from "@/lib/smartBack";
 
 const VOICENOTE_BUCKET = "voicenotes";
 

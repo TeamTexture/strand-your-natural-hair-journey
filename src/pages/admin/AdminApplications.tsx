@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -20,7 +21,6 @@ import {
 } from "@/hooks/useIncompleteProApplications";
 import { normalizeWebsiteUrl, instagramUrl, normalizeInstagramHandle, externalLinkProps } from "@/lib/socialLinks";
 import type { Database } from "@/integrations/supabase/types";
-import { smartBack } from "@/lib/smartBack";
 
 type Application = Database["public"]["Tables"]["pro_applications"]["Row"];
 type Status = Database["public"]["Enums"]["pro_application_status"];

@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, ImagePlus, Loader2, X } from "lucide-react";
@@ -16,7 +17,6 @@ import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
 import HardWaterHint from "@/components/HardWaterHint";
-import { smartBack } from "@/lib/smartBack";
 
 const AVATAR_BUCKET = "avatars";
 

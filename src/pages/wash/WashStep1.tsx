@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Check, X, Flame, Loader2, Plus } from "lucide-react";
@@ -26,7 +27,6 @@ import WashGuidanceCard from "@/components/WashGuidanceCard";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import HeatToolPicker from "@/components/HeatToolPicker";
 import { useUserTools } from "@/hooks/useUserTools";
-import { smartBack } from "@/lib/smartBack";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>

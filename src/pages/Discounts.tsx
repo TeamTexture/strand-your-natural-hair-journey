@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate } from "react-router-dom";
 import { Droplets, Flower2, HeartPulse, ExternalLink, Sparkles, Scissors } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +15,6 @@ import {
 import { useAllLiveBrandOffers, useLogBrandStat } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
-import { smartBack } from "@/lib/smartBack";
 
 interface OfferProps {
   icon: React.ComponentType<{ className?: string }>;

@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronRight, Calendar, StickyNote, ShieldOff } from "lucide-react";
@@ -10,7 +11,6 @@ import ProAvatar from "@/components/ProAvatar";
 import { Input } from "@/components/ui/input";
 import { useProClients, type ProClientRow } from "@/hooks/useProClients";
 import { formatRelative } from "@/lib/formatPassportDate";
-import { smartBack } from "@/lib/smartBack";
 
 const shortDate = (iso: string | null): string => {
   if (!iso) return "";

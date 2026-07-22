@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ShieldOff } from "lucide-react";
@@ -6,7 +7,6 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import ProClientNotes from "@/components/pro/ProClientNotes";
 import { useProClients } from "@/hooks/useProClients";
-import { smartBack } from "@/lib/smartBack";
 
 const shortDate = (iso: string | null): string => {
   if (!iso) return "—";

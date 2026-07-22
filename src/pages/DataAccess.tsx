@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -19,7 +20,6 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyClientAccess, useRevokeAccess } from "@/hooks/useEnquiries";
-import { smartBack } from "@/lib/smartBack";
 
 const DataAccess = () => {
   const nav = useNavigate();

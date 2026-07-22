@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2, Plus, Camera, ImagePlus, X, Link as LinkIcon, Check } from "lucide-react";
@@ -17,7 +18,6 @@ import { useMoodboards, type Moodboard } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { smartBack } from "@/lib/smartBack";
 
 const GRADIENTS = [
   "from-[#6B4423] to-[#3E2410]",

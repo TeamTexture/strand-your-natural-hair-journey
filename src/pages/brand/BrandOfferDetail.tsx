@@ -1,3 +1,4 @@
+import { smartBack } from "@/lib/smartBack";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
@@ -23,7 +24,6 @@ import CountdownClock from "@/components/brand/CountdownClock";
 import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { Users } from "lucide-react";
-import { smartBack } from "@/lib/smartBack";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
