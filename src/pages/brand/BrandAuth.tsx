@@ -28,6 +28,10 @@ const BrandAuth = () => {
   const [brandName, setBrandName] = useState("");
   const [contactName, setContactName] = useState("");
   const [website, setWebsite] = useState("");
+  const [about, setAbout] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [category, setCategory] = useState<BrandCategory | "">("");
   const [busy, setBusy] = useState(false);
 
