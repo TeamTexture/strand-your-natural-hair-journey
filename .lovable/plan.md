@@ -1,67 +1,60 @@
+# Plan — four workstream rollout
 
-## Admin "View as user" — read-only shadow mode
+Each phase is a self-contained shippable turn. I'll do them in this order, one per turn, so migrations/edge functions can be deployed and verified before layering the next.
 
-Admins get a picker to enter any user's app as if signed in as them. Their own auth session stays put; only the *effective user id* used by consumer data hooks is swapped. Writes are blocked with a banner + guards so no data is corrupted.
+## Phase 1 — Pro Welcome ad placement (workstream 1)
 
-### 1. New context: `ViewAsProvider`
-`src/hooks/useViewAs.tsx`
-- Holds `viewAsUserId: string | null` (persisted to `sessionStorage` so tab refresh keeps state, closes on tab close).
-- Exposes `{ viewAsUserId, viewAsDisplayName, isViewingAs, startViewAs(id, name), stopViewAs() }`.
-- Only usable when the real signed-in user has the `admin` role — otherwise `startViewAs` is a no-op.
-- Wraps `<App />` inside `<AuthProvider>` in `src/App.tsx`.
+Backend
+- Add `pro_welcome` value to `brand_placement_slot` enum.
+- Add `brand_rate_pro_welcome_pence` (5000) to `platform_settings` and extend `brand_placement_rates` JSON.
+- No table changes: `brand_offer_placements`, `brand_offers`, revisions, stats and `brand_placement_no_overlap` trigger already key off `slot` so the new value plugs in.
 
-### 2. Effective-user surface: patch `useAuth`
-`src/hooks/useAuth.tsx`
-- Add `effectiveUserId: string` and `isViewingAs: boolean` to the context.
-- `effectiveUserId = viewAsUserId ?? session.user.id`.
-- Keep `user` and `session` returning the real admin — hooks that need to mutate/authenticate use those. Hooks that only *read a user's data* use `effectiveUserId`.
+Frontend
+- Extend the slot picker in `BrandCreateOffer.tsx` / campaign designer with two subheaders ("For consumers" / "For professionals") and add the new Welcome tile (£50/day placeholder, admin-editable).
+- Extend the shared calendar (`PlacementCalendarPicker`, admin `AdminBrandCalendar`) with a fourth lane; reuse existing exclusivity logic.
+- Render `BrandBanner slot="pro_welcome"` at the top of `ProDashboard.tsx` (same Sponsored/minimise/click behaviour, no dismiss-forever).
+- `AdminSettings.tsx` — expose the new rate field alongside existing ones.
+- Update pricing helpers (`useOwnerMode`, any place that switches on slot) to know the new slot.
 
-### 3. Refactor consumer read-hooks to `effectiveUserId`
-Update these hooks to read from `effectiveUserId` instead of `user.id`:
-- `useGoals`, `useUserProducts`, `useUserTools`, `useWashDays`, `useJournalEncouragement`
-- `useBloodValues`, `useBloodPanelThumbs`, `useIngredientLists`, `useIngredientProfile`
-- `useMoodboards`, `useSavedMeals`, `useHomeAlerts`, `useProductPhotos`, `useVoicenoteCounts`
-- `useConsumerSubscription` (so subscribe/paywall renders correctly for the viewed user)
-- `useAccessRestricted` (see the same block screen they'd see)
-- `useEnquiries` (consumer side)
-- The `PassportView` / `usePassportData` reads already accept a `userId` prop — no change.
+## Phase 2 — Yvonne account unification (workstream 2)
 
-Pro/admin/brand hooks (`useProSubscription`, `useRoles`, `useBrandOffers`, etc.) keep using the real admin user — role-switcher must still work.
+- Locate the auth account by name match (`profiles.display_name ilike '%yvonne%abimbola%'`). Report the exact match before mutating.
+- Grant `professional` role (keep consumer). Ensure `pro_applications` row = approved (or insert one) so gates pass. Grant complimentary pro access analogous to founder bypass (either flag or founder subscription row).
+- Find her static `professionals_directory` seed row; copy discipline, bio, location, photos, Instagram, services, contact info into her `pro_profiles` (upsert, `is_published = true`).
+- Delete or hide the static seed row from `professionals_directory` so `useDirectoryProfessionals` shows exactly one Yvonne, backed by her account. Confirm the Directory query already merges account-backed listings first (if not, ensure the seed row is removed).
+- Enquire button on her card already routes through `EnquiryDialog` (account-backed listings). Verify.
 
-### 4. Write guard
-- Extend `useAuth` result with `assertWritable()` that throws when `isViewingAs`.
-- Add a small helper `useReadOnly()` returning `isViewingAs` for UI-level disabling.
-- Wire it into the most common write hooks (product save, wash day save, journal save, goals) — they early-return + toast "Read-only: exit View as user mode to make changes." This is defense-in-depth; RLS already blocks the writes because the admin's JWT can't insert rows owned by another user.
+## Phase 3 — Client ↔ Pro chat + Book-from-chat (workstream 3, biggest)
 
-### 5. UI
+Schema
+- `chat_threads(id, enquiry_id unique, pro_user_id, consumer_id, created_at)`.
+- `chat_messages(id, thread_id, sender_id, kind text default 'user', body, created_at, read_at)` — `kind='system'` for booking system messages.
+- GRANTs to `authenticated` + `service_role`; RLS: participants only (via `auth.uid() in (pro_user_id, consumer_id)`). Admins do NOT read message bodies (no admin policy on `chat_messages`; admins may see `chat_threads` metadata).
+- Extend `accept_enquiry` RPC to `INSERT ... ON CONFLICT DO NOTHING` a `chat_threads` row.
 
-**Global banner** — `src/components/ViewAsBanner.tsx`
-- Sticky slim bar at top of `PhoneShell` when `isViewingAs`, ink background with gold text: "Viewing as {name} — read only • Exit". Height ~28px, respects the phone frame.
-- "Exit" clears view-as and refetches queries (`queryClient.invalidateQueries()`).
+Frontend
+- Hooks `useChatThreads`, `useChatThread(id)`, `useSendMessage`, using Supabase realtime channel on `chat_messages` filtered by `thread_id`. Static-page rule preserved — realtime only on chat surfaces.
+- New pages: `/pro/messages` (list), `/messages` (consumer list), `/messages/:threadId` shared component.
+- Bubble UI (right = me, left = other), friendly timestamps, date separators, system messages as centered pill.
+- Entry points: enquiry detail button, `ProClients.tsx` card action, unread badges in pro nav and consumer profile menu.
 
-**Picker** — new admin route `/admin/view-as`
-- Reuses `admin_list_member_emails` + `profiles` to list every member (search by name/email).
-- Each row has a "View as" button that calls `startViewAs(userId, displayName)` and navigates to `/home`.
-- Card entry point added to `AdminHub.tsx` under a new "Support tools" section.
+Book-from-chat
+- "Book appointment" action in thread (pro only): date/time/location/notes → insert `appointments` (linked_pro_user_id = pro, user_id = consumer, status = 'scheduled'), and system message referencing the appointment id.
+- Reschedule/cancel updates same appointment + new system message.
+- Appointment appears in client's `Appointments.tsx` and pro's `ProAppointments.tsx` (existing hooks already read those rows).
 
-**Deep link from existing admin screens**
-- `AdminMembers`, `AdminProfessionals`, and `AdminMemberPassport` get a secondary "View as user" button next to the passport link so you can jump in from where you already are.
+## Phase 4 — Rio + Revlon Professional brand role (workstream 4)
 
-### 6. Query cache isolation
-- Every `queryKey` in the refactored hooks already includes `user.id`; changing that to `effectiveUserId` naturally scopes cached data per viewed user with no cross-contamination.
-- On `startViewAs` / `stopViewAs`, call `queryClient.removeQueries({ predicate: q => q.queryKey.includes(previousId) })` to be safe.
+- Match `rio.agorwatts@revlon.com` via `admin_list_member_emails` (admin RPC) — no direct auth query needed in code.
+- Add `brand` role via `user_roles` upsert (keep professional + consumer). No admin role.
+- Upsert `brand_profiles`: brand_name "Revlon Professional", contact_name "Rio Agor-Watts".
+- Verify triple-role switcher: audit `Index.tsx` chooser and `GlobalMenu.tsx` for a Brand entry when `isBrand`. Add if missing.
 
-### 7. Safety rails
-- Admin cannot "view as" another admin who has restricted them (not a real case yet, but the check is one line).
-- Realtime subscriptions in `useBrandOfferLiveSync` etc. keep using admin's session — fine, they're global reads.
-- Session tracking (`sessionTracker`) checks `isViewingAs` and skips writing a `user_sessions` row so we don't pollute the viewed user's activity metrics.
+## Verification per phase
 
-### Technical details
+- Typecheck via build (harness).
+- For phase 1: sign in as brand, submit a `pro_welcome` slot, confirm calendar shows the lane; render pro dashboard and see the banner slot at top when a live offer exists.
+- For phase 3: send message consumer↔pro, verify realtime; book appointment from chat, verify it shows in both appointment lists and as system message.
+- Post-mutation phases (2, 4): read back the rows and report exact IDs / display_names touched.
 
-Files touched (~18):
-- New: `src/hooks/useViewAs.tsx`, `src/components/ViewAsBanner.tsx`, `src/pages/admin/AdminViewAs.tsx`
-- Edited: `src/App.tsx` (provider + route + banner mount), `src/hooks/useAuth.tsx`, `src/components/PhoneShell.tsx` (banner slot), `src/pages/admin/AdminHub.tsx`, `AdminMembers.tsx`, `AdminProfessionals.tsx`, `AdminMemberPassport.tsx`, plus each read-hook listed in §3.
-
-No database migration needed — admins already have RLS read access to all consumer tables via `has_role(auth.uid(), 'admin')` policies. If a specific table is missing an admin-read policy we'll surface it and add it in a follow-up migration.
-
-Rollout: ship gated behind the admin role check; non-admins see zero change.
+Confirm and I'll start with Phase 1.
