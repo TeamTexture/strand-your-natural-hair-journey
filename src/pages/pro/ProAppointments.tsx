@@ -180,10 +180,12 @@ const ProAppointments = () => {
   const renderCard = (a: ProAppointmentRow, variant: "upcoming" | "past") => {
     const meta = statusMeta(a.status);
     const firstName = (a.client_display_name ?? "").split(/\s+/)[0] || "Client";
+    const highlight = focusApptId === a.id;
     return (
       <div
         key={a.id}
-        className="rounded-[14px] border border-border bg-card p-4 space-y-3"
+        id={`appt-${a.id}`}
+        className={`rounded-[14px] border border-border bg-card p-4 space-y-3 transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
       >
         <button
           type="button"
