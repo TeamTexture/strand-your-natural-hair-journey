@@ -475,13 +475,15 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
 };
 
 const ItemRow = ({
-  item, onDelete, onCoverUpload,
+  item, onDelete, onCoverUpload, onPickFrame,
 }: {
   item: { id: string; kind: string; title: string; storage_path: string | null; external_url: string | null; thumbnail_path: string | null };
   onDelete: () => void;
   onCoverUpload: (blob: Blob) => void | Promise<void>;
+  onPickFrame?: (signedUrl: string) => void;
 }) => {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const [loadingFrames, setLoadingFrames] = useState(false);
   const coverInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -495,6 +497,26 @@ const ItemRow = ({
     })();
     return () => { cancelled = true; };
   }, [item.thumbnail_path]);
+
+  const openFramePicker = async () => {
+    if (!item.storage_path || !onPickFrame) return;
+    setLoadingFrames(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("library-signed-url", {
+        body: { bucket: "strand-plus-library", path: item.storage_path },
+      });
+      if (error) throw error;
+      const url = (data?.url as string) ?? null;
+      if (!url) { toast.error("Could not load video"); return; }
+      onPickFrame(url);
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not load video");
+    } finally {
+      setLoadingFrames(false);
+    }
+  };
+
+  const isVideo = item.kind === "video" && !!item.storage_path;
 
   return (
     <li className="flex items-center gap-2 rounded-lg bg-card border border-border px-2.5 py-2">
@@ -519,10 +541,20 @@ const ItemRow = ({
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onCoverUpload(f); e.target.value = ""; }}
       />
+      {isVideo && (
+        <button
+          onClick={openFramePicker}
+          disabled={loadingFrames}
+          className="text-[10px] font-body font-semibold text-primary hover:underline px-1.5 shrink-0 disabled:opacity-50"
+          title="Pick a frame from the video"
+        >
+          {loadingFrames ? "…" : "Frames"}
+        </button>
+      )}
       <button
         onClick={() => coverInput.current?.click()}
         className="text-[10px] font-body font-semibold text-primary hover:underline px-1.5 shrink-0"
-        title="Set cover photo"
+        title="Upload cover image"
       >
         Cover
       </button>
