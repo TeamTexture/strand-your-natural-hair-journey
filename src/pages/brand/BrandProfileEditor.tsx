@@ -259,15 +259,27 @@ const BrandProfileEditor = () => {
           </div>
         </div>
 
-        <Button
-          variant="gold"
-          size="pill"
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-          className="w-full"
-        >
-          {save.isPending ? "Saving…" : "Save brand profile"}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="gold"
+            size="pill"
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="w-full"
+          >
+            {save.isPending ? "Saving…" : "Save brand profile"}
+          </Button>
+          {user && (
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => nav(`/brands/${user.id}`)}
+              className="w-full"
+            >
+              View my brand page
+            </Button>
+          )}
+        </div>
       </div>
     </ScreenLayout>
   );

@@ -87,6 +87,7 @@ const PRO_NAV: NavItem[] = [
 const BRAND_NAV: NavItem[] = [
   { label: "Dashboard", to: "/brand", icon: LayoutDashboard },
   { label: "Create offer", to: "/brand/offers/new", icon: Megaphone },
+  { label: "Edit brand page", to: "/brand/profile", icon: Settings },
 ];
 
 
