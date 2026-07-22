@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 
-export type PlusAlertKind = "thread" | "event" | "message";
+export type PlusAlertKind = "thread" | "event" | "message" | "library";
 
 export interface PlusAlert {
   id: string;
