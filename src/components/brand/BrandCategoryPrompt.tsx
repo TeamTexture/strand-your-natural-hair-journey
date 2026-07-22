@@ -14,7 +14,7 @@ const BrandCategoryPrompt = ({ current }: { current?: string | null }) => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [choice, setChoice] = useState<string>("");
+  const [choice, setChoice] = useState<string>(current ?? "");
 
   const save = useMutation({
     mutationFn: async (category: string) => {
