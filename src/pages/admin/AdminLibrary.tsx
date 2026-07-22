@@ -17,8 +17,18 @@ import VideoThumbnailPicker from "@/components/VideoThumbnailPicker";
 import MentionTextarea from "@/components/MentionTextarea";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
-const ITEM_KINDS = ["video", "pdf", "text", "audio", "image"] as const;
+const ITEM_KINDS = ["video", "pdf", "text", "audio", "image", "post", "article"] as const;
 type ItemKind = typeof ITEM_KINDS[number];
+
+const ITEM_KIND_LABELS: Record<ItemKind, string> = {
+  video: "Video",
+  pdf: "PDF",
+  text: "Text",
+  audio: "Audio",
+  image: "Image",
+  post: "Post (photos)",
+  article: "Article",
+};
 
 const guessKindFromFile = (f: File): ItemKind => {
   const t = (f.type || "").toLowerCase();
@@ -309,9 +319,18 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
 
   const addItem = async () => {
     if (!itemTitle.trim()) { toast.error("Title required"); return; }
-    if (itemKind !== "text" && !file && !itemUrl.trim()) {
-      toast.error("Drop a file or provide an external URL");
-      return;
+    if (itemKind === "article") {
+      if (!itemBody.trim()) { toast.error("Article body required"); return; }
+    } else if (itemKind === "post") {
+      if (!file) { toast.error("Add at least one photo"); return; }
+      if (!(file.type || "").toLowerCase().startsWith("image/")) {
+        toast.error("Posts must be image files"); return;
+      }
+    } else if (itemKind !== "text") {
+      if (!file && !itemUrl.trim()) {
+        toast.error("Drop a file or provide an external URL");
+        return;
+      }
     }
     setBusy(true);
     try {
