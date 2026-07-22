@@ -191,6 +191,7 @@ const GlobalMenu = () => {
         { label: "Community forum", to: "/forum", icon: MessageSquare },
         { label: "STRAND+ Library", to: "/plus/library", icon: Library },
         { label: "STRAND+ Events", to: "/plus/events", icon: CalendarIcon },
+        { label: "My tickets", to: "/plus/tickets", icon: Sparkles },
         ...CONSUMER_NAV.slice(6),
       ]
     : CONSUMER_NAV;

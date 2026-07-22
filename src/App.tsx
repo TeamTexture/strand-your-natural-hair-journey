@@ -437,6 +437,8 @@ const App = () => (
               <Route path="/plus/library/:id" element={<Protected><PlusLibraryCollection /></Protected>} />
               <Route path="/plus/events" element={<Protected><PlusEvents /></Protected>} />
               <Route path="/plus/events/:id" element={<Protected><PlusEventDetail /></Protected>} />
+              <Route path="/plus/tickets" element={<Protected><PlusTickets /></Protected>} />
+
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
 
