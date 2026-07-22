@@ -257,6 +257,39 @@ const NavCard = ({
   </button>
 );
 
+const CampaignSection = ({
+  title,
+  counts,
+  type,
+  nav,
+}: {
+  title: string;
+  counts: CampaignCounts;
+  type: "brand" | "pro";
+  nav: (path: string) => void;
+}) => {
+  const go = (filter: string) => nav(`/admin/brand-offers?filter=${filter}&type=${type}`);
+  return (
+    <div>
+      <SectionLabel className="!px-0">{title}</SectionLabel>
+      <div className="grid grid-cols-4 gap-1.5">
+        <StatCard compact label="Live" value={counts.live} onClick={() => go("live")} />
+        <StatCard
+          compact
+          label="Requested"
+          value={counts.requested}
+          tone={counts.requested > 0 ? "warn" : "default"}
+          onClick={() => go("pending")}
+        />
+        <StatCard compact label="Scheduled" value={counts.scheduled} onClick={() => go("scheduled")} />
+        <StatCard compact label="Expired" value={counts.expired} onClick={() => go("expired")} />
+      </div>
+    </div>
+  );
+};
+
+
+
 const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
