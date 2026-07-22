@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import MentionTextarea from "@/components/MentionTextarea";
 
 const ForumNewThread = () => {
   const nav = useNavigate();
