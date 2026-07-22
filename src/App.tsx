@@ -143,6 +143,7 @@ import PlusWelcome from "./pages/PlusWelcome";
 import Forum from "./pages/Forum";
 import ForumNewThread from "./pages/ForumNewThread";
 import ForumThread from "./pages/ForumThread";
+import ForumTag from "./pages/ForumTag";
 import MemberProfile from "./pages/MemberProfile";
 import PlusLibrary from "./pages/PlusLibrary";
 import PlusLibraryCollection from "./pages/PlusLibraryCollection";
