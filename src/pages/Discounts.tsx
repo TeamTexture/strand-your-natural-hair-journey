@@ -15,6 +15,7 @@ import {
 import { useAllLiveBrandOffers, useLogBrandStat } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { directoryLinkForPro } from "@/lib/directoryLink";
 
 interface OfferProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -111,16 +112,27 @@ const Discounts = () => {
           <>
             <SectionLabel>From your professionals</SectionLabel>
             {proOffers!.map((o) => (
-              <OfferCard
-                key={o.id}
-                icon={Scissors}
-                brand={(o as { pro_profiles?: { display_name?: string } }).pro_profiles?.display_name ?? "STRAND Pro"}
-                tagline={o.title}
-                blurb={o.description ?? "Offer from a STRAND Council professional."}
-                code={o.code ?? ""}
-                url=""
-                cta=""
-              />
+              <div key={o.id} className="space-y-2">
+                <OfferCard
+                  icon={Scissors}
+                  brand={(o as { pro_profiles?: { display_name?: string } }).pro_profiles?.display_name ?? "STRAND Pro"}
+                  tagline={o.title}
+                  blurb={o.description ?? "Offer from a STRAND Council professional."}
+                  code={o.code ?? ""}
+                  url=""
+                  cta=""
+                />
+                {o.pro_user_id && (
+                  <Button
+                    variant="outline"
+                    size="pill"
+                    className="w-full gap-1.5"
+                    onClick={() => navigate(directoryLinkForPro(o.pro_user_id))}
+                  >
+                    View profile <ExternalLink className="size-3.5" />
+                  </Button>
+                )}
+              </div>
             ))}
           </>
         )}

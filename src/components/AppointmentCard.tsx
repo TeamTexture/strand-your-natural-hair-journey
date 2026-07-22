@@ -16,6 +16,9 @@ export interface AppointmentCardData {
   notes: string | null;
   outcome_notes?: string | null;
   status: string;
+  /** When the appointment is linked to a directory pro, tapping the name/
+   *  avatar anchors the user on that pro's directory card. */
+  linked_pro_user_id?: string | null;
 }
 
 interface Props {
@@ -23,6 +26,9 @@ interface Props {
   variant: "upcoming" | "past";
   onEdit: () => void;
   onDelete: () => void;
+  /** Fires when the pro name/avatar is tapped; wired by the parent to
+   *  navigate to the anchored directory URL. */
+  onProClick?: () => void;
   children?: React.ReactNode;
 }
 
@@ -38,7 +44,21 @@ const formatDate = (iso: string): string => {
   }
 };
 
-const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: Props) => {
+const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, children }: Props) => {
+  const proClickable = !!onProClick && !!appointment.linked_pro_user_id;
+  const ProBlock = ({ children: inner }: { children: React.ReactNode }) =>
+    proClickable ? (
+      <button
+        type="button"
+        onClick={onProClick}
+        className="flex items-center gap-3 mb-4 w-full text-left rounded-[14px] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors"
+        aria-label={`View ${appointment.professional_name} in the directory`}
+      >
+        {inner}
+      </button>
+    ) : (
+      <div className="flex items-center gap-3 mb-4">{inner}</div>
+    );
   const isUpcoming = variant === "upcoming";
 
   const rawReason = appointment.reason ?? "";
@@ -106,7 +126,7 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mb-4">
+          <ProBlock>
             <ProAvatar
               name={appointment.professional_name}
               size="size-12"
@@ -118,7 +138,7 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
               </p>
               <p className="text-[#E0D7CC]/80 text-[12px] truncate font-body">{subtitle}</p>
             </div>
-          </div>
+          </ProBlock>
 
           {isFollowUp && (previousReason || upcomingReason) && (
             <div className="border-t border-white/10 pt-3 mb-4 space-y-1.5">
@@ -211,7 +231,7 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
           </span>
         </div>
 
-        <div className="flex items-center gap-3 mb-4">
+        <ProBlock>
           <ProAvatar
             name={appointment.professional_name}
             size="size-12"
@@ -223,7 +243,7 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, children }: P
             </p>
             <p className="text-muted-foreground text-[12px] truncate font-body">{subtitle}</p>
           </div>
-        </div>
+        </ProBlock>
 
         {(appointment.outcome_notes || appointment.notes) && (
           <div className="border-t border-border pt-3 mb-4 space-y-1">

@@ -12,6 +12,7 @@ import ProAvatar from "@/components/ProAvatar";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { directoryLinkForPro } from "@/lib/directoryLink";
 import {
   useMyEnquiries,
   useWithdrawEnquiry,
@@ -150,7 +151,7 @@ const EnquiriesListInline = () => {
             )}
 
             <div className="mt-3 flex justify-end gap-2 flex-wrap">
-              <Button size="sm" variant="ghost" onClick={() => nav("/directory")}>
+              <Button size="sm" variant="ghost" onClick={() => nav(directoryLinkForPro(e.pro_user_id))}>
                 View profile
               </Button>
               {e.status === "accepted" && threadId && (
