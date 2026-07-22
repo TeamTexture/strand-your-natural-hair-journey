@@ -9,6 +9,8 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import UserAvatar from "@/components/UserAvatar";
+import PlusBadge from "@/components/PlusBadge";
+import { usePlusAccess } from "@/hooks/usePlusAccess";
 import FontScaleControl from "@/components/FontScaleControl";
 import { formatTime12h } from "@/lib/formatTime";
 import { Button } from "@/components/ui/button";
