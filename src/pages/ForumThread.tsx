@@ -141,7 +141,7 @@ const ForumThread = () => {
           <article className="rounded-[14px] border border-border bg-card p-4">
             <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(t.author_id)} />
             <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight">{t.title}</h1>
-            {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{t.body}</p>}
+            {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{renderMentions(t.body)}</p>}
             <div className="mt-3 flex items-center gap-2">
               <button onClick={() => upvote("thread", t.id)} className="inline-flex items-center gap-1 h-8 px-3 rounded-full text-[11px] font-semibold border border-border bg-card hover:bg-primary/10">
                 <ArrowUp className="size-3.5" /> {t.vote_count ?? 0}
