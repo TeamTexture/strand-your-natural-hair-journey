@@ -78,8 +78,8 @@ const ForumNewThread = () => {
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ask a question or share something…" maxLength={200} />
           </div>
           <div className="space-y-1.5">
-            <Label>Body <span className="text-foreground/50 text-[11px]">(optional)</span></Label>
-            <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} maxLength={4000} />
+            <Label>Body <span className="text-foreground/50 text-[11px]">(optional · type @ to tag a member)</span></Label>
+            <MentionTextarea value={body} onChange={setBody} rows={7} maxLength={4000} placeholder="Share your thoughts… tag people with @" />
           </div>
           <Button variant="gold" size="pill" className="w-full" onClick={submit} disabled={busy || !title.trim()}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : "Post to community"}
