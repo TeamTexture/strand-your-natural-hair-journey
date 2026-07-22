@@ -35,23 +35,40 @@ const BrandCategoryPrompt = ({ current }: { current?: string | null }) => {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full text-left rounded-[14px] border border-primary/40 bg-primary/5 p-4 flex items-start gap-3"
-      >
-        <div className="size-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
-          <Tag className="size-4" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-display text-[14px] font-semibold leading-tight">
-            Add your brand category
-          </p>
-          <p className="text-[11.5px] text-foreground/70 font-body leading-snug mt-0.5">
-            Choose a category so members can find you in the STRAND Brands directory.
-          </p>
-        </div>
-      </button>
+      {current ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full text-left rounded-[12px] border border-border bg-card p-3 flex items-center gap-3"
+        >
+          <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Tag className="size-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-body text-[13px] font-semibold leading-tight truncate">Category · {current}</p>
+            <p className="text-[11px] text-foreground/60 font-body">Tap to change</p>
+          </div>
+          <span className="text-[11px] text-primary font-body">Edit →</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full text-left rounded-[14px] border border-primary/40 bg-primary/5 p-4 flex items-start gap-3"
+        >
+          <div className="size-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+            <Tag className="size-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-[14px] font-semibold leading-tight">
+              Add your brand category
+            </p>
+            <p className="text-[11.5px] text-foreground/70 font-body leading-snug mt-0.5">
+              Choose a category so members can find you in the STRAND Brands directory.
+            </p>
+          </div>
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[340px]">
