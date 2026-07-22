@@ -311,6 +311,17 @@ const ThreadQuickView = ({
       ? "Member"
       : "Pro";
 
+  // When the consumer is chatting with a pro, tapping the name/avatar
+  // deep-links to the directory anchored on that pro's card.
+  const nav = useNavigate();
+  const proLinkId =
+    !display.isSupport &&
+    thread.thread_type === "client_pro" &&
+    thread.pro_user_id &&
+    thread.pro_user_id !== user?.id
+      ? thread.pro_user_id
+      : null;
+
   return (
     <div className="flex flex-col max-h-[460px]">
       <div className="px-3 py-2 border-b border-border/60 flex items-center gap-2">
@@ -322,19 +333,29 @@ const ThreadQuickView = ({
         >
           <ChevronLeft className="size-4" />
         </button>
-        {display.isSupport ? (
-          <div className="size-7 rounded-full bg-primary/15 text-primary flex items-center justify-center">
-            <BadgeCheck className="size-3.5" />
+        <button
+          type="button"
+          onClick={() => proLinkId && nav(directoryLinkForPro(proLinkId))}
+          disabled={!proLinkId}
+          className="flex items-center gap-2 min-w-0 flex-1 text-left disabled:cursor-default"
+          aria-label={proLinkId ? `View ${display.name} in directory` : undefined}
+        >
+          {display.isSupport ? (
+            <div className="size-7 rounded-full bg-primary/15 text-primary flex items-center justify-center">
+              <BadgeCheck className="size-3.5" />
+            </div>
+          ) : (
+            <ProAvatar name={display.name} photoUrl={display.avatar ?? undefined} size="size-7" />
+          )}
+          <div className="min-w-0 flex items-center gap-1.5">
+            <p className={`text-[13px] font-body font-semibold truncate ${proLinkId ? "underline underline-offset-2 decoration-primary/40" : ""}`}>
+              {display.name}
+            </p>
+            <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-primary/12 text-primary font-body font-semibold shrink-0">
+              {roleTag}
+            </span>
           </div>
-        ) : (
-          <ProAvatar name={display.name} photoUrl={display.avatar ?? undefined} size="size-7" />
-        )}
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          <p className="text-[13px] font-body font-semibold truncate">{display.name}</p>
-          <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-primary/12 text-primary font-body font-semibold shrink-0">
-            {roleTag}
-          </span>
-        </div>
+        </button>
         <button
           type="button"
           onClick={onMinimise}
