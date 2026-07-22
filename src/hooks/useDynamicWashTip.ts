@@ -83,7 +83,7 @@ export function useDynamicWashTip() {
           s?.current_hairstyle ?? "",
           ctx.hasWashHistory ? "wash" : "no-wash",
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
-          ctx.goals.map((g) => `${g.category ?? ""}:${g.title ?? ""}`).sort().join("|"),
+          ctx.goals.map((g) => `${g.kind ?? ""}:${g.title ?? ""}`).sort().join("|"),
         ].join("::"),
       );
 
@@ -99,7 +99,7 @@ export function useDynamicWashTip() {
                 planned_next_style: s.planned_next_style,
               }
             : null,
-          goals: ctx.goals.map((g) => ({ title: g.title, category: g.category ?? undefined })),
+          goals: ctx.goals.map((g) => ({ title: g.title, category: g.kind ?? undefined })),
           bloodFlags: ctx.bloodFlags,
           hasWashHistory: ctx.hasWashHistory,
         },
