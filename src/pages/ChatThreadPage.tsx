@@ -129,6 +129,41 @@ const ChatThreadPage = () => {
   const [bookingOpen, setBookingOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  // Location autocomplete pool: any locations the current user has already
+  // used on appointments, plus (for pros) their registered clinic addresses.
+  // Purely a UX helper — free-text new locations are still allowed.
+  const { data: locationSuggestions = [] } = useQuery({
+    queryKey: ["chat_location_suggestions", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const set = new Set<string>();
+      const { data: appts } = await supabase
+        .from("appointments")
+        .select("location, clinic")
+        .or(`user_id.eq.${user!.id},pro_user_id.eq.${user!.id}`)
+        .not("location", "is", null)
+        .limit(50);
+      for (const a of appts ?? []) {
+        if (a.location) set.add(String(a.location));
+        if (a.clinic) set.add(String(a.clinic));
+      }
+      const { data: proRow } = await supabase
+        .from("pro_profiles")
+        .select("clinic, address_line1, address_line2, city, location")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (proRow) {
+        for (const key of ["clinic", "address_line1", "address_line2", "city", "location"] as const) {
+          const v = (proRow as Record<string, unknown>)[key];
+          if (typeof v === "string" && v.trim()) set.add(v.trim());
+        }
+      }
+      return Array.from(set);
+    },
+    staleTime: 5 * 60_000,
+  });
+
+
   const t = thread.data;
   const isSupport = t?.thread_type === "admin_support";
   const isAdmin = !!t && !!user && t.admin_user_id === user.id;
