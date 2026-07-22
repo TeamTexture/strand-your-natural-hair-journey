@@ -506,22 +506,29 @@ const Home = () => {
                     </button>
                   ))}
                 </div>
-                {plusAlerts.length > 0 && (
-                  <div className="mt-2 space-y-1.5">
-                    {plusAlerts.slice(0, 3).map((a) => (
-                      <button
-                        key={a.id}
-                        onClick={() => { dismissPlus(a.id); navigate(a.to); }}
-                        className="w-full text-left p-2.5 rounded-[10px] border border-primary/30 bg-card/60 hover:border-primary/60 transition-colors"
-                      >
-                        <p className="text-[11.5px] font-medium leading-tight text-foreground">
-                          {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : a.kind === "library" ? "📚" : "✉️"} {a.title}
-                        </p>
-                        <p className="text-[10.5px] mt-0.5 text-foreground/65 line-clamp-1">{a.body}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {(() => {
+                  // Library uploads intentionally do NOT show as individual
+                  // notification cards — only as the numeric badge on the
+                  // Library tile above.
+                  const visible = plusAlerts.filter((a) => a.kind !== "library");
+                  if (visible.length === 0) return null;
+                  return (
+                    <div className="mt-2 space-y-1.5">
+                      {visible.slice(0, 3).map((a) => (
+                        <button
+                          key={a.id}
+                          onClick={() => { dismissPlus(a.id); navigate(a.to); }}
+                          className="w-full text-left p-2.5 rounded-[10px] border border-primary/30 bg-card/60 hover:border-primary/60 transition-colors"
+                        >
+                          <p className="text-[11.5px] font-medium leading-tight text-foreground">
+                            {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : "✉️"} {a.title}
+                          </p>
+                          <p className="text-[10.5px] mt-0.5 text-foreground/65 line-clamp-1">{a.body}</p>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </SurfaceCard>
           );
