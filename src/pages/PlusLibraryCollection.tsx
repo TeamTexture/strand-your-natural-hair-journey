@@ -165,7 +165,7 @@ const ItemThumb = ({ path, fallbackIcon: Icon }: { path: string | null; fallback
     return () => { cancelled = true; };
   }, [path]);
   return (
-    <div className="w-16 h-11 rounded-md overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center">
+    <div className="w-20 h-14 rounded-md overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center">
       {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <Icon className="size-4 text-foreground/40" />}
     </div>
   );
