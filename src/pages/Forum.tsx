@@ -101,28 +101,39 @@ const Forum = () => {
               {threadsQ.data.map((t) => {
                 const author = authorsQ.data?.get(t.author_id);
                 const firstName = (author?.display_name ?? "Member").split(" ")[0];
+                const metaBits = [author?.goal_title, author?.hair_type, author?.city].filter(Boolean) as string[];
+                const metaLine = metaBits.length > 0 ? metaBits.join(" · ") : null;
                 return (
                   <li key={t.id}>
                     <Link
                       to={`/forum/${t.id}`}
                       className="block rounded-[14px] border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
                     >
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex items-start gap-2.5 mb-2">
                         {author?.avatar_url ? (
-                          <img src={author.avatar_url} alt="" className="size-6 rounded-full object-cover" />
+                          <img src={author.avatar_url} alt="" className="size-9 rounded-full object-cover shrink-0" />
                         ) : (
-                          <div className="size-6 rounded-full bg-primary/15 text-primary text-[10px] flex items-center justify-center font-semibold">
+                          <div className="size-9 rounded-full bg-primary/15 text-primary text-[13px] flex items-center justify-center font-semibold shrink-0">
                             {firstName[0]}
                           </div>
                         )}
-                        <span className="text-[11px] font-body font-semibold text-foreground/85">{firstName}</span>
-                        {t.category_id && (
-                          <span className="text-[10px] font-body font-semibold uppercase tracking-wider text-primary bg-primary/10 rounded-full px-2 py-0.5">
-                            {catName(t.category_id)}
-                          </span>
-                        )}
-                        {t.is_pinned && <Pin className="size-3 text-primary" />}
-                        {t.is_locked && <Lock className="size-3 text-muted-foreground" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[12px] font-body font-semibold text-foreground/85 leading-tight">{firstName}</span>
+                            {t.category_id && (
+                              <span className="text-[9.5px] font-body font-semibold uppercase tracking-wider text-primary bg-primary/10 rounded-full px-1.5 py-0.5 leading-none">
+                                {catName(t.category_id)}
+                              </span>
+                            )}
+                            {t.is_pinned && <Pin className="size-3 text-primary" />}
+                            {t.is_locked && <Lock className="size-3 text-muted-foreground" />}
+                          </div>
+                          {metaLine && (
+                            <p className="text-[10.5px] font-body text-foreground/60 leading-tight truncate mt-0.5">
+                              {metaLine}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <h3 className="font-display text-[15px] font-semibold leading-tight text-foreground">{t.title}</h3>
                       {t.body && <p className="mt-1 font-body text-[12px] text-foreground/70 line-clamp-2">{t.body}</p>}
