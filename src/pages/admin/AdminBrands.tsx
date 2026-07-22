@@ -97,16 +97,8 @@ const AdminBrands = () => {
 
   const start = useStartAdminSupportThread();
 
-  const setCategory = useMutation({
-    mutationFn: async (input: { user_id: string; category: string }) => {
-      const { error } = await supabase
-        .from("brand_profiles")
-        .update({ category: input.category })
-        .eq("user_id", input.user_id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "brands"] }),
-  });
+  // Category is owned and edited by the brand from their own profile —
+  // admins see it read-only. The category filter above stays for browsing.
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
