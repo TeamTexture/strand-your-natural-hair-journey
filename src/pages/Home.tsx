@@ -816,6 +816,8 @@ const Home = () => {
                     <ProductThumb
                       imageUrl={s.image_url}
                       storagePath={s.storage_path}
+                      brand={s.brand}
+                      name={s.name}
                       alt={s.name}
                       cover
                       wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"

@@ -32,6 +32,7 @@ import {
   Megaphone,
   Calendar as CalendarIcon,
 } from "lucide-react";
+import GlobalChatWidget from "@/components/GlobalChatWidget";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -191,18 +192,21 @@ const GlobalMenu = () => {
         paddingBottom: "6px",
       }}
     >
-      {canGoBack ? (
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={() => navigate(-1)}
-          className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
-        >
-          <ChevronLeft className="size-5" />
-        </button>
-      ) : (
-        <span className="size-9" aria-hidden />
-      )}
+      <div className="flex items-center gap-1">
+        {canGoBack ? (
+          <button
+            type="button"
+            aria-label="Back"
+            onClick={() => navigate(-1)}
+            className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+        ) : (
+          <span className="size-9" aria-hidden />
+        )}
+        <GlobalChatWidget />
+      </div>
       <div className="flex items-center gap-1">
         {showViewSwitcher && (
           <DropdownMenu>
