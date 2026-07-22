@@ -258,7 +258,7 @@ const BrandCreateOffer = () => {
 
     // Placements are locked in revision mode — still hydrate them so the calendar
     // shows the booked dates if the brand looks. But the UI hides the picker.
-    const enabled: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
+    const enabled: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false, pro_welcome: false };
     const set = new Set<string>();
     (existing.brand_offer_placements ?? []).forEach((p) => {
       enabled[p.slot as PlacementSlot] = true;
