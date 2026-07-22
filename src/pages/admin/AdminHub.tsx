@@ -110,50 +110,6 @@ const useAdminStats = () =>
     },
   });
 
-const useRecentActivity = () =>
-  useQuery({
-    queryKey: ["admin", "hub", "activity"],
-    staleTime: 30_000,
-    queryFn: async (): Promise<ActivityRow[]> => {
-      const [apps, enq, views] = await Promise.all([
-        supabase
-          .from("pro_applications")
-          .select("id, full_name, created_at")
-          .order("created_at", { ascending: false })
-          .limit(5),
-        supabase
-          .from("pro_enquiries")
-          .select("id, created_at, status")
-          .order("created_at", { ascending: false })
-          .limit(5),
-        supabase
-          .from("pro_passport_views")
-          .select("id, viewed_at, section")
-          .order("viewed_at", { ascending: false })
-          .limit(5),
-      ]);
-      const rows: ActivityRow[] = [
-        ...(apps.data ?? []).map((r) => ({
-          kind: "application" as const,
-          at: r.created_at,
-          primary: `New application — ${r.full_name ?? "unnamed"}`,
-        })),
-        ...(enq.data ?? []).map((r) => ({
-          kind: "enquiry" as const,
-          at: r.created_at,
-          primary: `New enquiry`,
-          secondary: r.status,
-        })),
-        ...(views.data ?? []).map((r) => ({
-          kind: "view" as const,
-          at: r.viewed_at,
-          primary: `Passport viewed`,
-          secondary: r.section ?? undefined,
-        })),
-      ];
-      return rows.sort((a, b) => +new Date(b.at) - +new Date(a.at)).slice(0, 5);
-    },
-  });
 
 const StatCard = ({
   label,
