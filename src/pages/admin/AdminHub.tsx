@@ -55,8 +55,8 @@ const useAdminStats = () =>
     staleTime: 30_000,
     queryFn: async (): Promise<Stats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const today = new Date().toISOString().slice(0, 10);
       const today = londonToday();
+
       const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, allOffersQ] = await Promise.all([
         supabase
           .from("pro_applications")
