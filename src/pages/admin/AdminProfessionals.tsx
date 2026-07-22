@@ -6,6 +6,7 @@ import {
   Search, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, ShieldOff, ExternalLink, Activity, MessageSquarePlus,
 } from "lucide-react";
 import { useStartAdminSupportThread } from "@/hooks/useChat";
+import MessageButton from "@/components/admin/MessageButton";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
