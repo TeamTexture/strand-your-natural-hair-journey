@@ -76,6 +76,10 @@ const BrandAuth = () => {
               contact_name: contactName.trim() || null,
               website: website.trim() || null,
               category: category || null,
+              about: about.trim() || null,
+              instagram_handle: instagram.trim().replace(/^@/, "") || null,
+              tiktok_handle: tiktok.trim().replace(/^@/, "") || null,
+              contact_email: contactEmail.trim() || null,
             },
           });
           if (fnErr) throw fnErr;
