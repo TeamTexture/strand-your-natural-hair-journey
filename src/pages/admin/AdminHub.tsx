@@ -19,11 +19,18 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
-import EmptyState from "@/components/EmptyState";
+import UnifiedCampaignCalendar from "@/components/admin/UnifiedCampaignCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
-import { useAllPendingRevisions } from "@/hooks/useBrandOffers";
+import { useAllPendingRevisions, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
+
+interface CampaignCounts {
+  live: number;
+  requested: number;
+  scheduled: number;
+  expired: number;
+}
 
 interface Stats {
   pendingApplications: number;
@@ -34,13 +41,12 @@ interface Stats {
   complimentaryMembers: number;
   viewsLast7d: number;
   liveBrands: number;
-  liveBrandOffers: number;
-  brandOfferRequests: number;
-  brandOfferRequestsBrand: number;
-  brandOfferRequestsPro: number;
-  liveBrandOffersBrand: number;
-  liveBrandOffersPro: number;
+  brand: CampaignCounts;
+  pro: CampaignCounts;
+  totalRequests: number;
+  totalLive: number;
 }
+
 
 
 const useAdminStats = () =>
