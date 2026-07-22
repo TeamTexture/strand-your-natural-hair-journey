@@ -1,7 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  threadMatchesView,
+  useActiveRoleView,
+  type ActiveRoleView,
+} from "@/hooks/useActiveRoleView";
 
 export type ChatThreadType = "client_pro" | "admin_support";
 
@@ -12,6 +17,7 @@ export interface ChatThread {
   consumer_id: string | null;
   admin_user_id: string | null;
   subject_user_id: string | null;
+  subject_role: string | null;
   thread_type: ChatThreadType;
   created_at: string;
   last_message_at: string | null;
@@ -39,10 +45,15 @@ export function otherParticipantId(t: ChatThread, myId: string): string | null {
 const threadOrFilter = (uid: string) =>
   `pro_user_id.eq.${uid},consumer_id.eq.${uid},admin_user_id.eq.${uid},subject_user_id.eq.${uid}`;
 
-/** All threads I'm a participant in. */
-export function useChatThreads() {
+/**
+ * All threads I'm a participant in, scoped to the current role view.
+ * Pass `scope: "all"` to bypass scoping (e.g. cross-view unread hints).
+ */
+export function useChatThreads(scope?: ActiveRoleView | "all") {
   const { user } = useAuth();
-  return useQuery({
+  const activeView = useActiveRoleView();
+  const view = scope ?? activeView;
+  const query = useQuery({
     queryKey: ["chat_threads", user?.id],
     enabled: !!user?.id,
     queryFn: async (): Promise<ChatThread[]> => {
@@ -55,7 +66,14 @@ export function useChatThreads() {
       return (data ?? []) as ChatThread[];
     },
   });
+  const filtered = useMemo(() => {
+    if (!user?.id || !query.data) return query.data;
+    if (view === "all") return query.data;
+    return query.data.filter((t) => threadMatchesView(t, user.id, view));
+  }, [query.data, user?.id, view]);
+  return { ...query, data: filtered } as typeof query;
 }
+
 
 /** Single thread + its messages, with realtime updates. */
 export function useChatThread(threadId: string | null | undefined) {
