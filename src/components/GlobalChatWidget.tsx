@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, ArrowRight, ChevronLeft, Send, BadgeCheck } from "lucide-react";
+import { MessageCircle, ArrowRight, ChevronLeft, Send, BadgeCheck, Minus } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -253,6 +253,7 @@ const GlobalChatWidget = () => {
             thread={expanded}
             display={displayFor(expanded)}
             onBack={() => setExpandedId(null)}
+            onMinimise={() => setOpen(false)}
             onOpenFull={() => {
               setOpen(false);
               navigate(`/messages/${expanded.id}`);
@@ -269,11 +270,13 @@ const ThreadQuickView = ({
   thread,
   display,
   onBack,
+  onMinimise,
   onOpenFull,
 }: {
   thread: ChatThread;
   display: { name: string; avatar: string | null; isSupport: boolean };
   onBack: () => void;
+  onMinimise: () => void;
   onOpenFull: () => void;
 }) => {
   const { user } = useAuth();
@@ -300,6 +303,13 @@ const ThreadQuickView = ({
     }
   };
 
+  // Role tag for the other person, shown next to their name.
+  const roleTag =
+    display.isSupport ? "STRAND Team"
+    : thread.thread_type === "client_pro" && thread.pro_user_id === user?.id
+      ? "Member"
+      : "Pro";
+
   return (
     <div className="flex flex-col max-h-[460px]">
       <div className="px-3 py-2 border-b border-border/60 flex items-center gap-2">
@@ -318,14 +328,19 @@ const ThreadQuickView = ({
         ) : (
           <ProAvatar name={display.name} photoUrl={display.avatar ?? undefined} size="size-7" />
         )}
-        <p className="text-[13px] font-body font-semibold truncate flex-1">{display.name}</p>
+        <div className="flex-1 min-w-0 flex items-center gap-1.5">
+          <p className="text-[13px] font-body font-semibold truncate">{display.name}</p>
+          <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-primary/12 text-primary font-body font-semibold shrink-0">
+            {roleTag}
+          </span>
+        </div>
         <button
           type="button"
-          onClick={onOpenFull}
-          aria-label="Open full chat"
-          className="size-7 rounded-full flex items-center justify-center text-primary hover:bg-primary/10"
+          onClick={onMinimise}
+          aria-label="Minimise chat"
+          className="size-7 rounded-full flex items-center justify-center text-foreground/70 hover:bg-muted"
         >
-          <ArrowRight className="size-4" />
+          <Minus className="size-4" />
         </button>
       </div>
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
@@ -383,6 +398,14 @@ const ThreadQuickView = ({
           <Send className="size-3.5" />
         </button>
       </form>
+      <button
+        type="button"
+        onClick={onOpenFull}
+        className="border-t border-border/60 py-2.5 text-[11.5px] font-body font-semibold uppercase tracking-[0.1em] text-primary flex items-center justify-center gap-1.5 hover:bg-primary/5"
+      >
+        Open full chat
+        <ArrowRight className="size-3.5" />
+      </button>
     </div>
   );
 };
