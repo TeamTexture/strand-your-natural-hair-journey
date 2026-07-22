@@ -1,17 +1,16 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { formatDistanceToNow } from "date-fns";
 import {
   ChevronRight,
   ClipboardCheck,
   Users,
   ScrollText,
   Settings as SettingsIcon,
-  FileText,
   Eye,
-  Mail,
   Sparkles,
   Megaphone,
+  Store,
+  MessageSquare,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
