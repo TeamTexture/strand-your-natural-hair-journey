@@ -1,6 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Calendar as CalendarIcon,
   ChevronRight,
@@ -109,6 +109,25 @@ const ProAppointments = () => {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const focusApptId = useSearchParams()[0].get("appt");
+
+  // Scroll & pulse the appointment referenced by ?appt=<id>.
+  useEffect(() => {
+    if (!focusApptId || isLoading) return;
+    // If the row is in past, switch tab so it's rendered.
+    const row = data.find((x) => x.id === focusApptId);
+    if (row) {
+      const today = new Date().toISOString().slice(0, 10);
+      setTab(row.appointment_date >= today ? "upcoming" : "past");
+      setView("list");
+    }
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`appt-${focusApptId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [focusApptId, isLoading, data]);
+
 
 
   const today = new Date().toISOString().slice(0, 10);
@@ -180,10 +199,12 @@ const ProAppointments = () => {
   const renderCard = (a: ProAppointmentRow, variant: "upcoming" | "past") => {
     const meta = statusMeta(a.status);
     const firstName = (a.client_display_name ?? "").split(/\s+/)[0] || "Client";
+    const highlight = focusApptId === a.id;
     return (
       <div
         key={a.id}
-        className="rounded-[14px] border border-border bg-card p-4 space-y-3"
+        id={`appt-${a.id}`}
+        className={`rounded-[14px] border border-border bg-card p-4 space-y-3 transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
       >
         <button
           type="button"

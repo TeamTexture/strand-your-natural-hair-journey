@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { directoryLinkForPro } from "@/lib/directoryLink";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, ArrowRight, ChevronLeft, Send, BadgeCheck, Minus } from "lucide-react";
+import { MessageCircle, ArrowRight, ChevronLeft, Send, BadgeCheck, Minus, Calendar } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -376,6 +376,24 @@ const ThreadQuickView = ({
           recent.map((m) => {
             const mine = m.sender_id === user?.id;
             if (m.kind === "system") {
+              const apptId = (m.meta as { appointment_id?: string } | null)?.appointment_id;
+              if (apptId) {
+                const iAmPro = thread.pro_user_id === user?.id;
+                const target = iAmPro ? `/pro/appointments?appt=${apptId}` : `/appointments?appt=${apptId}`;
+                return (
+                  <div key={m.id} className="flex justify-center py-1">
+                    <button
+                      type="button"
+                      onClick={() => nav(target)}
+                      className="inline-flex items-center gap-1.5 text-[10.5px] font-body text-primary bg-primary/10 hover:bg-primary/15 px-2.5 py-1 rounded-full"
+                    >
+                      <Calendar className="size-3" />
+                      <span>{m.body}</span>
+                      <span className="text-[9px] uppercase tracking-[0.1em] opacity-70">View</span>
+                    </button>
+                  </div>
+                );
+              }
               return (
                 <p key={m.id} className="text-[10px] text-muted-foreground italic text-center px-2 py-1">
                   {m.body}

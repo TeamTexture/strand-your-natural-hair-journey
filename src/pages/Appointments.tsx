@@ -96,6 +96,17 @@ const Appointments = () => {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
   const [search, setSearch] = useState("");
+  const focusApptId = params.get("appt");
+
+  // Scroll & pulse the appointment referenced by ?appt=<id> when it lands.
+  useEffect(() => {
+    if (!focusApptId || loading) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`appt-${focusApptId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => window.clearTimeout(t);
+  }, [focusApptId, loading, appts.length]);
 
   const handleDelete = async () => {
     if (!user || !deleteTarget) return;
@@ -288,8 +299,13 @@ const Appointments = () => {
               <div className="px-5 pb-4 space-y-3">
                 {upcoming.map((a) => {
                   const isNew = !seenIds.has(a.id);
+                  const highlight = focusApptId === a.id;
                   return (
-                    <div key={a.id} className="relative">
+                    <div
+                      key={a.id}
+                      id={`appt-${a.id}`}
+                      className={`relative rounded-[16px] transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+                    >
                       {isNew && (
                         <span className="absolute -top-1.5 left-3 z-10 text-[9px] font-semibold uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-primary text-primary-foreground shadow">
                           New booking
@@ -315,17 +331,25 @@ const Appointments = () => {
             <>
               <SectionLabel>Past</SectionLabel>
               <div className="px-5 space-y-3 pb-4">
-                {past.map((a) => (
-                  <AppointmentCard
-                    key={a.id}
-                    appointment={a}
-                    variant="past"
-                    onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
-                    onDelete={() => setDeleteTarget(a)}
-                  >
-                    <ApptPhotos appointmentId={a.id} />
-                  </AppointmentCard>
-                ))}
+                {past.map((a) => {
+                  const highlight = focusApptId === a.id;
+                  return (
+                    <div
+                      key={a.id}
+                      id={`appt-${a.id}`}
+                      className={`rounded-[16px] transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+                    >
+                      <AppointmentCard
+                        appointment={a}
+                        variant="past"
+                        onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                        onDelete={() => setDeleteTarget(a)}
+                      >
+                        <ApptPhotos appointmentId={a.id} />
+                      </AppointmentCard>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

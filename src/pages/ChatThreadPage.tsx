@@ -89,11 +89,31 @@ const BookAppointmentDialog = ({
 
 
 
-const SystemBubble = ({ text }: { text: string }) => (
-  <div className="flex justify-center my-2">
-    <div className="text-[11px] font-body text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">{text}</div>
-  </div>
-);
+const SystemBubble = ({ m, isPro }: { m: ChatMessage; isPro: boolean }) => {
+  const nav = useNavigate();
+  const apptId = (m.meta as { appointment_id?: string } | null)?.appointment_id;
+  if (apptId) {
+    const target = isPro ? `/pro/appointments?appt=${apptId}` : `/appointments?appt=${apptId}`;
+    return (
+      <div className="flex justify-center my-2">
+        <button
+          type="button"
+          onClick={() => nav(target)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-body text-primary bg-primary/10 hover:bg-primary/15 px-3 py-1.5 rounded-full transition"
+        >
+          <Calendar className="size-3" />
+          <span>{m.body}</span>
+          <span className="text-[10px] uppercase tracking-[0.1em] opacity-70">View</span>
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex justify-center my-2">
+      <div className="text-[11px] font-body text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">{m.body}</div>
+    </div>
+  );
+};
 
 const MessageBubble = ({ m, mine }: { m: ChatMessage; mine: boolean }) => (
   <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-1.5`}>
@@ -331,7 +351,7 @@ const ChatThreadPage = () => {
               </div>
               {group.items.map((m) =>
                 m.kind === "system" ? (
-                  <SystemBubble key={m.id} text={m.body} />
+                  <SystemBubble key={m.id} m={m} isPro={isPro} />
                 ) : (
                   <MessageBubble key={m.id} m={m} mine={m.sender_id === user?.id} />
                 ),
