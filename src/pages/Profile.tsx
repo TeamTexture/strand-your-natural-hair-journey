@@ -546,12 +546,19 @@ const Profile = () => {
       <div className="px-5 pb-4 flex items-center gap-3">
         <UserAvatar name={displayName || "?"} />
         <div className="flex-1 min-w-0">
-          <p className="font-display text-xl font-semibold leading-tight truncate">
-            {displayName || "Welcome"}
+          <p className="font-display text-xl font-semibold leading-tight truncate flex items-center gap-1.5">
+            <span className="truncate">{displayName || "Welcome"}</span>
+            {hasPlus && <PlusBadge size="md" />}
           </p>
-          <p className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium truncate">
-            STRAND Member{ageDisplay ? ` · ${ageDisplay}` : ""}
-          </p>
+          {hasPlus ? (
+            <p className="text-[13px] uppercase tracking-[0.15em] text-primary font-bold truncate">
+              STRAND+ Member{ageDisplay ? ` · ${ageDisplay}` : ""}
+            </p>
+          ) : (
+            <p className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium truncate">
+              STRAND Member{ageDisplay ? ` · ${ageDisplay}` : ""}
+            </p>
+          )}
         </div>
         <button
           onClick={() => setEditPickerOpen(true)}
