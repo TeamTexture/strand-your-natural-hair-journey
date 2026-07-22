@@ -31,6 +31,10 @@ import {
   Store,
   Megaphone,
   Calendar as CalendarIcon,
+  MessageSquare,
+  ShieldAlert,
+  Library,
+  Sparkles as PlusSparkles,
 } from "lucide-react";
 import GlobalChatWidget from "@/components/GlobalChatWidget";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -51,6 +55,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { useAccessRestricted } from "@/hooks/useAccessRestricted";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
+import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 
 type NavItem = {
@@ -105,6 +110,7 @@ const GlobalMenu = () => {
   const { isActive: proSubActive } = useProSubscription();
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const { isRestricted } = useAccessRestricted();
+  const { hasPlus } = usePlusAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -171,10 +177,23 @@ const GlobalMenu = () => {
     { label: "Members", to: "/admin/members", icon: Users },
     { label: "Brand offers", to: "/admin/brand-offers", icon: Megaphone },
     { label: "Booking calendar", to: "/admin/brand-calendar", icon: CalendarIcon },
+    { label: "Moderation", to: "/admin/moderation", icon: ShieldAlert },
+    { label: "Library", to: "/admin/library", icon: Library },
+    { label: "Events", to: "/admin/events", icon: CalendarIcon },
 
     { label: "Audit trail", to: "/admin/audit", icon: FileText },
     { label: "Settings", to: "/admin/settings", icon: Settings },
   ];
+
+  const CONSUMER_NAV_FINAL: NavItem[] = hasPlus
+    ? [
+        ...CONSUMER_NAV.slice(0, 6),
+        { label: "Community forum", to: "/forum", icon: MessageSquare },
+        { label: "STRAND+ Library", to: "/plus/library", icon: Library },
+        { label: "STRAND+ Events", to: "/plus/events", icon: CalendarIcon },
+        ...CONSUMER_NAV.slice(6),
+      ]
+    : CONSUMER_NAV;
 
   // For pro view: only show items the pro can actually access.
   // Approved + subscribed pros (or admins acting as pro) see everything.
@@ -194,7 +213,8 @@ const GlobalMenu = () => {
         ? BRAND_NAV
         : activeView === "pro"
           ? PRO_NAV
-          : CONSUMER_NAV;
+          : CONSUMER_NAV_FINAL;
+
 
 
 

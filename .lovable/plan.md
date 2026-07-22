@@ -1,74 +1,113 @@
-# Build 1 of 3 — Admin & Brand Ecosystem
 
-Large multi-part build. Presenting the shape before writing code so we agree on scope, especially where I'm inferring behaviour from the existing schema.
+# STRAND+ Premium Tier (£14.99/mo)
 
-## 1. Past campaigns tab (admin promotions)
+This is a large, multi-surface build. Presenting the plan so you can adjust before I ship the code. Given size, I'll ship it in one continuous implementation pass, then run typecheck and report deploy status for every function.
 
-Add a filter chip / tab **All · Live · Pending · Past** to `AdminBrandOffers.tsx`. "Past" = derived status in `ended | rejected | cancelled`. Newest first. Filter chips for Brand/Pro carry through. Card already shows totals (impressions/taps/wishlist/code_copies/link_clicks), dates and amount paid — reuse `renderOffer`.
+## 1. Tier + payments
 
-## 2. Remove "Recent activity" from /admin
+**Manual step for you (unavoidable):**
+- Create a new £14.99/mo recurring **Product/Price** in Stripe (matching the existing consumer product's currency/interval).
+- Copy the new `price_...` id into a new secret **`STRIPE_PLUS_PRICE_ID`** (Project Settings → Secrets). Once added, upgrades will start working.
 
-Delete the section + `useRecentActivity` hook from `AdminHub.tsx`.
+**DB / webhook:**
+- `consumer_subscriptions` gains a `tier text` column (`'standard' | 'plus'`, default `'standard'`).
+- `stripe-consumer-webhook` (existing) inspects the subscription's price id: matches `STRIPE_CONSUMER_PRICE_ID` → `standard`; matches `STRIPE_PLUS_PRICE_ID` → `plus`. Written on every `customer.subscription.*` event.
+- New helper `public.has_active_plus_subscription(_user)` = `is_access_restricted=false` AND (`complimentary_access=true` OR `has_role(admin)` OR active `plus` row). Complimentary users pass ✅.
+- New `create-consumer-checkout` argument: `tier: 'standard' | 'plus'` — routes to the right price id. Existing checkout continues to default to standard.
+- New `create-consumer-upgrade` edge fn: opens a Stripe Checkout (or portal update) that swaps the customer's active standard sub onto the plus price. Success returns to `/plus/welcome`.
 
-## 3. Admin ↔ user chat
+**Subscribe screen (`Subscribe.tsx`):**
+- Tier toggle at top (STRAND / STRAND+), same visual language.
+- STRAND+ state lists community forum, member chat, courses & ebooks library, members-only events below the standard features.
+- Selection drives which price id is checked out. Promo codes stay enabled; no default free month.
 
-**Schema (single migration):**
-- `chat_threads`: add `thread_type text NOT NULL DEFAULT 'client_pro'`, `admin_user_id uuid`, `subject_user_id uuid`. Make `enquiry_id/pro_user_id/consumer_id` nullable.
-- New security definer `is_chat_participant(_thread, _uid)` checking any of the four participant columns.
-- Rewrite `chat_threads` + `chat_messages` policies in terms of `is_chat_participant`. Admin role does NOT get a bypass for `client_pro` threads — participation is the only door.
-- New RPC `admin_start_support_thread(_subject_user uuid)` (SECURITY DEFINER, admin-only): finds or creates a `thread_type='admin_support'` thread with `admin_user_id=auth.uid()` + `subject_user_id=_subject`.
+**Upgrade path:**
+- Top-bar `+` button (visible only to authenticated consumers on the **standard** tier — hidden for plus, complimentary, admins, pros, brands).
+- `/plus/upgrade` — what STRAND+ adds, single "Upgrade — £14.99/mo" CTA → `create-consumer-upgrade`.
+- `/plus/welcome` — celebratory splash after success, then continues into the app.
+- Profile/billing shows "STRAND+ member" pill for plus users.
 
-**Client:**
-- `useChat.ts`: extend `ChatThread` type; queries pick up the extra columns automatically (`select *`). Rework inbox to identify the "other" participant using `thread_type`.
-- Consumer/Pro `Messages.tsx`: for `admin_support` threads, show sender as **"STRAND Team"** with a small gold verified pill.
-- `ChatThreadPage.tsx`: same label treatment in header. Hide "Book appointment" for admin_support threads.
-- New `src/pages/admin/AdminMessages.tsx` — admin inbox listing their support threads.
-- "Message" button on member cards (`AdminMembers`), pro cards (`AdminProfessionals`), and brand cards (new admin brands directory) → calls `admin_start_support_thread` → navigates to `/admin/messages/:id`.
+## 2. Forum (Reddit-style, + members only)
 
-## 4. Brand profile fixes + count correctness
+**Schema (all RLS, all GRANTs, timestamps + trigger):**
+- `forum_categories` (name, slug, sort_order) — admin CRUD; read: any signed-in `+` member.
+- `forum_threads` (category_id, author_id, title, body, image_path?, is_pinned, is_locked, vote_count, reply_count).
+- `forum_replies` (thread_id, parent_reply_id?, author_id, body, vote_count) — one nesting level: parent_reply_id refers to a top-level reply only; UI flattens replies to replies beyond depth 1.
+- `forum_votes` (user_id, target_kind: 'thread'|'reply', target_id) — one per user per target; upvote-only.
+- `forum_reports` (reporter_id, target_kind, target_id, reason, status: 'open'|'dismissed'|'actioned').
+- Vote-count triggers keep `vote_count`/`reply_count` in sync (cheaper than recomputing on read).
 
-- Confirmed via db: `STRAND` already linked to a Paige account, `Revlon Professional` to Rio. No rename needed. `Team Texture` stays.
-- The "Live brands" stat card, page title, and list currently disagree because the card counts `brand_subscriptions` in `active/trialing` (0 for complimentary brands) while the "brands" filter view lists offers, not brands.
-- Fix by defining **Live brand = row in `brand_profiles`** (i.e. all registered brands). Rewrite the stat card query to `brand_profiles.count`, and rewrite the destination page to be the new brand directory (item 5). All three surfaces will read 3 (STRAND, Revlon Professional, Team Texture) or 2 if we retire Team Texture per your intent — flagging: **you said "the actual registered brands" = 2. Team Texture is also a real registered brand row. I will show all 3.** Please confirm if Team Texture should be removed.
+**UI (consumer, + gated):**
+- `/forum` — category chips, sort New/Top, thread list cards (title, author first name + photo, category, votes, replies, friendly time). Compose button.
+- `/forum/new` — title, body, category, optional image (uses existing `moodboard-images` bucket path? — no: creates `forum-images` private bucket, signed URLs).
+- `/forum/thread/:id` — thread body, upvote, reply composer, one-level nested replies (deeper replies rendered flat, quoting the parent). Report menu on each item. Author can delete/edit within 24h; admin can pin/lock/delete inline.
+- Identity everywhere = first name + profile photo (existing avatar helpers).
 
-## 5. Admin Brands directory (new page)
+**Moderation (`/admin/forum-reports`):**
+- Report queue: content preview, reporter, reason. Actions: dismiss, delete content, lock thread, pin thread.
 
-New route `/admin/brands` → `AdminBrands.tsx` (this is where the stat card + hub "Live brands" link now points).
-- Per row: logo, name, category, contact_name/email, subscription/complimentary status, activity summary (campaigns total, live/past offer counts, products added, last-active proxy = latest offer submitted_at).
-- Search + category filter chips.
-- Row action: **Message** (opens admin↔brand chat) and **View** (opens brand detail — for now, a minimal read-only pane; deep-dive can come in a later build).
-- No booking calendar.
+## 3. Member ↔ Member chat (+ members only)
 
-## 6. Brand categories
+- Add `member_dm` to `chat_threads.thread_type` CHECK. New nullable columns already cover DM participants via `consumer_id`/`pro_user_id` — for member DMs I'll add `member_a_id`, `member_b_id` (or reuse `consumer_id` + `subject_user_id` — schema check will pick simplest).
+- `start_member_dm(_other_user)` RPC: verifies both are + members and not blocked, returns thread id (idempotent). Called from tapping a forum author.
+- Extend `useChat` role scoping so `member_dm` threads only surface in the **consumer** view.
+- `forum_blocks (blocker_id, blocked_id)` — prevents new DMs/messages both directions (silently — sender gets a generic "message failed" toast, no signal to the blocker).
+- Report a conversation → drops into the same `forum_reports` queue with `target_kind='thread'` on the chat thread id (or dedicated `chat_reports` — I'll use the shared `moderation_reports` table for cleanliness).
 
-- Migration: `ALTER TABLE brand_profiles ADD COLUMN category text`.
-- Fixed list: Hair Care, Supplements, Hair Tools, Hair Accessories, Food & Nutrition, Beauty & Skincare, Wellness & Lifestyle, Salon & Trade Supplies, Education & Training, Other.
-- Backfill: STRAND, Revlon Professional, Team Texture → Hair Care.
-- Add a required category `<Select>` to BrandAuth signup and BrandDashboard "Brand profile" editor.
-- `brand-signup` edge fn: accept + persist `category`. Deploy per rule.
-- Admin brands directory uses category filter.
+## 4. Library (+ members only)
 
-## 7. Consumer-facing "STRAND Brands" directory
+**Schema:**
+- `content_collections` (kind: 'course'|'ebook'|'video'|'article'; title, description, cover_path, sort_order, is_published).
+- `content_items` (collection_id, kind: 'video'|'pdf'|'text'; title, body_md?, storage_path?, url?, duration_seconds?, sort_order).
+- `content_progress` (user_id, item_id, completed_at) — for course resume/mark-complete.
+- New private storage bucket `strand-plus-library`; signed URLs on read; only + members can generate.
 
-- New route `/brands` → `BrandsDirectory.tsx`, entry point on `Profile.tsx` (same card pattern as pro directory).
-- Detail `/brands/:brandUserId` → `BrandDetailPage.tsx`: logo, name, category, about (new field), website, live offers (actionable, using existing offer flow), past offers (read-only strip), and their products/tools linked to `BrandProductPage`.
-- RLS additions:
-  - `brand_profiles`: SELECT for authenticated (safe fields — nothing sensitive on this table currently, so a policy `USING (true)` for `authenticated` is fine). The existing policies restrict to live-offer window; we widen to any authenticated user.
-  - Rely on existing brand_offers/brand_products live-window policies for offer/product visibility. Past offers: add a new SELECT policy on `brand_offers` allowing authenticated to read `ended` offers by `brand_user_id` (limited to non-sensitive columns is via view — but shape allows it; will keep table-level SELECT since it doesn't expose PII).
+**Admin (`/admin/library`):** create/edit collections, upload files (drag/drop, showing signed thumb previews), reorder via up/down buttons (mobile-safe).
 
-## 8. Complimentary access for 3 accounts
+**Consumer (`/plus/library`):**
+- Type filters (Course / Ebook / Video / Article).
+- Collection page: courses show ordered modules with per-item ✓ progress and "Resume" CTA; ebooks show cover + open/download; videos play inline (HTML5 `<video>` from signed URL); articles render markdown.
 
-- Rio (b1c78f28…) and Yvonne (6039cf50…): `complimentary_access=true` already ✅. Also insert active-forever rows into `brand_subscriptions` and `pro_subscriptions` (`status='active', current_period_end=NULL`) so gates that check subscriptions directly (not just `has_active_*`) pass. Grant `brand` role to Rio (already has). Grant Yvonne `professional` (already has).
-- Erica Liburd: no matching profile exists. Implement future-proof grant via new `platform_settings` key `complimentary_emails` (jsonb array). Modify the `handle_new_user` trigger to check the email and set `complimentary_access=true` on profile creation. Seed the array with `erica.liburd@…` — **flag: I don't have an email. I'll seed with a lowercase name match `erica liburd` handled via case-insensitive comparison in the trigger, plus placeholder email slot admins can edit in `platform_settings`.**
-- No admin role granted to any of them.
+## 5. Events (+ members only)
 
-## Deployment
-- Deploy `brand-signup` (touched).
-- No other functions changed.
+**Schema:**
+- `events` (title, description, starts_at, ends_at, kind: 'in_person'|'digital', venue, address, join_url, cover_path, capacity nullable, created_by, cancelled_at).
+- `event_rsvps` (event_id, user_id, created_at, cancelled_at). Capacity enforced by trigger.
 
-## Reporting
-Final message will list per-account grants and confirm the STRAND/Revlon/Team Texture brand rows.
+**Admin (`/admin/events`):** create/edit/cancel, view RSVP list per event.
 
----
+**Consumer (`/plus/events`):**
+- Upcoming/Past tabs, calendar-style month grid + list.
+- Event detail: RSVP / Cancel RSVP; capacity remaining; digital `join_url` shown ONLY to RSVP'd users; day-of reminder via existing `MessageNotifications` mechanism (lightweight — toast + badge on next foreground).
 
-Confirm: (a) keep Team Texture as a live brand row, (b) OK with Erica handled via `complimentary_emails` future-match, (c) proceed.
+## 6. Gating + navigation
+
+- `usePlusAccess()` hook wrapping `has_active_plus_subscription` (RPC, react-query, `static: true` on Home). Complimentary + admin pass automatically.
+- `<PlusGate>` component: if not +, renders the upgrade gate screen (feature list + CTA to `/plus/upgrade`).
+- Consumer hamburger (`GlobalMenu`) gains a "STRAND+" section with Forum · Chat · Library · Events (consumer view only).
+- Profile page: "STRAND+ Member" pill for plus; "Upgrade to STRAND+" card for standard.
+- All `/plus/*` and `/forum/*` routes wrap in `<Paid><PlusGate>...</PlusGate></Paid>`.
+
+## Edge functions to deploy
+
+1. `stripe-consumer-webhook` (edit — tier detection)
+2. `create-consumer-checkout` (edit — accept `tier`)
+3. `create-consumer-upgrade` (new — price swap for existing customers)
+4. `library-signed-url` (new — issue signed url for a `content_items.storage_path` after verifying + access)
+5. `forum-image-signed-url` (new — signed upload/read for `forum-images` bucket)
+
+Every function boot-tested (unauth call → 401 / expected shape, not `Failed to send a request`). Deploy status listed at end of turn.
+
+## Verification
+
+- `tsgo` typecheck clean.
+- One migration file covering all new tables, GRANTs, RLS, triggers, RPCs.
+- New Stripe manual step surfaced clearly at the end so you can add `STRIPE_PLUS_PRICE_ID` and it's live.
+
+## Not doing (out of scope of this spec)
+
+- No PWA push scheduling for event day-of (uses existing in-app notification pattern).
+- No rich-text editor in forum composer — plain text + optional single image (matches app's current density).
+- No cross-tier community features for standard members (forum/DMs/library/events are strictly +).
+
+Approve and I'll build it end-to-end.

@@ -739,6 +739,8 @@ export type Database = {
           enquiry_id: string | null
           id: string
           last_message_at: string | null
+          member_a_id: string | null
+          member_b_id: string | null
           pro_user_id: string | null
           subject_role: string | null
           subject_user_id: string | null
@@ -751,6 +753,8 @@ export type Database = {
           enquiry_id?: string | null
           id?: string
           last_message_at?: string | null
+          member_a_id?: string | null
+          member_b_id?: string | null
           pro_user_id?: string | null
           subject_role?: string | null
           subject_user_id?: string | null
@@ -763,6 +767,8 @@ export type Database = {
           enquiry_id?: string | null
           id?: string
           last_message_at?: string | null
+          member_a_id?: string | null
+          member_b_id?: string | null
           pro_user_id?: string | null
           subject_role?: string | null
           subject_user_id?: string | null
@@ -788,6 +794,7 @@ export type Database = {
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          tier: string
           updated_at: string
           user_id: string
         }
@@ -800,6 +807,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          tier?: string
           updated_at?: string
           user_id: string
         }
@@ -812,6 +820,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          tier?: string
           updated_at?: string
           user_id?: string
         }
@@ -850,6 +859,413 @@ export type Database = {
           subject?: string
           user_id?: string | null
           was_authenticated?: boolean
+        }
+        Relationships: []
+      }
+      content_collections: {
+        Row: {
+          cover_path: string | null
+          created_at: string
+          description: string
+          id: string
+          is_published: boolean
+          kind: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_path?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_published?: boolean
+          kind: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_path?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_published?: boolean
+          kind?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      content_items: {
+        Row: {
+          body_md: string | null
+          collection_id: string
+          created_at: string
+          duration_seconds: number | null
+          external_url: string | null
+          id: string
+          kind: string
+          sort_order: number
+          storage_path: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body_md?: string | null
+          collection_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          external_url?: string | null
+          id?: string
+          kind: string
+          sort_order?: number
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body_md?: string | null
+          collection_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          external_url?: string | null
+          id?: string
+          kind?: string
+          sort_order?: number
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "content_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_progress: {
+        Row: {
+          completed_at: string
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_progress_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_rsvps: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          address: string | null
+          cancelled_at: string | null
+          capacity: number | null
+          cover_path: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          ends_at: string | null
+          id: string
+          join_url: string | null
+          kind: string
+          starts_at: string
+          title: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          address?: string | null
+          cancelled_at?: string | null
+          capacity?: number | null
+          cover_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          ends_at?: string | null
+          id?: string
+          join_url?: string | null
+          kind?: string
+          starts_at: string
+          title: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          address?: string | null
+          cancelled_at?: string | null
+          capacity?: number | null
+          cover_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          ends_at?: string | null
+          id?: string
+          join_url?: string | null
+          kind?: string
+          starts_at?: string
+          title?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      forum_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      forum_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      forum_replies: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          parent_reply_id: string | null
+          thread_id: string
+          updated_at: string
+          vote_count: number
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          parent_reply_id?: string | null
+          thread_id: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          parent_reply_id?: string | null
+          thread_id?: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_replies_parent_reply_id_fkey"
+            columns: ["parent_reply_id"]
+            isOneToOne: false
+            referencedRelation: "forum_replies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_replies_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          target_id: string
+          target_kind: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_id: string
+          target_kind: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_id?: string
+          target_kind?: string
+        }
+        Relationships: []
+      }
+      forum_threads: {
+        Row: {
+          author_id: string
+          body: string
+          category_id: string
+          created_at: string
+          id: string
+          image_path: string | null
+          is_locked: boolean
+          is_pinned: boolean
+          reply_count: number
+          title: string
+          updated_at: string
+          vote_count: number
+        }
+        Insert: {
+          author_id: string
+          body?: string
+          category_id: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          is_locked?: boolean
+          is_pinned?: boolean
+          reply_count?: number
+          title: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          category_id?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          is_locked?: boolean
+          is_pinned?: boolean
+          reply_count?: number
+          title?: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_threads_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "forum_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_votes: {
+        Row: {
+          created_at: string
+          id: string
+          target_id: string
+          target_kind: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          target_id: string
+          target_kind: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          target_id?: string
+          target_kind?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2514,6 +2930,16 @@ export type Database = {
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
+      admin_event_rsvps: {
+        Args: { _event_id: string }
+        Returns: {
+          cancelled_at: string
+          created_at: string
+          display_name: string
+          email: string
+          user_id: string
+        }[]
+      }
       admin_list_member_activity: {
         Args: never
         Returns: {
@@ -2647,6 +3073,14 @@ export type Database = {
         }
         Returns: string
       }
+      forum_author_info: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          user_id: string
+        }[]
+      }
       has_active_brand_subscription: {
         Args: { _user: string }
         Returns: boolean
@@ -2656,6 +3090,10 @@ export type Database = {
         Returns: boolean
       }
       has_active_consumer_subscription: {
+        Args: { _user: string }
+        Returns: boolean
+      }
+      has_active_plus_subscription: {
         Args: { _user: string }
         Returns: boolean
       }
@@ -2701,6 +3139,7 @@ export type Database = {
         }
         Returns: string
       }
+      start_member_dm: { Args: { _other_user: string }; Returns: string }
       strand_today_london: { Args: never; Returns: string }
       submit_brand_offer_revision: {
         Args: {
