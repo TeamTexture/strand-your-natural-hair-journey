@@ -573,7 +573,10 @@ export type Database = {
       }
       brand_profiles: {
         Row: {
+          about: string | null
           brand_name: string
+          category: string | null
+          contact_email: string | null
           contact_name: string | null
           created_at: string
           id: string
@@ -583,7 +586,10 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          about?: string | null
           brand_name: string
+          category?: string | null
+          contact_email?: string | null
           contact_name?: string | null
           created_at?: string
           id?: string
@@ -593,7 +599,10 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          about?: string | null
           brand_name?: string
+          category?: string | null
+          contact_email?: string | null
           contact_name?: string | null
           created_at?: string
           id?: string
@@ -686,28 +695,37 @@ export type Database = {
       }
       chat_threads: {
         Row: {
-          consumer_id: string
+          admin_user_id: string | null
+          consumer_id: string | null
           created_at: string
-          enquiry_id: string
+          enquiry_id: string | null
           id: string
           last_message_at: string | null
-          pro_user_id: string
+          pro_user_id: string | null
+          subject_user_id: string | null
+          thread_type: string
         }
         Insert: {
-          consumer_id: string
+          admin_user_id?: string | null
+          consumer_id?: string | null
           created_at?: string
-          enquiry_id: string
+          enquiry_id?: string | null
           id?: string
           last_message_at?: string | null
-          pro_user_id: string
+          pro_user_id?: string | null
+          subject_user_id?: string | null
+          thread_type?: string
         }
         Update: {
-          consumer_id?: string
+          admin_user_id?: string | null
+          consumer_id?: string | null
           created_at?: string
-          enquiry_id?: string
+          enquiry_id?: string | null
           id?: string
           last_message_at?: string | null
-          pro_user_id?: string
+          pro_user_id?: string | null
+          subject_user_id?: string | null
+          thread_type?: string
         }
         Relationships: [
           {
@@ -2504,6 +2522,10 @@ export type Database = {
       }
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
+      admin_start_support_thread: {
+        Args: { _subject_user: string }
+        Returns: string
+      }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
       approve_brand_offer_revision: {
         Args: { _revision_id: string }
@@ -2595,6 +2617,10 @@ export type Database = {
         Returns: undefined
       }
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
+      is_chat_participant: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined

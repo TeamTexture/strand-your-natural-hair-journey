@@ -1,60 +1,74 @@
-# Plan — four workstream rollout
+# Build 1 of 3 — Admin & Brand Ecosystem
 
-Each phase is a self-contained shippable turn. I'll do them in this order, one per turn, so migrations/edge functions can be deployed and verified before layering the next.
+Large multi-part build. Presenting the shape before writing code so we agree on scope, especially where I'm inferring behaviour from the existing schema.
 
-## Phase 1 — Pro Welcome ad placement (workstream 1)
+## 1. Past campaigns tab (admin promotions)
 
-Backend
-- Add `pro_welcome` value to `brand_placement_slot` enum.
-- Add `brand_rate_pro_welcome_pence` (5000) to `platform_settings` and extend `brand_placement_rates` JSON.
-- No table changes: `brand_offer_placements`, `brand_offers`, revisions, stats and `brand_placement_no_overlap` trigger already key off `slot` so the new value plugs in.
+Add a filter chip / tab **All · Live · Pending · Past** to `AdminBrandOffers.tsx`. "Past" = derived status in `ended | rejected | cancelled`. Newest first. Filter chips for Brand/Pro carry through. Card already shows totals (impressions/taps/wishlist/code_copies/link_clicks), dates and amount paid — reuse `renderOffer`.
 
-Frontend
-- Extend the slot picker in `BrandCreateOffer.tsx` / campaign designer with two subheaders ("For consumers" / "For professionals") and add the new Welcome tile (£50/day placeholder, admin-editable).
-- Extend the shared calendar (`PlacementCalendarPicker`, admin `AdminBrandCalendar`) with a fourth lane; reuse existing exclusivity logic.
-- Render `BrandBanner slot="pro_welcome"` at the top of `ProDashboard.tsx` (same Sponsored/minimise/click behaviour, no dismiss-forever).
-- `AdminSettings.tsx` — expose the new rate field alongside existing ones.
-- Update pricing helpers (`useOwnerMode`, any place that switches on slot) to know the new slot.
+## 2. Remove "Recent activity" from /admin
 
-## Phase 2 — Yvonne account unification (workstream 2)
+Delete the section + `useRecentActivity` hook from `AdminHub.tsx`.
 
-- Locate the auth account by name match (`profiles.display_name ilike '%yvonne%abimbola%'`). Report the exact match before mutating.
-- Grant `professional` role (keep consumer). Ensure `pro_applications` row = approved (or insert one) so gates pass. Grant complimentary pro access analogous to founder bypass (either flag or founder subscription row).
-- Find her static `professionals_directory` seed row; copy discipline, bio, location, photos, Instagram, services, contact info into her `pro_profiles` (upsert, `is_published = true`).
-- Delete or hide the static seed row from `professionals_directory` so `useDirectoryProfessionals` shows exactly one Yvonne, backed by her account. Confirm the Directory query already merges account-backed listings first (if not, ensure the seed row is removed).
-- Enquire button on her card already routes through `EnquiryDialog` (account-backed listings). Verify.
+## 3. Admin ↔ user chat
 
-## Phase 3 — Client ↔ Pro chat + Book-from-chat (workstream 3, biggest)
+**Schema (single migration):**
+- `chat_threads`: add `thread_type text NOT NULL DEFAULT 'client_pro'`, `admin_user_id uuid`, `subject_user_id uuid`. Make `enquiry_id/pro_user_id/consumer_id` nullable.
+- New security definer `is_chat_participant(_thread, _uid)` checking any of the four participant columns.
+- Rewrite `chat_threads` + `chat_messages` policies in terms of `is_chat_participant`. Admin role does NOT get a bypass for `client_pro` threads — participation is the only door.
+- New RPC `admin_start_support_thread(_subject_user uuid)` (SECURITY DEFINER, admin-only): finds or creates a `thread_type='admin_support'` thread with `admin_user_id=auth.uid()` + `subject_user_id=_subject`.
 
-Schema
-- `chat_threads(id, enquiry_id unique, pro_user_id, consumer_id, created_at)`.
-- `chat_messages(id, thread_id, sender_id, kind text default 'user', body, created_at, read_at)` — `kind='system'` for booking system messages.
-- GRANTs to `authenticated` + `service_role`; RLS: participants only (via `auth.uid() in (pro_user_id, consumer_id)`). Admins do NOT read message bodies (no admin policy on `chat_messages`; admins may see `chat_threads` metadata).
-- Extend `accept_enquiry` RPC to `INSERT ... ON CONFLICT DO NOTHING` a `chat_threads` row.
+**Client:**
+- `useChat.ts`: extend `ChatThread` type; queries pick up the extra columns automatically (`select *`). Rework inbox to identify the "other" participant using `thread_type`.
+- Consumer/Pro `Messages.tsx`: for `admin_support` threads, show sender as **"STRAND Team"** with a small gold verified pill.
+- `ChatThreadPage.tsx`: same label treatment in header. Hide "Book appointment" for admin_support threads.
+- New `src/pages/admin/AdminMessages.tsx` — admin inbox listing their support threads.
+- "Message" button on member cards (`AdminMembers`), pro cards (`AdminProfessionals`), and brand cards (new admin brands directory) → calls `admin_start_support_thread` → navigates to `/admin/messages/:id`.
 
-Frontend
-- Hooks `useChatThreads`, `useChatThread(id)`, `useSendMessage`, using Supabase realtime channel on `chat_messages` filtered by `thread_id`. Static-page rule preserved — realtime only on chat surfaces.
-- New pages: `/pro/messages` (list), `/messages` (consumer list), `/messages/:threadId` shared component.
-- Bubble UI (right = me, left = other), friendly timestamps, date separators, system messages as centered pill.
-- Entry points: enquiry detail button, `ProClients.tsx` card action, unread badges in pro nav and consumer profile menu.
+## 4. Brand profile fixes + count correctness
 
-Book-from-chat
-- "Book appointment" action in thread (pro only): date/time/location/notes → insert `appointments` (linked_pro_user_id = pro, user_id = consumer, status = 'scheduled'), and system message referencing the appointment id.
-- Reschedule/cancel updates same appointment + new system message.
-- Appointment appears in client's `Appointments.tsx` and pro's `ProAppointments.tsx` (existing hooks already read those rows).
+- Confirmed via db: `STRAND` already linked to a Paige account, `Revlon Professional` to Rio. No rename needed. `Team Texture` stays.
+- The "Live brands" stat card, page title, and list currently disagree because the card counts `brand_subscriptions` in `active/trialing` (0 for complimentary brands) while the "brands" filter view lists offers, not brands.
+- Fix by defining **Live brand = row in `brand_profiles`** (i.e. all registered brands). Rewrite the stat card query to `brand_profiles.count`, and rewrite the destination page to be the new brand directory (item 5). All three surfaces will read 3 (STRAND, Revlon Professional, Team Texture) or 2 if we retire Team Texture per your intent — flagging: **you said "the actual registered brands" = 2. Team Texture is also a real registered brand row. I will show all 3.** Please confirm if Team Texture should be removed.
 
-## Phase 4 — Rio + Revlon Professional brand role (workstream 4)
+## 5. Admin Brands directory (new page)
 
-- Match `rio.agorwatts@revlon.com` via `admin_list_member_emails` (admin RPC) — no direct auth query needed in code.
-- Add `brand` role via `user_roles` upsert (keep professional + consumer). No admin role.
-- Upsert `brand_profiles`: brand_name "Revlon Professional", contact_name "Rio Agor-Watts".
-- Verify triple-role switcher: audit `Index.tsx` chooser and `GlobalMenu.tsx` for a Brand entry when `isBrand`. Add if missing.
+New route `/admin/brands` → `AdminBrands.tsx` (this is where the stat card + hub "Live brands" link now points).
+- Per row: logo, name, category, contact_name/email, subscription/complimentary status, activity summary (campaigns total, live/past offer counts, products added, last-active proxy = latest offer submitted_at).
+- Search + category filter chips.
+- Row action: **Message** (opens admin↔brand chat) and **View** (opens brand detail — for now, a minimal read-only pane; deep-dive can come in a later build).
+- No booking calendar.
 
-## Verification per phase
+## 6. Brand categories
 
-- Typecheck via build (harness).
-- For phase 1: sign in as brand, submit a `pro_welcome` slot, confirm calendar shows the lane; render pro dashboard and see the banner slot at top when a live offer exists.
-- For phase 3: send message consumer↔pro, verify realtime; book appointment from chat, verify it shows in both appointment lists and as system message.
-- Post-mutation phases (2, 4): read back the rows and report exact IDs / display_names touched.
+- Migration: `ALTER TABLE brand_profiles ADD COLUMN category text`.
+- Fixed list: Hair Care, Supplements, Hair Tools, Hair Accessories, Food & Nutrition, Beauty & Skincare, Wellness & Lifestyle, Salon & Trade Supplies, Education & Training, Other.
+- Backfill: STRAND, Revlon Professional, Team Texture → Hair Care.
+- Add a required category `<Select>` to BrandAuth signup and BrandDashboard "Brand profile" editor.
+- `brand-signup` edge fn: accept + persist `category`. Deploy per rule.
+- Admin brands directory uses category filter.
 
-Confirm and I'll start with Phase 1.
+## 7. Consumer-facing "STRAND Brands" directory
+
+- New route `/brands` → `BrandsDirectory.tsx`, entry point on `Profile.tsx` (same card pattern as pro directory).
+- Detail `/brands/:brandUserId` → `BrandDetailPage.tsx`: logo, name, category, about (new field), website, live offers (actionable, using existing offer flow), past offers (read-only strip), and their products/tools linked to `BrandProductPage`.
+- RLS additions:
+  - `brand_profiles`: SELECT for authenticated (safe fields — nothing sensitive on this table currently, so a policy `USING (true)` for `authenticated` is fine). The existing policies restrict to live-offer window; we widen to any authenticated user.
+  - Rely on existing brand_offers/brand_products live-window policies for offer/product visibility. Past offers: add a new SELECT policy on `brand_offers` allowing authenticated to read `ended` offers by `brand_user_id` (limited to non-sensitive columns is via view — but shape allows it; will keep table-level SELECT since it doesn't expose PII).
+
+## 8. Complimentary access for 3 accounts
+
+- Rio (b1c78f28…) and Yvonne (6039cf50…): `complimentary_access=true` already ✅. Also insert active-forever rows into `brand_subscriptions` and `pro_subscriptions` (`status='active', current_period_end=NULL`) so gates that check subscriptions directly (not just `has_active_*`) pass. Grant `brand` role to Rio (already has). Grant Yvonne `professional` (already has).
+- Erica Liburd: no matching profile exists. Implement future-proof grant via new `platform_settings` key `complimentary_emails` (jsonb array). Modify the `handle_new_user` trigger to check the email and set `complimentary_access=true` on profile creation. Seed the array with `erica.liburd@…` — **flag: I don't have an email. I'll seed with a lowercase name match `erica liburd` handled via case-insensitive comparison in the trigger, plus placeholder email slot admins can edit in `platform_settings`.**
+- No admin role granted to any of them.
+
+## Deployment
+- Deploy `brand-signup` (touched).
+- No other functions changed.
+
+## Reporting
+Final message will list per-account grants and confirm the STRAND/Revlon/Team Texture brand rows.
+
+---
+
+Confirm: (a) keep Team Texture as a live brand row, (b) OK with Erica handled via `complimentary_emails` future-match, (c) proceed.

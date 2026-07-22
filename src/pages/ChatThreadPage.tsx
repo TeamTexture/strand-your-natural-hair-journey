@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
-import { Calendar, Send, User2 } from "lucide-react";
+import { BadgeCheck, Calendar, Send, User2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ProAvatar from "@/components/ProAvatar";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import {
+  otherParticipantId,
   useBookAppointmentInThread,
   useChatThread,
   useMarkThreadRead,
@@ -42,12 +42,7 @@ const BookAppointmentDialog = ({
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   useEffect(() => {
-    if (!open) {
-      setDate("");
-      setTime("");
-      setLocation("");
-      setNotes("");
-    }
+    if (!open) { setDate(""); setTime(""); setLocation(""); setNotes(""); }
   }, [open]);
   if (!open) return null;
   return (
@@ -56,50 +51,23 @@ const BookAppointmentDialog = ({
         <p className="font-display text-lg font-semibold">Book appointment</p>
         <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Date
-          <input
-            type="date"
-            value={date}
-            min={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setDate(e.target.value)}
-            className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60"
-          />
+          <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
         </label>
         <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Time
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60"
-          />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
         </label>
         <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Location
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Clinic, address or link"
-            className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60"
-          />
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Clinic, address or link" className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
         </label>
         <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Notes
-          <textarea
-            value={notes}
-            rows={3}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="What to bring, prep, etc."
-            className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60"
-          />
+          <textarea value={notes} rows={3} onChange={(e) => setNotes(e.target.value)} placeholder="What to bring, prep, etc." className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60" />
         </label>
         <div className="flex gap-2 justify-end pt-1">
-          <Button variant="outline" onClick={onCancel} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!date || submitting}
-            onClick={() => onConfirm({ date, time, location, notes })}
-          >
+          <Button variant="outline" onClick={onCancel} disabled={submitting}>Cancel</Button>
+          <Button disabled={!date || submitting} onClick={() => onConfirm({ date, time, location, notes })}>
             {submitting ? "Booking…" : "Book"}
           </Button>
         </div>
@@ -110,9 +78,7 @@ const BookAppointmentDialog = ({
 
 const SystemBubble = ({ text }: { text: string }) => (
   <div className="flex justify-center my-2">
-    <div className="text-[11px] font-body text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">
-      {text}
-    </div>
+    <div className="text-[11px] font-body text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">{text}</div>
   </div>
 );
 
@@ -126,11 +92,7 @@ const MessageBubble = ({ m, mine }: { m: ChatMessage; mine: boolean }) => (
       }`}
     >
       {m.body}
-      <div
-        className={`text-[9.5px] mt-0.5 ${
-          mine ? "text-primary-foreground/70" : "text-muted-foreground"
-        }`}
-      >
+      <div className={`text-[9.5px] mt-0.5 ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
         {format(new Date(m.created_at), "HH:mm")}
       </div>
     </div>
@@ -150,24 +112,34 @@ const ChatThreadPage = () => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const t = thread.data;
-  const isPro = !!t && !!user && t.pro_user_id === user.id;
-  const otherId = t ? (isPro ? t.consumer_id : t.pro_user_id) : null;
+  const isSupport = t?.thread_type === "admin_support";
+  const isAdmin = !!t && !!user && t.admin_user_id === user.id;
+  const isPro = !!t && !!user && !isSupport && t.pro_user_id === user.id;
+  const otherId = t && user ? otherParticipantId(t, user.id) : null;
 
   const { data: other } = useQuery({
-    queryKey: ["chat_thread_other", otherId, isPro],
+    queryKey: ["chat_thread_other", otherId, isSupport, isAdmin, isPro],
     enabled: !!otherId,
     queryFn: async () => {
+      if (isSupport && !isAdmin) {
+        return { name: "STRAND Team", sub: "Support & guidance", avatar_path: null as string | null };
+      }
+      // For admins viewing support: show the subject user's name.
+      if (isSupport && isAdmin) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("display_name, postcode")
+          .eq("user_id", otherId!)
+          .maybeSingle();
+        return { name: data?.display_name ?? "Member", sub: data?.postcode ?? null, avatar_path: null as string | null };
+      }
       if (isPro) {
         const { data } = await supabase
           .from("profiles")
-          .select("display_name, postcode, phone_number")
+          .select("display_name, postcode")
           .eq("user_id", otherId!)
           .maybeSingle();
-        return {
-          name: data?.display_name ?? "Client",
-          sub: data?.postcode ?? null,
-          avatar_path: null as string | null,
-        };
+        return { name: data?.display_name ?? "Client", sub: data?.postcode ?? null, avatar_path: null as string | null };
       }
       const { data } = await supabase
         .from("pro_profiles")
@@ -182,18 +154,14 @@ const ChatThreadPage = () => {
     },
   });
 
-  // Auto scroll to bottom on new messages
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.data?.length]);
 
-  // Mark unread messages as read on view
   useEffect(() => {
     if (!threadId || !messages.data) return;
-    const hasUnread = messages.data.some(
-      (m) => m.sender_id !== user?.id && m.sender_id !== null && !m.read_at,
-    );
+    const hasUnread = messages.data.some((m) => m.sender_id !== user?.id && m.sender_id !== null && !m.read_at);
     if (hasUnread) markRead.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId, messages.data?.length]);
@@ -230,13 +198,16 @@ const ChatThreadPage = () => {
     );
   }
 
+  const headerTitle = isSupport && !isAdmin ? "STRAND Team" : (other?.name ?? "Conversation");
+  const backTarget = isAdmin ? "/admin/messages" : "/messages";
+
   return (
     <ScreenLayout>
       <TitleBar
-        title={other?.name ?? "Conversation"}
-        onBack={() => nav("/messages")}
+        title={headerTitle}
+        onBack={() => nav(backTarget)}
         right={
-          isPro && t ? (
+          !isSupport && isPro && t ? (
             <button
               onClick={() => nav(`/pro/clients/${t.consumer_id}`)}
               className="text-[10.5px] uppercase tracking-[0.08em] text-primary font-medium"
@@ -247,10 +218,16 @@ const ChatThreadPage = () => {
         }
       />
 
-      {other?.sub && (
-        <p className="px-5 -mt-1 pb-2 text-center text-[11px] text-muted-foreground truncate">
-          {other.sub}
-        </p>
+      {isSupport && !isAdmin && (
+        <div className="px-5 -mt-1 pb-2 flex items-center justify-center gap-1.5">
+          <BadgeCheck className="size-3.5 text-primary" />
+          <span className="text-[10.5px] uppercase tracking-[0.14em] text-primary font-body font-medium">
+            Official STRAND channel
+          </span>
+        </div>
+      )}
+      {other?.sub && !isSupport && (
+        <p className="px-5 -mt-1 pb-2 text-center text-[11px] text-muted-foreground truncate">{other.sub}</p>
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-3">
@@ -269,9 +246,7 @@ const ChatThreadPage = () => {
           grouped.map((group) => (
             <div key={group.label}>
               <div className="flex justify-center my-3">
-                <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-                  {group.label}
-                </span>
+                <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{group.label}</span>
               </div>
               {group.items.map((m) =>
                 m.kind === "system" ? (
@@ -285,14 +260,9 @@ const ChatThreadPage = () => {
         )}
       </div>
 
-      {isPro && (
+      {isPro && !isSupport && (
         <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setBookingOpen(true)}
-            className="w-full uppercase tracking-[0.08em] text-[11px]"
-          >
+          <Button size="sm" variant="outline" onClick={() => setBookingOpen(true)} className="w-full uppercase tracking-[0.08em] text-[11px]">
             <Calendar className="size-3.5 mr-1.5" />
             Book appointment
           </Button>
@@ -304,10 +274,7 @@ const ChatThreadPage = () => {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
           }}
           placeholder="Type a message"
           rows={1}

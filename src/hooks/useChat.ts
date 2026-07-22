@@ -3,11 +3,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+export type ChatThreadType = "client_pro" | "admin_support";
+
 export interface ChatThread {
   id: string;
-  enquiry_id: string;
-  pro_user_id: string;
-  consumer_id: string;
+  enquiry_id: string | null;
+  pro_user_id: string | null;
+  consumer_id: string | null;
+  admin_user_id: string | null;
+  subject_user_id: string | null;
+  thread_type: ChatThreadType;
   created_at: string;
   last_message_at: string | null;
 }
@@ -23,7 +28,18 @@ export interface ChatMessage {
   read_at: string | null;
 }
 
-/** All threads I'm a participant in (pro OR consumer). */
+/** Return the id of the "other" participant relative to me. */
+export function otherParticipantId(t: ChatThread, myId: string): string | null {
+  if (t.thread_type === "admin_support") {
+    return myId === t.admin_user_id ? t.subject_user_id : t.admin_user_id;
+  }
+  return myId === t.pro_user_id ? t.consumer_id : t.pro_user_id;
+}
+
+const threadOrFilter = (uid: string) =>
+  `pro_user_id.eq.${uid},consumer_id.eq.${uid},admin_user_id.eq.${uid},subject_user_id.eq.${uid}`;
+
+/** All threads I'm a participant in. */
 export function useChatThreads() {
   const { user } = useAuth();
   return useQuery({
@@ -33,7 +49,7 @@ export function useChatThreads() {
       const { data, error } = await supabase
         .from("chat_threads")
         .select("*")
-        .or(`pro_user_id.eq.${user!.id},consumer_id.eq.${user!.id}`)
+        .or(threadOrFilter(user!.id))
         .order("last_message_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as ChatThread[];
@@ -74,19 +90,13 @@ export function useChatThread(threadId: string | null | undefined) {
     },
   });
 
-  // Realtime subscription (chat is the exception to static-page rule)
   useEffect(() => {
     if (!threadId) return;
     const channel = supabase
       .channel(`chat_thread_${threadId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
+        { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
         () => {
           qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
           qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
@@ -145,7 +155,6 @@ export function useMarkThreadRead(threadId: string | null | undefined) {
   });
 }
 
-/** Count of unread messages addressed to me across all my threads. */
 export function useUnreadChatCount() {
   const { user } = useAuth();
   return useQuery({
@@ -155,7 +164,7 @@ export function useUnreadChatCount() {
       const { data: threads } = await supabase
         .from("chat_threads")
         .select("id")
-        .or(`pro_user_id.eq.${user!.id},consumer_id.eq.${user!.id}`);
+        .or(threadOrFilter(user!.id));
       const ids = (threads ?? []).map((t) => t.id);
       if (ids.length === 0) return 0;
       const { count } = await supabase
@@ -174,7 +183,7 @@ export function useBookAppointmentInThread() {
   return useMutation({
     mutationFn: async (input: {
       thread_id: string;
-      appointment_date: string; // yyyy-mm-dd
+      appointment_date: string;
       appointment_time?: string;
       location?: string;
       notes?: string;
@@ -192,6 +201,19 @@ export function useBookAppointmentInThread() {
     onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: ["chat_messages", vars.thread_id] });
       qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+/** Admin-only: open or reuse a support thread with a target user. */
+export function useStartAdminSupportThread() {
+  return useMutation({
+    mutationFn: async (subjectUserId: string) => {
+      const { data, error } = await supabase.rpc("admin_start_support_thread", {
+        _subject_user: subjectUserId,
+      });
+      if (error) throw error;
+      return data as string;
     },
   });
 }
