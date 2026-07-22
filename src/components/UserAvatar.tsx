@@ -12,6 +12,8 @@ interface Props {
   size?: string;
   /** Allow editing (camera button + file picker). */
   editable?: boolean;
+  /** Show a gold "+" badge for STRAND+ members. */
+  plus?: boolean;
 }
 
 const BUCKET = "avatars";
@@ -21,7 +23,7 @@ const BUCKET = "avatars";
  * When `editable`, tapping it opens a file picker so the user can upload
  * or replace their photo. Falls back to initials when no photo exists.
  */
-const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
+const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: Props) => {
   const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [path, setPath] = useState<string | null>(null);
@@ -113,13 +115,22 @@ const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
 
   if (!editable) {
     return (
-      <div
-        className={cn(
-          "rounded-full bg-primary text-primary-foreground flex items-center justify-center overflow-hidden shrink-0",
-          size,
+      <div className={cn("relative shrink-0", size)}>
+        <div
+          className={cn(
+            "size-full rounded-full bg-primary text-primary-foreground flex items-center justify-center overflow-hidden",
+          )}
+        >
+          {inner}
+        </div>
+        {plus && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-0.5 -right-0.5 size-4 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center text-[9px] font-bold leading-none"
+          >
+            +
+          </span>
         )}
-      >
-        {inner}
       </div>
     );
   }
@@ -162,8 +173,18 @@ const UserAvatar = ({ name, size = "size-14", editable = true }: Props) => {
           <Camera className="size-2.5" />
         </span>
       )}
+      {plus && (
+        <span
+          aria-hidden
+          title="STRAND+ member"
+          className="pointer-events-none absolute -top-0.5 -right-0.5 size-4 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center text-[9px] font-bold leading-none"
+        >
+          +
+        </span>
+      )}
     </div>
   );
 };
 
 export default UserAvatar;
+

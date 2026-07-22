@@ -186,16 +186,15 @@ const GlobalMenu = () => {
     { label: "Settings", to: "/admin/settings", icon: Settings },
   ];
 
-  const CONSUMER_NAV_FINAL: NavItem[] = hasPlus
-    ? [
-        ...CONSUMER_NAV.slice(0, 6),
-        { label: "Community forum", to: "/forum", icon: MessageSquare },
-        { label: "STRAND+ Library", to: "/plus/library", icon: Library },
-        { label: "STRAND+ Events", to: "/plus/events", icon: CalendarIcon },
-        { label: "My tickets", to: "/plus/tickets", icon: Ticket },
-        ...CONSUMER_NAV.slice(6),
-      ]
-    : CONSUMER_NAV;
+  // STRAND+ items are rendered in a dedicated gold section at the top of the
+  // menu (see nav render below), not mixed inline with standard consumer nav.
+  const PLUS_NAV: NavItem[] = [
+    { label: "Community forum", to: "/forum", icon: MessageSquare },
+    { label: "STRAND+ Library", to: "/plus/library", icon: Library },
+    { label: "STRAND+ Events", to: "/plus/events", icon: CalendarIcon },
+    { label: "My tickets", to: "/plus/tickets", icon: Ticket },
+  ];
+  const CONSUMER_NAV_FINAL: NavItem[] = CONSUMER_NAV;
 
   // For pro view: only show items the pro can actually access.
   // Approved + subscribed pros (or admins acting as pro) see everything.
@@ -361,6 +360,31 @@ const GlobalMenu = () => {
             <SheetTitle className="font-display text-xl">Menu</SheetTitle>
           </SheetHeader>
           <nav className="flex-1 overflow-y-auto py-2">
+            {!isOnboarding && activeView === "consumer" && hasPlus && (
+              <div className="mx-3 mb-3 rounded-[14px] border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent overflow-hidden">
+                <div className="px-4 pt-3 pb-1.5 flex items-center gap-1.5">
+                  <PlusSparkles className="size-3.5 text-primary" />
+                  <span className="text-[10px] uppercase tracking-[0.22em] font-body font-bold text-primary">
+                    STRAND+ Member
+                  </span>
+                </div>
+                {PLUS_NAV.map(({ label, to, icon: Icon }) => {
+                  const active = location.pathname === to || location.pathname.startsWith(to + "/");
+                  return (
+                    <button
+                      key={to}
+                      onClick={() => go(to)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm font-body transition-colors ${
+                        active ? "bg-primary/20 text-primary" : "text-foreground/85 hover:bg-primary/10"
+                      }`}
+                    >
+                      <Icon className="size-4 text-primary" />
+                      <span className="flex-1">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {!isOnboarding && navItems.map(({ label, to, icon: Icon, badge }) => {
               const active =
                 to === "/home" || to === "/pro" || to === "/admin" || to === "/brand"
