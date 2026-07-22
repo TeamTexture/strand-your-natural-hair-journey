@@ -303,6 +303,26 @@ const GlobalMenu = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        {activeView === "consumer" && !hasPlus && !isOnboarding && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Upgrade to STRAND+"
+                  onClick={() => navigate("/plus/upgrade")}
+                  className="h-9 px-2.5 rounded-full flex items-center gap-1 text-primary bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors"
+                >
+                  <PlusSparkles className="size-[15px]" />
+                  <span className="text-[11px] font-body font-bold tracking-wide">+</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={6}>
+                <span>Upgrade to STRAND+</span>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {location.pathname === "/home" && (
           <TooltipProvider delayDuration={150}>
             <Tooltip>
