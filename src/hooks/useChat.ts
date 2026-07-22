@@ -1,0 +1,197 @@
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+export interface ChatThread {
+  id: string;
+  enquiry_id: string;
+  pro_user_id: string;
+  consumer_id: string;
+  created_at: string;
+  last_message_at: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  thread_id: string;
+  sender_id: string | null;
+  kind: "text" | "system";
+  body: string;
+  meta: Record<string, unknown>;
+  created_at: string;
+  read_at: string | null;
+}
+
+/** All threads I'm a participant in (pro OR consumer). */
+export function useChatThreads() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["chat_threads", user?.id],
+    enabled: !!user?.id,
+    queryFn: async (): Promise<ChatThread[]> => {
+      const { data, error } = await supabase
+        .from("chat_threads")
+        .select("*")
+        .or(`pro_user_id.eq.${user!.id},consumer_id.eq.${user!.id}`)
+        .order("last_message_at", { ascending: false, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as ChatThread[];
+    },
+  });
+}
+
+/** Single thread + its messages, with realtime updates. */
+export function useChatThread(threadId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  const thread = useQuery({
+    queryKey: ["chat_thread", threadId],
+    enabled: !!threadId,
+    queryFn: async (): Promise<ChatThread | null> => {
+      const { data, error } = await supabase
+        .from("chat_threads")
+        .select("*")
+        .eq("id", threadId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as ChatThread | null;
+    },
+  });
+
+  const messages = useQuery({
+    queryKey: ["chat_messages", threadId],
+    enabled: !!threadId,
+    queryFn: async (): Promise<ChatMessage[]> => {
+      const { data, error } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("thread_id", threadId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ChatMessage[];
+    },
+  });
+
+  // Realtime subscription (chat is the exception to static-page rule)
+  useEffect(() => {
+    if (!threadId) return;
+    const channel = supabase
+      .channel(`chat_thread_${threadId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+          filter: `thread_id=eq.${threadId}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+          qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+          qc.invalidateQueries({ queryKey: ["chat_unread", user?.id] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [threadId, qc, user?.id]);
+
+  return { thread, messages };
+}
+
+export function useSendChatMessage(threadId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (body: string) => {
+      if (!threadId || !user?.id) throw new Error("Not ready");
+      const text = body.trim();
+      if (!text) throw new Error("Empty message");
+      const { error } = await supabase.from("chat_messages").insert({
+        thread_id: threadId,
+        sender_id: user.id,
+        kind: "text",
+        body: text,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+    },
+  });
+}
+
+export function useMarkThreadRead(threadId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      if (!threadId || !user?.id) return;
+      await supabase
+        .from("chat_messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("thread_id", threadId)
+        .neq("sender_id", user.id)
+        .is("read_at", null);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_unread", user?.id] });
+    },
+  });
+}
+
+/** Count of unread messages addressed to me across all my threads. */
+export function useUnreadChatCount() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["chat_unread", user?.id],
+    enabled: !!user?.id,
+    queryFn: async (): Promise<number> => {
+      const { data: threads } = await supabase
+        .from("chat_threads")
+        .select("id")
+        .or(`pro_user_id.eq.${user!.id},consumer_id.eq.${user!.id}`);
+      const ids = (threads ?? []).map((t) => t.id);
+      if (ids.length === 0) return 0;
+      const { count } = await supabase
+        .from("chat_messages")
+        .select("id", { count: "exact", head: true })
+        .in("thread_id", ids)
+        .neq("sender_id", user!.id)
+        .is("read_at", null);
+      return count ?? 0;
+    },
+  });
+}
+
+export function useBookAppointmentInThread() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      thread_id: string;
+      appointment_date: string; // yyyy-mm-dd
+      appointment_time?: string;
+      location?: string;
+      notes?: string;
+    }) => {
+      const { data, error } = await supabase.rpc("chat_book_appointment", {
+        _thread_id: input.thread_id,
+        _appointment_date: input.appointment_date,
+        _appointment_time: input.appointment_time ?? "",
+        _location: input.location ?? "",
+        _notes: input.notes ?? "",
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: (_res, vars) => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", vars.thread_id] });
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}

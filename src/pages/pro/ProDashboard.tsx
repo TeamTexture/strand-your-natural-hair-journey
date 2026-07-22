@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -11,6 +11,7 @@ import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount
 import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
 import { useProAppointments } from "@/hooks/useProAppointments";
 import { useProClients } from "@/hooks/useProClients";
+import { useUnreadChatCount } from "@/hooks/useChat";
 
 import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
@@ -73,6 +74,7 @@ const ProDashboard = () => {
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
   const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
+  const { data: unreadChats = 0 } = useUnreadChatCount();
   const { data: proAppointments = [] } = useProAppointments();
   const today = new Date().toISOString().slice(0, 10);
   const upcomingAppointments = proAppointments
@@ -174,6 +176,13 @@ const ProDashboard = () => {
             sub={hasProAccess ? "Client requests and passport previews." : "Subscribe to receive enquiries."}
             onClick={() => nav("/pro/enquiries")}
             count={pendingEnquiries}
+          />
+          <Card
+            icon={MessageCircle}
+            title="Messages"
+            sub={hasProAccess ? "Chat with accepted clients." : "Subscribe to unlock chat."}
+            onClick={() => nav("/messages")}
+            count={unreadChats}
           />
           <Card
             icon={Users}

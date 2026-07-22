@@ -643,6 +643,82 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          meta: Json
+          read_at: string | null
+          sender_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          kind?: string
+          meta?: Json
+          read_at?: string | null
+          sender_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          meta?: Json
+          read_at?: string | null
+          sender_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_threads: {
+        Row: {
+          consumer_id: string
+          created_at: string
+          enquiry_id: string
+          id: string
+          last_message_at: string | null
+          pro_user_id: string
+        }
+        Insert: {
+          consumer_id: string
+          created_at?: string
+          enquiry_id: string
+          id?: string
+          last_message_at?: string | null
+          pro_user_id: string
+        }
+        Update: {
+          consumer_id?: string
+          created_at?: string
+          enquiry_id?: string
+          id?: string
+          last_message_at?: string | null
+          pro_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_threads_enquiry_id_fkey"
+            columns: ["enquiry_id"]
+            isOneToOne: true
+            referencedRelation: "pro_enquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumer_subscriptions: {
         Row: {
           cancel_at_period_end: boolean
@@ -2475,6 +2551,16 @@ export type Database = {
           slot: Database["public"]["Enums"]["brand_placement_slot"]
           status: Database["public"]["Enums"]["brand_offer_status"]
         }[]
+      }
+      chat_book_appointment: {
+        Args: {
+          _appointment_date: string
+          _appointment_time: string
+          _location: string
+          _notes: string
+          _thread_id: string
+        }
+        Returns: string
       }
       has_active_brand_subscription: {
         Args: { _user: string }

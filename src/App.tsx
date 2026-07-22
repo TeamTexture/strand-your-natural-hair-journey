@@ -69,6 +69,8 @@ import ProEnquiries from "./pages/pro/ProEnquiries";
 import ProAppointments from "./pages/pro/ProAppointments";
 
 import MyEnquiries from "./pages/MyEnquiries";
+import Messages from "./pages/Messages";
+import ChatThreadPage from "./pages/ChatThreadPage";
 import DataAccess from "./pages/DataAccess";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminAudit from "./pages/admin/AdminAudit";
@@ -324,6 +326,8 @@ const App = () => (
 
 
               <Route path="/profile/enquiries" element={<Paid><MyEnquiries /></Paid>} />
+              <Route path="/messages" element={<Protected><Messages /></Protected>} />
+              <Route path="/messages/:threadId" element={<Protected><ChatThreadPage /></Protected>} />
               <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
 
               <Route

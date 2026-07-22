@@ -128,6 +128,7 @@ const EnquiryCard = ({
   onDecline,
   onOpenPassport,
   onBookAppointment,
+  onMessage,
 }: {
   enquiry: Enquiry;
   preview?: PassportPreview;
@@ -135,6 +136,7 @@ const EnquiryCard = ({
   onDecline: () => void;
   onOpenPassport?: () => void;
   onBookAppointment?: () => void;
+  onMessage?: () => void;
 }) => {
   const first = preview?.firstName ?? "Client";
   const phone = preview?.phone ?? enquiry.contact_phone ?? null;
@@ -252,11 +254,21 @@ const EnquiryCard = ({
         </div>
       )}
 
-      {enquiry.status === "accepted" && (onOpenPassport || onBookAppointment) && (
+      {enquiry.status === "accepted" && (onOpenPassport || onBookAppointment || onMessage) && (
         <div className="mt-3 space-y-2">
+          {onMessage && (
+            <Button
+              size="sm"
+              onClick={onMessage}
+              className="w-full uppercase tracking-[0.08em]"
+            >
+              MESSAGE CLIENT
+            </Button>
+          )}
           {onOpenPassport && (
             <Button
               size="sm"
+              variant="outline"
               onClick={onOpenPassport}
               className="w-full uppercase tracking-[0.08em]"
             >
@@ -437,6 +449,19 @@ const ProEnquiries = () => {
               onBookAppointment={
                 e.status === "accepted"
                   ? () => nav(`/pro/appointments?client=${e.consumer_id}`)
+                  : undefined
+              }
+              onMessage={
+                e.status === "accepted"
+                  ? async () => {
+                      const { data } = await supabase
+                        .from("chat_threads")
+                        .select("id")
+                        .eq("enquiry_id", e.id)
+                        .maybeSingle();
+                      if (data?.id) nav(`/messages/${data.id}`);
+                      else nav("/messages");
+                    }
                   : undefined
               }
             />
