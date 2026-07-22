@@ -96,6 +96,17 @@ const Appointments = () => {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
   const [search, setSearch] = useState("");
+  const focusApptId = params.get("appt");
+
+  // Scroll & pulse the appointment referenced by ?appt=<id> when it lands.
+  useEffect(() => {
+    if (!focusApptId || loading) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`appt-${focusApptId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => window.clearTimeout(t);
+  }, [focusApptId, loading, appts.length]);
 
   const handleDelete = async () => {
     if (!user || !deleteTarget) return;
