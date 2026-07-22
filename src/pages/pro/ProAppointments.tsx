@@ -18,6 +18,17 @@ import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useProAppointments, type ProAppointmentRow } from "@/hooks/useProAppointments";
 import { formatTime12h } from "@/lib/formatTime";
