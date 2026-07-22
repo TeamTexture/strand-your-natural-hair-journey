@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { directoryLinkForPro } from "@/lib/directoryLink";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, ArrowRight, ChevronLeft, Send, BadgeCheck, Minus } from "lucide-react";
+import { MessageCircle, ArrowRight, ChevronLeft, Send, BadgeCheck, Minus, Calendar } from "lucide-react";
 import {
   Popover,
   PopoverContent,
