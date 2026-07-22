@@ -18,44 +18,79 @@ async function grabFrames(source: File | string): Promise<Blob[]> {
   const url = typeof source === "string" ? source : URL.createObjectURL(source);
   const revoke = typeof source === "string" ? null : url;
   const video = document.createElement("video");
-  video.src = url;
   video.muted = true;
   video.playsInline = true;
   video.preload = "auto";
-  video.crossOrigin = "anonymous";
+  // Only set crossOrigin for remote URLs — setting it on blob: URLs can taint the canvas.
+  if (typeof source === "string") video.crossOrigin = "anonymous";
+  video.src = url;
+  // Some browsers require the element to be in the DOM to decode frames reliably.
+  video.style.position = "fixed";
+  video.style.left = "-9999px";
+  video.style.top = "0";
+  video.style.width = "1px";
+  video.style.height = "1px";
+  document.body.appendChild(video);
 
-  await new Promise<void>((resolve, reject) => {
-    video.onloadedmetadata = () => resolve();
-    video.onerror = () => reject(new Error("Could not load video"));
-  });
-
-  const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 10;
-  const points = [0.15, 0.35, 0.55, 0.75].map((p) => Math.min(duration - 0.1, duration * p));
-
-  const canvas = document.createElement("canvas");
-  const targetW = 640;
-  const w = video.videoWidth || targetW;
-  const h = video.videoHeight || 360;
-  const scale = Math.min(1, targetW / w);
-  canvas.width = Math.round(w * scale);
-  canvas.height = Math.round(h * scale);
-  const ctx = canvas.getContext("2d")!;
-
-  const blobs: Blob[] = [];
-  for (const t of points) {
+  try {
     await new Promise<void>((resolve, reject) => {
-      const onSeek = () => { video.removeEventListener("seeked", onSeek); resolve(); };
-      video.addEventListener("seeked", onSeek);
-      video.currentTime = t;
-      setTimeout(() => reject(new Error("seek timeout")), 5000);
-    }).catch(() => {});
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.82));
-    if (blob) blobs.push(blob);
-  }
+      const onReady = () => { video.removeEventListener("loadeddata", onReady); resolve(); };
+      video.addEventListener("loadeddata", onReady);
+      video.addEventListener("error", () => reject(new Error("Could not load video")), { once: true });
+      // Kick decode
+      video.load();
+    });
 
-  if (revoke) URL.revokeObjectURL(revoke);
-  return blobs;
+    const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 10;
+    const points = [0.15, 0.35, 0.55, 0.75].map((p) => Math.max(0.05, Math.min(duration - 0.1, duration * p)));
+
+    const canvas = document.createElement("canvas");
+    const targetW = 640;
+    const w = video.videoWidth || targetW;
+    const h = video.videoHeight || 360;
+    const scale = Math.min(1, targetW / w);
+    canvas.width = Math.max(2, Math.round(w * scale));
+    canvas.height = Math.max(2, Math.round(h * scale));
+    const ctx = canvas.getContext("2d")!;
+
+    const seekTo = (t: number) => new Promise<void>((resolve, reject) => {
+      const onSeek = () => { video.removeEventListener("seeked", onSeek); resolve(); };
+      const to = window.setTimeout(() => {
+        video.removeEventListener("seeked", onSeek);
+        reject(new Error("seek timeout"));
+      }, 6000);
+      video.addEventListener("seeked", () => { window.clearTimeout(to); onSeek(); });
+      try { video.currentTime = t; } catch (e) { window.clearTimeout(to); reject(e as Error); }
+    });
+
+    const waitForFrame = () =>
+      new Promise<void>((resolve) => {
+        const anyVid = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
+        if (typeof anyVid.requestVideoFrameCallback === "function") {
+          anyVid.requestVideoFrameCallback(() => resolve());
+        } else {
+          requestAnimationFrame(() => resolve());
+        }
+      });
+
+    const blobs: Blob[] = [];
+    for (const t of points) {
+      try { await seekTo(t); } catch { continue; }
+      await waitForFrame();
+      // Extra tick to let paint land in some Safari builds.
+      await new Promise((r) => setTimeout(r, 30));
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+      if (blob && blob.size > 0) blobs.push(blob);
+    }
+
+    return blobs;
+  } finally {
+    video.removeAttribute("src");
+    video.load();
+    video.remove();
+    if (revoke) URL.revokeObjectURL(revoke);
+  }
 }
 
 const VideoThumbnailPicker = ({ file, sourceUrl, open, onClose, onPick, onSkip }: Props) => {
