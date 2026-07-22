@@ -25,6 +25,7 @@ import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import MessageNotifications from "@/components/MessageNotifications";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
+import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
 
 
 import Index from "./pages/Index.tsx";
@@ -159,6 +160,7 @@ const Onboard = ({ children }: { children: React.ReactNode }) => (
 // React tree so they're active for every screen in the app.
 const GlobalEffects = () => {
   useKeyboardAwareInputs();
+  useTrackInAppHistory();
   return null;
 };
 
