@@ -14,6 +14,7 @@ import { useProClients } from "@/hooks/useProClients";
 
 import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
+import BrandBanner from "@/components/BrandBanner";
 
 
 const Card = ({
