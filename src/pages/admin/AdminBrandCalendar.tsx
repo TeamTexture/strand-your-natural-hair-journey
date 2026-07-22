@@ -15,6 +15,7 @@ const SLOT_COLORS: Record<PlacementSlot, string> = {
   home: "bg-primary/40",
   products: "bg-good/40",
   wash_day: "bg-warn/40",
+  pro_welcome: "bg-secondary/60",
 };
 
 const BOOKING_STATUS_STYLES = {
