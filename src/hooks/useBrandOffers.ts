@@ -75,6 +75,16 @@ export const SLOT_LABEL: Record<PlacementSlot, string> = {
   home: "Home banner",
   products: "Products banner",
   wash_day: "Wash day banner",
+  pro_welcome: "Pro welcome banner",
+};
+
+/** Which audience each slot renders to. Drives the "For consumers" /
+ *  "For professionals" grouping in the campaign designer. */
+export const SLOT_AUDIENCE: Record<PlacementSlot, "consumer" | "pro"> = {
+  home: "consumer",
+  products: "consumer",
+  wash_day: "consumer",
+  pro_welcome: "pro",
 };
 
 export const STATUS_LABEL: Record<BrandOfferStatus | "upcoming", string> = {
@@ -188,6 +198,7 @@ export function usePlacementRates() {
         home: raw.home ?? 7500,
         products: raw.products ?? 5000,
         wash_day: raw.wash_day ?? 10000,
+        pro_welcome: raw.pro_welcome ?? 5000,
       };
     },
   });

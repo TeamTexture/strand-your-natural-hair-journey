@@ -2555,7 +2555,7 @@ export type Database = {
         | "ended"
         | "rejected"
         | "cancelled"
-      brand_placement_slot: "home" | "products" | "wash_day"
+      brand_placement_slot: "home" | "products" | "wash_day" | "pro_welcome"
       pro_application_status: "pending" | "approved" | "rejected" | "suspended"
       pro_discipline:
         | "Trichologist"
@@ -2703,7 +2703,7 @@ export const Constants = {
         "rejected",
         "cancelled",
       ],
-      brand_placement_slot: ["home", "products", "wash_day"],
+      brand_placement_slot: ["home", "products", "wash_day", "pro_welcome"],
       pro_application_status: ["pending", "approved", "rejected", "suspended"],
       pro_discipline: [
         "Trichologist",
