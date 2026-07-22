@@ -54,6 +54,7 @@ type EventRow = {
 };
 
 const PlusEvents = () => {
+  useEffect(() => { markPlusSurfaceSeen("events"); }, []);
   const { user } = useAuth();
   const qc = useQueryClient();
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
