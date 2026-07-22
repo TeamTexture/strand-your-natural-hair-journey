@@ -387,8 +387,8 @@ const ThreadQuickView = ({
                 <div
                   className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-[12.5px] leading-snug font-body break-words ${
                     mine
-                      ? "bg-brown text-brown-foreground rounded-br-sm"
-                      : "bg-primary text-primary-foreground rounded-bl-sm"
+                      ? "bg-primary text-primary-foreground rounded-br-sm"
+                      : "bg-brown text-brown-foreground rounded-bl-sm"
                   }`}
 
                 >
