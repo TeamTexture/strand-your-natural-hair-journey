@@ -54,14 +54,21 @@ const ForumThread = () => {
     return Array.from(set);
   }, [threadQ.data, repliesQ.data]);
 
-  type AuthorMeta = { display_name: string | null; avatar_url: string | null; city: string | null; goal_title: string | null; hair_type: string | null };
+  type AuthorMeta = {
+    display_name: string | null;
+    avatar_url: string | null;
+    city: string | null;
+    goal_title: string | null;
+    hair_type: string | null;
+    current_style: string | null;
+  };
   const authorsQ = useQuery({
     queryKey: ["forum_author_meta_thread", authorIds],
     enabled: authorIds.length > 0,
     queryFn: async () => {
       const { data } = await supabase.rpc("forum_author_meta", { _user_ids: authorIds });
       const map = new Map<string, AuthorMeta>();
-      (data ?? []).forEach((p) => map.set(p.user_id, p));
+      (data ?? []).forEach((p) => map.set(p.user_id, p as AuthorMeta));
       return map;
     },
   });
