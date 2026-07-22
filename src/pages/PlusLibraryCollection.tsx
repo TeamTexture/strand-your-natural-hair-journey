@@ -128,7 +128,7 @@ const PlusLibraryCollection = () => {
                     </div>
                     {item.body_md?.trim() && (
                       <p className="font-body text-[12px] text-foreground/70 leading-relaxed whitespace-pre-wrap pl-8">
-                        {item.body_md}
+                        {renderMentions(item.body_md)}
                       </p>
                     )}
                   </li>
