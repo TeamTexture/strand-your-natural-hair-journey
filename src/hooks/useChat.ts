@@ -243,15 +243,21 @@ export function useBookAppointmentInThread() {
   });
 }
 
-/** Admin-only: open or reuse a support thread with a target user. */
+/** Admin-only: open or reuse a support thread with a target user in a specific role context. */
 export function useStartAdminSupportThread() {
   return useMutation({
-    mutationFn: async (subjectUserId: string) => {
+    mutationFn: async (
+      arg: string | { subjectUserId: string; subjectRole?: "consumer" | "pro" | "brand" },
+    ) => {
+      const subjectUserId = typeof arg === "string" ? arg : arg.subjectUserId;
+      const subjectRole = typeof arg === "string" ? "consumer" : arg.subjectRole ?? "consumer";
       const { data, error } = await supabase.rpc("admin_start_support_thread", {
         _subject_user: subjectUserId,
+        _subject_role: subjectRole,
       });
       if (error) throw error;
       return data as string;
     },
   });
 }
+
