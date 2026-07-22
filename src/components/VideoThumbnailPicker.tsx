@@ -54,7 +54,6 @@ async function grabFrames(source: File | string): Promise<Blob[]> {
     if (blob) blobs.push(blob);
   }
 
-  URL.revokeObjectURL(url);
   if (revoke) URL.revokeObjectURL(revoke);
   return blobs;
 }
