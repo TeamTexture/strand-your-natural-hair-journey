@@ -38,7 +38,7 @@ interface BrandRow {
 
 const AdminBrands = () => {
   const nav = useNavigate();
-  const qc = useQueryClient();
+  
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
 
