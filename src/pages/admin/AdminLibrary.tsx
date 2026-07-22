@@ -274,7 +274,53 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   };
 
   return (
-    <div className="border-t border-border bg-muted/20 p-3 space-y-2">
+    <div
+      className={`border-t border-border p-3 space-y-2 transition-colors ${
+        dragOver ? "bg-primary/15 ring-2 ring-primary/50" : "bg-muted/20"
+      }`}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={onDrop}
+    >
+      <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 flex items-center gap-3">
+        <Film className="size-5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[11.5px] font-body font-semibold leading-tight">
+            {dragOver ? "Drop to upload" : "Drag & drop videos, PDFs or audio here"}
+          </p>
+          <p className="text-[10px] text-foreground/55 leading-tight mt-0.5">
+            Large files upload in the background · resumes if interrupted
+          </p>
+        </div>
+        <input
+          ref={dropInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+        />
+        <Button
+          size="sm"
+          variant="goldOutline"
+          className="rounded-pill h-8 px-3 text-[11px] shrink-0"
+          onClick={() => dropInputRef.current?.click()}
+          disabled={busy}
+        >
+          Browse
+        </Button>
+      </div>
+
+      {progress !== null && (
+        <div className="rounded-lg border border-primary/30 bg-card p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between text-[10.5px] font-body">
+            <span className="font-semibold text-primary">Uploading…</span>
+            <span className="text-foreground/70">{progress.toFixed(0)}%</span>
+          </div>
+          <Progress value={progress} className="h-1.5" />
+        </div>
+      )}
+
       {q.isLoading ? (
         <LoadingDot />
       ) : (
