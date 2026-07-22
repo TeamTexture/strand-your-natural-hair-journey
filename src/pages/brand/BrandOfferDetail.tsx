@@ -120,7 +120,7 @@ const BrandOfferDetail = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={offer.headline ?? "Offer"} onBack={() => nav(homeRoute)} />
+      <TitleBar title={offer.headline ?? "Offer"} onBack={smartBack(nav, homeRoute)} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-2">
           <div className="flex items-start justify-between gap-2">

@@ -213,7 +213,7 @@ const ChatThreadPage = () => {
     <ScreenLayout>
       <TitleBar
         title={headerTitle}
-        onBack={() => nav(backTarget)}
+        onBack={smartBack(nav, backTarget)}
         right={
           !isSupport && isPro && t ? (
             <button

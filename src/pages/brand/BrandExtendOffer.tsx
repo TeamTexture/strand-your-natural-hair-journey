@@ -108,7 +108,7 @@ const BrandExtendOffer = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Extend offer" onBack={() => nav(ownerOfferRoute(ownerMode, id!))} />
+      <TitleBar title="Extend offer" onBack={smartBack(nav, ownerOfferRoute(ownerMode, id!))} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="space-y-2">
           <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium">Current offer</p>
