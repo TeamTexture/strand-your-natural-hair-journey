@@ -11,6 +11,8 @@ import { useAuth } from "@/hooks/useAuth";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
+import { usePlusAlerts } from "@/hooks/usePlusAlerts";
+import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
@@ -68,6 +70,8 @@ const Home = () => {
   // on entry, then no realtime channels, focus refetches, or interval polls
   // run until the user navigates away and returns.
   const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts({ static: true });
+  const { hasPlus } = usePlusAccess();
+  const { alerts: plusAlerts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
@@ -678,6 +682,39 @@ const Home = () => {
             </button>
           )}
         </SurfaceCard>
+
+        {hasPlus && plusAlerts.length > 0 && (
+          <SurfaceCard padded={false} className="border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent">
+            <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+              <span className="text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">
+                ✦ STRAND+ Alerts ({plusAlerts.length})
+              </span>
+              <button
+                onClick={() => { dismissAllPlus(); toast("STRAND+ alerts cleared"); }}
+                className="text-[11px] uppercase tracking-[0.15em] text-primary"
+              >
+                Clear all
+              </button>
+            </div>
+            <div className="px-3 pb-3 space-y-2">
+              {plusAlerts.map((a) => (
+                <div key={a.id} className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors">
+                  <button onClick={() => { dismissAllPlus(); navigate(a.to); }} className="w-full text-left">
+                    <p className="text-xs font-medium leading-tight text-foreground">
+                      {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : "✉️"} {a.title}
+                    </p>
+                    <p className="text-[11px] mt-1 text-foreground/70 line-clamp-2">{a.body}</p>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); dismissPlus(a.id); }}
+                    aria-label="Dismiss"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center text-foreground/40 hover:text-foreground"
+                  >✕</button>
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
+        )}
 
         <SurfaceCard data-tour="alerts" tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
