@@ -138,41 +138,51 @@ const StatCard = ({
   tone,
   sublabel,
   onClick,
+  compact = false,
 }: {
   label: string;
   value: number | string;
   tone?: "warn" | "urgent" | "default";
   sublabel?: string;
   onClick?: () => void;
+  compact?: boolean;
 }) => {
   const content = (
     <SurfaceCard
       className={cn(
-        "py-3 relative h-full",
+        "relative h-full",
+        compact ? "py-2 px-2.5" : "py-3",
         tone === "urgent" && "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40",
       )}
     >
-      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium pr-4">
+      <p
+        className={cn(
+          "uppercase tracking-[0.14em] text-muted-foreground font-body font-medium",
+          compact ? "text-[8.5px] leading-tight" : "text-[10px] pr-4 tracking-[0.18em]",
+        )}
+      >
         {label}
       </p>
       <p
         className={cn(
-          "font-display text-[26px] leading-none mt-1.5",
+          "font-display leading-none",
+          compact ? "text-[19px] mt-1" : "text-[26px] mt-1.5",
           tone === "warn" ? "text-warn" : tone === "urgent" ? "text-destructive" : "text-foreground",
         )}
       >
         {value}
       </p>
       {sublabel && (
-        <p className="text-[9.5px] font-body text-muted-foreground mt-1 leading-tight">
+        <p className={cn("font-body text-muted-foreground leading-tight", compact ? "text-[9px] mt-0.5" : "text-[9.5px] mt-1")}>
           {sublabel}
         </p>
       )}
-      {onClick && (
+      {onClick && !compact && (
         <ChevronRight className="size-3.5 text-muted-foreground absolute top-3 right-3" />
       )}
     </SurfaceCard>
   );
+
   if (!onClick) return content;
   return (
     <button
