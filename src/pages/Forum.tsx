@@ -16,6 +16,7 @@ import ForumAvatar from "@/components/ForumAvatar";
 type Sort = "new" | "top";
 
 const Forum = () => {
+  useEffect(() => { markPlusSurfaceSeen("forum"); markPlusSurfaceSeen("threads"); }, []);
   const [sort, setSort] = useState<Sort>("new");
   const [categoryId, setCategoryId] = useState<string | null>(null);
 
