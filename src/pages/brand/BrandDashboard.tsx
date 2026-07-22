@@ -8,10 +8,12 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import PastOfferCard from "@/components/brand/PastOfferCard";
 import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
+import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useOwnerMode, ownerHomeRoute, ownerNewRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
@@ -303,10 +305,12 @@ const BrandDashboard = () => {
         )}
 
         {past.length > 0 && (
-          <div>
-            <SectionLabel className="!px-0">Past</SectionLabel>
-            <div className="space-y-2">{past.map(renderOffer)}</div>
-          </div>
+          <PastCampaignsSection
+            past={past}
+            totals={totals}
+            brandName={profile?.brand_name ?? undefined}
+            onOpen={(id) => nav(ownerOfferRoute(ownerMode, id))}
+          />
         )}
 
         <div className="pt-6">
