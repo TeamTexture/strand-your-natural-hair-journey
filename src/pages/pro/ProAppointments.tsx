@@ -500,7 +500,36 @@ const ProAppointments = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={!!confirmCancelId}
+        onOpenChange={(o) => !o && setConfirmCancelId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This marks the appointment as cancelled for you and your client. You can't undo this.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep appointment</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmCancelId) {
+                  const id = confirmCancelId;
+                  setConfirmCancelId(null);
+                  updateStatus(id, "cancelled");
+                }
+              }}
+            >
+              Cancel appointment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
+
   );
 };
 
