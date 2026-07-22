@@ -108,6 +108,8 @@ const ProAppointments = () => {
   const [view, setView] = useState<"list" | "calendar">("list");
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+
 
   const today = new Date().toISOString().slice(0, 10);
   const [monthCursor, setMonthCursor] = useState(() => {
