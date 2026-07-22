@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Play, FileText, Layers } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
