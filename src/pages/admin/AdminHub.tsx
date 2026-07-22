@@ -70,9 +70,8 @@ const useAdminStats = () =>
           .select("id", { count: "exact", head: true })
           .gte("viewed_at", sevenDaysAgo),
         supabase
-          .from("brand_subscriptions")
-          .select("brand_user_id", { count: "exact", head: true })
-          .in("status", ["active", "trialing"]),
+          .from("brand_profiles")
+          .select("user_id", { count: "exact", head: true }),
         supabase
           .from("brand_offers")
           .select("id, owner_type")
@@ -287,7 +286,7 @@ const AdminHub = () => {
               <StatCard
                 label="Live brands"
                 value={stats.liveBrands}
-                onClick={() => nav("/admin/brand-offers?filter=brands")}
+                onClick={() => nav("/admin/brands")}
               />
               <StatCard
                 label="Live campaigns"
