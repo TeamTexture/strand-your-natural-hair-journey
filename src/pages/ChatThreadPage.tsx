@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
-import { BadgeCheck, Calendar, Send, User2 } from "lucide-react";
+import { BadgeCheck, Calendar, Send, User2, Minus } from "lucide-react";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import TimePicker12h from "@/components/TimePicker12h";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
@@ -253,6 +253,10 @@ const ChatThreadPage = () => {
 
   const headerTitle = isSupport && !isAdmin ? "STRAND Team" : (other?.name ?? "Conversation");
   const backTarget = isAdmin ? "/admin/messages" : "/messages";
+  const roleTag =
+    isSupport ? "STRAND Team"
+    : isPro ? "Member"
+    : "Pro";
 
   return (
     <ScreenLayout>
@@ -260,25 +264,37 @@ const ChatThreadPage = () => {
         title={headerTitle}
         onBack={smartBack(nav, backTarget)}
         right={
-          !isSupport && isPro && t ? (
+          <div className="flex items-center gap-2">
+            {!isSupport && isPro && t && (
+              <button
+                onClick={() => nav(`/pro/clients/${t.consumer_id}`)}
+                className="text-[10.5px] uppercase tracking-[0.08em] text-primary font-medium"
+              >
+                Passport
+              </button>
+            )}
             <button
-              onClick={() => nav(`/pro/clients/${t.consumer_id}`)}
-              className="text-[10.5px] uppercase tracking-[0.08em] text-primary font-medium"
+              onClick={smartBack(nav, backTarget)}
+              aria-label="Minimise chat"
+              className="size-8 rounded-full flex items-center justify-center text-foreground/70 hover:bg-muted"
             >
-              Passport
+              <Minus className="size-4" />
             </button>
-          ) : null
+          </div>
         }
       />
 
-      {isSupport && !isAdmin && (
-        <div className="px-5 -mt-1 pb-2 flex items-center justify-center gap-1.5">
-          <BadgeCheck className="size-3.5 text-primary" />
-          <span className="text-[10.5px] uppercase tracking-[0.14em] text-primary font-body font-medium">
+      <div className="px-5 -mt-1 pb-2 flex items-center justify-center gap-1.5 flex-wrap">
+        <span className="text-[9.5px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full bg-primary/12 text-primary font-body font-semibold">
+          {roleTag}
+        </span>
+        {isSupport && !isAdmin && (
+          <span className="inline-flex items-center gap-1 text-[10.5px] uppercase tracking-[0.14em] text-primary font-body font-medium">
+            <BadgeCheck className="size-3.5" />
             Official STRAND channel
           </span>
-        </div>
-      )}
+        )}
+      </div>
       {other?.sub && !isSupport && (
         <p className="px-5 -mt-1 pb-2 text-center text-[11px] text-muted-foreground truncate">{other.sub}</p>
       )}
