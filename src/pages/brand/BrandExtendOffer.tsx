@@ -13,6 +13,7 @@ import { useBrandOffer } from "@/hooks/useBrandOffers";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { getOfferExpiry, buildCountdown, formatCountdown } from "@/lib/offerExpiry";
 import { useOwnerMode, ownerOfferRoute } from "@/hooks/useOwnerMode";
+import { smartBack } from "@/lib/smartBack";
 
 /**
  * Extend an existing offer.

@@ -32,6 +32,7 @@ import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath } from "@/lib/consumerOnboarding";
 import { titleCase } from "@/lib/humanise";
+import { smartBack } from "@/lib/smartBack";
 
 
 interface ExtractedRow {

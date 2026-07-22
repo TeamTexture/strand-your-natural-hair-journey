@@ -7,6 +7,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useOwnerMode, ownerHomeRoute } from "@/hooks/useOwnerMode";
+import { smartBack } from "@/lib/smartBack";
 
 const BrandCheckoutSuccess = () => {
   const [params] = useSearchParams();
