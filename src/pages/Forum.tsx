@@ -50,15 +50,15 @@ const Forum = () => {
     [threadsQ.data],
   );
   const authorsQ = useQuery({
-    queryKey: ["forum_authors", authorIds],
+    queryKey: ["forum_author_meta", authorIds],
     enabled: authorIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id,display_name,avatar_url")
-        .in("user_id", authorIds);
+      const { data, error } = await (supabase.rpc as (fn: string, args: Record<string, unknown>) => Promise<{
+        data: Array<{ user_id: string; display_name: string | null; avatar_url: string | null; city: string | null; goal_title: string | null; hair_type: string | null }> | null;
+        error: { message: string } | null;
+      }>)("forum_author_meta", { _user_ids: authorIds });
       if (error) throw error;
-      const map = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+      const map = new Map<string, { display_name: string | null; avatar_url: string | null; city: string | null; goal_title: string | null; hair_type: string | null }>();
       (data ?? []).forEach((p) => map.set(p.user_id, p));
       return map;
     },
