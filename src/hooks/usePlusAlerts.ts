@@ -184,7 +184,7 @@ export function usePlusAlerts() {
 
   const dismissAll = useCallback(() => {
     const now = new Date().toISOString();
-    writeSeen({ threads: now, events: now, messages: now });
+    writeSeen({ threads: now, events: now, messages: now, library: now });
     setAlerts([]);
   }, []);
 
