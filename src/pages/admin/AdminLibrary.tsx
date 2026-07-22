@@ -228,16 +228,20 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
     try {
       let storagePath: string | null = null;
       if (file) storagePath = await uploadFileToStorage(file);
-      const { error } = await supabase.from("content_items").insert({
+      const { data: inserted, error } = await supabase.from("content_items").insert({
         collection_id: collectionId,
         kind: itemKind,
         title: itemTitle.trim(),
         body_md: itemBody.trim() || null,
         storage_path: storagePath,
         external_url: itemUrl.trim() || null,
-      });
+      }).select("id").single();
       if (error) throw error;
       toast.success("Item added");
+      const isVideo = itemKind === "video" && file;
+      if (isVideo && inserted?.id) {
+        setThumbPending({ itemId: inserted.id, file: file! });
+      }
       reset();
       qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
     } catch (e) {
