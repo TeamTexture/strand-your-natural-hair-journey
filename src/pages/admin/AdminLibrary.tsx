@@ -445,6 +445,10 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
                   className="h-9 text-[12px]"
                 />
               </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Description <span className="text-foreground/50">(optional)</span></Label>
+                <Textarea rows={3} value={itemBody} onChange={(e) => setItemBody(e.target.value)} className="text-[12px]" placeholder="Short caption or notes shown to members" />
+              </div>
             </>
           )}
           <div className="flex gap-2 pt-1">
