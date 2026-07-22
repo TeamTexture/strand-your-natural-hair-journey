@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Loader2, ChevronDown, ChevronRight, Upload, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Loader2, ChevronDown, ChevronRight, Upload, Link as LinkIcon, ExternalLink, Film } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -9,11 +9,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { tusUpload } from "@/lib/tusUpload";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
 const ITEM_KINDS = ["video", "pdf", "text", "audio", "image"] as const;
 type ItemKind = typeof ITEM_KINDS[number];
+
+const guessKindFromFile = (f: File): ItemKind => {
+  const t = (f.type || "").toLowerCase();
+  if (t.startsWith("video/")) return "video";
+  if (t.startsWith("audio/")) return "audio";
+  if (t.startsWith("image/")) return "image";
+  if (t === "application/pdf") return "pdf";
+  const name = f.name.toLowerCase();
+  if (/\.(mp4|mov|m4v|webm|mkv)$/.test(name)) return "video";
+  if (/\.(mp3|m4a|wav|aac|ogg)$/.test(name)) return "audio";
+  if (/\.pdf$/.test(name)) return "pdf";
+  return "video";
+};
+
+const fmtSize = (bytes: number) =>
+  bytes >= 1024 * 1024 * 1024
+    ? `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 const AdminLibrary = () => {
   const qc = useQueryClient();
@@ -142,6 +162,9 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   const [itemUrl, setItemUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const dropInputRef = useRef<HTMLInputElement | null>(null);
 
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
@@ -157,27 +180,34 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   });
 
   const reset = () => {
-    setItemTitle(""); setItemBody(""); setItemUrl(""); setFile(null); setShowAdd(false);
+    setItemTitle(""); setItemBody(""); setItemUrl(""); setFile(null); setShowAdd(false); setProgress(null);
   };
+
+  const uploadFileToStorage = useCallback(async (f: File): Promise<string> => {
+    const safe = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${collectionId}/${Date.now()}_${safe}`;
+    setProgress(0);
+    await tusUpload({
+      bucket: "strand-plus-library",
+      path,
+      file: f,
+      contentType: f.type || undefined,
+      onProgress: (p) => setProgress(p.percent),
+    });
+    setProgress(100);
+    return path;
+  }, [collectionId]);
 
   const addItem = async () => {
     if (!itemTitle.trim()) { toast.error("Title required"); return; }
     if (itemKind !== "text" && !file && !itemUrl.trim()) {
-      toast.error("Upload a file or provide an external URL");
+      toast.error("Drop a file or provide an external URL");
       return;
     }
     setBusy(true);
     try {
       let storagePath: string | null = null;
-      if (file) {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const path = `${collectionId}/${Date.now()}_${safe}`;
-        const { error: upErr } = await supabase.storage
-          .from("strand-plus-library")
-          .upload(path, file, { upsert: false, contentType: file.type || undefined });
-        if (upErr) throw upErr;
-        storagePath = path;
-      }
+      if (file) storagePath = await uploadFileToStorage(file);
       const { error } = await supabase.from("content_items").insert({
         collection_id: collectionId,
         kind: itemKind,
@@ -194,7 +224,45 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       toast.error((e as Error).message ?? "Upload failed");
     } finally {
       setBusy(false);
+      setProgress(null);
     }
+  };
+
+  // Fast path: drop one or more files directly onto the collection to upload
+  // and create items automatically (title = filename, kind = auto).
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    if (!list.length) return;
+    setBusy(true);
+    try {
+      for (const f of list) {
+        const kind = guessKindFromFile(f);
+        const title = f.name.replace(/\.[^.]+$/, "");
+        try {
+          const path = await uploadFileToStorage(f);
+          const { error } = await supabase.from("content_items").insert({
+            collection_id: collectionId,
+            kind,
+            title,
+            storage_path: path,
+          });
+          if (error) throw error;
+          toast.success(`Uploaded ${f.name}`);
+        } catch (e) {
+          toast.error(`${f.name}: ${(e as Error).message ?? "upload failed"}`);
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  }, [collectionId, qc, uploadFileToStorage]);
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
   };
 
   const removeItem = async (id: string, path: string | null) => {
@@ -206,7 +274,53 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   };
 
   return (
-    <div className="border-t border-border bg-muted/20 p-3 space-y-2">
+    <div
+      className={`border-t border-border p-3 space-y-2 transition-colors ${
+        dragOver ? "bg-primary/15 ring-2 ring-primary/50" : "bg-muted/20"
+      }`}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={onDrop}
+    >
+      <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 flex items-center gap-3">
+        <Film className="size-5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[11.5px] font-body font-semibold leading-tight">
+            {dragOver ? "Drop to upload" : "Drag & drop videos, PDFs or audio here"}
+          </p>
+          <p className="text-[10px] text-foreground/55 leading-tight mt-0.5">
+            Large files upload in the background · resumes if interrupted
+          </p>
+        </div>
+        <input
+          ref={dropInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+        />
+        <Button
+          size="sm"
+          variant="goldOutline"
+          className="rounded-pill h-8 px-3 text-[11px] shrink-0"
+          onClick={() => dropInputRef.current?.click()}
+          disabled={busy}
+        >
+          Browse
+        </Button>
+      </div>
+
+      {progress !== null && (
+        <div className="rounded-lg border border-primary/30 bg-card p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between text-[10.5px] font-body">
+            <span className="font-semibold text-primary">Uploading…</span>
+            <span className="text-foreground/70">{progress.toFixed(0)}%</span>
+          </div>
+          <Progress value={progress} className="h-1.5" />
+        </div>
+      )}
+
       {q.isLoading ? (
         <LoadingDot />
       ) : (
@@ -286,7 +400,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   className="w-full text-[11px] file:mr-2 file:h-8 file:px-3 file:rounded-full file:border-0 file:bg-primary file:text-primary-foreground file:text-[11px] file:font-semibold"
                 />
-                {file && <p className="text-[10px] text-foreground/60 truncate">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>}
+                {file && <p className="text-[10px] text-foreground/60 truncate">{file.name} · {fmtSize(file.size)}</p>}
               </div>
               <div className="space-y-1">
                 <Label className="text-[11px] flex items-center gap-1"><LinkIcon className="size-3" /> Or external URL</Label>

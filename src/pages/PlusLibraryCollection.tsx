@@ -8,10 +8,11 @@ import TitleBar from "@/components/TitleBar";
 import PlusGate from "@/components/PlusGate";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import VideoPlayerDialog from "@/components/VideoPlayerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-const ITEM_ICON: Record<string, typeof BookOpen> = { video: Play, pdf: BookOpen, text: FileText, url: FileText, article: FileText };
+const ITEM_ICON: Record<string, typeof BookOpen> = { video: Play, pdf: BookOpen, text: FileText, url: FileText, article: FileText, audio: Play };
 
 const PlusLibraryCollection = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ const PlusLibraryCollection = () => {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [opening, setOpening] = useState<string | null>(null);
+  const [player, setPlayer] = useState<{ url: string; title: string } | null>(null);
 
   const collectionQ = useQuery({
     queryKey: ["content_collection", id],
@@ -48,7 +50,7 @@ const PlusLibraryCollection = () => {
     },
   });
 
-  const openItem = async (item: { id: string; external_url: string | null; storage_path: string | null; body_md: string | null }) => {
+  const openItem = async (item: { id: string; kind: string; title: string; external_url: string | null; storage_path: string | null; body_md: string | null }) => {
     setOpening(item.id);
     try {
       let url = item.external_url;
@@ -59,8 +61,17 @@ const PlusLibraryCollection = () => {
         if (error) throw error;
         url = (data?.url as string) ?? null;
       }
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
-      else if (item.body_md) alert(item.body_md);
+      if (!url && item.body_md) { alert(item.body_md); return; }
+      if (!url) { toast.error("Nothing to open"); return; }
+      const playInline =
+        item.kind === "video" ||
+        item.kind === "audio" ||
+        /\.(mp4|mov|m4v|webm|mp3|m4a|wav|aac|ogg)(\?|$)/i.test(url);
+      if (playInline) {
+        setPlayer({ url, title: item.title });
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch (e) {
       toast.error((e as Error).message ?? "Could not open");
     } finally {
@@ -120,6 +131,11 @@ const PlusLibraryCollection = () => {
           </div>
         )}
       </ScreenLayout>
+      <VideoPlayerDialog
+        url={player?.url ?? null}
+        title={player?.title}
+        onClose={() => setPlayer(null)}
+      />
     </PlusGate>
   );
 };
