@@ -10,6 +10,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import ForumAvatar from "@/components/ForumAvatar";
 
 type Sort = "new" | "top";
 
@@ -110,13 +111,7 @@ const Forum = () => {
                       className="block rounded-[14px] border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-start gap-2.5 mb-2">
-                        {author?.avatar_url ? (
-                          <img src={author.avatar_url} alt="" className="size-9 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <div className="size-9 rounded-full bg-primary/15 text-primary text-[13px] flex items-center justify-center font-semibold shrink-0">
-                            {firstName[0]}
-                          </div>
-                        )}
+                        <ForumAvatar path={author?.avatar_url} fallback={firstName[0]} className="size-9 text-[13px]" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[12px] font-body font-semibold text-foreground/85 leading-tight">{firstName}</span>
