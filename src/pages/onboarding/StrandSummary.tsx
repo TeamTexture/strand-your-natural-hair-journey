@@ -351,7 +351,9 @@ const StrandSummary = () => {
         )}
 
 
-        {/* Progress photos with timestamps */}
+        {/* Progress photos, grouped per day into brown/gold cards. Tapping a
+            day card opens its photos and lets the user add more to that same
+            day (any upload today) or start a new day (any upload). */}
         <SurfaceCard>
           <div className="flex items-center justify-between mb-3">
             <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-medium">
@@ -362,62 +364,104 @@ const StrandSummary = () => {
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground mb-3 leading-snug">
-            Add photos over time to compare changes. Each is timestamped so progress can be reviewed clearly.
+            Photos are grouped by day. Tap a day to view or add more; use the new-day button to start a fresh entry.
           </p>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            {photos.map((p) => (
-              <div key={p.id} className="relative aspect-square rounded-[12px] overflow-hidden bg-muted">
-                <img src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(p)}
-                  aria-label="Remove photo"
-                  className="absolute top-1.5 right-1.5 size-6 rounded-full bg-background/85 backdrop-blur flex items-center justify-center text-foreground hover:text-destructive"
-                >
-                  <X className="size-3" />
-                </button>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
-                  <p className="text-[10px] text-white font-medium leading-tight">
-                    {new Date(p.createdAt).toLocaleDateString(undefined, {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <p className="text-[9px] text-white/80 leading-tight">
-                    {new Date(p.createdAt).toLocaleTimeString(undefined, {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
+          {(() => {
+            // Group photos by calendar day (YYYY-MM-DD) using createdAt.
+            const groups = new Map<string, PhotoItem[]>();
+            for (const p of photos) {
+              const key = new Date(p.createdAt).toISOString().slice(0, 10);
+              const arr = groups.get(key) ?? [];
+              arr.push(p);
+              groups.set(key, arr);
+            }
+            const dayKeys = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a));
+            const canAdd = photos.length < MAX_PHOTOS;
 
-            {photos.length < MAX_PHOTOS && (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="aspect-square rounded-[12px] border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 flex flex-col items-center justify-center gap-1.5 text-primary transition-colors"
-              >
-                {uploading ? (
-                  <span className="text-[10px]">Uploading…</span>
-                ) : photos.length === 0 ? (
-                  <>
-                    <Camera className="size-5" />
-                    <span className="text-[10px] font-medium">Add photo</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="size-5" />
-                    <span className="text-[10px] font-medium">Add another</span>
-                  </>
+            return (
+              <div className="space-y-2.5">
+                {dayKeys.map((k) => {
+                  const items = groups.get(k)!;
+                  const open = openDay === k;
+                  const label = new Date(items[0].createdAt).toLocaleDateString(undefined, {
+                    weekday: "short", day: "numeric", month: "short", year: "numeric",
+                  });
+                  const timeRange = items.length > 1
+                    ? `${items.length} photos`
+                    : new Date(items[0].createdAt).toLocaleTimeString(undefined, {
+                        hour: "numeric", minute: "2-digit",
+                      });
+                  return (
+                    <div key={k} className="rounded-[14px] bg-[hsl(var(--ink-brown,25_25%_20%))] text-primary overflow-hidden" style={{ background: "hsl(28 30% 22%)" }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenDay(open ? null : k)}
+                        className="w-full flex items-center justify-between px-3.5 py-3 text-left"
+                      >
+                        <div>
+                          <p className="font-display text-[13px] font-semibold text-primary">{label}</p>
+                          <p className="text-[10px] text-primary/80 mt-0.5">{timeRange}</p>
+                        </div>
+                        <span className="text-[10px] font-medium text-primary/90 uppercase tracking-[0.12em]">
+                          {open ? "Hide" : "View"}
+                        </span>
+                      </button>
+                      {open && (
+                        <div className="px-3.5 pb-3.5 space-y-2.5">
+                          <div className="grid grid-cols-3 gap-2">
+                            {items.map((p) => (
+                              <div key={p.id} className="relative aspect-square rounded-[10px] overflow-hidden bg-muted">
+                                <img src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => removePhoto(p)}
+                                  aria-label="Remove photo"
+                                  className="absolute top-1 right-1 size-5 rounded-full bg-background/85 flex items-center justify-center text-foreground hover:text-destructive"
+                                >
+                                  <X className="size-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {canAdd && k === todayKey && (
+                            <button
+                              type="button"
+                              onClick={() => { pendingNewDay.current = false; fileRef.current?.click(); }}
+                              disabled={uploading}
+                              className="w-full text-[11px] font-medium py-2 rounded-full border border-primary/60 text-primary hover:bg-primary/10 transition-colors"
+                            >
+                              {uploading ? "Uploading…" : "+ Add more to this day"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {canAdd && (
+                  <button
+                    type="button"
+                    onClick={() => { pendingNewDay.current = true; fileRef.current?.click(); }}
+                    disabled={uploading}
+                    className="w-full aspect-[6/1] min-h-[52px] rounded-[14px] border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 flex items-center justify-center gap-2 text-primary transition-colors"
+                  >
+                    {uploading ? (
+                      <span className="text-[11px]">Uploading…</span>
+                    ) : (
+                      <>
+                        {dayKeys.length === 0 ? <Camera className="size-4" /> : <Plus className="size-4" />}
+                        <span className="text-[11px] font-medium">
+                          {dayKeys.length === 0 ? "Add first progress photo" : "Add photos for a new day"}
+                        </span>
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
-            )}
-          </div>
+              </div>
+            );
+          })()}
 
           <input
             ref={fileRef}
@@ -431,6 +475,7 @@ const StrandSummary = () => {
             }}
           />
         </SurfaceCard>
+
 
 
 
