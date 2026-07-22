@@ -21,6 +21,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
+import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
+import { Users } from "lucide-react";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
@@ -41,6 +43,18 @@ const BrandOfferDetail = () => {
   const [heroOpen, setHeroOpen] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const deleteOffer = useDeleteBrandOffer();
+  const markSeen = useMarkOfferInterestSeen();
+  const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
+  const interest = id ? interestMap[id] : undefined;
+
+  // When the owner (or admin) opens an ended offer, clear the "new interest"
+  // badge on the past card by stamping brand_last_interest_seen_at = now.
+  useEffect(() => {
+    if (offer && deriveBrandOfferStatus(offer) === "ended" && (interest?.unread ?? 0) > 0) {
+      markSeen.mutate(offer.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offer?.id, interest?.unread]);
 
   useEffect(() => {
     if (!offer?.hero_image_path) { setHeroUrl(null); return; }
