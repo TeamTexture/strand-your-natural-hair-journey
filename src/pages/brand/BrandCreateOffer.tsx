@@ -24,7 +24,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { AlertTriangle } from "lucide-react";
 
-const SLOTS: PlacementSlot[] = ["home", "products", "wash_day"];
+import { SLOT_AUDIENCE } from "@/hooks/useBrandOffers";
+
+const SLOTS: PlacementSlot[] = ["home", "products", "wash_day", "pro_welcome"];
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
 type AttachKind = "product" | "tool";
