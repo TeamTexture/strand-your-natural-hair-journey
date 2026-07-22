@@ -21,6 +21,7 @@ import { renderMentions } from "@/lib/renderMentions";
 
 const ForumThread = () => {
   const { id } = useParams<{ id: string }>();
+  useEffect(() => { markPlusSurfaceSeen("forum"); markPlusSurfaceSeen("threads"); }, []);
   const nav = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
