@@ -56,7 +56,8 @@ const useAdminStats = () =>
     queryFn: async (): Promise<Stats> => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const today = new Date().toISOString().slice(0, 10);
-      const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, liveOffersQ, brandReqQ] = await Promise.all([
+      const today = londonToday();
+      const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, allOffersQ] = await Promise.all([
         supabase
           .from("pro_applications")
           .select("id", { count: "exact", head: true })
@@ -81,18 +82,33 @@ const useAdminStats = () =>
           .select("user_id", { count: "exact", head: true }),
         supabase
           .from("brand_offers")
-          .select("id, owner_type")
-          .in("status", ["live", "paid_scheduled"])
-          .lte("starts_on", today)
-          .gte("ends_on", today),
-        supabase
-          .from("brand_offers")
-          .select("id, owner_type")
-          .eq("status", "under_review"),
+          .select("id, owner_type, status, starts_on, ends_on")
+          .in("status", ["under_review", "approved_unpaid", "paid_scheduled", "live", "ended"]),
       ]);
-      const liveOffersRows = (liveOffersQ.data ?? []) as { owner_type: string | null }[];
-      const brandReqRows = (brandReqQ.data ?? []) as { owner_type: string | null }[];
-      const isPro = (r: { owner_type: string | null }) => r.owner_type === "pro";
+      const offers = (allOffersQ.data ?? []) as {
+        owner_type: string | null;
+        status: string;
+        starts_on: string | null;
+        ends_on: string | null;
+      }[];
+      const empty = (): CampaignCounts => ({ live: 0, requested: 0, scheduled: 0, expired: 0 });
+      const brand = empty();
+      const pro = empty();
+      offers.forEach((o) => {
+        const bucket = o.owner_type === "pro" ? pro : brand;
+        // "Requested" = still awaiting review or approved and awaiting payment.
+        if (o.status === "under_review" || o.status === "approved_unpaid") {
+          bucket.requested += 1;
+          return;
+        }
+        const derived = deriveBrandOfferStatus(
+          { status: o.status, starts_on: o.starts_on, ends_on: o.ends_on },
+          today,
+        );
+        if (derived === "live") bucket.live += 1;
+        else if (derived === "upcoming") bucket.scheduled += 1;
+        else if (derived === "ended") bucket.expired += 1;
+      });
       const activePaid = await supabase
         .from("consumer_subscriptions")
         .select("user_id", { count: "exact", head: true })
@@ -106,15 +122,14 @@ const useAdminStats = () =>
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
         liveBrands: liveBrandsQ.count ?? 0,
-        liveBrandOffers: liveOffersRows.length,
-        liveBrandOffersPro: liveOffersRows.filter(isPro).length,
-        liveBrandOffersBrand: liveOffersRows.filter((r) => !isPro(r)).length,
-        brandOfferRequests: brandReqRows.length,
-        brandOfferRequestsPro: brandReqRows.filter(isPro).length,
-        brandOfferRequestsBrand: brandReqRows.filter((r) => !isPro(r)).length,
+        brand,
+        pro,
+        totalRequests: brand.requested + pro.requested,
+        totalLive: brand.live + pro.live,
       };
     },
   });
+
 
 
 const StatCard = ({
