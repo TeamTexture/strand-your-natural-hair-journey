@@ -83,6 +83,13 @@ const AdminLibrary = () => {
     qc.invalidateQueries({ queryKey: ["admin_content_collections"] });
   };
 
+  const saveCollection = async (id: string, patch: { title?: string; description?: string }) => {
+    const { error } = await supabase.from("content_collections").update(patch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Saved");
+    qc.invalidateQueries({ queryKey: ["admin_content_collections"] });
+  };
+
   return (
     <ScreenLayout>
       <TitleBar
@@ -125,14 +132,34 @@ const AdminLibrary = () => {
                       onClick={() => setExpanded(open ? null : c.id)}
                       className="flex-1 min-w-0 text-left flex items-center gap-2"
                     >
-                      {open ? <ChevronDown className="size-4 text-primary shrink-0" /> : <ChevronRight className="size-4 text-foreground/60 shrink-0" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">
-                          {c.kind}{!c.is_published && " · hidden"}
-                        </p>
-                        <p className="font-body text-[13px] font-semibold truncate">{c.title}</p>
-                      </div>
+              return (
+                <li key={c.id} className="rounded-[14px] border border-border bg-card overflow-hidden">
+                  <div className="p-3 flex items-start gap-2">
+                    <button
+                      onClick={() => setExpanded(open ? null : c.id)}
+                      className="mt-0.5 shrink-0"
+                      aria-label={open ? "Collapse" : "Expand"}
+                    >
+                      {open ? <ChevronDown className="size-4 text-primary" /> : <ChevronRight className="size-4 text-foreground/60" />}
                     </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">
+                        {c.kind}{!c.is_published && " · hidden"}
+                      </p>
+                      <EditableText
+                        value={c.title}
+                        onSave={(v) => saveCollection(c.id, { title: v })}
+                        className="font-body text-[13px] font-semibold"
+                        placeholder="Title"
+                      />
+                      <EditableText
+                        value={c.description ?? ""}
+                        onSave={(v) => saveCollection(c.id, { description: v })}
+                        className="font-body text-[11.5px] text-foreground/65 mt-0.5"
+                        placeholder="+ Add description"
+                        multiline
+                      />
+                    </div>
                     <button
                       onClick={() => togglePublish(c.id, !c.is_published)}
                       className="text-[10px] font-body font-semibold uppercase tracking-wider text-foreground/60 hover:text-primary px-2 py-1"
@@ -152,6 +179,66 @@ const AdminLibrary = () => {
         )}
       </div>
     </ScreenLayout>
+  );
+};
+
+/** Inline editable text — click to edit, save on blur / Enter. */
+const EditableText = ({
+  value, onSave, className, placeholder, multiline,
+}: {
+  value: string;
+  onSave: (v: string) => void | Promise<void>;
+  className?: string;
+  placeholder?: string;
+  multiline?: boolean;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+  const commit = async () => {
+    setEditing(false);
+    const next = draft.trim();
+    if (next === (value ?? "").trim()) return;
+    await onSave(next);
+  };
+  if (editing) {
+    if (multiline) {
+      return (
+        <Textarea
+          autoFocus
+          rows={2}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+          className={`${className ?? ""} text-[12px] py-1`}
+          placeholder={placeholder}
+        />
+      );
+    }
+    return (
+      <Input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          if (e.key === "Escape") { setDraft(value); setEditing(false); }
+        }}
+        className={`${className ?? ""} h-8 py-1`}
+        placeholder={placeholder}
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      className={`${className ?? ""} block text-left w-full truncate hover:text-primary transition-colors`}
+    >
+      {value?.trim() ? value : <span className="italic text-foreground/45">{placeholder}</span>}
+    </button>
   );
 };
 
