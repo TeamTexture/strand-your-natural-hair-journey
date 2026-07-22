@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Search, Loader2, ShieldOff, ShieldCheck, Activity, Trash2, Mail, CheckCircle2, Circle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
+import MessageButton from "@/components/admin/MessageButton";
 import { useIncompleteMembers, type IncompleteMemberRow } from "@/hooks/useIncompleteMembers";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -493,6 +494,11 @@ const AdminMembers = () => {
                     </Button>
                   )}
                 </div>
+                {!isSelf && (
+                  <div className="mt-2">
+                    <MessageButton userId={r.user_id} />
+                  </div>
+                )}
                 <div className="mt-2">
                   <Button
                     variant="ghost"
