@@ -23,6 +23,7 @@ import BrandDetailPage from "./pages/BrandDetailPage";
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
+import MessageNotifications from "@/components/MessageNotifications";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 
 
@@ -171,6 +172,7 @@ const App = () => (
         <AuthProvider>
           <BackButtonProvider>
             <GlobalEffects />
+            <MessageNotifications />
             <PhoneShell>
               <div className="flex flex-col h-full">
                 <GlobalMenu />
