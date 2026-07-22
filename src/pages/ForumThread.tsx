@@ -115,6 +115,11 @@ const ForumThread = () => {
 
   const authorName = (uid: string) => (authorsQ.data?.get(uid)?.display_name ?? "Member").split(" ")[0];
   const authorAvatar = (uid: string) => authorsQ.data?.get(uid)?.avatar_url ?? null;
+  const authorMetaLine = (uid: string) => {
+    const a = authorsQ.data?.get(uid);
+    const bits = [a?.goal_title, a?.hair_type, a?.city].filter(Boolean) as string[];
+    return bits.length > 0 ? bits.join(" · ") : null;
+  };
 
   return (
     <PlusGate title="Thread">
@@ -122,7 +127,7 @@ const ForumThread = () => {
         <TitleBar title="Thread" onBack={() => nav("/forum")} />
         <div className="px-4 pb-32 space-y-3">
           <article className="rounded-[14px] border border-border bg-card p-4">
-            <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} />
+            <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(t.author_id)} />
             <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight">{t.title}</h1>
             {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{t.body}</p>}
             <div className="mt-3 flex items-center gap-2">
@@ -154,7 +159,7 @@ const ForumThread = () => {
 
           {(repliesQ.data ?? []).map((r) => (
             <div key={r.id} className="rounded-[14px] border border-border bg-card p-4">
-              <PosterRow uid={r.author_id} name={authorName(r.author_id)} avatar={authorAvatar(r.author_id)} createdAt={r.created_at} />
+              <PosterRow uid={r.author_id} name={authorName(r.author_id)} avatar={authorAvatar(r.author_id)} createdAt={r.created_at} meta={authorMetaLine(r.author_id)} />
               <p className="mt-2 whitespace-pre-wrap font-body text-[13px] text-foreground/85 leading-relaxed">{r.body}</p>
               <div className="mt-2 flex items-center gap-2">
                 <button onClick={() => upvote("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10.5px] font-semibold border border-border bg-card hover:bg-primary/10">
@@ -192,16 +197,22 @@ const ForumThread = () => {
   );
 };
 
-const PosterRow = ({ uid, name, avatar, createdAt }: { uid: string; name: string; avatar: string | null; createdAt: string }) => (
-  <Link to={`/member/${uid}`} className="flex items-center gap-2 group">
+const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null }) => (
+  <Link to={`/member/${uid}`} className="flex items-start gap-2.5 group">
     {avatar ? (
-      <img src={avatar} alt="" className="size-7 rounded-full object-cover" />
+      <img src={avatar} alt="" className="size-9 rounded-full object-cover shrink-0" />
     ) : (
-      <div className="size-7 rounded-full bg-primary/15 text-primary text-[11px] flex items-center justify-center font-semibold">{name[0]}</div>
+      <div className="size-9 rounded-full bg-primary/15 text-primary text-[13px] flex items-center justify-center font-semibold shrink-0">{name[0]}</div>
     )}
-    <span className="text-[12px] font-body font-semibold text-foreground/85 group-hover:text-primary">{name}</span>
-    <span className="text-[10.5px] font-body text-foreground/50">· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[12.5px] font-body font-semibold text-foreground/85 group-hover:text-primary leading-tight">{name}</span>
+        <span className="text-[10.5px] font-body text-foreground/50">· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
+      </div>
+      {meta && <p className="text-[10.5px] font-body text-foreground/60 leading-tight truncate mt-0.5">{meta}</p>}
+    </div>
   </Link>
 );
 
 export default ForumThread;
+
