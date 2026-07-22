@@ -148,12 +148,12 @@ const ChatThreadPage = () => {
       }
       const { data: proRow } = await supabase
         .from("pro_profiles")
-        .select("clinic_name, address_line1, address_line2, city, location")
+        .select("address_line1, address_line2, city, location")
         .eq("user_id", user!.id)
         .maybeSingle();
-      if (proRow && !("error" in (proRow as object))) {
-        const r = proRow as Record<string, unknown>;
-        for (const key of ["clinic_name", "address_line1", "address_line2", "city", "location"]) {
+      if (proRow) {
+        const r = proRow as unknown as Record<string, unknown>;
+        for (const key of ["address_line1", "address_line2", "city", "location"]) {
           const v = r[key];
           if (typeof v === "string" && v.trim()) set.add(v.trim());
         }
@@ -346,6 +346,7 @@ const ChatThreadPage = () => {
       <BookAppointmentDialog
         open={bookingOpen}
         submitting={book.isPending}
+        locationSuggestions={locationSuggestions}
         onCancel={() => setBookingOpen(false)}
         onConfirm={async ({ date, time, location, notes }) => {
           if (!threadId) return;
@@ -358,7 +359,17 @@ const ChatThreadPage = () => {
               notes: notes || undefined,
             });
             setBookingOpen(false);
-            toast.success("Appointment booked");
+            // Pros get a confirmation with a shortcut to their appointments hub.
+            if (isPro) {
+              toast.success("Appointment booked", {
+                action: {
+                  label: "View in appointments",
+                  onClick: () => nav("/pro/appointments"),
+                },
+              });
+            } else {
+              toast.success("Appointment booked");
+            }
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Could not book");
           }
@@ -369,3 +380,4 @@ const ChatThreadPage = () => {
 };
 
 export default ChatThreadPage;
+
