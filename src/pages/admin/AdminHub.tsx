@@ -69,7 +69,7 @@ const useAdminStats = () =>
         supabase.from("pro_profiles").select("user_id", { count: "exact", head: true }).eq("is_published", true),
         supabase
           .from("pro_subscriptions")
-          .select("user_id", { count: "exact", head: true })
+          .select("pro_user_id", { count: "exact", head: true })
           .in("status", ["active", "trialing"]),
         supabase.from("profiles").select("user_id", { count: "exact", head: true }),
         supabase
