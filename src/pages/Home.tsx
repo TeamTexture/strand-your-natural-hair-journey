@@ -320,6 +320,14 @@ const Home = () => {
           <h1 className="font-display text-[24px] font-bold leading-tight">
             {firstName || "there"}
           </h1>
+          {hasPlus && (
+            <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5">
+              <PlusBadge size="xs" />
+              <span className="text-[10px] uppercase tracking-[0.12em] text-primary font-bold font-body">
+                STRAND+ Member
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
