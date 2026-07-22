@@ -178,6 +178,13 @@ const ProDashboard = () => {
             count={pendingEnquiries}
           />
           <Card
+            icon={MessageCircle}
+            title="Messages"
+            sub={hasProAccess ? "Chat with accepted clients." : "Subscribe to unlock chat."}
+            onClick={() => nav("/messages")}
+            count={unreadChats}
+          />
+          <Card
             icon={Users}
             title="Clients"
             sub={hasProAccess ? clientsSub : "Subscribe to open your client book."}
