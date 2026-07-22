@@ -69,7 +69,7 @@ const Card = ({
 const ProDashboard = () => {
   const nav = useNavigate();
   const { signOut, user } = useAuth();
-  const { firstName: proFirstName } = useProGreetingName();
+  const { firstName: proFirstName, fullName: proFullName } = useProGreetingName();
   const { isConsumer, isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
@@ -109,9 +109,29 @@ const ProDashboard = () => {
       <TitleBar title="Professional" back={false} />
       <div className="px-5 pb-8 space-y-4">
         <BrandBanner slot="pro_welcome" />
-        <p className="text-sm text-foreground/70 font-body">
-          {proFirstName ? `Welcome, ${proFirstName}.` : "Welcome back."}
-        </p>
+        {(() => {
+          // Centred welcome directly beneath the "Professional" title.
+          // We use the FULL name (never truncated) and let it wrap to two
+          // lines gracefully. Very long names get a slightly smaller size.
+          const name = proFullName?.trim() ?? "";
+          const long = name.length >= 22;
+          const veryLong = name.length >= 32;
+          return (
+            <div className="text-center pt-1 pb-2">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+                Welcome
+              </p>
+              <p
+                className={
+                  "font-display font-semibold text-foreground leading-tight break-words mt-1 " +
+                  (veryLong ? "text-lg" : long ? "text-xl" : "text-2xl")
+                }
+              >
+                {name || "back."}
+              </p>
+            </div>
+          );
+        })()}
 
         {showLapseNotice && (
           <div className="relative rounded-[12px] border border-warn/40 bg-warn/10 p-3 pr-9">
@@ -152,7 +172,7 @@ const ProDashboard = () => {
             icon={BookOpen}
             title="View directory"
             sub="See your live listing alongside other pros."
-            onClick={() => nav("/directory")}
+            onClick={() => nav("/directory?self=1")}
           />
           <Card
             icon={Tag}

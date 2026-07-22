@@ -37,7 +37,7 @@ export function useDirectoryProfessionals() {
             supabase
               .from("pro_profiles")
               .select(
-                "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at",
+                "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours",
               )
               .eq("is_published", true)
               .is("suspended_at", null),
@@ -165,6 +165,12 @@ export function useDirectoryProfessionals() {
             gmcNumber: undefined,
             iotNumber: undefined,
             proUserId: row.user_id ?? undefined,
+            businessPhone: row.business_phone ?? undefined,
+            businessEmail: row.business_email ?? undefined,
+            addressLine1: row.address_line1 ?? undefined,
+            addressLine2: row.address_line2 ?? undefined,
+            city: row.city ?? undefined,
+            openingHours: (row.opening_hours as Professional["openingHours"]) ?? undefined,
           };
         });
 
