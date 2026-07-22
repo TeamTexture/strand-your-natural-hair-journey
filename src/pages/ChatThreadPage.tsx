@@ -11,6 +11,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
+import MentionTextarea from "@/components/MentionTextarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
