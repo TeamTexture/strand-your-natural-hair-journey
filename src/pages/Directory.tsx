@@ -22,11 +22,16 @@ import { useNavigate } from "react-router-dom";
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
 const Directory = () => {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const bloodOnly = params.get("bloodOnly") === "1";
   const anchorSelf = params.get("self") === "1";
+  const proParam = params.get("pro");
 
   const { user } = useAuth();
+  // Effective target for anchoring: explicit ?pro= wins, otherwise ?self=1
+  // resolves to the current user's own listing.
+  const targetProUserId = proParam ?? (anchorSelf && user?.id ? user.id : null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
@@ -53,34 +58,62 @@ const Directory = () => {
     [pros, query, tab, bloodOnly],
   );
 
-  // If the viewer is the owner of one of these listings and asked to be
-  // anchored to it (via ?self=1), find that card so we can render it
-  // distinctly and scroll it into view once mounted.
+  // Resolve the target listing for anchoring. Covers both the owner's own
+  // "view my listing" flow (?self=1) and any deep link to another pro via
+  // ?pro=<userId>. Owner styling (star + Edit) is still driven off `user.id`
+  // matching the card's `proUserId`, so it flows through automatically.
   const ownedListing: Professional | null = useMemo(() => {
     if (!user) return null;
     return pros.find((p) => p.proUserId && p.proUserId === user.id) ?? null;
   }, [pros, user]);
 
-  // Robustly anchor to the owner's own card once the directory data has
-  // rendered. Because pros load async, and the card ref is set via a
-  // callback during render, we poll briefly for the node before giving up.
-  // Uses block:'start' with scroll-mt-24 on the card to clear the sticky header.
+  const targetListing: Professional | null = useMemo(() => {
+    if (!targetProUserId) return null;
+    return pros.find((p) => p.proUserId === targetProUserId) ?? null;
+  }, [pros, targetProUserId]);
+
+  // Robustly anchor to the target card once the directory data has rendered.
+  // Because pros load async, and the card ref is set via a callback during
+  // render, we poll briefly for the node before giving up. Uses block:'start'
+  // with scroll-mt-24 on the card to clear the sticky header, then triggers
+  // a short highlight pulse so the eye finds the correct row.
   useEffect(() => {
-    if (!anchorSelf || !ownedListing) return;
+    if (!targetProUserId) return;
+    // Wait until the pros list has finished loading before deciding whether
+    // the target exists — avoids a false "not listed" toast on cold load.
+    if (loading) return;
+    if (!targetListing) {
+      toast("This professional is no longer listed");
+      const next = new URLSearchParams(params);
+      next.delete("pro");
+      next.delete("self");
+      setParams(next, { replace: true });
+      return;
+    }
+    // If a filter/search is hiding the target, clear both so the card
+    // becomes visible before we try to scroll.
+    if (!results.some((r) => r.id === targetListing.id)) {
+      setTab("All");
+      setQuery("");
+    }
     let cancelled = false;
     let attempts = 0;
     const tryScroll = () => {
       if (cancelled) return;
-      const node = cardRefs.current[ownedListing.id];
+      const node = cardRefs.current[targetListing.id];
       if (node) {
         node.scrollIntoView({ block: "start", behavior: "smooth" });
+        setHighlightId(targetListing.id);
+        // Highlight pulse fades after a couple of seconds.
+        setTimeout(() => setHighlightId((cur) => (cur === targetListing.id ? null : cur)), 2500);
         return;
       }
-      if (attempts++ < 30) setTimeout(tryScroll, 100);
+      if (attempts++ < 40) setTimeout(tryScroll, 100);
     };
     tryScroll();
     return () => { cancelled = true; };
-  }, [anchorSelf, ownedListing, results.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetProUserId, targetListing, loading, results.length]);
 
   useEffect(() => {
     const main = document.querySelector("main") as HTMLElement | null;
@@ -202,13 +235,17 @@ const Directory = () => {
               padded={false}
               ref={(el) => { cardRefs.current[p.id] = el; }}
               className={cn(
-                "overflow-hidden scroll-mt-24",
+                "overflow-hidden scroll-mt-24 transition-shadow duration-500",
                 // Owner-view distinct treatment: deeper sand tone using the
                 // existing secondary/primary token family. Everyone else sees
                 // the standard white card.
                 isOwn && "bg-secondary/70 border-primary/40 ring-1 ring-primary/25",
+                // Brief highlight pulse when the user has been deep-linked
+                // to this card so the eye finds the row after the scroll.
+                highlightId === p.id && "ring-2 ring-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.18)] animate-pulse",
               )}
             >
+
               <div className="p-4">
                 <div className="flex gap-3">
                   <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />

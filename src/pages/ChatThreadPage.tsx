@@ -1,4 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
+import { directoryLinkForPro } from "@/lib/directoryLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
@@ -293,6 +294,16 @@ const ChatThreadPage = () => {
             <BadgeCheck className="size-3.5" />
             Official STRAND channel
           </span>
+        )}
+        {/* Deep-link into the anchored directory when the consumer is talking
+            to a professional, so they can jump straight to that pro's listing. */}
+        {!isSupport && !isPro && otherId && (
+          <button
+            onClick={() => nav(directoryLinkForPro(otherId))}
+            className="text-[10.5px] uppercase tracking-[0.14em] text-primary font-body font-medium underline underline-offset-2"
+          >
+            View listing
+          </button>
         )}
       </div>
       {other?.sub && !isSupport && (

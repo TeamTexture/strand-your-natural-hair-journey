@@ -4,6 +4,7 @@
 // them expand a thread inline for a quick reply without navigating away.
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { directoryLinkForPro } from "@/lib/directoryLink";
 import { formatDistanceToNow } from "date-fns";
 import { MessageCircle, ArrowRight, ChevronLeft, Send, BadgeCheck, Minus } from "lucide-react";
 import {
