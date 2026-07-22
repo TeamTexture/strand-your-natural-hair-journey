@@ -1,17 +1,16 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { formatDistanceToNow } from "date-fns";
 import {
   ChevronRight,
   ClipboardCheck,
   Users,
   ScrollText,
   Settings as SettingsIcon,
-  FileText,
   Eye,
-  Mail,
   Sparkles,
   Megaphone,
+  Store,
+  MessageSquare,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -42,12 +41,6 @@ interface Stats {
   liveBrandOffersPro: number;
 }
 
-interface ActivityRow {
-  kind: "application" | "enquiry" | "view";
-  at: string;
-  primary: string;
-  secondary?: string;
-}
 
 const useAdminStats = () =>
   useQuery({
@@ -77,9 +70,8 @@ const useAdminStats = () =>
           .select("id", { count: "exact", head: true })
           .gte("viewed_at", sevenDaysAgo),
         supabase
-          .from("brand_subscriptions")
-          .select("brand_user_id", { count: "exact", head: true })
-          .in("status", ["active", "trialing"]),
+          .from("brand_profiles")
+          .select("user_id", { count: "exact", head: true }),
         supabase
           .from("brand_offers")
           .select("id, owner_type")
@@ -117,50 +109,6 @@ const useAdminStats = () =>
     },
   });
 
-const useRecentActivity = () =>
-  useQuery({
-    queryKey: ["admin", "hub", "activity"],
-    staleTime: 30_000,
-    queryFn: async (): Promise<ActivityRow[]> => {
-      const [apps, enq, views] = await Promise.all([
-        supabase
-          .from("pro_applications")
-          .select("id, full_name, created_at")
-          .order("created_at", { ascending: false })
-          .limit(5),
-        supabase
-          .from("pro_enquiries")
-          .select("id, created_at, status")
-          .order("created_at", { ascending: false })
-          .limit(5),
-        supabase
-          .from("pro_passport_views")
-          .select("id, viewed_at, section")
-          .order("viewed_at", { ascending: false })
-          .limit(5),
-      ]);
-      const rows: ActivityRow[] = [
-        ...(apps.data ?? []).map((r) => ({
-          kind: "application" as const,
-          at: r.created_at,
-          primary: `New application — ${r.full_name ?? "unnamed"}`,
-        })),
-        ...(enq.data ?? []).map((r) => ({
-          kind: "enquiry" as const,
-          at: r.created_at,
-          primary: `New enquiry`,
-          secondary: r.status,
-        })),
-        ...(views.data ?? []).map((r) => ({
-          kind: "view" as const,
-          at: r.viewed_at,
-          primary: `Passport viewed`,
-          secondary: r.section ?? undefined,
-        })),
-      ];
-      return rows.sort((a, b) => +new Date(b.at) - +new Date(a.at)).slice(0, 5);
-    },
-  });
 
 const StatCard = ({
   label,
@@ -277,16 +225,9 @@ const NavCard = ({
   </button>
 );
 
-const activityIcon = (kind: ActivityRow["kind"]) => {
-  if (kind === "application") return FileText;
-  if (kind === "enquiry") return Mail;
-  return Eye;
-};
-
 const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: activity, isLoading: activityLoading } = useRecentActivity();
   const { data: dropoff } = useAdminDropOffCounts();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
   const revisionCount = pendingRevisions.length;
@@ -345,7 +286,7 @@ const AdminHub = () => {
               <StatCard
                 label="Live brands"
                 value={stats.liveBrands}
-                onClick={() => nav("/admin/brand-offers?filter=brands")}
+                onClick={() => nav("/admin/brands")}
               />
               <StatCard
                 label="Live campaigns"
@@ -475,6 +416,21 @@ const AdminHub = () => {
           />
 
           <NavCard
+            icon={Store}
+            title="Brands"
+            description="Registered brands, contacts and category"
+            context={stats ? `${stats.liveBrands} brand${stats.liveBrands === 1 ? "" : "s"}` : undefined}
+            onClick={() => nav("/admin/brands")}
+          />
+
+          <NavCard
+            icon={MessageSquare}
+            title="STRAND Team messages"
+            description="Direct chat with any member, pro or brand"
+            onClick={() => nav("/admin/messages")}
+          />
+
+          <NavCard
             icon={ScrollText}
             title="Audit trail"
             description="Passport views and enquiry history"
@@ -496,35 +452,6 @@ const AdminHub = () => {
             onClick={() => nav("/admin/settings")}
           />
         </div>
-
-        <SectionLabel className="!px-0">Recent activity</SectionLabel>
-        {activityLoading ? (
-          <LoadingDot label="Loading activity…" fullScreen={false} />
-        ) : !activity || activity.length === 0 ? (
-          <EmptyState icon="✦" message="No recent activity" tone="card" />
-        ) : (
-          <SurfaceCard padded={false} className="divide-y divide-border">
-            {activity.map((row, i) => {
-              const Icon = activityIcon(row.kind);
-              return (
-                <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-                  <Icon className="size-3.5 text-primary/70 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-body text-foreground truncate">
-                      {row.primary}
-                      {row.secondary && (
-                        <span className="text-muted-foreground"> · {row.secondary}</span>
-                      )}
-                    </p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground shrink-0">
-                    {formatDistanceToNow(new Date(row.at), { addSuffix: true })}
-                  </p>
-                </div>
-              );
-            })}
-          </SurfaceCard>
-        )}
       </div>
     </ScreenLayout>
   );

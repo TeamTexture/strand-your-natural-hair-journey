@@ -200,13 +200,15 @@ const AdminBrandOffers = () => {
   const showAll = !filter;
   const showPending = showAll || filter === "pending";
   const showLive = showAll || filter === "live" || filter === "brands";
-  const showOther = showAll;
+  const showOther = showAll || filter === "past";
+  const showPastOnly = filter === "past";
 
   const filterLabel =
     filter === "pending" ? "Campaign requests"
       : filter === "live" ? "Live campaigns"
         : filter === "brands" ? "Live brands"
-          : null;
+          : filter === "past" ? "Past campaigns"
+            : null;
 
   const submitterOf = (o: typeof withDerived[number]): string => {
     const owner = ownerOf(o);
@@ -304,14 +306,36 @@ const AdminBrandOffers = () => {
     <ScreenLayout>
       <TitleBar title={filterLabel ?? "Brand offers"} onBack={() => nav("/admin")} />
       <div className="px-5 pb-8 space-y-5">
-        {filter && (
-          <button
-            onClick={() => nav("/admin/brand-offers")}
-            className="text-[11px] text-primary font-body underline underline-offset-2 self-start"
-          >
-            ← Show all brand offers
-          </button>
-        )}
+        {/* Status filter — All / Pending / Live / Past */}
+        <div className="flex items-center gap-1.5 flex-wrap" role="tablist" aria-label="Filter by status">
+          {([
+            { key: null, label: "All" },
+            { key: "pending" as const, label: `Pending · ${underReview.length}` },
+            { key: "live" as const, label: `Live · ${liveNow.length}` },
+            { key: "past" as const, label: `Past · ${past.length}` },
+          ]).map((chip) => {
+            const active = filter === chip.key || (chip.key === null && !filter);
+            return (
+              <button
+                key={chip.label}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  const next = new URLSearchParams(params);
+                  if (chip.key) next.set("filter", chip.key); else next.delete("filter");
+                  setParams(next, { replace: true });
+                }}
+                className={cn(
+                  "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-body font-medium transition-colors",
+                  active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70",
+                )}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
         <Button variant="outline" size="pill" onClick={() => nav("/admin/brand-calendar")} className="w-full">
           <CalendarIcon className="size-4 mr-1.5" /> Booking calendar
         </Button>

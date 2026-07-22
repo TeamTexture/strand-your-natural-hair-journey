@@ -813,6 +813,11 @@ const Profile = () => {
           <p className="text-base font-medium leading-tight">Find Professionals</p>
           <p className="text-[13px] text-muted-foreground">Verified directory</p>
         </button>
+        <button onClick={() => navigate("/brands")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
+          <div className="text-2xl mb-1.5">✦</div>
+          <p className="text-base font-medium leading-tight">STRAND Brands</p>
+          <p className="text-[13px] text-muted-foreground">Trusted directory</p>
+        </button>
         <button onClick={() => navigate("/nutrition-plan")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
           <div className="text-2xl mb-1.5">🥗</div>
           <p className="text-base font-medium leading-tight">Nutrition Plan</p>

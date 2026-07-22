@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
     const brandName = (body.brand_name ?? "").toString().trim();
     const contactName = (body.contact_name ?? "").toString().trim() || null;
     const website = (body.website ?? "").toString().trim() || null;
+    const category = (body.category ?? "").toString().trim() || null;
     if (!brandName) {
       return new Response(JSON.stringify({ error: "brand_name is required" }), {
         status: 400,
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
 
     if (existing) {
       await admin.from("brand_profiles")
-        .update({ brand_name: brandName, contact_name: contactName, website })
+        .update({ brand_name: brandName, contact_name: contactName, website, category })
         .eq("user_id", userId);
     } else {
       await admin.from("brand_profiles").insert({
@@ -64,6 +65,7 @@ Deno.serve(async (req) => {
         brand_name: brandName,
         contact_name: contactName,
         website,
+        category,
       });
     }
 

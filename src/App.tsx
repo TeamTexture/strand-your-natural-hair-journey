@@ -15,6 +15,10 @@ import AdminMemberPassport from "./pages/admin/AdminMemberPassport";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminProfessionals from "./pages/admin/AdminProfessionals";
 import AdminViewAs from "./pages/admin/AdminViewAs";
+import AdminBrands from "./pages/admin/AdminBrands";
+import AdminMessages from "./pages/admin/AdminMessages";
+import BrandsDirectory from "./pages/BrandsDirectory";
+import BrandDetailPage from "./pages/BrandDetailPage";
 
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
@@ -362,6 +366,12 @@ const App = () => (
               <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
               <Route path="/admin/professionals" element={<RoleGate allow={["admin"]}><AdminProfessionals /></RoleGate>} />
               <Route path="/admin/view-as" element={<RoleGate allow={["admin"]}><AdminViewAs /></RoleGate>} />
+              <Route path="/admin/brands" element={<RoleGate allow={["admin"]}><AdminBrands /></RoleGate>} />
+              <Route path="/admin/messages" element={<RoleGate allow={["admin"]}><AdminMessages /></RoleGate>} />
+
+              {/* Consumer-facing brand directory */}
+              <Route path="/brands" element={<Paid><BrandsDirectory /></Paid>} />
+              <Route path="/brands/:brandUserId" element={<Paid><BrandDetailPage /></Paid>} />
 
               {/* Brand routes */}
               <Route path="/brand/auth" element={<BrandAuth />} />
