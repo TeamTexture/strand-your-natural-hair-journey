@@ -83,6 +83,12 @@ export function usePlusAlerts() {
         .or(`member_a_id.eq.${user.id},member_b_id.eq.${user.id}`, { foreignTable: "chat_threads" })
         .order("created_at", { ascending: false })
         .limit(10),
+      supabase
+        .from("content_items")
+        .select("id, title, kind, collection_id, created_at")
+        .gt("created_at", sLibrary)
+        .order("created_at", { ascending: false })
+        .limit(10),
     ]);
 
     const out: PlusAlert[] = [];
