@@ -171,9 +171,10 @@ const BrandDashboard = () => {
         }
       />
       <div className="px-5 pb-8 space-y-5">
-        {/* Missing brand category prompt — non-blocking. */}
-        {ownerMode === "brand" && profile && !profile.category && (
-          <BrandCategoryPrompt />
+        {/* Brand-owned category. Non-blocking prompt when missing;
+             compact edit strip when set. Admins cannot change this. */}
+        {ownerMode === "brand" && profile && (
+          <BrandCategoryPrompt current={profile.category ?? null} />
         )}
         {/* Live-offer expiry banner — surfaces any offer ≤3h from ending
              with Extend / New offer actions. */}
