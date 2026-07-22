@@ -372,10 +372,12 @@ const ThreadQuickView = ({
           <p className="text-xs text-muted-foreground text-center py-4">
             No messages yet — say hello.
           </p>
-        ) : (
-          recent.map((m) => {
+        ) : (() => {
+          let prevSender: string | null = null;
+          return recent.map((m) => {
             const mine = m.sender_id === user?.id;
             if (m.kind === "system") {
+              prevSender = null;
               const apptId = (m.meta as { appointment_id?: string } | null)?.appointment_id;
               if (apptId) {
                 const iAmPro = thread.pro_user_id === user?.id;
@@ -400,22 +402,29 @@ const ThreadQuickView = ({
                 </p>
               );
             }
+            const senderKey = mine ? "me" : (m.sender_id ?? "them");
+            const showName = prevSender !== senderKey;
+            prevSender = senderKey;
             return (
-              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+              <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                {showName && (
+                  <span className={`text-[9.5px] font-body font-semibold mb-0.5 px-1 ${mine ? "text-primary" : "text-brown"}`}>
+                    {mine ? "You" : display.name}
+                  </span>
+                )}
                 <div
                   className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-[12.5px] leading-snug font-body break-words ${
                     mine
                       ? "bg-primary text-primary-foreground rounded-br-sm"
                       : "bg-brown text-brown-foreground rounded-bl-sm"
                   }`}
-
                 >
                   {m.body}
                 </div>
               </div>
             );
-          })
-        )}
+          });
+        })()}
       </div>
       <form
         onSubmit={(e) => {

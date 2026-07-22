@@ -115,8 +115,27 @@ const SystemBubble = ({ m, isPro }: { m: ChatMessage; isPro: boolean }) => {
   );
 };
 
-const MessageBubble = ({ m, mine }: { m: ChatMessage; mine: boolean }) => (
-  <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-1.5`}>
+const MessageBubble = ({
+  m,
+  mine,
+  senderName,
+  showName,
+}: {
+  m: ChatMessage;
+  mine: boolean;
+  senderName: string;
+  showName: boolean;
+}) => (
+  <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1.5`}>
+    {showName && (
+      <span
+        className={`text-[10.5px] font-body font-semibold mb-0.5 px-1 ${
+          mine ? "text-primary" : "text-brown"
+        }`}
+      >
+        {senderName}
+      </span>
+    )}
     <div
       className={`max-w-[80%] px-3.5 py-2 rounded-[16px] text-sm font-body leading-snug whitespace-pre-wrap break-words ${
         mine
@@ -344,20 +363,35 @@ const ChatThreadPage = () => {
             </p>
           </div>
         ) : (
-          grouped.map((group) => (
+          grouped.map((group) => {
+            let prevSender: string | null = null;
+            return (
             <div key={group.label}>
               <div className="flex justify-center my-3">
                 <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{group.label}</span>
               </div>
-              {group.items.map((m) =>
-                m.kind === "system" ? (
-                  <SystemBubble key={m.id} m={m} isPro={isPro} />
-                ) : (
-                  <MessageBubble key={m.id} m={m} mine={m.sender_id === user?.id} />
-                ),
-              )}
+              {group.items.map((m) => {
+                if (m.kind === "system") {
+                  prevSender = null;
+                  return <SystemBubble key={m.id} m={m} isPro={isPro} />;
+                }
+                const mine = m.sender_id === user?.id;
+                const senderKey = mine ? "me" : (m.sender_id ?? "them");
+                const showName = prevSender !== senderKey;
+                prevSender = senderKey;
+                return (
+                  <MessageBubble
+                    key={m.id}
+                    m={m}
+                    mine={mine}
+                    senderName={mine ? "You" : (other?.name ?? "Them")}
+                    showName={showName}
+                  />
+                );
+              })}
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
