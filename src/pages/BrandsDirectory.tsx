@@ -109,22 +109,7 @@ const BrandsDirectory = () => {
         ) : (
           <div className="space-y-2">
             {filtered.map((b) => (
-              <SurfaceCard key={b.user_id} onClick={() => nav(`/brands/${b.user_id}`)} className="cursor-pointer hover:border-primary/50">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-[15px] leading-tight truncate">{b.brand_name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {b.category ?? "Brand"}
-                      {b.live_offers > 0 ? ` · ${b.live_offers} live offer${b.live_offers === 1 ? "" : "s"}` : ""}
-                    </p>
-                  </div>
-                  {b.live_offers > 0 && (
-                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-good/15 text-good font-body font-semibold shrink-0">
-                      Live
-                    </span>
-                  )}
-                </div>
-              </SurfaceCard>
+              <BrandListItem key={b.user_id} brand={b} onOpen={() => nav(`/brands/${b.user_id}`)} />
             ))}
           </div>
         )}
