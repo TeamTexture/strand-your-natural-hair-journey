@@ -76,7 +76,7 @@ const HairReview = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Hair characteristics" onBack={() => navigate("/profile")} />
+      <TitleBar title="Hair characteristics" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pb-8 space-y-3">
         <p className="text-[13px] text-muted-foreground leading-snug pb-1">
           Tap the pencil to update just one field at a time.

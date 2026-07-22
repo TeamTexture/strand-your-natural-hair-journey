@@ -186,7 +186,7 @@ const ProClients = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Clients" onBack={() => nav("/pro")} />
+      <TitleBar title="Clients" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-8 space-y-4">
         <p className="text-[12px] text-muted-foreground font-body leading-snug">
           Your client book. Access is granted when a client accepts you via an enquiry.

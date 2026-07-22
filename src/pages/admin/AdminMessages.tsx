@@ -54,7 +54,7 @@ const AdminMessages = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="STRAND Team messages" onBack={() => nav("/admin")} />
+      <TitleBar title="STRAND Team messages" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-3">
         <p className="text-xs text-muted-foreground font-body leading-snug">

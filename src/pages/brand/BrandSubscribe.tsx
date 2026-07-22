@@ -124,7 +124,7 @@ const BrandSubscribe = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand access" onBack={() => nav("/brand")} />
+      <TitleBar title="Brand access" onBack={smartBack(nav, "/brand")} />
 
       <div className="px-5 pb-12 space-y-6">
         {/* Hero */}

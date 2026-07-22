@@ -149,7 +149,7 @@ const AdminApplications = () => {
     <ScreenLayout>
       <TitleBar
         title="Applications"
-        onBack={() => nav("/admin")}
+        onBack={smartBack(nav, "/admin")}
         right={
           pendingCount > 0 ? (
             <span

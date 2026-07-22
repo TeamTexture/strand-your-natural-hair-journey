@@ -289,7 +289,7 @@ const WashStep4 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>5 of 5</span>} onBack={() => navigate("/wash/step-styling")} />
+      <TitleBar title="Wash Day" right={<span>5 of 5</span>} onBack={smartBack(navigate, "/wash/step-styling")} />
       <ProgressDots total={5} current={5} />
       <ItalicSub>Your wash day summary. Tap any section to edit.</ItalicSub>
 

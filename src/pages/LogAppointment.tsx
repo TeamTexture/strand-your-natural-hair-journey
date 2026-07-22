@@ -287,7 +287,7 @@ const LogAppointment = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Log Appointment" onBack={() => navigate("/appointments")} />
+      <TitleBar title="Log Appointment" onBack={smartBack(navigate, "/appointments")} />
 
       <div className="px-5 pb-8 space-y-4">
         {prefilled && (

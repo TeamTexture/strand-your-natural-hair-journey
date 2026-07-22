@@ -182,7 +182,7 @@ const WashStepStyling = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>4 of 5</span>} onBack={() => navigate("/wash/step-3")} />
+      <TitleBar title="Wash Day" right={<span>4 of 5</span>} onBack={smartBack(navigate, "/wash/step-3")} />
       <ProgressDots total={5} current={4} />
       <ItalicSub>
         Now the styling — what you chose, what you used, and how it sat with you this week.

@@ -35,7 +35,7 @@ const ProPastClient = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Past client" onBack={() => nav("/pro/clients")} />
+      <TitleBar title="Past client" onBack={smartBack(nav, "/pro/clients")} />
       <div className="px-5 pt-3 space-y-4">
         <SurfaceCard>
           <p className="font-display text-lg font-semibold leading-tight">{name}</p>

@@ -60,7 +60,7 @@ const MyEnquiries = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="My enquiries" onBack={() => nav("/profile")} />
+      <TitleBar title="My enquiries" onBack={smartBack(nav, "/profile")} />
 
       <div className="px-5 pb-3">
         <p className="text-xs text-muted-foreground font-body leading-snug">

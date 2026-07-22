@@ -83,7 +83,7 @@ const ProfileStepPhotos = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Before Photos" onBack={() => navigate("/nutrition-plan?onboarding=1")} />
+      <TitleBar title="Before Photos" onBack={smartBack(navigate, "/nutrition-plan?onboarding=1")} />
       <ItalicSub>
         Optional. Capture 1–{MAX_PHOTOS} baseline photos so your future progress is real and visible — not guesswork.
       </ItalicSub>

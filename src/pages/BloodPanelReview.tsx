@@ -302,7 +302,7 @@ export default function BloodPanelReview() {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Review results" onBack={() => navigate("/blood-history")} />
+      <TitleBar title="Review results" onBack={smartBack(navigate, "/blood-history")} />
 
       <div className="px-5 pt-2 pb-10 space-y-4">
         {isLoading ? (

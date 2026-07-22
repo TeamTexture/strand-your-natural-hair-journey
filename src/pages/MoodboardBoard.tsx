@@ -165,7 +165,7 @@ const MoodboardBoard = () => {
   if (boardLoading) {
     return (
       <ScreenLayout bottomNav>
-        <TitleBar title="Loading…" onBack={() => navigate("/journal/moodboards")} />
+        <TitleBar title="Loading…" onBack={smartBack(navigate, "/journal/moodboards")} />
 
         <div className="px-5 py-10 flex justify-center">
           <Loader2 className="size-5 animate-spin text-primary" />
@@ -177,7 +177,7 @@ const MoodboardBoard = () => {
   if (!board) {
     return (
       <ScreenLayout bottomNav>
-        <TitleBar title="Board" onBack={() => navigate("/journal/moodboards")} />
+        <TitleBar title="Board" onBack={smartBack(navigate, "/journal/moodboards")} />
         <div className="px-5 py-10 text-center">
           <p className="text-sm text-muted-foreground mb-4">Board not found.</p>
           <Button variant="goldOutline" size="pill" onClick={() => navigate("/journal/moodboards")}>
@@ -200,7 +200,7 @@ const MoodboardBoard = () => {
       bottomNav
       backgroundClassName={`bg-gradient-to-br ${gradientClass} ${contrastClass}`}
     >
-      <TitleBar title={board.name} onBack={() => navigate("/journal/moodboards")} />
+      <TitleBar title={board.name} onBack={smartBack(navigate, "/journal/moodboards")} />
 
 
       {/* Hidden file inputs */}

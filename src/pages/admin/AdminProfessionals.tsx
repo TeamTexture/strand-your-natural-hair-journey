@@ -312,7 +312,7 @@ const AdminProfessionals = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Professionals" onBack={() => nav("/admin")} />
+      <TitleBar title="Professionals" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-3">
         <div className="grid grid-cols-3 gap-2">

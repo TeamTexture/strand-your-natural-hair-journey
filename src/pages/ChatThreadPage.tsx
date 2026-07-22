@@ -199,7 +199,7 @@ const ChatThreadPage = () => {
   if (!threadId) {
     return (
       <ScreenLayout>
-        <TitleBar title="Messages" onBack={() => nav("/messages")} />
+        <TitleBar title="Messages" onBack={smartBack(nav, "/messages")} />
         <EmptyState icon="💬" message="Thread not found" />
       </ScreenLayout>
     );

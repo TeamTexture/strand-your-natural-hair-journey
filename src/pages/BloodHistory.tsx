@@ -324,7 +324,7 @@ const BloodHistory = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Blood tests" onBack={() => navigate("/profile")} />
+      <TitleBar title="Blood tests" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pt-2 pb-10 space-y-4">
         <p className="text-sm text-foreground/80 font-body leading-relaxed">
           Log every blood test and schedule the next one so STRAND can track how

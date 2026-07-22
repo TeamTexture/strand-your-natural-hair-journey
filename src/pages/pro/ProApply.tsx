@@ -281,7 +281,7 @@ const ProApply = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Apply to STRAND Pro" onBack={() => nav("/pro/landing")} />
+      <TitleBar title="Apply to STRAND Pro" onBack={smartBack(nav, "/pro/landing")} />
       <div className="px-5 py-4 space-y-5">
         <SurfaceCard tone="gold">
           <p className="text-xs font-body leading-snug">

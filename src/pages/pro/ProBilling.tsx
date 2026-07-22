@@ -109,7 +109,7 @@ const ProBilling = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Billing" onBack={() => nav("/pro")} />
+      <TitleBar title="Billing" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-10 space-y-5">
         <SectionLabel>STRAND Pro Membership</SectionLabel>
 

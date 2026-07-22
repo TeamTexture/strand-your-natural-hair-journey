@@ -75,7 +75,7 @@ const WashStep2 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>2 of 5</span>} onBack={() => navigate("/wash/step-1")} />
+      <TitleBar title="Wash Day" right={<span>2 of 5</span>} onBack={smartBack(navigate, "/wash/step-1")} />
       <ProgressDots total={5} current={2} />
 
       <div className="px-5 pb-8 space-y-5">

@@ -366,7 +366,7 @@ const AdminSettings = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Settings" onBack={() => nav("/admin")} />
+      <TitleBar title="Settings" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-10 space-y-4">
         {/* Header context */}

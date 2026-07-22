@@ -518,7 +518,7 @@ const WashStep1 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={() => navigate("/wash-day")} />
+      <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={smartBack(navigate, "/wash-day")} />
       <ProgressDots total={4} current={1} />
       <ItalicSub>
         Tap <strong>Add</strong> for steps you did and <strong>Skip</strong> for steps you didn't — be honest, it makes your history more useful.

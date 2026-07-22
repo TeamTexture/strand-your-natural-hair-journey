@@ -167,7 +167,7 @@ const Appointments = () => {
     <ScreenLayout bottomNav>
       <TitleBar
         title="Appointments"
-        onBack={() => navigate("/profile")}
+        onBack={smartBack(navigate, "/profile")}
       />
 
       {/* Segmented control */}

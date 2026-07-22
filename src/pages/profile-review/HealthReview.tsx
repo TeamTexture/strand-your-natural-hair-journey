@@ -7,7 +7,7 @@ const HealthReview = () => {
   const navigate = useNavigate();
   return (
     <ScreenLayout>
-      <TitleBar title="Health profile" onBack={() => navigate("/profile")} />
+      <TitleBar title="Health profile" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pb-8 space-y-3">
         <p className="text-[13px] text-muted-foreground leading-snug pb-1">
           Tap the pencil to update just one field at a time.

@@ -248,7 +248,7 @@ const ProAppointments = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Appointments" onBack={() => nav("/pro")} />
+      <TitleBar title="Appointments" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-8 space-y-4">
         <p className="text-[12px] text-muted-foreground font-body leading-snug">
           Appointments your clients have linked to you. Access is gated by their consent.

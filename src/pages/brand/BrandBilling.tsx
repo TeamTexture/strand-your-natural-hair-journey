@@ -115,7 +115,7 @@ const BrandBilling = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Billing" onBack={() => nav("/brand")} />
+      <TitleBar title="Billing" onBack={smartBack(nav, "/brand")} />
       <div className="px-5 pb-10 space-y-5">
         <SectionLabel>STRAND Brand Access</SectionLabel>
 

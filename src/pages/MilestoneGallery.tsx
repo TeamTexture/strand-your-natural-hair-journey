@@ -87,7 +87,7 @@ const MilestoneGallery = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Progress Photos" onBack={() => navigate("/profile")} />
+      <TitleBar title="Progress Photos" onBack={smartBack(navigate, "/profile")} />
       <ItalicSub>
         A 6-week cadence is enough to see real change without obsessing day to day.
       </ItalicSub>

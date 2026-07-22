@@ -251,7 +251,7 @@ const ProProfile = () => {
   if (!profile) {
     return (
       <ScreenLayout>
-        <TitleBar title="Profile" onBack={() => nav("/pro")} />
+        <TitleBar title="Profile" onBack={smartBack(nav, "/pro")} />
         <div className="px-5 py-8">
           <SurfaceCard>
             <p className="text-sm">
@@ -266,7 +266,7 @@ const ProProfile = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Profile" onBack={() => nav("/pro")} />
+      <TitleBar title="Profile" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-8 space-y-4">
         {!profile.is_published && (
           <SurfaceCard tone="gold">

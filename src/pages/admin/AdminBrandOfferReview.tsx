@@ -242,7 +242,7 @@ const AdminBrandOfferReview = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={showRevisionDiff ? "Review revision" : "Review offer"} onBack={() => nav("/admin/brand-offers")} />
+      <TitleBar title={showRevisionDiff ? "Review revision" : "Review offer"} onBack={smartBack(nav, "/admin/brand-offers")} />
       <div className="px-5 pb-8 space-y-4">
         {showRevisionDiff ? (
           <RevisionDiff offer={offer} revision={pendingRevision!} />

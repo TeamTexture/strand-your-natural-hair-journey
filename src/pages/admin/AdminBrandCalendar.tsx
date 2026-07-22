@@ -86,7 +86,7 @@ const AdminBrandCalendar = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Booking calendar" onBack={() => nav("/admin/brand-offers")} />
+      <TitleBar title="Booking calendar" onBack={smartBack(nav, "/admin/brand-offers")} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard>
           <div className="flex items-center justify-between mb-2">
