@@ -20,7 +20,7 @@ export function useProGreetingName() {
 
       const [proProf, prof, app] = await Promise.all([
         supabase.from("pro_profiles").select("display_name").eq("user_id", uid).maybeSingle(),
-        supabase.from("profiles").select("display_name").eq("id", uid).maybeSingle(),
+        supabase.from("profiles").select("display_name").eq("user_id", uid).maybeSingle(),
         supabase
           .from("pro_applications")
           .select("full_name, created_at")
