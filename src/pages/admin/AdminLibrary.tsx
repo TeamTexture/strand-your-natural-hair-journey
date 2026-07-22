@@ -169,6 +169,22 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   const dropInputRef = useRef<HTMLInputElement | null>(null);
   const [savedFiles, setSavedFiles] = useState<string[]>([]);
   const [currentUpload, setCurrentUpload] = useState<string | null>(null);
+  const [thumbPending, setThumbPending] = useState<{ itemId: string; file: File } | null>(null);
+
+  const uploadThumbnail = async (itemId: string, blob: Blob) => {
+    const path = `${collectionId}/thumbs/${itemId}_${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage
+      .from("strand-plus-library")
+      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+    if (upErr) { toast.error(upErr.message); return; }
+    const { error } = await supabase
+      .from("content_items")
+      .update({ thumbnail_path: path })
+      .eq("id", itemId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cover saved");
+    qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
+  };
 
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
