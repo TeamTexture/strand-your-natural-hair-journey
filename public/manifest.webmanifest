@@ -1,0 +1,15 @@
+{
+  "name": "STRAND",
+  "short_name": "STRAND",
+  "description": "The hair journal and clinical companion for women on a natural hair journey. Exclusive to TT Collective Pro members.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2E8D9",
+  "theme_color": "#F2E8D9",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48 32x32 16x16", "type": "image/x-icon" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
