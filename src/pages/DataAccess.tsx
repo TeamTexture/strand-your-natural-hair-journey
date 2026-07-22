@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyClientAccess, useRevokeAccess } from "@/hooks/useEnquiries";
+import { smartBack } from "@/lib/smartBack";
 
 const DataAccess = () => {
   const nav = useNavigate();

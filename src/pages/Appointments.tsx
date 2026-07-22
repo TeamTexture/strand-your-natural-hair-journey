@@ -16,6 +16,7 @@ import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
+import { smartBack } from "@/lib/smartBack";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,

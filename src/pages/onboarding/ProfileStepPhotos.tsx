@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
+import { smartBack } from "@/lib/smartBack";
 
 const MAX_PHOTOS = 4;
 

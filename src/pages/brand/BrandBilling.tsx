@@ -11,6 +11,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { smartBack } from "@/lib/smartBack";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";

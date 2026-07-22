@@ -16,6 +16,7 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import { Camera, X } from "lucide-react";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
+import { smartBack } from "@/lib/smartBack";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 

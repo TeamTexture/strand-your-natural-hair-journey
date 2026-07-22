@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useViewAs } from "@/hooks/useViewAs";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { smartBack } from "@/lib/smartBack";
 
 interface Row {
   user_id: string;

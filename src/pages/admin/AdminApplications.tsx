@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useIncompleteProApplications";
 import { normalizeWebsiteUrl, instagramUrl, normalizeInstagramHandle, externalLinkProps } from "@/lib/socialLinks";
 import type { Database } from "@/integrations/supabase/types";
+import { smartBack } from "@/lib/smartBack";
 
 type Application = Database["public"]["Tables"]["pro_applications"]["Row"];
 type Status = Database["public"]["Enums"]["pro_application_status"];

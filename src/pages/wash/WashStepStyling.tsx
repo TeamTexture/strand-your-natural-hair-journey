@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { smartBack } from "@/lib/smartBack";
 
 const PHOTO_BUCKET = "journal-photos";
 

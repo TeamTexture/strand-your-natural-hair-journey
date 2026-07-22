@@ -14,6 +14,7 @@ import {
 import { useAllLiveBrandOffers, useLogBrandStat } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { smartBack } from "@/lib/smartBack";
 
 interface OfferProps {
   icon: React.ComponentType<{ className?: string }>;

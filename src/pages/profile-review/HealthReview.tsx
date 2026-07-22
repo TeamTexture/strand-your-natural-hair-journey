@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
+import { smartBack } from "@/lib/smartBack";
 
 const HealthReview = () => {
   const navigate = useNavigate();

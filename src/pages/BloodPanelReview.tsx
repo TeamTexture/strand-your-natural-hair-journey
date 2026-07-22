@@ -52,6 +52,7 @@ import {
 } from "@/data/bloodMarkerExplanations";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { smartBack } from "@/lib/smartBack";
 
 interface PanelRow {
   id: string;

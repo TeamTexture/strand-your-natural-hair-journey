@@ -23,6 +23,7 @@ import { formatTime12h } from "@/lib/formatTime";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { smartBack } from "@/lib/smartBack";
 
 const formatDate = (iso: string): string => {
   try {

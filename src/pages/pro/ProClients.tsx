@@ -10,6 +10,7 @@ import ProAvatar from "@/components/ProAvatar";
 import { Input } from "@/components/ui/input";
 import { useProClients, type ProClientRow } from "@/hooks/useProClients";
 import { formatRelative } from "@/lib/formatPassportDate";
+import { smartBack } from "@/lib/smartBack";
 
 const shortDate = (iso: string | null): string => {
   if (!iso) return "";

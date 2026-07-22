@@ -62,6 +62,7 @@ import { AlertCircle } from "lucide-react";
 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { smartBack } from "@/lib/smartBack";
 
 type PanelStatus = "logged" | "scheduled";
 

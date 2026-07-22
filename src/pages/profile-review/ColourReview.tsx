@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
+import { smartBack } from "@/lib/smartBack";
   loadClinicalContext,
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";

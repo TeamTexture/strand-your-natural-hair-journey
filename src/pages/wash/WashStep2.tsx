@@ -8,6 +8,7 @@ import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { smartBack } from "@/lib/smartBack";
 
 const TG = ({
   label,

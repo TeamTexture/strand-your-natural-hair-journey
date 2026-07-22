@@ -15,6 +15,7 @@ import { useStartAdminSupportThread } from "@/hooks/useChat";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
+import { smartBack } from "@/lib/smartBack";
 
 interface BrandRow {
   id: string;

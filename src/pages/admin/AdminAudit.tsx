@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { smartBack } from "@/lib/smartBack";
 
 interface ViewRow {
   id: string;

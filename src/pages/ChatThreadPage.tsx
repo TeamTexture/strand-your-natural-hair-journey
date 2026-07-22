@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import {
+import { smartBack } from "@/lib/smartBack";
   otherParticipantId,
   useBookAppointmentInThread,
   useChatThread,

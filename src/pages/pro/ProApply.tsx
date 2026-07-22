@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
+import { smartBack } from "@/lib/smartBack";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
 const disciplines: Discipline[] = [

@@ -10,6 +10,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 import { deriveBrandOfferStatus, londonToday, PlacementSlot, SLOT_LABEL } from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
+import { smartBack } from "@/lib/smartBack";
 
 const SLOT_COLORS: Record<PlacementSlot, string> = {
   home: "bg-primary/40",

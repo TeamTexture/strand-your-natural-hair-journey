@@ -16,6 +16,7 @@ import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
 import HardWaterHint from "@/components/HardWaterHint";
+import { smartBack } from "@/lib/smartBack";
 
 const AVATAR_BUCKET = "avatars";
 

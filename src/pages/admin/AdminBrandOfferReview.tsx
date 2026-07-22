@@ -21,6 +21,7 @@ import {
   BrandOfferRevision,
 } from "@/hooks/useBrandOffers";
 import { useQueryClient } from "@tanstack/react-query";
+import { smartBack } from "@/lib/smartBack";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 

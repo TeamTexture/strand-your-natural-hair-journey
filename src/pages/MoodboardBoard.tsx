@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMoodboardImages, type MoodboardImage } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { smartBack } from "@/lib/smartBack";
 
 interface BoardMeta {
   id: string;

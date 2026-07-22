@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useRoles } from "@/hooks/useRoles";
 import {
+import { smartBack } from "@/lib/smartBack";
   useProInbox,
   useAcceptEnquiry,
   useDeclineEnquiry,

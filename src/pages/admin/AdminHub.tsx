@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { useAllPendingRevisions } from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
+import { smartBack } from "@/lib/smartBack";
 
 interface Stats {
   pendingApplications: number;

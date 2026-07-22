@@ -27,6 +27,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { smartBack } from "@/lib/smartBack";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
