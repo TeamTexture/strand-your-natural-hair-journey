@@ -33,6 +33,14 @@ export interface Professional {
   /** When present, this pro has a live `pro_profiles` row and enquiries
    *  should go through the in-app flow instead of an external link. */
   proUserId?: string;
+  /** Optional extended contact & premises info (live pros from `pro_profiles`). */
+  businessPhone?: string;
+  businessEmail?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  /** Opening hours keyed mon..sun. Shape matches ProProfile editor. */
+  openingHours?: Record<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun", { closed: boolean; open: string; close: string }>;
 }
 
 export const PROFESSIONALS: Professional[] = [
