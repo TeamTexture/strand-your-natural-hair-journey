@@ -692,21 +692,50 @@ const Home = () => {
           )}
         </SurfaceCard>
 
-        {hasPlus && plusAlerts.length > 0 && (
+        {hasPlus && (
           <SurfaceCard padded={false} className="border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent">
             <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
               <span className="text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">
-                ✦ STRAND+ Alerts ({plusAlerts.length})
+                ✦ STRAND+ Alerts{plusAlerts.length > 0 ? ` (${plusAlerts.length})` : ""}
               </span>
-              <button
-                onClick={() => { dismissAllPlus(); toast("STRAND+ alerts cleared"); }}
-                className="text-[11px] uppercase tracking-[0.15em] text-primary"
-              >
-                Clear all
-              </button>
+              {plusAlerts.length > 0 && (
+                <button
+                  onClick={() => { dismissAllPlus(); toast("STRAND+ alerts cleared"); }}
+                  className="text-[11px] uppercase tracking-[0.15em] text-primary"
+                >
+                  Clear all
+                </button>
+              )}
             </div>
             <div className="px-3 pb-3 space-y-2">
-              {plusAlerts.map((a) => (
+              {plusAlerts.length === 0 ? (
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <button
+                    onClick={() => navigate("/forum")}
+                    className="rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors p-3 text-left"
+                  >
+                    <p className="text-base leading-none">💬</p>
+                    <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">Forum</p>
+                    <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">Open threads</p>
+                  </button>
+                  <button
+                    onClick={() => navigate("/plus/events")}
+                    className="rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors p-3 text-left"
+                  >
+                    <p className="text-base leading-none">📅</p>
+                    <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">Events</p>
+                    <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">See upcoming</p>
+                  </button>
+                  <button
+                    onClick={() => navigate("/messages")}
+                    className="rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors p-3 text-left"
+                  >
+                    <p className="text-base leading-none">✉️</p>
+                    <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">Messages</p>
+                    <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">Member DMs</p>
+                  </button>
+                </div>
+              ) : plusAlerts.map((a) => (
                 <div key={a.id} className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors">
                   <button onClick={() => { dismissAllPlus(); navigate(a.to); }} className="w-full text-left">
                     <p className="text-xs font-medium leading-tight text-foreground">
@@ -724,6 +753,7 @@ const Home = () => {
             </div>
           </SurfaceCard>
         )}
+
 
         <SurfaceCard data-tour="alerts" tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
