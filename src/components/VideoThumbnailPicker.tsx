@@ -5,16 +5,18 @@ import { Loader2, Upload, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type Props = {
-  file: File | null;
+  file?: File | null;
+  sourceUrl?: string | null;
   open: boolean;
   onClose: () => void;
   onPick: (blob: Blob) => void;
   onSkip?: () => void;
 };
 
-// Grab 4 frames from a local video File at 15/35/55/75% of duration.
-async function grabFrames(file: File): Promise<Blob[]> {
-  const url = URL.createObjectURL(file);
+// Grab 4 frames from a local video File or remote URL at 15/35/55/75% of duration.
+async function grabFrames(source: File | string): Promise<Blob[]> {
+  const url = typeof source === "string" ? source : URL.createObjectURL(source);
+  const revoke = typeof source === "string" ? null : url;
   const video = document.createElement("video");
   video.src = url;
   video.muted = true;
@@ -52,11 +54,11 @@ async function grabFrames(file: File): Promise<Blob[]> {
     if (blob) blobs.push(blob);
   }
 
-  URL.revokeObjectURL(url);
+  if (revoke) URL.revokeObjectURL(revoke);
   return blobs;
 }
 
-const VideoThumbnailPicker = ({ file, open, onClose, onPick, onSkip }: Props) => {
+const VideoThumbnailPicker = ({ file, sourceUrl, open, onClose, onPick, onSkip }: Props) => {
   const [frames, setFrames] = useState<{ blob: Blob; url: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
@@ -64,12 +66,14 @@ const VideoThumbnailPicker = ({ file, open, onClose, onPick, onSkip }: Props) =>
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!open || !file) return;
+    if (!open) return;
+    const src: File | string | null = file ?? sourceUrl ?? null;
+    if (!src) return;
     setFrames([]);
     setSelected(null);
     setCustomBlob(null);
     setLoading(true);
-    grabFrames(file)
+    grabFrames(src)
       .then((blobs) => {
         const mapped = blobs.map((b) => ({ blob: b, url: URL.createObjectURL(b) }));
         setFrames(mapped);
@@ -82,7 +86,7 @@ const VideoThumbnailPicker = ({ file, open, onClose, onPick, onSkip }: Props) =>
       if (customBlob) URL.revokeObjectURL(customBlob.url);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, file]);
+  }, [open, file, sourceUrl]);
 
   const pickCustom = (f: File) => {
     if (customBlob) URL.revokeObjectURL(customBlob.url);
