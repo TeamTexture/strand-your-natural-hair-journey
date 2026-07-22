@@ -1522,6 +1522,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          kind: string
+          read_at: string | null
+          title: string | null
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          kind: string
+          read_at?: string | null
+          title?: string | null
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          kind?: string
+          read_at?: string | null
+          title?: string | null
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       platform_pricing_changes: {
         Row: {
           changed_by: string | null
@@ -3159,6 +3201,7 @@ export type Database = {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined
       }
+      resolve_mention_user_ids: { Args: { _text: string }; Returns: string[] }
       send_enquiry_with_access: {
         Args: {
           _budget_range: string

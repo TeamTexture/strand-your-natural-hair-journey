@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBackButtonContext } from "@/components/BackButtonContext";
+import NotificationsBell from "@/components/NotificationsBell";
 
 interface Props {
   /** Centre title text */
@@ -45,8 +46,9 @@ const TitleBar = ({ title, right, back = true, onBack }: Props) => {
             </button>
           )}
         </div>
-        <div className="flex-shrink-0 flex items-center justify-end text-xs text-muted-foreground font-body">
+        <div className="flex-shrink-0 flex items-center justify-end gap-1 text-xs text-muted-foreground font-body">
           {right}
+          <NotificationsBell />
         </div>
       </div>
       {title && (

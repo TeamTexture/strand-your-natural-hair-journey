@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { tusUpload } from "@/lib/tusUpload";
 import VideoThumbnailPicker from "@/components/VideoThumbnailPicker";
+import MentionTextarea from "@/components/MentionTextarea";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
 const ITEM_KINDS = ["video", "pdf", "text", "audio", "image"] as const;
@@ -83,6 +84,13 @@ const AdminLibrary = () => {
     qc.invalidateQueries({ queryKey: ["admin_content_collections"] });
   };
 
+  const saveCollection = async (id: string, patch: { title?: string; description?: string }) => {
+    const { error } = await supabase.from("content_collections").update(patch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Saved");
+    qc.invalidateQueries({ queryKey: ["admin_content_collections"] });
+  };
+
   return (
     <ScreenLayout>
       <TitleBar
@@ -120,19 +128,32 @@ const AdminLibrary = () => {
               const open = expanded === c.id;
               return (
                 <li key={c.id} className="rounded-[14px] border border-border bg-card overflow-hidden">
-                  <div className="p-3 flex items-center gap-3">
+                  <div className="p-3 flex items-start gap-2">
                     <button
                       onClick={() => setExpanded(open ? null : c.id)}
-                      className="flex-1 min-w-0 text-left flex items-center gap-2"
+                      className="mt-0.5 shrink-0"
+                      aria-label={open ? "Collapse" : "Expand"}
                     >
-                      {open ? <ChevronDown className="size-4 text-primary shrink-0" /> : <ChevronRight className="size-4 text-foreground/60 shrink-0" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">
-                          {c.kind}{!c.is_published && " · hidden"}
-                        </p>
-                        <p className="font-body text-[13px] font-semibold truncate">{c.title}</p>
-                      </div>
+                      {open ? <ChevronDown className="size-4 text-primary" /> : <ChevronRight className="size-4 text-foreground/60" />}
                     </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">
+                        {c.kind}{!c.is_published && " · hidden"}
+                      </p>
+                      <EditableText
+                        value={c.title}
+                        onSave={(v) => saveCollection(c.id, { title: v })}
+                        className="font-body text-[13px] font-semibold"
+                        placeholder="Title"
+                      />
+                      <EditableText
+                        value={c.description ?? ""}
+                        onSave={(v) => saveCollection(c.id, { description: v })}
+                        className="font-body text-[11.5px] text-foreground/65 mt-0.5"
+                        placeholder="+ Add description"
+                        multiline
+                      />
+                    </div>
                     <button
                       onClick={() => togglePublish(c.id, !c.is_published)}
                       className="text-[10px] font-body font-semibold uppercase tracking-wider text-foreground/60 hover:text-primary px-2 py-1"
@@ -152,6 +173,66 @@ const AdminLibrary = () => {
         )}
       </div>
     </ScreenLayout>
+  );
+};
+
+/** Inline editable text — click to edit, save on blur / Enter. */
+const EditableText = ({
+  value, onSave, className, placeholder, multiline,
+}: {
+  value: string;
+  onSave: (v: string) => void | Promise<void>;
+  className?: string;
+  placeholder?: string;
+  multiline?: boolean;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+  const commit = async () => {
+    setEditing(false);
+    const next = draft.trim();
+    if (next === (value ?? "").trim()) return;
+    await onSave(next);
+  };
+  if (editing) {
+    if (multiline) {
+      return (
+        <Textarea
+          autoFocus
+          rows={2}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+          className={`${className ?? ""} text-[12px] py-1`}
+          placeholder={placeholder}
+        />
+      );
+    }
+    return (
+      <Input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          if (e.key === "Escape") { setDraft(value); setEditing(false); }
+        }}
+        className={`${className ?? ""} h-8 py-1`}
+        placeholder={placeholder}
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      className={`${className ?? ""} block text-left w-full truncate hover:text-primary transition-colors`}
+    >
+      {value?.trim() ? value : <span className="italic text-foreground/45">{placeholder}</span>}
+    </button>
   );
 };
 
@@ -186,15 +267,13 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
     qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
   };
 
-  const saveDescription = async (itemId: string, body: string) => {
-    const { error } = await supabase
-      .from("content_items")
-      .update({ body_md: body.trim() || null })
-      .eq("id", itemId);
+  const saveItem = async (itemId: string, patch: { title?: string; body_md?: string | null }) => {
+    const { error } = await supabase.from("content_items").update(patch).eq("id", itemId);
     if (error) { toast.error(error.message); return; }
-    toast.success("Description saved");
+    toast.success("Saved");
     qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
   };
+
 
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
@@ -396,7 +475,8 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
               onDelete={() => removeItem(it.id, (it as any).storage_path)}
               onCoverUpload={(blob) => uploadThumbnail(it.id, blob)}
               onPickFrame={(url) => setThumbPending({ itemId: it.id, sourceUrl: url })}
-              onSaveDescription={(body) => saveDescription(it.id, body)}
+              onSaveDescription={(body) => saveItem(it.id, { body_md: body.trim() || null })}
+              onSaveTitle={(title) => saveItem(it.id, { title: title.trim() || (it as any).title })}
             />
           ))}
           {q.data?.length === 0 && (
@@ -490,13 +570,14 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
 };
 
 const ItemRow = ({
-  item, onDelete, onCoverUpload, onPickFrame, onSaveDescription,
+  item, onDelete, onCoverUpload, onPickFrame, onSaveDescription, onSaveTitle,
 }: {
   item: { id: string; kind: string; title: string; storage_path: string | null; external_url: string | null; thumbnail_path: string | null; body_md: string | null };
   onDelete: () => void;
   onCoverUpload: (blob: Blob) => void | Promise<void>;
   onPickFrame?: (signedUrl: string) => void;
   onSaveDescription?: (body: string) => void | Promise<void>;
+  onSaveTitle?: (title: string) => void | Promise<void>;
 }) => {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [loadingFrames, setLoadingFrames] = useState(false);
@@ -558,7 +639,7 @@ const ItemRow = ({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] uppercase font-body font-bold tracking-wider text-primary">{item.kind}</p>
-          <p className="text-[12.5px] font-body font-semibold truncate">{item.title}</p>
+          <InlineTitleEditor value={item.title} onSave={(v) => onSaveTitle?.(v)} />
           {item.storage_path && (
             <p className="text-[10px] text-foreground/50 truncate">{item.storage_path}</p>
           )}
@@ -592,11 +673,11 @@ const ItemRow = ({
 
       {editingDesc ? (
         <div className="space-y-1.5 pt-1 border-t border-border">
-          <Textarea
+          <MentionTextarea
             rows={3}
             value={descDraft}
-            onChange={(e) => setDescDraft(e.target.value)}
-            placeholder="Description shown to members"
+            onChange={setDescDraft}
+            placeholder="Description shown to members · type @ to tag"
             className="text-[12px]"
           />
           <div className="flex gap-2 justify-end">
@@ -617,6 +698,43 @@ const ItemRow = ({
         </button>
       )}
     </li>
+  );
+};
+
+/** Small click-to-edit title used inside a library item row. */
+const InlineTitleEditor = ({ value, onSave }: { value: string; onSave: (v: string) => void | Promise<void> }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+  const commit = async () => {
+    setEditing(false);
+    if (draft.trim() && draft.trim() !== value.trim()) await onSave(draft.trim());
+    else setDraft(value);
+  };
+  if (editing) {
+    return (
+      <Input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          if (e.key === "Escape") { setDraft(value); setEditing(false); }
+        }}
+        className="h-7 py-0 text-[12.5px] font-body font-semibold"
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="text-[12.5px] font-body font-semibold truncate block text-left w-full hover:text-primary transition-colors"
+      title="Click to rename"
+    >
+      {value}
+    </button>
   );
 };
 
