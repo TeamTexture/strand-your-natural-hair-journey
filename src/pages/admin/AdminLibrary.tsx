@@ -400,7 +400,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   className="w-full text-[11px] file:mr-2 file:h-8 file:px-3 file:rounded-full file:border-0 file:bg-primary file:text-primary-foreground file:text-[11px] file:font-semibold"
                 />
-                {file && <p className="text-[10px] text-foreground/60 truncate">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>}
+                {file && <p className="text-[10px] text-foreground/60 truncate">{file.name} · {fmtSize(file.size)}</p>}
               </div>
               <div className="space-y-1">
                 <Label className="text-[11px] flex items-center gap-1"><LinkIcon className="size-3" /> Or external URL</Label>
