@@ -11,7 +11,9 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import PastOfferCard from "@/components/brand/PastOfferCard";
 import CountdownClock from "@/components/brand/CountdownClock";
+import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -180,6 +182,11 @@ const AdminBrandOffers = () => {
     [typeFiltered],
   );
   const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
+  const pastIdsForInterest = useMemo(
+    () => typeFiltered.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived)).map((o) => o.id),
+    [typeFiltered],
+  );
+  const { data: interestCounts = {} } = useOfferInterestCounts(pastIdsForInterest);
 
   if (isLoading) return <LoadingDot />;
 
@@ -515,7 +522,29 @@ const AdminBrandOffers = () => {
         {showOther && past.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Past</SectionLabel>
-            <div className="space-y-2">{past.map(renderOffer)}</div>
+            <div className="grid grid-cols-1 gap-2.5">
+              {past.map((o) => {
+                const placements = o.brand_offer_placements ?? [];
+                const dates = placements.map((p) => p.placement_date).sort();
+                const interest = interestCounts[o.id];
+                return (
+                  <PastOfferCard
+                    key={o.id}
+                    headline={o.headline}
+                    heroImagePath={o.hero_image_path}
+                    slots={placements.map((p) => p.slot)}
+                    startDate={dates[0]}
+                    endDate={dates[dates.length - 1]}
+                    totals={totals[o.id]}
+                    submitter={submitterOf(o)}
+                    amountPaidPence={o.total_price_pence}
+                    interestTotal={interest?.total ?? 0}
+                    interestUnread={interest?.unread ?? 0}
+                    onOpen={() => nav(`/admin/brand-offers/${o.id}`)}
+                  />
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
