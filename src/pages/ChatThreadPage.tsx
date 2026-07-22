@@ -405,16 +405,15 @@ const ChatThreadPage = () => {
       )}
 
       <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background flex items-end gap-2">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
-          }}
-          placeholder="Type a message"
-          rows={1}
-          className="flex-1 max-h-[120px] text-sm p-2.5 rounded-[14px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60"
-        />
+        <div className="flex-1 min-w-0">
+          <MentionTextarea
+            value={draft}
+            onChange={setDraft}
+            placeholder="Type a message · @ to tag"
+            rows={1}
+            className="max-h-[120px] text-sm p-2.5 rounded-[14px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60"
+          />
+        </div>
         <button
           onClick={submit}
           disabled={!draft.trim() || send.isPending}
