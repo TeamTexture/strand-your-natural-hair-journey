@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUp, MessageSquare, Flag, Lock, Pin, Trash2, Loader2, Send } from "lucide-react";
