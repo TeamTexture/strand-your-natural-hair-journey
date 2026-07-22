@@ -49,6 +49,7 @@ const BrandAuth = () => {
       if (password !== confirm) return toast.error("Passwords don't match.");
       if (!brandName.trim()) return toast.error("Please enter your brand name.");
       if (!category) return toast.error("Please choose a brand category.");
+      if (about.trim().length < 30) return toast.error("Please add a short brand description (30+ characters).");
     }
     setBusy(true);
     try {
