@@ -527,9 +527,10 @@ const AdminBrandOffers = () => {
 
         {showOther && past.length > 0 && (
           <div>
-            <SectionLabel className="!px-0">Past</SectionLabel>
+            <SectionLabel className="!px-0">{filter === "expired" ? "Expired" : "Past"}</SectionLabel>
             <div className="grid grid-cols-1 gap-2.5">
-              {past.map((o) => {
+              {(filter === "expired" ? past.filter((o) => o._derived === "ended") : past).map((o) => {
+
                 const placements = o.brand_offer_placements ?? [];
                 const dates = placements.map((p) => p.placement_date).sort();
                 const interest = interestCounts[o.id];
