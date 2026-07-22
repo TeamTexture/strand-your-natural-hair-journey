@@ -5,16 +5,18 @@ import { Loader2, Upload, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type Props = {
-  file: File | null;
+  file?: File | null;
+  sourceUrl?: string | null;
   open: boolean;
   onClose: () => void;
   onPick: (blob: Blob) => void;
   onSkip?: () => void;
 };
 
-// Grab 4 frames from a local video File at 15/35/55/75% of duration.
-async function grabFrames(file: File): Promise<Blob[]> {
-  const url = URL.createObjectURL(file);
+// Grab 4 frames from a local video File or remote URL at 15/35/55/75% of duration.
+async function grabFrames(source: File | string): Promise<Blob[]> {
+  const url = typeof source === "string" ? source : URL.createObjectURL(source);
+  const revoke = typeof source === "string" ? null : url;
   const video = document.createElement("video");
   video.src = url;
   video.muted = true;
