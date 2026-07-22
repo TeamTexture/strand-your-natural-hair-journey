@@ -183,17 +183,26 @@ export function useMarkThreadRead(threadId: string | null | undefined) {
   });
 }
 
-export function useUnreadChatCount() {
+/**
+ * Unread count scoped to the current role view (or `scope: "all"` for a
+ * cross-view total, and a specific view for view-switcher dot hints).
+ */
+export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
   const { user } = useAuth();
+  const activeView = useActiveRoleView();
+  const view = scope ?? activeView;
   return useQuery({
-    queryKey: ["chat_unread", user?.id],
+    queryKey: ["chat_unread", user?.id, view],
     enabled: !!user?.id,
     queryFn: async (): Promise<number> => {
-      const { data: threads } = await supabase
+      const { data: rows } = await supabase
         .from("chat_threads")
-        .select("id")
+        .select("id, thread_type, consumer_id, pro_user_id, admin_user_id, subject_user_id, subject_role")
         .or(threadOrFilter(user!.id));
-      const ids = (threads ?? []).map((t) => t.id);
+      const scoped = (rows ?? []).filter((t) =>
+        view === "all" ? true : threadMatchesView(t as never, user!.id, view),
+      );
+      const ids = scoped.map((t) => t.id);
       if (ids.length === 0) return 0;
       const { count } = await supabase
         .from("chat_messages")
@@ -205,6 +214,7 @@ export function useUnreadChatCount() {
     },
   });
 }
+
 
 export function useBookAppointmentInThread() {
   const qc = useQueryClient();
