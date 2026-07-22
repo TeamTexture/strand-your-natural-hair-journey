@@ -226,16 +226,9 @@ const NavCard = ({
   </button>
 );
 
-const activityIcon = (kind: ActivityRow["kind"]) => {
-  if (kind === "application") return FileText;
-  if (kind === "enquiry") return Mail;
-  return Eye;
-};
-
 const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: activity, isLoading: activityLoading } = useRecentActivity();
   const { data: dropoff } = useAdminDropOffCounts();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
   const revisionCount = pendingRevisions.length;
@@ -445,35 +438,6 @@ const AdminHub = () => {
             onClick={() => nav("/admin/settings")}
           />
         </div>
-
-        <SectionLabel className="!px-0">Recent activity</SectionLabel>
-        {activityLoading ? (
-          <LoadingDot label="Loading activity…" fullScreen={false} />
-        ) : !activity || activity.length === 0 ? (
-          <EmptyState icon="✦" message="No recent activity" tone="card" />
-        ) : (
-          <SurfaceCard padded={false} className="divide-y divide-border">
-            {activity.map((row, i) => {
-              const Icon = activityIcon(row.kind);
-              return (
-                <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-                  <Icon className="size-3.5 text-primary/70 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-body text-foreground truncate">
-                      {row.primary}
-                      {row.secondary && (
-                        <span className="text-muted-foreground"> · {row.secondary}</span>
-                      )}
-                    </p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground shrink-0">
-                    {formatDistanceToNow(new Date(row.at), { addSuffix: true })}
-                  </p>
-                </div>
-              );
-            })}
-          </SurfaceCard>
-        )}
       </div>
     </ScreenLayout>
   );
