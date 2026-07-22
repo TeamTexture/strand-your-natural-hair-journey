@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { otherParticipantId, useChatThreads } from "@/hooks/useChat";
 
 const Messages = () => {
+  useEffect(() => { markPlusSurfaceSeen("messages"); }, []);
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
