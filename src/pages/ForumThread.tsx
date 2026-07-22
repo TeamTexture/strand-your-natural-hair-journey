@@ -172,7 +172,7 @@ const ForumThread = () => {
           {(repliesQ.data ?? []).map((r) => (
             <div key={r.id} className="rounded-[14px] border border-border bg-card p-4">
               <PosterRow uid={r.author_id} name={authorName(r.author_id)} avatar={authorAvatar(r.author_id)} createdAt={r.created_at} meta={authorMetaLine(r.author_id)} />
-              <p className="mt-2 whitespace-pre-wrap font-body text-[13px] text-foreground/85 leading-relaxed">{r.body}</p>
+              <p className="mt-2 whitespace-pre-wrap font-body text-[13px] text-foreground/85 leading-relaxed">{renderMentions(r.body)}</p>
               <div className="mt-2 flex items-center gap-2">
                 <button onClick={() => upvote("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10.5px] font-semibold border border-border bg-card hover:bg-primary/10">
                   <ArrowUp className="size-3" /> {r.vote_count ?? 0}
