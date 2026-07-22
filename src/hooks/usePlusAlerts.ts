@@ -20,7 +20,7 @@ export interface PlusAlert {
 }
 
 const SEEN_KEY = "strand_plus_seen_v1";
-type SeenMap = { threads?: string; events?: string; messages?: string };
+type SeenMap = { threads?: string; events?: string; messages?: string; library?: string };
 
 const readSeen = (): SeenMap => {
   try {
