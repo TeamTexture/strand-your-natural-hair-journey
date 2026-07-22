@@ -11,6 +11,7 @@ import LiveOfferCard from "@/components/brand/LiveOfferCard";
 import PastOfferCard from "@/components/brand/PastOfferCard";
 import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
+import BrandCategoryPrompt from "@/components/brand/BrandCategoryPrompt";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
@@ -170,6 +171,11 @@ const BrandDashboard = () => {
         }
       />
       <div className="px-5 pb-8 space-y-5">
+        {/* Brand-owned category. Non-blocking prompt when missing;
+             compact edit strip when set. Admins cannot change this. */}
+        {ownerMode === "brand" && profile && (
+          <BrandCategoryPrompt current={profile.category ?? null} />
+        )}
         {/* Live-offer expiry banner — surfaces any offer ≤3h from ending
              with Extend / New offer actions. */}
         <ExpiringSoonBanner offers={withDerived.filter((o) => o._derived === "live")} now={now} />
