@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import VideoPlayerDialog from "@/components/VideoPlayerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { renderMentions } from "@/lib/renderMentions";
 
 const ITEM_ICON: Record<string, typeof BookOpen> = { video: Play, pdf: BookOpen, text: FileText, url: FileText, article: FileText, audio: Play };
 
