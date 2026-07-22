@@ -162,7 +162,7 @@ const BrandCreateOffer = () => {
     }),
   );
   const initialEnabled = (): Record<PlacementSlot, boolean> => {
-    const map: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false };
+    const map: Record<PlacementSlot, boolean> = { home: false, products: false, wash_day: false, pro_welcome: false };
     (existing?.brand_offer_placements ?? []).forEach((p) => {
       map[p.slot as PlacementSlot] = true;
     });
