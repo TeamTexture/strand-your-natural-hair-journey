@@ -638,7 +638,7 @@ const ItemRow = ({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] uppercase font-body font-bold tracking-wider text-primary">{item.kind}</p>
-          <p className="text-[12.5px] font-body font-semibold truncate">{item.title}</p>
+          <InlineTitleEditor value={item.title} onSave={(v) => onSaveTitle?.(v)} />
           {item.storage_path && (
             <p className="text-[10px] text-foreground/50 truncate">{item.storage_path}</p>
           )}
@@ -672,11 +672,11 @@ const ItemRow = ({
 
       {editingDesc ? (
         <div className="space-y-1.5 pt-1 border-t border-border">
-          <Textarea
+          <MentionTextarea
             rows={3}
             value={descDraft}
-            onChange={(e) => setDescDraft(e.target.value)}
-            placeholder="Description shown to members"
+            onChange={setDescDraft}
+            placeholder="Description shown to members · type @ to tag"
             className="text-[12px]"
           />
           <div className="flex gap-2 justify-end">
@@ -697,6 +697,43 @@ const ItemRow = ({
         </button>
       )}
     </li>
+  );
+};
+
+/** Small click-to-edit title used inside a library item row. */
+const InlineTitleEditor = ({ value, onSave }: { value: string; onSave: (v: string) => void | Promise<void> }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+  const commit = async () => {
+    setEditing(false);
+    if (draft.trim() && draft.trim() !== value.trim()) await onSave(draft.trim());
+    else setDraft(value);
+  };
+  if (editing) {
+    return (
+      <Input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          if (e.key === "Escape") { setDraft(value); setEditing(false); }
+        }}
+        className="h-7 py-0 text-[12.5px] font-body font-semibold"
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="text-[12.5px] font-body font-semibold truncate block text-left w-full hover:text-primary transition-colors"
+      title="Click to rename"
+    >
+      {value}
+    </button>
   );
 };
 
