@@ -55,10 +55,11 @@ async function grabFrames(source: File | string): Promise<Blob[]> {
   }
 
   URL.revokeObjectURL(url);
+  if (revoke) URL.revokeObjectURL(revoke);
   return blobs;
 }
 
-const VideoThumbnailPicker = ({ file, open, onClose, onPick, onSkip }: Props) => {
+const VideoThumbnailPicker = ({ file, sourceUrl, open, onClose, onPick, onSkip }: Props) => {
   const [frames, setFrames] = useState<{ blob: Blob; url: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
@@ -66,12 +67,14 @@ const VideoThumbnailPicker = ({ file, open, onClose, onPick, onSkip }: Props) =>
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!open || !file) return;
+    if (!open) return;
+    const src: File | string | null = file ?? sourceUrl ?? null;
+    if (!src) return;
     setFrames([]);
     setSelected(null);
     setCustomBlob(null);
     setLoading(true);
-    grabFrames(file)
+    grabFrames(src)
       .then((blobs) => {
         const mapped = blobs.map((b) => ({ blob: b, url: URL.createObjectURL(b) }));
         setFrames(mapped);
@@ -84,7 +87,7 @@ const VideoThumbnailPicker = ({ file, open, onClose, onPick, onSkip }: Props) =>
       if (customBlob) URL.revokeObjectURL(customBlob.url);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, file]);
+  }, [open, file, sourceUrl]);
 
   const pickCustom = (f: File) => {
     if (customBlob) URL.revokeObjectURL(customBlob.url);
