@@ -612,7 +612,9 @@ export type Database = {
           contact_name: string | null
           created_at: string
           id: string
+          instagram_handle: string | null
           logo_path: string | null
+          tiktok_handle: string | null
           updated_at: string
           user_id: string
           website: string | null
@@ -625,7 +627,9 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           id?: string
+          instagram_handle?: string | null
           logo_path?: string | null
+          tiktok_handle?: string | null
           updated_at?: string
           user_id: string
           website?: string | null
@@ -638,7 +642,9 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           id?: string
+          instagram_handle?: string | null
           logo_path?: string | null
+          tiktok_handle?: string | null
           updated_at?: string
           user_id?: string
           website?: string | null
