@@ -59,22 +59,24 @@ export const useGoals = () => {
         title: draft.title?.trim() || draft.challenge?.slice(0, 60) || "Hair goal",
       };
       if (id) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("user_goals")
           .update(safeDraft)
           .eq("id", id)
           .eq("user_id", user.id)
           .select()
-          .single();
+          .maybeSingle();
+        if (error) throw error;
         return data as unknown as UserGoal | null;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const insertPayload: any = { ...safeDraft, user_id: user.id };
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_goals")
         .insert(insertPayload)
         .select()
-        .single();
+        .maybeSingle();
+      if (error) throw error;
       return data as unknown as UserGoal | null;
     },
     onSuccess: (saved, vars) => {

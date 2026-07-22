@@ -33,7 +33,13 @@ const ForumThread = () => {
     queryKey: ["forum_thread", id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("forum_threads").select("*").eq("id", id!).single();
+      // maybeSingle so a deleted/moderated thread renders a friendly
+      // "not found" state instead of throwing PGRST116 into an error boundary.
+      const { data, error } = await supabase
+        .from("forum_threads")
+        .select("*")
+        .eq("id", id!)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },

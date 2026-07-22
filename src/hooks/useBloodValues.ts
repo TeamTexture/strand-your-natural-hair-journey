@@ -215,7 +215,12 @@ async function ensureDraftPanel(userId: string): Promise<string | null> {
     .insert(insertRow as never)
     .select("id")
     .single();
-  if (error || !data) return null;
+  if (error || !data) {
+    // Surface to console — the onboarding blood flow was silently blocked
+    // when this failed (RLS or validation). Callers can decide to toast.
+    console.error("[blood_panels] draft insert failed", error);
+    return null;
+  }
   const id = (data as { id: string }).id;
   localStorage.setItem(DRAFT_PANEL_KEY, id);
   return id;

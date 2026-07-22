@@ -94,10 +94,16 @@ const CoverImage = ({ path }: { path: string }) => {
     let cancelled = false;
     (async () => {
       if (/^https?:\/\//i.test(path)) { setUrl(path); return; }
-      const { data } = await supabase.functions.invoke("library-signed-url", {
+      const { data, error } = await supabase.functions.invoke("library-signed-url", {
         body: { bucket: "strand-plus-library", path },
       });
-      if (!cancelled) setUrl((data?.url as string) ?? null);
+      if (cancelled) return;
+      if (error) {
+        console.error("[library cover] signed url failed", error);
+        setUrl(null);
+        return;
+      }
+      setUrl((data?.url as string) ?? null);
     })();
     return () => { cancelled = true; };
   }, [path]);

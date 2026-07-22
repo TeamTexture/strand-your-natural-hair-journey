@@ -155,7 +155,11 @@ const Index = () => {
               <button
                 type="button"
                 onClick={async () => {
-                  await supabase.auth.signOut();
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (e) {
+                    console.error("[sign out] failed", e);
+                  }
                 }}
                 className="mt-1 text-center text-xs text-muted-foreground hover:text-foreground"
               >
