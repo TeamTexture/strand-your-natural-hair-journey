@@ -261,6 +261,35 @@ export type Database = {
           },
         ]
       }
+      brand_offer_interest: {
+        Row: {
+          created_at: string
+          id: string
+          offer_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          offer_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          offer_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_interest_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_offer_placements: {
         Row: {
           created_at: string
@@ -418,6 +447,7 @@ export type Database = {
           attached_booking_url: string | null
           attached_pro_offer_id: string | null
           body_copy: string | null
+          brand_last_interest_seen_at: string | null
           brand_user_id: string
           created_at: string
           currency: string
@@ -445,6 +475,7 @@ export type Database = {
           attached_booking_url?: string | null
           attached_pro_offer_id?: string | null
           body_copy?: string | null
+          brand_last_interest_seen_at?: string | null
           brand_user_id: string
           created_at?: string
           currency?: string
@@ -472,6 +503,7 @@ export type Database = {
           attached_booking_url?: string | null
           attached_pro_offer_id?: string | null
           body_copy?: string | null
+          brand_last_interest_seen_at?: string | null
           brand_user_id?: string
           created_at?: string
           currency?: string
