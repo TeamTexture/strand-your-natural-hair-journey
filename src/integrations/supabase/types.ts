@@ -3081,6 +3081,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      forum_author_meta: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          city: string
+          display_name: string
+          goal_title: string
+          hair_type: string
+          user_id: string
+        }[]
+      }
       has_active_brand_subscription: {
         Args: { _user: string }
         Returns: boolean
