@@ -114,6 +114,7 @@ const PlusLibraryCollection = () => {
                     <button onClick={() => toggleComplete(item.id)} className="shrink-0">
                       {done ? <CheckCircle2 className="size-5 text-good" /> : <Circle className="size-5 text-foreground/30" />}
                     </button>
+                    <ItemThumb path={(item as any).thumbnail_path as string | null} fallbackIcon={Icon} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-body font-bold uppercase tracking-wider text-foreground/50">{String(i + 1).padStart(2, "0")}</p>
                       <p className="font-body text-[13px] font-semibold leading-tight truncate flex items-center gap-1.5">
