@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
 import { HelpCircle, Heart, Droplet, RefreshCw, Tag } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
