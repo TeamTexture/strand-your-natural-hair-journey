@@ -197,7 +197,9 @@ const ForumThread = () => {
         ) : (
           <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t border-border p-3">
             <div className="flex gap-2 items-end">
-              <Textarea rows={2} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Add a reply…" className="flex-1 resize-none min-h-[44px]" maxLength={2000} />
+              <div className="flex-1">
+                <MentionTextarea rows={2} value={reply} onChange={setReply} placeholder="Add a reply… type @ to tag" maxLength={2000} className="resize-none min-h-[44px]" />
+              </div>
               <Button variant="gold" size="icon" className="rounded-full size-11 shrink-0" onClick={postReply} disabled={busy || !reply.trim()}>
                 {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </Button>
