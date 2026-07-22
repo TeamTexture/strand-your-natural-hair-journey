@@ -50,7 +50,7 @@ const PlusLibraryCollection = () => {
     },
   });
 
-  const openItem = async (item: { id: string; external_url: string | null; storage_path: string | null; body_md: string | null }) => {
+  const openItem = async (item: { id: string; kind: string; title: string; external_url: string | null; storage_path: string | null; body_md: string | null }) => {
     setOpening(item.id);
     try {
       let url = item.external_url;
@@ -61,8 +61,17 @@ const PlusLibraryCollection = () => {
         if (error) throw error;
         url = (data?.url as string) ?? null;
       }
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
-      else if (item.body_md) alert(item.body_md);
+      if (!url && item.body_md) { alert(item.body_md); return; }
+      if (!url) { toast.error("Nothing to open"); return; }
+      const playInline =
+        item.kind === "video" ||
+        item.kind === "audio" ||
+        /\.(mp4|mov|m4v|webm|mp3|m4a|wav|aac|ogg)(\?|$)/i.test(url);
+      if (playInline) {
+        setPlayer({ url, title: item.title });
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch (e) {
       toast.error((e as Error).message ?? "Could not open");
     } finally {
