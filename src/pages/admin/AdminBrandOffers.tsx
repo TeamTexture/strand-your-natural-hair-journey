@@ -510,19 +510,20 @@ const AdminBrandOffers = () => {
           </div>
         )}
 
-        {showAll && upcoming.length > 0 && (
+        {showScheduled && upcoming.length > 0 && (
           <div>
-            <SectionLabel className="!px-0">Upcoming</SectionLabel>
+            <SectionLabel className="!px-0">Scheduled</SectionLabel>
             <div className="space-y-2">{upcoming.map(renderOffer)}</div>
           </div>
         )}
 
-        {showAll && drafts.length > 0 && (
+        {showDrafts && drafts.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Drafts</SectionLabel>
             <div className="space-y-2">{drafts.map(renderOffer)}</div>
           </div>
         )}
+
 
         {showOther && past.length > 0 && (
           <div>
