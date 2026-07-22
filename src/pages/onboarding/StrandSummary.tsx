@@ -109,6 +109,9 @@ const StrandSummary = () => {
   const { upload, sign, uploading } = usePhotoUploader("before-photos");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [openDay, setOpenDay] = useState<string | null>(null);
+  const pendingNewDay = useRef(true);
+  const todayKey = new Date().toISOString().slice(0, 10);
 
 
 
