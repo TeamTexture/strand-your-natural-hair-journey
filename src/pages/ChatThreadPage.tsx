@@ -139,22 +139,22 @@ const ChatThreadPage = () => {
       const set = new Set<string>();
       const { data: appts } = await supabase
         .from("appointments")
-        .select("location, clinic")
-        .or(`user_id.eq.${user!.id},pro_user_id.eq.${user!.id}`)
-        .not("location", "is", null)
+        .select("clinic_name")
+        .or(`user_id.eq.${user!.id},linked_pro_user_id.eq.${user!.id}`)
+        .not("clinic_name", "is", null)
         .limit(50);
       for (const a of appts ?? []) {
-        if (a.location) set.add(String(a.location));
-        if (a.clinic) set.add(String(a.clinic));
+        if (a?.clinic_name) set.add(String(a.clinic_name));
       }
       const { data: proRow } = await supabase
         .from("pro_profiles")
-        .select("clinic, address_line1, address_line2, city, location")
+        .select("clinic_name, address_line1, address_line2, city, location")
         .eq("user_id", user!.id)
         .maybeSingle();
-      if (proRow) {
-        for (const key of ["clinic", "address_line1", "address_line2", "city", "location"] as const) {
-          const v = (proRow as Record<string, unknown>)[key];
+      if (proRow && !("error" in (proRow as object))) {
+        const r = proRow as Record<string, unknown>;
+        for (const key of ["clinic_name", "address_line1", "address_line2", "city", "location"]) {
+          const v = r[key];
           if (typeof v === "string" && v.trim()) set.add(v.trim());
         }
       }
