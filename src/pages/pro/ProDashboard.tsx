@@ -11,6 +11,7 @@ import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount
 import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
 import { useProAppointments } from "@/hooks/useProAppointments";
 import { useProClients } from "@/hooks/useProClients";
+import { useUnreadChatCount } from "@/hooks/useChat";
 
 import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
