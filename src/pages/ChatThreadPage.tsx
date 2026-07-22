@@ -4,6 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
 import { BadgeCheck, Calendar, Send, User2 } from "lucide-react";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import TimePicker12h from "@/components/TimePicker12h";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import LoadingDot from "@/components/LoadingDot";
@@ -33,11 +35,13 @@ const BookAppointmentDialog = ({
   onCancel,
   onConfirm,
   submitting,
+  locationSuggestions,
 }: {
   open: boolean;
   onCancel: () => void;
   onConfirm: (v: { date: string; time: string; location: string; notes: string }) => void;
   submitting: boolean;
+  locationSuggestions: string[];
 }) => {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -55,14 +59,18 @@ const BookAppointmentDialog = ({
           Date
           <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
         </label>
-        <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Time
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
-        </label>
-        <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+          <div className="mt-1">
+            <TimePicker12h value={time} onChange={setTime} />
+          </div>
+        </div>
+        <div className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Location
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Clinic, address or link" className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60" />
-        </label>
+          <div className="mt-1">
+            <LocationAutocomplete value={location} onChange={setLocation} suggestions={locationSuggestions} />
+          </div>
+        </div>
         <label className="block text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
           Notes
           <textarea value={notes} rows={3} onChange={(e) => setNotes(e.target.value)} placeholder="What to bring, prep, etc." className="mt-1 w-full text-sm p-2.5 rounded-[10px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60" />
@@ -77,6 +85,8 @@ const BookAppointmentDialog = ({
     </div>
   );
 };
+
+
 
 const SystemBubble = ({ text }: { text: string }) => (
   <div className="flex justify-center my-2">
