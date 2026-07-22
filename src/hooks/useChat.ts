@@ -1,7 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  threadMatchesView,
+  useActiveRoleView,
+  type ActiveRoleView,
+} from "@/hooks/useActiveRoleView";
 
 export type ChatThreadType = "client_pro" | "admin_support";
 
@@ -12,6 +17,7 @@ export interface ChatThread {
   consumer_id: string | null;
   admin_user_id: string | null;
   subject_user_id: string | null;
+  subject_role: string | null;
   thread_type: ChatThreadType;
   created_at: string;
   last_message_at: string | null;
@@ -39,10 +45,15 @@ export function otherParticipantId(t: ChatThread, myId: string): string | null {
 const threadOrFilter = (uid: string) =>
   `pro_user_id.eq.${uid},consumer_id.eq.${uid},admin_user_id.eq.${uid},subject_user_id.eq.${uid}`;
 
-/** All threads I'm a participant in. */
-export function useChatThreads() {
+/**
+ * All threads I'm a participant in, scoped to the current role view.
+ * Pass `scope: "all"` to bypass scoping (e.g. cross-view unread hints).
+ */
+export function useChatThreads(scope?: ActiveRoleView | "all") {
   const { user } = useAuth();
-  return useQuery({
+  const activeView = useActiveRoleView();
+  const view = scope ?? activeView;
+  const query = useQuery({
     queryKey: ["chat_threads", user?.id],
     enabled: !!user?.id,
     queryFn: async (): Promise<ChatThread[]> => {
@@ -55,7 +66,14 @@ export function useChatThreads() {
       return (data ?? []) as ChatThread[];
     },
   });
+  const filtered = useMemo(() => {
+    if (!user?.id || !query.data) return query.data;
+    if (view === "all") return query.data;
+    return query.data.filter((t) => threadMatchesView(t, user.id, view));
+  }, [query.data, user?.id, view]);
+  return { ...query, data: filtered } as typeof query;
 }
+
 
 /** Single thread + its messages, with realtime updates. */
 export function useChatThread(threadId: string | null | undefined) {
@@ -165,17 +183,26 @@ export function useMarkThreadRead(threadId: string | null | undefined) {
   });
 }
 
-export function useUnreadChatCount() {
+/**
+ * Unread count scoped to the current role view (or `scope: "all"` for a
+ * cross-view total, and a specific view for view-switcher dot hints).
+ */
+export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
   const { user } = useAuth();
+  const activeView = useActiveRoleView();
+  const view = scope ?? activeView;
   return useQuery({
-    queryKey: ["chat_unread", user?.id],
+    queryKey: ["chat_unread", user?.id, view],
     enabled: !!user?.id,
     queryFn: async (): Promise<number> => {
-      const { data: threads } = await supabase
+      const { data: rows } = await supabase
         .from("chat_threads")
-        .select("id")
+        .select("id, thread_type, consumer_id, pro_user_id, admin_user_id, subject_user_id, subject_role")
         .or(threadOrFilter(user!.id));
-      const ids = (threads ?? []).map((t) => t.id);
+      const scoped = (rows ?? []).filter((t) =>
+        view === "all" ? true : threadMatchesView(t as never, user!.id, view),
+      );
+      const ids = scoped.map((t) => t.id);
       if (ids.length === 0) return 0;
       const { count } = await supabase
         .from("chat_messages")
@@ -187,6 +214,7 @@ export function useUnreadChatCount() {
     },
   });
 }
+
 
 export function useBookAppointmentInThread() {
   const qc = useQueryClient();
@@ -215,15 +243,21 @@ export function useBookAppointmentInThread() {
   });
 }
 
-/** Admin-only: open or reuse a support thread with a target user. */
+/** Admin-only: open or reuse a support thread with a target user in a specific role context. */
 export function useStartAdminSupportThread() {
   return useMutation({
-    mutationFn: async (subjectUserId: string) => {
+    mutationFn: async (
+      arg: string | { subjectUserId: string; subjectRole?: "consumer" | "pro" | "brand" },
+    ) => {
+      const subjectUserId = typeof arg === "string" ? arg : arg.subjectUserId;
+      const subjectRole = typeof arg === "string" ? "consumer" : arg.subjectRole ?? "consumer";
       const { data, error } = await supabase.rpc("admin_start_support_thread", {
         _subject_user: subjectUserId,
+        _subject_role: subjectRole,
       });
       if (error) throw error;
       return data as string;
     },
   });
 }
+

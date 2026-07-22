@@ -5,12 +5,20 @@ import { toast } from "sonner";
 import { useStartAdminSupportThread } from "@/hooks/useChat";
 
 /** Reusable "Message" button that opens or reuses an admin↔user support thread. */
-const MessageButton = ({ userId, label = "Message as STRAND Team" }: { userId: string; label?: string }) => {
+const MessageButton = ({
+  userId,
+  label = "Message as STRAND Team",
+  subjectRole = "consumer",
+}: {
+  userId: string;
+  label?: string;
+  subjectRole?: "consumer" | "pro" | "brand";
+}) => {
   const nav = useNavigate();
   const start = useStartAdminSupportThread();
   const onClick = async () => {
     try {
-      const id = await start.mutateAsync(userId);
+      const id = await start.mutateAsync({ subjectUserId: userId, subjectRole });
       nav(`/messages/${id}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not open chat");

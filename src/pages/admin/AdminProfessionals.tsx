@@ -499,7 +499,7 @@ const AdminProfessionals = () => {
                   </Button>
                 </div>
                 <div className="mt-2">
-                  <MessageButton userId={r.user_id} />
+                  <MessageButton userId={r.user_id} subjectRole="pro" />
                 </div>
                 {!r.access_restricted && (
                   <div className="mt-2">

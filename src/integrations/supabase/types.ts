@@ -740,6 +740,7 @@ export type Database = {
           id: string
           last_message_at: string | null
           pro_user_id: string | null
+          subject_role: string | null
           subject_user_id: string | null
           thread_type: string
         }
@@ -751,6 +752,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           pro_user_id?: string | null
+          subject_role?: string | null
           subject_user_id?: string | null
           thread_type?: string
         }
@@ -762,6 +764,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           pro_user_id?: string | null
+          subject_role?: string | null
           subject_user_id?: string | null
           thread_type?: string
         }
@@ -2560,10 +2563,12 @@ export type Database = {
       }
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
-      admin_start_support_thread: {
-        Args: { _subject_user: string }
-        Returns: string
-      }
+      admin_start_support_thread:
+        | { Args: { _subject_user: string }; Returns: string }
+        | {
+            Args: { _subject_role?: string; _subject_user: string }
+            Returns: string
+          }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
       approve_brand_offer_revision: {
         Args: { _revision_id: string }

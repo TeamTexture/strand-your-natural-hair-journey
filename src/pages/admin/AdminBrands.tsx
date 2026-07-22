@@ -116,7 +116,7 @@ const AdminBrands = () => {
 
   const message = async (userId: string) => {
     try {
-      const id = await start.mutateAsync(userId);
+      const id = await start.mutateAsync({ subjectUserId: userId, subjectRole: "brand" });
       nav(`/messages/${id}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not open chat");
