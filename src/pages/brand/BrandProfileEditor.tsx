@@ -15,7 +15,36 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrandProfile } from "@/hooks/useBrandOffers";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
-import { prepareImageForUpload } from "@/lib/imagePrep";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
+
+async function resizeToWebp(file: File, maxDim = 512, quality = 0.9): Promise<Blob> {
+  const src = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
+    ? await convertHeicToJpeg(file)
+    : file;
+  const url = URL.createObjectURL(src);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
+    });
+    const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.round(img.width * ratio);
+    const h = Math.round(img.height * ratio);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not available");
+    ctx.drawImage(img, 0, 0, w, h);
+    return await new Promise<Blob>((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("encode failed"))), "image/webp", quality),
+    );
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 import { toast } from "sonner";
 
 /**
