@@ -1,6 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Calendar as CalendarIcon,
   ChevronRight,
