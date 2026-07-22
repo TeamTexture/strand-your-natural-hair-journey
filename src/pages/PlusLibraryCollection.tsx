@@ -20,6 +20,7 @@ const PlusLibraryCollection = () => {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [opening, setOpening] = useState<string | null>(null);
+  const [player, setPlayer] = useState<{ url: string; title: string } | null>(null);
 
   const collectionQ = useQuery({
     queryKey: ["content_collection", id],
