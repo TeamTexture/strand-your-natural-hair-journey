@@ -148,6 +148,7 @@ import PlusLibrary from "./pages/PlusLibrary";
 import PlusLibraryCollection from "./pages/PlusLibraryCollection";
 import PlusEvents from "./pages/PlusEvents";
 import PlusEventDetail from "./pages/PlusEventDetail";
+import PlusTickets from "./pages/PlusTickets";
 import AdminModeration from "./pages/admin/AdminModeration";
 import AdminLibrary from "./pages/admin/AdminLibrary";
 import AdminEvents from "./pages/admin/AdminEvents";
