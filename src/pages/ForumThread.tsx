@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { cn } from "@/lib/utils";
+import ForumAvatar from "@/components/ForumAvatar";
 
 const ForumThread = () => {
   const { id } = useParams<{ id: string }>();
