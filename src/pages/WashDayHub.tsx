@@ -18,6 +18,8 @@ import { NextWashTipCard } from "@/components/NextWashTipCard";
 import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 import BrandBanner from "@/components/BrandBanner";
+import { useDynamicWashTip } from "@/hooks/useDynamicWashTip";
+import { Sparkles } from "lucide-react";
 
 
 const monthNames = [
