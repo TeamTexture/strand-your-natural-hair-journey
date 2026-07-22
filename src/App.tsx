@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,17 +10,8 @@ import { ViewAsProvider } from "@/hooks/useViewAs";
 import RequireAuth from "@/components/RequireAuth";
 import PaidGate from "@/components/PaidGate";
 import OnboardingGate from "@/components/OnboardingGate";
-import Subscribe from "./pages/Subscribe";
-import AdminMembers from "./pages/admin/AdminMembers";
-import AdminMemberPassport from "./pages/admin/AdminMemberPassport";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminProfessionals from "./pages/admin/AdminProfessionals";
-import AdminViewAs from "./pages/admin/AdminViewAs";
-import AdminBrands from "./pages/admin/AdminBrands";
-import AdminMessages from "./pages/admin/AdminMessages";
-import BrandsDirectory from "./pages/BrandsDirectory";
-import BrandDetailPage from "./pages/BrandDetailPage";
-
+import RoleGate from "./components/RoleGate";
+import ProSubGate from "./components/ProSubGate";
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
@@ -27,132 +19,150 @@ import MessageNotifications from "@/components/MessageNotifications";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
 
-
+// Eager: entry + 404 (tiny, always likely to hit)
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import SetupGuide from "./pages/SetupGuide";
-import Walkthrough from "./pages/Walkthrough";
 
-// Onboarding flow
-import ProfileStep1 from "./pages/onboarding/ProfileStep1";
-import ProfileStep2 from "./pages/onboarding/ProfileStep2";
-import ProGate from "./pages/onboarding/ProGate";
-import ProBook from "./pages/onboarding/ProBook";
-import ProDetails from "./pages/onboarding/ProDetails";
-import ProfileStep3Hair from "./pages/onboarding/ProfileStep3Hair";
-import ProfileStep4Colour from "./pages/onboarding/ProfileStep4Colour";
-import BloodTiming from "./pages/onboarding/BloodTiming";
-import BloodIronVitamins from "./pages/onboarding/BloodIronVitamins";
-import BloodMinerals from "./pages/onboarding/BloodMinerals";
-import BloodThyroid from "./pages/onboarding/BloodThyroid";
-import BloodHormones from "./pages/onboarding/BloodHormones";
-import BloodAiSummary from "./pages/onboarding/BloodAiSummary";
-import SuccessScreen from "./pages/onboarding/SuccessScreen";
-import ProfileStepPhotos from "./pages/onboarding/ProfileStepPhotos";
-import StrandSummary from "./pages/onboarding/StrandSummary";
-import MilestoneGallery from "./pages/MilestoneGallery";
-import Discounts from "./pages/Discounts";
-import BloodHistory from "./pages/BloodHistory";
-import BloodUpload from "./pages/BloodUpload";
-import BloodPanelReview from "./pages/BloodPanelReview";
-import PersonalDetailsReview from "./pages/profile-review/PersonalDetails";
-import HealthReview from "./pages/profile-review/HealthReview";
-import HairReview from "./pages/profile-review/HairReview";
-import ColourReview from "./pages/profile-review/ColourReview";
-import RoleGate from "./components/RoleGate";
-import ProApply from "./pages/pro/ProApply";
-import ProAuth from "./pages/pro/ProAuth";
-import ProLanding from "./pages/pro/ProLanding";
-import ProWelcome from "./pages/pro/ProWelcome";
-import ProSubGate from "./components/ProSubGate";
-import ProDashboard from "./pages/pro/ProDashboard";
-import ProProfile from "./pages/pro/ProProfile";
-import ProOffers from "./pages/pro/ProOffers";
-import ProBilling from "./pages/pro/ProBilling";
-import ProEnquiries from "./pages/pro/ProEnquiries";
-import ProAppointments from "./pages/pro/ProAppointments";
+// Everything else is lazy — each page becomes its own async chunk so the
+// initial JS payload only contains the shell + splash. This is a large,
+// low-risk perf win on cold loads (mobile in particular).
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const SetupGuide = lazy(() => import("./pages/SetupGuide"));
+const Walkthrough = lazy(() => import("./pages/Walkthrough"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
-import MyEnquiries from "./pages/MyEnquiries";
-import Messages from "./pages/Messages";
-import ChatThreadPage from "./pages/ChatThreadPage";
-import DataAccess from "./pages/DataAccess";
-import AdminApplications from "./pages/admin/AdminApplications";
-import AdminAudit from "./pages/admin/AdminAudit";
-import AdminHub from "./pages/admin/AdminHub";
-import ProClientPassport from "./pages/pro/ProClientPassport";
-import ProClients from "./pages/pro/ProClients";
-import ProPastClient from "./pages/pro/ProPastClient";
+// Onboarding
+const ProfileStep1 = lazy(() => import("./pages/onboarding/ProfileStep1"));
+const ProfileStep2 = lazy(() => import("./pages/onboarding/ProfileStep2"));
+const ProGate = lazy(() => import("./pages/onboarding/ProGate"));
+const ProBook = lazy(() => import("./pages/onboarding/ProBook"));
+const ProDetails = lazy(() => import("./pages/onboarding/ProDetails"));
+const ProfileStep3Hair = lazy(() => import("./pages/onboarding/ProfileStep3Hair"));
+const ProfileStep4Colour = lazy(() => import("./pages/onboarding/ProfileStep4Colour"));
+const BloodTiming = lazy(() => import("./pages/onboarding/BloodTiming"));
+const BloodIronVitamins = lazy(() => import("./pages/onboarding/BloodIronVitamins"));
+const BloodMinerals = lazy(() => import("./pages/onboarding/BloodMinerals"));
+const BloodThyroid = lazy(() => import("./pages/onboarding/BloodThyroid"));
+const BloodHormones = lazy(() => import("./pages/onboarding/BloodHormones"));
+const BloodAiSummary = lazy(() => import("./pages/onboarding/BloodAiSummary"));
+const SuccessScreen = lazy(() => import("./pages/onboarding/SuccessScreen"));
+const ProfileStepPhotos = lazy(() => import("./pages/onboarding/ProfileStepPhotos"));
+const StrandSummary = lazy(() => import("./pages/onboarding/StrandSummary"));
 
-import BrandAuth from "./pages/brand/BrandAuth";
-import BrandDashboard from "./pages/brand/BrandDashboard";
-import BrandCreateOffer from "./pages/brand/BrandCreateOffer";
-import BrandOfferDetail from "./pages/brand/BrandOfferDetail";
-import BrandExtendOffer from "./pages/brand/BrandExtendOffer";
-import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
-import BrandSubscribe from "./pages/brand/BrandSubscribe";
-import BrandBilling from "./pages/brand/BrandBilling";
-import BrandProfileEditor from "./pages/brand/BrandProfileEditor";
-import OfferPage from "./pages/OfferPage";
-import BrandProductPage from "./pages/BrandProductPage";
-import AdminBrandOffers from "./pages/admin/AdminBrandOffers";
-import AdminBrandCalendar from "./pages/admin/AdminBrandCalendar";
-import AdminBrandOfferReview from "./pages/admin/AdminBrandOfferReview";
+// Profile / blood / misc
+const MilestoneGallery = lazy(() => import("./pages/MilestoneGallery"));
+const Discounts = lazy(() => import("./pages/Discounts"));
+const BloodHistory = lazy(() => import("./pages/BloodHistory"));
+const BloodUpload = lazy(() => import("./pages/BloodUpload"));
+const BloodPanelReview = lazy(() => import("./pages/BloodPanelReview"));
+const PersonalDetailsReview = lazy(() => import("./pages/profile-review/PersonalDetails"));
+const HealthReview = lazy(() => import("./pages/profile-review/HealthReview"));
+const HairReview = lazy(() => import("./pages/profile-review/HairReview"));
+const ColourReview = lazy(() => import("./pages/profile-review/ColourReview"));
 
+// Pro portal
+const ProApply = lazy(() => import("./pages/pro/ProApply"));
+const ProAuth = lazy(() => import("./pages/pro/ProAuth"));
+const ProLanding = lazy(() => import("./pages/pro/ProLanding"));
+const ProWelcome = lazy(() => import("./pages/pro/ProWelcome"));
+const ProDashboard = lazy(() => import("./pages/pro/ProDashboard"));
+const ProProfile = lazy(() => import("./pages/pro/ProProfile"));
+const ProOffers = lazy(() => import("./pages/pro/ProOffers"));
+const ProBilling = lazy(() => import("./pages/pro/ProBilling"));
+const ProEnquiries = lazy(() => import("./pages/pro/ProEnquiries"));
+const ProAppointments = lazy(() => import("./pages/pro/ProAppointments"));
+const ProClientPassport = lazy(() => import("./pages/pro/ProClientPassport"));
+const ProClients = lazy(() => import("./pages/pro/ProClients"));
+const ProPastClient = lazy(() => import("./pages/pro/ProPastClient"));
 
+// Consumer messaging / data
+const MyEnquiries = lazy(() => import("./pages/MyEnquiries"));
+const Messages = lazy(() => import("./pages/Messages"));
+const ChatThreadPage = lazy(() => import("./pages/ChatThreadPage"));
+const DataAccess = lazy(() => import("./pages/DataAccess"));
+
+// Admin
+const AdminApplications = lazy(() => import("./pages/admin/AdminApplications"));
+const AdminAudit = lazy(() => import("./pages/admin/AdminAudit"));
+const AdminHub = lazy(() => import("./pages/admin/AdminHub"));
+const AdminMembers = lazy(() => import("./pages/admin/AdminMembers"));
+const AdminMemberPassport = lazy(() => import("./pages/admin/AdminMemberPassport"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminProfessionals = lazy(() => import("./pages/admin/AdminProfessionals"));
+const AdminViewAs = lazy(() => import("./pages/admin/AdminViewAs"));
+const AdminBrands = lazy(() => import("./pages/admin/AdminBrands"));
+const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
+const AdminBrandOffers = lazy(() => import("./pages/admin/AdminBrandOffers"));
+const AdminBrandCalendar = lazy(() => import("./pages/admin/AdminBrandCalendar"));
+const AdminBrandOfferReview = lazy(() => import("./pages/admin/AdminBrandOfferReview"));
+const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
+const AdminLibrary = lazy(() => import("./pages/admin/AdminLibrary"));
+const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
+
+// Brand
+const BrandAuth = lazy(() => import("./pages/brand/BrandAuth"));
+const BrandDashboard = lazy(() => import("./pages/brand/BrandDashboard"));
+const BrandCreateOffer = lazy(() => import("./pages/brand/BrandCreateOffer"));
+const BrandOfferDetail = lazy(() => import("./pages/brand/BrandOfferDetail"));
+const BrandExtendOffer = lazy(() => import("./pages/brand/BrandExtendOffer"));
+const BrandCheckoutSuccess = lazy(() => import("./pages/brand/BrandCheckoutSuccess"));
+const BrandSubscribe = lazy(() => import("./pages/brand/BrandSubscribe"));
+const BrandBilling = lazy(() => import("./pages/brand/BrandBilling"));
+const BrandProfileEditor = lazy(() => import("./pages/brand/BrandProfileEditor"));
+const OfferPage = lazy(() => import("./pages/OfferPage"));
+const BrandProductPage = lazy(() => import("./pages/BrandProductPage"));
+const BrandsDirectory = lazy(() => import("./pages/BrandsDirectory"));
+const BrandDetailPage = lazy(() => import("./pages/BrandDetailPage"));
+const Subscribe = lazy(() => import("./pages/Subscribe"));
 
 // Main app
-import Home from "./pages/Home";
-import SetCurrentStyle from "./pages/SetCurrentStyle";
-import WashDayHub from "./pages/WashDayHub";
-import WashDayDetail from "./pages/WashDayDetail";
-import WashStep1 from "./pages/wash/WashStep1";
-import WashStep2 from "./pages/wash/WashStep2";
-import WashStep3 from "./pages/wash/WashStep3";
-import WashStepStyling from "./pages/wash/WashStepStyling";
-import WashStep4 from "./pages/wash/WashStep4";
-import Products from "./pages/Products";
-import IngredientDetail from "./pages/IngredientDetail";
-import Wishlist from "./pages/Wishlist";
-import Favourites from "./pages/Favourites";
-import OffShelf from "./pages/OffShelf";
-import Avoidlist from "./pages/Avoidlist";
-import ProductScanning from "./pages/ProductScanning";
-import ProductProfileRedirect from "./pages/ProductProfileRedirect";
-import ProductRepository from "./pages/ProductRepository";
-import BrandProducts from "./pages/BrandProducts";
-import ProductsByIngredient from "./pages/ProductsByIngredient";
-import IngredientResearch from "./pages/IngredientResearch";
-import Journal from "./pages/Journal";
-import JournalEntry from "./pages/JournalEntry";
-import MoodboardList from "./pages/MoodboardList";
-import MoodboardBoard from "./pages/MoodboardBoard";
-import Appointments from "./pages/Appointments";
-import LogAppointment from "./pages/LogAppointment";
-import Directory from "./pages/Directory";
-import Profile from "./pages/Profile";
-import NutritionPlan from "./pages/NutritionPlan";
-import Help from "./pages/Help";
-import Contact from "./pages/Contact";
-import OAuthConsent from "./pages/OAuthConsent";
+const Home = lazy(() => import("./pages/Home"));
+const SetCurrentStyle = lazy(() => import("./pages/SetCurrentStyle"));
+const WashDayHub = lazy(() => import("./pages/WashDayHub"));
+const WashDayDetail = lazy(() => import("./pages/WashDayDetail"));
+const WashStep1 = lazy(() => import("./pages/wash/WashStep1"));
+const WashStep2 = lazy(() => import("./pages/wash/WashStep2"));
+const WashStep3 = lazy(() => import("./pages/wash/WashStep3"));
+const WashStepStyling = lazy(() => import("./pages/wash/WashStepStyling"));
+const WashStep4 = lazy(() => import("./pages/wash/WashStep4"));
+const Products = lazy(() => import("./pages/Products"));
+const IngredientDetail = lazy(() => import("./pages/IngredientDetail"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const Favourites = lazy(() => import("./pages/Favourites"));
+const OffShelf = lazy(() => import("./pages/OffShelf"));
+const Avoidlist = lazy(() => import("./pages/Avoidlist"));
+const ProductScanning = lazy(() => import("./pages/ProductScanning"));
+const ProductProfileRedirect = lazy(() => import("./pages/ProductProfileRedirect"));
+const ProductRepository = lazy(() => import("./pages/ProductRepository"));
+const BrandProducts = lazy(() => import("./pages/BrandProducts"));
+const ProductsByIngredient = lazy(() => import("./pages/ProductsByIngredient"));
+const IngredientResearch = lazy(() => import("./pages/IngredientResearch"));
+const Journal = lazy(() => import("./pages/Journal"));
+const JournalEntry = lazy(() => import("./pages/JournalEntry"));
+const MoodboardList = lazy(() => import("./pages/MoodboardList"));
+const MoodboardBoard = lazy(() => import("./pages/MoodboardBoard"));
+const Appointments = lazy(() => import("./pages/Appointments"));
+const LogAppointment = lazy(() => import("./pages/LogAppointment"));
+const Directory = lazy(() => import("./pages/Directory"));
+const Profile = lazy(() => import("./pages/Profile"));
+const NutritionPlan = lazy(() => import("./pages/NutritionPlan"));
+const Help = lazy(() => import("./pages/Help"));
+const Contact = lazy(() => import("./pages/Contact"));
 
 // STRAND+
-import PlusUpgrade from "./pages/PlusUpgrade";
-import PlusWelcome from "./pages/PlusWelcome";
-import Forum from "./pages/Forum";
-import ForumNewThread from "./pages/ForumNewThread";
-import ForumThread from "./pages/ForumThread";
-import ForumTag from "./pages/ForumTag";
-import MemberProfile from "./pages/MemberProfile";
-import PlusLibrary from "./pages/PlusLibrary";
-import PlusLibraryCollection from "./pages/PlusLibraryCollection";
-import PlusEvents from "./pages/PlusEvents";
-import PlusEventDetail from "./pages/PlusEventDetail";
-import PlusTickets from "./pages/PlusTickets";
-import AdminModeration from "./pages/admin/AdminModeration";
-import AdminLibrary from "./pages/admin/AdminLibrary";
-import AdminEvents from "./pages/admin/AdminEvents";
+const PlusUpgrade = lazy(() => import("./pages/PlusUpgrade"));
+const PlusWelcome = lazy(() => import("./pages/PlusWelcome"));
+const Forum = lazy(() => import("./pages/Forum"));
+const ForumNewThread = lazy(() => import("./pages/ForumNewThread"));
+const ForumThread = lazy(() => import("./pages/ForumThread"));
+const ForumTag = lazy(() => import("./pages/ForumTag"));
+const MemberProfile = lazy(() => import("./pages/MemberProfile"));
+const PlusLibrary = lazy(() => import("./pages/PlusLibrary"));
+const PlusLibraryCollection = lazy(() => import("./pages/PlusLibraryCollection"));
+const PlusEvents = lazy(() => import("./pages/PlusEvents"));
+const PlusEventDetail = lazy(() => import("./pages/PlusEventDetail"));
+const PlusTickets = lazy(() => import("./pages/PlusTickets"));
 
 // Global react-query defaults — Home (and every other screen) relies on
 // queries NOT quietly refetching under the user while they're reading. Any
@@ -172,6 +182,19 @@ const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>
 const Paid = ({ children }: { children: React.ReactNode }) => <PaidGate>{children}</PaidGate>;
 const Onboard = ({ children }: { children: React.ReactNode }) => (
   <OnboardingGate>{children}</OnboardingGate>
+);
+
+// Suspense fallback that matches the app's warm-sand shell so it never
+// flashes white during a chunk fetch on slow mobile networks.
+const RouteFallback = () => (
+  <div
+    className="flex-1 flex items-center justify-center bg-background"
+    aria-live="polite"
+    aria-busy="true"
+  >
+    <span className="sr-only">Loading…</span>
+    <span className="block size-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
+  </div>
 );
 
 // Mounts global side-effects (e.g. keyboard-aware input scrolling) inside the
@@ -199,6 +222,7 @@ const App = () => (
                 <div className="flex-1 min-h-0 overflow-y-auto">
 
                 <AccessRestrictedGate>
+                <Suspense fallback={<RouteFallback />}>
                 <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
@@ -447,13 +471,14 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
                 </Routes>
+                </Suspense>
                 </AccessRestrictedGate>
 
 
+                </div>
               </div>
-            </div>
-          </PhoneShell>
-        </BackButtonProvider>
+            </PhoneShell>
+          </BackButtonProvider>
         </AuthProvider>
         </ViewAsProvider>
       </BrowserRouter>
