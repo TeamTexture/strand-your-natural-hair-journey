@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Play, FileText, Layers } from "lucide-react";
@@ -16,15 +16,30 @@ const KIND_ICON: Record<string, typeof BookOpen> = { course: Layers, ebook: Book
 const PlusLibrary = () => {
   useEffect(() => { markPlusSurfaceSeen("library"); }, []);
   const q = useQuery({
-    queryKey: ["content_collections"],
+    queryKey: ["content_collections_with_thumbs"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: collections, error } = await supabase
         .from("content_collections")
         .select("*")
         .eq("is_published", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      const ids = (collections ?? []).map((c) => c.id);
+      let firstThumbs = new Map<string, string>();
+      if (ids.length) {
+        const { data: items } = await supabase
+          .from("content_items")
+          .select("collection_id,thumbnail_path,sort_order")
+          .in("collection_id", ids)
+          .not("thumbnail_path", "is", null)
+          .order("sort_order", { ascending: true });
+        for (const it of items ?? []) {
+          if (!firstThumbs.has(it.collection_id) && it.thumbnail_path) {
+            firstThumbs.set(it.collection_id, it.thumbnail_path);
+          }
+        }
+      }
+      return (collections ?? []).map((c) => ({ ...c, _fallback_thumb: firstThumbs.get(c.id) ?? null }));
     },
   });
 
@@ -40,15 +55,16 @@ const PlusLibrary = () => {
             <div className="grid grid-cols-2 gap-3">
               {q.data.map((c) => {
                 const Icon = KIND_ICON[c.kind] ?? BookOpen;
+                const thumbPath = c.cover_path || c._fallback_thumb;
                 return (
                   <Link
                     key={c.id}
                     to={`/plus/library/${c.id}`}
                     className="rounded-[14px] overflow-hidden border border-border bg-card hover:bg-muted/30 transition-colors"
                   >
-                    <div className={cn("aspect-[4/5] bg-primary/8 flex items-center justify-center", c.cover_path && "p-0")}>
-                      {c.cover_path ? (
-                        <img src={c.cover_path} alt="" className="w-full h-full object-cover" />
+                    <div className={cn("aspect-[4/5] bg-primary/8 flex items-center justify-center", thumbPath && "p-0")}>
+                      {thumbPath ? (
+                        <CoverImage path={thumbPath} />
                       ) : (
                         <Icon className="size-10 text-primary/60" />
                       )}
@@ -70,6 +86,23 @@ const PlusLibrary = () => {
       </ScreenLayout>
     </PlusGate>
   );
+};
+
+const CoverImage = ({ path }: { path: string }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (/^https?:\/\//i.test(path)) { setUrl(path); return; }
+      const { data } = await supabase.functions.invoke("library-signed-url", {
+        body: { bucket: "strand-plus-library", path },
+      });
+      if (!cancelled) setUrl((data?.url as string) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [path]);
+  if (!url) return null;
+  return <img src={url} alt="" className="w-full h-full object-cover" />;
 };
 
 export default PlusLibrary;
