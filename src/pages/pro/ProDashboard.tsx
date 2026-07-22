@@ -106,6 +106,7 @@ const ProDashboard = () => {
     <ScreenLayout>
       <TitleBar title="Professional" back={false} />
       <div className="px-5 pb-8 space-y-4">
+        <BrandBanner slot="pro_welcome" />
         <p className="text-sm text-foreground/70 font-body">
           {proFirstName ? `Welcome, ${proFirstName}.` : "Welcome back."}
         </p>
