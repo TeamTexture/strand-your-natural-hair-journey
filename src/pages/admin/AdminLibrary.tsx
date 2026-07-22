@@ -186,6 +186,16 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
     qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
   };
 
+  const saveDescription = async (itemId: string, body: string) => {
+    const { error } = await supabase
+      .from("content_items")
+      .update({ body_md: body.trim() || null })
+      .eq("id", itemId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Description saved");
+    qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
+  };
+
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
     queryFn: async () => {
