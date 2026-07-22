@@ -6,6 +6,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate } from "@/lib/formatPassportDate";
+import { renderMentions } from "@/lib/renderMentions";
 
 const ForumTag = () => {
   const { tag = "" } = useParams();
@@ -74,7 +75,7 @@ const ForumTag = () => {
                           <MessageSquare className="size-3" /> Thread · {formatDate(t.created_at)}
                         </div>
                         <p className="mt-1 font-display text-[15px] font-semibold">{t.title}</p>
-                        {t.body && <p className="mt-1 text-[12px] font-body text-foreground/70 line-clamp-2">{t.body}</p>}
+                        {t.body && <p className="mt-1 text-[12px] font-body text-foreground/70 line-clamp-2">{renderMentions(t.body)}</p>}
                       </Link>
                     </li>
                   ))}
@@ -112,7 +113,7 @@ const ForumTag = () => {
                           <BookOpen className="size-3" /> {String(c.kind).toUpperCase()}
                         </div>
                         <p className="mt-1 font-display text-[15px] font-semibold">{c.title}</p>
-                        {c.body_md && <p className="mt-1 text-[12px] font-body text-foreground/70 line-clamp-2">{c.body_md}</p>}
+                        {c.body_md && <p className="mt-1 text-[12px] font-body text-foreground/70 line-clamp-2">{renderMentions(c.body_md)}</p>}
                       </Link>
                     </li>
                   ))}
