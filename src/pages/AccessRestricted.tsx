@@ -2,6 +2,7 @@ import { ShieldAlert, LogOut, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const SUPPORT_EMAIL = "info@teamtexture.co.uk";
 
@@ -49,8 +50,13 @@ const AccessRestricted = () => {
           variant="ghost"
           className="mt-3 w-full h-11 rounded-pill text-sm font-body text-foreground/70 hover:text-destructive"
           onClick={async () => {
-            await signOut();
-            nav("/", { replace: true });
+            try {
+              await signOut();
+              nav("/", { replace: true });
+            } catch (e) {
+              console.error("[sign out] failed", e);
+              toast.error("Sign out failed — check your connection and try again.");
+            }
           }}
         >
           <LogOut className="size-4 mr-2" /> Sign out

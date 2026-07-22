@@ -58,6 +58,7 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useBackButtonContext } from "@/components/BackButtonContext";
+import { toast } from "sonner";
 
 type NavItem = {
   label: string;
@@ -456,8 +457,13 @@ const GlobalMenu = () => {
             <button
               onClick={async () => {
                 setOpen(false);
-                await signOut();
-                navigate("/");
+                try {
+                  await signOut();
+                  navigate("/");
+                } catch (e) {
+                  console.error("[sign out] failed", e);
+                  toast.error("Sign out failed — check your connection and try again.");
+                }
               }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body text-destructive hover:bg-destructive/10 transition-colors"
             >
