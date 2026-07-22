@@ -326,6 +326,8 @@ const App = () => (
 
 
               <Route path="/profile/enquiries" element={<Paid><MyEnquiries /></Paid>} />
+              <Route path="/messages" element={<Protected><Messages /></Protected>} />
+              <Route path="/messages/:threadId" element={<Protected><ChatThreadPage /></Protected>} />
               <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
 
               <Route
