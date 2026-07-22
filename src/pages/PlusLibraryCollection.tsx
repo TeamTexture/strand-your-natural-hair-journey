@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Circle, Play, FileText, BookOpen, Loader2 } from "lucide-react";
