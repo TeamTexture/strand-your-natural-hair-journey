@@ -143,6 +143,7 @@ import PlusWelcome from "./pages/PlusWelcome";
 import Forum from "./pages/Forum";
 import ForumNewThread from "./pages/ForumNewThread";
 import ForumThread from "./pages/ForumThread";
+import ForumTag from "./pages/ForumTag";
 import MemberProfile from "./pages/MemberProfile";
 import PlusLibrary from "./pages/PlusLibrary";
 import PlusLibraryCollection from "./pages/PlusLibraryCollection";
@@ -431,6 +432,7 @@ const App = () => (
               <Route path="/plus/welcome" element={<Protected><PlusWelcome /></Protected>} />
               <Route path="/forum" element={<Protected><Forum /></Protected>} />
               <Route path="/forum/new" element={<Protected><ForumNewThread /></Protected>} />
+              <Route path="/forum/tag/:tag" element={<Protected><ForumTag /></Protected>} />
               <Route path="/forum/:id" element={<Protected><ForumThread /></Protected>} />
               <Route path="/member/:userId" element={<Protected><MemberProfile /></Protected>} />
               <Route path="/plus/library" element={<Protected><PlusLibrary /></Protected>} />
