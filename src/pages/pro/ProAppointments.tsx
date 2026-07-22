@@ -18,6 +18,17 @@ import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useProAppointments, type ProAppointmentRow } from "@/hooks/useProAppointments";
 import { formatTime12h } from "@/lib/formatTime";
@@ -97,6 +108,8 @@ const ProAppointments = () => {
   const [view, setView] = useState<"list" | "calendar">("list");
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+
 
   const today = new Date().toISOString().slice(0, 10);
   const [monthCursor, setMonthCursor] = useState(() => {
@@ -209,36 +222,31 @@ const ProAppointments = () => {
         )}
 
         {variant === "upcoming" && (
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-col gap-2 pt-1">
             <Button
-              variant="outline"
-              size="sm"
               disabled={busyId === a.id}
               onClick={() => updateStatus(a.id, "completed")}
-              className="flex-1 h-9 text-[11px]"
+              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
             >
-              <Check className="size-3.5 mr-1" /> Completed
+              <Check className="size-4 mr-2" /> Mark completed
             </Button>
             <Button
-              variant="outline"
-              size="sm"
               disabled={busyId === a.id}
               onClick={() => updateStatus(a.id, "no_show")}
-              className="flex-1 h-9 text-[11px]"
+              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
             >
-              <AlertTriangle className="size-3.5 mr-1" /> No-show
+              <AlertTriangle className="size-4 mr-2" /> Mark no-show
             </Button>
             <Button
-              variant="outline"
-              size="sm"
               disabled={busyId === a.id}
-              onClick={() => updateStatus(a.id, "cancelled")}
-              className="flex-1 h-9 text-[11px]"
+              onClick={() => setConfirmCancelId(a.id)}
+              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
             >
-              <XCircle className="size-3.5 mr-1" /> Cancel
+              <XCircle className="size-4 mr-2" /> Cancel
             </Button>
           </div>
         )}
+
       </div>
     );
   };
@@ -492,7 +500,36 @@ const ProAppointments = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={!!confirmCancelId}
+        onOpenChange={(o) => !o && setConfirmCancelId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This marks the appointment as cancelled for you and your client. You can't undo this.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep appointment</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmCancelId) {
+                  const id = confirmCancelId;
+                  setConfirmCancelId(null);
+                  updateStatus(id, "cancelled");
+                }
+              }}
+            >
+              Cancel appointment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
+
   );
 };
 
