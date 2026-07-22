@@ -129,16 +129,11 @@ const BrandProfileEditor = () => {
     if (!file || !user) return;
     setUploading(true);
     try {
-      const prepped = await prepareImageForUpload(file, {
-        maxDim: 512,
-        format: "image/webp",
-        quality: 0.9,
-      });
-      const ext = "webp";
-      const path = `${user.id}/logo-${Date.now()}.${ext}`;
+      const blob = await resizeToWebp(file, 512, 0.9);
+      const path = `${user.id}/logo-${Date.now()}.webp`;
       const { error } = await supabase.storage
         .from("brand-assets")
-        .upload(path, prepped.blob, { contentType: prepped.contentType, upsert: true });
+        .upload(path, blob, { contentType: "image/webp", upsert: true });
       if (error) throw error;
       setLogoPath(path);
       toast.success("Logo uploaded — remember to save");
