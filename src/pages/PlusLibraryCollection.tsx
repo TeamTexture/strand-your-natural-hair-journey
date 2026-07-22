@@ -221,4 +221,23 @@ const ItemThumb = ({ path, fallbackIcon: Icon }: { path: string | null; fallback
   );
 };
 
+const PostPhoto = ({ path }: { path: string | null }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!path) { setUrl(null); return; }
+      const { data } = await supabase.functions.invoke("library-signed-url", {
+        body: { bucket: "strand-plus-library", path },
+      });
+      if (!cancelled) setUrl((data?.url as string) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [path]);
+  if (!url) {
+    return <div className="w-full aspect-square bg-muted flex items-center justify-center"><FileText className="size-6 text-foreground/30" /></div>;
+  }
+  return <img src={url} alt="" className="w-full max-h-[520px] object-cover" />;
+};
+
 export default PlusLibraryCollection;
