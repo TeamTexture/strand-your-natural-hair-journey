@@ -109,6 +109,25 @@ const ProAppointments = () => {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const focusApptId = useSearchParams()[0].get("appt");
+
+  // Scroll & pulse the appointment referenced by ?appt=<id>.
+  useEffect(() => {
+    if (!focusApptId || isLoading) return;
+    // If the row is in past, switch tab so it's rendered.
+    const row = data.find((x) => x.id === focusApptId);
+    if (row) {
+      const today = new Date().toISOString().slice(0, 10);
+      setTab(row.appointment_date >= today ? "upcoming" : "past");
+      setView("list");
+    }
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`appt-${focusApptId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [focusApptId, isLoading, data]);
+
 
 
   const today = new Date().toISOString().slice(0, 10);
