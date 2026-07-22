@@ -461,6 +461,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       <VideoThumbnailPicker
         open={!!thumbPending}
         file={thumbPending?.file ?? null}
+        sourceUrl={thumbPending?.sourceUrl ?? null}
         onClose={() => setThumbPending(null)}
         onSkip={() => setThumbPending(null)}
         onPick={async (blob) => {
