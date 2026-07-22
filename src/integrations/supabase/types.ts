@@ -3086,6 +3086,7 @@ export type Database = {
         Returns: {
           avatar_url: string
           city: string
+          current_style: string
           display_name: string
           goal_title: string
           hair_type: string
