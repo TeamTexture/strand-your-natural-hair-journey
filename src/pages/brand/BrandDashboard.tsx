@@ -11,6 +11,7 @@ import LiveOfferCard from "@/components/brand/LiveOfferCard";
 import PastOfferCard from "@/components/brand/PastOfferCard";
 import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
+import BrandCategoryPrompt from "@/components/brand/BrandCategoryPrompt";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
