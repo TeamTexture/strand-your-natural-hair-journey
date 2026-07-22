@@ -451,6 +451,19 @@ const ProEnquiries = () => {
                   ? () => nav(`/pro/appointments?client=${e.consumer_id}`)
                   : undefined
               }
+              onMessage={
+                e.status === "accepted"
+                  ? async () => {
+                      const { data } = await supabase
+                        .from("chat_threads")
+                        .select("id")
+                        .eq("enquiry_id", e.id)
+                        .maybeSingle();
+                      if (data?.id) nav(`/messages/${data.id}`);
+                      else nav("/messages");
+                    }
+                  : undefined
+              }
             />
           ))
         )}
