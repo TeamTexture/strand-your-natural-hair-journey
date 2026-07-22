@@ -269,6 +269,22 @@ const BrandOfferDetail = () => {
           Taps = banner opened. Code copies = discount code copied. Link clicks = tapped through to your site.
         </p>
 
+        {derived === "ended" && (interest?.total ?? 0) > 0 && (
+          <SurfaceCard className="bg-primary/5 border-primary/30">
+            <div className="flex items-start gap-2.5">
+              <Users className="size-4 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px]">
+                  {interest?.total} member{interest?.total === 1 ? "" : "s"} interested since expiry
+                </p>
+                <p className="text-[11.5px] text-foreground/70 font-body mt-0.5 leading-snug">
+                  These members tapped "Show interest" on your ended offer. Consider running a new campaign to reach them again.
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
+
         {allRevisions.length > 0 && (
           <>
             <SectionLabel className="!px-0">Revision history ({allRevisions.length})</SectionLabel>
