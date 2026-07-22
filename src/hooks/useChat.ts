@@ -92,16 +92,26 @@ export function useChatThread(threadId: string | null | undefined) {
 
   useEffect(() => {
     if (!threadId) return;
+    const invalidate = () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+      qc.invalidateQueries({ queryKey: ["chat_unread", user?.id] });
+      qc.invalidateQueries({ queryKey: ["chat_thread_meta"] });
+      qc.invalidateQueries({ queryKey: ["chat_widget_previews"] });
+    };
     const channel = supabase
       .channel(`chat_thread_${threadId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
-          qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
-          qc.invalidateQueries({ queryKey: ["chat_unread", user?.id] });
-        },
+        invalidate,
+      )
+      // Also listen for UPDATEs so the sender sees read_at flip → green ticks
+      // in real time when the recipient opens the thread.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
+        invalidate,
       )
       .subscribe();
     return () => {

@@ -61,15 +61,26 @@ const Directory = () => {
     return pros.find((p) => p.proUserId && p.proUserId === user.id) ?? null;
   }, [pros, user]);
 
+  // Robustly anchor to the owner's own card once the directory data has
+  // rendered. Because pros load async, and the card ref is set via a
+  // callback during render, we poll briefly for the node before giving up.
+  // Uses block:'start' with scroll-mt-24 on the card to clear the sticky header.
   useEffect(() => {
     if (!anchorSelf || !ownedListing) return;
-    // Wait a frame so the DOM has rendered the card.
-    const t = requestAnimationFrame(() => {
+    let cancelled = false;
+    let attempts = 0;
+    const tryScroll = () => {
+      if (cancelled) return;
       const node = cardRefs.current[ownedListing.id];
-      node?.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
-    return () => cancelAnimationFrame(t);
-  }, [anchorSelf, ownedListing]);
+      if (node) {
+        node.scrollIntoView({ block: "start", behavior: "smooth" });
+        return;
+      }
+      if (attempts++ < 30) setTimeout(tryScroll, 100);
+    };
+    tryScroll();
+    return () => { cancelled = true; };
+  }, [anchorSelf, ownedListing, results.length]);
 
   useEffect(() => {
     const main = document.querySelector("main") as HTMLElement | null;
