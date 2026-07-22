@@ -490,16 +490,22 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
 };
 
 const ItemRow = ({
-  item, onDelete, onCoverUpload, onPickFrame,
+  item, onDelete, onCoverUpload, onPickFrame, onSaveDescription,
 }: {
-  item: { id: string; kind: string; title: string; storage_path: string | null; external_url: string | null; thumbnail_path: string | null };
+  item: { id: string; kind: string; title: string; storage_path: string | null; external_url: string | null; thumbnail_path: string | null; body_md: string | null };
   onDelete: () => void;
   onCoverUpload: (blob: Blob) => void | Promise<void>;
   onPickFrame?: (signedUrl: string) => void;
+  onSaveDescription?: (body: string) => void | Promise<void>;
 }) => {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [loadingFrames, setLoadingFrames] = useState(false);
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState(item.body_md ?? "");
+  const [savingDesc, setSavingDesc] = useState(false);
   const coverInput = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => { setDescDraft(item.body_md ?? ""); }, [item.body_md]);
 
   useEffect(() => {
     let cancelled = false;
@@ -531,49 +537,85 @@ const ItemRow = ({
     }
   };
 
+  const saveDesc = async () => {
+    if (!onSaveDescription) return;
+    setSavingDesc(true);
+    try { await onSaveDescription(descDraft); setEditingDesc(false); }
+    finally { setSavingDesc(false); }
+  };
+
   const isVideo = item.kind === "video" && !!item.storage_path;
 
   return (
-    <li className="flex items-center gap-2 rounded-lg bg-card border border-border px-2.5 py-2">
-      <div className="w-14 h-10 rounded-md bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center">
-        {thumbUrl ? (
-          <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <Film className="size-4 text-foreground/40" />
+    <li className="rounded-lg bg-card border border-border px-2.5 py-2 space-y-1.5">
+      <div className="flex items-center gap-2">
+        <div className="w-14 h-10 rounded-md bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center">
+          {thumbUrl ? (
+            <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <Film className="size-4 text-foreground/40" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] uppercase font-body font-bold tracking-wider text-primary">{item.kind}</p>
+          <p className="text-[12.5px] font-body font-semibold truncate">{item.title}</p>
+          {item.storage_path && (
+            <p className="text-[10px] text-foreground/50 truncate">{item.storage_path}</p>
+          )}
+        </div>
+        <input
+          ref={coverInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onCoverUpload(f); e.target.value = ""; }}
+        />
+        {isVideo && (
+          <button
+            onClick={openFramePicker}
+            disabled={loadingFrames}
+            className="text-[10px] font-body font-semibold text-primary hover:underline px-1.5 shrink-0 disabled:opacity-50"
+            title="Pick a frame from the video"
+          >
+            {loadingFrames ? "…" : "Frames"}
+          </button>
         )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] uppercase font-body font-bold tracking-wider text-primary">{item.kind}</p>
-        <p className="text-[12.5px] font-body font-semibold truncate">{item.title}</p>
-        {item.storage_path && (
-          <p className="text-[10px] text-foreground/50 truncate">{item.storage_path}</p>
-        )}
-      </div>
-      <input
-        ref={coverInput}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onCoverUpload(f); e.target.value = ""; }}
-      />
-      {isVideo && (
         <button
-          onClick={openFramePicker}
-          disabled={loadingFrames}
-          className="text-[10px] font-body font-semibold text-primary hover:underline px-1.5 shrink-0 disabled:opacity-50"
-          title="Pick a frame from the video"
+          onClick={() => coverInput.current?.click()}
+          className="text-[10px] font-body font-semibold text-primary hover:underline px-1.5 shrink-0"
+          title="Upload cover image"
         >
-          {loadingFrames ? "…" : "Frames"}
+          Cover
+        </button>
+        <button onClick={onDelete} className="text-alert-dark p-1"><Trash2 className="size-3.5" /></button>
+      </div>
+
+      {editingDesc ? (
+        <div className="space-y-1.5 pt-1 border-t border-border">
+          <Textarea
+            rows={3}
+            value={descDraft}
+            onChange={(e) => setDescDraft(e.target.value)}
+            placeholder="Description shown to members"
+            className="text-[12px]"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" size="sm" className="h-7 rounded-pill text-[11px]" onClick={() => { setEditingDesc(false); setDescDraft(item.body_md ?? ""); }} disabled={savingDesc}>Cancel</Button>
+            <Button variant="gold" size="sm" className="h-7 rounded-pill text-[11px]" onClick={saveDesc} disabled={savingDesc}>
+              {savingDesc ? <Loader2 className="size-3 animate-spin" /> : "Save"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setEditingDesc(true)}
+          className="w-full text-left pt-1 border-t border-border text-[11px] font-body text-foreground/70 hover:text-primary line-clamp-2 whitespace-pre-wrap"
+        >
+          {item.body_md?.trim()
+            ? item.body_md
+            : <span className="italic text-foreground/45">+ Add description</span>}
         </button>
       )}
-      <button
-        onClick={() => coverInput.current?.click()}
-        className="text-[10px] font-body font-semibold text-primary hover:underline px-1.5 shrink-0"
-        title="Upload cover image"
-      >
-        Cover
-      </button>
-      <button onClick={onDelete} className="text-alert-dark p-1"><Trash2 className="size-3.5" /></button>
     </li>
   );
 };
