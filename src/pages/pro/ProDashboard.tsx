@@ -74,6 +74,7 @@ const ProDashboard = () => {
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
   const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
+  const { data: unreadChats = 0 } = useUnreadChatCount();
   const { data: proAppointments = [] } = useProAppointments();
   const today = new Date().toISOString().slice(0, 10);
   const upcomingAppointments = proAppointments
