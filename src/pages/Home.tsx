@@ -739,7 +739,7 @@ const Home = () => {
                 <div key={a.id} className="relative w-full p-3 pr-9 rounded-[10px] border border-primary/40 bg-card/70 hover:border-primary transition-colors">
                   <button onClick={() => { dismissAllPlus(); navigate(a.to); }} className="w-full text-left">
                     <p className="text-xs font-medium leading-tight text-foreground">
-                      {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : "✉️"} {a.title}
+                      {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : a.kind === "library" ? "📚" : "✉️"} {a.title}
                     </p>
                     <p className="text-[11px] mt-1 text-foreground/70 line-clamp-2">{a.body}</p>
                   </button>
