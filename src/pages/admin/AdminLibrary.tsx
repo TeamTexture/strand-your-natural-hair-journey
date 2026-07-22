@@ -241,6 +241,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       for (const f of list) {
         const kind = guessKindFromFile(f);
         const title = f.name.replace(/\.[^.]+$/, "");
+        setCurrentUpload(f.name);
         try {
           const path = await uploadFileToStorage(f);
           const { error } = await supabase.from("content_items").insert({
@@ -250,7 +251,8 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
             storage_path: path,
           });
           if (error) throw error;
-          toast.success(`Uploaded ${f.name}`);
+          setSavedFiles((prev) => [f.name, ...prev].slice(0, 8));
+          toast.success(`Saved ${f.name}`);
         } catch (e) {
           toast.error(`${f.name}: ${(e as Error).message ?? "upload failed"}`);
         }
@@ -259,6 +261,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
     } finally {
       setBusy(false);
       setProgress(null);
+      setCurrentUpload(null);
     }
   }, [collectionId, qc, uploadFileToStorage]);
 
