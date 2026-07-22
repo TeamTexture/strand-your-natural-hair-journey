@@ -569,13 +569,14 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
 };
 
 const ItemRow = ({
-  item, onDelete, onCoverUpload, onPickFrame, onSaveDescription,
+  item, onDelete, onCoverUpload, onPickFrame, onSaveDescription, onSaveTitle,
 }: {
   item: { id: string; kind: string; title: string; storage_path: string | null; external_url: string | null; thumbnail_path: string | null; body_md: string | null };
   onDelete: () => void;
   onCoverUpload: (blob: Blob) => void | Promise<void>;
   onPickFrame?: (signedUrl: string) => void;
   onSaveDescription?: (body: string) => void | Promise<void>;
+  onSaveTitle?: (title: string) => void | Promise<void>;
 }) => {
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [loadingFrames, setLoadingFrames] = useState(false);
