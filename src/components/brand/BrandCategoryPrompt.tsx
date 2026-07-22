@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
 import { toast } from "sonner";
 
-const BrandCategoryPrompt = () => {
+const BrandCategoryPrompt = ({ current }: { current?: string | null }) => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
