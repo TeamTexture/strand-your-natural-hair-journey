@@ -72,7 +72,7 @@ const Home = () => {
   // run until the user navigates away and returns.
   const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts({ static: true });
   const { hasPlus } = usePlusAccess();
-  const { alerts: plusAlerts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
+  const { alerts: plusAlerts, counts: plusCounts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
