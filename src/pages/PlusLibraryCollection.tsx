@@ -19,6 +19,7 @@ const PlusLibraryCollection = () => {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const qc = useQueryClient();
+  useEffect(() => { markPlusSurfaceSeen("library"); }, []);
   const { user } = useAuth();
   const [opening, setOpening] = useState<string | null>(null);
   const [player, setPlayer] = useState<{ url: string; title: string } | null>(null);
