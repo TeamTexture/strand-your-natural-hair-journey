@@ -93,6 +93,7 @@ import BrandExtendOffer from "./pages/brand/BrandExtendOffer";
 import BrandCheckoutSuccess from "./pages/brand/BrandCheckoutSuccess";
 import BrandSubscribe from "./pages/brand/BrandSubscribe";
 import BrandBilling from "./pages/brand/BrandBilling";
+import BrandProfileEditor from "./pages/brand/BrandProfileEditor";
 import OfferPage from "./pages/OfferPage";
 import BrandProductPage from "./pages/BrandProductPage";
 import AdminBrandOffers from "./pages/admin/AdminBrandOffers";
