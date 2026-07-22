@@ -18,6 +18,8 @@ import { NextWashTipCard } from "@/components/NextWashTipCard";
 import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 import BrandBanner from "@/components/BrandBanner";
+import { useDynamicWashTip } from "@/hooks/useDynamicWashTip";
+import { Sparkles } from "lucide-react";
 
 
 const monthNames = [
@@ -437,6 +439,8 @@ const WashDayHub = () => {
         {latestTip && (
           <NextWashTipCard action={latestTip.action} why={latestTip.why} />
         )}
+        <DynamicWashTipCard />
+
         <div id="wash-calendar">
           <Calendar
             year={view.year}
@@ -618,4 +622,37 @@ const WashDayHub = () => {
   );
 };
 
+const DynamicWashTipCard = () => {
+  const { data: tip, isLoading } = useDynamicWashTip();
+  if (isLoading && !tip) return null;
+  if (!tip) return null;
+  return (
+    <SurfaceCard>
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
+          <Sparkles className="size-4 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
+            Your wash day tip
+          </p>
+          <p className="font-display text-[15px] leading-snug mt-1 break-words">
+            {tip.headline}
+          </p>
+          <p className="font-body text-[12.5px] leading-relaxed text-foreground/80 mt-2 break-words">
+            {tip.why}
+          </p>
+          {tip.technique && (
+            <p className="font-body text-[12.5px] leading-relaxed text-foreground/80 mt-2 break-words">
+              <span className="font-semibold">How: </span>
+              {tip.technique}
+            </p>
+          )}
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+};
+
 export default WashDayHub;
+

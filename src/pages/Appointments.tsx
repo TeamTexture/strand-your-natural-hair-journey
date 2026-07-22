@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, Search, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -8,11 +8,13 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import AppointmentCard from "@/components/AppointmentCard";
 import type { AppointmentCardData } from "@/components/AppointmentCard";
+import EnquiriesListInline from "@/components/EnquiriesListInline";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,9 +77,20 @@ const ApptPhotos = ({ appointmentId }: { appointmentId: string }) => {
   );
 };
 
+type Tab = "appointments" | "enquiries";
+
 const Appointments = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get("tab") === "enquiries" ? "enquiries" : "appointments";
+  const setTab = (next: Tab) => {
+    if (next === tab) return;
+    const p = new URLSearchParams(params);
+    if (next === "appointments") p.delete("tab");
+    else p.set("tab", next);
+    setParams(p, { replace: true });
+  };
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
@@ -157,6 +170,33 @@ const Appointments = () => {
         onBack={() => navigate("/profile")}
       />
 
+      {/* Segmented control */}
+      <div className="px-5 pt-3">
+        <div className="flex p-1 rounded-full bg-secondary/60 border border-border">
+          {(["appointments", "enquiries"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setTab(k)}
+              className={cn(
+                "flex-1 h-9 rounded-full text-[12px] font-body font-semibold transition-colors",
+                tab === k
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {k === "appointments" ? "Appointments" : "Enquiries sent"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === "enquiries" ? (
+        <div className="px-5 pt-4 pb-8">
+          <EnquiriesListInline />
+        </div>
+      ) : (
+      <>
       <div className="px-5 pt-3 pb-2">
         <Button variant="gold" size="pill" onClick={goLog} className="w-full">
           + Log Appointment
@@ -271,6 +311,10 @@ const Appointments = () => {
           <ChevronRight className="size-5 text-primary shrink-0" />
         </button>
       </div>
+      </>
+      )}
+
+
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
