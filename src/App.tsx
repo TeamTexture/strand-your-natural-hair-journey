@@ -137,6 +137,21 @@ import Help from "./pages/Help";
 import Contact from "./pages/Contact";
 import OAuthConsent from "./pages/OAuthConsent";
 
+// STRAND+
+import PlusUpgrade from "./pages/PlusUpgrade";
+import PlusWelcome from "./pages/PlusWelcome";
+import Forum from "./pages/Forum";
+import ForumNewThread from "./pages/ForumNewThread";
+import ForumThread from "./pages/ForumThread";
+import MemberProfile from "./pages/MemberProfile";
+import PlusLibrary from "./pages/PlusLibrary";
+import PlusLibraryCollection from "./pages/PlusLibraryCollection";
+import PlusEvents from "./pages/PlusEvents";
+import PlusEventDetail from "./pages/PlusEventDetail";
+import AdminModeration from "./pages/admin/AdminModeration";
+import AdminLibrary from "./pages/admin/AdminLibrary";
+import AdminEvents from "./pages/admin/AdminEvents";
+
 // Global react-query defaults — Home (and every other screen) relies on
 // queries NOT quietly refetching under the user while they're reading. Any
 // hook that legitimately needs polling or focus-refresh opts in explicitly.
@@ -406,6 +421,22 @@ const App = () => (
               <Route path="/admin/brand-offers" element={<RoleGate allow={["admin"]}><AdminBrandOffers /></RoleGate>} />
               <Route path="/admin/brand-offers/:id" element={<RoleGate allow={["admin"]}><AdminBrandOfferReview /></RoleGate>} />
               <Route path="/admin/brand-calendar" element={<RoleGate allow={["admin"]}><AdminBrandCalendar /></RoleGate>} />
+              <Route path="/admin/moderation" element={<RoleGate allow={["admin"]}><AdminModeration /></RoleGate>} />
+              <Route path="/admin/library" element={<RoleGate allow={["admin"]}><AdminLibrary /></RoleGate>} />
+              <Route path="/admin/events" element={<RoleGate allow={["admin"]}><AdminEvents /></RoleGate>} />
+
+              {/* STRAND+ */}
+              <Route path="/plus/upgrade" element={<Protected><PlusUpgrade /></Protected>} />
+              <Route path="/plus/welcome" element={<Protected><PlusWelcome /></Protected>} />
+              <Route path="/forum" element={<Protected><Forum /></Protected>} />
+              <Route path="/forum/new" element={<Protected><ForumNewThread /></Protected>} />
+              <Route path="/forum/:id" element={<Protected><ForumThread /></Protected>} />
+              <Route path="/member/:userId" element={<Protected><MemberProfile /></Protected>} />
+              <Route path="/plus/library" element={<Protected><PlusLibrary /></Protected>} />
+              <Route path="/plus/library/:id" element={<Protected><PlusLibraryCollection /></Protected>} />
+              <Route path="/plus/events" element={<Protected><PlusEvents /></Protected>} />
+              <Route path="/plus/events/:id" element={<Protected><PlusEventDetail /></Protected>} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
 
 

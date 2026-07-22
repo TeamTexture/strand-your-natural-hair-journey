@@ -2,8 +2,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 
-// Public endpoint — Stripe cannot present a Supabase JWT.
-// Configure verify_jwt = false in config.toml.
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
@@ -17,12 +15,10 @@ Deno.serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
-
   const signature = req.headers.get("stripe-signature");
   if (!signature) return new Response("Missing signature", { status: 400 });
 
   const raw = await req.text();
-
   let event: Stripe.Event;
   try {
     event = await stripe.webhooks.constructEventAsync(raw, signature, webhookSecret);
@@ -54,12 +50,10 @@ Deno.serve(async (req) => {
         }
         break;
       }
-      default:
-        break;
+      default: break;
     }
     return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+      status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("webhook handler error", e);
@@ -67,14 +61,19 @@ Deno.serve(async (req) => {
   }
 });
 
+function tierForPrice(priceId: string | null): "standard" | "plus" {
+  if (!priceId) return "standard";
+  const plusId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
+  if (plusId && priceId === plusId) return "plus";
+  return "standard";
+}
+
 async function upsertFromSubscription(
   admin: ReturnType<typeof createClient>,
   stripe: Stripe,
   sub: Stripe.Subscription,
 ) {
   const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-
-  // Metadata carries consumer_user_id — set at checkout via subscription_data.metadata.
   let userId = (sub.metadata?.consumer_user_id as string | undefined) ?? undefined;
   if (!userId) {
     const customer = await stripe.customers.retrieve(customerId);
@@ -84,20 +83,16 @@ async function upsertFromSubscription(
   }
   if (!userId) {
     const { data } = await admin
-      .from("consumer_subscriptions")
-      .select("user_id")
-      .eq("stripe_customer_id", customerId)
-      .maybeSingle();
+      .from("consumer_subscriptions").select("user_id")
+      .eq("stripe_customer_id", customerId).maybeSingle();
     userId = (data as any)?.user_id;
   }
-  if (!userId) {
-    console.warn("subscription without consumer_user_id", sub.id);
-    return;
-  }
+  if (!userId) { console.warn("subscription without consumer_user_id", sub.id); return; }
 
   const item = sub.items.data[0];
   const priceId = item?.price?.id ?? null;
   const periodEnd = (item as any)?.current_period_end ?? (sub as any).current_period_end ?? null;
+  const tier = tierForPrice(priceId);
 
   await admin.from("consumer_subscriptions").upsert(
     {
@@ -108,6 +103,7 @@ async function upsertFromSubscription(
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       price_id: priceId,
       cancel_at_period_end: sub.cancel_at_period_end ?? false,
+      tier,
     },
     { onConflict: "user_id" },
   );

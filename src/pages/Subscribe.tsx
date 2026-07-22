@@ -90,6 +90,13 @@ const REASSURANCE = [
   { icon: Sparkles, title: "Always improving", body: "New features and refinements every month, included at no extra cost." },
 ];
 
+const PLUS_EXTRAS = [
+  "Community forum — for members only",
+  "Member-to-member chat",
+  "Courses, ebooks & videos library",
+  "Members-only events (digital & in person)",
+];
+
 const Subscribe = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -105,6 +112,7 @@ const Subscribe = () => {
     subscription, stripeActive, complimentary, isAdminOrPro, hasAccess, isLoading, refetch,
   } = useConsumerSubscription();
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
+  const [tier, setTier] = useState<"standard" | "plus">("standard");
 
   const priceQ = useQuery({
     queryKey: ["platform_settings", "consumer_monthly_price_gbp"],
@@ -149,7 +157,7 @@ const Subscribe = () => {
     } catch {}
     try {
       const { data, error } = await supabase.functions.invoke("consumer-checkout", {
-        body: { next: returnTo },
+        body: { next: returnTo, tier },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout URL missing");
@@ -173,9 +181,11 @@ const Subscribe = () => {
     }
   };
 
-  const price = priceQ.data ?? 9.99;
+  const basePrice = priceQ.data ?? 9.99;
+  const price = tier === "plus" ? 14.99 : basePrice;
   const perDay = (price / 30).toFixed(2);
   const returnTo = isSafeInternalPath(nextPath) ? nextPath : isSafeInternalPath(storedNextPath) ? storedNextPath : "/home";
+
 
   const CtaBlock = () => {
     if (isLoading) {
@@ -345,11 +355,49 @@ const Subscribe = () => {
           })}
         </div>
 
+        {/* Tier toggle */}
+        {!hasAccess && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 rounded-full bg-muted/40 border border-border p-1">
+              <button
+                type="button"
+                onClick={() => setTier("standard")}
+                className={cn(
+                  "h-9 rounded-full text-[12px] font-body font-semibold transition-colors",
+                  tier === "standard" ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/70",
+                )}
+              >
+                STRAND · £9.99
+              </button>
+              <button
+                type="button"
+                onClick={() => setTier("plus")}
+                className={cn(
+                  "h-9 rounded-full text-[12px] font-body font-semibold transition-colors inline-flex items-center justify-center gap-1",
+                  tier === "plus" ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/70",
+                )}
+              >
+                <Sparkles className="size-3" /> STRAND+ · £14.99
+              </button>
+            </div>
+            {tier === "plus" && (
+              <ul className="rounded-[14px] border border-primary/30 bg-primary/5 p-3 space-y-1.5">
+                {PLUS_EXTRAS.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-[12px] font-body text-foreground/85">
+                    <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* Price card */}
         <SurfaceCard tone="gold" className="!p-5 space-y-4 text-center">
           <div>
             <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
-              Monthly membership
+              {tier === "plus" ? "STRAND+ membership" : "Monthly membership"}
             </p>
             <div className="mt-2 flex items-baseline justify-center gap-1.5">
               <span className="font-display text-[44px] font-semibold leading-none text-foreground">
@@ -358,12 +406,12 @@ const Subscribe = () => {
               <span className="font-body text-sm text-foreground/70">/ month</span>
             </div>
             <p className="text-[12px] font-body text-foreground/70 mt-1.5 leading-snug">
-              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span> — less
-              than a single deep-conditioning treatment, every month for life.
+              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span>.
             </p>
           </div>
           <CtaBlock />
         </SurfaceCard>
+
 
         <p className="text-[11px] text-foreground/50 font-body text-center leading-relaxed">
           Payments processed securely by Stripe. Your data is never deleted if your

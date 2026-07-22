@@ -4,16 +4,12 @@ import Stripe from "npm:stripe@17";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Tier = "standard" | "plus";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
@@ -26,43 +22,23 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
     if (claimsErr || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
-
-    const user = claimsData.claims;
-    const userId = user.sub as string;
-    const email = (user.email as string | undefined) ?? undefined;
-
-    const body = await req.json().catch(() => ({})) as { next?: string; tier?: Tier };
-    const nextPath = isSafeInternalPath(body.next) ? body.next : "/home";
-    const tier: Tier = body.tier === "plus" ? "plus" : "standard";
+    const userId = claimsData.claims.sub as string;
+    const email = (claimsData.claims.email as string | undefined) ?? undefined;
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
     if (!stripeKey) return json({ error: "Stripe not configured" }, 500);
+    if (!plusPriceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
 
+    const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    let priceId = "";
-    if (tier === "plus") {
-      priceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
-      if (!priceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
-    } else {
-      priceId = Deno.env.get("STRIPE_CONSUMER_PRICE_ID") ?? "";
-      if (!priceId) {
-        const { data: ps } = await admin
-          .from("platform_settings").select("value")
-          .eq("key", "stripe_consumer_price_id").maybeSingle();
-        priceId = (ps?.value as string | null) ?? "";
-      }
-      if (!priceId) return json({ error: "Stripe price id not configured" }, 500);
-    }
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
-
     const { data: existing } = await admin
       .from("consumer_subscriptions")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, stripe_subscription_id, status")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -77,33 +53,40 @@ Deno.serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") ?? "https://mystrand.co.uk";
-    const nextParam = encodeURIComponent(nextPath);
-    const successUrl = tier === "plus"
-      ? `${origin}/plus/welcome?checkout=success&next=${nextParam}`
-      : `${origin}/subscribe?checkout=success&next=${nextParam}`;
+
+    // If they have an ACTIVE standard sub, swap the price in-place (pro-rata per Stripe defaults) and skip checkout.
+    if (existing?.stripe_subscription_id && (existing.status === "active" || existing.status === "trialing")) {
+      const sub = await stripe.subscriptions.retrieve(existing.stripe_subscription_id);
+      const itemId = sub.items.data[0]?.id;
+      if (itemId) {
+        await stripe.subscriptions.update(existing.stripe_subscription_id, {
+          items: [{ id: itemId, price: plusPriceId }],
+          proration_behavior: "create_prorations",
+          metadata: { ...(sub.metadata ?? {}), tier: "plus", consumer_user_id: userId },
+        });
+        return json({ url: `${origin}/plus/welcome?upgraded=1` });
+      }
+    }
+
+    // Otherwise open a fresh checkout for the plus price.
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl,
-      cancel_url: `${origin}/subscribe?checkout=cancelled&next=${nextParam}`,
+      line_items: [{ price: plusPriceId, quantity: 1 }],
+      success_url: `${origin}/plus/welcome?checkout=success`,
+      cancel_url: `${origin}/plus/upgrade?checkout=cancelled`,
       allow_promotion_codes: true,
-      subscription_data: { metadata: { consumer_user_id: userId, tier } },
+      subscription_data: { metadata: { consumer_user_id: userId, tier: "plus" } },
     });
-
     return json({ url: session.url });
   } catch (e) {
-    console.error("consumer-checkout error", e);
+    console.error("create-consumer-upgrade error", e);
     return json({ error: (e as Error).message }, 500);
   }
 });
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-function isSafeInternalPath(path: unknown): path is string {
-  return typeof path === "string" && path.startsWith("/") && !path.startsWith("//");
 }

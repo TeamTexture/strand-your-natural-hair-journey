@@ -11,6 +11,7 @@ export type ConsumerSubscription = {
   cancel_at_period_end: boolean;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  tier?: "standard" | "plus" | null;
 };
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
