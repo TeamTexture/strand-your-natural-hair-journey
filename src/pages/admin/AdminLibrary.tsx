@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { tusUpload } from "@/lib/tusUpload";
+import VideoThumbnailPicker from "@/components/VideoThumbnailPicker";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
 const ITEM_KINDS = ["video", "pdf", "text", "audio", "image"] as const;
