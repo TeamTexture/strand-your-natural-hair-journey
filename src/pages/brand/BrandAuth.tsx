@@ -136,8 +136,37 @@ const BrandAuth = () => {
               <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Your name" />
             </div>
             <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">About your brand *</Label>
+              <textarea
+                value={about}
+                onChange={(e) => setAbout(e.target.value)}
+                required
+                minLength={30}
+                rows={4}
+                placeholder="What you make, who you make it for, and what makes it worth a place in a natural hair routine."
+                className="w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60 font-body"
+              />
+              <p className="text-[10.5px] text-muted-foreground font-body">
+                Shown on your public brand page. {about.trim().length}/30 min.
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Website</Label>
               <Input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Instagram</Label>
+                <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="handle" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">TikTok</Label>
+                <Input value={tiktok} onChange={(e) => setTiktok(e.target.value)} placeholder="handle" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Public contact email</Label>
+              <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="hello@yourbrand.com" />
             </div>
           </>
         )}
