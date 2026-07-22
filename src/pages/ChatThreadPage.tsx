@@ -115,8 +115,27 @@ const SystemBubble = ({ m, isPro }: { m: ChatMessage; isPro: boolean }) => {
   );
 };
 
-const MessageBubble = ({ m, mine }: { m: ChatMessage; mine: boolean }) => (
-  <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-1.5`}>
+const MessageBubble = ({
+  m,
+  mine,
+  senderName,
+  showName,
+}: {
+  m: ChatMessage;
+  mine: boolean;
+  senderName: string;
+  showName: boolean;
+}) => (
+  <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1.5`}>
+    {showName && (
+      <span
+        className={`text-[10.5px] font-body font-semibold mb-0.5 px-1 ${
+          mine ? "text-primary" : "text-brown"
+        }`}
+      >
+        {senderName}
+      </span>
+    )}
     <div
       className={`max-w-[80%] px-3.5 py-2 rounded-[16px] text-sm font-body leading-snug whitespace-pre-wrap break-words ${
         mine
