@@ -428,15 +428,16 @@ const AdminHub = () => {
             icon={Megaphone}
             title="Brand offers"
             description="Review, approve or decline brand campaigns"
-            badge={(stats?.brandOfferRequests ?? 0) + revisionCount}
+            badge={(stats?.totalRequests ?? 0) + revisionCount}
             badgeTone={revisionCount > 0 ? "urgent" : "default"}
             context={
               stats
-                ? `${stats.liveBrandOffers} live · ${stats.brandOfferRequests} awaiting review${
+                ? `${stats.totalLive} live · ${stats.totalRequests} awaiting review${
                     revisionCount > 0 ? ` · ${revisionCount} urgent revision${revisionCount === 1 ? "" : "s"}` : ""
                   }`
                 : undefined
             }
+
             onClick={() => nav("/admin/brand-offers")}
           />
 
