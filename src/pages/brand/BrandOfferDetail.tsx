@@ -21,6 +21,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
+import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
+import { Users } from "lucide-react";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
@@ -41,6 +43,18 @@ const BrandOfferDetail = () => {
   const [heroOpen, setHeroOpen] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const deleteOffer = useDeleteBrandOffer();
+  const markSeen = useMarkOfferInterestSeen();
+  const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
+  const interest = id ? interestMap[id] : undefined;
+
+  // When the owner (or admin) opens an ended offer, clear the "new interest"
+  // badge on the past card by stamping brand_last_interest_seen_at = now.
+  useEffect(() => {
+    if (offer && deriveBrandOfferStatus(offer) === "ended" && (interest?.unread ?? 0) > 0) {
+      markSeen.mutate(offer.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offer?.id, interest?.unread]);
 
   useEffect(() => {
     if (!offer?.hero_image_path) { setHeroUrl(null); return; }
@@ -254,6 +268,22 @@ const BrandOfferDetail = () => {
         <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
           Taps = banner opened. Code copies = discount code copied. Link clicks = tapped through to your site.
         </p>
+
+        {derived === "ended" && (interest?.total ?? 0) > 0 && (
+          <SurfaceCard className="bg-primary/5 border-primary/30">
+            <div className="flex items-start gap-2.5">
+              <Users className="size-4 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px]">
+                  {interest?.total} member{interest?.total === 1 ? "" : "s"} interested since expiry
+                </p>
+                <p className="text-[11.5px] text-foreground/70 font-body mt-0.5 leading-snug">
+                  These members tapped "Show interest" on your ended offer. Consider running a new campaign to reach them again.
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
 
         {allRevisions.length > 0 && (
           <>

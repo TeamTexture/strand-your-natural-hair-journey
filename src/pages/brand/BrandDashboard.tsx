@@ -8,10 +8,12 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import PastOfferCard from "@/components/brand/PastOfferCard";
 import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { Button } from "@/components/ui/button";
 import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
+import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useOwnerMode, ownerHomeRoute, ownerNewRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
@@ -59,6 +61,11 @@ const BrandDashboard = () => {
   const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
   const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions(offers.map((o) => o.id));
   const { data: revisionCounts = {} } = useOfferRevisionCounts(offers.map((o) => o.id));
+  const pastIds = useMemo(
+    () => offers.filter((o) => ["ended", "rejected", "cancelled"].includes(deriveBrandOfferStatus(o))).map((o) => o.id),
+    [offers],
+  );
+  const { data: interestCounts = {} } = useOfferInterestCounts(pastIds);
 
   // One ticking clock drives the "expiring soon" banner + inline chips so the
   // brand sees the countdown update live without every offer card holding its
@@ -305,7 +312,29 @@ const BrandDashboard = () => {
         {past.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Past</SectionLabel>
-            <div className="space-y-2">{past.map(renderOffer)}</div>
+            <div className="grid grid-cols-1 gap-2.5">
+              {past.map((o) => {
+                const placements = o.brand_offer_placements ?? [];
+                const dates = placements.map((p) => p.placement_date).sort();
+                const interest = interestCounts[o.id];
+                return (
+                  <PastOfferCard
+                    key={o.id}
+                    headline={o.headline}
+                    heroImagePath={o.hero_image_path}
+                    slots={placements.map((p) => p.slot)}
+                    startDate={dates[0]}
+                    endDate={dates[dates.length - 1]}
+                    totals={totals[o.id]}
+                    submitter={profile?.brand_name ?? undefined}
+                    amountPaidPence={o.total_price_pence}
+                    interestTotal={interest?.total ?? 0}
+                    interestUnread={interest?.unread ?? 0}
+                    onOpen={() => nav(ownerOfferRoute(ownerMode, o.id))}
+                  />
+                );
+              })}
+            </div>
           </div>
         )}
 
