@@ -127,13 +127,6 @@ const AdminLibrary = () => {
               const open = expanded === c.id;
               return (
                 <li key={c.id} className="rounded-[14px] border border-border bg-card overflow-hidden">
-                  <div className="p-3 flex items-center gap-3">
-                    <button
-                      onClick={() => setExpanded(open ? null : c.id)}
-                      className="flex-1 min-w-0 text-left flex items-center gap-2"
-                    >
-              return (
-                <li key={c.id} className="rounded-[14px] border border-border bg-card overflow-hidden">
                   <div className="p-3 flex items-start gap-2">
                     <button
                       onClick={() => setExpanded(open ? null : c.id)}
