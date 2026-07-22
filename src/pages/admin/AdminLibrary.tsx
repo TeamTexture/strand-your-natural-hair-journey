@@ -162,6 +162,9 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   const [itemUrl, setItemUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const dropInputRef = useRef<HTMLInputElement | null>(null);
 
   const q = useQuery({
     queryKey: ["admin_content_items", collectionId],
@@ -177,27 +180,34 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
   });
 
   const reset = () => {
-    setItemTitle(""); setItemBody(""); setItemUrl(""); setFile(null); setShowAdd(false);
+    setItemTitle(""); setItemBody(""); setItemUrl(""); setFile(null); setShowAdd(false); setProgress(null);
   };
+
+  const uploadFileToStorage = useCallback(async (f: File): Promise<string> => {
+    const safe = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${collectionId}/${Date.now()}_${safe}`;
+    setProgress(0);
+    await tusUpload({
+      bucket: "strand-plus-library",
+      path,
+      file: f,
+      contentType: f.type || undefined,
+      onProgress: (p) => setProgress(p.percent),
+    });
+    setProgress(100);
+    return path;
+  }, [collectionId]);
 
   const addItem = async () => {
     if (!itemTitle.trim()) { toast.error("Title required"); return; }
     if (itemKind !== "text" && !file && !itemUrl.trim()) {
-      toast.error("Upload a file or provide an external URL");
+      toast.error("Drop a file or provide an external URL");
       return;
     }
     setBusy(true);
     try {
       let storagePath: string | null = null;
-      if (file) {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const path = `${collectionId}/${Date.now()}_${safe}`;
-        const { error: upErr } = await supabase.storage
-          .from("strand-plus-library")
-          .upload(path, file, { upsert: false, contentType: file.type || undefined });
-        if (upErr) throw upErr;
-        storagePath = path;
-      }
+      if (file) storagePath = await uploadFileToStorage(file);
       const { error } = await supabase.from("content_items").insert({
         collection_id: collectionId,
         kind: itemKind,
@@ -214,7 +224,45 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
       toast.error((e as Error).message ?? "Upload failed");
     } finally {
       setBusy(false);
+      setProgress(null);
     }
+  };
+
+  // Fast path: drop one or more files directly onto the collection to upload
+  // and create items automatically (title = filename, kind = auto).
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    if (!list.length) return;
+    setBusy(true);
+    try {
+      for (const f of list) {
+        const kind = guessKindFromFile(f);
+        const title = f.name.replace(/\.[^.]+$/, "");
+        try {
+          const path = await uploadFileToStorage(f);
+          const { error } = await supabase.from("content_items").insert({
+            collection_id: collectionId,
+            kind,
+            title,
+            storage_path: path,
+          });
+          if (error) throw error;
+          toast.success(`Uploaded ${f.name}`);
+        } catch (e) {
+          toast.error(`${f.name}: ${(e as Error).message ?? "upload failed"}`);
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["admin_content_items", collectionId] });
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  }, [collectionId, qc, uploadFileToStorage]);
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
   };
 
   const removeItem = async (id: string, path: string | null) => {
