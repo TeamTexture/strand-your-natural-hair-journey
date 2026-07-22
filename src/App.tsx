@@ -69,6 +69,8 @@ import ProEnquiries from "./pages/pro/ProEnquiries";
 import ProAppointments from "./pages/pro/ProAppointments";
 
 import MyEnquiries from "./pages/MyEnquiries";
+import Messages from "./pages/Messages";
+import ChatThreadPage from "./pages/ChatThreadPage";
 import DataAccess from "./pages/DataAccess";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminAudit from "./pages/admin/AdminAudit";
