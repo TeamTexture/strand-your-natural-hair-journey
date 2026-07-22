@@ -3,9 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Resolves a friendly first name for professional greetings.
+ * Resolves both a full display name and a first name for professional greetings.
  * Priority: pro_profiles.display_name → profiles.display_name → pro_applications.full_name.
- * Returns null when none available (callers should render a neutral "Welcome back" fallback).
+ * Returns { firstName, fullName } — either can be null when nothing is on file.
  * Never returns an email address.
  */
 export function useProGreetingName() {
@@ -15,7 +15,7 @@ export function useProGreetingName() {
     queryKey: ["pro_greeting_name", user?.id],
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
-    queryFn: async (): Promise<string | null> => {
+    queryFn: async (): Promise<{ firstName: string | null; fullName: string | null }> => {
       const uid = user!.id;
 
       const [proProf, prof, app] = await Promise.all([
@@ -30,21 +30,25 @@ export function useProGreetingName() {
           .maybeSingle(),
       ]);
 
-      const pick = (v?: string | null) => {
+      const clean = (v?: string | null) => {
         const s = (v ?? "").trim();
-        if (!s) return null;
-        const first = s.split(/\s+/)[0];
-        return first || null;
+        return s.length ? s : null;
       };
 
-      return (
-        pick(proProf.data?.display_name) ??
-        pick(prof.data?.display_name) ??
-        pick(app.data?.full_name) ??
-        null
-      );
+      const full =
+        clean(proProf.data?.display_name) ??
+        clean(prof.data?.display_name) ??
+        clean(app.data?.full_name) ??
+        null;
+
+      const first = full ? full.split(/\s+/)[0] : null;
+      return { firstName: first, fullName: full };
     },
   });
 
-  return { firstName: query.data ?? null, isLoading: query.isLoading };
+  return {
+    firstName: query.data?.firstName ?? null,
+    fullName: query.data?.fullName ?? null,
+    isLoading: query.isLoading,
+  };
 }
