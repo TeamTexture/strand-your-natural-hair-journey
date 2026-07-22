@@ -396,6 +396,7 @@ const CollectionItems = ({ collectionId }: { collectionId: string }) => {
               onDelete={() => removeItem(it.id, (it as any).storage_path)}
               onCoverUpload={(blob) => uploadThumbnail(it.id, blob)}
               onPickFrame={(url) => setThumbPending({ itemId: it.id, sourceUrl: url })}
+              onSaveDescription={(body) => saveDescription(it.id, body)}
             />
           ))}
           {q.data?.length === 0 && (
