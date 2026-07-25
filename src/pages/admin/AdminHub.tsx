@@ -522,6 +522,12 @@ const AdminHub = () => {
             onClick={() => nav("/admin/library")}
           />
           <NavCard
+            icon={CalendarDays}
+            title="STRAND+ Events"
+            description="Create and manage digital and in-person events"
+            onClick={() => nav("/admin/events")}
+          />
+          <NavCard
             icon={ShieldAlert}
             title="Forum moderation"
             description="Hide, delete, lock or reply as STRAND Team"
