@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import DateTimePicker from "@/components/DateTimePicker";
 
 const AdminEvents = () => {
   const qc = useQueryClient();
