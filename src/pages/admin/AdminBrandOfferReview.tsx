@@ -282,6 +282,9 @@ const AdminBrandOfferReview = () => {
       toast.success(`Relaunched free for ${days} day${days === 1 ? "" : "s"}`);
       qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
       qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
+      qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["brand-taken-placements"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Relaunch failed");
     } finally {
