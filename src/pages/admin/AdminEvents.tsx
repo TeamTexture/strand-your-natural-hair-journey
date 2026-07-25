@@ -174,7 +174,7 @@ const AdminEvents = () => {
 };
 
 type EventRow = {
-  id: string; title: string; kind: string; starts_at: string; cancelled_at: string | null;
+  id: string; title: string; kind: string; starts_at: string; cancelled_at: string | null; cover_path: string | null;
 };
 const RsvpRow = ({ event, onToggle, onDelete }: { event: EventRow; onToggle: () => void; onDelete: () => void }) => {
   const rsvpsQ = useQuery({
