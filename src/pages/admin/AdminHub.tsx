@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Library,
   ShieldAlert,
+  CalendarDays,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -519,6 +520,12 @@ const AdminHub = () => {
             title="STRAND+ Library"
             description="Upload courses, ebooks, videos and articles"
             onClick={() => nav("/admin/library")}
+          />
+          <NavCard
+            icon={CalendarDays}
+            title="STRAND+ Events"
+            description="Create and manage digital and in-person events"
+            onClick={() => nav("/admin/events")}
           />
           <NavCard
             icon={ShieldAlert}
