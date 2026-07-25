@@ -185,8 +185,10 @@ const AdminBrandOfferReview = () => {
   const [heroOpen, setHeroOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [submitterName, setSubmitterName] = useState<string | null>(null);
-  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
-  const [relaunchStart, setRelaunchStart] = useState<string>(tomorrow);
+  // Default to TODAY (Europe/London) so an admin relaunch is visible to users
+  // immediately — the active-offer query filters on starts_on <= today.
+  const londonToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
+  const [relaunchStart, setRelaunchStart] = useState<string>(londonToday);
   const [relaunchDays, setRelaunchDays] = useState<number>(7);
   const [relaunching, setRelaunching] = useState(false);
 
@@ -280,6 +282,9 @@ const AdminBrandOfferReview = () => {
       toast.success(`Relaunched free for ${days} day${days === 1 ? "" : "s"}`);
       qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
       qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
+      qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["brand-taken-placements"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Relaunch failed");
     } finally {
