@@ -1017,7 +1017,6 @@ export type Database = {
           address: string | null
           cancelled_at: string | null
           capacity: number | null
-          cover_image_path: string | null
           cover_path: string | null
           created_at: string
           created_by: string | null
@@ -1035,7 +1034,6 @@ export type Database = {
           address?: string | null
           cancelled_at?: string | null
           capacity?: number | null
-          cover_image_path?: string | null
           cover_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -1053,7 +1051,6 @@ export type Database = {
           address?: string | null
           cancelled_at?: string | null
           capacity?: number | null
-          cover_image_path?: string | null
           cover_path?: string | null
           created_at?: string
           created_by?: string | null

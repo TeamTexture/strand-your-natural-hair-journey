@@ -1,0 +1,1 @@
+ALTER TABLE public.events DROP COLUMN IF EXISTS cover_image_path;
