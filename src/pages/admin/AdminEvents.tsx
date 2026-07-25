@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Loader2, Users } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, ImagePlus, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import LoadingDot from "@/components/LoadingDot";
+import EventCoverImage from "@/components/EventCoverImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const AdminEvents = () => {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [showNew, setShowNew] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -24,7 +27,14 @@ const AdminEvents = () => {
   const [address, setAddress] = useState("");
   const [joinUrl, setJoinUrl] = useState("");
   const [capacity, setCapacity] = useState<string>("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const onCoverPick = (file: File | null) => {
+    setCoverFile(file);
+    setCoverPreview(file ? URL.createObjectURL(file) : null);
+  };
 
   const q = useQuery({
     queryKey: ["admin_events"],
@@ -35,24 +45,46 @@ const AdminEvents = () => {
     },
   });
 
+  const uploadCover = async (): Promise<string | null> => {
+    if (!coverFile || !user) return null;
+    const ext = (coverFile.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from("event-covers").upload(path, coverFile, {
+      contentType: coverFile.type || "image/jpeg",
+      upsert: false,
+    });
+    if (error) throw error;
+    return path;
+  };
+
   const create = async () => {
     if (!title || !startsAt) { toast.error("Title and start required"); return; }
     setBusy(true);
-    const { error } = await supabase.from("events").insert({
-      title: title.trim(),
-      description: description.trim(),
-      kind,
-      starts_at: new Date(startsAt).toISOString(),
-      ends_at: endsAt ? new Date(endsAt).toISOString() : null,
-      venue: kind === "in_person" ? (venue || null) : null,
-      address: kind === "in_person" ? (address || null) : null,
-      join_url: kind === "digital" ? (joinUrl || null) : null,
-      capacity: capacity ? Number(capacity) : null,
-    });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    setTitle(""); setDescription(""); setStartsAt(""); setEndsAt(""); setVenue(""); setAddress(""); setJoinUrl(""); setCapacity(""); setShowNew(false);
-    qc.invalidateQueries({ queryKey: ["admin_events"] });
+    try {
+      const cover_path = await uploadCover();
+      const { error } = await supabase.from("events").insert({
+        title: title.trim(),
+        description: description.trim(),
+        kind,
+        starts_at: new Date(startsAt).toISOString(),
+        ends_at: endsAt ? new Date(endsAt).toISOString() : null,
+        venue: kind === "in_person" ? (venue || null) : null,
+        address: kind === "in_person" ? (address || null) : null,
+        join_url: kind === "digital" ? (joinUrl || null) : null,
+        capacity: capacity ? Number(capacity) : null,
+        cover_path,
+      });
+      if (error) throw error;
+      setTitle(""); setDescription(""); setStartsAt(""); setEndsAt(""); setVenue(""); setAddress(""); setJoinUrl(""); setCapacity("");
+      setCoverFile(null); setCoverPreview(null);
+      setShowNew(false);
+      qc.invalidateQueries({ queryKey: ["admin_events"] });
+      toast.success("Event created");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not create event");
+    } finally {
+      setBusy(false);
+    }
   };
   const remove = async (id: string) => {
     if (!window.confirm("Delete this event?")) return;
@@ -96,6 +128,33 @@ const AdminEvents = () => {
               <div className="space-y-1"><Label>Join link</Label><Input value={joinUrl} onChange={(e) => setJoinUrl(e.target.value)} placeholder="https://…" /></div>
             )}
             <div className="space-y-1"><Label>Capacity <span className="text-foreground/50">(optional)</span></Label><Input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} /></div>
+            <div className="space-y-1.5">
+              <Label>Cover image <span className="text-foreground/50">(optional)</span></Label>
+              {coverPreview ? (
+                <div className="relative rounded-[10px] overflow-hidden border border-border">
+                  <img src={coverPreview} alt="" className="w-full aspect-[16/9] object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => onCoverPick(null)}
+                    className="absolute top-2 right-2 size-7 rounded-full bg-background/90 border border-border flex items-center justify-center"
+                    aria-label="Remove cover"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-24 rounded-[10px] border border-dashed border-border bg-card text-[12px] font-body text-foreground/70 cursor-pointer hover:bg-primary/5">
+                  <ImagePlus className="size-4" />
+                  Add cover image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => onCoverPick(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              )}
+            </div>
             <Button variant="gold" size="pill" className="w-full" onClick={create} disabled={busy}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : "Create event"}
             </Button>
@@ -115,7 +174,7 @@ const AdminEvents = () => {
 };
 
 type EventRow = {
-  id: string; title: string; kind: string; starts_at: string; cancelled_at: string | null;
+  id: string; title: string; kind: string; starts_at: string; cancelled_at: string | null; cover_path: string | null;
 };
 const RsvpRow = ({ event, onToggle, onDelete }: { event: EventRow; onToggle: () => void; onDelete: () => void }) => {
   const rsvpsQ = useQuery({
@@ -130,6 +189,9 @@ const RsvpRow = ({ event, onToggle, onDelete }: { event: EventRow; onToggle: () 
   return (
     <li className="rounded-[14px] border border-border bg-card p-3">
       <div className="flex items-center gap-3">
+        {event.cover_path && (
+          <EventCoverImage path={event.cover_path} className="size-14 rounded-[10px] object-cover shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">
             {event.kind === "digital" ? "Digital" : "In person"}

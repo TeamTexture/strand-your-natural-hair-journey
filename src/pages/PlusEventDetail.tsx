@@ -8,6 +8,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import PlusGate from "@/components/PlusGate";
 import LoadingDot from "@/components/LoadingDot";
+import EventCoverImage from "@/components/EventCoverImage";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -66,7 +67,7 @@ const PlusEventDetail = () => {
           <div className="p-8 text-center text-sm">Not found</div>
         ) : (
           <div className="pb-24">
-            {e.cover_path && <img src={e.cover_path} alt="" className="w-full aspect-[16/9] object-cover" />}
+            {e.cover_path && <EventCoverImage path={e.cover_path} className="w-full aspect-[16/9] object-cover" />}
             <div className="px-5 pt-4 space-y-4">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-[10px] font-body font-bold uppercase tracking-wider text-primary">

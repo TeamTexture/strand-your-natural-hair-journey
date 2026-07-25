@@ -33,6 +33,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import PlusGate from "@/components/PlusGate";
 import LoadingDot from "@/components/LoadingDot";
+import EventCoverImage from "@/components/EventCoverImage";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -286,7 +287,7 @@ const PlusEvents = () => {
                       {isOpen && (
                         <div className="border-t border-border p-4 space-y-3 bg-muted/20">
                           {event.cover_path && (
-                            <img src={event.cover_path} alt="" className="w-full aspect-[16/9] object-cover rounded-[10px]" />
+                            <EventCoverImage path={event.cover_path} className="w-full aspect-[16/9] object-cover rounded-[10px]" />
                           )}
                           {event.kind === "in_person" && (event.venue || event.address) && (
                             <p className="font-body text-[12px] text-foreground/75 flex items-start gap-1.5">
