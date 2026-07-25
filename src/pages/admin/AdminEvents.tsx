@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const AdminEvents = () => {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [showNew, setShowNew] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -26,7 +27,14 @@ const AdminEvents = () => {
   const [address, setAddress] = useState("");
   const [joinUrl, setJoinUrl] = useState("");
   const [capacity, setCapacity] = useState<string>("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const onCoverPick = (file: File | null) => {
+    setCoverFile(file);
+    setCoverPreview(file ? URL.createObjectURL(file) : null);
+  };
 
   const q = useQuery({
     queryKey: ["admin_events"],
@@ -37,24 +45,46 @@ const AdminEvents = () => {
     },
   });
 
+  const uploadCover = async (): Promise<string | null> => {
+    if (!coverFile || !user) return null;
+    const ext = (coverFile.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from("event-covers").upload(path, coverFile, {
+      contentType: coverFile.type || "image/jpeg",
+      upsert: false,
+    });
+    if (error) throw error;
+    return path;
+  };
+
   const create = async () => {
     if (!title || !startsAt) { toast.error("Title and start required"); return; }
     setBusy(true);
-    const { error } = await supabase.from("events").insert({
-      title: title.trim(),
-      description: description.trim(),
-      kind,
-      starts_at: new Date(startsAt).toISOString(),
-      ends_at: endsAt ? new Date(endsAt).toISOString() : null,
-      venue: kind === "in_person" ? (venue || null) : null,
-      address: kind === "in_person" ? (address || null) : null,
-      join_url: kind === "digital" ? (joinUrl || null) : null,
-      capacity: capacity ? Number(capacity) : null,
-    });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    setTitle(""); setDescription(""); setStartsAt(""); setEndsAt(""); setVenue(""); setAddress(""); setJoinUrl(""); setCapacity(""); setShowNew(false);
-    qc.invalidateQueries({ queryKey: ["admin_events"] });
+    try {
+      const cover_path = await uploadCover();
+      const { error } = await supabase.from("events").insert({
+        title: title.trim(),
+        description: description.trim(),
+        kind,
+        starts_at: new Date(startsAt).toISOString(),
+        ends_at: endsAt ? new Date(endsAt).toISOString() : null,
+        venue: kind === "in_person" ? (venue || null) : null,
+        address: kind === "in_person" ? (address || null) : null,
+        join_url: kind === "digital" ? (joinUrl || null) : null,
+        capacity: capacity ? Number(capacity) : null,
+        cover_path,
+      });
+      if (error) throw error;
+      setTitle(""); setDescription(""); setStartsAt(""); setEndsAt(""); setVenue(""); setAddress(""); setJoinUrl(""); setCapacity("");
+      setCoverFile(null); setCoverPreview(null);
+      setShowNew(false);
+      qc.invalidateQueries({ queryKey: ["admin_events"] });
+      toast.success("Event created");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not create event");
+    } finally {
+      setBusy(false);
+    }
   };
   const remove = async (id: string) => {
     if (!window.confirm("Delete this event?")) return;
