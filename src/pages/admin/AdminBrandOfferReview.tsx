@@ -185,6 +185,10 @@ const AdminBrandOfferReview = () => {
   const [heroOpen, setHeroOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [submitterName, setSubmitterName] = useState<string | null>(null);
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const [relaunchStart, setRelaunchStart] = useState<string>(tomorrow);
+  const [relaunchDays, setRelaunchDays] = useState<number>(7);
+  const [relaunching, setRelaunching] = useState(false);
 
   const ownerType: OwnerType = ((offer as { owner_type?: string | null } | undefined)?.owner_type === "pro" ? "pro" : "brand");
   const brandUserId = (offer as { brand_user_id?: string | null } | undefined)?.brand_user_id ?? null;
