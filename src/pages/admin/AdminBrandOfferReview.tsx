@@ -236,6 +236,57 @@ const AdminBrandOfferReview = () => {
     qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
   };
 
+  /** Admin-only free relaunch: reuse the offer's original slot mix (or `home`
+   *  as a fallback) and insert new zero-cost placements starting on the chosen
+   *  date. No payment, no revision — status flips straight back to scheduled/live. */
+  const adminRelaunch = async () => {
+    if (!offer) return;
+    const days = Math.max(1, Math.min(60, Number(relaunchDays) || 0));
+    if (!relaunchStart || !days) {
+      toast.error("Pick a start date and a number of days");
+      return;
+    }
+    setRelaunching(true);
+    try {
+      const originalSlots = Array.from(new Set((offer.brand_offer_placements ?? []).map((p) => p.slot)));
+      const slots = originalSlots.length ? originalSlots : ["home"];
+      const [y, m, d] = relaunchStart.split("-").map(Number);
+      const rows: Array<{ offer_id: string; slot: string; placement_date: string; daily_rate_pence: number }> = [];
+      for (let i = 0; i < days; i++) {
+        const dt = new Date(Date.UTC(y, (m ?? 1) - 1, (d ?? 1) + i));
+        const date = dt.toISOString().slice(0, 10);
+        for (const slot of slots) {
+          rows.push({ offer_id: offer.id, slot, placement_date: date, daily_rate_pence: 0 });
+        }
+      }
+      const { error: pErr } = await supabase
+        .from("brand_offer_placements")
+        .insert(rows as unknown as never);
+      if (pErr) throw pErr;
+
+      const endDate = rows[rows.length - 1].placement_date;
+      const { error: oErr } = await supabase
+        .from("brand_offers")
+        .update({
+          status: "paid_scheduled" as never,
+          starts_on: relaunchStart,
+          ends_on: endDate,
+          rejected_at: null,
+          rejection_reason: null,
+        })
+        .eq("id", offer.id);
+      if (oErr) throw oErr;
+
+      toast.success(`Relaunched free for ${days} day${days === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
+      qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Relaunch failed");
+    } finally {
+      setRelaunching(false);
+    }
+  };
+
   const placements = offer.brand_offer_placements ?? [];
   const bySlot = placements.reduce<Record<string, string[]>>((acc, p) => {
     (acc[p.slot] = acc[p.slot] ?? []).push(p.placement_date);
