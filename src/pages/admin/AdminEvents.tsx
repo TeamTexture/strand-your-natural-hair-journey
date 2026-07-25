@@ -189,6 +189,9 @@ const RsvpRow = ({ event, onToggle, onDelete }: { event: EventRow; onToggle: () 
   return (
     <li className="rounded-[14px] border border-border bg-card p-3">
       <div className="flex items-center gap-3">
+        {event.cover_path && (
+          <EventCoverImage path={event.cover_path} className="size-14 rounded-[10px] object-cover shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-body font-bold uppercase tracking-wider text-primary">
             {event.kind === "digital" ? "Digital" : "In person"}
