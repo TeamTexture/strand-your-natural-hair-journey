@@ -115,9 +115,9 @@ const AdminEvents = () => {
             </div>
             <div className="space-y-1"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div className="space-y-1"><Label>Description</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1"><Label>Starts</Label><Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></div>
-              <div className="space-y-1"><Label>Ends</Label><Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></div>
+            <div className="grid grid-cols-1 gap-2">
+              <div className="space-y-1"><Label>Starts</Label><DateTimePicker value={startsAt} onChange={setStartsAt} placeholder="Pick start date & time" /></div>
+              <div className="space-y-1"><Label>Ends</Label><DateTimePicker value={endsAt} onChange={setEndsAt} placeholder="Pick end date & time" minDate={startsAt ? new Date(startsAt) : undefined} /></div>
             </div>
             {kind === "in_person" ? (
               <>
