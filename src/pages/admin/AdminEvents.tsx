@@ -128,6 +128,33 @@ const AdminEvents = () => {
               <div className="space-y-1"><Label>Join link</Label><Input value={joinUrl} onChange={(e) => setJoinUrl(e.target.value)} placeholder="https://…" /></div>
             )}
             <div className="space-y-1"><Label>Capacity <span className="text-foreground/50">(optional)</span></Label><Input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} /></div>
+            <div className="space-y-1.5">
+              <Label>Cover image <span className="text-foreground/50">(optional)</span></Label>
+              {coverPreview ? (
+                <div className="relative rounded-[10px] overflow-hidden border border-border">
+                  <img src={coverPreview} alt="" className="w-full aspect-[16/9] object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => onCoverPick(null)}
+                    className="absolute top-2 right-2 size-7 rounded-full bg-background/90 border border-border flex items-center justify-center"
+                    aria-label="Remove cover"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-24 rounded-[10px] border border-dashed border-border bg-card text-[12px] font-body text-foreground/70 cursor-pointer hover:bg-primary/5">
+                  <ImagePlus className="size-4" />
+                  Add cover image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => onCoverPick(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              )}
+            </div>
             <Button variant="gold" size="pill" className="w-full" onClick={create} disabled={busy}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : "Create event"}
             </Button>
