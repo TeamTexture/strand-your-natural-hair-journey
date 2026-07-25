@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Props {
-  /** ISO-ish "YYYY-MM-DDTHH:mm" local string, or "" */
+  /** Local "YYYY-MM-DDTHH:mm" 24h string, or "" */
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
@@ -16,38 +16,36 @@ interface Props {
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 
-const parseValue = (v: string): { date: Date | undefined; hh: string; mm: string } => {
-  if (!v) return { date: undefined, hh: "18", mm: "00" };
+const parseValue = (v: string) => {
+  if (!v) return { date: undefined as Date | undefined, h24: 18, minute: "00" };
   const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return { date: undefined, hh: "18", mm: "00" };
-  return { date: d, hh: pad(d.getHours()), mm: pad(d.getMinutes()) };
+  if (Number.isNaN(d.getTime())) return { date: undefined, h24: 18, minute: "00" };
+  return { date: d, h24: d.getHours(), minute: pad(d.getMinutes()) };
 };
 
-const buildValue = (date: Date, hh: string, mm: string): string =>
-  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${hh}:${mm}`;
+const buildValue = (date: Date, h24: number, minute: string): string =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(h24)}:${minute}`;
 
-/** Times at 15-minute intervals from 00:00 → 23:45. */
-const HOURS = Array.from({ length: 24 }, (_, i) => pad(i));
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
 const MINUTES = ["00", "15", "30", "45"];
 
-const DateTimePicker = ({ value, onChange, placeholder = "Pick date & time", minDate }: Props) => {
-  const { date, hh, mm } = parseValue(value);
+const to12h = (h24: number) => {
+  const period: "AM" | "PM" = h24 >= 12 ? "PM" : "AM";
+  const h = h24 % 12 === 0 ? 12 : h24 % 12;
+  return { h, period };
+};
+const to24h = (h12: number, period: "AM" | "PM") => {
+  if (period === "AM") return h12 === 12 ? 0 : h12;
+  return h12 === 12 ? 12 : h12 + 12;
+};
 
-  const setDate = (d: Date | undefined) => {
-    if (!d) return;
-    onChange(buildValue(d, hh, mm));
-  };
-  const setHh = (next: string) => {
-    if (!date) {
-      const now = new Date();
-      onChange(buildValue(now, next, mm));
-    } else onChange(buildValue(date, next, mm));
-  };
-  const setMm = (next: string) => {
-    if (!date) {
-      const now = new Date();
-      onChange(buildValue(now, hh, next));
-    } else onChange(buildValue(date, hh, next));
+const DateTimePicker = ({ value, onChange, placeholder = "Pick date & time", minDate }: Props) => {
+  const { date, h24, minute } = parseValue(value);
+  const { h: h12, period } = to12h(h24);
+
+  const commit = (d: Date | undefined, nextH24: number, nextMinute: string) => {
+    const base = d ?? date ?? new Date();
+    onChange(buildValue(base, nextH24, nextMinute));
   };
 
   return (
@@ -63,42 +61,63 @@ const DateTimePicker = ({ value, onChange, placeholder = "Pick date & time", min
         >
           <CalendarIcon className="size-4 mr-2 shrink-0" />
           <span className="truncate">
-            {date ? format(date, "EEE d MMM · HH:mm") : placeholder}
+            {date ? format(date, "EEE d MMM · h:mm a") : placeholder}
           </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          initialFocus
-          disabled={minDate ? { before: minDate } : undefined}
-          className={cn("p-3 pointer-events-auto")}
-        />
-        <div className="border-t border-border px-3 py-2.5 flex items-center gap-2 bg-card">
-          <Clock className="size-4 text-foreground/60" />
+      <PopoverContent
+        className="p-0 pointer-events-auto w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden"
+        align="start"
+        sideOffset={6}
+      >
+        <div className="overflow-x-auto">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => d && commit(d, h24, minute)}
+            initialFocus
+            disabled={minDate ? { before: minDate } : undefined}
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </div>
+        <div className="border-t border-border px-3 py-2.5 flex items-center gap-1.5 bg-card">
+          <Clock className="size-4 text-foreground/60 shrink-0" />
           <select
             aria-label="Hour"
-            className="flex-1 h-9 rounded-md border border-border bg-background px-2 text-sm"
-            value={hh}
-            onChange={(e) => setHh(e.target.value)}
+            className="min-w-0 flex-1 h-9 rounded-md border border-border bg-background px-1.5 text-sm"
+            value={h12}
+            onChange={(e) => commit(date, to24h(Number(e.target.value), period), minute)}
           >
-            {HOURS.map((h) => (
+            {HOURS_12.map((h) => (
               <option key={h} value={h}>{h}</option>
             ))}
           </select>
           <span className="font-body text-sm text-foreground/60">:</span>
           <select
             aria-label="Minute"
-            className="flex-1 h-9 rounded-md border border-border bg-background px-2 text-sm"
-            value={mm}
-            onChange={(e) => setMm(e.target.value)}
+            className="min-w-0 flex-1 h-9 rounded-md border border-border bg-background px-1.5 text-sm"
+            value={minute}
+            onChange={(e) => commit(date, h24, e.target.value)}
           >
             {MINUTES.map((m) => (
               <option key={m} value={m}>{m}</option>
             ))}
           </select>
+          <div className="inline-flex rounded-md border border-border overflow-hidden shrink-0">
+            {(["AM", "PM"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => commit(date, to24h(h12, p), minute)}
+                className={cn(
+                  "px-2.5 h-9 text-xs font-medium transition-colors",
+                  period === p ? "bg-primary text-primary-foreground" : "bg-background text-foreground/70",
+                )}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
       </PopoverContent>
     </Popover>
