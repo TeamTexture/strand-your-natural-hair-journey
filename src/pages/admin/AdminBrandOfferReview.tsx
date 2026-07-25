@@ -425,7 +425,36 @@ const AdminBrandOfferReview = () => {
                 Cancel (release dates)
               </Button>
             )}
-          </>
+            {["ended", "rejected", "cancelled"].includes(deriveBrandOfferStatus(offer)) && (
+              <SurfaceCard className="space-y-2 border-primary/30 bg-primary/5">
+                <div className="flex items-start gap-2.5">
+                  <div className="size-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                    <Rocket className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-[14.5px] leading-tight">Relaunch free (admin)</p>
+                    <p className="text-[11.5px] text-foreground/80 font-body leading-snug mt-1">
+                      Puts this offer back live using its original slots at £0 for the
+                      dates you pick. No brand payment, no revision review.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <label className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-body">Start date</span>
+                    <Input type="date" value={relaunchStart} onChange={(e) => setRelaunchStart(e.target.value)} />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-body">Days</span>
+                    <Input type="number" min={1} max={60} value={relaunchDays} onChange={(e) => setRelaunchDays(Number(e.target.value))} />
+                  </label>
+                </div>
+                <Button variant="gold" size="pill" onClick={adminRelaunch} disabled={relaunching} className="w-full">
+                  <Rocket className="size-4 mr-1.5" /> {relaunching ? "Relaunching…" : "Relaunch free"}
+                </Button>
+              </SurfaceCard>
+            )}
+
         )}
       </div>
     </ScreenLayout>
