@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Library,
   ShieldAlert,
+  CalendarDays,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
