@@ -267,10 +267,14 @@ const AdminBrandOfferReview = () => {
       if (pErr) throw pErr;
 
       const endDate = rows[rows.length - 1].placement_date;
+      // If the relaunch starts today (or earlier), flip straight to `live` so
+      // dashboards + status pills reflect it immediately. Future starts stay
+      // `paid_scheduled` until the day arrives.
+      const nextStatus = relaunchStart <= londonToday ? "live" : "paid_scheduled";
       const { error: oErr } = await supabase
         .from("brand_offers")
         .update({
-          status: "paid_scheduled" as never,
+          status: nextStatus as never,
           starts_on: relaunchStart,
           ends_on: endDate,
           rejected_at: null,
