@@ -100,11 +100,11 @@ const ProWelcome = () => {
         <Button
           variant="gold"
           size="pill"
-          className="w-full"
+          className="w-full whitespace-normal text-center text-[13px] leading-snug px-4 h-auto py-3"
           onClick={startCheckout}
           disabled={busy}
         >
-          {busy ? "Redirecting to Stripe…" : "Subscribe & unlock your dashboard →"}
+          {busy ? "Redirecting to Stripe…" : "Subscribe & unlock dashboard →"}
         </Button>
 
         <p className="text-[11px] text-foreground/60 font-body text-center leading-relaxed">
