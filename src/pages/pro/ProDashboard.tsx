@@ -155,7 +155,7 @@ const ProDashboard = () => {
               <div className="text-[12px] font-body text-foreground/85 leading-snug">
                 <button
                   onClick={() => nav("/pro/billing")}
-            tourId="pro-card-billing"
+            
                   className="font-medium underline underline-offset-2"
                 >
                   Subscribe
