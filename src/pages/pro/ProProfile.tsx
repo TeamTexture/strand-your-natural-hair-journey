@@ -1,6 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import ProTour from "@/components/ProTour";
+import { useProSubscription } from "@/hooks/useProSubscription";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
@@ -267,8 +269,9 @@ const ProProfile = () => {
 
   return (
     <ScreenLayout>
+      <ProTour />
       <TitleBar title="Profile" onBack={smartBack(nav, "/pro")} />
-      <div className="px-5 pb-8 space-y-4">
+      <div className="px-5 pb-8 space-y-4" data-tour="pro-profile-form">
         {!profile.is_published && (
           <SurfaceCard tone="gold">
             <p className="text-xs font-body leading-snug">
