@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateEnquiry } from "@/hooks/useEnquiries";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -87,6 +88,7 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const [location, setLocation] = useState<string | null>(null);
   const [budget, setBudget] = useState("");
   const [note, setNote] = useState("");
+  const [sharePassport, setSharePassport] = useState(false);
   const create = useCreateEnquiry();
 
   useEffect(() => {
@@ -98,6 +100,7 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
       setLocation(null);
       setBudget("");
       setNote("");
+      setSharePassport(false);
     }
   }, [open]);
 
@@ -129,6 +132,7 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
         contact_phone: phoneNeeded ? phone.trim() : null,
         location_preference: location,
         budget_range: budget.trim() || null,
+        share_passport_consent: sharePassport,
       });
       toast.success(`Enquiry sent to ${proName}`);
       onOpenChange(false);
@@ -234,11 +238,21 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
             </p>
           </div>
 
-          <p className="text-[11px] font-body leading-snug text-muted-foreground">
-            Sending this enquiry shares your Strand passport with {proName} (hair profile,
-            goals, blood markers, products) so they can prepare. You can revoke access at any
-            time from Profile → Data access.
-          </p>
+          <label className="flex gap-2.5 items-start rounded-[12px] border border-border bg-card p-3 cursor-pointer">
+            <Checkbox
+              checked={sharePassport}
+              onCheckedChange={(v) => setSharePassport(v === true)}
+              className="mt-0.5"
+            />
+            <span className="text-[11px] font-body leading-snug text-muted-foreground">
+              <span className="block text-foreground font-medium mb-0.5">
+                Share my Strand passport with {proName}
+              </span>
+              Optional. Tick this to let {proName} see your hair profile, goals, blood markers
+              and products so they can prepare. Leave it unticked and they'll only see your
+              enquiry. You can grant or revoke access at any time from Profile → Data access.
+            </span>
+          </label>
         </div>
 
         <DialogFooter className="gap-2">
