@@ -239,6 +239,7 @@ const ProDashboard = () => {
             title="Billing"
             sub={subLoading ? "Loading…" : hasProAccess ? "Manage your subscription." : "Subscribe to STRAND Pro."}
             onClick={() => nav("/pro/billing")}
+            tourId="pro-card-billing"
             badge={isAdmin && !subActive ? "Admin" : subActive ? "Active" : "Inactive"}
           />
         </div>
