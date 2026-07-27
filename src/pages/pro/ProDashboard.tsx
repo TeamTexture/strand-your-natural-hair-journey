@@ -16,6 +16,7 @@ import { useUnreadChatCount } from "@/hooks/useChat";
 import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
 import BrandBanner from "@/components/BrandBanner";
+import ProTour from "@/components/ProTour";
 
 
 const Card = ({
@@ -26,6 +27,7 @@ const Card = ({
   disabled,
   badge,
   count,
+  tourId,
 }: {
   icon: React.ElementType;
   title: string;
@@ -34,8 +36,10 @@ const Card = ({
   disabled?: boolean;
   badge?: string;
   count?: number;
+  tourId?: string;
 }) => (
   <button
+    data-tour={tourId}
     onClick={onClick}
     disabled={disabled}
     className="w-full flex items-center gap-3 p-4 rounded-[14px] bg-card border border-border text-left transition-colors hover:border-primary/50 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -106,6 +110,7 @@ const ProDashboard = () => {
 
   return (
     <ScreenLayout>
+      <ProTour />
       <TitleBar title="Professional" back={false} />
       <div className="px-5 pb-8 space-y-4">
         <BrandBanner slot="pro_welcome" />
@@ -150,6 +155,7 @@ const ProDashboard = () => {
               <div className="text-[12px] font-body text-foreground/85 leading-snug">
                 <button
                   onClick={() => nav("/pro/billing")}
+            
                   className="font-medium underline underline-offset-2"
                 >
                   Subscribe
@@ -167,24 +173,28 @@ const ProDashboard = () => {
             title="Profile"
             sub="Bio, photos, services, contact details."
             onClick={() => nav("/pro/profile")}
+            tourId="pro-card-profile"
           />
           <Card
             icon={BookOpen}
             title="View directory"
             sub="See your live listing alongside other pros."
             onClick={() => nav("/directory?self=1")}
+            tourId="pro-card-directory"
           />
           <Card
             icon={Tag}
             title="Listing discount"
             sub="One-off promotions shown on your directory listing."
             onClick={() => nav("/pro/offers")}
+            tourId="pro-card-offers"
           />
           <Card
             icon={Megaphone}
             title="Create an offer"
             sub="Paid banner campaigns across the app."
             onClick={() => nav("/pro/campaigns")}
+            tourId="pro-card-campaigns"
           />
         </div>
 
@@ -195,6 +205,7 @@ const ProDashboard = () => {
             title="Enquiries"
             sub={hasProAccess ? "Client requests and passport previews." : "Subscribe to receive enquiries."}
             onClick={() => nav("/pro/enquiries")}
+            tourId="pro-card-enquiries"
             count={pendingEnquiries}
           />
           <Card
@@ -202,6 +213,7 @@ const ProDashboard = () => {
             title="Messages"
             sub={hasProAccess ? "Chat with accepted clients." : "Subscribe to unlock chat."}
             onClick={() => nav("/messages")}
+            tourId="pro-card-messages"
             count={unreadChats}
           />
           <Card
@@ -209,6 +221,7 @@ const ProDashboard = () => {
             title="Clients"
             sub={hasProAccess ? clientsSub : "Subscribe to open your client book."}
             onClick={() => nav("/pro/clients")}
+            tourId="pro-card-clients"
             count={activeClientsCount}
           />
           <Card
@@ -216,6 +229,7 @@ const ProDashboard = () => {
             title="Appointments"
             sub={hasProAccess ? nextApptSub : "Subscribe to see linked appointments."}
             onClick={() => nav("/pro/appointments")}
+            tourId="pro-card-appointments"
             count={upcomingAppointments.length}
           />
 
@@ -225,6 +239,7 @@ const ProDashboard = () => {
             title="Billing"
             sub={subLoading ? "Loading…" : hasProAccess ? "Manage your subscription." : "Subscribe to STRAND Pro."}
             onClick={() => nav("/pro/billing")}
+            tourId="pro-card-billing"
             badge={isAdmin && !subActive ? "Admin" : subActive ? "Active" : "Inactive"}
           />
         </div>

@@ -12,6 +12,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { startProCheckoutGrace } from "@/components/ProSubGate";
 
 /**
  * Acceptance + first-payment screen. Shown to approved professionals who
@@ -49,6 +50,7 @@ const ProWelcome = () => {
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout URL missing");
+      startProCheckoutGrace();
       window.location.href = data.url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not start checkout");

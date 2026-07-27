@@ -87,8 +87,8 @@ Deno.serve(async (req) => {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/pro/billing?checkout=success`,
-      cancel_url: `${origin}/pro/billing?checkout=cancelled`,
+      success_url: `${origin}/pro/profile?checkout=success&tour=1`,
+      cancel_url: `${origin}/pro/welcome?checkout=cancelled`,
       allow_promotion_codes: true,
       subscription_data: { metadata: { pro_user_id: userId } },
     });
