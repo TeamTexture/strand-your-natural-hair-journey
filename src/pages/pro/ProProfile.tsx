@@ -102,6 +102,36 @@ const ProProfile = () => {
   const { user } = useAuth();
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [params, setParams] = useSearchParams();
+  const { refetch: refetchSub } = useProSubscription();
+
+  // Post-payment landing: confirm, refresh subscription state (the Stripe
+  // webhook can lag a few seconds) and arm the professional feature tour.
+  useEffect(() => {
+    if (params.get("checkout") !== "success") return;
+    toast.success("Payment received — welcome to STRAND Pro.");
+    try {
+      localStorage.setItem("strand_pro_tour_pending", "1");
+      localStorage.removeItem("strand_pro_tour_seen_v1");
+      sessionStorage.removeItem("strand_pro_tour_step");
+    } catch {
+      // Ignore storage failures.
+    }
+    let tries = 0;
+    const poll = setInterval(() => {
+      tries += 1;
+      refetchSub();
+      if (tries >= 6) clearInterval(poll);
+    }, 2000);
+    refetchSub();
+    params.delete("checkout");
+    params.delete("tour");
+    setParams(params, { replace: true });
+    return () => clearInterval(poll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["pro_profile", user?.id],
