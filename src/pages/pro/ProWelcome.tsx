@@ -74,7 +74,7 @@ const ProWelcome = () => {
             You've been accepted
           </h2>
           <p className="font-body text-sm text-foreground/75 max-w-[280px] mt-3 leading-relaxed">
-            Welcome to the STRAND Pro Council. Your practice has been reviewed and
+            Welcome to the STRAND Pro Council. You have been reviewed and
             approved — we're thrilled to have you.
           </p>
         </div>
@@ -100,11 +100,11 @@ const ProWelcome = () => {
         <Button
           variant="gold"
           size="pill"
-          className="w-full"
+          className="w-full whitespace-normal text-center text-[13px] leading-snug px-4 h-auto py-3"
           onClick={startCheckout}
           disabled={busy}
         >
-          {busy ? "Redirecting to Stripe…" : "Subscribe & unlock your dashboard →"}
+          {busy ? "Redirecting to Stripe…" : "Subscribe & unlock dashboard →"}
         </Button>
 
         <p className="text-[11px] text-foreground/60 font-body text-center leading-relaxed">
