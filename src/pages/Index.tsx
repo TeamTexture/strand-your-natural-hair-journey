@@ -69,6 +69,13 @@ const Index = () => {
         return;
       }
 
+      // Professionals live entirely on the pro side — no consumer choice.
+      // /pro/landing routes on to the acceptance+payment screen or dashboard.
+      if (hasPro && !hasAdmin) {
+        navigate("/pro/landing", { replace: true });
+        return;
+      }
+
       // Brand accounts skip the consumer onboarding/paywall entirely. The
       // default consumer role can still exist on older accounts, so don't use
       // it as evidence that this is an end-user login.
