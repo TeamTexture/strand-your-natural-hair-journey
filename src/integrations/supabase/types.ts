@@ -3212,6 +3212,7 @@ export type Database = {
           _preferred_timeframe: string
           _pro_user_id: string
           _service_interest: string
+          _share_passport_consent?: boolean
         }
         Returns: string
       }
