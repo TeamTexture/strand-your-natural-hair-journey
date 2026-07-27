@@ -32,6 +32,7 @@ export interface CreateEnquiryInput {
   contact_phone?: string | null;
   location_preference?: string | null;
   budget_range?: string | null;
+  share_passport_consent?: boolean;
 }
 
 export interface ClientAccess {
@@ -113,6 +114,7 @@ export function useCreateEnquiry() {
         _contact_phone: input.contact_phone ?? null,
         _location_preference: input.location_preference ?? null,
         _budget_range: input.budget_range ?? null,
+        _share_passport_consent: input.share_passport_consent ?? false,
       });
       if (error) throw error;
       return data as string;
