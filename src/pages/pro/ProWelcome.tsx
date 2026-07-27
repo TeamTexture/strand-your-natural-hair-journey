@@ -74,7 +74,7 @@ const ProWelcome = () => {
             You've been accepted
           </h2>
           <p className="font-body text-sm text-foreground/75 max-w-[280px] mt-3 leading-relaxed">
-            Welcome to the STRAND Pro Council. Your practice has been reviewed and
+            Welcome to the STRAND Pro Council. You have been reviewed and
             approved — we're thrilled to have you.
           </p>
         </div>
