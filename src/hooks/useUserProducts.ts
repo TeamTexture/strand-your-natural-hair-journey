@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { recomputeIngredientFlags } from "@/hooks/useIngredientLists";
 import { toast } from "sonner";
+import { withAuthLockRetry } from "@/lib/retryQuery";
+
 
 export interface KeyIngredient {
   name: string;
