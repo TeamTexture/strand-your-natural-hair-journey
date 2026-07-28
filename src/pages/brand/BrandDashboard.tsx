@@ -18,6 +18,8 @@ import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useRoles } from "@/hooks/useRoles";
+import CampaignRunCalendar from "@/components/brand/CampaignRunCalendar";
+
 
 import { useOwnerMode, ownerHomeRoute, ownerNewRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useAuth } from "@/hooks/useAuth";
@@ -249,7 +251,16 @@ const BrandDashboard = () => {
           </button>
         )}
 
+        <div>
+          <SectionLabel className="!px-0 !mt-0">Campaign calendar</SectionLabel>
+          <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-1.5 leading-snug">
+            Live and scheduled banner runs across the app — updated for the full duration of every campaign.
+          </p>
+          <CampaignRunCalendar ownerMode={ownerMode} />
+        </div>
+
         <Button variant="gold" size="pill" onClick={() => nav(ownerNewRoute(ownerMode))} className="w-full">
+
           <Plus className="size-4 mr-1.5" /> {ownerMode === "pro" ? "Create new campaign" : "Create new offer"}
         </Button>
 

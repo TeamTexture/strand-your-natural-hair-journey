@@ -288,7 +288,10 @@ const AdminBrandOfferReview = () => {
       qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
       qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
       qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
-      qc.invalidateQueries({ queryKey: ["brand-taken-placements"] });
+      qc.invalidateQueries({ queryKey: ["brand-placements-taken"] });
+      qc.invalidateQueries({ queryKey: ["admin", "unified-calendar"] });
+      qc.invalidateQueries({ queryKey: ["admin", "brand-calendar"] });
+
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Relaunch failed");
     } finally {

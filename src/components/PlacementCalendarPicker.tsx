@@ -1,7 +1,15 @@
 import { useMemo } from "react";
 import { addDays, format, isSameMonth, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
-import { PlacementSlot, SLOT_LABEL, useTakenPlacements, usePlacementRates } from "@/hooks/useBrandOffers";
+import {
+  PlacementSlot,
+  SLOT_LABEL,
+  useTakenPlacements,
+  usePlacementRates,
+  deriveBrandOfferStatus,
+  londonToday,
+} from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
+
 
 interface Selection {
   slot: PlacementSlot;
@@ -32,20 +40,27 @@ const PlacementCalendarPicker = ({
   const { data: taken = [] } = useTakenPlacements();
   const takenMap = useMemo(() => {
     const activeSlots = slots && slots.length > 0 ? slots : slot ? [slot] : [];
-    const map = new Map<string, "pending" | "live">();
+    const map = new Map<string, { kind: "pending" | "live"; owner: string }>();
     if (activeSlots.length === 0) return map;
+    const today = londonToday();
     for (const t of taken) {
       if (!activeSlots.includes(t.slot as PlacementSlot)) continue;
       if (t.offer_id === excludeOfferId) continue;
+      const derived = deriveBrandOfferStatus(
+        { status: t.status, starts_on: t.starts_on, ends_on: t.ends_on },
+        today,
+      );
+      if (derived === "ended" || derived === "cancelled" || derived === "rejected") continue;
       const kind: "pending" | "live" =
         t.status === "under_review" || t.status === "approved_unpaid" ? "pending" : "live";
       // "live" wins over "pending" on the same date
       const existing = map.get(t.placement_date);
-      if (existing === "live") continue;
-      map.set(t.placement_date, kind);
+      if (existing?.kind === "live") continue;
+      map.set(t.placement_date, { kind, owner: t.owner_display_name });
     }
     return map;
   }, [taken, slot, slots, excludeOfferId]);
+
 
 
   const days = useMemo(() => {
@@ -86,7 +101,8 @@ const PlacementCalendarPicker = ({
           const key = format(d, "yyyy-MM-dd");
           const inMonth = isSameMonth(d, month);
           const past = d < today;
-          const takenKind = takenMap.get(key);
+          const entry = takenMap.get(key);
+          const takenKind = entry?.kind;
           const isTaken = !!takenKind;
           const isSelected = selection.includes(key);
           const disabled = past || isTaken || !inMonth;
@@ -96,17 +112,23 @@ const PlacementCalendarPicker = ({
               type="button"
               disabled={disabled}
               onClick={() => onToggleDate(key)}
+              title={
+                entry
+                  ? `${entry.owner} — ${entry.kind === "pending" ? "awaiting acceptance" : "running"}`
+                  : undefined
+              }
               className={cn(
                 "aspect-square rounded-md text-[11px] font-body transition-colors",
                 !inMonth && "opacity-30",
                 past && "text-muted-foreground/40 line-through cursor-not-allowed",
-                isTaken && takenKind === "pending" && "bg-orange-500/20 text-orange-700 dark:text-orange-300 cursor-not-allowed",
-                isTaken && takenKind === "live" && "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 cursor-not-allowed",
+                takenKind === "pending" && "bg-orange-500/20 text-orange-700 dark:text-orange-300 cursor-not-allowed",
+                takenKind === "live" && "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 cursor-not-allowed",
                 !disabled && !isSelected && "hover:bg-primary/10 text-foreground",
                 isSelected && "bg-primary text-primary-foreground font-medium",
               )}
-              aria-label={`${key}${takenKind === "pending" ? " — awaiting acceptance" : takenKind === "live" ? " — live offer" : ""}`}
+              aria-label={`${key}${takenKind === "pending" ? " — awaiting acceptance" : takenKind === "live" ? " — booked campaign" : ""}`}
             >
+
               {d.getDate()}
             </button>
           );
