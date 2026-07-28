@@ -68,7 +68,7 @@ const ApptPhotos = ({ appointmentId }: { appointmentId: string }) => {
   }, [appointmentId, sign]);
   if (urls.length === 0) return null;
   return (
-    <div className="flex gap-2 mt-3 overflow-x-auto -mx-1 px-1">
+    <div className="flex gap-2 mt-3 strand-hscroll -mx-1 px-1">
       {urls.map((u, i) => (
         <a key={i} href={u} target="_blank" rel="noreferrer" className="size-16 rounded-[10px] overflow-hidden bg-muted shrink-0 block">
           <img src={u} alt={`Appointment photo ${i + 1}`} className="size-full object-cover" />

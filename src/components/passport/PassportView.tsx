@@ -1997,7 +1997,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
         {/* Sticky tab strip — gold-edged passport pages */}
         <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-2.5 pb-3 px-5 border-b border-primary/15">
 
-          <div className="overflow-x-auto scrollbar-hide -mx-5 px-5">
+          <div className="strand-hscroll -mx-5 px-5">
             <div className="flex gap-1.5 min-w-max">
               {SECTIONS.map((s) => {
                 const count = s.count(data);
