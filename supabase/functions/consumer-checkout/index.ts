@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
+import { resolveStrandPlusPriceId } from "../_shared/stripe-prices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,10 +44,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
     let priceId = "";
     if (tier === "plus") {
-      priceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
-      if (!priceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
+      const configuredPlusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
+      if (!configuredPlusPriceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
+      priceId = await resolveStrandPlusPriceId(stripe, configuredPlusPriceId);
     } else {
       priceId = Deno.env.get("STRIPE_CONSUMER_PRICE_ID") ?? "";
       if (!priceId) {
@@ -57,8 +60,6 @@ Deno.serve(async (req) => {
       }
       if (!priceId) return json({ error: "Stripe price id not configured" }, 500);
     }
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
 
     const { data: existing } = await admin
       .from("consumer_subscriptions")

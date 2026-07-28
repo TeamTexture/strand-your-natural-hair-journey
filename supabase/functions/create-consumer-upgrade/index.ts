@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
+import { resolveStrandPlusPriceId } from "../_shared/stripe-prices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,9 +27,9 @@ Deno.serve(async (req) => {
     const email = (claimsData.claims.email as string | undefined) ?? undefined;
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
+    const configuredPlusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
     if (!stripeKey) return json({ error: "Stripe not configured" }, 500);
-    if (!plusPriceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
+    if (!configuredPlusPriceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
     const admin = createClient(
@@ -53,6 +54,7 @@ Deno.serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") ?? "https://mystrand.co.uk";
+    let plusPriceId = configuredPlusPriceId;
 
     // If they have an ACTIVE standard sub, send them to Stripe's hosted
     // confirmation flow instead of silently changing the subscription.
@@ -60,6 +62,7 @@ Deno.serve(async (req) => {
       const sub = await stripe.subscriptions.retrieve(existing.stripe_subscription_id);
       const itemId = sub.items.data[0]?.id;
       if (itemId) {
+        plusPriceId = await resolveStrandPlusPriceId(stripe, configuredPlusPriceId, sub.items.data[0]?.price?.id);
         const portal = await stripe.billingPortal.sessions.create({
           customer: customerId,
           return_url: `${origin}/plus/upgrade`,
@@ -80,6 +83,7 @@ Deno.serve(async (req) => {
     }
 
     // Otherwise open a fresh checkout for the plus price.
+    plusPriceId = await resolveStrandPlusPriceId(stripe, configuredPlusPriceId);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,

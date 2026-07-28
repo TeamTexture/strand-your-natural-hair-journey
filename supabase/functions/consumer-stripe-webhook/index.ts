@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
+import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -61,10 +62,11 @@ Deno.serve(async (req) => {
   }
 });
 
-function tierForPrice(priceId: string | null): "standard" | "plus" {
+async function tierForPrice(stripe: Stripe, priceId: string | null): Promise<"standard" | "plus"> {
   if (!priceId) return "standard";
   const plusId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
   if (plusId && priceId === plusId) return "plus";
+  if (await priceIsStrandPlus(stripe, priceId)) return "plus";
   return "standard";
 }
 
@@ -92,7 +94,7 @@ async function upsertFromSubscription(
   const item = sub.items.data[0];
   const priceId = item?.price?.id ?? null;
   const periodEnd = (item as any)?.current_period_end ?? (sub as any).current_period_end ?? null;
-  const tier = tierForPrice(priceId);
+  const tier = await tierForPrice(stripe, priceId);
 
   await admin.from("consumer_subscriptions").upsert(
     {
