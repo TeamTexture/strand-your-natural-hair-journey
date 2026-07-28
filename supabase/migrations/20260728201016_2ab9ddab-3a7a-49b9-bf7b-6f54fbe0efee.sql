@@ -1,0 +1,1 @@
+UPDATE public.consumer_subscriptions SET status='canceled', tier='standard', current_period_end=now(), cancel_at_period_end=true, updated_at=now() WHERE user_id='edd1ff49-0679-49aa-bf58-0a6b41e59c48';
