@@ -120,15 +120,8 @@ const GlobalMenu = () => {
 
   const path = location.pathname;
 
-  const routeView: "consumer" | "pro" | "admin" | "brand" | null = path.startsWith("/admin")
-    ? "admin"
-    : path.startsWith("/brand")
-      ? "brand"
-      : path === "/pro" || path.startsWith("/pro/")
-        ? "pro"
-        : path === "/home" || path.startsWith("/home/")
-          ? "consumer"
-          : null;
+  const routeView = routeToView(path);
+
 
   const [rememberedView, setRememberedView] = useState<
     "consumer" | "pro" | "admin" | "brand"
