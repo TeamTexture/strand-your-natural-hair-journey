@@ -241,14 +241,18 @@ export function useMarkThreadRead(threadId: string | null | undefined) {
         : false;
       if (bothSides) {
         const mine = view === "admin" ? "admin" : view;
+        // Legacy rows (sender_role null) count as the consumer side, so they
+        // must also clear when the other side opens the thread — `neq` alone
+        // would skip nulls and leave a badge that never goes away.
         await supabase
           .from("chat_messages")
           .update({ read_at: stamp })
           .eq("thread_id", threadId)
           .eq("sender_id", user.id)
-          .neq("sender_role", mine)
+          .or(`sender_role.is.null,sender_role.neq.${mine}`)
           .is("read_at", null);
       }
+
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
