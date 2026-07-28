@@ -5,6 +5,7 @@ import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useRoles } from "@/hooks/useRoles";
 import { BRAND_ACCESS_PATH, getConsumerOnboardingStatus, getSubscribePath } from "@/lib/consumerOnboarding";
 
 interface Props {
@@ -32,6 +33,7 @@ const OnboardingGate = ({ children }: Props) => (
 const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { hasAccess, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
+  const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
   const { data: status, isLoading: profileLoading } = useQuery({
     queryKey: ["profile_onboarding_completed", user?.id],
@@ -39,7 +41,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     queryFn: () => getConsumerOnboardingStatus(user!.id),
   });
 
-  if (subLoading || profileLoading) return <LoadingDot />;
+  if (subLoading || profileLoading || rolesLoading) return <LoadingDot />;
+  // Professionals live entirely on the pro side — no consumer onboarding.
+  if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
   }
