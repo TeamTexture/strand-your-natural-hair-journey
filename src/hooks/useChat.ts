@@ -263,8 +263,9 @@ export function useMarkThreadRead(threadId: string | null | undefined) {
       // Home 2x2 grid / STRAND+ message badge listens for this.
       try { window.dispatchEvent(new CustomEvent("chat-thread-read")); } catch { /* noop */ }
     },
-
+  });
 }
+
 
 /**
  * Unread count scoped to the current role view (or `scope: "all"` for a
