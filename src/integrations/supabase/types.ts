@@ -3100,11 +3100,15 @@ export type Database = {
       brand_taken_placements: {
         Args: never
         Returns: {
+          ends_on: string
+          headline: string
+          is_mine: boolean
           offer_id: string
           owner_display_name: string
           owner_type: string
           placement_date: string
           slot: Database["public"]["Enums"]["brand_placement_slot"]
+          starts_on: string
           status: Database["public"]["Enums"]["brand_offer_status"]
         }[]
       }
