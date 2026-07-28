@@ -184,7 +184,12 @@ export function usePlusAlerts() {
   useEffect(() => {
     const h = () => fetchAlerts();
     window.addEventListener("plus-alerts-seen", h);
-    return () => window.removeEventListener("plus-alerts-seen", h);
+    // Opening a thread clears its messages: recount immediately.
+    window.addEventListener("chat-thread-read", h);
+    return () => {
+      window.removeEventListener("plus-alerts-seen", h);
+      window.removeEventListener("chat-thread-read", h);
+    };
   }, [fetchAlerts]);
 
   useEffect(() => {
@@ -196,6 +201,7 @@ export function usePlusAlerts() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, () => fetchAlerts())
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "events" }, () => fetchAlerts())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, () => fetchAlerts())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_messages" }, () => fetchAlerts())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "content_items" }, () => fetchAlerts())
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "content_items" }, () => fetchAlerts())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "content_collections" }, () => fetchAlerts())
