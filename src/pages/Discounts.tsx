@@ -16,6 +16,7 @@ import { useAllLiveBrandOffers, useLogBrandStat } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { directoryLinkForPro } from "@/lib/directoryLink";
+import SponsoredOfferCard from "@/components/SponsoredOfferCard";
 
 interface OfferProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -141,36 +142,9 @@ const Discounts = () => {
           <>
             <SectionLabel>Brand offers</SectionLabel>
             {brandOffers!.map((o) => (
-              <div
-                key={o.id}
-                className="relative rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 space-y-2.5"
-              >
-                <span className="absolute top-2 right-2 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
-                  Sponsored
-                </span>
-                <div className="flex items-start gap-3">
-                  <div className="size-11 rounded-[13px] bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                    <Sparkles className="size-[18px]" />
-                  </div>
-                  <div className="min-w-0 flex-1 pr-14">
-                    <p className="font-display text-[16px] leading-tight">{o.headline}</p>
-                    {o.body_copy && (
-                      <p className="text-[12px] text-muted-foreground mt-1 leading-snug line-clamp-2">
-                        {o.body_copy}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  variant="gold"
-                  size="pill"
-                  className="w-full gap-1.5"
-                  onClick={() => navigate(`/offers/${o.id}`)}
-                >
-                  View offer <ExternalLink className="size-3.5" />
-                </Button>
-              </div>
+              <SponsoredOfferCard key={o.id} offer={o} />
             ))}
+
           </>
         )}
 
