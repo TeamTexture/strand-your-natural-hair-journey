@@ -89,7 +89,7 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
       {heroUrl && (
         <button
           type="button"
-          onClick={() => navigate(`/offers/${offer.id}`)}
+          onClick={openOffer}
           className="block w-full"
           aria-label={`View ${brand?.brand_name ?? "brand"} offer`}
         >
@@ -139,7 +139,7 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
           variant="gold"
           size="pill"
           className="w-full gap-1.5"
-          onClick={() => navigate(`/offers/${offer.id}`)}
+          onClick={openOffer}
         >
           View offer <ExternalLink className="size-3.5" />
         </Button>
