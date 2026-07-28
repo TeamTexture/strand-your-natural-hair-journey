@@ -311,11 +311,12 @@ const GlobalMenu = () => {
                   type="button"
                   aria-label="Upgrade to STRAND+"
                   onClick={() => navigate("/plus/upgrade")}
-                  className="h-9 px-2.5 rounded-full flex items-center gap-1 text-primary bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors"
+                  className="h-9 pl-3 pr-2 rounded-full flex items-center gap-1.5 bg-brown text-brown-foreground border border-brown hover:opacity-90 transition-opacity"
                 >
-                  <PlusSparkles className="size-[15px]" />
-                  <span className="text-[11px] font-body font-bold tracking-wide">+</span>
+                  <span className="text-[11px] font-body font-bold tracking-wide uppercase">Upgrade</span>
+                  <span className="size-4 rounded-full bg-brown-foreground/20 flex items-center justify-center text-[11px] font-body font-bold leading-none">+</span>
                 </button>
+
               </TooltipTrigger>
               <TooltipContent side="bottom" sideOffset={6}>
                 <span>Upgrade to STRAND+</span>
