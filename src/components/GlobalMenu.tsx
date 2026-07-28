@@ -424,7 +424,7 @@ const GlobalMenu = () => {
                   <span>My STRAND</span>
                 </button>
               )}
-              {isProfessional && activeView !== "pro" && activeView !== "consumer" && (
+              {isProfessional && activeView !== "pro" && (
                 <button
                   onClick={() => go(viewMeta.pro.to)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
