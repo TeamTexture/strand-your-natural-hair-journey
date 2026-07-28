@@ -105,7 +105,7 @@ const Messages = () => {
 
   // Last message + unread count per thread.
   const { data: threadMeta } = useQuery({
-    queryKey: ["chat_thread_meta", user?.id, threads?.map((t) => t.id).join(",")],
+    queryKey: ["chat_thread_meta", user?.id, view, threads?.map((t) => t.id).join(",")],
     enabled: !!user?.id && !!threads && threads.length > 0,
     queryFn: async () => {
       const ids = (threads ?? []).map((t) => t.id);

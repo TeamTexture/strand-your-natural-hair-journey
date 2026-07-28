@@ -276,13 +276,18 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
       );
       const ids = scoped.map((t) => t.id);
       if (ids.length === 0) return 0;
-      const { count } = await supabase
+      const { data: msgs } = await supabase
         .from("chat_messages")
-        .select("id", { count: "exact", head: true })
+        .select("thread_id, sender_id, sender_role")
         .in("thread_id", ids)
-        .neq("sender_id", user!.id)
         .is("read_at", null);
-      return count ?? 0;
+      const byId = new Map(scoped.map((t) => [t.id, t]));
+      const countView: ActiveRoleView = view === "all" ? "consumer" : view;
+      return (msgs ?? []).filter((m) => {
+        const t = byId.get(m.thread_id);
+        if (!t) return m.sender_id !== user!.id;
+        return !messageIsMine(m as never, t as never, user!.id, countView);
+      }).length;
     },
   });
 }
