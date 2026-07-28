@@ -161,7 +161,9 @@ const GlobalMenu = () => {
 
 
   const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
-  const showViewSwitcher = roleCount > 1;
+  // Professionals (non-admin) never see a view switcher — the pro side is
+  // their whole app.
+  const showViewSwitcher = roleCount > 1 && (isAdmin || activeView !== "pro");
 
   const viewMeta = {
     consumer: { label: "My STRAND", icon: HomeIcon, to: "/home" },
