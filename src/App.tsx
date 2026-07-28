@@ -173,9 +173,15 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchInterval: false,
+      // When many queries fire at once the auth token lock can be "stolen",
+      // aborting in-flight requests and leaving sections blank. Retry those.
+      retry: (failureCount, error) =>
+        failureCount < 3 && isTransientAuthLockError(error),
+      retryDelay: (attempt) => 150 * (attempt + 1),
     },
   },
 });
+
 
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
