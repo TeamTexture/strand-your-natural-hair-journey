@@ -13,13 +13,15 @@ import ProAvatar from "@/components/ProAvatar";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { otherParticipantId, useChatThreads } from "@/hooks/useChat";
+import { messageIsMine, otherParticipantId, useChatThreads } from "@/hooks/useChat";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 
 const Messages = () => {
   useEffect(() => { markPlusSurfaceSeen("messages"); }, []);
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
+  const view = useActiveRoleView();
 
   const { pros, consumers } = useMemo(() => {
     if (!user?.id || !threads) return { pros: [] as string[], consumers: [] as string[] };
