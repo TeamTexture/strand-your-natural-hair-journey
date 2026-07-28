@@ -267,11 +267,13 @@ const ChatThreadPage = () => {
   }, [messages.data?.length]);
 
   useEffect(() => {
-    if (!threadId || !messages.data) return;
-    const hasUnread = messages.data.some((m) => m.sender_id !== user?.id && m.sender_id !== null && !m.read_at);
+    if (!threadId || !messages.data || !t || !user) return;
+    const hasUnread = messages.data.some(
+      (m) => m.sender_id !== null && !m.read_at && !messageIsMine(m, t, user.id, roleView),
+    );
     if (hasUnread) markRead.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId, messages.data?.length]);
+  }, [threadId, messages.data?.length, roleView, t?.id]);
 
   const grouped = useMemo(() => {
     const out: Array<{ label: string; items: ChatMessage[] }> = [];
