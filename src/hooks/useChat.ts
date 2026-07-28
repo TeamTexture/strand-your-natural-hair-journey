@@ -81,11 +81,13 @@ export function messageIsMine(
       ? t.admin_user_id === myId && t.subject_user_id === myId
       : t.pro_user_id === myId && t.consumer_id === myId;
   if (!bothSides) return true;
-  if (!m.sender_role) return true; // legacy rows: keep previous behaviour
+  // Legacy rows with no sender_role are attributed to the consumer side so
+  // the professional view still renders them as incoming.
   const senderSide =
     m.sender_role === "pro" || m.sender_role === "admin" ? m.sender_role : "consumer";
   if (side === "subject") return senderSide === "consumer";
   return senderSide === side;
+
 }
 
 const threadOrFilter = (uid: string) =>
