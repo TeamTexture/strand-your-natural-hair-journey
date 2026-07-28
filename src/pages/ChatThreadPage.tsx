@@ -166,6 +166,7 @@ const ChatThreadPage = () => {
   const nav = useNavigate();
   const { threadId } = useParams();
   const { user } = useAuth();
+  const roleView = useActiveRoleView();
   const { thread, messages } = useChatThread(threadId);
   const send = useSendChatMessage(threadId);
   const book = useBookAppointmentInThread();
