@@ -13,10 +13,13 @@ export function usePlusAccess() {
   const q = useQuery({
     queryKey: ["plus_access", user?.id],
     enabled: !!user?.id,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<boolean> => {
+      if (!user?.id) return false;
       const { data, error } = await supabase.rpc("has_active_plus_subscription", {
-        _user: user!.id,
+        _user: user.id,
       });
       if (error) throw error;
       return !!data;

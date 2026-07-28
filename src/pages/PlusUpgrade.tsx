@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Sparkles, Users, BookOpen, Calendar, MessageCircle, CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -19,8 +19,17 @@ const PILLARS = [
 
 const PlusUpgrade = () => {
   const nav = useNavigate();
-  const { hasPlus } = usePlusAccess();
+  const [searchParams] = useSearchParams();
+  const { hasPlus, isLoading, refetch } = usePlusAccess();
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch, searchParams]);
+
+  useEffect(() => {
+    if (hasPlus) nav("/plus/welcome?checkout=success", { replace: true });
+  }, [hasPlus, nav]);
 
   const upgrade = async () => {
     setBusy(true);
@@ -35,17 +44,17 @@ const PlusUpgrade = () => {
     }
   };
 
-  if (hasPlus) {
+  if (hasPlus || isLoading) {
     return (
       <ScreenLayout>
         <TitleBar title="STRAND+" onBack={() => nav("/home")} />
         <div className="px-5 pt-8 text-center space-y-4">
           <div className="mx-auto size-16 rounded-full bg-primary/12 text-primary flex items-center justify-center">
-            <Sparkles className="size-8" />
+            {isLoading ? <Loader2 className="size-8 animate-spin" /> : <Sparkles className="size-8" />}
           </div>
-          <h1 className="font-display text-2xl font-semibold">You're already STRAND+</h1>
-          <p className="font-body text-sm text-foreground/70">Everything is unlocked. Head back to explore.</p>
-          <Button variant="gold" size="pill" className="w-full" onClick={() => nav("/home")}>Back to STRAND</Button>
+          <h1 className="font-display text-2xl font-semibold">{isLoading ? "Checking your membership" : "You're STRAND+"}</h1>
+          <p className="font-body text-sm text-foreground/70">{isLoading ? "This will only take a moment." : "Everything is unlocked now."}</p>
+          {!isLoading && <Button variant="gold" size="pill" className="w-full" onClick={() => nav("/plus/welcome")}>Continue</Button>}
         </div>
       </ScreenLayout>
     );
