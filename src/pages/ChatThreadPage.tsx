@@ -209,9 +209,17 @@ const ChatThreadPage = () => {
 
   const t = thread.data;
   const isSupport = t?.thread_type === "admin_support";
-  const isAdmin = !!t && !!user && t.admin_user_id === user.id;
-  const isPro = !!t && !!user && !isSupport && t.pro_user_id === user.id;
-  const otherId = t && user ? otherParticipantId(t, user.id) : null;
+  // Perspective is decided by the role view I'm browsing in, so a dual-role
+  // account (pro + member) reads the same thread correctly from both sides.
+  const side = t && user ? mySideRole(t, user.id, roleView) : null;
+  const isAdmin = side === "admin";
+  const isPro = !isSupport && side === "pro";
+  const otherId =
+    t && user
+      ? t.thread_type === "admin_support"
+        ? (isAdmin ? t.subject_user_id : t.admin_user_id)
+        : (isPro ? t.consumer_id : t.pro_user_id)
+      : null;
 
   const { data: other } = useQuery({
     queryKey: ["chat_thread_other", otherId, isSupport, isAdmin, isPro],
