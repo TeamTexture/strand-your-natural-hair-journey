@@ -53,7 +53,10 @@ const BrandDashboard = () => {
   const { data: offers = [], isLoading } = useBrandOffers(ownerMode);
   const { subscription, isActive: brandSubActive, isAdminOverride } = useBrandSubscription();
   const { isActive: proSubActive } = useProSubscription();
-  const subActive = ownerMode === "pro" ? proSubActive : brandSubActive;
+  const { isAdmin } = useRoles();
+  // Admins have full pro/brand privileges without a subscription.
+  const subActive = isAdmin || (ownerMode === "pro" ? proSubActive : brandSubActive);
+
 
   const trackedOfferIds = useMemo(
     () => offers.filter((o) => ["live", "paid_scheduled", "ended"].includes(o.status)).map((o) => o.id),
