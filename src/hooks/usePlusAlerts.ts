@@ -135,24 +135,25 @@ export function usePlusAlerts() {
     threads.forEach((t: any) => out.push({
       id: `thread:${t.id}`, kind: "thread",
       title: "New forum thread", body: t.title,
-      to: `/forum/thread/${t.id}`, createdAt: t.created_at,
+      to: `/forum/${t.id}`, createdAt: t.created_at,
     }));
     replies.forEach((r: any) => out.push({
       id: `reply:${r.id}`, kind: "thread",
       title: "New forum reply", body: (r.body ?? "").slice(0, 80) || "Tap to open thread",
-      to: `/forum/thread/${r.thread_id}`, createdAt: r.created_at,
+      to: `/forum/${r.thread_id}`, createdAt: r.created_at,
     }));
     events.forEach((e: any) => out.push({
       id: `event:${e.id}`, kind: "event",
       title: e.kind === "in_person" ? "New in-person event" : "New digital event",
-      body: e.title, to: `/plus/events?event=${e.id}`, createdAt: e.created_at,
+      body: e.title, to: `/plus/events/${e.id}`, createdAt: e.created_at,
     }));
     messages.forEach((m: any) => out.push({
       id: `msg:${m.id}`, kind: "message",
       title: "New STRAND+ message",
       body: (m.body ?? "").slice(0, 60) || "Tap to open chat",
-      to: `/chat/${m.thread_id}`, createdAt: m.created_at,
+      to: `/messages/${m.thread_id}`, createdAt: m.created_at,
     }));
+
     libItems.forEach((it: any) => out.push({
       id: `lib:${it.id}`, kind: "library",
       title: "New in the Library", body: it.title,
