@@ -27,6 +27,7 @@ export interface ChatMessage {
   id: string;
   thread_id: string;
   sender_id: string | null;
+  sender_role: string | null;
   kind: "text" | "system";
   body: string;
   meta: Record<string, unknown>;
@@ -40,6 +41,51 @@ export function otherParticipantId(t: ChatThread, myId: string): string | null {
     return myId === t.admin_user_id ? t.subject_user_id : t.admin_user_id;
   }
   return myId === t.pro_user_id ? t.consumer_id : t.pro_user_id;
+}
+
+/**
+ * Which side of a thread am I sitting on right now?
+ * Multi-role accounts (e.g. an admin who is also a professional and a member)
+ * can occupy BOTH sides of the same thread. In that case the active role view
+ * decides who "I" am, so the professional view sees the member's messages as
+ * incoming (brown) and its own as outgoing (gold).
+ */
+export function mySideRole(
+  t: Pick<ChatThread, "thread_type" | "consumer_id" | "pro_user_id" | "admin_user_id" | "subject_user_id">,
+  myId: string,
+  view: ActiveRoleView,
+): "pro" | "consumer" | "admin" | "subject" {
+  if (t.thread_type === "admin_support") {
+    if (t.admin_user_id === myId && t.subject_user_id === myId) {
+      return view === "admin" ? "admin" : "subject";
+    }
+    return t.admin_user_id === myId ? "admin" : "subject";
+  }
+  if (t.pro_user_id === myId && t.consumer_id === myId) {
+    return view === "pro" || view === "admin" ? "pro" : "consumer";
+  }
+  return t.pro_user_id === myId ? "pro" : "consumer";
+}
+
+/** Is this message mine, from the perspective of the side I'm viewing as? */
+export function messageIsMine(
+  m: Pick<ChatMessage, "sender_id" | "sender_role">,
+  t: Pick<ChatThread, "thread_type" | "consumer_id" | "pro_user_id" | "admin_user_id" | "subject_user_id">,
+  myId: string,
+  view: ActiveRoleView,
+): boolean {
+  if (m.sender_id !== myId) return false;
+  const side = mySideRole(t, myId, view);
+  const bothSides =
+    t.thread_type === "admin_support"
+      ? t.admin_user_id === myId && t.subject_user_id === myId
+      : t.pro_user_id === myId && t.consumer_id === myId;
+  if (!bothSides) return true;
+  if (!m.sender_role) return true; // legacy rows: keep previous behaviour
+  const senderSide =
+    m.sender_role === "pro" || m.sender_role === "admin" ? m.sender_role : "consumer";
+  if (side === "subject") return senderSide === "consumer";
+  return senderSide === side;
 }
 
 const threadOrFilter = (uid: string) =>
