@@ -388,7 +388,8 @@ const ChatThreadPage = () => {
                   prevSender = null;
                   return <SystemBubble key={m.id} m={m} isPro={isPro} />;
                 }
-                const mine = m.sender_id === user?.id;
+                const mine =
+                  !!t && !!user ? messageIsMine(m, t, user.id, roleView) : m.sender_id === user?.id;
                 const senderKey = mine ? "me" : (m.sender_id ?? "them");
                 const showName = prevSender !== senderKey;
                 prevSender = senderKey;
