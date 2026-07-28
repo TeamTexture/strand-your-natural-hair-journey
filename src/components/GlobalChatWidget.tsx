@@ -291,11 +291,12 @@ const ThreadQuickView = ({
   const markRead = useMarkThreadRead(thread.id);
   const [draft, setDraft] = useState("");
 
-  // Mark as read when opened.
+  // Mark as read when opened, and again for anything that arrives while open.
+  const unreadHere = (messages.data ?? []).some((m) => !m.read_at && m.sender_id !== user?.id);
   useEffect(() => {
-    markRead.mutate();
+    if (unreadHere || (messages.data?.length ?? 0) === 0) markRead.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [thread.id]);
+  }, [thread.id, unreadHere]);
 
   const recent = (messages.data ?? []).slice(-6);
   const submit = async () => {
