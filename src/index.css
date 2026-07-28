@@ -51,6 +51,7 @@
     /* STRAND status colors */
     --good: 120 21% 45%;       /* #5A8A5A */
     --good-foreground: 0 0% 100%;
+    --tick-read: 211 100% 50%; /* read receipt blue */
     --warn: 26 70% 42%;        /* #B87020 */
     --warn-foreground: 0 0% 100%;
     --alert-dark: 0 0% 10%;    /* #1a1a1a */
