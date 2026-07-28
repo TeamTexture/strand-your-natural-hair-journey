@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { titleCase } from "@/lib/humanise";
 
 
