@@ -81,25 +81,29 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
 
 
   return (
-    <div className="relative rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 space-y-3">
+    <div className="relative rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden">
       <span className="absolute top-2 right-2 z-10 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
         Sponsored
       </span>
 
-      <div className="flex items-start gap-3">
-        <div className="size-11 rounded-[13px] bg-primary/15 text-primary flex items-center justify-center shrink-0 overflow-hidden">
-          {logoUrl || heroUrl ? (
-            <img
-              src={logoUrl ?? heroUrl ?? undefined}
-              alt={brand?.brand_name ?? "Brand logo"}
-              loading="lazy"
-              className="size-full object-cover"
-            />
-          ) : (
-            <Sparkles className="size-[18px]" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1 pr-14">
+      {heroUrl && (
+        <button
+          type="button"
+          onClick={openOffer}
+          className="block w-full"
+          aria-label={`View ${brand?.brand_name ?? "brand"} offer`}
+        >
+          <img
+            src={heroUrl}
+            alt={offer.headline ?? `${brand?.brand_name ?? "Brand"} offer`}
+            loading="lazy"
+            className="w-full h-[124px] object-cover"
+          />
+        </button>
+      )}
+
+      <div className="p-4 space-y-3">
+        <div className="min-w-0 pr-14">
           <p className="font-display text-[16px] leading-tight">
             {brand?.brand_name ?? offer.headline}
           </p>
@@ -107,25 +111,27 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
             {brand?.brand_name ? offer.headline : brand?.category}
           </p>
         </div>
+
+        {offer.body_copy && (
+          <p className="text-[12.5px] leading-snug font-body text-foreground/85">{offer.body_copy}</p>
+        )}
+
+        {offer.discount_code ? <DiscountCodeChip code={offer.discount_code} variant="block" /> : null}
+
+        {left !== null && (
+          <p className="flex items-center gap-1.5 text-[11px] font-body text-muted-foreground">
+            <CalendarClock className="size-3.5 text-primary" />
+            {left === 0 ? "Ends today" : left === 1 ? "1 day left" : `${left} days left`}
+          </p>
+        )}
+
+        <Button variant="gold" size="pill" className="w-full gap-1.5" onClick={openOffer}>
+          View offer <ExternalLink className="size-3.5" />
+        </Button>
       </div>
-
-      {offer.body_copy && (
-        <p className="text-[12.5px] leading-snug font-body text-foreground/85">{offer.body_copy}</p>
-      )}
-
-      {offer.discount_code ? <DiscountCodeChip code={offer.discount_code} variant="block" /> : null}
-
-      {left !== null && (
-        <p className="flex items-center gap-1.5 text-[11px] font-body text-muted-foreground">
-          <CalendarClock className="size-3.5 text-primary" />
-          {left === 0 ? "Ends today" : left === 1 ? "1 day left" : `${left} days left`}
-        </p>
-      )}
-
-      <Button variant="gold" size="pill" className="w-full gap-1.5" onClick={openOffer}>
-        View offer <ExternalLink className="size-3.5" />
-      </Button>
     </div>
+  );
+
   );
 };
 
