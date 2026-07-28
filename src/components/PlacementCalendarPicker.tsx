@@ -1,7 +1,15 @@
 import { useMemo } from "react";
 import { addDays, format, isSameMonth, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
-import { PlacementSlot, SLOT_LABEL, useTakenPlacements, usePlacementRates } from "@/hooks/useBrandOffers";
+import {
+  PlacementSlot,
+  SLOT_LABEL,
+  useTakenPlacements,
+  usePlacementRates,
+  deriveBrandOfferStatus,
+  londonToday,
+} from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
+
 
 interface Selection {
   slot: PlacementSlot;
