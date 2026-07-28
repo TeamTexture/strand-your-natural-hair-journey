@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useRoles } from "@/hooks/useRoles";
 import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
 
 interface Props {
