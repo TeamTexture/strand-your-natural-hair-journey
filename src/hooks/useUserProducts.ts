@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { recomputeIngredientFlags } from "@/hooks/useIngredientLists";
 import { toast } from "sonner";
+import { withAuthLockRetry } from "@/lib/retryQuery";
+
 
 export interface KeyIngredient {
   name: string;
@@ -61,11 +63,14 @@ export function useUserProducts(filter: Filter = "all", opts?: { static?: boolea
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("user_products")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("updated_at", { ascending: false });
+    const { data, error } = await withAuthLockRetry(() =>
+      supabase
+        .from("user_products")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false }),
+    );
+
     if (error) {
       console.error("user_products load failed", error);
       setProducts([]);

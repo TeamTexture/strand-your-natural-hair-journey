@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { isTransientAuthLockError } from "@/lib/retryQuery";
+
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -173,9 +175,15 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchInterval: false,
+      // When many queries fire at once the auth token lock can be "stolen",
+      // aborting in-flight requests and leaving sections blank. Retry those.
+      retry: (failureCount, error) =>
+        failureCount < 3 && isTransientAuthLockError(error),
+      retryDelay: (attempt) => 150 * (attempt + 1),
     },
   },
 });
+
 
 // Helper to wrap protected routes
 const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;

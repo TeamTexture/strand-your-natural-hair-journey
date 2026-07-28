@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { withAuthLockRetry } from "@/lib/retryQuery";
+
 
 export interface WashDay {
   id: string;
@@ -29,13 +31,16 @@ export function useWashDays(opts?: { static?: boolean }) {
   const load = useCallback(async () => {
     if (!user) { setWashDays([]); setLoading(false); return; }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("wash_days")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("wash_date", { ascending: false });
+    const { data, error } = await withAuthLockRetry(() =>
+      supabase
+        .from("wash_days")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("wash_date", { ascending: false }),
+    );
     if (error) console.error("wash_days load failed", error);
-    setWashDays((data as unknown as WashDay[]) ?? []);
+    if (!error) setWashDays((data as unknown as WashDay[]) ?? []);
+
     setLoading(false);
   }, [user]);
 
