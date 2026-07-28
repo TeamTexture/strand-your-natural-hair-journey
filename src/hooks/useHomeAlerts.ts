@@ -408,7 +408,8 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           emoji: "✂️",
           title: "Time to take down",
           body: `${daysInStyle} days in ${currentStyles[0].toLowerCase()} — scalp needs a reset.`,
-          to: "/onboarding/profile-step-4-colour",
+          to: "/home/style",
+
           tone: "warning",
           signature: `style:${styleStartDate ?? "none"}`,
         });
@@ -428,7 +429,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           emoji: "🗓️",
           title: `${plannedNext} change ${when}`,
           body: "Update your current style so guidance keeps matching your hair.",
-          to: "/onboarding/profile-step-4-colour",
+          to: "/home/style",
           tone: "warning",
           signature: `planned:${plannedChangeDate}`,
         });
