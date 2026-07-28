@@ -699,6 +699,7 @@ export type Database = {
           meta: Json
           read_at: string | null
           sender_id: string | null
+          sender_role: string | null
           thread_id: string
         }
         Insert: {
@@ -709,6 +710,7 @@ export type Database = {
           meta?: Json
           read_at?: string | null
           sender_id?: string | null
+          sender_role?: string | null
           thread_id: string
         }
         Update: {
@@ -719,6 +721,7 @@ export type Database = {
           meta?: Json
           read_at?: string | null
           sender_id?: string | null
+          sender_role?: string | null
           thread_id?: string
         }
         Relationships: [
