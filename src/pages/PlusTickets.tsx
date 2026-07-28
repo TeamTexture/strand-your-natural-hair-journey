@@ -8,6 +8,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import PlusGate from "@/components/PlusGate";
 import LoadingDot from "@/components/LoadingDot";
+import EventCoverImage from "@/components/EventCoverImage";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -117,14 +118,16 @@ const TicketCard = ({ ticket }: { ticket: TicketRow }) => {
   const code = ticket.rsvp_id.replace(/-/g, "").slice(-8).toUpperCase();
   return (
     <li className="rounded-[18px] overflow-hidden shadow-sm border border-primary/30 bg-brown text-brown-foreground">
-      {/* Cover strip */}
-      {ticket.cover_path ? (
-        <img src={ticket.cover_path} alt="" className="w-full aspect-[16/6] object-cover" />
-      ) : (
-        <div className="w-full aspect-[16/6] bg-gradient-to-br from-brown to-brown/70 flex items-center justify-center">
-          <Ticket className="size-10 text-primary/60" />
-        </div>
-      )}
+      {/* Cover strip — signed URL for private `event-covers` storage paths,
+          with a branded placeholder behind it while it resolves / if missing. */}
+      <div className="relative w-full aspect-[16/6] bg-gradient-to-br from-brown to-brown/70 flex items-center justify-center">
+        <Ticket className="size-10 text-primary/60" />
+        <EventCoverImage
+          path={ticket.cover_path}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      </div>
+
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary px-2.5 py-1 text-[9.5px] font-body font-bold uppercase tracking-[0.18em]">
