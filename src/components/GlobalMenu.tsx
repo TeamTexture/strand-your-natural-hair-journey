@@ -268,7 +268,7 @@ const GlobalMenu = () => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              {isConsumer && activeView !== "pro" && (
+              {isConsumer && (isAdmin || activeView !== "pro") && (
                 <DropdownMenuItem
                   onClick={() => navigate(viewMeta.consumer.to)}
                   className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
