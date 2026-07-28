@@ -63,8 +63,10 @@ Deno.serve(async (req) => {
       const itemId = sub.items.data[0]?.id;
       if (itemId) {
         plusPriceId = await resolveStrandPlusPriceId(stripe, configuredPlusPriceId, sub.items.data[0]?.price?.id);
+        const configuration = await createUpgradePortalConfiguration(stripe, plusPriceId);
         const portal = await stripe.billingPortal.sessions.create({
           customer: customerId,
+          configuration,
           return_url: `${origin}/plus/upgrade`,
           flow_data: {
             type: "subscription_update_confirm",
@@ -104,4 +106,36 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function createUpgradePortalConfiguration(stripe: Stripe, plusPriceId: string) {
+  const price = await stripe.prices.retrieve(plusPriceId);
+  const product = typeof price.product === "string" ? price.product : price.product.id;
+
+  const existing = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
+  const matching = existing.data.find((config) =>
+    config.metadata?.purpose === "strand_plus_upgrade" &&
+    config.features.subscription_update?.enabled &&
+    config.features.subscription_update.products?.some((item) =>
+      item.product === product && item.prices.includes(plusPriceId)
+    )
+  );
+  if (matching) return matching.id;
+
+  const created = await stripe.billingPortal.configurations.create({
+    business_profile: { headline: "Upgrade to STRAND+" },
+    features: {
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_update: {
+        enabled: true,
+        default_allowed_updates: ["price"],
+        proration_behavior: "create_prorations",
+        products: [{ product, prices: [plusPriceId] }],
+      },
+    },
+    metadata: { purpose: "strand_plus_upgrade" },
+  });
+
+  return created.id;
 }
