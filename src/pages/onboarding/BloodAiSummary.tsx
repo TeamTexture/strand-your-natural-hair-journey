@@ -179,7 +179,7 @@ const BloodAiSummary = () => {
             <p className="text-sm">Could not generate your summary.</p>
           </SurfaceCard>
           <Button variant="gold" size="pill" onClick={() => generate(true)}>Retry</Button>
-          <Button variant="goldGhost" size="pill" onClick={() => navigate("/onboarding/photos")}>
+          <Button variant="goldGhost" size="pill" onClick={() => navigate("/nutrition-plan?onboarding=1")}>
             Continue anyway →
           </Button>
         </div>
