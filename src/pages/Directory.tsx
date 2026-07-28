@@ -24,6 +24,7 @@ const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "C
 const Directory = () => {
   const [params, setParams] = useSearchParams();
   const bloodOnly = params.get("bloodOnly") === "1";
+  const fromConsultation = params.get("consultation") === "1";
   const anchorSelf = params.get("self") === "1";
   const proParam = params.get("pro");
 
@@ -151,6 +152,27 @@ const Directory = () => {
               deficiencies. Tap any card to book.
             </p>
           </SurfaceCard>
+        </div>
+      )}
+
+      {fromConsultation && (
+        <div className="px-5 pb-3 space-y-2">
+          <SurfaceCard tone="gold">
+            <p className="text-xs font-body leading-snug">
+              <span className="font-semibold uppercase tracking-[0.15em] text-primary">
+                Consultation —{" "}
+              </span>
+              Book with a vetted professional below. Once you've had your consultation you can
+              carry on where you left off — nothing you've entered is lost.
+            </p>
+          </SurfaceCard>
+          <Button
+            variant="goldGhost"
+            size="pill"
+            onClick={() => navigate("/onboarding/pro-details")}
+          >
+            Continue onboarding →
+          </Button>
         </div>
       )}
 
