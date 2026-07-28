@@ -340,7 +340,7 @@ const AdminProfessionals = () => {
       </div>
 
       <div className="px-5 border-b border-primary/10">
-        <div className="flex gap-5 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-5 strand-hscroll">
           {FILTERS.map((t) => {
             const active = filter === t.key;
             return (
@@ -362,7 +362,7 @@ const AdminProfessionals = () => {
 
       <div className="px-5 pt-3 flex items-center justify-between gap-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium">Sort</span>
-        <div className="inline-flex rounded-pill bg-primary/10 p-0.5 overflow-x-auto scrollbar-hide">
+        <div className="inline-flex rounded-pill bg-primary/10 p-0.5 strand-hscroll">
           {SORTS.map((s) => {
             const active = sort === s.key;
             return (

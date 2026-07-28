@@ -91,7 +91,7 @@ const Forum = () => {
         />
         <div className="px-4 pb-16 space-y-4">
           <div className="flex items-center gap-2">
-            <div className="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="flex-1 flex gap-1.5 strand-hscroll">
               <Chip active={!categoryId} onClick={() => setCategoryId(null)}>All</Chip>
               {catsQ.data?.map((c) => (
                 <Chip key={c.id} active={categoryId === c.id} onClick={() => setCategoryId(c.id)}>

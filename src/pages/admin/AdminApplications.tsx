@@ -178,7 +178,7 @@ const AdminApplications = () => {
 
       {/* Underline filter tabs — horizontally scrollable */}
       <div className="border-b border-primary/10">
-        <div className="flex gap-5 px-5 overflow-x-auto scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-5 strand-hscroll px-5">
 
           {tabs.map((t) => {
             const active = tab === t.key;

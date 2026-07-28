@@ -22,7 +22,7 @@ const AdminModeration = () => {
     <ScreenLayout>
       <TitleBar title="Forum moderation" />
       <div className="px-5 border-b border-primary/10">
-        <div className="flex gap-5">
+        <div className="flex gap-5 strand-hscroll">
           {(
             [
               { key: "reports", label: "Reports" },

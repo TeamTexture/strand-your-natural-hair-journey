@@ -21,7 +21,7 @@ interface Props {
 const ScreenLayout = ({ children, status = true, bottomNav = false, contentClassName = "", backgroundClassName = "bg-background" }: Props) => (
   <div className={`flex flex-col h-full ${backgroundClassName}`}>
     {status && <StatusBar />}
-    <main className={`flex-1 overflow-y-auto scrollbar-hide ${contentClassName}`}>
+    <main className={`flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none scrollbar-hide ${contentClassName}`}>
       {children}
     </main>
     {bottomNav && <BottomNav />}

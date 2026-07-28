@@ -322,8 +322,9 @@ const AdminMembers = () => {
         </div>
       </div>
 
-      <div className="px-5 border-b border-primary/10">
-        <div className="flex gap-5">
+      <div className="border-b border-primary/10">
+        <div className="flex gap-5 strand-hscroll px-5">
+
           {tabs.map((t) => {
             const active = filter === t.key;
             return (

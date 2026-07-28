@@ -169,7 +169,7 @@ const Directory = () => {
       </div>
 
       {!bloodOnly && (
-        <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
+        <div className="pb-4 strand-hscroll px-5">
           <div className="flex gap-2 min-w-max">
             {tabs.map((t) => (
               <button

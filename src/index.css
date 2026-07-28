@@ -182,4 +182,17 @@
   /* Hide scrollbar for the phone screen scroll area */
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  /* Horizontal tab / chip strip: scrolls on its own, bleeds to the screen edges */
+  .strand-hscroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .strand-hscroll::-webkit-scrollbar { display: none; }
+
 }

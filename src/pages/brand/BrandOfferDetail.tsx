@@ -496,7 +496,7 @@ const ProductInfoDialog = ({ product, onClose }: { product: BrandProductRow | nu
         {product && (
           <div className="space-y-3">
             {images.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto -mx-1 px-1">
+              <div className="flex gap-2 strand-hscroll -mx-1 px-1">
                 {images.map((src, i) => (
                   <img
                     key={i}
