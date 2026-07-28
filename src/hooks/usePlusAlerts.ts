@@ -100,15 +100,18 @@ export function usePlusAlerts() {
         .is("cancelled_at", null)
         .order("created_at", { ascending: false })
         .limit(20),
+      // Messages badge tracks genuinely unread DMs (read_at null) rather than
+      // a "last seen" timestamp, so opening a thread clears its count.
       supabase
         .from("chat_messages")
         .select("id, thread_id, sender_id, body, created_at, chat_threads!inner(thread_type, member_a_id, member_b_id)")
-        .gt("created_at", sMessages)
+        .is("read_at", null)
         .neq("sender_id", user.id)
         .eq("chat_threads.thread_type", "member_dm")
         .or(`member_a_id.eq.${user.id},member_b_id.eq.${user.id}`, { foreignTable: "chat_threads" })
         .order("created_at", { ascending: false })
         .limit(20),
+
       supabase
         .from("content_items")
         .select("id, title, kind, collection_id, created_at")
