@@ -31,7 +31,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
-import { getSubscribePath } from "@/lib/consumerOnboarding";
+import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { titleCase } from "@/lib/humanise";
 
 
@@ -58,6 +59,7 @@ async function fileToBase64(file: File): Promise<string> {
 export default function BloodUpload() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasAccess } = useConsumerSubscription();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
@@ -452,7 +454,7 @@ export default function BloodUpload() {
           .from("profiles")
           .update({ onboarding_completed_at: new Date().toISOString() })
           .eq("user_id", user.id);
-        navigate(getSubscribePath());
+        navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {

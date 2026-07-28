@@ -14,7 +14,8 @@ import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/u
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getSubscribePath } from "@/lib/consumerOnboarding";
+import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 
 
 const MARKERS = [
@@ -33,6 +34,7 @@ const BloodHormones = () => {
   const { user } = useAuth();
   const { values, setValue } = useBloodValues();
   const { unknown, setUnknown } = useUnknownMarkers();
+  const { hasAccess } = useConsumerSubscription();
 
 
   const onContinue = async () => {
@@ -47,7 +49,9 @@ const BloodHormones = () => {
         .update({ onboarding_completed_at: new Date().toISOString() })
         .eq("user_id", user.id);
     }
-    navigate(getSubscribePath());
+    // Members who already have access (or are editing their bloods later)
+    // must never be bounced back into the paywall.
+    navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());
   };
 
   return (

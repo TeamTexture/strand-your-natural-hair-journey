@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { getBrandEntryPath } from "@/lib/consumerOnboarding";
+import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 
 // Only allow same-origin relative paths for redirect to avoid open-redirect
 // attacks via crafted ?next=https://evil.com links.
@@ -44,7 +44,10 @@ const getPostSignInTarget = async (userId: string, requestedNext: string | null)
     return getBrandEntryPath(userId, roles);
   }
   if (proApp) return "/pro/landing";
-  if (!profile?.onboarding_completed_at) return "/onboarding/profile-step-1";
+  if (!profile?.onboarding_completed_at) {
+    const status = await getConsumerOnboardingStatus(userId);
+    if (!status.completed) return status.resumePath;
+  }
   return requestedNext ? safeNext(requestedNext, "/") : "/";
 };
 
