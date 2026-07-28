@@ -105,11 +105,13 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
       <div className="p-4 space-y-3">
         <div className="min-w-0 pr-14">
           <p className="font-display text-[16px] leading-tight">
-            {brand?.brand_name ?? offer.headline}
+            {brand?.brand_name ?? offer.headline ?? "Sponsored offer"}
           </p>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mt-0.5">
-            {brand?.brand_name ? offer.headline : brand?.category}
-          </p>
+          {(brand?.brand_name ? offer.headline ?? brand?.category : brand?.category) && (
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mt-0.5">
+              {brand?.brand_name ? offer.headline ?? brand?.category : brand?.category}
+            </p>
+          )}
         </div>
 
         {offer.body_copy && (
