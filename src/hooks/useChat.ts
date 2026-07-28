@@ -189,6 +189,7 @@ export function useChatThread(threadId: string | null | undefined) {
 export function useSendChatMessage(threadId: string | null | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const view = useActiveRoleView();
   return useMutation({
     mutationFn: async (body: string) => {
       if (!threadId || !user?.id) throw new Error("Not ready");
@@ -197,6 +198,7 @@ export function useSendChatMessage(threadId: string | null | undefined) {
       const { error } = await supabase.from("chat_messages").insert({
         thread_id: threadId,
         sender_id: user.id,
+        sender_role: view,
         kind: "text",
         body: text,
       });
