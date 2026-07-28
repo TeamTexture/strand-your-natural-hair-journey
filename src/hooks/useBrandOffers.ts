@@ -204,27 +204,99 @@ export function usePlacementRates() {
   });
 }
 
-/** Approved/paid/live placements from all brands so date pickers can block them. */
+export interface TakenPlacement {
+  slot: PlacementSlot;
+  placement_date: string;
+  offer_id: string;
+  status: BrandOfferStatus;
+  owner_type: "brand" | "pro";
+  owner_display_name: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  headline: string | null;
+  is_mine: boolean;
+}
+
+/** Approved/paid/live placements from all brands + pros so every booking
+ *  calendar (brand side, pro side and admin) is populated for the FULL run of
+ *  each campaign. Live-syncs on any brand_offers/placement change. */
 export function useTakenPlacements() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("brand-placements-taken-sync")
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offer_placements" }, () => {
+        qc.invalidateQueries({ queryKey: ["brand-placements-taken"] });
+      })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offers" }, () => {
+        qc.invalidateQueries({ queryKey: ["brand-placements-taken"] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   return useQuery({
     queryKey: ["brand-placements-taken"],
-    staleTime: 60_000,
-    queryFn: async () => {
+    staleTime: 15_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<TakenPlacement[]> => {
       // Uses a SECURITY DEFINER RPC so brands can see slot+date pairs held by
       // other brands' offers that are still under_review (RLS hides those
       // rows directly to protect competitors' creative). Without this,
       // brands could double-book pending slots.
       const { data, error } = await supabase.rpc("brand_taken_placements");
       if (error) throw error;
-      return (data ?? []).map((row: any) => ({
+      const rows = (data ?? []).map((row: any) => ({
         slot: row.slot as PlacementSlot,
         placement_date: row.placement_date as string,
         offer_id: row.offer_id as string,
         status: row.status as BrandOfferStatus,
+        owner_type: (row.owner_type ?? "brand") as "brand" | "pro",
+        owner_display_name: (row.owner_display_name ?? "Campaign") as string,
+        starts_on: (row.starts_on ?? null) as string | null,
+        ends_on: (row.ends_on ?? null) as string | null,
+        headline: (row.headline ?? null) as string | null,
+        is_mine: !!row.is_mine,
       }));
+      return fillPlacementWindows(rows);
     },
   });
 }
+
+/** Expand each offer to cover EVERY day of its starts_on..ends_on window on
+ *  each slot it holds. Placement rows can be sparse (e.g. an admin free
+ *  relaunch that shifted the window), but a running advert occupies the whole
+ *  duration — calendars must show it that way. */
+export function fillPlacementWindows(rows: TakenPlacement[]): TakenPlacement[] {
+  const seen = new Set(rows.map((r) => `${r.offer_id}|${r.slot}|${r.placement_date}`));
+  const out = [...rows];
+  const byOfferSlot = new Map<string, TakenPlacement>();
+  for (const r of rows) {
+    const k = `${r.offer_id}|${r.slot}`;
+    if (!byOfferSlot.has(k)) byOfferSlot.set(k, r);
+  }
+  for (const r of byOfferSlot.values()) {
+    if (!r.starts_on || !r.ends_on || r.ends_on < r.starts_on) continue;
+    const [sy, sm, sd] = r.starts_on.split("-").map(Number);
+    const cursor = new Date(Date.UTC(sy, (sm ?? 1) - 1, sd ?? 1));
+    // Guard against pathological ranges.
+    for (let i = 0; i < 400; i++) {
+      const date = cursor.toISOString().slice(0, 10);
+      if (date > r.ends_on) break;
+      const key = `${r.offer_id}|${r.slot}|${date}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push({ ...r, placement_date: date });
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+  return out;
+}
+
 
 /** Today's date in Europe/London as yyyy-mm-dd. Banner windows are London-based. */
 export function londonToday(): string {
