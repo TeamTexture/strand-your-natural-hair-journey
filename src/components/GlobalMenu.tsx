@@ -268,7 +268,7 @@ const GlobalMenu = () => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              {isConsumer && activeView !== "pro" && (
+              {isConsumer && (isAdmin || activeView !== "pro") && (
                 <DropdownMenuItem
                   onClick={() => navigate(viewMeta.consumer.to)}
                   className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
@@ -413,7 +413,7 @@ const GlobalMenu = () => {
               <p className="px-3 pb-1 text-[10px] uppercase tracking-wider font-body font-semibold text-muted-foreground">
                 Switch view
               </p>
-              {isConsumer && activeView !== "consumer" && activeView !== "pro" && (
+              {isConsumer && activeView !== "consumer" && (isAdmin || activeView !== "pro") && (
                 <button
                   onClick={() => go(viewMeta.consumer.to)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
