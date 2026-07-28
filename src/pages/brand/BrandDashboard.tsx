@@ -17,6 +17,8 @@ import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPend
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useRoles } from "@/hooks/useRoles";
+
 import { useOwnerMode, ownerHomeRoute, ownerNewRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
