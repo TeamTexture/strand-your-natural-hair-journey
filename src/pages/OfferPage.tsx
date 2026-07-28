@@ -232,7 +232,7 @@ const OfferPage = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Offer" onBack={() => nav(-1)} />
+      <TitleBar title="Offer" />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard padded={false} className="overflow-hidden">
           {heroUrl && <img src={heroUrl} alt="" className="w-full aspect-[16/9] object-cover" />}

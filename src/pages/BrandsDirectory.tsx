@@ -112,7 +112,7 @@ const BrandsDirectory = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="STRAND Brands" onBack={() => nav(-1)} />
+      <TitleBar title="STRAND Brands" />
       <div className="px-5 pb-8 space-y-3">
         <p className="text-xs text-muted-foreground font-body leading-snug">
           Brands trusted enough to sit alongside your STRAND journey.

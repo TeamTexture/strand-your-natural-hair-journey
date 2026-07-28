@@ -213,7 +213,7 @@ const BrandDetailPage = () => {
   if (!brand) {
     return (
       <ScreenLayout>
-        <TitleBar title="Brand" onBack={() => nav(-1)} />
+        <TitleBar title="Brand" />
         <EmptyState icon="✦" message="Brand not found" />
       </ScreenLayout>
     );
@@ -228,7 +228,7 @@ const BrandDetailPage = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={brand.brand_name ?? "Brand"} onBack={() => nav(-1)} />
+      <TitleBar title={brand.brand_name ?? "Brand"} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="p-4">
           <div className="flex items-start gap-3">

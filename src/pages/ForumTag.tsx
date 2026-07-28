@@ -50,7 +50,7 @@ const ForumTag = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={`#${cleanTag}`} onBack={() => nav(-1)} />
+      <TitleBar title={`#${cleanTag}`} />
       <div className="px-5 pb-10 space-y-6">
         <p className="text-[12px] font-body text-foreground/60">
           {q.isLoading ? "Searching…" : `${total} result${total === 1 ? "" : "s"} tagged #${cleanTag}`}

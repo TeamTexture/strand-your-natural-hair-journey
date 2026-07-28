@@ -50,7 +50,7 @@ const MemberProfile = () => {
   return (
     <PlusGate title="Member">
       <ScreenLayout>
-        <TitleBar title="Member" onBack={() => nav(-1)} />
+        <TitleBar title="Member" />
         {profileQ.isLoading ? <LoadingDot /> : (
           <div className="px-5 pt-4 pb-10 text-center space-y-4">
             {profileQ.data?.avatar_url ? (

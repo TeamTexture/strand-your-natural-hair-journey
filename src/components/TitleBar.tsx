@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBackButtonContext } from "@/components/BackButtonContext";
+import { safeBack } from "@/lib/smartBack";
 import NotificationsBell from "@/components/NotificationsBell";
 
 interface Props {
@@ -13,9 +14,11 @@ interface Props {
   back?: boolean;
   /** Custom back behaviour */
   onBack?: () => void;
+  /** Where to go when there is no in-app history to pop (deep link / refresh) */
+  backFallback?: string;
 }
 
-const TitleBar = ({ title, right, back = true, onBack }: Props) => {
+const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home" }: Props) => {
   const navigate = useNavigate();
   const { register, unregister } = useBackButtonContext();
 
@@ -29,7 +32,7 @@ const TitleBar = ({ title, right, back = true, onBack }: Props) => {
 
   const handleBack = () => {
     if (onBack) onBack();
-    else navigate(-1);
+    else safeBack(navigate, backFallback);
   };
 
   return (

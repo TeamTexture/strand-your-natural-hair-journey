@@ -261,7 +261,7 @@ const BrandProductPage = () => {
   if (!product || !offer) {
     return (
       <ScreenLayout>
-        <TitleBar title="Product" onBack={() => nav(-1)} />
+        <TitleBar title="Product" />
         <div className="px-5 pt-4">
           <SurfaceCard>
             <p className="text-sm text-muted-foreground">
@@ -278,7 +278,7 @@ const BrandProductPage = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={brandName ?? "Product"} onBack={() => nav(-1)} />
+      <TitleBar title={brandName ?? "Product"} />
       <div className="px-5 pb-24 space-y-4">
         <SurfaceCard padded={false} className="overflow-hidden">
           {heroImage ? (

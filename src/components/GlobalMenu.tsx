@@ -60,6 +60,7 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useBackButtonContext } from "@/components/BackButtonContext";
+import { safeBack } from "@/lib/smartBack";
 import { toast } from "sonner";
 
 type NavItem = {
@@ -240,7 +241,7 @@ const GlobalMenu = () => {
           <button
             type="button"
             aria-label="Back"
-            onClick={() => navigate(-1)}
+            onClick={() => safeBack(navigate)}
             className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
           >
             <ChevronLeft className="size-5" />
