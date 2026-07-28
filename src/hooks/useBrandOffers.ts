@@ -268,7 +268,7 @@ export function useAllLiveBrandOffers() {
       const today = londonToday();
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, brand_user_id")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, brand_user_id, starts_on, ends_on")
         .in("status", ["live", "paid_scheduled"])
         .lte("starts_on", today)
         .gte("ends_on", today);
