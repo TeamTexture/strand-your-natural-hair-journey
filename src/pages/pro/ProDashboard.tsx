@@ -74,7 +74,7 @@ const ProDashboard = () => {
   const nav = useNavigate();
   const { signOut, user } = useAuth();
   const { firstName: proFirstName, fullName: proFullName } = useProGreetingName();
-  const { isConsumer, isAdmin } = useRoles();
+  const { isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
   const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
