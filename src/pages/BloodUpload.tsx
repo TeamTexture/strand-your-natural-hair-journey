@@ -58,6 +58,7 @@ async function fileToBase64(file: File): Promise<string> {
 export default function BloodUpload() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasAccess } = useConsumerSubscription();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
