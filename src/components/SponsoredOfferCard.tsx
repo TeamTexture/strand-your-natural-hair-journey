@@ -132,7 +132,6 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
     </div>
   );
 
-  );
 };
 
 
