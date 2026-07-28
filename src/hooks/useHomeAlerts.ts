@@ -515,7 +515,8 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           emoji: "🧪",
           title: "Time to book a blood test",
           body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair, nutrition and supplement guidance stays accurate.`,
-          to: "/blood-history",
+          to: "/directory?bloodOnly=1",
+
           tone: "danger",
           signature: `blood:${lastBloodPanelDate}`,
         });
@@ -529,7 +530,8 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
             emoji: "🧪",
             title: "Book your first blood test",
             body: "Add a recent blood test so STRAND can personalise your hair, nutrition and supplement guidance to your body.",
-            to: "/blood-history",
+            to: "/directory?bloodOnly=1",
+
             tone: "danger",
             signature: "blood:none",
           });
