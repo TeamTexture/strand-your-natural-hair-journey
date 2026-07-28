@@ -17,7 +17,10 @@ import { renderMentions } from "@/lib/renderMentions";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import {
+  messageIsMine,
+  mySideRole,
   otherParticipantId,
   useChatThreads,
   useChatThread,
