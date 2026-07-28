@@ -889,6 +889,22 @@ const Home = () => {
           <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Explore STRAND brands</p>
         </button>
         <button
+          onClick={() => navigate("/directory")}
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-xl mb-1.5">💇🏾‍♀️</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Professional directory</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Find a trusted specialist</p>
+        </button>
+        <button
+          onClick={() => navigate("/journal/moodboards")}
+          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
+        >
+          <div className="text-xl mb-1.5">🖼️</div>
+          <p className="text-[13px] font-medium font-body leading-tight">Moodboards</p>
+          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Save style inspiration</p>
+        </button>
+        <button
           onClick={() => navigate("/profile/discounts")}
           className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -896,6 +912,7 @@ const Home = () => {
           <p className="text-[13px] font-medium font-body leading-tight">Discounts & offers</p>
           <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Member-only perks</p>
         </button>
+
       </div>
 
       <SectionLabel>My shelf</SectionLabel>
