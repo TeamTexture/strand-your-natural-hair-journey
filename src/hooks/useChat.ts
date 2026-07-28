@@ -214,15 +214,39 @@ export function useSendChatMessage(threadId: string | null | undefined) {
 export function useMarkThreadRead(threadId: string | null | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const view = useActiveRoleView();
   return useMutation({
     mutationFn: async () => {
       if (!threadId || !user?.id) return;
+      const stamp = new Date().toISOString();
       await supabase
         .from("chat_messages")
-        .update({ read_at: new Date().toISOString() })
+        .update({ read_at: stamp })
         .eq("thread_id", threadId)
         .neq("sender_id", user.id)
         .is("read_at", null);
+      // Multi-role accounts can sit on both sides of a thread: mark the
+      // opposite side's own messages read too, so ticks still turn blue.
+      const { data: t } = await supabase
+        .from("chat_threads")
+        .select("thread_type, consumer_id, pro_user_id, admin_user_id, subject_user_id")
+        .eq("id", threadId)
+        .maybeSingle();
+      const bothSides = t
+        ? t.thread_type === "admin_support"
+          ? t.admin_user_id === user.id && t.subject_user_id === user.id
+          : t.pro_user_id === user.id && t.consumer_id === user.id
+        : false;
+      if (bothSides) {
+        const mine = view === "admin" ? "admin" : view;
+        await supabase
+          .from("chat_messages")
+          .update({ read_at: stamp })
+          .eq("thread_id", threadId)
+          .eq("sender_id", user.id)
+          .neq("sender_role", mine)
+          .is("read_at", null);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
