@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ArrowLeftRight, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -74,7 +74,7 @@ const ProDashboard = () => {
   const nav = useNavigate();
   const { signOut, user } = useAuth();
   const { firstName: proFirstName, fullName: proFullName } = useProGreetingName();
-  const { isConsumer, isAdmin } = useRoles();
+  const { isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
   const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
@@ -246,38 +246,26 @@ const ProDashboard = () => {
 
 
 
-        {(isConsumer || isAdmin) && (
+        {isAdmin && (
           <>
             <SectionLabel>Switch view</SectionLabel>
             <div className="space-y-1.5">
-              {isConsumer && (
-                <button
-                  onClick={() => nav("/home")}
-                  className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-                >
-                  <ArrowLeftRight className="size-4 text-primary/70" />
-                  <span className="flex-1">Consumer app</span>
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => nav("/admin")}
-                  className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-                >
-                  <ShieldCheck className="size-4 text-primary/70" />
-                  <span className="flex-1">Admin panel</span>
-                  {pendingCount > 0 && (
-                    <span
-                      aria-label={`${pendingCount} pending applications`}
-                      className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none"
-                    >
-                      {pendingCount > 99 ? "99+" : pendingCount}
-                    </span>
-                  )}
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                </button>
-              )}
+              <button
+                onClick={() => nav("/admin")}
+                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+              >
+                <ShieldCheck className="size-4 text-primary/70" />
+                <span className="flex-1">Admin panel</span>
+                {pendingCount > 0 && (
+                  <span
+                    aria-label={`${pendingCount} pending applications`}
+                    className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none"
+                  >
+                    {pendingCount > 99 ? "99+" : pendingCount}
+                  </span>
+                )}
+                <ChevronRight className="size-3.5 text-muted-foreground" />
+              </button>
             </div>
           </>
         )}
