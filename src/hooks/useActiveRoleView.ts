@@ -13,12 +13,19 @@ export type ActiveRoleView = "consumer" | "pro" | "admin" | "brand";
 // consumer opening messages stays "consumer".
 const SHARED_PREFIXES = ["/messages", "/chat", "/notifications"];
 
-export function routeToView(path: string): ActiveRoleView | null {
+export function routeToView(path: string, search = ""): ActiveRoleView | null {
   if (path.startsWith("/admin")) return "admin";
   if (path.startsWith("/brand")) return "brand";
   if (path === "/pro" || path.startsWith("/pro/")) return "pro";
   if (path === "/" ) return null;
   if (SHARED_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))) return null;
+  // Professional dashboard links can open shared consumer-facing pages for a
+  // pro-specific purpose. Keep those journeys labelled as Professional rather
+  // than flipping the toggle/menu back to My STRAND.
+  if (path === "/directory") {
+    const params = new URLSearchParams(search);
+    if (params.get("self") === "1") return "pro";
+  }
   // Everything else in the app is a consumer-side route (nutrition plan,
   // journal, products, onboarding, profile…), so the toggle must read
   // "My STRAND" even for multi-role accounts.
@@ -27,8 +34,8 @@ export function routeToView(path: string): ActiveRoleView | null {
 
 
 export function useActiveRoleView(): ActiveRoleView {
-  const { pathname } = useLocation();
-  const routeView = routeToView(pathname);
+  const { pathname, search } = useLocation();
+  const routeView = routeToView(pathname, search);
 
   const [remembered, setRemembered] = useState<ActiveRoleView>(() => {
     try {

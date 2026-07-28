@@ -123,7 +123,7 @@ const GlobalMenu = () => {
 
   const path = location.pathname;
 
-  const routeView = routeToView(path);
+  const routeView = routeToView(path, location.search);
 
 
   const [rememberedView, setRememberedView] = useState<
