@@ -16,6 +16,7 @@ import { useAllLiveBrandOffers, useLogBrandStat } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { directoryLinkForPro } from "@/lib/directoryLink";
+import SponsoredOfferCard from "@/components/SponsoredOfferCard";
 
 interface OfferProps {
   icon: React.ComponentType<{ className?: string }>;
