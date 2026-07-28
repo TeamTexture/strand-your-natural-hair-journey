@@ -257,8 +257,13 @@ export function useMarkThreadRead(threadId: string | null | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
       qc.invalidateQueries({ queryKey: ["chat_unread", user?.id] });
+      // Per-thread unread pills on the Messages list.
+      qc.invalidateQueries({ queryKey: ["chat_thread_meta", user?.id] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+      // Home 2x2 grid / STRAND+ message badge listens for this.
+      try { window.dispatchEvent(new CustomEvent("chat-thread-read")); } catch { /* noop */ }
     },
-  });
+
 }
 
 /**
