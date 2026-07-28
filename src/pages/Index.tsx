@@ -89,7 +89,7 @@ const Index = () => {
         ? hasAccess
           ? "/home"
           : getSubscribePath(onboardingStatus.analysisPath)
-        : "/onboarding/profile-step-1";
+        : onboardingStatus.resumePath;
 
       const dests: Destination[] = [];
       if (hasConsumer)

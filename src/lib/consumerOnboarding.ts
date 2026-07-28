@@ -55,10 +55,18 @@ export async function getConsumerOnboardingStatus(userId: string) {
       .eq("user_id", userId);
   }
 
+  // Where a part-way user should be dropped back in, so returning mid-flow
+  // never restarts the whole journey from step 1.
+  let resumePath = "/onboarding/profile-step-1";
+  if ((healthRes.count ?? 0) > 0) resumePath = "/onboarding/profile-step-3-hair";
+  if ((hairRes.count ?? 0) > 0) resumePath = "/onboarding/profile-step-4-colour";
+  if ((styleRes.count ?? 0) > 0) resumePath = "/onboarding/blood-timing";
+
   return {
     completed: markedComplete || dataComplete,
     markedComplete,
     dataComplete,
+    resumePath,
     analysisPath: POST_PAYMENT_ANALYSIS_PATH,
   };
 }

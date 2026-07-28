@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
-import { getSubscribePath } from "@/lib/consumerOnboarding";
+import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { titleCase } from "@/lib/humanise";
 
 
@@ -452,7 +452,7 @@ export default function BloodUpload() {
           .from("profiles")
           .update({ onboarding_completed_at: new Date().toISOString() })
           .eq("user_id", user.id);
-        navigate(getSubscribePath());
+        navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
