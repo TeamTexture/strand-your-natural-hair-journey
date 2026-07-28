@@ -2,6 +2,8 @@
 // Reserves its own row above page content so pages never sit under it.
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { routeToView } from "@/hooks/useActiveRoleView";
+
 import {
   Menu,
   Star,
