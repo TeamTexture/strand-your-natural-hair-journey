@@ -35,7 +35,21 @@ const PlusUpgrade = () => {
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-consumer-upgrade");
-      if (error) throw error;
+      if (error) {
+        let msg = error.message;
+        try {
+          const body = await (error as { context?: Response }).context?.json();
+          if (body?.error) msg = body.error;
+        } catch {
+          /* keep generic message */
+        }
+        throw new Error(msg);
+      }
+      if (data?.already_plus || data?.upgraded) {
+        await refetch();
+        nav("/plus/welcome?checkout=success", { replace: true });
+        return;
+      }
       if (!data?.url) throw new Error("Upgrade link missing");
       window.location.href = data.url as string;
     } catch (e) {
@@ -43,6 +57,7 @@ const PlusUpgrade = () => {
       setBusy(false);
     }
   };
+
 
   if (hasPlus || isLoading) {
     return (
