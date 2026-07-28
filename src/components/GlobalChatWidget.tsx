@@ -285,6 +285,7 @@ const ThreadQuickView = ({
   onOpenFull: () => void;
 }) => {
   const { user } = useAuth();
+  const roleView = useActiveRoleView();
   const { messages } = useChatThread(thread.id);
   const send = useSendChatMessage(thread.id);
   const markRead = useMarkThreadRead(thread.id);
@@ -379,12 +380,14 @@ const ThreadQuickView = ({
         ) : (() => {
           let prevSender: string | null = null;
           return recent.map((m) => {
-            const mine = m.sender_id === user?.id;
+            const mine = user
+              ? messageIsMine(m, thread, user.id, roleView)
+              : false;
             if (m.kind === "system") {
               prevSender = null;
               const apptId = (m.meta as { appointment_id?: string } | null)?.appointment_id;
               if (apptId) {
-                const iAmPro = thread.pro_user_id === user?.id;
+                const iAmPro = user ? mySideRole(thread, user.id, roleView) === "pro" : false;
                 const target = iAmPro ? `/pro/appointments?appt=${apptId}` : `/appointments?appt=${apptId}`;
                 return (
                   <div key={m.id} className="flex justify-center py-1">
