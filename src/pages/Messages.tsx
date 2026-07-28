@@ -13,13 +13,15 @@ import ProAvatar from "@/components/ProAvatar";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { otherParticipantId, useChatThreads } from "@/hooks/useChat";
+import { messageIsMine, otherParticipantId, useChatThreads } from "@/hooks/useChat";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 
 const Messages = () => {
   useEffect(() => { markPlusSurfaceSeen("messages"); }, []);
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
+  const view = useActiveRoleView();
 
   const { pros, consumers } = useMemo(() => {
     if (!user?.id || !threads) return { pros: [] as string[], consumers: [] as string[] };
@@ -103,13 +105,13 @@ const Messages = () => {
 
   // Last message + unread count per thread.
   const { data: threadMeta } = useQuery({
-    queryKey: ["chat_thread_meta", user?.id, threads?.map((t) => t.id).join(",")],
+    queryKey: ["chat_thread_meta", user?.id, view, threads?.map((t) => t.id).join(",")],
     enabled: !!user?.id && !!threads && threads.length > 0,
     queryFn: async () => {
       const ids = (threads ?? []).map((t) => t.id);
       const { data } = await supabase
         .from("chat_messages")
-        .select("thread_id, body, sender_id, read_at, kind, created_at")
+        .select("thread_id, body, sender_id, sender_role, read_at, kind, created_at")
         .in("thread_id", ids)
         .order("created_at", { ascending: false });
       const meta = new Map<string, {
@@ -118,6 +120,11 @@ const Messages = () => {
         preview_read: boolean;
         unread: number;
       }>();
+      const threadById = new Map((threads ?? []).map((t) => [t.id, t]));
+      const isMine = (m: { sender_id: string | null; sender_role: string | null; thread_id: string }) => {
+        const t = threadById.get(m.thread_id);
+        return t ? messageIsMine(m, t, user!.id, view) : m.sender_id === user!.id;
+      };
       for (const m of data ?? []) {
         const cur = meta.get(m.thread_id) ?? {
           preview: "",
@@ -127,10 +134,10 @@ const Messages = () => {
         };
         if (!cur.preview && m.kind === "text") {
           cur.preview = m.body ?? "";
-          cur.preview_mine = m.sender_id === user!.id;
+          cur.preview_mine = isMine(m);
           cur.preview_read = !!m.read_at;
         }
-        if (m.sender_id !== user!.id && m.sender_id !== null && !m.read_at) {
+        if (m.sender_id !== null && !m.read_at && !isMine(m)) {
           cur.unread += 1;
         }
         meta.set(m.thread_id, cur);

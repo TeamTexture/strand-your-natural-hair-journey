@@ -27,6 +27,7 @@ export interface ChatMessage {
   id: string;
   thread_id: string;
   sender_id: string | null;
+  sender_role: string | null;
   kind: "text" | "system";
   body: string;
   meta: Record<string, unknown>;
@@ -40,6 +41,51 @@ export function otherParticipantId(t: ChatThread, myId: string): string | null {
     return myId === t.admin_user_id ? t.subject_user_id : t.admin_user_id;
   }
   return myId === t.pro_user_id ? t.consumer_id : t.pro_user_id;
+}
+
+/**
+ * Which side of a thread am I sitting on right now?
+ * Multi-role accounts (e.g. an admin who is also a professional and a member)
+ * can occupy BOTH sides of the same thread. In that case the active role view
+ * decides who "I" am, so the professional view sees the member's messages as
+ * incoming (brown) and its own as outgoing (gold).
+ */
+export function mySideRole(
+  t: Pick<ChatThread, "thread_type" | "consumer_id" | "pro_user_id" | "admin_user_id" | "subject_user_id">,
+  myId: string,
+  view: ActiveRoleView,
+): "pro" | "consumer" | "admin" | "subject" {
+  if (t.thread_type === "admin_support") {
+    if (t.admin_user_id === myId && t.subject_user_id === myId) {
+      return view === "admin" ? "admin" : "subject";
+    }
+    return t.admin_user_id === myId ? "admin" : "subject";
+  }
+  if (t.pro_user_id === myId && t.consumer_id === myId) {
+    return view === "pro" || view === "admin" ? "pro" : "consumer";
+  }
+  return t.pro_user_id === myId ? "pro" : "consumer";
+}
+
+/** Is this message mine, from the perspective of the side I'm viewing as? */
+export function messageIsMine(
+  m: Pick<ChatMessage, "sender_id" | "sender_role">,
+  t: Pick<ChatThread, "thread_type" | "consumer_id" | "pro_user_id" | "admin_user_id" | "subject_user_id">,
+  myId: string,
+  view: ActiveRoleView,
+): boolean {
+  if (m.sender_id !== myId) return false;
+  const side = mySideRole(t, myId, view);
+  const bothSides =
+    t.thread_type === "admin_support"
+      ? t.admin_user_id === myId && t.subject_user_id === myId
+      : t.pro_user_id === myId && t.consumer_id === myId;
+  if (!bothSides) return true;
+  if (!m.sender_role) return true; // legacy rows: keep previous behaviour
+  const senderSide =
+    m.sender_role === "pro" || m.sender_role === "admin" ? m.sender_role : "consumer";
+  if (side === "subject") return senderSide === "consumer";
+  return senderSide === side;
 }
 
 const threadOrFilter = (uid: string) =>
@@ -143,6 +189,7 @@ export function useChatThread(threadId: string | null | undefined) {
 export function useSendChatMessage(threadId: string | null | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const view = useActiveRoleView();
   return useMutation({
     mutationFn: async (body: string) => {
       if (!threadId || !user?.id) throw new Error("Not ready");
@@ -151,6 +198,7 @@ export function useSendChatMessage(threadId: string | null | undefined) {
       const { error } = await supabase.from("chat_messages").insert({
         thread_id: threadId,
         sender_id: user.id,
+        sender_role: view,
         kind: "text",
         body: text,
       });
@@ -166,15 +214,39 @@ export function useSendChatMessage(threadId: string | null | undefined) {
 export function useMarkThreadRead(threadId: string | null | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const view = useActiveRoleView();
   return useMutation({
     mutationFn: async () => {
       if (!threadId || !user?.id) return;
+      const stamp = new Date().toISOString();
       await supabase
         .from("chat_messages")
-        .update({ read_at: new Date().toISOString() })
+        .update({ read_at: stamp })
         .eq("thread_id", threadId)
         .neq("sender_id", user.id)
         .is("read_at", null);
+      // Multi-role accounts can sit on both sides of a thread: mark the
+      // opposite side's own messages read too, so ticks still turn blue.
+      const { data: t } = await supabase
+        .from("chat_threads")
+        .select("thread_type, consumer_id, pro_user_id, admin_user_id, subject_user_id")
+        .eq("id", threadId)
+        .maybeSingle();
+      const bothSides = t
+        ? t.thread_type === "admin_support"
+          ? t.admin_user_id === user.id && t.subject_user_id === user.id
+          : t.pro_user_id === user.id && t.consumer_id === user.id
+        : false;
+      if (bothSides) {
+        const mine = view === "admin" ? "admin" : view;
+        await supabase
+          .from("chat_messages")
+          .update({ read_at: stamp })
+          .eq("thread_id", threadId)
+          .eq("sender_id", user.id)
+          .neq("sender_role", mine)
+          .is("read_at", null);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
@@ -204,13 +276,18 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
       );
       const ids = scoped.map((t) => t.id);
       if (ids.length === 0) return 0;
-      const { count } = await supabase
+      const { data: msgs } = await supabase
         .from("chat_messages")
-        .select("id", { count: "exact", head: true })
+        .select("thread_id, sender_id, sender_role")
         .in("thread_id", ids)
-        .neq("sender_id", user!.id)
         .is("read_at", null);
-      return count ?? 0;
+      const byId = new Map(scoped.map((t) => [t.id, t]));
+      const countView: ActiveRoleView = view === "all" ? "consumer" : view;
+      return (msgs ?? []).filter((m) => {
+        const t = byId.get(m.thread_id);
+        if (!t) return m.sender_id !== user!.id;
+        return !messageIsMine(m as never, t as never, user!.id, countView);
+      }).length;
     },
   });
 }

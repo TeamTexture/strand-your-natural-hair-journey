@@ -18,8 +18,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import {
-  otherParticipantId,
+  messageIsMine,
+  mySideRole,
   useBookAppointmentInThread,
   useChatThread,
   useMarkThreadRead,
@@ -164,6 +166,7 @@ const ChatThreadPage = () => {
   const nav = useNavigate();
   const { threadId } = useParams();
   const { user } = useAuth();
+  const roleView = useActiveRoleView();
   const { thread, messages } = useChatThread(threadId);
   const send = useSendChatMessage(threadId);
   const book = useBookAppointmentInThread();
@@ -209,9 +212,17 @@ const ChatThreadPage = () => {
 
   const t = thread.data;
   const isSupport = t?.thread_type === "admin_support";
-  const isAdmin = !!t && !!user && t.admin_user_id === user.id;
-  const isPro = !!t && !!user && !isSupport && t.pro_user_id === user.id;
-  const otherId = t && user ? otherParticipantId(t, user.id) : null;
+  // Perspective is decided by the role view I'm browsing in, so a dual-role
+  // account (pro + member) reads the same thread correctly from both sides.
+  const side = t && user ? mySideRole(t, user.id, roleView) : null;
+  const isAdmin = side === "admin";
+  const isPro = !isSupport && side === "pro";
+  const otherId =
+    t && user
+      ? t.thread_type === "admin_support"
+        ? (isAdmin ? t.subject_user_id : t.admin_user_id)
+        : (isPro ? t.consumer_id : t.pro_user_id)
+      : null;
 
   const { data: other } = useQuery({
     queryKey: ["chat_thread_other", otherId, isSupport, isAdmin, isPro],
@@ -256,11 +267,13 @@ const ChatThreadPage = () => {
   }, [messages.data?.length]);
 
   useEffect(() => {
-    if (!threadId || !messages.data) return;
-    const hasUnread = messages.data.some((m) => m.sender_id !== user?.id && m.sender_id !== null && !m.read_at);
+    if (!threadId || !messages.data || !t || !user) return;
+    const hasUnread = messages.data.some(
+      (m) => m.sender_id !== null && !m.read_at && !messageIsMine(m, t, user.id, roleView),
+    );
     if (hasUnread) markRead.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId, messages.data?.length]);
+  }, [threadId, messages.data?.length, roleView, t?.id]);
 
   const grouped = useMemo(() => {
     const out: Array<{ label: string; items: ChatMessage[] }> = [];
@@ -377,7 +390,8 @@ const ChatThreadPage = () => {
                   prevSender = null;
                   return <SystemBubble key={m.id} m={m} isPro={isPro} />;
                 }
-                const mine = m.sender_id === user?.id;
+                const mine =
+                  !!t && !!user ? messageIsMine(m, t, user.id, roleView) : m.sender_id === user?.id;
                 const senderKey = mine ? "me" : (m.sender_id ?? "them");
                 const showName = prevSender !== senderKey;
                 prevSender = senderKey;
