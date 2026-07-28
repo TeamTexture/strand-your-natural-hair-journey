@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
+import { resolveStrandPlusPriceId } from "../_shared/stripe-prices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,9 +27,9 @@ Deno.serve(async (req) => {
     const email = (claimsData.claims.email as string | undefined) ?? undefined;
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
+    const configuredPlusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
     if (!stripeKey) return json({ error: "Stripe not configured" }, 500);
-    if (!plusPriceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
+    if (!configuredPlusPriceId) return json({ error: "STRAND+ price not yet configured. Please try again shortly." }, 500);
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-11-20.acacia" as any });
     const admin = createClient(
@@ -53,22 +54,38 @@ Deno.serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") ?? "https://mystrand.co.uk";
+    let plusPriceId = configuredPlusPriceId;
 
-    // If they have an ACTIVE standard sub, swap the price in-place (pro-rata per Stripe defaults) and skip checkout.
+    // If they have an ACTIVE standard sub, send them to Stripe's hosted
+    // confirmation flow instead of silently changing the subscription.
     if (existing?.stripe_subscription_id && (existing.status === "active" || existing.status === "trialing")) {
       const sub = await stripe.subscriptions.retrieve(existing.stripe_subscription_id);
       const itemId = sub.items.data[0]?.id;
       if (itemId) {
-        await stripe.subscriptions.update(existing.stripe_subscription_id, {
-          items: [{ id: itemId, price: plusPriceId }],
-          proration_behavior: "create_prorations",
-          metadata: { ...(sub.metadata ?? {}), tier: "plus", consumer_user_id: userId },
+        plusPriceId = await resolveStrandPlusPriceId(stripe, configuredPlusPriceId, sub.items.data[0]?.price?.id);
+        const configuration = await createUpgradePortalConfiguration(stripe, plusPriceId);
+        const portal = await stripe.billingPortal.sessions.create({
+          customer: customerId,
+          configuration,
+          return_url: `${origin}/plus/upgrade`,
+          flow_data: {
+            type: "subscription_update_confirm",
+            after_completion: {
+              type: "redirect",
+              redirect: { return_url: `${origin}/plus/welcome?checkout=success` },
+            },
+            subscription_update_confirm: {
+              subscription: existing.stripe_subscription_id,
+              items: [{ id: itemId, price: plusPriceId, quantity: sub.items.data[0]?.quantity ?? 1 }],
+            },
+          },
         });
-        return json({ url: `${origin}/plus/welcome?upgraded=1` });
+        return json({ url: portal.url });
       }
     }
 
     // Otherwise open a fresh checkout for the plus price.
+    plusPriceId = await resolveStrandPlusPriceId(stripe, configuredPlusPriceId);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -89,4 +106,36 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function createUpgradePortalConfiguration(stripe: Stripe, plusPriceId: string) {
+  const price = await stripe.prices.retrieve(plusPriceId);
+  const product = typeof price.product === "string" ? price.product : price.product.id;
+
+  const existing = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
+  const matching = existing.data.find((config) =>
+    config.metadata?.purpose === "strand_plus_upgrade" &&
+    config.features.subscription_update?.enabled &&
+    config.features.subscription_update.products?.some((item) =>
+      item.product === product && item.prices.includes(plusPriceId)
+    )
+  );
+  if (matching) return matching.id;
+
+  const created = await stripe.billingPortal.configurations.create({
+    business_profile: { headline: "Upgrade to STRAND+" },
+    features: {
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_update: {
+        enabled: true,
+        default_allowed_updates: ["price"],
+        proration_behavior: "create_prorations",
+        products: [{ product, prices: [plusPriceId] }],
+      },
+    },
+    metadata: { purpose: "strand_plus_upgrade" },
+  });
+
+  return created.id;
 }
