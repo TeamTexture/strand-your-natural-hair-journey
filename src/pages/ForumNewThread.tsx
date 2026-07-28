@@ -60,7 +60,7 @@ const ForumNewThread = () => {
   return (
     <PlusGate title="New thread">
       <ScreenLayout>
-        <TitleBar title="New thread" onBack={() => nav(-1)} />
+        <TitleBar title="New thread" />
         <div className="px-5 pb-10 space-y-4">
           <div className="space-y-1.5">
             <Label>Category</Label>

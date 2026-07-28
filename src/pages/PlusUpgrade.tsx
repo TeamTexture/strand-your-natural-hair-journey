@@ -53,7 +53,7 @@ const PlusUpgrade = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Upgrade" onBack={() => nav(-1)} />
+      <TitleBar title="Upgrade" />
       <div className="px-5 pb-12 space-y-6">
         <div className="text-center pt-1 space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25">

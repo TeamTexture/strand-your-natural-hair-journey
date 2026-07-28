@@ -141,7 +141,7 @@ const Messages = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Messages" onBack={() => nav(-1)} />
+      <TitleBar title="Messages" />
 
       <div className="px-5 pb-3">
         <p className="text-xs text-muted-foreground font-body leading-snug">
