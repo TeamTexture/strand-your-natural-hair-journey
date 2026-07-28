@@ -2,6 +2,8 @@
 // Reserves its own row above page content so pages never sit under it.
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { routeToView } from "@/hooks/useActiveRoleView";
+
 import {
   Menu,
   Star,
@@ -120,15 +122,8 @@ const GlobalMenu = () => {
 
   const path = location.pathname;
 
-  const routeView: "consumer" | "pro" | "admin" | "brand" | null = path.startsWith("/admin")
-    ? "admin"
-    : path.startsWith("/brand")
-      ? "brand"
-      : path === "/pro" || path.startsWith("/pro/")
-        ? "pro"
-        : path === "/home" || path.startsWith("/home/")
-          ? "consumer"
-          : null;
+  const routeView = routeToView(path);
+
 
   const [rememberedView, setRememberedView] = useState<
     "consumer" | "pro" | "admin" | "brand"

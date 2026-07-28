@@ -8,13 +8,23 @@ import { useLocation } from "react-router-dom";
 
 export type ActiveRoleView = "consumer" | "pro" | "admin" | "brand";
 
-function routeToView(path: string): ActiveRoleView | null {
+// Routes that exist inside every view (chat, notifications) — these must NOT
+// change the remembered view, so a pro opening messages stays "pro" and a
+// consumer opening messages stays "consumer".
+const SHARED_PREFIXES = ["/messages", "/chat", "/notifications"];
+
+export function routeToView(path: string): ActiveRoleView | null {
   if (path.startsWith("/admin")) return "admin";
   if (path.startsWith("/brand")) return "brand";
   if (path === "/pro" || path.startsWith("/pro/")) return "pro";
-  if (path === "/home" || path.startsWith("/home/")) return "consumer";
-  return null;
+  if (path === "/" ) return null;
+  if (SHARED_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))) return null;
+  // Everything else in the app is a consumer-side route (nutrition plan,
+  // journal, products, onboarding, profile…), so the toggle must read
+  // "My STRAND" even for multi-role accounts.
+  return "consumer";
 }
+
 
 export function useActiveRoleView(): ActiveRoleView {
   const { pathname } = useLocation();
