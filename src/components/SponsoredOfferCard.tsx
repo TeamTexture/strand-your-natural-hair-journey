@@ -46,6 +46,21 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
     },
   });
 
+  const { data: firstProduct } = useQuery({
+    queryKey: ["offer-first-product", offer.id],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("brand_products")
+        .select("id")
+        .eq("offer_id", offer.id)
+        .order("position", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   useEffect(() => {
     let active = true;
     const sign = async (path: string | null | undefined, set: (u: string | null) => void) => {
@@ -61,6 +76,9 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
   }, [offer.hero_image_path, brand?.logo_path]);
 
   const left = daysLeft(offer.ends_on);
+  const openOffer = () =>
+    navigate(firstProduct?.id ? `/offers/${offer.id}/product/${firstProduct.id}` : `/offers/${offer.id}`);
+
 
   return (
     <div className="relative rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden">
@@ -71,7 +89,7 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
       {heroUrl && (
         <button
           type="button"
-          onClick={() => navigate(`/offers/${offer.id}`)}
+          onClick={openOffer}
           className="block w-full"
           aria-label={`View ${brand?.brand_name ?? "brand"} offer`}
         >
@@ -121,7 +139,7 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
           variant="gold"
           size="pill"
           className="w-full gap-1.5"
-          onClick={() => navigate(`/offers/${offer.id}`)}
+          onClick={openOffer}
         >
           View offer <ExternalLink className="size-3.5" />
         </Button>
