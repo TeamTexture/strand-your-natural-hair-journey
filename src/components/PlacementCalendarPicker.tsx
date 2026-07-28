@@ -101,7 +101,8 @@ const PlacementCalendarPicker = ({
           const key = format(d, "yyyy-MM-dd");
           const inMonth = isSameMonth(d, month);
           const past = d < today;
-          const takenKind = takenMap.get(key);
+          const entry = takenMap.get(key);
+          const takenKind = entry?.kind;
           const isTaken = !!takenKind;
           const isSelected = selection.includes(key);
           const disabled = past || isTaken || !inMonth;
@@ -111,17 +112,23 @@ const PlacementCalendarPicker = ({
               type="button"
               disabled={disabled}
               onClick={() => onToggleDate(key)}
+              title={
+                entry
+                  ? `${entry.owner} — ${entry.kind === "pending" ? "awaiting acceptance" : "running"}`
+                  : undefined
+              }
               className={cn(
                 "aspect-square rounded-md text-[11px] font-body transition-colors",
                 !inMonth && "opacity-30",
                 past && "text-muted-foreground/40 line-through cursor-not-allowed",
-                isTaken && takenKind === "pending" && "bg-orange-500/20 text-orange-700 dark:text-orange-300 cursor-not-allowed",
-                isTaken && takenKind === "live" && "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 cursor-not-allowed",
+                takenKind === "pending" && "bg-orange-500/20 text-orange-700 dark:text-orange-300 cursor-not-allowed",
+                takenKind === "live" && "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 cursor-not-allowed",
                 !disabled && !isSelected && "hover:bg-primary/10 text-foreground",
                 isSelected && "bg-primary text-primary-foreground font-medium",
               )}
-              aria-label={`${key}${takenKind === "pending" ? " — awaiting acceptance" : takenKind === "live" ? " — live offer" : ""}`}
+              aria-label={`${key}${takenKind === "pending" ? " — awaiting acceptance" : takenKind === "live" ? " — booked campaign" : ""}`}
             >
+
               {d.getDate()}
             </button>
           );
