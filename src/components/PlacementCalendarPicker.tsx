@@ -40,20 +40,27 @@ const PlacementCalendarPicker = ({
   const { data: taken = [] } = useTakenPlacements();
   const takenMap = useMemo(() => {
     const activeSlots = slots && slots.length > 0 ? slots : slot ? [slot] : [];
-    const map = new Map<string, "pending" | "live">();
+    const map = new Map<string, { kind: "pending" | "live"; owner: string }>();
     if (activeSlots.length === 0) return map;
+    const today = londonToday();
     for (const t of taken) {
       if (!activeSlots.includes(t.slot as PlacementSlot)) continue;
       if (t.offer_id === excludeOfferId) continue;
+      const derived = deriveBrandOfferStatus(
+        { status: t.status, starts_on: t.starts_on, ends_on: t.ends_on },
+        today,
+      );
+      if (derived === "ended" || derived === "cancelled" || derived === "rejected") continue;
       const kind: "pending" | "live" =
         t.status === "under_review" || t.status === "approved_unpaid" ? "pending" : "live";
       // "live" wins over "pending" on the same date
       const existing = map.get(t.placement_date);
-      if (existing === "live") continue;
-      map.set(t.placement_date, kind);
+      if (existing?.kind === "live") continue;
+      map.set(t.placement_date, { kind, owner: t.owner_display_name });
     }
     return map;
   }, [taken, slot, slots, excludeOfferId]);
+
 
 
   const days = useMemo(() => {
