@@ -181,7 +181,16 @@ const Directory = () => {
             {tabs.map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                onClick={() => {
+                  setTab(t);
+                  setHighlightId(null);
+                  if (proParam || anchorSelf) {
+                    const next = new URLSearchParams(params);
+                    next.delete("pro");
+                    next.delete("self");
+                    setParams(next, { replace: true });
+                  }
+                }}
                 className={cn(
                   "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
                   tab === t
