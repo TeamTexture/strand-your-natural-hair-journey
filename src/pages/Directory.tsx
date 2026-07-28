@@ -77,12 +77,17 @@ const Directory = () => {
   // render, we poll briefly for the node before giving up. Uses block:'start'
   // with scroll-mt-24 on the card to clear the sticky header, then triggers
   // a short highlight pulse so the eye finds the correct row.
+  const anchoredFor = useRef<string | null>(null);
   useEffect(() => {
     if (!targetProUserId) return;
+    // Only anchor once per target — after that the user is free to filter
+    // and scroll without being yanked back to the card.
+    if (anchoredFor.current === targetProUserId) return;
     // Wait until the pros list has finished loading before deciding whether
     // the target exists — avoids a false "not listed" toast on cold load.
     if (loading) return;
     if (!targetListing) {
+      anchoredFor.current = targetProUserId;
       toast("This professional is no longer listed");
       const next = new URLSearchParams(params);
       next.delete("pro");
@@ -90,6 +95,7 @@ const Directory = () => {
       setParams(next, { replace: true });
       return;
     }
+    anchoredFor.current = targetProUserId;
     // If a filter/search is hiding the target, clear both so the card
     // becomes visible before we try to scroll.
     if (!results.some((r) => r.id === targetListing.id)) {
@@ -113,7 +119,8 @@ const Directory = () => {
     tryScroll();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetProUserId, targetListing, loading, results.length]);
+  }, [targetProUserId, targetListing, loading]);
+
 
   useEffect(() => {
     const main = document.querySelector("main") as HTMLElement | null;
@@ -174,7 +181,16 @@ const Directory = () => {
             {tabs.map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                onClick={() => {
+                  setTab(t);
+                  setHighlightId(null);
+                  if (proParam || anchorSelf) {
+                    const next = new URLSearchParams(params);
+                    next.delete("pro");
+                    next.delete("self");
+                    setParams(next, { replace: true });
+                  }
+                }}
                 className={cn(
                   "px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
                   tab === t
