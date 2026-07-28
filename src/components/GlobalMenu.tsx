@@ -270,7 +270,7 @@ const GlobalMenu = () => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              {isConsumer && (
+              {isConsumer && activeView !== "pro" && (
                 <DropdownMenuItem
                   onClick={() => navigate(viewMeta.consumer.to)}
                   className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
@@ -278,7 +278,7 @@ const GlobalMenu = () => {
                   <HomeIcon className="size-4 mr-2" /> My STRAND
                 </DropdownMenuItem>
               )}
-              {isProfessional && (
+              {isProfessional && activeView !== "consumer" && (
                 <DropdownMenuItem
                   onClick={() => navigate(viewMeta.pro.to)}
                   className={activeView === "pro" ? "bg-primary/10 text-primary" : ""}
