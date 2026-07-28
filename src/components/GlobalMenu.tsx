@@ -278,7 +278,7 @@ const GlobalMenu = () => {
                   <HomeIcon className="size-4 mr-2" /> My STRAND
                 </DropdownMenuItem>
               )}
-              {isProfessional && activeView !== "consumer" && (
+              {isProfessional && (
                 <DropdownMenuItem
                   onClick={() => navigate(viewMeta.pro.to)}
                   className={activeView === "pro" ? "bg-primary/10 text-primary" : ""}
