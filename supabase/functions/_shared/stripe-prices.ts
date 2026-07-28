@@ -7,41 +7,19 @@ const PLUS_AMOUNT = 1499;
 const PLUS_CURRENCY = "gbp";
 const PLUS_INTERVAL = "month";
 
+/**
+ * Resolves the STRAND+ price id.
+ * NEVER creates a Stripe price — the configured id must be valid.
+ */
 export async function resolveStrandPlusPriceId(
   stripe: Stripe,
   configuredPriceId: string,
-  fallbackPriceId?: string | null,
 ) {
   const configured = await retrievePrice(stripe, configuredPriceId);
-  if (isStrandPlusPrice(configured)) return configured.id;
-
-  const existing = await stripe.prices.list({
-    active: true,
-    lookup_keys: [STRAND_PLUS_LOOKUP_KEY],
-    limit: 1,
-  });
-  const existingPlus = existing.data.find(isStrandPlusPrice);
-  if (existingPlus) return existingPlus.id;
-
-  const fallback = await retrievePrice(stripe, fallbackPriceId ?? null);
-  const product = priceProductId(configured) ?? priceProductId(fallback);
-
-  const params: Stripe.PriceCreateParams = {
-    currency: PLUS_CURRENCY,
-    unit_amount: PLUS_AMOUNT,
-    recurring: { interval: PLUS_INTERVAL },
-    lookup_key: STRAND_PLUS_LOOKUP_KEY,
-    metadata: { tier: "plus" },
-  };
-
-  if (product) {
-    params.product = product;
-  } else {
-    params.product_data = { name: "STRAND+ membership" };
+  if (!configured) {
+    throw new Error("The configured STRIPE_PLUS_PRICE_ID is invalid — it could not be retrieved from Stripe.");
   }
-
-  const created = await stripe.prices.create(params);
-  return created.id;
+  return configured.id;
 }
 
 export async function priceIsStrandPlus(stripe: Stripe, priceId: string | null) {
@@ -49,7 +27,7 @@ export async function priceIsStrandPlus(stripe: Stripe, priceId: string | null) 
   return isStrandPlusPrice(price);
 }
 
-async function retrievePrice(stripe: Stripe, priceId: string | null) {
+export async function retrievePrice(stripe: Stripe, priceId: string | null) {
   if (!priceId) return null;
   try {
     return await stripe.prices.retrieve(priceId);
@@ -58,16 +36,11 @@ async function retrievePrice(stripe: Stripe, priceId: string | null) {
   }
 }
 
-function isStrandPlusPrice(price: Stripe.Price | null) {
+export function isStrandPlusPrice(price: Stripe.Price | null) {
   return !!price &&
     price.active !== false &&
     price.currency === PLUS_CURRENCY &&
     price.unit_amount === PLUS_AMOUNT &&
     price.recurring?.interval === PLUS_INTERVAL &&
     (price.lookup_key === STRAND_PLUS_LOOKUP_KEY || price.metadata?.tier === "plus");
-}
-
-function priceProductId(price: Stripe.Price | null) {
-  if (!price?.product) return null;
-  return typeof price.product === "string" ? price.product : price.product.id;
 }
