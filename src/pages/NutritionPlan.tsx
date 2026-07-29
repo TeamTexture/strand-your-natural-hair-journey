@@ -572,7 +572,7 @@ const NutritionPlan = () => {
   if (loading) {
     return (
       <ScreenLayout bottomNav>
-        <TitleBar title="Nutrition Plan" />
+        <TitleBar title="Nutrition Plan" tips />
         <LoadingDot label="Loading your plan…" />
       </ScreenLayout>
     );
@@ -641,7 +641,7 @@ const NutritionPlan = () => {
 
   return (
     <ScreenLayout bottomNav={!isOnboarding}>
-      <TitleBar title="Nutrition Plan" onBack={() => isOnboarding ? navigate("/onboarding/blood-ai-summary", { replace: true }) : navigate(-1)} />
+      <TitleBar title="Nutrition Plan" tips onBack={() => isOnboarding ? navigate("/onboarding/blood-ai-summary", { replace: true }) : navigate(-1)} />
       <div className="px-5 pt-1 pb-8">
         <div className="text-center mb-5">
           <h1 className="font-display text-[26px] leading-tight">Your Nutrition Plan</h1>

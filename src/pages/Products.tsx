@@ -142,7 +142,7 @@ const Products = () => {
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="My Products" back={false} />
+      <TitleBar title="My Products" back={false} tips />
 
       <div className="px-5 pb-2"><BrandBanner slot="products" /></div>
 

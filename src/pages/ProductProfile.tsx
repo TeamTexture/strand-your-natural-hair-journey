@@ -340,7 +340,7 @@ const ProductProfile = () => {
 
   return (
     <ScreenLayout bottomNav={false}>
-      <TitleBar title={titleCategory || "Product"} back />
+      <TitleBar title={titleCategory || "Product"} back tips />
       <div className="px-5 pb-8 space-y-4">
         <div className="w-full aspect-square rounded-[18px] border border-border overflow-hidden bg-secondary">
           {product.image_url ? (

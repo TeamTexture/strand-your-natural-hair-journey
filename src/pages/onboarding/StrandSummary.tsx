@@ -267,7 +267,7 @@ const StrandSummary = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Your Strand Summary" onBack={goBack} />
+      <TitleBar title="Your Strand Summary" tips onBack={goBack} />
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard tone="gold">
