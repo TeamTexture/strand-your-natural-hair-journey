@@ -1,4 +1,4 @@
-import { Flag, RefreshCw, Trash2, Bookmark, ArrowDownToLine, ArrowUpFromLine, Heart } from "lucide-react";
+import { Flag, RefreshCw, Trash2, Bookmark, ArrowDownToLine, ArrowUpFromLine, Heart, Sparkles } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -13,6 +13,7 @@ import {
   inferMarketedPurpose,
   isMarketedPurpose,
   MARKETED_PURPOSE_SURFACTANT_NOTE,
+  MARKETED_PURPOSE_LABEL,
   SURFACTANT_ROLE_LABEL,
   SURFACTANT_ROLE_NOTE,
   type MarketedPurpose,
