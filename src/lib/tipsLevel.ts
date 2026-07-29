@@ -4,8 +4,10 @@
  * 1 Minimal      — one single highest-priority tip per context, no extras.
  * 2 Essentials   — top 2–3 priority tips, short-form wording.
  * 3 Guided       — most tips, with the "why" behind each (default).
- * 4 Hand-holding — everything: full explanations, step-by-step framing,
- *                  encouragement and inline beginner definitions.
+ * 4 Hand-holding — the MOST information of any level: everything level 3 shows,
+ *                  expanded with full explanations, every step visible at once,
+ *                  visual aids, encouragement and inline beginner definitions.
+ *                  Level 4 must never show less than level 3.
  *
  * Stored on `profiles.tips_level` (smallint) and mirrored into localStorage so
  * the first render doesn't flash the wrong density while the profile loads.
@@ -43,7 +45,7 @@ export const TIPS_LEVEL_HINT: Record<TipsLevel, string> = {
   1: "Just the one thing that matters most. For confident routines.",
   2: "The top two or three priorities, kept short.",
   3: "Most tips, with the reasoning behind each one.",
-  4: "A picture-led beginner's guide — one simple step at a time.",
+  4: "The most detail of any level — every step shown in full, in plain language with pictures.",
 };
 
 /** How many tips each level shows in a single context. */
@@ -92,5 +94,5 @@ export const TIPS_LEVEL_AI_DIRECTIVE: Record<TipsLevel, string> = {
   1: "Support level 1 (Minimal): give only the single highest-priority point per section. Concise, direct, no preamble, no definitions.",
   2: "Support level 2 (Essentials): give the top two or three priority points per section, short-form wording, minimal explanation.",
   3: "Support level 3 (Guided): give most points with a clear explanation of the why behind each one, in plain but assured language.",
-  4: "Support level 4 (Hand-holding, \"dummies guide\" mode): write for someone who has NEVER done their own hair. Reading age 9–10. Short sentences, one action per line, numbered where it is a sequence (\"1. Wet your hair fully. 2. Put a coin-sized amount of shampoo in your palm.\"). No jargon at all: where a technical term is unavoidable, give the plain-English phrase first and the term in brackets, e.g. \"how easily your hair drinks up water (this is called porosity)\". State timings in plain minutes. Give clear do and don't pairs where practice can go wrong. Warm, friendly, zero assumed knowledge.",
+  4: "Support level 4 (Hand-holding, \"dummies guide\" mode): this level shows the MOST information of any level — never less than level 3. Include every step, every tip and every piece of guidance in full, all at once; never hide, collapse or defer anything to a later step. Expand level-3 content with extra explanation. Write for someone who has NEVER done their own hair. Reading age 9-10. Short sentences, one action per line, numbered as a complete sequence from first to last step (\"1. Wet your hair fully. 2. Put a coin-sized amount of shampoo in your palm.\"). For each step say what to do, how to do it, how long it takes, what it should look or feel like, and what to avoid. No jargon at all: where a technical term is unavoidable, give the plain-English phrase first and the term in brackets, e.g. \"how easily your hair drinks up water (this is called porosity)\". State timings in plain minutes. Give clear do and don't pairs where practice can go wrong. Warm, friendly, zero assumed knowledge.",
 };

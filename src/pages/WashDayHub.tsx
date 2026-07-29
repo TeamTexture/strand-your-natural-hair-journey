@@ -482,18 +482,18 @@ const WashDayHub = () => {
                 <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
                   Next wash reminder
                 </p>
-              {showBeginnerHelp ? (
+              <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
+                {level === 1 ? "Keep your next wash day visible." : educational.reminder}
+              </p>
+              {showBeginnerHelp && (
                 <BeginnerSteps
                   className="mt-2"
                   steps={[
-                    { text: educational.reminder },
-                    { text: "Put the wash day in your calendar now.", detail: "That gives your scalp routine a clear rhythm." },
+                    { text: educational.reminder, detail: "This is when your hair and scalp will be ready for the next full wash." },
+                    { text: "Put the wash day in your calendar now.", detail: "That gives your scalp routine a clear rhythm, and you will get a reminder on the day." },
+                    { text: "Set aside about 2 hours on the day.", detail: "Two washes, 20 minutes with conditioner on, then styling. There is no rush." },
                   ]}
                 />
-              ) : (
-                <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
-                  {level === 1 ? "Keep your next wash day visible." : educational.reminder}
-                </p>
               )}
                 {educational.nextDateIso && (
                   <div className="mt-3 flex flex-col gap-2">
@@ -659,23 +659,22 @@ const DynamicWashTipCard = () => {
           <p className="font-display text-[15px] leading-snug mt-1 break-words">
             {tip.headline}
           </p>
-          {showBeginnerHelp ? (
-            <BeginnerSteps
-              className="mt-2"
-              steps={[
-                { text: tip.headline, detail: tip.why },
-                ...(tip.technique ? [{ text: tip.technique }] : []),
-              ]}
-            />
-          ) : (
-            <AiProse text={tip.why} className="mt-2" />
-          )}
-          {tip.technique && !showBeginnerHelp && (
+          <AiProse text={tip.why} className="mt-2" />
+          {tip.technique && (
             <LevelGate min={2}>
               <div className="mt-2">
                 <AiProse text={`How: ${tip.technique}`} />
               </div>
             </LevelGate>
+          )}
+          {showBeginnerHelp && (
+            <BeginnerSteps
+              className="mt-3"
+              steps={[
+                { text: tip.headline, detail: tip.why },
+                ...(tip.technique ? [{ text: tip.technique, detail: "Take your time with this part — slow and gentle beats fast and rough." }] : []),
+              ]}
+            />
           )}
         </div>
       </div>
