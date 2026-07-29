@@ -186,8 +186,15 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
       ]);
 
       const meta = new Map<string, ChatThreadMeta>();
-      const get = (id: string) =>
-        meta.get(id) ?? { preview: "", preview_mine: false, preview_read: false, unread: 0 };
+      const get = (id: string): ChatThreadMeta =>
+        meta.get(id) ?? {
+          preview: "",
+          preview_mine: false,
+          preview_read: false,
+          preview_sender_id: null,
+          preview_sender_role: null,
+          unread: 0,
+        };
 
       for (const m of previewRes.data ?? []) {
         const cur = get(m.thread_id);
@@ -195,9 +202,12 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
           cur.preview = m.body ?? "";
           cur.preview_mine = isMine(m);
           cur.preview_read = !!m.read_at;
+          cur.preview_sender_id = m.sender_id ?? null;
+          cur.preview_sender_role = m.sender_role ?? null;
         }
         meta.set(m.thread_id, cur);
       }
+
       for (const m of unreadRes.data ?? []) {
         const cur = get(m.thread_id);
         if (!isMine(m)) cur.unread += 1;
