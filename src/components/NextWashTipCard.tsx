@@ -14,6 +14,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import type { TipsLevel } from "@/lib/tipsLevel";
+
 
 interface NextWashTipCardProps {
   action: string;
