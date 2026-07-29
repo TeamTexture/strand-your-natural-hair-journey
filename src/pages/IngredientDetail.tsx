@@ -943,47 +943,22 @@ const IngredientDetail = () => {
             {/* AI Summary — personalised to hair, health, lifestyle */}
             <SurfaceCard tone="gold">
               <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              {(() => {
-                const full = analysis.summary ?? "";
-                const teaser = firstSentence(full);
-                const hasMore = teaser.length < full.length;
-                return (
-                  <>
-                    <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">
-                      {summaryExpanded || !hasMore ? full : teaser}
-                    </p>
-                    {hasMore && (
-                      <button
-                        type="button"
-                        onClick={() => setSummaryExpanded((v) => !v)}
-                        className="mt-2 text-[10px] uppercase tracking-[0.18em] text-primary"
-                      >
-                        {summaryExpanded ? "Read less" : "Read more"}
-                      </button>
-                    )}
-                  </>
-                );
-              })()}
+              <AiProse text={analysis.summary} />
             </SurfaceCard>
 
             {/* Personalised "How to use this for your hair" */}
             {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
-                <SurfaceCard className="space-y-3">
-                  {analysis.personalised_guidance.map((tip, idx) => (
-                    <div key={`${tip.title}-${idx}`} className="flex items-start gap-3">
-                      <span className="size-6 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-tight">{tip.title}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">
-                          {tip.body}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                <SurfaceCard>
+                  <TipsBlock
+                    idPrefix="pg"
+                    tips={analysis.personalised_guidance.map((tip, idx) => ({
+                      priority: analysis.personalised_guidance!.length - idx,
+                      short: tip.title,
+                      why: tip.body,
+                    }))}
+                  />
                 </SurfaceCard>
               </>
             )}
