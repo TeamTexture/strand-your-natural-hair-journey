@@ -607,6 +607,13 @@ const Home = () => {
                 lengthGoal.target_text?.trim() ||
                 lengthGoal.title?.trim() ||
                 null;
+              // Plain-English progress line for hand-holding mode — no maths
+              // for the user to do, just where they are and what's left.
+              const remaining = target != null ? Math.max(0, target - current) : null;
+              const beginnerProgress =
+                pct != null && remaining != null
+                  ? `You're ${Math.round(pct)}% of the way there. About ${Number(remaining.toFixed(1))} ${unit} to go.`
+                  : "Log your progress whenever you measure — there's no wrong pace.";
               return (
                 <div className="w-full">
                   <button
@@ -623,7 +630,7 @@ const Home = () => {
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
                           {target != null
-                            ? `${current} / ${target} ${unit}${targetDate ? ` · by ${targetDate}` : ""}`
+                            ? `${current} / ${target} ${unit}${targetDate && tipsLevel >= 2 ? ` · by ${targetDate}` : ""}`
                             : targetDate
                               ? `Target: ${targetDate}`
                               : "Tap to update progress"}
@@ -631,18 +638,28 @@ const Home = () => {
                       </div>
                     </div>
                     {pct != null && (
-                      <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      <>
+                        <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        {showBeginnerHelp && (
+                          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+                            {beginnerProgress}
+                          </p>
+                        )}
+                      </>
                     )}
                   </button>
 
                   {/* AI tip — pulled from the goal-tip edge function using
                       the user's full profile. Cached per goal id+updated_at
-                      so it loads instantly after the first generation. */}
+                      so it loads instantly after the first generation.
+                      Depth scales with the support level: level 1 shows the
+                      headline and one action only, level 4 rebuilds it as an
+                      illustrated step-by-step guide. */}
                   <div className="mt-3 rounded-[12px] bg-primary/10 border border-primary/20 p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Sparkles className="size-3.5 text-primary" />
@@ -655,13 +672,14 @@ const Home = () => {
                         <p className="text-sm font-medium leading-snug">
                           {renderRichText(goalTip.headline)}
                         </p>
-                        <LevelGate min={1}>
+                        <LevelGate min={2}>
                           <AiProse className="mt-1" text={goalTip.body} />
                         </LevelGate>
                         {goalTip.actions?.length > 0 && (
                           <TipsBlock
                             className="mt-2"
                             idPrefix="goaltip"
+                            reassurance="Small, steady steps beat big changes — you only need the first one today."
                             tips={goalTip.actions.map((a, i): GuidanceTip => ({
                               priority: goalTip.actions.length - i,
                               short: typeof a === "string" ? a : a.action,
@@ -680,23 +698,48 @@ const Home = () => {
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground italic">
-                        Your next Strand tip will appear once you've logged a wash day or updated your goal.
+                        {tipsLevel === 1
+                          ? "No tip yet."
+                          : "Your next Strand tip will appear once you've logged a wash day or updated your goal."}
                       </p>
                     )}
                   </div>
                 </div>
               );
             })()
+          ) : showBeginnerHelp ? (
+            <div>
+              <BeginnerSteps
+                steps={[
+                  { text: "Tap here to open your journal.", detail: "That's where goals live." },
+                  { text: "Measure your hair today and write the number down.", detail: "This is your starting point — nothing to judge." },
+                  { text: "Choose what you'd like to see change.", detail: "Length, moisture, less breakage — whatever matters to you." },
+                  { text: "Pick a date to check back in.", detail: "Three to six months is a kind timeframe." },
+                ]}
+              />
+              <BeginnerReassurance>
+                You can change your goal at any time. Setting one just helps your tips get more useful.
+              </BeginnerReassurance>
+              <button
+                onClick={() => navigate("/journal")}
+                className="mt-3 w-full rounded-pill bg-primary text-primary-foreground text-sm font-medium py-2.5"
+              >
+                Set my goal
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => navigate("/journal")}
               className="text-left w-full"
             >
               <p className="text-sm text-muted-foreground">
-                No length goal set. Tap to add your starting length and target.
+                {tipsLevel === 1
+                  ? "No goal set. Tap to add one."
+                  : "No length goal set. Tap to add your starting length and target."}
               </p>
             </button>
           )}
+
         </SurfaceCard>
 
         {/* My Blood Work */}
