@@ -136,8 +136,11 @@ export interface ChatThreadMeta {
   preview: string;
   preview_mine: boolean;
   preview_read: boolean;
+  preview_sender_id: string | null;
+  preview_sender_role: string | null;
   unread: number;
 }
+
 
 /**
  * Shared last-message + unread map for a set of threads.
