@@ -1,9 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, ChevronDown } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -11,6 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import InlineThreadChat from "@/components/chat/InlineThreadChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { otherParticipantId, useChatThreadMeta, useChatThreads } from "@/hooks/useChat";
@@ -18,10 +18,10 @@ import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 
 const Messages = () => {
   useEffect(() => { markPlusSurfaceSeen("messages"); }, []);
-  const nav = useNavigate();
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
   const view = useActiveRoleView();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { pros, consumers } = useMemo(() => {
     if (!user?.id || !threads) return { pros: [] as string[], consumers: [] as string[] };
@@ -34,6 +34,51 @@ const Messages = () => {
     }
     return { pros: Array.from(pros), consumers: Array.from(consumers) };
   }, [threads, user?.id]);
+
+  // STRAND Team threads: when I'm the admin side, the row should name the
+  // member and their membership tier rather than saying "STRAND Team".
+  const supportSubjects = useMemo(() => {
+    if (!user?.id || !threads) return [] as string[];
+    const out = new Set<string>();
+    for (const t of threads) {
+      if (t.thread_type !== "admin_support") continue;
+      if (t.admin_user_id === user.id && t.subject_user_id) out.add(t.subject_user_id);
+    }
+    return Array.from(out);
+  }, [threads, user?.id]);
+
+  const { data: subjectMap } = useQuery({
+    queryKey: ["chat_support_subjects", supportSubjects],
+    enabled: supportSubjects.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [profRes, subRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, display_name, avatar_url")
+          .in("user_id", supportSubjects),
+        supabase
+          .from("consumer_subscriptions")
+          .select("user_id, tier, status")
+          .in("user_id", supportSubjects),
+      ]);
+      const tiers = new Map<string, string>();
+      for (const s of subRes.data ?? []) {
+        const active = s.status === "active" || s.status === "trialing";
+        if (active) tiers.set(s.user_id, s.tier === "plus" ? "STRAND+ member" : "STRAND member");
+      }
+      const m = new Map<string, { name: string; membership: string; avatar_path: string | null }>();
+      for (const p of profRes.data ?? []) {
+        m.set(p.user_id, {
+          name: p.display_name ?? "Member",
+          membership: tiers.get(p.user_id) ?? "STRAND member",
+          avatar_path: p.avatar_url ?? null,
+        });
+      }
+      return m;
+    },
+  });
+
 
   // Names for the "other side" of each thread. For pro-side rows we
   // deliberately omit the client's postcode from the visible metadata.
@@ -129,37 +174,56 @@ const Messages = () => {
         ) : (
           threads.map((t) => {
             const isSupport = t.thread_type === "admin_support";
+            const isAdminSide = isSupport && t.admin_user_id === user?.id;
+            const subject = isAdminSide && t.subject_user_id
+              ? subjectMap?.get(t.subject_user_id)
+              : null;
             const isProSide = t.thread_type === "client_pro" && t.pro_user_id === user?.id;
             const otherId = user?.id ? otherParticipantId(t, user.id) : null;
             const other = otherId ? nameMap?.get(otherId) : null;
             const meta = threadMeta?.get(t.id);
             const unread = meta?.unread ?? 0;
             const last = t.last_message_at ?? t.created_at;
-            const displayName = isSupport ? "STRAND Team" : (other?.name ?? "Conversation");
+            const displayName = isSupport
+              ? subject
+                ? `${subject.name} (${subject.membership})`
+                : "STRAND Team"
+              : (other?.name ?? "Conversation");
             const sub = isSupport
-              ? "Support & guidance"
+              ? (isAdminSide ? "STRAND Team conversation" : "Support & guidance")
               : isProSide
                 ? null // pro-side: hide postcode; use relationship tag below
                 : other?.sub ?? null;
             const tag = isProSide && otherId
               ? clientTagMap?.get(otherId)
               : undefined;
+            // Who sent the most recent message, shown above the preview line.
+            const senderLabel = !meta?.preview
+              ? null
+              : meta.preview_mine
+                ? "You"
+                : isSupport
+                  ? (meta.preview_sender_role === "admin"
+                      ? "STRAND Team"
+                      : subject?.name ?? "STRAND Team")
+                  : other?.name ?? "Them";
+            const isOpen = expandedId === t.id;
 
             return (
               <SurfaceCard
                 key={t.id}
-                onClick={() => nav(`/messages/${t.id}`)}
-                className="cursor-pointer hover:border-primary/50"
+                onClick={() => setExpandedId(isOpen ? null : t.id)}
+                className={`cursor-pointer transition-colors ${isOpen ? "border-primary/50" : "hover:border-primary/50"}`}
               >
                 <div className="flex items-center gap-3">
-                  {isSupport ? (
+                  {isSupport && !subject ? (
                     <div className="size-11 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
                       <BadgeCheck className="size-5" />
                     </div>
                   ) : (
                     <ProAvatar
-                      name={other?.name ?? "?"}
-                      photoUrl={other?.avatar_path ?? undefined}
+                      name={subject?.name ?? other?.name ?? "?"}
+                      photoUrl={subject?.avatar_path ?? other?.avatar_path ?? undefined}
                       size="size-11"
                     />
                   )}
@@ -168,7 +232,7 @@ const Messages = () => {
                       <p className="font-display text-sm font-semibold leading-tight truncate">
                         {displayName}
                       </p>
-                      {isSupport && (
+                      {isSupport && !subject && (
                         <span className="text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-body font-semibold">
                           Official
                         </span>
@@ -191,23 +255,48 @@ const Messages = () => {
                     </div>
                     {sub && <p className="text-[11px] text-muted-foreground truncate">{sub}</p>}
                     {meta?.preview && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {meta.preview_mine && (
-                          <DeliveryTicks readAt={meta.preview_read ? "read" : null} />
-                        )}
-                        <p className="text-[11.5px] text-muted-foreground truncate">
-                          {meta.preview_mine ? "You: " : ""}{meta.preview}
+                      <div className="mt-1">
+                        <p className="text-[10px] font-body font-semibold uppercase tracking-[0.1em] text-foreground/70 truncate">
+                          {senderLabel}
                         </p>
+                        <div className="flex items-center gap-1">
+                          {meta.preview_mine && (
+                            <DeliveryTicks readAt={meta.preview_read ? "read" : null} />
+                          )}
+                          <p className="text-[11.5px] text-muted-foreground truncate">
+                            {meta.preview}
+                          </p>
+                        </div>
                       </div>
                     )}
-                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                      {formatDistanceToNow(new Date(last), { addSuffix: true })}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground/80">
+                        {formatDistanceToNow(new Date(last), { addSuffix: true })}
+                      </p>
+                      <span className="ml-auto inline-flex items-center gap-0.5 text-[10.5px] font-body font-semibold text-primary">
+                        {isOpen ? "Collapse" : "Preview"}
+                        <ChevronDown
+                          className={`size-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        />
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {isOpen && (
+                  <InlineThreadChat
+                    thread={t}
+                    otherName={
+                      isSupport
+                        ? (subject?.name ?? "STRAND Team")
+                        : other?.name ?? "them"
+                    }
+                  />
+                )}
               </SurfaceCard>
             );
           })
+
         )}
       </div>
     </ScreenLayout>
