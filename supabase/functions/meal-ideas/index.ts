@@ -94,7 +94,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-3.6-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPayload },

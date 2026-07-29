@@ -548,7 +548,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     method: "POST",
     headers: { Authorization: `Bearer ${aiApiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3.6-flash",
       messages: [
         { role: "system", content: LOVABLE_SYSTEM },
         { role: "user", content: userMsg },
