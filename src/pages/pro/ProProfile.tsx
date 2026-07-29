@@ -242,6 +242,32 @@ const ProProfile = () => {
     },
   });
 
+  const setVisibility = useMutation({
+    mutationFn: async (publish: boolean) => {
+      if (!user) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("pro_profiles")
+        .update({ is_published: publish })
+        .eq("user_id", user.id);
+      if (error) throw error;
+      return publish;
+    },
+    onSuccess: (publish) => {
+      toast.success(
+        publish
+          ? "Your listing is live in the directory again"
+          : "Your listing is hidden — all your details are kept safe",
+      );
+      qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
+      qc.invalidateQueries({ queryKey: ["pro_directory"] });
+    },
+    onError: (e: Error) => {
+      console.error(e);
+      toast.error(e.message);
+    },
+  });
+
+
   const uploadFile = async (file: File, kind: "avatar" | "gallery") => {
     if (!user) return;
     const ext = file.name.split(".").pop() ?? "jpg";
