@@ -1055,7 +1055,7 @@ const IngredientDetail = () => {
                   }
                 />
               ) : null}
-              {purposeLowConfidence && (
+              {purposeLowConfidence && tipsLevel >= 3 && (
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   The label didn't say much, so this is judged from the ingredients alone.
                 </p>
