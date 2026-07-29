@@ -15,6 +15,9 @@ import SurfaceCard from "@/components/SurfaceCard";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { limitTips } from "@/lib/tipsLevel";
+import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
+import { useGoals } from "@/hooks/useGoals";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,7 +97,11 @@ interface Summary {
 }
 
 const StrandSummary = () => {
-  const { level: tipsLevel } = useTipsLevel();
+  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
+  const { goals } = useGoals();
+  const hasLengthGoal = goals.some((g) =>
+    /length|retention|grow/i.test(`${g.kind} ${g.title}`),
+  );
   const renderRichText = useSmartInline();
   const navigate = useNavigate();
   const location = useLocation();
@@ -337,24 +344,32 @@ const StrandSummary = () => {
                   </span>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Routine tips</p>
                 </div>
+                {showBeginnerHelp ? (
+                  <BeginnerSteps
+                    steps={limitTips(summary.routine_tips, tipsLevel).map((b) => ({ text: b }))}
+                  />
+                ) : (
                 <ul key={tipsLevel} className="space-y-2 animate-in fade-in-0 duration-300">
-                  {limitTips(summary.routine_tips, tipsLevel).map((b, i) => {
-                    const Icon = pickIcon(b);
-                    return (
-                      <li key={i} className="flex gap-2.5 items-start rounded-[12px] bg-secondary/40 px-3 py-2.5">
-                        <span className="mt-0.5 size-7 rounded-full bg-background border border-primary/20 flex items-center justify-center shrink-0">
-                          <Icon className="size-3.5 text-primary" />
-                        </span>
-                        <span className="flex-1 text-[13px] leading-snug text-foreground/90">
-                          {renderRichText(b, `rt-${i}`)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                    {limitTips(summary.routine_tips, tipsLevel).map((b, i) => {
+                      const Icon = pickIcon(b);
+                      return (
+                        <li key={i} className="flex gap-2.5 items-start rounded-[12px] bg-secondary/40 px-3 py-2.5">
+                          <span className="mt-0.5 size-7 rounded-full bg-background border border-primary/20 flex items-center justify-center shrink-0">
+                            <Icon className="size-3.5 text-primary" />
+                          </span>
+                          <span className="flex-1 text-[13px] leading-snug text-foreground/90">
+                            {renderRichText(b, `rt-${i}`)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {showBeginnerHelp && <BeginnerReassurance />}
                 <TipsLevelPrompt className="mt-3" />
               </SurfaceCard>
             )}
+            {showBeginnerHelp && hasLengthGoal && <BeginnerTrimEducation />}
           </>
         )}
 
