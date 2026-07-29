@@ -11,6 +11,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
+import LevelGate from "@/components/tips/LevelGate";
 
 const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }) => {
   if (p.on_shelf) return { label: "On shelf", tone: "text-good" };
@@ -41,8 +42,10 @@ const ProductsByIngredient = () => {
       <TitleBar title="Other products" />
       <div className="px-5 pb-8 space-y-3">
         <p className="text-xs text-muted-foreground -mt-1">
-          Your products that contain{" "}
-          <span className="font-medium text-foreground">{ingredient}</span>.
+          <LevelGate min={2} fallback={<span className="font-medium text-foreground">{ingredient}</span>}>
+            Your products that contain{" "}
+            <span className="font-medium text-foreground">{ingredient}</span>.
+          </LevelGate>
         </p>
 
         {loading ? (
@@ -53,7 +56,11 @@ const ProductsByIngredient = () => {
           <EmptyState
             icon="🧴"
             message="No other products"
-            hint={`None of your other products list ${ingredient}.`}
+            hint={
+              <LevelGate min={2} fallback="No matches.">
+                {`None of your other products list ${ingredient}.`}
+              </LevelGate>
+            }
           />
         ) : (
           products.map((p) => {
