@@ -362,16 +362,23 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
   return useQuery({
     queryKey: ["chat_unread", user?.id, view],
     enabled: !!user?.id,
+    staleTime: 30_000,
+    gcTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
     queryFn: async (): Promise<number> => {
       const { data: rows } = await supabase
         .from("chat_threads")
         .select("id, thread_type, consumer_id, pro_user_id, admin_user_id, subject_user_id, subject_role")
         .or(threadOrFilter(user!.id));
-      const scoped = (rows ?? []).filter((t) =>
+      const inView = (rows ?? []).filter((t) =>
         view === "all" ? true : threadMatchesView(t as never, user!.id, view),
       );
+      // Never hide unread counts from a multi-role account just because the
+      // view toggle sits on a different side.
+      const scoped = inView.length > 0 ? inView : (rows ?? []);
       const ids = scoped.map((t) => t.id);
       if (ids.length === 0) return 0;
+
       const { data: msgs } = await supabase
         .from("chat_messages")
         .select("thread_id, sender_id, sender_role")
