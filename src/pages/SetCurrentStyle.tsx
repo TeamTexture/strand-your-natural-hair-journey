@@ -15,6 +15,9 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import TipsBlock from "@/components/tips/TipsBlock";
+import type { GuidanceTip } from "@/lib/tipsRender";
+import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
 import {
   invalidateClinicalContextCache,
@@ -60,8 +63,33 @@ const readExistingLocal = (): ExistingStyleLocal => {
   }
 };
 
+const STYLE_TIPS_BASE: GuidanceTip[] = [
+  {
+    priority: 5,
+    short: "Low-tension styles protect your edges over time.",
+    why: "Repeated pulling at the hairline is one of the most common causes of gradual edge thinning.",
+  },
+  {
+    priority: 3,
+    short: "Give your scalp a rest between long-term protective styles.",
+    why: "A short break lets you check your scalp condition and treat any tightness before reinstalling.",
+  },
+];
+
 const SetCurrentStyle = () => {
   const navigate = useNavigate();
+  const { lengthGoal } = useGoals();
+  const styleTips: GuidanceTip[] = lengthGoal
+    ? [
+        ...STYLE_TIPS_BASE,
+        {
+          priority: 10,
+          short: "Whatever style you're in, trims keep length — they don't speed growth.",
+          why: "The hair you can see is not alive, so it can't repair itself. A trim only removes damage before it travels further up the strand.",
+          alwaysShow: true,
+        },
+      ]
+    : STYLE_TIPS_BASE;
 
   const [style, setStyle] = useState<string>("");
   const [howLongNum, setHowLongNum] = useState("");
@@ -214,6 +242,8 @@ const SetCurrentStyle = () => {
           onChange={(v) => setNext(v.slice(-1))}
           placeholder="Select your next style…"
         />
+
+        <TipsBlock tips={styleTips} idPrefix="style-tip" />
 
         <Button variant="gold" size="pill" className="mt-4" onClick={() => void save()}>
           Save Style

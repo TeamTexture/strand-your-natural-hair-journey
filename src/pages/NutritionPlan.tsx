@@ -387,7 +387,27 @@ const MealCard = ({
   );
 };
 
+/**
+ * Support-level quantity rule for supplements.
+ * L1 — high priority only. L2 — high + medium. L3/L4 — everything.
+ */
+const filterSupplementsByLevel = (
+  list: AiSupplement[],
+  level: TipsLevel,
+): AiSupplement[] => {
+  const rank = (s: AiSupplement) =>
+    s.priority === "high" ? 3 : s.priority === "low" ? 1 : 2;
+  const sorted = [...list].sort((a, b) => rank(b) - rank(a));
+  if (level === 1) {
+    const high = sorted.filter((s) => rank(s) === 3);
+    return high.length > 0 ? high : sorted.slice(0, 1);
+  }
+  if (level === 2) return sorted.filter((s) => rank(s) >= 2);
+  return sorted;
+};
+
 // ── Deterministic fallback supplements (only used if AI omits them) ─────
+
 
 const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
   const isVeg = p.diet === "vegan" || p.diet === "vegetarian";

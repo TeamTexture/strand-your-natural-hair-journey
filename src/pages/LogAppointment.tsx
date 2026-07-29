@@ -15,6 +15,7 @@ import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { toast } from "sonner";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
+import LevelGate from "@/components/tips/LevelGate";
 import { Camera, X } from "lucide-react";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 
@@ -292,11 +293,13 @@ const LogAppointment = () => {
 
       <div className="px-5 pb-8 space-y-4">
         {prefilled && (
-          <div className="px-3.5 py-2.5 bg-primary/10 border border-primary/30 rounded-[10px]">
-            <p className="text-xs text-foreground leading-snug">
-              Pre-filled from your booking. Update anything that changed, add notes/photos, then save.
-            </p>
-          </div>
+          <LevelGate min={2}>
+            <div className="px-3.5 py-2.5 bg-primary/10 border border-primary/30 rounded-[10px]">
+              <p className="text-xs text-foreground leading-snug">
+                Pre-filled from your booking. Update anything that changed, add notes/photos, then save.
+              </p>
+            </div>
+          </LevelGate>
         )}
         {/* Directory search */}
         <div>
