@@ -13,7 +13,7 @@ import ProAvatar from "@/components/ProAvatar";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { messageIsMine, otherParticipantId, useChatThreads } from "@/hooks/useChat";
+import { otherParticipantId, useChatThreadMeta, useChatThreads } from "@/hooks/useChat";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 
 const Messages = () => {
