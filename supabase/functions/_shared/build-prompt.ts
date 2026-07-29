@@ -29,6 +29,7 @@ import { renderPassageBlock, retrievePassages } from "./rag.ts";
 import { VOICE_PRINCIPLES } from "./voice.ts";
 import { buildStylePlaybookBlock } from "./style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "./routine-guidance.ts";
+import { buildTipsLevelBlock } from "./tips-level.ts";
 import type {
   ClaudeCallInput,
   ClaudeModel,
@@ -170,6 +171,16 @@ export async function buildClaudeRequest(
   // Hard-coded manuscript routine baseline so routine/product/style advice
   // cannot drift into generic AI hair-care guidance.
   systemBlocks.push({ type: "text", text: CORE_ROUTINE_GUARDRAILS_PROMPT });
+
+  // ── USER SUPPORT LEVEL (tips scale 1–4) ──────────────────────────
+  // Controls verbosity, depth and beginner-friendliness of generated copy.
+  // Non-negotiable education rules always appear regardless of level.
+  systemBlocks.push({
+    type: "text",
+    text: buildTipsLevelBlock(
+      ((input.user_context ?? {}) as Record<string, unknown>).tipsLevel,
+    ),
+  });
 
   // ── STYLE PLAYBOOK — manuscript-derived, per-style ──────────────
   // When the user has a current style on file, inject the exact HTLA
