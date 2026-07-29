@@ -545,7 +545,13 @@ export function NextWashTipCard({
       ? rawAction
       : "";
   const effectiveWhy = [overflow, rawWhy].filter(Boolean).join("\n\n");
-  const sections = buildTipSections(effectiveWhy);
+  const allSections = buildTipSections(effectiveWhy);
+  // Support level controls how much of the reasoning is unpacked. Level 1 keeps
+  // the single most important section; level 4 shows the full breakdown.
+  const sectionCap: Record<TipsLevel, number> = { 1: 1, 2: 2, 3: 5, 4: Number.POSITIVE_INFINITY };
+  const cap = sectionCap[level];
+  const sections = Number.isFinite(cap) ? allSections.slice(0, cap) : allSections;
+
 
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/5 shadow-xl bg-[#4A3728]">
