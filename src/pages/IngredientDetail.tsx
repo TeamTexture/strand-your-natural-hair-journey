@@ -1026,7 +1026,8 @@ const IngredientDetail = () => {
                   {MARKETED_PURPOSE_LABEL[purpose]}
                 </span>
               )}
-              {showBeginnerHelp ? (
+              <AiProse text={purposeGuidance} />
+              {showBeginnerHelp && (
                 <BeginnerSteps
                   steps={[
                     {
@@ -1039,8 +1040,6 @@ const IngredientDetail = () => {
                     },
                   ]}
                 />
-              ) : (
-                <AiProse text={purposeGuidance} />
               )}
               {purposeLowConfidence && tipsLevel >= 3 && (
                 <p className="text-[11px] leading-snug text-muted-foreground">

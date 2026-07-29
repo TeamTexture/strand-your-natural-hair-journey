@@ -706,6 +706,9 @@ const Home = () => {
             })()
           ) : showBeginnerHelp ? (
             <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                No length goal set. Here is exactly how to add one.
+              </p>
               <BeginnerSteps
                 steps={[
                   { text: "Tap here to open your journal.", detail: "That's where goals live." },

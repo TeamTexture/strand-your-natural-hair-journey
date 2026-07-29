@@ -24,6 +24,11 @@ import { cn } from "@/lib/utils";
  * deliberately visual: one action per card, an icon per action, plain
  * language, big touch targets, visible timings and green-tick / red-cross
  * do-and-don't pairs.
+ *
+ * Level 4 shows the MOST information of any level. Every step is rendered in
+ * full at once — never one at a time, never collapsed, never hidden behind
+ * progressive disclosure. Beginner surfaces ADD to the level-3 content, they
+ * never replace or reduce it.
  * ------------------------------------------------------------------ */
 
 /** Pick a simple illustrative icon from the wording of an instruction. */
@@ -222,6 +227,6 @@ export const DoDont = ({
 export const BeginnerReassurance = ({ children }: { children?: ReactNode }) => (
   <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-snug text-muted-foreground">
     <Sparkles className="size-3.5 text-primary shrink-0 mt-[1px]" />
-    <span>{children ?? "Take it one step at a time. You do not need to get all of this right today."}</span>
+    <span>{children ?? "Everything is here, so you can read it all through first and come back to any step. You do not need to get it all right today."}</span>
   </p>
 );

@@ -481,7 +481,13 @@ export default function BloodUpload() {
       <TitleBar title="Upload blood test" onBack={smartBack(navigate, isOnboarding ? "/onboarding/profile-step-4-colour" : "/blood-history")} />
 
       <div className="px-5 pt-2 pb-10 space-y-4">
-        {level >= 4 ? (
+        <LevelGate min={2}>
+          <p className="text-sm text-foreground/80 font-body leading-relaxed">
+            Upload a PDF or photo of your lab report. STRAND will read the results
+            and pre-fill your panel — check them, then save.
+          </p>
+        </LevelGate>
+        {level >= 4 && (
           <>
             <BeginnerSteps
               steps={[
@@ -495,13 +501,6 @@ export default function BloodUpload() {
               If a page comes out blurry, just try again — nothing is saved until you tap Save.
             </BeginnerReassurance>
           </>
-        ) : (
-          <LevelGate min={2}>
-            <p className="text-sm text-foreground/80 font-body leading-relaxed">
-              Upload a PDF or photo of your lab report. STRAND will read the results
-              and pre-fill your panel — check them, then save.
-            </p>
-          </LevelGate>
         )}
 
         {isOnboarding && savedInOnboarding && files.length === 0 && (
