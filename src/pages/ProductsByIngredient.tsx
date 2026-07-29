@@ -12,6 +12,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 import LevelGate from "@/components/tips/LevelGate";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
 
 const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }) => {
   if (p.on_shelf) return { label: "On shelf", tone: "text-good" };
@@ -26,6 +27,7 @@ const ProductsByIngredient = () => {
   const ingredient = params.get("ingredient") ?? "";
   const excludeKey = params.get("excludeKey") ?? "";
   const { allProducts, loading } = useUserProducts("all");
+  const { level } = useTipsLevel();
 
   const products = useMemo(() => {
     const target = ingredient.toLowerCase().trim();
@@ -56,11 +58,7 @@ const ProductsByIngredient = () => {
           <EmptyState
             icon="🧴"
             message="No other products"
-            hint={
-              <LevelGate min={2} fallback="No matches.">
-                {`None of your other products list ${ingredient}.`}
-              </LevelGate>
-            }
+            hint={level >= 2 ? `None of your other products list ${ingredient}.` : "No matches."}
           />
         ) : (
           products.map((p) => {
