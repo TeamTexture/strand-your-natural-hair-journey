@@ -1032,7 +1032,7 @@ const IngredientDetail = () => {
                     >
                       {useCasesExpanded
                         ? "Show less"
-                        : `Read ${analysis.use_cases.length - 1} more tip${analysis.use_cases.length - 1 === 1 ? "" : "s"}`}
+                        : `Read ${limitTips(analysis.use_cases, tipsLevel).length - 1} more tip${limitTips(analysis.use_cases, tipsLevel).length - 1 === 1 ? "" : "s"}`}
                     </button>
                   )}
                 </SurfaceCard>
@@ -1043,7 +1043,7 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {limitTips(analysis.tips.slice(0, 2), tipsLevel).map((tip, idx) => (
+                  {limitTips(analysis.tips, tipsLevel).map((tip, idx) => (
                     <div key={`tip-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
