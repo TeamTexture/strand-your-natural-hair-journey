@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, ChevronDown } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -11,6 +11,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import InlineThreadChat from "@/components/chat/InlineThreadChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { otherParticipantId, useChatThreadMeta, useChatThreads } from "@/hooks/useChat";
@@ -22,6 +23,7 @@ const Messages = () => {
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
   const view = useActiveRoleView();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { pros, consumers } = useMemo(() => {
     if (!user?.id || !threads) return { pros: [] as string[], consumers: [] as string[] };
