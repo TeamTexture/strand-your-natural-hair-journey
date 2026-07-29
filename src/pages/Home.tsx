@@ -331,7 +331,9 @@ const Home = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <TipsLevelButton />
           <button
+
             onClick={() => navigate("/help")}
             aria-label="Help & Support"
             className="size-11 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors"
