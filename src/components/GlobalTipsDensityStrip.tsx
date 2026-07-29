@@ -40,7 +40,7 @@ const GlobalTipsDensityStrip = ({ className }: { className?: string }) => {
       data-testid="global-tips-density-strip"
       data-tips-level={level}
       className={cn(
-        "border-t border-border/30 bg-primary/6 px-4 py-2 animate-in fade-in-0 duration-200",
+        "border-t border-border/30 bg-primary/5 px-4 py-2 animate-in fade-in-0 duration-200",
         className,
       )}
     >
