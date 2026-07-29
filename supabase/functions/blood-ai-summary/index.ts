@@ -451,74 +451,100 @@ Deno.serve(async (req: Request) => {
       returnedPayload = await runClaude({ body, recentWashSignals });
       providerStamp = "claude";
     } else if (provider === "parallel") {
-      // Run BOTH concurrently. Return Lovable to the user. Log both fully.
+      // Return Lovable to the user as soon as it lands. The Claude shadow
+      // run is fired off in the background so the user never waits for it.
       console.log("[blood-debug] before model call", { provider: "parallel" });
-      const [lovableRes, claudeRes] = await Promise.allSettled([
-        runLovable(body),
-        runClaude({ body, recentWashSignals }),
-      ]);
+      const shadowPromise = runClaude({ body, recentWashSignals })
+        .then((payload) => {
+          console.log(
+            JSON.stringify({
+              function: "blood-ai-summary",
+              mode: "parallel",
+              claude: {
+                ok: true,
+                summary_len: payload.overall_summary.length,
+                deficiencies: payload.deficiencies.length,
+                actions: payload.priority_actions.length,
+                model_version: MODEL_VERSION,
+              },
+            }),
+          );
+          console.log("[blood-debug] parallel.claude.payload", JSON.stringify(payload));
+          return payload;
+        })
+        .catch((err) => {
+          console.log(
+            JSON.stringify({
+              function: "blood-ai-summary",
+              mode: "parallel",
+              claude: {
+                ok: false,
+                error: (err instanceof Error ? err.message : String(err)).slice(0, 200),
+              },
+            }),
+          );
+          return null;
+        });
+
+      const lovableRun = await runLovable(body);
       console.log("[blood-debug] model call done", { provider: "parallel" });
-
-      const lovableOk = lovableRes.status === "fulfilled";
-      const claudeOk = claudeRes.status === "fulfilled";
-      const lovablePayload = lovableOk ? lovableRes.value.payload : null;
-      const claudePayload = claudeOk ? claudeRes.value : null;
-
-      // Compact metadata line (easy to grep).
       console.log(
         JSON.stringify({
           function: "blood-ai-summary",
           mode: "parallel",
-          lovable: lovableOk
-            ? {
-                ok: true,
-                summary_len: lovablePayload!.overall_summary.length,
-                deficiencies: lovablePayload!.deficiencies.length,
-                actions: lovablePayload!.priority_actions.length,
-                status: lovableRes.value.status,
-              }
-            : {
-                ok: false,
-                error: (lovableRes.reason instanceof Error
-                  ? lovableRes.reason.message
-                  : String(lovableRes.reason)).slice(0, 200),
-              },
-          claude: claudeOk
-            ? {
-                ok: true,
-                summary_len: claudePayload!.overall_summary.length,
-                deficiencies: claudePayload!.deficiencies.length,
-                actions: claudePayload!.priority_actions.length,
-                model_version: MODEL_VERSION,
-              }
-            : {
-                ok: false,
-                error: (claudeRes.reason instanceof Error
-                  ? claudeRes.reason.message
-                  : String(claudeRes.reason)).slice(0, 200),
-              },
+          lovable: {
+            ok: true,
+            summary_len: lovableRun.payload.overall_summary.length,
+            deficiencies: lovableRun.payload.deficiencies.length,
+            actions: lovableRun.payload.priority_actions.length,
+            status: lovableRun.status,
+          },
         }),
       );
-
-      // Full payloads for Paige to read side-by-side.
       console.log(
         "[blood-debug] parallel.lovable.payload",
-        JSON.stringify(lovablePayload ?? { _error: true }),
-      );
-      console.log(
-        "[blood-debug] parallel.claude.payload",
-        JSON.stringify(claudePayload ?? { _error: true }),
+        JSON.stringify(lovableRun.payload),
       );
 
-      if (!lovableOk) {
-        // Parallel mode contract: Lovable failures bubble up to the user.
-        // Claude failures are logged-only.
-        throw lovableRes.reason;
-      }
-      returnedPayload = lovablePayload!;
+      returnedPayload = lovableRun.payload;
       providerStamp = "lovable";
-      claudeShadow = claudePayload;
+
+      // Persist the shadow after the response has been sent.
+      const cacheShadow = async () => {
+        const payload = await shadowPromise;
+        if (!payload) return;
+        const shadowStamped = {
+          ...payload,
+          _generated_at: new Date().toISOString(),
+          _provider: "claude",
+          _model_version: MODEL_VERSION,
+          _shadow: true,
+        } as Record<string, unknown>;
+        const { data: priorShadow } = await supabase
+          .from("ai_summaries")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("kind", "blood_summary_claude_shadow")
+          .maybeSingle();
+        if (priorShadow?.id) {
+          await supabase
+            .from("ai_summaries")
+            .update({ payload: shadowStamped, updated_at: new Date().toISOString() })
+            .eq("id", priorShadow.id);
+        } else {
+          await supabase.from("ai_summaries").insert({
+            user_id: user.id,
+            kind: "blood_summary_claude_shadow",
+            payload: shadowStamped,
+          });
+        }
+      };
+      const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+        .EdgeRuntime;
+      if (runtime?.waitUntil) runtime.waitUntil(cacheShadow());
+      else void cacheShadow();
     } else {
+
       const r = await runLovable(body);
       returnedPayload = r.payload;
       providerStamp = "lovable";
