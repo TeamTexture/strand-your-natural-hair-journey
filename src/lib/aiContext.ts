@@ -113,7 +113,34 @@ const daysSince = (iso: string | null): number | null => {
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
 };
 
+// Several AI surfaces (goal tip, wash-day tip, summaries) can request context
+// at the same moment on one screen. Building it hits ~8 tables, so the result
+// is memoised briefly and concurrent callers share a single in-flight build.
+let contextCache: { at: number; value: AiContext } | null = null;
+let contextInflight: Promise<AiContext> | null = null;
+const CONTEXT_TTL_MS = 60_000;
+
+/** Drop the memo after the user changes data an AI call depends on. */
+export function invalidateAiContextCache() {
+  contextCache = null;
+  contextInflight = null;
+}
+
 export async function buildAiContext(): Promise<AiContext> {
+  if (contextCache && Date.now() - contextCache.at < CONTEXT_TTL_MS) return contextCache.value;
+  if (contextInflight) return contextInflight;
+  contextInflight = buildAiContextUncached()
+    .then((value) => {
+      contextCache = { at: Date.now(), value };
+      return value;
+    })
+    .finally(() => {
+      contextInflight = null;
+    });
+  return contextInflight;
+}
+
+async function buildAiContextUncached(): Promise<AiContext> {
   // Resolve the user first — every localStorage fallback below must be gated
   // on `localStorageIsForUser(userId)` so we never serve a previous account's
   // cached strand_* payload to a freshly-signed-in user on the same browser.

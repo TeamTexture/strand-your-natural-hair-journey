@@ -89,6 +89,7 @@ export function useProductPhotos(productKeys: string[]) {
       const existing = photos[productKey];
       if (existing) {
         await supabase.storage.from(BUCKET).remove([existing.storage_path]);
+      invalidateSignedUrl(BUCKET, existing.storage_path);
       }
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${user.id}/${productKey}/${uuid()}.${ext}`;
