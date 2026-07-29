@@ -12,12 +12,14 @@ export const MARKETED_PURPOSE_RULES = `MARKETED PURPOSE + SURFACTANT STRENGTH �
 0c. Write marketed_purpose_note as one or two plain sentences addressed to the user, weaving the detected purpose into real guidance for THEIR hair data and goals, e.g. "This is a clarifying shampoo made for oily scalps. Because of that it likely has stronger cleansers, so with your high porosity hair and length goal you'll need a deep conditioner straight after." Never present it as a form field or ask the user to confirm it.
 
 1. Always set marketed_purpose from the product's own positioning: the product name, front-of-pack claims, the range it sits in, and the brand's description. Choose exactly one of:
-   dry_hair, damaged_hair, colour_treated, greasy_oily, general_all_hair_types, moisture, repair, clarifying.
+   dry_hair, damaged_hair, colour_treated, greasy_oily, general_all_hair_types, moisture, repair, clarifying, density_growth, scalp_health.
+   READ THE PRODUCT TITLE WORD BY WORD FIRST — the title almost always names the purpose outright and it OUTRANKS any guess from the ingredient list. Words like "density", "growth", "thickening", "volumising", "fuller", "anti-shedding", "hair fall" mean density_growth. Words like "scalp", "therapy", "anti-dandruff", "soothing scalp" mean scalp_health (unless density/growth is also named, in which case density_growth wins). Never fall back to general_all_hair_types when the title states a need.
    Use general_all_hair_types only when the product makes no specific claim.
 
 2. Two products can share an identical INCI list and behave completely differently, because the CONCENTRATION of the primary surfactant is tuned to the hair need the product is sold for. Exact percentages are never published, so you must reason from the marketed purpose:
    - greasy_oily and clarifying → expect a HIGH primary-surfactant load. Strong cleansing, more likely to strip. Say so, and pair it with a proper conditioning step afterwards.
    - dry_hair, damaged_hair, moisture, repair, colour_treated → expect a LOWER primary-surfactant load, more secondary/amphoteric co-surfactants, gentler cleansing but more risk of build-up if used alone on an oily scalp.
+   - density_growth and scalp_health → the work is aimed at the scalp and follicle, so expect a moderate cleansing base designed to clear the scalp without stripping; say plainly that the lengths still need their own conditioning step.
    - general_all_hair_types → expect a middle-of-the-road load; say the cleansing strength is average and let the user's own scalp behaviour decide.
 
 3. Factor this into match_score and ai_summary. Example of the reasoning you should apply: a clarifying or greasy-hair shampoo on a high-porosity user with a length-retention goal scores lower and MUST be paired with an intensive conditioning step in the same wash, because raised cuticles lose water fast and a heavy primary surfactant makes that worse.
