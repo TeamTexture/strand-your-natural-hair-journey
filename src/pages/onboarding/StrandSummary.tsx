@@ -267,7 +267,7 @@ const StrandSummary = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Your Strand Summary" onBack={goBack} />
+      <TitleBar title="Your Strand Summary" tips onBack={goBack} />
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard tone="gold">
@@ -337,7 +337,7 @@ const StrandSummary = () => {
                   </span>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Routine tips</p>
                 </div>
-                <ul className="space-y-2">
+                <ul key={tipsLevel} className="space-y-2 animate-in fade-in-0 duration-300">
                   {limitTips(summary.routine_tips, tipsLevel).map((b, i) => {
                     const Icon = pickIcon(b);
                     return (
