@@ -9,7 +9,9 @@ export type MarketedPurpose =
   | "general_all_hair_types"
   | "moisture"
   | "repair"
-  | "clarifying";
+  | "clarifying"
+  | "density_growth"
+  | "scalp_health";
 
 export const MARKETED_PURPOSES: MarketedPurpose[] = [
   "dry_hair",
@@ -20,6 +22,8 @@ export const MARKETED_PURPOSES: MarketedPurpose[] = [
   "moisture",
   "repair",
   "clarifying",
+  "density_growth",
+  "scalp_health",
 ];
 
 export const MARKETED_PURPOSE_LABEL: Record<MarketedPurpose, string> = {
@@ -31,6 +35,8 @@ export const MARKETED_PURPOSE_LABEL: Record<MarketedPurpose, string> = {
   moisture: "Moisture",
   repair: "Repair",
   clarifying: "Clarifying",
+  density_growth: "Density & growth",
+  scalp_health: "Scalp health",
 };
 
 /** Plain-English note on what the stated purpose implies about cleansing
@@ -45,6 +51,8 @@ export const MARKETED_PURPOSE_SURFACTANT_NOTE: Record<MarketedPurpose, string> =
   moisture: "Sold as a moisture product, so the main cleanser is usually mild and paired with softening agents.",
   repair: "Sold as a repair product, so expect a gentler cleansing base alongside strengthening ingredients.",
   clarifying: "Sold as clarifying, so the main cleanser is strong by design — always follow with intensive conditioning.",
+  density_growth: "Sold for density, thickness or growth, so expect a scalp-focused formula — the cleansing base is usually moderate and the active work happens at the root.",
+  scalp_health: "Sold for scalp health, so expect scalp-targeted actives with a moderate cleansing base — the lengths still need their own conditioning.",
 };
 
 export const isMarketedPurpose = (v: unknown): v is MarketedPurpose =>
@@ -55,6 +63,8 @@ export const isMarketedPurpose = (v: unknown): v is MarketedPurpose =>
 export function inferMarketedPurpose(text: string | null | undefined): MarketedPurpose | null {
   const t = (text ?? "").toLowerCase();
   if (!t.trim()) return null;
+  if (/densit|thick|thinning|fuller|volumis|volumiz|growth|grow(th)?[ -]?serum|hair fall|shedding|regrow/.test(t)) return "density_growth";
+  if (/scalp|dandruff|flake|itch|sebum balance|folliclе|follicle/.test(t)) return "scalp_health";
   if (/clarif|chelat|detox|purif|deep clean|build[- ]?up/.test(t)) return "clarifying";
   if (/oily|greasy|grease|sebum|balanc(e|ing) scalp/.test(t)) return "greasy_oily";
   if (/colour|color|dyed|highlight|toning|blonde/.test(t)) return "colour_treated";

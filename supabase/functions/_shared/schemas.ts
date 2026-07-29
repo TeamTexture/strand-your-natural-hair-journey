@@ -66,6 +66,8 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
         "moisture",
         "repair",
         "clarifying",
+        "density_growth",
+        "scalp_health",
       ],
       description:
         "The hair need this product is MARKETED for. Determine it AUTOMATICALLY from the product title, brand, range, visible front-of-pack claims/descriptors and the scraped description, sanity-checked against the ingredient list. Use 'general_all_hair_types' when no specific need is claimed or the scan gives too little to classify confidently.",
@@ -157,7 +159,9 @@ export interface ProductAnalysisPayload {
     | "general_all_hair_types"
     | "moisture"
     | "repair"
-    | "clarifying";
+    | "clarifying"
+    | "density_growth"
+    | "scalp_health";
   match_score: number;
   ai_summary: string;
   usage_instructions: string;
