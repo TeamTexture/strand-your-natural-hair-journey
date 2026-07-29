@@ -321,6 +321,8 @@ SCHEMA
   "ingredients": string[],
   "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string, "surfactant_role": "primary"|"secondary"|"none"}],
   "marketed_purpose": "dry_hair"|"damaged_hair"|"colour_treated"|"greasy_oily"|"general_all_hair_types"|"moisture"|"repair"|"clarifying",
+  "marketed_purpose_confidence": "high"|"low",
+  "marketed_purpose_note": "one or two plain sentences telling the user what this product is sold to do and what that means for THEIR hair",
   "match_score": number,
   "ai_summary": string,
   "usage_instructions": string,

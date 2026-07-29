@@ -1,4 +1,4 @@
-import { Flag, RefreshCw, Trash2, Bookmark, ArrowDownToLine, ArrowUpFromLine, Heart } from "lucide-react";
+import { Flag, RefreshCw, Trash2, Bookmark, ArrowDownToLine, ArrowUpFromLine, Heart, Sparkles } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -13,6 +13,7 @@ import {
   inferMarketedPurpose,
   isMarketedPurpose,
   MARKETED_PURPOSE_SURFACTANT_NOTE,
+  MARKETED_PURPOSE_LABEL,
   SURFACTANT_ROLE_LABEL,
   SURFACTANT_ROLE_NOTE,
   type MarketedPurpose,
@@ -185,45 +186,6 @@ const IngredientDetail = () => {
 
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
 
-  // Marketed purpose — what the product is SOLD for. Drives how we describe
-  // surfactant strength (exact percentages are never published).
-  const [purpose, setPurpose] = useState<MarketedPurpose | null>(null);
-  useEffect(() => {
-    const stored = (productRow as { marketed_purpose?: unknown } | null)?.marketed_purpose;
-    if (isMarketedPurpose(stored)) {
-      setPurpose(stored);
-      return;
-    }
-    const fromScan = (freshAnalysis as { marketed_purpose?: unknown } | null)?.marketed_purpose;
-    if (isMarketedPurpose(fromScan)) {
-      setPurpose(fromScan);
-      return;
-    }
-    setPurpose(
-      inferMarketedPurpose(
-        [productRow?.name, productRow?.brand, analysis?.summary].filter(Boolean).join(" "),
-      ),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productRow?.id, freshAnalysis]);
-
-  const savePurpose = useCallback(
-    async (next: MarketedPurpose) => {
-      setPurpose(next);
-      if (!productRow?.id) return;
-      const { error } = await supabase
-        .from("user_products")
-        .update({ marketed_purpose: next })
-        .eq("id", productRow.id);
-      if (error) {
-        console.error(error);
-        toast.error("Could not save what this product is marketed for");
-        return;
-      }
-      void reload();
-    },
-    [productRow?.id, reload],
-  );
 
   const returnAfterAutoSave = useCallback(
     (productId: string | null | undefined) => {
@@ -252,6 +214,73 @@ const IngredientDetail = () => {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [useCasesExpanded, setUseCasesExpanded] = useState(false);
   const [tipsExpanded, setTipsExpanded] = useState(false);
+
+  // Marketed purpose — what the product is SOLD for. The AI works this out
+  // automatically from the scan (title, brand, claims + the INCI list); the
+  // user is never asked. The quiet edit link below is a correction path only.
+  const [purpose, setPurpose] = useState<MarketedPurpose | null>(null);
+  const [purposeEditOpen, setPurposeEditOpen] = useState(false);
+  const [userSetPurpose, setUserSetPurpose] = useState(false);
+
+  const detected = (freshAnalysis ?? analysis) as
+    | { marketed_purpose?: unknown; marketed_purpose_note?: unknown; marketed_purpose_confidence?: unknown }
+    | null;
+  const purposeNote =
+    typeof detected?.marketed_purpose_note === "string" && detected.marketed_purpose_note.trim()
+      ? detected.marketed_purpose_note.trim()
+      : null;
+  const purposeLowConfidence = detected?.marketed_purpose_confidence === "low";
+
+  useEffect(() => {
+    const stored = (productRow as { marketed_purpose?: unknown } | null)?.marketed_purpose;
+    if (isMarketedPurpose(stored)) {
+      setPurpose(stored);
+      setUserSetPurpose(true);
+      return;
+    }
+    const fromScan = (freshAnalysis as { marketed_purpose?: unknown } | null)?.marketed_purpose;
+    if (isMarketedPurpose(fromScan)) {
+      setPurpose(fromScan);
+      return;
+    }
+    setPurpose(
+      inferMarketedPurpose(
+        [productRow?.name, productRow?.brand, analysis?.summary].filter(Boolean).join(" "),
+      ) ?? "general_all_hair_types",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productRow?.id, freshAnalysis]);
+
+  const savePurpose = useCallback(
+    async (next: MarketedPurpose) => {
+      setPurpose(next);
+      setUserSetPurpose(true);
+      setPurposeEditOpen(false);
+      if (!productRow?.id) return;
+      const { error } = await supabase
+        .from("user_products")
+        .update({ marketed_purpose: next })
+        .eq("id", productRow.id);
+      if (error) {
+        console.error(error);
+        toast.error("Could not save what this product is marketed for");
+        return;
+      }
+      void reload();
+    },
+    [productRow?.id, reload],
+  );
+
+  // Persist what the AI detected so later analyses reuse it — silently.
+  useEffect(() => {
+    if (userSetPurpose || !purpose || !productRow?.id) return;
+    if ((productRow as { marketed_purpose?: unknown }).marketed_purpose === purpose) return;
+    void supabase
+      .from("user_products")
+      .update({ marketed_purpose: purpose })
+      .eq("id", productRow.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purpose, productRow?.id, userSetPurpose]);
 
   const { flags } = useIngredientLists();
   // Single unified "flagged" set — appears in 3+ of the user's products.
@@ -1005,15 +1034,55 @@ const IngredientDetail = () => {
 
 
 
-            <SectionLabel>What it's marketed for</SectionLabel>
-            <SurfaceCard>
-              <MarketedPurposeSelector value={purpose} onChange={savePurpose} />
-              <p className="text-[11px] leading-snug text-muted-foreground mt-2">
-                {purpose
-                  ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
-                  : "Set this so we can judge how strong the cleansers are likely to be — brands don't publish exact percentages."}
-              </p>
+            <SectionLabel>What this product is made for</SectionLabel>
+            <SurfaceCard className="space-y-2">
+              {purpose && (
+                <span className="inline-flex items-center gap-1.5 rounded-pill border border-primary/25 bg-primary/8 px-3 py-1 text-[12px] font-medium text-primary">
+                  <Sparkles className="size-3" aria-hidden />
+                  {MARKETED_PURPOSE_LABEL[purpose]}
+                </span>
+              )}
+              {showBeginnerHelp ? (
+                <BeginnerSteps
+                  steps={[
+                    {
+                      text:
+                        purposeNote ??
+                        (purpose ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose] : "We're reading this from the ingredients."),
+                    },
+                  ]}
+                />
+              ) : (
+                <p className="text-sm leading-relaxed text-foreground/85">
+                  {purposeNote ??
+                    (purpose
+                      ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
+                      : "We're basing this guidance on the ingredients alone.")}
+                </p>
+              )}
+              {purposeLowConfidence && (
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  The label didn't say much, so this is judged from the ingredients alone.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setPurposeEditOpen(true)}
+                className="text-[11px] text-muted-foreground underline underline-offset-2"
+              >
+                Not right? Edit product type
+              </button>
             </SurfaceCard>
+
+            <Dialog open={purposeEditOpen} onOpenChange={setPurposeEditOpen}>
+              <DialogContent className="max-w-[320px] rounded-[18px]">
+                <DialogHeader>
+                  <DialogTitle className="font-display text-base">Edit product type</DialogTitle>
+                </DialogHeader>
+                <MarketedPurposeSelector value={purpose} onChange={savePurpose} />
+              </DialogContent>
+            </Dialog>
+
 
             {analysis.use_cases && analysis.use_cases.length > 0 && (
               <>
