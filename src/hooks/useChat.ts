@@ -323,7 +323,9 @@ export function useMarkThreadRead(threadId: string | null | undefined) {
         .from("chat_messages")
         .update({ read_at: stamp })
         .eq("thread_id", threadId)
-        .neq("sender_id", user.id)
+        // `neq` skips NULL sender rows (system notices), so include them
+        // explicitly — otherwise they linger as permanent unread.
+        .or(`sender_id.is.null,sender_id.neq.${user.id}`)
         .is("read_at", null);
       // Multi-role accounts can sit on both sides of a thread: mark the
       // opposite side's own messages read too, so ticks still turn blue.
@@ -398,7 +400,9 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
         .from("chat_messages")
         .select("thread_id, sender_id, sender_role")
         .in("thread_id", ids)
-        .is("read_at", null);
+        .is("read_at", null)
+        // System rows (sender_id null) are not "received messages".
+        .not("sender_id", "is", null);
       // A message I sent is never "unread" for me — even on a multi-role
       // account viewing the thread from the other side.
       return (msgs ?? []).filter((m) => m.sender_id !== user!.id).length;
