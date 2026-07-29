@@ -18,6 +18,10 @@ import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
 import BrandLink from "@/components/BrandLink";
+import DetailCard from "@/components/tips/DetailCard";
+import LevelGate from "@/components/tips/LevelGate";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { limitSupporting } from "@/lib/tipsRender";
 
 const Avoidlist = () => {
   const [exporting, setExporting] = useState(false);
@@ -92,12 +96,16 @@ const Avoidlist = () => {
       />
 
       <ItalicSub>
-        Built automatically from the products you've put on your shelf and
-        favourited. An ingredient earns a{" "}
+        An ingredient earns a{" "}
         <span className="text-primary font-medium">flag</span> when it shows up
-        in 3 or more of those products. Tap any flag to learn what the
-        ingredient is, what it does, and which of your products contain it —
-        purely educational, no good or bad.
+        in 3 or more of your products.
+        <LevelGate min={2}>
+          {" "}
+          Built automatically from the products you've put on your shelf and
+          favourited. Tap any flag to learn what the ingredient is, what it
+          does, and which of your products contain it — purely educational,
+          no good or bad.
+        </LevelGate>
       </ItalicSub>
 
       {loading ? (
