@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { BadgeCheck, ChevronDown } from "lucide-react";
@@ -19,7 +18,6 @@ import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 
 const Messages = () => {
   useEffect(() => { markPlusSurfaceSeen("messages"); }, []);
-  const nav = useNavigate();
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
   const view = useActiveRoleView();
