@@ -179,7 +179,8 @@ const IngredientDetail = () => {
     [allProducts, productKey],
   );
 
-  const { showBeginnerHelp } = useTipsLevel();
+  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
 
 
   const returnAfterAutoSave = useCallback(
@@ -953,12 +954,13 @@ const IngredientDetail = () => {
             )}
 
             <SectionLabel>Ingredients</SectionLabel>
-            <p className="px-1 -mt-1 mb-2 text-[11px] text-muted-foreground italic leading-snug">
-              Every ingredient in this formulation. Tap a bubble to learn what
-              it is, what category it falls under, and how it's used in this
-              product. A small flag marks ingredients that appear in 3+ of the
-              products you've put on your shelf, favourited, and actually used.
-            </p>
+            {tipsLevel >= 2 && (
+              <p key={`ing-note-${tipsLevel}`} className="px-1 -mt-1 mb-2 text-[11px] text-muted-foreground italic leading-snug animate-in fade-in-0 duration-300">
+                {tipsLevel === 2
+                  ? "Tap any ingredient to see what it does. A flag marks ones that show up across your shelf."
+                  : "Every ingredient in this formulation. Tap a bubble to learn what it is, what category it falls under, and how it's used in this product. A small flag marks ingredients that appear in 3+ of the products you've put on your shelf, favourited, and actually used."}
+              </p>
+            )}
             <div className="rounded-2xl bg-white border border-border/60 p-4">
               {(() => {
                 const all = analysis.ingredients ?? [];
@@ -969,33 +971,56 @@ const IngredientDetail = () => {
                     </p>
                   );
                 }
+                // Lower support levels keep the list short: flagged ingredients
+                // first, then the head of the list, with an opt-in for the rest.
+                const cap = tipsLevel === 1 ? 6 : tipsLevel === 2 ? 10 : all.length;
+                const ranked = cap >= all.length
+                  ? all
+                  : [
+                      ...all.filter((i) => flaggedNames.has(i.name.toLowerCase().trim())),
+                      ...all.filter((i) => !flaggedNames.has(i.name.toLowerCase().trim())),
+                    ];
+                const shown = showAllIngredients ? all : ranked.slice(0, cap);
+                const hidden = all.length - shown.length;
                 return (
-                  <div className="flex flex-wrap gap-1.5">
-                    {all.map((i, idx) => {
-                      const lower = i.name.toLowerCase().trim();
-                      const isFlagged = flaggedNames.has(lower);
-                      return (
-                        <button
-                          key={`${i.name}-${idx}`}
-                          type="button"
-                          onClick={() => setSelectedIngredient(i)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
-                        >
-                          {isFlagged && (
-                            <Flag
-                              className="size-3 shrink-0 fill-current"
-                              style={{ color: "hsl(40 65% 32%)" }}
-                              aria-label="flagged ingredient"
-                            />
-                          )}
-                          <span className="truncate max-w-[180px]">{i.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <>
+                    <div key={`ing-${tipsLevel}-${showAllIngredients}`} className="flex flex-wrap gap-1.5 animate-in fade-in-0 duration-300">
+                      {shown.map((i, idx) => {
+                        const lower = i.name.toLowerCase().trim();
+                        const isFlagged = flaggedNames.has(lower);
+                        return (
+                          <button
+                            key={`${i.name}-${idx}`}
+                            type="button"
+                            onClick={() => setSelectedIngredient(i)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
+                          >
+                            {isFlagged && (
+                              <Flag
+                                className="size-3 shrink-0 fill-current"
+                                style={{ color: "hsl(40 65% 32%)" }}
+                                aria-label="flagged ingredient"
+                              />
+                            )}
+                            <span className="truncate max-w-[180px]">{i.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {hidden > 0 && !showAllIngredients && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllIngredients(true)}
+                        className="mt-3 text-[11px] font-medium text-primary underline underline-offset-2"
+                      >
+                        Show all {all.length} ingredients
+                      </button>
+                    )}
+                  </>
                 );
               })()}
             </div>
+
 
             {/* Standard "How to use it" intentionally removed — only the
                 personalised guidance/tips below are shown. */}
@@ -1020,7 +1045,7 @@ const IngredientDetail = () => {
                     },
                   ]}
                 />
-              ) : (
+              ) : tipsLevel >= 2 ? (
                 <AiProse
                   text={
                     purposeNote ??
@@ -1029,8 +1054,8 @@ const IngredientDetail = () => {
                       : "We're basing this guidance on the ingredients alone.")
                   }
                 />
-              )}
-              {purposeLowConfidence && (
+              ) : null}
+              {purposeLowConfidence && tipsLevel >= 3 && (
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   The label didn't say much, so this is judged from the ingredients alone.
                 </p>
@@ -1074,31 +1099,29 @@ const IngredientDetail = () => {
             )}
 
             {analysis.pair_with && analysis.pair_with.length > 0 && (
-              <>
+              <LevelGate min={2}>
                 <SectionLabel>Pair with (from your shelf)</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {analysis.pair_with.map((p, idx) => (
+                  {(tipsLevel === 2 ? analysis.pair_with.slice(0, 2) : analysis.pair_with).map((p, idx) => (
                     <div key={`pair-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">
                         <span className="font-medium">{p.item}</span>
-                        {p.why ? <span className="text-foreground/70"> — {p.why}</span> : null}
+                        {p.why && tipsLevel >= 3 ? <span className="text-foreground/70"> — {p.why}</span> : null}
                       </p>
                     </div>
                   ))}
                 </SurfaceCard>
-              </>
+              </LevelGate>
             )}
 
             {analysis.routine_suggestion && (
-              <>
+              <LevelGate min={2}>
                 <SectionLabel>Slot into your routine</SectionLabel>
                 <SurfaceCard>
-                  <p className="text-sm leading-relaxed text-foreground/85">
-                    {analysis.routine_suggestion}
-                  </p>
+                  <AiProse text={analysis.routine_suggestion} className="text-sm" />
                 </SurfaceCard>
-              </>
+              </LevelGate>
             )}
 
 
