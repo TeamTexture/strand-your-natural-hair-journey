@@ -547,7 +547,7 @@ const IngredientDetail = () => {
     if (window.history.state && window.history.state.idx > 0) {
       navigate(-1);
     } else {
-      navigate("/products");
+      navigate("/products", { replace: true });
     }
   };
 
@@ -651,7 +651,7 @@ const IngredientDetail = () => {
     if (next) {
       next();
     } else {
-      navigate("/products");
+      navigate("/products", { replace: true });
     }
   };
 
@@ -664,7 +664,7 @@ const IngredientDetail = () => {
     if (shouldGuard) {
       pendingNavRef.current = () => {
         if (window.history.state && window.history.state.idx > 0) navigate(-1);
-        else navigate("/products");
+        else navigate("/products", { replace: true });
       };
       setDiscardOpen(true);
       return;
@@ -675,7 +675,7 @@ const IngredientDetail = () => {
     if (window.history.state && window.history.state.idx > 0) {
       navigate(-1);
     } else {
-      navigate("/products");
+      navigate("/products", { replace: true });
     }
   };
 
