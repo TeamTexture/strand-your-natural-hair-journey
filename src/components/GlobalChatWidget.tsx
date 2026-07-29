@@ -187,7 +187,7 @@ const GlobalChatWidget = () => {
                 threads.map((t) => {
                   const d = displayFor(t);
                   const preview = previewMap?.get(t.id);
-                  const snippet = preview?.snippet ?? "";
+                  const snippet = preview?.preview ?? "";
                   const u = preview?.unread ?? 0;
                   const last = t.last_message_at ?? t.created_at;
                   return (
