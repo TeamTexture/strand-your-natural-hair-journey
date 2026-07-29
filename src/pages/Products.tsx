@@ -38,6 +38,7 @@ import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import BrandBanner from "@/components/BrandBanner";
+import LevelGate from "@/components/tips/LevelGate";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
@@ -367,11 +368,13 @@ const Products = () => {
               <LinkIcon className="size-4 mr-1.5" />
               {urlBusy ? "Reading link…" : "Paste Web Link"}
             </Button>
-            <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
-              Tip: snap the bottle, upload a screenshot, or paste a product page
-              link — the AI reads the label and matches ingredients to your hair
-              profile.
-            </p>
+            <LevelGate min={2}>
+              <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
+                Tip: snap the bottle, upload a screenshot, or paste a product page
+                link — the AI reads the label and matches ingredients to your hair
+                profile.
+              </p>
+            </LevelGate>
           </div>
 
           <MyToolsSection />

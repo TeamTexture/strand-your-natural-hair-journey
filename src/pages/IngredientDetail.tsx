@@ -1368,46 +1368,39 @@ const IngredientDetail = () => {
 
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">
-                      What it actually is
+                      What this is
                     </p>
-                    <p className="text-sm leading-relaxed text-foreground/85">
-                      {whatItIs || ing.body}
-                    </p>
+                    <AiProse text={whatItIs || ing.body} />
                   </div>
 
-
-
-
-                  {benefits.length > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
-                        What it does in this formula
-                      </p>
-                      <ul className="space-y-1.5">
-                        {benefits.map((b, i) => (
-                          <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
-                            <span className="text-primary shrink-0 mt-0.5">•</span>
-                            <span>{b}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <LevelGate min={3}>
+                    {benefits.length > 0 && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                          What it does in this formula
+                        </p>
+                        <ul className="space-y-1.5">
+                          {benefits.map((b, i) => (
+                            <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
+                              <span className="text-primary shrink-0 mt-0.5">•</span>
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </LevelGate>
 
                   <div className="rounded-lg bg-primary/8 border border-primary/25 p-3">
                     <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold mb-1.5">
-                      What this means for your hair type
+                      What this means for your hair
                     </p>
                     {profileLoading && !meansForYou && (
                       <p className="text-sm leading-relaxed text-muted-foreground italic">
                         Tailoring this to your hair…
                       </p>
                     )}
-                    {meansForYou && (
-                      <p className="text-sm leading-relaxed text-foreground/90">
-                        {meansForYou}
-                      </p>
-                    )}
+                    {meansForYou && <AiProse text={meansForYou} />}
                     {!profileLoading && !meansForYou && profileError && (
                       <p className="text-sm leading-relaxed text-muted-foreground italic">
                         Personalised guidance unavailable right now.
