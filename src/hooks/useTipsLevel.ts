@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -119,7 +119,7 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
     showBeginnerHelp: showsBeginnerHelp(level),
   }), [answerPrompt, level, prompted, setLevel]);
 
-  return <TipsLevelContext.Provider value={value}>{children}</TipsLevelContext.Provider>;
+  return createElement(TipsLevelContext.Provider, { value }, children);
 }
 
 /**
