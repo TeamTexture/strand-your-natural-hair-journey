@@ -332,9 +332,10 @@ const ProProfile = () => {
           <SurfaceCard tone="gold">
             <p className="text-xs font-body leading-snug">
               <span className="font-semibold uppercase tracking-[0.15em] text-primary">
-                Draft —{" "}
+                Hidden —{" "}
               </span>
-              Your profile is saved but not yet public. STRAND admin will publish it after review.
+              Your profile is saved but not showing in the directory. All your
+              details, clients and messages stay exactly as they are.
             </p>
           </SurfaceCard>
         )}
@@ -350,6 +351,26 @@ const ProProfile = () => {
             </p>
           </SurfaceCard>
         )}
+
+        <SurfaceCard>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-body font-semibold">
+                Show in directory
+              </p>
+              <p className="text-[11px] font-body text-muted-foreground leading-snug mt-0.5">
+                Turn off to temporarily hide your listing from members. Nothing
+                is deleted — switch it back on any time to go live again.
+              </p>
+            </div>
+            <Switch
+              checked={!!profile.is_published}
+              disabled={setVisibility.isPending}
+              onCheckedChange={(v) => setVisibility.mutate(v)}
+            />
+          </div>
+        </SurfaceCard>
+
 
         <SectionLabel>Public listing</SectionLabel>
 
