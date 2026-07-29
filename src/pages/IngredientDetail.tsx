@@ -185,13 +185,27 @@ const IngredientDetail = () => {
 
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
 
-  // Marketed purpose — what the product is SOLD for. Drives how we describe
-  // surfactant strength (exact percentages are never published).
+  // Marketed purpose — what the product is SOLD for. The AI works this out
+  // automatically from the scan (title, brand, claims + the INCI list); the
+  // user is never asked. The quiet edit link below is a correction path only.
   const [purpose, setPurpose] = useState<MarketedPurpose | null>(null);
+  const [purposeEditOpen, setPurposeEditOpen] = useState(false);
+  const [userSetPurpose, setUserSetPurpose] = useState(false);
+
+  const detected = (freshAnalysis ?? analysis) as
+    | { marketed_purpose?: unknown; marketed_purpose_note?: unknown; marketed_purpose_confidence?: unknown }
+    | null;
+  const purposeNote =
+    typeof detected?.marketed_purpose_note === "string" && detected.marketed_purpose_note.trim()
+      ? detected.marketed_purpose_note.trim()
+      : null;
+  const purposeLowConfidence = detected?.marketed_purpose_confidence === "low";
+
   useEffect(() => {
     const stored = (productRow as { marketed_purpose?: unknown } | null)?.marketed_purpose;
     if (isMarketedPurpose(stored)) {
       setPurpose(stored);
+      setUserSetPurpose(true);
       return;
     }
     const fromScan = (freshAnalysis as { marketed_purpose?: unknown } | null)?.marketed_purpose;
@@ -202,7 +216,7 @@ const IngredientDetail = () => {
     setPurpose(
       inferMarketedPurpose(
         [productRow?.name, productRow?.brand, analysis?.summary].filter(Boolean).join(" "),
-      ),
+      ) ?? "general_all_hair_types",
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productRow?.id, freshAnalysis]);
@@ -210,6 +224,8 @@ const IngredientDetail = () => {
   const savePurpose = useCallback(
     async (next: MarketedPurpose) => {
       setPurpose(next);
+      setUserSetPurpose(true);
+      setPurposeEditOpen(false);
       if (!productRow?.id) return;
       const { error } = await supabase
         .from("user_products")
@@ -224,6 +240,18 @@ const IngredientDetail = () => {
     },
     [productRow?.id, reload],
   );
+
+  // Persist what the AI detected so later analyses reuse it — silently.
+  useEffect(() => {
+    if (userSetPurpose || !purpose || !productRow?.id) return;
+    if ((productRow as { marketed_purpose?: unknown }).marketed_purpose === purpose) return;
+    void supabase
+      .from("user_products")
+      .update({ marketed_purpose: purpose })
+      .eq("id", productRow.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purpose, productRow?.id, userSetPurpose]);
+
 
   const returnAfterAutoSave = useCallback(
     (productId: string | null | undefined) => {
