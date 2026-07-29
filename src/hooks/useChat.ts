@@ -210,9 +210,11 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
 
       for (const m of unreadRes.data ?? []) {
         const cur = get(m.thread_id);
-        if (!isMine(m)) cur.unread += 1;
+        // Only messages from someone else can be unread for me.
+        if (m.sender_id !== user!.id) cur.unread += 1;
         meta.set(m.thread_id, cur);
       }
+
       return meta;
     },
   });
