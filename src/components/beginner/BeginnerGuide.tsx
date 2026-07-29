@@ -7,7 +7,7 @@ import {
   Hand,
   Info,
   Scissors,
-  Section,
+  LayoutGrid,
   Sparkles,
   ThermometerSun,
   Timer,
@@ -34,7 +34,7 @@ export function pickTipIcon(text: string): LucideIcon {
   if (/(minute|hour|wait|leave it|timing|overnight)/.test(t)) return Clock;
   if (/(massage|fingertip|hands|palm|scrub|detangle|comb)/.test(t)) return Hand;
   if (/(heat|warm|hat|steam|dry|blow)/.test(t)) return ThermometerSun;
-  if (/(section|part |parts|divide)/.test(t)) return Section;
+  if (/(section|part |parts|divide)/.test(t)) return LayoutGrid;
   if (/(trim|cut|split end)/.test(t)) return Scissors;
   if (/(air|breath|scalp|oxygen)/.test(t)) return Wind;
   return Sparkles;
@@ -54,29 +54,36 @@ export function extractTime(text: string): string | null {
 
 /** Plain-English replacements for unavoidable technical terms. Applied to
  *  displayed copy at level 4 so the jargon always arrives explained. */
-const PLAIN_TERMS: Array<[RegExp, string]> = [
-  [/\bporosity\b/gi, "how easily your hair drinks up water (this is called porosity)"],
-  [/\bsurfactants?\b/gi, "the cleaning agents in shampoo (these are called surfactants)"],
-  [/\belasticity\b/gi, "how much your hair can stretch without snapping (this is called elasticity)"],
-  [/\bsebum\b/gi, "the natural oil your scalp makes (this is called sebum)"],
-  [/\bcuticles?\b/gi, "the outer layer of each hair (this is called the cuticle)"],
-  [/\bdensity\b/gi, "how many hairs you have on your head (this is called density)"],
-  [/\bclarifying\b/gi, "deep-cleaning (this is called clarifying)"],
-  [/\bemollients?\b/gi, "softening ingredients (these are called emollients)"],
-  [/\bhumectants?\b/gi, "ingredients that pull in water (these are called humectants)"],
+const PLAIN_TERMS: Array<[string, string]> = [
+  ["porosity", "how easily your hair drinks up water"],
+  ["surfactants", "the cleaning agents in shampoo"],
+  ["surfactant", "the cleaning agent in shampoo"],
+  ["elasticity", "how much your hair can stretch without snapping"],
+  ["sebum", "the natural oil your scalp makes"],
+  ["cuticles", "the outer layers of each hair"],
+  ["cuticle", "the outer layer of each hair"],
+  ["density", "how many hairs you have on your head"],
+  ["clarifying", "deep-cleaning"],
+  ["emollients", "softening ingredients"],
+  ["humectants", "ingredients that pull in water"],
 ];
 
-/** Rewrite one term per phrase into plain English; only the first mention of
- *  each term is expanded so copy stays readable. */
+/**
+ * Put the plain-English phrase first and keep the technical term in brackets,
+ * only on its first mention. When the term is qualified ("high porosity") the
+ * plain phrase is appended instead so the sentence still reads correctly.
+ */
 export function plainLanguage(text: string): string {
   let out = text;
-  for (const [re, replacement] of PLAIN_TERMS) {
-    let first = true;
-    out = out.replace(re, () => {
-      if (!first) return "it";
-      first = false;
-      return replacement;
-    });
+  for (const [term, plain] of PLAIN_TERMS) {
+    const re = new RegExp(`(\\b(?:high|low|medium|fine|coarse|your|the)\\s+)?\\b${term}\\b`, "i");
+    const m = out.match(re);
+    if (!m) continue;
+    const qualifier = m[1];
+    const replacement = qualifier
+      ? `${qualifier}${term} (${plain})`
+      : `${plain} (this is called ${term})`;
+    out = out.replace(re, replacement);
   }
   return out;
 }
