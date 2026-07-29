@@ -24,6 +24,7 @@ import {
   otherParticipantId,
   useChatThreads,
   useChatThread,
+  useChatThreadMeta,
   useMarkThreadRead,
   useSendChatMessage,
   useUnreadChatCount,
@@ -107,29 +108,9 @@ const GlobalChatWidget = () => {
     },
   });
 
-  // Latest message + per-thread unread count for the collapsed list.
-  const { data: previewMap } = useQuery({
-    queryKey: ["chat_widget_previews", user?.id, threads.map((t) => t.id).join(",")],
-    enabled: !!user?.id && threads.length > 0,
-    queryFn: async () => {
-      const ids = threads.map((t) => t.id);
-      const { data: msgs } = await supabase
-        .from("chat_messages")
-        .select("thread_id, body, sender_id, read_at, created_at")
-        .in("thread_id", ids)
-        .order("created_at", { ascending: false });
-      const preview = new Map<string, { snippet: string; unread: number }>();
-      for (const m of msgs ?? []) {
-        const cur = preview.get(m.thread_id) ?? { snippet: "", unread: 0 };
-        if (!cur.snippet) cur.snippet = m.body ?? "";
-        if (m.sender_id !== user?.id && !m.read_at) cur.unread += 1;
-        preview.set(m.thread_id, cur);
-      }
-      return preview;
-    },
-    // Refetch whenever the widget opens to keep counts fresh.
-    refetchInterval: open ? 15_000 : false,
-  });
+  // Latest message + per-thread unread count (shared cache with /messages).
+  const { data: previewMap } = useChatThreadMeta(threads);
+
 
   if (hidden) return null;
 
@@ -206,7 +187,7 @@ const GlobalChatWidget = () => {
                 threads.map((t) => {
                   const d = displayFor(t);
                   const preview = previewMap?.get(t.id);
-                  const snippet = preview?.snippet ?? "";
+                  const snippet = preview?.preview ?? "";
                   const u = preview?.unread ?? 0;
                   const last = t.last_message_at ?? t.created_at;
                   return (
