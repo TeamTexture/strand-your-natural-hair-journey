@@ -937,7 +937,7 @@ const IngredientDetail = () => {
 
             {/* Personalised "How to use this for your hair" */}
             {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
-              <>
+              <LevelGate min={2}>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard>
                   <TipsBlock
@@ -949,7 +949,7 @@ const IngredientDetail = () => {
                     }))}
                   />
                 </SurfaceCard>
-              </>
+              </LevelGate>
             )}
 
             <SectionLabel>Ingredients</SectionLabel>
@@ -1055,7 +1055,7 @@ const IngredientDetail = () => {
 
 
             {analysis.use_cases && analysis.use_cases.length > 0 && (
-              <>
+              <LevelGate min={2}>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard>
                   <TipsBlock
@@ -1067,7 +1067,7 @@ const IngredientDetail = () => {
                     }))}
                   />
                 </SurfaceCard>
-              </>
+              </LevelGate>
             )}
 
             {analysis.tips && analysis.tips.length > 0 && (
