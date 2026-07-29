@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import LevelGate from "@/components/tips/LevelGate";
 import VoiceNoteField from "@/components/VoiceNoteField";
 
 const NATURAL_NEVER = "Natural (never coloured)";
@@ -155,9 +156,11 @@ const ProfileStep4Colour = () => {
                     {COLOUR_PRODUCTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-muted-foreground mt-1 italic">
-                  Not sure? Select 'Not sure' and your professional will confirm at your appointment.
-                </p>
+                <LevelGate min={2}>
+                  <p className="text-[11px] text-muted-foreground mt-1 italic">
+                    Not sure? Select 'Not sure' and your professional will confirm at your appointment.
+                  </p>
+                </LevelGate>
               </div>
 
               <div>

@@ -289,9 +289,11 @@ const ColourReview = () => {
               <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground font-body mb-2">
                 Colour History
               </div>
-              <p className="text-[13px] text-muted-foreground leading-snug pb-2">
-                Shared with your professional pre-consultation.
-              </p>
+              <LevelGate min={2}>
+                <p className="text-[13px] text-muted-foreground leading-snug pb-2">
+                  Shared with your professional pre-consultation.
+                </p>
+              </LevelGate>
             </div>
 
             <ReviewField
