@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
 
 export interface JournalSignals {
   daysSinceSignup: number;
@@ -137,6 +138,7 @@ const neutralBannerFromSignals = (s: JournalSignals): EncouragementBanner => {
 
 export const useJournalEncouragement = () => {
   const { user } = useAuth();
+  const { level: tipsLevel } = useTipsLevel();
   const [signals, setSignals] = useState<JournalSignals | null>(null);
   const [banner, setBanner] = useState<EncouragementBanner | null>(null);
   const [loading, setLoading] = useState(true);
@@ -234,8 +236,9 @@ export const useJournalEncouragement = () => {
         gu: next.daysSinceGoalUpdate,
         ls: next.lifecycleStage,
         es: next.engagementState,
+        tl: tipsLevel,
       });
-      const cacheKey = `${CACHE_PREFIX}:${user.id}`;
+      const cacheKey = `${CACHE_PREFIX}:${user.id}:${tipsLevel}`;
       try {
         const raw = localStorage.getItem(cacheKey);
         if (raw) {
@@ -286,7 +289,7 @@ export const useJournalEncouragement = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, user?.created_at]);
+  }, [user?.id, user?.created_at, tipsLevel]);
 
   return { signals, banner, loading };
 };
