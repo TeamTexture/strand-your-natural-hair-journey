@@ -24,6 +24,8 @@ import { buildAiContext } from "@/lib/aiContext";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import WashGuidanceCard from "@/components/WashGuidanceCard";
+import { BeginnerDoubleCleanse } from "@/components/beginner/BeginnerNonNegotiables";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import HeatToolPicker from "@/components/HeatToolPicker";
 import { useUserTools } from "@/hooks/useUserTools";
@@ -263,6 +265,7 @@ const WashStep1 = () => {
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
+  const { showBeginnerHelp } = useTipsLevel();
   const [prePoo, setPrePoo] = useState<StepState>("todo");
   const [cleanse, setCleanse] = useState<StepState>("todo");
   const [coWash, setCoWash] = useState<StepState>("todo");
