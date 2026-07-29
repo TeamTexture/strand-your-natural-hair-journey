@@ -18,6 +18,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { DEFAULT_TIPS_LEVEL, coerceTipsLevel, TIPS_LEVEL_STORAGE_KEY, type TipsLevel } from "@/lib/tipsLevel";
 
 export interface AiContext {
   hairProfile: Record<string, unknown> | null;
@@ -73,6 +74,8 @@ export interface AiContext {
     unit: string;
     status: string;
   }>;
+  /** Support scale 1–4. Drives how verbose / beginner-friendly AI copy is. */
+  tipsLevel: TipsLevel;
   shelf: Array<Record<string, unknown>>;
   tools: Array<Record<string, unknown>>;
   wishlist: Array<Record<string, unknown>>;
@@ -288,6 +291,23 @@ export async function buildAiContext(): Promise<AiContext> {
     console.warn("buildAiContext: backend fetch failed", e);
   }
 
+  // Support level — DB is source of truth, localStorage is the fast fallback.
+  let tipsLevel: TipsLevel = DEFAULT_TIPS_LEVEL;
+  try {
+    const cached = typeof window === "undefined" ? null : localStorage.getItem(TIPS_LEVEL_STORAGE_KEY);
+    if (cached) tipsLevel = coerceTipsLevel(cached);
+    if (userId) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("tips_level")
+        .eq("id", userId)
+        .maybeSingle();
+      if (prof) tipsLevel = coerceTipsLevel(prof.tips_level);
+    }
+  } catch {
+    tipsLevel = DEFAULT_TIPS_LEVEL;
+  }
+
   const clinical = await clinicalPromise;
 
   // Build the AiContext-shaped slices from the loaded clinical context.
@@ -372,6 +392,7 @@ export async function buildAiContext(): Promise<AiContext> {
       high_rated_products: highRated,
     },
     goals,
+    tipsLevel,
     shelf,
     tools,
     wishlist,
