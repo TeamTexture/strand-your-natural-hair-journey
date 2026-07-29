@@ -185,6 +185,35 @@ const IngredientDetail = () => {
 
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
 
+
+  const returnAfterAutoSave = useCallback(
+    (productId: string | null | undefined) => {
+      if (!returnTo) return;
+      navigate(returnTo, {
+        replace: true,
+        state: isJournalReturn && productId ? { journalAddProductId: productId } : undefined,
+      });
+    },
+    [isJournalReturn, navigate, returnTo],
+  );
+
+  // Initial loading state: only show the spinner when we have no fresh
+  // analysis to render immediately.
+  const [loading, setLoading] = useState(!freshAnalysis);
+  const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(
+    freshAnalysis ? freshToAnalysis(freshAnalysis) : null,
+  );
+  const [savingToShelf, setSavingToShelf] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [offShelfOpen, setOffShelfOpen] = useState(false);
+  const [shelfBusy, setShelfBusy] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [useCasesExpanded, setUseCasesExpanded] = useState(false);
+  const [tipsExpanded, setTipsExpanded] = useState(false);
+
   // Marketed purpose — what the product is SOLD for. The AI works this out
   // automatically from the scan (title, brand, claims + the INCI list); the
   // user is never asked. The quiet edit link below is a correction path only.
@@ -251,35 +280,6 @@ const IngredientDetail = () => {
       .eq("id", productRow.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purpose, productRow?.id, userSetPurpose]);
-
-
-  const returnAfterAutoSave = useCallback(
-    (productId: string | null | undefined) => {
-      if (!returnTo) return;
-      navigate(returnTo, {
-        replace: true,
-        state: isJournalReturn && productId ? { journalAddProductId: productId } : undefined,
-      });
-    },
-    [isJournalReturn, navigate, returnTo],
-  );
-
-  // Initial loading state: only show the spinner when we have no fresh
-  // analysis to render immediately.
-  const [loading, setLoading] = useState(!freshAnalysis);
-  const [error, setError] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<Analysis | null>(
-    freshAnalysis ? freshToAnalysis(freshAnalysis) : null,
-  );
-  const [savingToShelf, setSavingToShelf] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [offShelfOpen, setOffShelfOpen] = useState(false);
-  const [shelfBusy, setShelfBusy] = useState(false);
-  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [useCasesExpanded, setUseCasesExpanded] = useState(false);
-  const [tipsExpanded, setTipsExpanded] = useState(false);
 
   const { flags } = useIngredientLists();
   // Single unified "flagged" set — appears in 3+ of the user's products.
