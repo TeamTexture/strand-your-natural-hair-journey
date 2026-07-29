@@ -158,7 +158,15 @@ const DECRYPT_TTL_MS = 30_000;
  *  columns so the next read sees fresh data. */
 export function invalidateClinicalContextCache(): void {
   decryptCache = null;
+  contextCache.clear();
 }
+
+// ─────────────────── Whole-context cache ───────────────────
+// Home mounts several consumers (alerts, guidance card, AI context builders)
+// that each used to run the same 7-table fetch. Cache the built context
+// briefly, keyed by the fallback flag, and share in-flight loads.
+const CONTEXT_TTL_MS = 30_000;
+const contextCache = new Map<string, { at: number; promise: Promise<ClinicalContext> }>();
 
 async function fetchDecryptedContext(): Promise<DecryptedContext | null> {
   const now = Date.now();
@@ -434,6 +442,20 @@ export function loadClinicalContextLocal(): ClinicalContext {
  *   any caller that doesn't yet know the current uid.
  */
 export async function loadClinicalContext(
+  opts: { allowLocalFallback?: boolean } = {},
+): Promise<ClinicalContext> {
+  const key = opts.allowLocalFallback === false ? "no-local" : "local";
+  const hit = contextCache.get(key);
+  if (hit && Date.now() - hit.at < CONTEXT_TTL_MS) return hit.promise;
+  const promise = loadClinicalContextUncached(opts).catch((e) => {
+    contextCache.delete(key);
+    throw e;
+  });
+  contextCache.set(key, { at: Date.now(), promise });
+  return promise;
+}
+
+async function loadClinicalContextUncached(
   opts: { allowLocalFallback?: boolean } = {},
 ): Promise<ClinicalContext> {
   const allowLocalFallback = opts.allowLocalFallback !== false;
