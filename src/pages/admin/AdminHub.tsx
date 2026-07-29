@@ -9,6 +9,7 @@ import {
   Settings as SettingsIcon,
   Eye,
   Sparkles,
+  Percent,
   Megaphone,
   Store,
   MessageSquare,
@@ -457,6 +458,13 @@ const AdminHub = () => {
             }
             onClick={() => nav("/admin/professionals")}
           />
+          <NavCard
+            icon={Percent}
+            title="Referrals"
+            description="Listing tiers, clicks, attributed bookings and fees owed"
+            onClick={() => nav("/admin/referrals")}
+          />
+
           <NavCard
             icon={Users}
             title="Members"

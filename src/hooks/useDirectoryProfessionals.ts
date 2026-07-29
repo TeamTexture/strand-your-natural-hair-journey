@@ -31,13 +31,13 @@ export function useDirectoryProfessionals() {
             supabase
               .from("professionals_directory")
               .select(
-                "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at",
+                "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at,listing_tier,referral_fee_percent",
               )
               .eq("is_active", true),
             supabase
               .from("pro_profiles")
               .select(
-                "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours",
+                "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent",
               )
               .eq("is_published", true)
               .is("suspended_at", null),
@@ -120,6 +120,10 @@ export function useDirectoryProfessionals() {
             featured: true,
             gmcNumber: undefined,
             iotNumber: undefined,
+            listingTier: (row.listing_tier as Professional["listingTier"]) ?? "external_link",
+            referralFeePercent:
+              row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
+            directoryId: row.id,
           };
         });
 
@@ -165,6 +169,9 @@ export function useDirectoryProfessionals() {
             gmcNumber: undefined,
             iotNumber: undefined,
             proUserId: row.user_id ?? undefined,
+            listingTier: (row.listing_tier as Professional["listingTier"]) ?? "full",
+            referralFeePercent:
+              row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
             businessPhone: row.business_phone ?? undefined,
             businessEmail: row.business_email ?? undefined,
             addressLine1: row.address_line1 ?? undefined,

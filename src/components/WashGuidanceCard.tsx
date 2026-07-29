@@ -3,6 +3,9 @@ import { Sparkles } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useSmartInline } from "@/lib/smartInline";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { limitTips } from "@/lib/tipsLevel";
+import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 
 interface HairProfile {
   porosity?: string[];
@@ -65,6 +68,7 @@ const buildTips = (p: HairProfile | null): string[] => {
 
 const WashGuidanceCard = () => {
   const renderTip = useSmartInline();
+  const { level } = useTipsLevel();
   const [profile, setProfile] = useState<HairProfile | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +90,8 @@ const WashGuidanceCard = () => {
       cancelled = true;
     };
   }, []);
-  const tips = useMemo(() => buildTips(profile), [profile]);
+  const allTips = useMemo(() => buildTips(profile), [profile]);
+  const tips = useMemo(() => limitTips(allTips, level), [allTips, level]);
   if (tips.length === 0) return null;
 
   return (
@@ -106,6 +111,7 @@ const WashGuidanceCard = () => {
             </li>
           ))}
         </ul>
+        <TipsLevelPrompt className="mt-3" />
       </SurfaceCard>
     </div>
   );

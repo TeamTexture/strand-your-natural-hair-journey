@@ -9,6 +9,8 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
 import EnquiryDialog from "@/components/EnquiryDialog";
+import ExternalEnquiryDialog from "@/components/ExternalEnquiryDialog";
+import { buildTrackedUrl, logReferralClick } from "@/lib/referrals";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType, type Professional } from "@/data/professionals";
@@ -41,6 +43,11 @@ const Directory = () => {
   const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
   const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
+  const [externalEnquiryTarget, setExternalEnquiryTarget] = useState<{
+    name: string;
+    directoryId: string | null;
+    proUserId: string | null;
+  } | null>(null);
   const [expandedHours, setExpandedHours] = useState<Record<string, boolean>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -424,40 +431,56 @@ const Directory = () => {
                   </p>
                 )}
 
-                {!isOwn && (
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    {p.website ? (
-                      <a
-                        href={normalizeWebsiteUrl(p.website)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
-                      >
-                        Website
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => toast("Website unavailable")}
-                        className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
-                      >
-                        Website
-                      </button>
-                    )}
-                    {(() => {
-                      if (p.proUserId) {
-                        if (activeEnq) {
-                          return (
-                            <button
-                              type="button"
-                              onClick={() => navigate("/profile/enquiries")}
-                              className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground border border-primary/40 rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
-                            >
-                              View enquiry
-                            </button>
-                          );
-                        }
-                        return (
+                {!isOwn && (() => {
+                  const tier = p.listingTier ?? (p.proUserId ? "full" : "external_link");
+                  const websiteHref = p.website ? normalizeWebsiteUrl(p.website) : "";
+                  const bookUrl = normalizeWebsiteUrl(p.bookingUrl || p.website);
+
+                  return (
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      {websiteHref ? (
+                        <a
+                          href={
+                            tier === "external_link"
+                              ? buildTrackedUrl(websiteHref, p.proUserId ?? p.directoryId ?? p.id)
+                              : websiteHref
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => {
+                            if (tier === "external_link") {
+                              void logReferralClick({
+                                targetUrl: websiteHref,
+                                proUserId: p.proUserId ?? null,
+                                directoryId: p.directoryId ?? null,
+                              });
+                            }
+                          }}
+                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
+                        >
+                          Website
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toast("Website unavailable")}
+                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
+                        >
+                          Website
+                        </button>
+                      )}
+
+                      {/* Tier A — full subscriber: in-app enquiry flow */}
+                      {tier === "full" && p.proUserId ? (
+                        activeEnq ? (
+                          <button
+                            type="button"
+                            onClick={() => navigate("/profile/enquiries")}
+                            className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground border border-primary/40 rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                          >
+                            View enquiry
+                          </button>
+                        ) : (
                           <button
                             type="button"
                             onClick={() =>
@@ -467,20 +490,39 @@ const Directory = () => {
                           >
                             {enq ? "Enquire again" : "Enquire Now"}
                           </button>
-                        );
-                      }
-                      const bookUrl = normalizeWebsiteUrl(p.bookingUrl || p.website);
-                      return bookUrl ? (
+                        )
+                      ) : tier === "listed_enquiry" ? (
+                        /* Tier B — listed + in-app enquiry forwarded to their email */
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExternalEnquiryTarget({
+                              name: p.name,
+                              directoryId: p.directoryId ?? null,
+                              proUserId: p.proUserId ?? null,
+                            })
+                          }
+                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                        >
+                          Enquire Now
+                        </button>
+                      ) : bookUrl ? (
+                        /* Tier C — referral partner: tracked outbound link */
                         <a
-                          href={bookUrl}
+                          href={buildTrackedUrl(bookUrl, p.proUserId ?? p.directoryId ?? p.id)}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => {
                             if (p.bookCode) toast(`📅 Use code ${p.bookCode} at booking`);
+                            void logReferralClick({
+                              targetUrl: bookUrl,
+                              proUserId: p.proUserId ?? null,
+                              directoryId: p.directoryId ?? null,
+                            });
                           }}
                           className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
                         >
-                          Enquire Now
+                          Book externally
                         </a>
                       ) : (
                         <button
@@ -488,12 +530,13 @@ const Directory = () => {
                           onClick={() => toast("Booking unavailable")}
                           className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary/60 text-primary-foreground rounded-md font-medium min-h-[44px]"
                         >
-                          Enquire Now
+                          Book externally
                         </button>
-                      );
-                    })()}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {p.instaUrl && (
                   <a
                     href={p.instaUrl}
@@ -553,6 +596,16 @@ const Directory = () => {
           proName={enquiryTarget.name}
         />
       )}
+      {externalEnquiryTarget && (
+        <ExternalEnquiryDialog
+          open={!!externalEnquiryTarget}
+          onOpenChange={(o) => !o && setExternalEnquiryTarget(null)}
+          proName={externalEnquiryTarget.name}
+          directoryId={externalEnquiryTarget.directoryId}
+          proUserId={externalEnquiryTarget.proUserId}
+        />
+      )}
+
     </ScreenLayout>
   );
 };

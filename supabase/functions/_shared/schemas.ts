@@ -45,9 +45,30 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
           benefit: { type: "string" },
           flag: { type: "string", enum: ["good", "warn", "avoid"] },
           reason: { type: "string" },
+          surfactant_role: {
+            type: "string",
+            enum: ["primary", "secondary", "none"],
+            description:
+              "For cleansing agents only: 'primary' for the main detergent doing the bulk of the cleansing (e.g. sodium lauryl sulfate, sodium laureth sulfate, sodium coco-sulfate, sodium C14-16 olefin sulfonate), 'secondary' for co-surfactants/amphoterics that boost lather and soften the primary (e.g. cocamidopropyl betaine, coco-glucoside, decyl glucoside, sodium cocoamphoacetate). 'none' for every non-surfactant ingredient.",
+          },
         },
         required: ["name", "benefit", "flag", "reason"],
       },
+    },
+    marketed_purpose: {
+      type: "string",
+      enum: [
+        "dry_hair",
+        "damaged_hair",
+        "colour_treated",
+        "greasy_oily",
+        "general_all_hair_types",
+        "moisture",
+        "repair",
+        "clarifying",
+      ],
+      description:
+        "The hair need this product is MARKETED for, inferred from the product name, front-of-pack claims and description. Use 'general_all_hair_types' when no specific need is claimed.",
     },
     match_score: { type: "integer", minimum: 0, maximum: 100 },
     ai_summary: { type: "string" },
@@ -84,6 +105,7 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     "category",
     "ingredients",
     "key_ingredients",
+    "marketed_purpose",
     "match_score",
     "ai_summary",
     "usage_instructions",
@@ -112,7 +134,17 @@ export interface ProductAnalysisPayload {
     benefit: string;
     flag: "good" | "warn" | "avoid";
     reason: string;
+    surfactant_role?: "primary" | "secondary" | "none";
   }>;
+  marketed_purpose?:
+    | "dry_hair"
+    | "damaged_hair"
+    | "colour_treated"
+    | "greasy_oily"
+    | "general_all_hair_types"
+    | "moisture"
+    | "repair"
+    | "clarifying";
   match_score: number;
   ai_summary: string;
   usage_instructions: string;
