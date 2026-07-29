@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useMyProfile, useInvalidateMyProfile } from "@/hooks/useMyProfile";
+import { myProfileKey, useMyProfile, type MyProfileRow } from "@/hooks/useMyProfile";
 import {
   DEFAULT_TIPS_LEVEL,
   TIPS_LEVEL_PROMPTED_KEY,
@@ -12,10 +13,16 @@ import {
   type TipsLevel,
 } from "@/lib/tipsLevel";
 
-/** Cross-component sync so every tips surface updates the moment the
- *  preference changes, without a page refresh. */
-const listeners = new Set<(level: TipsLevel) => void>();
-const promptListeners = new Set<(dismissed: boolean) => void>();
+interface TipsLevelContextValue {
+  level: TipsLevel;
+  setLevel: (next: TipsLevel) => void;
+  answerPrompt: (next: TipsLevel) => void;
+  needsPrompt: boolean;
+  showExplanations: boolean;
+  showBeginnerHelp: boolean;
+}
+
+const TipsLevelContext = createContext<TipsLevelContextValue | null>(null);
 
 const readCached = (): TipsLevel => {
   try {
@@ -33,36 +40,26 @@ const readPrompted = (): boolean => {
   }
 };
 
-/**
- * Support-level preference (`profiles.tips_level`, 1–4).
- *
- * Returns the current level, a setter that persists to the backend, and
- * `needsPrompt` — true until the user has answered the one-time inline
- * "how much guidance do you want?" question.
- */
-export function useTipsLevel() {
+export function TipsLevelProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [level, setLevelState] = useState<TipsLevel>(readCached);
   const [prompted, setPrompted] = useState<boolean>(readPrompted);
-  const invalidateProfile = useInvalidateMyProfile();
-
-  useEffect(() => {
-    const onLevel = (l: TipsLevel) => setLevelState(l);
-    const onPrompt = (d: boolean) => setPrompted(d);
-    listeners.add(onLevel);
-    promptListeners.add(onPrompt);
-    return () => {
-      listeners.delete(onLevel);
-      promptListeners.delete(onPrompt);
-    };
-  }, []);
-
+  const queryClient = useQueryClient();
   const { data: profile } = useMyProfile();
+  const levelRef = useRef(level);
+  const lastOptimisticAtRef = useRef(0);
 
   useEffect(() => {
-    if (!profile) return;
+    levelRef.current = level;
+  }, [level]);
+
+  useEffect(() => {
+    if (!profile || !user?.id) return;
     const next = coerceTipsLevel(profile.tips_level);
+    const recentlyChanged = Date.now() - lastOptimisticAtRef.current < 3_000;
+    if (recentlyChanged && next !== levelRef.current) return;
     setLevelState(next);
+    levelRef.current = next;
     try {
       localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, String(next));
     } catch { /* private mode */ }
@@ -72,37 +69,46 @@ export function useTipsLevel() {
         localStorage.setItem(TIPS_LEVEL_PROMPTED_KEY, "1");
       } catch { /* private mode */ }
     }
-  }, [profile]);
+  }, [profile, user?.id]);
 
   const persist = useCallback(
     async (next: TipsLevel, markPrompted: boolean) => {
+      const safeNext = coerceTipsLevel(next);
+      lastOptimisticAtRef.current = Date.now();
       try {
-        localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, String(next));
+        localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, String(safeNext));
         if (markPrompted) localStorage.setItem(TIPS_LEVEL_PROMPTED_KEY, "1");
       } catch { /* private mode */ }
-      setLevelState(next);
-      listeners.forEach((l) => l(next));
+      setLevelState(safeNext);
+      levelRef.current = safeNext;
       if (markPrompted) {
         setPrompted(true);
-        promptListeners.forEach((l) => l(true));
       }
       if (!user) return;
-      await supabase
+      queryClient.setQueryData<MyProfileRow | null>(myProfileKey(user.id), (old) => old ? {
+        ...old,
+        tips_level: safeNext,
+        ...(markPrompted ? { tips_level_prompted_at: new Date().toISOString() } : {}),
+      } : old);
+      const { error } = await supabase
         .from("profiles")
         .update({
-          tips_level: next,
+          tips_level: safeNext,
           ...(markPrompted ? { tips_level_prompted_at: new Date().toISOString() } : {}),
         })
         .eq("user_id", user.id);
-      invalidateProfile();
+      if (error) {
+        console.warn("[tips level] save failed", error.message);
+      }
+      void queryClient.invalidateQueries({ queryKey: myProfileKey(user.id) });
     },
-    [user, invalidateProfile],
+    [user, queryClient],
   );
 
   const setLevel = useCallback((next: TipsLevel) => { void persist(next, false); }, [persist]);
   const answerPrompt = useCallback((next: TipsLevel) => { void persist(next, true); }, [persist]);
 
-  return {
+  const value = useMemo<TipsLevelContextValue>(() => ({
     level,
     setLevel,
     answerPrompt,
@@ -111,5 +117,28 @@ export function useTipsLevel() {
     showExplanations: showsExplanations(level),
     /** Show inline beginner definitions + encouragement (level 4). */
     showBeginnerHelp: showsBeginnerHelp(level),
-  };
+  }), [answerPrompt, level, prompted, setLevel]);
+
+  return <TipsLevelContext.Provider value={value}>{children}</TipsLevelContext.Provider>;
+}
+
+/**
+ * Support-level preference (`profiles.tips_level`, 1–4).
+ *
+ * Returns the global current level, a setter that persists in the background,
+ * and live booleans for density-aware rendering. This must be read by guidance
+ * surfaces instead of querying `profiles.tips_level` directly.
+ */
+export function useTipsLevel() {
+  const value = useContext(TipsLevelContext);
+  if (value) return value;
+  const fallbackLevel = readCached();
+  return {
+    level: fallbackLevel,
+    setLevel: () => undefined,
+    answerPrompt: () => undefined,
+    needsPrompt: !readPrompted(),
+    showExplanations: showsExplanations(fallbackLevel),
+    showBeginnerHelp: showsBeginnerHelp(fallbackLevel),
+  } satisfies TipsLevelContextValue;
 }

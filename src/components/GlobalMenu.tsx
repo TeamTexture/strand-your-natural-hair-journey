@@ -40,6 +40,8 @@ import {
   Ticket,
 } from "lucide-react";
 import GlobalChatWidget from "@/components/GlobalChatWidget";
+import TipsLevelButton from "@/components/TipsLevelButton";
+import GlobalTipsDensityStrip from "@/components/GlobalTipsDensityStrip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -229,14 +231,15 @@ const GlobalMenu = () => {
 
 
   return (
-    <div
-      className="shrink-0 flex items-center justify-between px-3 border-b border-border/40 bg-background"
-      style={{
-        paddingTop: "max(env(safe-area-inset-top, 0px), 6px)",
-        paddingBottom: "6px",
-      }}
-    >
-      <div className="flex items-center gap-1">
+    <div className="shrink-0 border-b border-border/40 bg-background">
+      <div
+        className="flex items-center justify-between px-3"
+        style={{
+          paddingTop: "max(env(safe-area-inset-top, 0px), 6px)",
+          paddingBottom: "6px",
+        }}
+      >
+        <div className="flex items-center gap-1">
         {canGoBack ? (
           <button
             type="button"
@@ -251,7 +254,8 @@ const GlobalMenu = () => {
         )}
         <GlobalChatWidget />
       </div>
-      <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 min-w-0">
+        <TipsLevelButton className="shrink-0" />
         {showViewSwitcher && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -352,7 +356,10 @@ const GlobalMenu = () => {
         >
           <Menu className="size-5" />
         </button>
+        </div>
+
       </div>
+      {activeView === "consumer" && <GlobalTipsDensityStrip />}
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
