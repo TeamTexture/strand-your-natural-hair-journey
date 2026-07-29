@@ -104,6 +104,8 @@ export function useChatThreads(scope?: ActiveRoleView | "all") {
   const query = useQuery({
     queryKey: ["chat_threads", user?.id],
     enabled: !!user?.id,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
     queryFn: async (): Promise<ChatThread[]> => {
       const { data, error } = await supabase
         .from("chat_threads")
@@ -114,6 +116,7 @@ export function useChatThreads(scope?: ActiveRoleView | "all") {
       return (data ?? []) as ChatThread[];
     },
   });
+
   const filtered = useMemo(() => {
     if (!user?.id || !query.data) return query.data;
     if (view === "all") return query.data;
