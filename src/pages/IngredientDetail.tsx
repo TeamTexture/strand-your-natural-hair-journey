@@ -226,7 +226,6 @@ const IngredientDetail = () => {
     const stored = (productRow as { marketed_purpose?: unknown } | null)?.marketed_purpose;
     if (isMarketedPurpose(stored)) {
       setPurpose(stored);
-      setUserSetPurpose(true);
       return;
     }
     const fromScan = (freshAnalysis as { marketed_purpose?: unknown } | null)?.marketed_purpose;
