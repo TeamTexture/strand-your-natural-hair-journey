@@ -29,6 +29,9 @@ import {
 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import LevelGate from "@/components/tips/LevelGate";
+import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
@@ -60,6 +63,7 @@ export default function BloodUpload() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { hasAccess } = useConsumerSubscription();
+  const { level } = useTipsLevel();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
@@ -477,20 +481,40 @@ export default function BloodUpload() {
       <TitleBar title="Upload blood test" onBack={smartBack(navigate, isOnboarding ? "/onboarding/profile-step-4-colour" : "/blood-history")} />
 
       <div className="px-5 pt-2 pb-10 space-y-4">
-        <p className="text-sm text-foreground/80 font-body leading-relaxed">
-          Upload a PDF or photo of your lab report. STRAND will read the results
-          and pre-fill your panel — check them, then save.
-        </p>
+        {level >= 4 ? (
+          <>
+            <BeginnerSteps
+              steps={[
+                { text: "Get your lab report ready", detail: "This can be a PDF file or a clear photo of the printed page." },
+                { text: "Tap the upload box below and choose your file", detail: "You can pick 1 PDF, or up to 10 photos if your report is several pages." },
+                { text: "STRAND reads the results for you", detail: "This takes a few seconds — no typing needed." },
+                { text: "Check the numbers, then save", detail: "You can fix anything STRAND got wrong before you save it." },
+              ]}
+            />
+            <BeginnerReassurance>
+              If a page comes out blurry, just try again — nothing is saved until you tap Save.
+            </BeginnerReassurance>
+          </>
+        ) : (
+          <LevelGate min={2}>
+            <p className="text-sm text-foreground/80 font-body leading-relaxed">
+              Upload a PDF or photo of your lab report. STRAND will read the results
+              and pre-fill your panel — check them, then save.
+            </p>
+          </LevelGate>
+        )}
 
         {isOnboarding && savedInOnboarding && files.length === 0 && (
           <SurfaceCard tone="gold">
             <p className="font-display text-base mb-1">
               {savedCount === 1 ? "Blood test saved" : `${savedCount} blood tests saved`} ✓
             </p>
-            <p className="text-sm font-body leading-snug mb-3 text-foreground/80">
-              Upload another test if you have one — older panels help STRAND track your trends.
-              When you're done, continue to your analysis.
-            </p>
+            <LevelGate min={2}>
+              <p className="text-sm font-body leading-snug mb-3 text-foreground/80">
+                Upload another test if you have one — older panels help STRAND track your trends.
+                When you're done, continue to your analysis.
+              </p>
+            </LevelGate>
             <div className="space-y-2">
               <Button
                 variant="gold"
@@ -516,7 +540,9 @@ export default function BloodUpload() {
           <SurfaceCard tone="gold">
             <p className="text-sm font-body leading-snug">
               <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
-              Drag &amp; drop your lab report below and we'll pre-fill your panel — or enter results manually.
+              <LevelGate min={2}>
+                Drag &amp; drop your lab report below and we'll pre-fill your panel — or enter results manually.
+              </LevelGate>
             </p>
           </SurfaceCard>
         )}
@@ -548,9 +574,11 @@ export default function BloodUpload() {
                 <p className="font-display text-lg">
                   {dragOver ? "Drop to upload" : "Upload results"}
                 </p>
-                <p className="text-xs text-foreground/60 font-body">
-                  Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 15 MB each
-                </p>
+                <LevelGate min={2}>
+                  <p className="text-xs text-foreground/60 font-body">
+                    Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 15 MB each
+                  </p>
+                </LevelGate>
               </div>
             </div>
             <input
@@ -663,10 +691,12 @@ export default function BloodUpload() {
                 placeholder="e.g. Advanced Thyroid Blood Test"
                 className="font-display text-base"
               />
-              <p className="text-[11px] text-foreground/55 font-body mt-1">
-                Auto-detected from the title printed on your report. Edit if
-                you'd like to rename it.
-              </p>
+              <LevelGate min={2}>
+                <p className="text-[11px] text-foreground/55 font-body mt-1">
+                  Auto-detected from the title printed on your report. Edit if
+                  you'd like to rename it.
+                </p>
+              </LevelGate>
               {(testType || labName) && (
                 <p className="text-[11px] text-foreground/60 font-body mt-1.5">
                   {[testType, titleCase(labName)].filter(Boolean).join(" · ")}
@@ -691,9 +721,12 @@ export default function BloodUpload() {
                   <div className="flex-1">
                     <p className="font-display text-sm text-alert-dark">Duplicate detected</p>
                     <p className="text-xs text-foreground/70 font-body mt-1 leading-relaxed">
-                      A blood panel for <strong>{new Date(panelDate).toLocaleDateString()}</strong> is already saved
-                      {duplicatePanel.created_at ? ` (added ${new Date(duplicatePanel.created_at).toLocaleDateString()})` : ""}.
-                      You can save this as a duplicate, delete the existing panel and replace it, or change the test date above.
+                      A blood panel for <strong>{new Date(panelDate).toLocaleDateString()}</strong> is already saved.
+                      <LevelGate min={2}>
+                        {" "}
+                        {duplicatePanel.created_at ? `(added ${new Date(duplicatePanel.created_at).toLocaleDateString()}) ` : ""}
+                        You can save this as a duplicate, delete the existing panel and replace it, or change the test date above.
+                      </LevelGate>
                     </p>
                     <div className="flex flex-wrap gap-2 mt-3">
                       <Button
@@ -719,11 +752,13 @@ export default function BloodUpload() {
 
             <SurfaceCard>
               <p className="font-display text-lg mb-1">We found {rows.length} marker{rows.length === 1 ? "" : "s"}</p>
-              <p className="text-xs text-foreground/60 font-body">
-                {known.length} matched to STRAND's panel · {unknown.length} extra
-                marker{unknown.length === 1 ? "" : "s"} we'll save alongside.
-                Tap Continue to walk through each category and confirm the values.
-              </p>
+              <LevelGate min={2}>
+                <p className="text-xs text-foreground/60 font-body">
+                  {known.length} matched to STRAND's panel · {unknown.length} extra
+                  marker{unknown.length === 1 ? "" : "s"} we'll save alongside.
+                  Tap Continue to walk through each category and confirm the values.
+                </p>
+              </LevelGate>
             </SurfaceCard>
 
             {(["iron", "vitamins", "minerals", "inflammation", "thyroid", "hormones"] as const).map((cat) => {
@@ -782,10 +817,12 @@ export default function BloodUpload() {
             {unknown.length > 0 && (
               <SurfaceCard>
                 <p className="font-display text-base mb-1">Other markers from your report</p>
-                <p className="text-[11px] text-foreground/60 font-body mb-2">
-                  These aren't tracked with a reference range in STRAND, but they'll
-                  be saved with your panel for your records.
-                </p>
+                <LevelGate min={2}>
+                  <p className="text-[11px] text-foreground/60 font-body mb-2">
+                    These aren't tracked with a reference range in STRAND, but they'll
+                    be saved with your panel for your records.
+                  </p>
+                </LevelGate>
                 <div className="space-y-2">
                   {unknown.map((r) => (
                     <div

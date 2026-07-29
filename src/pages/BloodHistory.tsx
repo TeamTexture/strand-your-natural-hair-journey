@@ -63,6 +63,10 @@ import { AlertCircle } from "lucide-react";
 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import LevelGate from "@/components/tips/LevelGate";
+import AiProse from "@/components/tips/AiProse";
+import { limitSupporting } from "@/lib/tipsRender";
 
 type PanelStatus = "logged" | "scheduled";
 
@@ -168,6 +172,7 @@ const BloodHistory = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { level } = useTipsLevel();
 
   const [zoom, setZoom] = useState<Zoom>("month");
   const [cursor, setCursor] = useState<Date>(new Date());
@@ -327,10 +332,12 @@ const BloodHistory = () => {
     <ScreenLayout>
       <TitleBar title="Blood tests" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pt-2 pb-10 space-y-4">
-        <p className="text-sm text-foreground/80 font-body leading-relaxed">
-          Log every blood test and schedule the next one so STRAND can track how
-          your markers move over time.
-        </p>
+        <LevelGate min={2}>
+          <p className="text-sm text-foreground/80 font-body leading-relaxed">
+            Log every blood test and schedule the next one so STRAND can track how
+            your markers move over time.
+          </p>
+        </LevelGate>
 
         {overdue && (() => {
           const months = Math.max(3, Math.floor((daysSinceLatest ?? 0) / 30));
@@ -550,27 +557,29 @@ const BloodHistory = () => {
                         {displayDate(p)} · {rows.length} markers
                         {flagged.length > 0 ? ` · ${flagged.length} flagged` : ""}
                       </p>
-                      {flagged.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {flagged.slice(0, 4).map((f) => (
-                            <span
-                              key={f.marker}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-destructive/30 bg-destructive/5 text-destructive text-[11px] font-body font-medium"
-                            >
-                              <span className="size-1.5 rounded-full bg-destructive/70" />
-                              {friendlyStatusTag(f.marker, f.status)}
-                            </span>
-                          ))}
-                          {flagged.length > 4 && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-body text-muted-foreground">
-                              +{flagged.length - 4} more
-                            </span>
-                          )}
-                        </div>
-                      ) : insight ? (
-                        <p className="text-xs font-body text-foreground/80 mt-2 leading-relaxed">
-                          {insight}
-                        </p>
+                      {flagged.length > 0 ? (() => {
+                        const shownFlags = limitSupporting(flagged, level);
+                        const hiddenCount = flagged.length - shownFlags.length;
+                        return (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {shownFlags.map((f) => (
+                              <span
+                                key={f.marker}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-destructive/30 bg-destructive/5 text-destructive text-[11px] font-body font-medium"
+                              >
+                                <span className="size-1.5 rounded-full bg-destructive/70" />
+                                {friendlyStatusTag(f.marker, f.status)}
+                              </span>
+                            ))}
+                            {hiddenCount > 0 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-body text-muted-foreground">
+                                +{hiddenCount} more
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })() : insight ? (
+                        <AiProse text={insight} className="mt-2" />
                       ) : null}
                     </div>
 
@@ -944,10 +953,12 @@ function SchedulePanelSheet({
               onChange={(e) => setLabel(e.target.value)}
             />
           </div>
-          <p className="text-xs text-muted-foreground font-body">
-            You'll see this in your calendar. When you get results, tap
-            <em> Log results</em> on the upcoming card to fill them in.
-          </p>
+          <LevelGate min={2}>
+            <p className="text-xs text-muted-foreground font-body">
+              You'll see this in your calendar. When you get results, tap
+              <em> Log results</em> on the upcoming card to fill them in.
+            </p>
+          </LevelGate>
         </div>
         <SheetFooter>
           <Button variant="gold" size="pill" onClick={save} disabled={saving} className="w-full">
