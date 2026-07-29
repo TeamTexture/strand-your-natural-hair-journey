@@ -108,6 +108,49 @@ const GlobalChatWidget = () => {
     },
   });
 
+  // STRAND Team threads seen from the admin side: name the member + their tier.
+  const supportSubjects = useMemo(() => {
+    if (!user?.id) return [] as string[];
+    const out = new Set<string>();
+    for (const t of threads) {
+      if (t.thread_type !== "admin_support") continue;
+      if (t.admin_user_id === user.id && t.subject_user_id) out.add(t.subject_user_id);
+    }
+    return Array.from(out);
+  }, [threads, user?.id]);
+
+  const { data: subjectMap } = useQuery({
+    queryKey: ["chat_support_subjects", supportSubjects],
+    enabled: supportSubjects.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [profRes, subRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, display_name, avatar_url")
+          .in("user_id", supportSubjects),
+        supabase
+          .from("consumer_subscriptions")
+          .select("user_id, tier, status")
+          .in("user_id", supportSubjects),
+      ]);
+      const tiers = new Map<string, string>();
+      for (const s of subRes.data ?? []) {
+        const active = s.status === "active" || s.status === "trialing";
+        if (active) tiers.set(s.user_id, s.tier === "plus" ? "STRAND+ member" : "STRAND member");
+      }
+      const m = new Map<string, { name: string; membership: string; avatar_path: string | null }>();
+      for (const p of profRes.data ?? []) {
+        m.set(p.user_id, {
+          name: p.display_name ?? "Member",
+          membership: tiers.get(p.user_id) ?? "STRAND member",
+          avatar_path: p.avatar_url ?? null,
+        });
+      }
+      return m;
+    },
+  });
+
   // Latest message + per-thread unread count (shared cache with /messages).
   const { data: previewMap } = useChatThreadMeta(threads);
 
@@ -117,12 +160,18 @@ const GlobalChatWidget = () => {
   const displayFor = (t: ChatThread) => {
     if (t.thread_type === "admin_support") {
       const isAdminSide = user?.id === t.admin_user_id;
+      const subject = t.subject_user_id ? subjectMap?.get(t.subject_user_id) : null;
       return {
-        name: isAdminSide ? "STRAND Team ↔ member" : "STRAND Team",
-        avatar: null as string | null,
+        name: isAdminSide
+          ? subject
+            ? `${subject.name} (${subject.membership})`
+            : "STRAND Team"
+          : "STRAND Team",
+        avatar: (isAdminSide ? subject?.avatar_path : null) ?? null,
         isSupport: true,
       };
     }
+
     const otherId = user?.id ? otherParticipantId(t, user.id) : null;
     const other = otherId ? nameMap?.get(otherId) : null;
     return {
