@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Check, Loader2, Pencil, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import LevelGate from "@/components/tips/LevelGate";
 import ReviewField from "@/components/ReviewField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,9 +126,11 @@ const ColourReview = () => {
     <ScreenLayout>
       <TitleBar title="Colour & style" onBack={smartBack(navigate, "/profile")} />
       <div className="px-5 pb-8 space-y-3">
-        <p className="text-[13px] text-muted-foreground leading-snug pb-1">
+        <LevelGate min={2}>
+          <p className="text-[13px] text-muted-foreground leading-snug pb-1">
           Tap the pencil to update just one field at a time.
         </p>
+        </LevelGate>
 
         <ReviewField
           label="Current colour status"
