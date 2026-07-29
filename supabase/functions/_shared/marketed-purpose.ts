@@ -5,6 +5,12 @@
 
 export const MARKETED_PURPOSE_RULES = `MARKETED PURPOSE + SURFACTANT STRENGTH — HARD RULE:
 
+0. AUTOMATIC DETECTION — the user is NEVER asked what the product is for. You must work it out yourself, every time, from: the product title, the brand and range, any marketing claims or descriptors visible on the label or in the scraped product data ("moisture repair shampoo", "for dry & damaged hair", "clarifying", "colour protect", "curl defining"), and the full ingredient list read together. Set marketed_purpose_confidence to "high" when the title/claims state it plainly, "low" when you had to lean on the ingredients. If the scan yields too little to classify confidently, use general_all_hair_types with confidence "low" and say plainly in ai_summary that you are basing the guidance on the ingredients alone.
+
+0b. SANITY-CHECK THE CLAIM AGAINST THE FORMULA. If the title promises one thing but the INCI says another — e.g. it is sold on "moisture" but leads with a strong primary surfactant and carries barely any conditioning agents — call that mismatch out in ai_summary and in marketed_purpose_note, and let the formula (not the marketing) drive match_score.
+
+0c. Write marketed_purpose_note as one or two plain sentences addressed to the user, weaving the detected purpose into real guidance for THEIR hair data and goals, e.g. "This is a clarifying shampoo made for oily scalps. Because of that it likely has stronger cleansers, so with your high porosity hair and length goal you'll need a deep conditioner straight after." Never present it as a form field or ask the user to confirm it.
+
 1. Always set marketed_purpose from the product's own positioning: the product name, front-of-pack claims, the range it sits in, and the brand's description. Choose exactly one of:
    dry_hair, damaged_hair, colour_treated, greasy_oily, general_all_hair_types, moisture, repair, clarifying.
    Use general_all_hair_types only when the product makes no specific claim.

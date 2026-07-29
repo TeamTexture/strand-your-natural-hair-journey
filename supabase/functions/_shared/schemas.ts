@@ -68,7 +68,18 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
         "clarifying",
       ],
       description:
-        "The hair need this product is MARKETED for, inferred from the product name, front-of-pack claims and description. Use 'general_all_hair_types' when no specific need is claimed.",
+        "The hair need this product is MARKETED for. Determine it AUTOMATICALLY from the product title, brand, range, visible front-of-pack claims/descriptors and the scraped description, sanity-checked against the ingredient list. Use 'general_all_hair_types' when no specific need is claimed or the scan gives too little to classify confidently.",
+    },
+    marketed_purpose_confidence: {
+      type: "string",
+      enum: ["high", "low"],
+      description:
+        "'high' when the title/claims clearly state the purpose. 'low' when it was inferred mostly from the ingredients — in that case say in ai_summary that the guidance is based on the ingredients alone.",
+    },
+    marketed_purpose_note: {
+      type: "string",
+      description:
+        "One or two plain sentences, written to the user, naming what this product is sold to do, what that implies about cleansing strength, and — if the ingredients contradict the claim — the mismatch. Empty string only if there is genuinely nothing to say.",
     },
     match_score: { type: "integer", minimum: 0, maximum: 100 },
     ai_summary: { type: "string" },
@@ -136,6 +147,8 @@ export interface ProductAnalysisPayload {
     reason: string;
     surfactant_role?: "primary" | "secondary" | "none";
   }>;
+  marketed_purpose_confidence?: "high" | "low";
+  marketed_purpose_note?: string;
   marketed_purpose?:
     | "dry_hair"
     | "damaged_hair"
