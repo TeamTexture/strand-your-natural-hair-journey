@@ -1032,12 +1032,14 @@ const IngredientDetail = () => {
                   ]}
                 />
               ) : (
-                <p className="text-sm leading-relaxed text-foreground/85">
-                  {purposeNote ??
+                <AiProse
+                  text={
+                    purposeNote ??
                     (purpose
                       ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
-                      : "We're basing this guidance on the ingredients alone.")}
-                </p>
+                      : "We're basing this guidance on the ingredients alone.")
+                  }
+                />
               )}
               {purposeLowConfidence && (
                 <p className="text-[11px] leading-snug text-muted-foreground">

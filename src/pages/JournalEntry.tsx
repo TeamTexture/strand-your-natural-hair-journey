@@ -51,6 +51,12 @@ import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
+import { useGoals } from "@/hooks/useGoals";
+import LevelGate from "@/components/tips/LevelGate";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
+import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -213,6 +219,33 @@ const JournalEntry = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { level } = useTipsLevel();
+  const { lengthGoal } = useGoals();
+
+  const reflectionTips: GuidanceTip[] = useMemo(() => {
+    const tips: GuidanceTip[] = [
+      {
+        priority: 5,
+        short: "Log the products and technique while they're fresh in your mind.",
+        why: "Small details — order of application, how long you left something in — are what let you spot patterns later.",
+      },
+      {
+        priority: 3,
+        short: "Note anything you'd change next time.",
+        why: "This is the field that actually improves your routine over time.",
+      },
+    ];
+    if (lengthGoal) {
+      tips.push({
+        priority: 10,
+        short: "A trim in your notes is about keeping length, not growing it faster.",
+        why: "Hair you can see is not alive, so it can't repair itself — a trim only removes damage that would keep travelling up the strand.",
+        alwaysShow: true,
+      });
+    }
+    return tips;
+  }, [lengthGoal]);
+
   // Brand-new entries arrive at /journal/entry/new. We mint a stable per-session
   // id so all the localStorage keys (photos, reflection) line up, and synthesize
   // a blank `entry` so the screen renders normally instead of hitting the

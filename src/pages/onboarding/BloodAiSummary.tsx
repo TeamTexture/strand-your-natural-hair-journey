@@ -15,7 +15,7 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import AiProse from "@/components/tips/AiProse";
 import TipsBlock from "@/components/tips/TipsBlock";
-import { selectTips, shortForm, type GuidanceTip } from "@/lib/tipsRender";
+import { shortForm, type GuidanceTip } from "@/lib/tipsRender";
 
 interface Deficiency {
   marker: string;
