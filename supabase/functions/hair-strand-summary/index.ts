@@ -56,6 +56,7 @@ interface SummaryPayload {
   routine_tips: string[];
 }
 import { TRIM_EDUCATION_PROMPT } from "../_shared/trim-education.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
@@ -195,7 +196,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: systemWithKnowledge },
+          { role: "system", content: `${systemWithKnowledge}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | null | undefined)?.tipsLevel))}` },
           {
             role: "user",
             content: `User onboarding context (currentStyle, goals, hairProfile, healthProfile, bloodResults, location, history):\n\n${JSON.stringify(context)}\n\nBefore-photo count: ${body.beforePhotoCount ?? 0}`,

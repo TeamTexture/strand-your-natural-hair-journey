@@ -21,6 +21,7 @@ import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -214,7 +215,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         messages: [
-          { role: "system", content: `${buildSystemPrompt()}${ragBlock}` },
+          { role: "system", content: `${`${buildSystemPrompt()}${ragBlock}`}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
           { role: "user", content: buildUserPrompt(body) },
         ],
         tools: [

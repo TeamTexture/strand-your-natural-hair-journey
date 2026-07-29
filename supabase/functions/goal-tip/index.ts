@@ -16,6 +16,7 @@ import type { TopicId } from "../_shared/knowledge/types.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
 /**
  * Select up to 4 manuscript topics relevant to this goal + user context.
@@ -253,7 +254,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: `${systemPrompt}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
             { role: "user", content: userPayload },
           ],
           tools: [
