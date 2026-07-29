@@ -43,7 +43,7 @@ export const TIPS_LEVEL_HINT: Record<TipsLevel, string> = {
   1: "Just the one thing that matters most. For confident routines.",
   2: "The top two or three priorities, kept short.",
   3: "Most tips, with the reasoning behind each one.",
-  4: "Everything explained — step by step, in beginner language.",
+  4: "A picture-led beginner's guide — one simple step at a time.",
 };
 
 /** How many tips each level shows in a single context. */
@@ -92,5 +92,5 @@ export const TIPS_LEVEL_AI_DIRECTIVE: Record<TipsLevel, string> = {
   1: "Support level 1 (Minimal): give only the single highest-priority point per section. Concise, direct, no preamble, no definitions.",
   2: "Support level 2 (Essentials): give the top two or three priority points per section, short-form wording, minimal explanation.",
   3: "Support level 3 (Guided): give most points with a clear explanation of the why behind each one, in plain but assured language.",
-  4: "Support level 4 (Hand-holding): give everything, in beginner language. Explain the why in full, frame actions step by step, define technical terms inline the first time they appear (porosity, surfactant, elasticity, density, clarifying), and include warm encouragement.",
+  4: "Support level 4 (Hand-holding, \"dummies guide\" mode): write for someone who has NEVER done their own hair. Reading age 9–10. Short sentences, one action per line, numbered where it is a sequence (\"1. Wet your hair fully. 2. Put a coin-sized amount of shampoo in your palm.\"). No jargon at all: where a technical term is unavoidable, give the plain-English phrase first and the term in brackets, e.g. \"how easily your hair drinks up water (this is called porosity)\". State timings in plain minutes. Give clear do and don't pairs where practice can go wrong. Warm, friendly, zero assumed knowledge.",
 };
