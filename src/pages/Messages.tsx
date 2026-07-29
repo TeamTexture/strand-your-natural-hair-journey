@@ -174,37 +174,56 @@ const Messages = () => {
         ) : (
           threads.map((t) => {
             const isSupport = t.thread_type === "admin_support";
+            const isAdminSide = isSupport && t.admin_user_id === user?.id;
+            const subject = isAdminSide && t.subject_user_id
+              ? subjectMap?.get(t.subject_user_id)
+              : null;
             const isProSide = t.thread_type === "client_pro" && t.pro_user_id === user?.id;
             const otherId = user?.id ? otherParticipantId(t, user.id) : null;
             const other = otherId ? nameMap?.get(otherId) : null;
             const meta = threadMeta?.get(t.id);
             const unread = meta?.unread ?? 0;
             const last = t.last_message_at ?? t.created_at;
-            const displayName = isSupport ? "STRAND Team" : (other?.name ?? "Conversation");
+            const displayName = isSupport
+              ? subject
+                ? `${subject.name} (${subject.membership})`
+                : "STRAND Team"
+              : (other?.name ?? "Conversation");
             const sub = isSupport
-              ? "Support & guidance"
+              ? (isAdminSide ? "STRAND Team conversation" : "Support & guidance")
               : isProSide
                 ? null // pro-side: hide postcode; use relationship tag below
                 : other?.sub ?? null;
             const tag = isProSide && otherId
               ? clientTagMap?.get(otherId)
               : undefined;
+            // Who sent the most recent message, shown above the preview line.
+            const senderLabel = !meta?.preview
+              ? null
+              : meta.preview_mine
+                ? "You"
+                : isSupport
+                  ? (meta.preview_sender_role === "admin"
+                      ? "STRAND Team"
+                      : subject?.name ?? "STRAND Team")
+                  : other?.name ?? "Them";
+            const isOpen = expandedId === t.id;
 
             return (
               <SurfaceCard
                 key={t.id}
-                onClick={() => nav(`/messages/${t.id}`)}
-                className="cursor-pointer hover:border-primary/50"
+                onClick={() => setExpandedId(isOpen ? null : t.id)}
+                className={`cursor-pointer transition-colors ${isOpen ? "border-primary/50" : "hover:border-primary/50"}`}
               >
                 <div className="flex items-center gap-3">
-                  {isSupport ? (
+                  {isSupport && !subject ? (
                     <div className="size-11 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
                       <BadgeCheck className="size-5" />
                     </div>
                   ) : (
                     <ProAvatar
-                      name={other?.name ?? "?"}
-                      photoUrl={other?.avatar_path ?? undefined}
+                      name={subject?.name ?? other?.name ?? "?"}
+                      photoUrl={subject?.avatar_path ?? other?.avatar_path ?? undefined}
                       size="size-11"
                     />
                   )}
@@ -213,7 +232,7 @@ const Messages = () => {
                       <p className="font-display text-sm font-semibold leading-tight truncate">
                         {displayName}
                       </p>
-                      {isSupport && (
+                      {isSupport && !subject && (
                         <span className="text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-body font-semibold">
                           Official
                         </span>
@@ -236,23 +255,48 @@ const Messages = () => {
                     </div>
                     {sub && <p className="text-[11px] text-muted-foreground truncate">{sub}</p>}
                     {meta?.preview && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {meta.preview_mine && (
-                          <DeliveryTicks readAt={meta.preview_read ? "read" : null} />
-                        )}
-                        <p className="text-[11.5px] text-muted-foreground truncate">
-                          {meta.preview_mine ? "You: " : ""}{meta.preview}
+                      <div className="mt-1">
+                        <p className="text-[10px] font-body font-semibold uppercase tracking-[0.1em] text-foreground/70 truncate">
+                          {senderLabel}
                         </p>
+                        <div className="flex items-center gap-1">
+                          {meta.preview_mine && (
+                            <DeliveryTicks readAt={meta.preview_read ? "read" : null} />
+                          )}
+                          <p className="text-[11.5px] text-muted-foreground truncate">
+                            {meta.preview}
+                          </p>
+                        </div>
                       </div>
                     )}
-                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                      {formatDistanceToNow(new Date(last), { addSuffix: true })}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground/80">
+                        {formatDistanceToNow(new Date(last), { addSuffix: true })}
+                      </p>
+                      <span className="ml-auto inline-flex items-center gap-0.5 text-[10.5px] font-body font-semibold text-primary">
+                        {isOpen ? "Collapse" : "Preview"}
+                        <ChevronDown
+                          className={`size-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        />
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {isOpen && (
+                  <InlineThreadChat
+                    thread={t}
+                    otherName={
+                      isSupport
+                        ? (subject?.name ?? "STRAND Team")
+                        : other?.name ?? "them"
+                    }
+                  />
+                )}
               </SurfaceCard>
             );
           })
+
         )}
       </div>
     </ScreenLayout>
