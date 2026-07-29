@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyProfile, useInvalidateMyProfile } from "@/hooks/useMyProfile";
 import {
   DEFAULT_TIPS_LEVEL,
   TIPS_LEVEL_PROMPTED_KEY,
@@ -43,6 +44,7 @@ export function useTipsLevel() {
   const { user } = useAuth();
   const [level, setLevelState] = useState<TipsLevel>(readCached);
   const [prompted, setPrompted] = useState<boolean>(readPrompted);
+  const invalidateProfile = useInvalidateMyProfile();
 
   useEffect(() => {
     const onLevel = (l: TipsLevel) => setLevelState(l);
@@ -55,30 +57,22 @@ export function useTipsLevel() {
     };
   }, []);
 
+  const { data: profile } = useMyProfile();
+
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("tips_level, tips_level_prompted_at")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (cancelled || !data) return;
-      const next = coerceTipsLevel(data.tips_level);
-      setLevelState(next);
+    if (!profile) return;
+    const next = coerceTipsLevel(profile.tips_level);
+    setLevelState(next);
+    try {
+      localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, String(next));
+    } catch { /* private mode */ }
+    if (profile.tips_level_prompted_at) {
+      setPrompted(true);
       try {
-        localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, String(next));
+        localStorage.setItem(TIPS_LEVEL_PROMPTED_KEY, "1");
       } catch { /* private mode */ }
-      if (data.tips_level_prompted_at) {
-        setPrompted(true);
-        try {
-          localStorage.setItem(TIPS_LEVEL_PROMPTED_KEY, "1");
-        } catch { /* private mode */ }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
+    }
+  }, [profile]);
 
   const persist = useCallback(
     async (next: TipsLevel, markPrompted: boolean) => {
@@ -99,9 +93,10 @@ export function useTipsLevel() {
           tips_level: next,
           ...(markPrompted ? { tips_level_prompted_at: new Date().toISOString() } : {}),
         })
-        .eq("id", user.id);
+        .eq("user_id", user.id);
+      invalidateProfile();
     },
-    [user],
+    [user, invalidateProfile],
   );
 
   const setLevel = useCallback((next: TipsLevel) => { void persist(next, false); }, [persist]);

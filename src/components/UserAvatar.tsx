@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { useMyProfile, useInvalidateMyProfile } from "@/hooks/useMyProfile";
+import { getSignedUrl } from "@/lib/signedUrlCache";
 
 interface Props {
   name: string;
@@ -17,6 +19,8 @@ interface Props {
 }
 
 const BUCKET = "avatars";
+
+
 
 /**
  * Round avatar that loads `profiles.avatar_url` for the signed-in user.
@@ -37,28 +41,27 @@ const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: P
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }, [name]);
 
-  // Load avatar_url from profile
+  const { data: profile } = useMyProfile();
+  const invalidateProfile = useInvalidateMyProfile();
+
+  // Resolve the signed avatar URL from the shared profile row. Signed URLs are
+  // memoised per storage path so a screen with several avatars signs once.
   useEffect(() => {
-    if (!user) return;
     let cancelled = false;
+    const p = profile?.avatar_url ?? null;
+    setPath(p);
+    if (!p) {
+      setSignedUrl(null);
+      return;
+    }
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("avatar_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (cancelled) return;
-      const p = data?.avatar_url ?? null;
-      setPath(p);
-      if (p) {
-        const { data: sig } = await supabase.storage.from(BUCKET).createSignedUrl(p, 3600);
-        if (!cancelled) setSignedUrl(sig?.signedUrl ?? null);
-      }
+      const url = await getSignedUrl(BUCKET, p);
+      if (!cancelled) setSignedUrl(url);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [profile?.avatar_url]);
 
   const handlePick = async (rawFile: File) => {
     if (!user) {
@@ -98,6 +101,7 @@ const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: P
       const { data: sig } = await supabase.storage.from(BUCKET).createSignedUrl(newPath, 3600);
       setPath(newPath);
       setSignedUrl(sig?.signedUrl ?? null);
+      invalidateProfile();
       toast.success("Avatar updated");
     } catch (e) {
       console.error("Avatar upload failed:", e);

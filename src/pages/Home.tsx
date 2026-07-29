@@ -12,6 +12,7 @@ import SectionLabel from "@/components/SectionLabel";
 import ProductThumb from "@/components/ProductThumb";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
@@ -138,38 +139,32 @@ const Home = () => {
   }, [location.key]);
 
 
-  // Resolve the display name from the profiles table first
+  // Resolve the display name from the shared profile query (one request for
+  // the whole screen) with an auth-metadata fallback so the greeting is
+  // never blank on first paint.
   const [helloKleanOpen, setHelloKleanOpen] = useState(false);
+  const { data: myProfile } = useMyProfile();
   useEffect(() => {
     if (!user) { setFirstName(""); return; }
-    let cancelled = false;
     const fallback =
       (user.user_metadata?.display_name as string | undefined) ??
       user.email?.split("@")[0] ??
       "";
-    setFirstName(fallback.split(" ")[0]);
-    (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, postcode")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (cancelled) return;
-      if (data?.display_name) {
-        setFirstName(data.display_name.split(" ")[0]);
-      }
-      // If a goal was just saved and the user lives in a hard-water area,
-      // surface the Hello Klean member-perk popup on this Home visit.
-      const pending = consumeHelloKleanPrompt(user.id);
-      if (pending) {
-        const water = lookupHardWater(data?.postcode);
-        if (water && (water.hardness === "hard" || water.hardness === "very-hard")) {
-          setHelloKleanOpen(true);
-        }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
+    setFirstName((myProfile?.display_name || fallback).split(" ")[0]);
+  }, [user, myProfile?.display_name]);
+
+  useEffect(() => {
+    if (!user || !myProfile) return;
+    // If a goal was just saved and the user lives in a hard-water area,
+    // surface the Hello Klean member-perk popup on this Home visit.
+    const pending = consumeHelloKleanPrompt(user.id);
+    if (!pending) return;
+    const water = lookupHardWater(myProfile.postcode ?? undefined);
+    if (water && (water.hardness === "hard" || water.hardness === "very-hard")) {
+      setHelloKleanOpen(true);
+    }
+  }, [user, myProfile]);
+
 
 
   // Next appointment
@@ -318,45 +313,45 @@ const Home = () => {
   return (
     <ScreenLayout bottomNav>
       {/* greeting */}
-      <header className="px-5 pt-3 pb-2 flex items-start justify-between">
-        <div>
-          <p className="font-body text-sm text-muted-foreground">{greeting},</p>
-          <h1 className="font-display text-[24px] font-bold leading-tight">
+      <header className="px-5 pt-3 pb-2 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-body text-sm text-muted-foreground whitespace-nowrap">{greeting},</p>
+          <h1 className="font-display text-[24px] font-bold leading-tight truncate">
             {firstName || "there"}
           </h1>
           {hasPlus && (
-            <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5">
+            <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 max-w-full">
               <PlusBadge size="xs" />
-              <span className="text-[10px] uppercase tracking-[0.12em] text-primary font-bold font-body">
+              <span className="text-[10px] uppercase tracking-[0.12em] text-primary font-bold font-body whitespace-nowrap">
                 STRAND+ Member
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <TipsLevelButton />
           <button
 
             onClick={() => navigate("/help")}
             aria-label="Help & Support"
-            className="size-11 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors"
+            className="size-9 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors shrink-0"
           >
-            <HelpCircle className="size-5" />
+            <HelpCircle className="size-4" />
           </button>
           <button
             onClick={() => navigate("/profile/discounts")}
             aria-label="Offers & discounts"
-            className="size-11 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors"
+            className="size-9 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors shrink-0"
           >
-            <Tag className="size-5" />
+            <Tag className="size-4" />
           </button>
           <button
             onClick={() => navigate("/profile")}
             aria-label="Profile"
-            className="size-11 rounded-full overflow-hidden shadow-sm"
+            className="size-9 rounded-full overflow-hidden shadow-sm shrink-0"
           >
-            <UserAvatar name={firstName || "there"} size="size-11" editable={false} />
+            <UserAvatar name={firstName || "there"} size="size-9" editable={false} />
           </button>
         </div>
       </header>
