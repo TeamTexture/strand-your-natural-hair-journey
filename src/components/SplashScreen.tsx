@@ -158,41 +158,48 @@ const SplashScreen = () => {
           {loading ? "Please wait…" : "Sign In"}
         </Button>
 
-        <button
-          type="button"
-          onClick={() => {
-            const qs = nextParam
-              ? `?next=${encodeURIComponent(nextParam)}`
-              : "";
-            navigate(`/auth${qs}`);
-          }}
-          className="mt-1 text-center text-xs text-muted-foreground hover:text-foreground"
-        >
-          New to Strand? Create an account
-        </button>
+        <div className="mt-5 pt-5 border-t border-border/60 space-y-2">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground text-center">
+            New here? Choose your account
+          </p>
 
-        <div className="mt-4 pt-4 border-t border-border/60 text-center space-y-1">
-          <p className="text-[11px] text-muted-foreground font-body">
-            Are you a professional?{" "}
-            <button
-              type="button"
-              onClick={() => navigate("/pro/auth")}
-              className="text-primary underline underline-offset-2 hover:text-primary/80"
-            >
-              Apply to join
-            </button>
-          </p>
-          <p className="text-[11px] text-muted-foreground font-body">
-            Are you a brand?{" "}
-            <button
-              type="button"
-              onClick={() => navigate("/brand/auth")}
-              className="text-primary underline underline-offset-2 hover:text-primary/80"
-            >
-              Place offers
-            </button>
-          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const qs = nextParam ? `?next=${encodeURIComponent(nextParam)}` : "";
+              navigate(`/auth${qs}`);
+            }}
+            className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left hover:border-primary/60 transition-colors"
+          >
+            <span className="block font-body text-sm text-foreground">Member</span>
+            <span className="block text-[11px] text-muted-foreground">
+              Your personal hair journal
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/pro/auth")}
+            className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left hover:border-primary/60 transition-colors"
+          >
+            <span className="block font-body text-sm text-foreground">Professional</span>
+            <span className="block text-[11px] text-muted-foreground">
+              Apply to join the directory
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/brand/auth")}
+            className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left hover:border-primary/60 transition-colors"
+          >
+            <span className="block font-body text-sm text-foreground">Brand</span>
+            <span className="block text-[11px] text-muted-foreground">
+              Place offers with STRAND
+            </span>
+          </button>
         </div>
+
       </form>
       </div>
     </div>
