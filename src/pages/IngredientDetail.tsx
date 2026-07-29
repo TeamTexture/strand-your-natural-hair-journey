@@ -1045,7 +1045,7 @@ const IngredientDetail = () => {
                     },
                   ]}
                 />
-              ) : (
+              ) : tipsLevel >= 2 ? (
                 <AiProse
                   text={
                     purposeNote ??
@@ -1054,7 +1054,7 @@ const IngredientDetail = () => {
                       : "We're basing this guidance on the ingredients alone.")
                   }
                 />
-              )}
+              ) : null}
               {purposeLowConfidence && (
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   The label didn't say much, so this is judged from the ingredients alone.
