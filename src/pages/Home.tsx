@@ -836,13 +836,6 @@ const Home = () => {
                   No alerts right now. Your hair is on track ✓
                 </p>
               </div>
-            ) : showBeginnerHelp ? (
-              <div className="px-1 pb-1">
-                <BeginnerSteps
-                  steps={displayedAlerts.map((a) => ({ text: `${a.emoji} ${a.title}`, detail: a.body }))}
-                />
-                <BeginnerReassurance>Tap any card above to sort it out — one thing at a time.</BeginnerReassurance>
-              </div>
             ) : (
               displayedAlerts.map((a) => {
                 const isDanger = a.tone === "danger";
@@ -862,9 +855,7 @@ const Home = () => {
                     <p className={`text-xs font-medium leading-tight ${isDanger ? "text-red-100" : "text-alert-dark-foreground"}`}>
                       {a.emoji} {a.title}
                     </p>
-                    <LevelGate min={2}>
-                      <p className={`text-[11px] mt-1 ${isDanger ? "text-red-100/85" : "text-alert-dark-foreground/70"}`}>{a.body}</p>
-                    </LevelGate>
+                    <p className={`text-[11px] mt-1 ${isDanger ? "text-red-100/85" : "text-alert-dark-foreground/70"}`}>{a.body}</p>
                   </button>
                   <button
                     onClick={(e) => {
