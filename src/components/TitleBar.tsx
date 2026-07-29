@@ -54,10 +54,12 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
             </button>
           )}
         </div>
-        <div className="flex-shrink-0 flex items-center justify-end gap-1 text-xs text-muted-foreground font-body">
+        <div className="flex-shrink-0 flex items-center justify-end gap-1.5 text-xs text-muted-foreground font-body">
+          {tips && <TipsLevelButton />}
           {right}
           <NotificationsBell />
         </div>
+
       </div>
       {title && (
         <h1 className="text-center font-display text-2xl font-semibold text-foreground px-2 leading-tight">
