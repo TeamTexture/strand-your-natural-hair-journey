@@ -35,6 +35,51 @@ const Messages = () => {
     return { pros: Array.from(pros), consumers: Array.from(consumers) };
   }, [threads, user?.id]);
 
+  // STRAND Team threads: when I'm the admin side, the row should name the
+  // member and their membership tier rather than saying "STRAND Team".
+  const supportSubjects = useMemo(() => {
+    if (!user?.id || !threads) return [] as string[];
+    const out = new Set<string>();
+    for (const t of threads) {
+      if (t.thread_type !== "admin_support") continue;
+      if (t.admin_user_id === user.id && t.subject_user_id) out.add(t.subject_user_id);
+    }
+    return Array.from(out);
+  }, [threads, user?.id]);
+
+  const { data: subjectMap } = useQuery({
+    queryKey: ["chat_support_subjects", supportSubjects],
+    enabled: supportSubjects.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [profRes, subRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, display_name, avatar_url")
+          .in("user_id", supportSubjects),
+        supabase
+          .from("consumer_subscriptions")
+          .select("user_id, tier, status")
+          .in("user_id", supportSubjects),
+      ]);
+      const tiers = new Map<string, string>();
+      for (const s of subRes.data ?? []) {
+        const active = s.status === "active" || s.status === "trialing";
+        if (active) tiers.set(s.user_id, s.tier === "plus" ? "STRAND+ member" : "STRAND member");
+      }
+      const m = new Map<string, { name: string; membership: string; avatar_path: string | null }>();
+      for (const p of profRes.data ?? []) {
+        m.set(p.user_id, {
+          name: p.display_name ?? "Member",
+          membership: tiers.get(p.user_id) ?? "STRAND member",
+          avatar_path: p.avatar_url ?? null,
+        });
+      }
+      return m;
+    },
+  });
+
+
   // Names for the "other side" of each thread. For pro-side rows we
   // deliberately omit the client's postcode from the visible metadata.
   const { data: nameMap } = useQuery({
