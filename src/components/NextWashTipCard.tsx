@@ -533,6 +533,7 @@ export function NextWashTipCard({
   collapsed = false,
 }: NextWashTipCardProps) {
   const { products } = useUserProducts("all");
+  const { level } = useTipsLevel();
 
   // If a legacy tip crammed everything into `action`, condense the header and
   // push the leftover into `why` so it becomes body copy rather than a
