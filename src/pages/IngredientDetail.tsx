@@ -1033,15 +1033,55 @@ const IngredientDetail = () => {
 
 
 
-            <SectionLabel>What it's marketed for</SectionLabel>
-            <SurfaceCard>
-              <MarketedPurposeSelector value={purpose} onChange={savePurpose} />
-              <p className="text-[11px] leading-snug text-muted-foreground mt-2">
-                {purpose
-                  ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
-                  : "Set this so we can judge how strong the cleansers are likely to be — brands don't publish exact percentages."}
-              </p>
+            <SectionLabel>What this product is made for</SectionLabel>
+            <SurfaceCard className="space-y-2">
+              {purpose && (
+                <span className="inline-flex items-center gap-1.5 rounded-pill border border-primary/25 bg-primary/8 px-3 py-1 text-[12px] font-medium text-primary">
+                  <Sparkles className="size-3" aria-hidden />
+                  {MARKETED_PURPOSE_LABEL[purpose]}
+                </span>
+              )}
+              {showBeginnerHelp ? (
+                <BeginnerSteps
+                  steps={[
+                    {
+                      text:
+                        purposeNote ??
+                        (purpose ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose] : "We're reading this from the ingredients."),
+                    },
+                  ]}
+                />
+              ) : (
+                <p className="text-sm leading-relaxed text-foreground/85">
+                  {purposeNote ??
+                    (purpose
+                      ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
+                      : "We're basing this guidance on the ingredients alone.")}
+                </p>
+              )}
+              {purposeLowConfidence && (
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  The label didn't say much, so this is judged from the ingredients alone.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setPurposeEditOpen(true)}
+                className="text-[11px] text-muted-foreground underline underline-offset-2"
+              >
+                Not right? Edit product type
+              </button>
             </SurfaceCard>
+
+            <Dialog open={purposeEditOpen} onOpenChange={setPurposeEditOpen}>
+              <DialogContent className="max-w-[320px] rounded-[18px]">
+                <DialogHeader>
+                  <DialogTitle className="font-display text-base">Edit product type</DialogTitle>
+                </DialogHeader>
+                <MarketedPurposeSelector value={purpose} onChange={savePurpose} />
+              </DialogContent>
+            </Dialog>
+
 
             {analysis.use_cases && analysis.use_cases.length > 0 && (
               <>
