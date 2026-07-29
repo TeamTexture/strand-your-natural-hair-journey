@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { getSignedUrl, invalidateSignedUrl } from "@/lib/signedUrlCache";
 
 const BUCKET = "product-photos";
 
@@ -42,13 +43,11 @@ export function useProductPhotos(productKeys: string[]) {
     const out: Record<string, ProductPhoto> = {};
     await Promise.all(
       (data ?? []).map(async (row) => {
-        const { data: sig } = await supabase.storage
-          .from(BUCKET)
-          .createSignedUrl(row.storage_path, 3600);
+        const signedUrl = await getSignedUrl(BUCKET, row.storage_path);
         out[row.product_key] = {
           product_key: row.product_key,
           storage_path: row.storage_path,
-          signedUrl: sig?.signedUrl ?? null,
+          signedUrl,
         };
       }),
     );

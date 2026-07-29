@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { useMyProfile, useInvalidateMyProfile } from "@/hooks/useMyProfile";
+import { getSignedUrl } from "@/lib/signedUrlCache";
 
 interface Props {
   name: string;
@@ -19,8 +20,7 @@ interface Props {
 
 const BUCKET = "avatars";
 
-/** path -> signed url, shared across every mounted avatar. */
-const signedUrlCache = new Map<string, { url: string; expires: number }>();
+
 
 /**
  * Round avatar that loads `profiles.avatar_url` for the signed-in user.
@@ -54,15 +54,9 @@ const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: P
       setSignedUrl(null);
       return;
     }
-    const cached = signedUrlCache.get(p);
-    if (cached && cached.expires > Date.now()) {
-      setSignedUrl(cached.url);
-      return;
-    }
     (async () => {
-      const { data: sig } = await supabase.storage.from(BUCKET).createSignedUrl(p, 3600);
-      if (sig?.signedUrl) signedUrlCache.set(p, { url: sig.signedUrl, expires: Date.now() + 50 * 60_000 });
-      if (!cancelled) setSignedUrl(sig?.signedUrl ?? null);
+      const url = await getSignedUrl(BUCKET, p);
+      if (!cancelled) setSignedUrl(url);
     })();
     return () => {
       cancelled = true;
@@ -106,7 +100,6 @@ const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: P
 
       const { data: sig } = await supabase.storage.from(BUCKET).createSignedUrl(newPath, 3600);
       setPath(newPath);
-      if (sig?.signedUrl) signedUrlCache.set(newPath, { url: sig.signedUrl, expires: Date.now() + 50 * 60_000 });
       setSignedUrl(sig?.signedUrl ?? null);
       invalidateProfile();
       toast.success("Avatar updated");

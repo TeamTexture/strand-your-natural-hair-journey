@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useActiveBrandOffer, useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
+import { getSignedUrl } from "@/lib/signedUrlCache";
 
 
 interface Props {
@@ -41,9 +42,7 @@ const BrandBanner = ({ slot }: Props) => {
     if (!offer) return;
     logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
     if (offer.hero_image_path) {
-      supabase.storage.from("brand-assets").createSignedUrl(offer.hero_image_path, 60 * 60).then(({ data: d }) => {
-        setHeroUrl(d?.signedUrl ?? null);
-      });
+      void getSignedUrl("brand-assets", offer.hero_image_path).then(setHeroUrl);
     }
     const first = product?.image_urls?.[0];
     if (first) setProductImageUrl(first);
