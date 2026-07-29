@@ -308,8 +308,8 @@ const Home = () => {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   };
 
-  const alertCap = TIPS_LEVEL_MAX[tipsLevel];
-  const displayedAlerts = Number.isFinite(alertCap) ? visibleAlerts.slice(0, alertCap) : visibleAlerts;
+  // Alerts are intentionally NOT affected by tips level — always full list.
+  const displayedAlerts = visibleAlerts;
 
   const lastWashSub = lastWash
     ? `Last: ${daysSinceLast === 0 ? "today" : `${daysSinceLast} day${daysSinceLast === 1 ? "" : "s"} ago`}`
