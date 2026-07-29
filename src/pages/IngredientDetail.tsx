@@ -179,7 +179,8 @@ const IngredientDetail = () => {
     [allProducts, productKey],
   );
 
-  const { showBeginnerHelp } = useTipsLevel();
+  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
 
 
   const returnAfterAutoSave = useCallback(
