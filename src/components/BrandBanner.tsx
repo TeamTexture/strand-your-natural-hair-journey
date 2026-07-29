@@ -109,27 +109,34 @@ const BrandBanner = ({ slot }: Props) => {
         onKeyDown={onStripKey}
         className={`w-full text-left overflow-hidden border border-primary/20 bg-card cursor-pointer select-none ${expanded ? "rounded-t-[14px] border-b-0" : "rounded-[14px]"}`}
       >
-        <div className="relative" style={{ height: 80 }}>
+        <div className="relative" style={{ height: 96 }}>
           {heroUrl ? (
             <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+          {/* The brand creative carries its own artwork and copy, so only a
+           *  light scrim is used — enough for the chips to stay legible
+           *  without hiding the advert itself. */}
+          <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/35 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-black/35 to-transparent" />
           <span className="absolute top-1.5 left-2 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body pointer-events-none">
             Sponsored
           </span>
-          <div className="relative h-full flex items-center pl-3 pr-16 w-2/3 pointer-events-none">
-            <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm">
-              {offer.headline || product?.name || "Sponsored offer"}
-            </p>
-          </div>
+          {!heroUrl && (
+            <div className="relative h-full flex items-center pl-3 pr-16 w-2/3 pointer-events-none">
+              <p className="font-display text-foreground text-[15px] leading-tight line-clamp-2">
+                {offer.headline || product?.name || "Sponsored offer"}
+              </p>
+            </div>
+          )}
           {expanded ? (
-            <ChevronUp className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
+            <ChevronUp className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white drop-shadow pointer-events-none" />
           ) : (
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white/85 drop-shadow pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white drop-shadow pointer-events-none" />
           )}
         </div>
+
       </div>
       {/* Grid-rows transition — expands the row 0fr → 1fr so the banner stays
        *  anchored at the top and content below flows down smoothly, with no
@@ -142,6 +149,9 @@ const BrandBanner = ({ slot }: Props) => {
           <div className="rounded-b-[14px] border border-t-0 border-primary/20 bg-card p-3">
             <div className="flex gap-3">
               <div className="flex-1 min-w-0">
+                {offer.headline && (
+                  <p className="font-display text-[14px] leading-tight mb-1">{offer.headline}</p>
+                )}
                 {offer.body_copy && (
                   <p className="text-[12px] text-foreground/80 leading-snug font-body">{offer.body_copy}</p>
                 )}

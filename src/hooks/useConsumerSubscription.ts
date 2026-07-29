@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useMyProfile } from "@/hooks/useMyProfile";
 
 export type ConsumerSubscription = {
   user_id: string;
@@ -42,19 +43,8 @@ export function useConsumerSubscription() {
     },
   });
 
-  const compQ = useQuery({
-    queryKey: ["consumer_complimentary", user?.id],
-    enabled: !!user?.id,
-    queryFn: async (): Promise<boolean> => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("complimentary_access")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return !!(data as { complimentary_access?: boolean } | null)?.complimentary_access;
-    },
-  });
+  const profileQ = useMyProfile();
+
 
   const sub = subQ.data ?? null;
   const stripeActive =
@@ -62,7 +52,7 @@ export function useConsumerSubscription() {
     ACTIVE_STATUSES.has(sub.status) &&
     (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
 
-  const complimentary = !!compQ.data;
+  const complimentary = !!profileQ.data?.complimentary_access;
   const isAdminOrPro = isAdmin || isProfessional;
   const hasAccess = stripeActive || complimentary || isAdminOrPro;
 
@@ -73,10 +63,10 @@ export function useConsumerSubscription() {
     isAdminOrPro,
     isBrand,
     hasAccess,
-    isLoading: authLoading || rolesLoading || subQ.isLoading || compQ.isLoading,
+    isLoading: authLoading || rolesLoading || subQ.isLoading || profileQ.isLoading,
     refetch: () => {
       subQ.refetch();
-      compQ.refetch();
+      profileQ.refetch();
     },
   };
 }
