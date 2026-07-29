@@ -210,9 +210,11 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
 
       for (const m of unreadRes.data ?? []) {
         const cur = get(m.thread_id);
-        if (!isMine(m)) cur.unread += 1;
+        // Only messages from someone else can be unread for me.
+        if (m.sender_id !== user!.id) cur.unread += 1;
         meta.set(m.thread_id, cur);
       }
+
       return meta;
     },
   });
@@ -397,13 +399,10 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
         .select("thread_id, sender_id, sender_role")
         .in("thread_id", ids)
         .is("read_at", null);
-      const byId = new Map(scoped.map((t) => [t.id, t]));
-      const countView: ActiveRoleView = view === "all" ? "consumer" : view;
-      return (msgs ?? []).filter((m) => {
-        const t = byId.get(m.thread_id);
-        if (!t) return m.sender_id !== user!.id;
-        return !messageIsMine(m as never, t as never, user!.id, countView);
-      }).length;
+      // A message I sent is never "unread" for me — even on a multi-role
+      // account viewing the thread from the other side.
+      return (msgs ?? []).filter((m) => m.sender_id !== user!.id).length;
+
     },
   });
 }
