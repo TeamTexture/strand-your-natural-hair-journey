@@ -2,29 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import { loadClinicalContext } from "@/lib/clinicalContext";
-import { useSmartInline } from "@/lib/smartInline";
-import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { limitTips } from "@/lib/tipsLevel";
+import TipsBlock from "@/components/tips/TipsBlock";
+import type { GuidanceTip } from "@/lib/tipsRender";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
-import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
-
 
 interface HairProfile {
   porosity?: string[];
   density?: string[];
   texture?: string[];
   scalp?: string[];
-}
-
-interface Tip {
-  /** Higher = more important. Lower support levels keep the highest first. */
-  priority: number;
-  /** Short-form instruction — always shown. */
-  short: string;
-  /** The reasoning — shown at level 3+. */
-  why: string;
-  /** Beginner definition of the technical term — shown at level 4. */
-  define?: string;
 }
 
 /**
@@ -36,9 +22,9 @@ interface Tip {
  *  - Texture/curl pattern → mechanical fragility, detangling order
  *  - Scalp condition → cleansing cadence & active ingredients
  */
-const buildTips = (p: HairProfile | null): Tip[] => {
+const buildTips = (p: HairProfile | null): GuidanceTip[] => {
   if (!p) return [];
-  const tips: Tip[] = [];
+  const tips: GuidanceTip[] = [];
   const por = (p.porosity?.[0] ?? "").toLowerCase();
   const den = (p.density?.[0] ?? "").toLowerCase();
   const tex = (p.texture?.[0] ?? "").toLowerCase();
@@ -60,18 +46,34 @@ const buildTips = (p: HairProfile | null): Tip[] => {
     });
   }
 
+  // Two-step cleanse — a non-negotiable. Always shown, depth varies by level.
   if (sc.includes("dry") || sc.includes("sensitive")) {
     tips.push({
-      priority: 90,
+      priority: 95,
       short: "Keep the two-step cleanse: a gentle scalp cleanse first with fingertip pads only, then a moisturising shampoo through the hair.",
       why: "A dry or sensitive scalp reacts to friction and stripping, so the first pass stays gentle and scalp-focused and the second pass looks after the lengths.",
+      dos: ["Use your fingertip pads on the scalp", "Do a second cleanse down the lengths"],
+      donts: ["Scratch with your nails", "Skip the second wash"],
+      alwaysShow: true,
     });
   } else if (sc.includes("oily")) {
     tips.push({
-      priority: 90,
+      priority: 95,
       short: "Make the first cleanse scalp-focused to lift sebum, then follow with a moisturising shampoo through the hair.",
       why: "Two passes lift oil properly without over-washing the lengths, which is what usually causes the dry-ends-greasy-roots pattern.",
       define: "Sebum is the natural oil your scalp produces.",
+      dos: ["Focus wash one on the scalp", "Do a second wash down the lengths"],
+      donts: ["Skip straight to conditioner", "Use one wash for scalp and lengths"],
+      alwaysShow: true,
+    });
+  } else {
+    tips.push({
+      priority: 95,
+      short: "Keep the two-step cleanse: scalp first with fingertip pads, then a second wash through the lengths.",
+      why: "One pass rarely cleans both the scalp and the hair properly — splitting it into two keeps each part cared for on its own terms.",
+      dos: ["Use your fingertip pads on the scalp", "Do a second cleanse down the lengths"],
+      donts: ["Scratch with your nails", "Skip the second wash"],
+      alwaysShow: true,
     });
   }
 
@@ -80,6 +82,8 @@ const buildTips = (p: HairProfile | null): Tip[] => {
       priority: 70,
       short: "Detangle on saturated, conditioner-coated hair, ends first, working up to the roots.",
       why: "Coarser and coily textures break where the bends are, and slip from conditioner plus bottom-up order takes the tension off those points.",
+      dos: ["Detangle with conditioner in", "Work from ends to roots"],
+      donts: ["Comb dry, bare hair", "Start detangling at the root"],
     });
   }
 
@@ -92,12 +96,10 @@ const buildTips = (p: HairProfile | null): Tip[] => {
     });
   }
 
-  return tips.sort((a, b) => b.priority - a.priority);
+  return tips;
 };
 
 const WashGuidanceCard = () => {
-  const renderTip = useSmartInline();
-  const { level, showExplanations, showBeginnerHelp } = useTipsLevel();
   const [profile, setProfile] = useState<HairProfile | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -119,8 +121,7 @@ const WashGuidanceCard = () => {
       cancelled = true;
     };
   }, []);
-  const allTips = useMemo(() => buildTips(profile), [profile]);
-  const tips = useMemo(() => limitTips(allTips, level), [allTips, level]);
+  const tips = useMemo(() => buildTips(profile), [profile]);
   if (tips.length === 0) return null;
 
   return (
@@ -132,33 +133,7 @@ const WashGuidanceCard = () => {
             For your hair today
           </p>
         </div>
-        {showBeginnerHelp ? (
-          <BeginnerSteps
-            key="beginner"
-            steps={tips.map((t) => ({
-              text: t.short,
-              detail: t.why,
-              define: t.define,
-            }))}
-          />
-        ) : (
-          <ul key={level} className="space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-300">
-            {tips.map((t, i) => (
-              <li key={i} className="flex gap-2 text-[12px] leading-snug">
-                <span className="text-primary mt-0.5 shrink-0">•</span>
-                <span className="flex-1">
-                  {renderTip(t.short, `tip-${i}`)}
-                  {showExplanations && (
-                    <span className="block text-[11px] text-muted-foreground mt-1">
-                      {renderTip(t.why, `why-${i}`)}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {showBeginnerHelp && <BeginnerReassurance />}
+        <TipsBlock tips={tips} idPrefix="wash-guidance" />
         <TipsLevelPrompt className="mt-3" />
       </SurfaceCard>
     </div>
@@ -166,4 +141,3 @@ const WashGuidanceCard = () => {
 };
 
 export default WashGuidanceCard;
-

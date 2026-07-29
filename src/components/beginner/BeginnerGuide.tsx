@@ -72,10 +72,16 @@ const PLAIN_TERMS: Array<[string, string]> = [
  * Put the plain-English phrase first and keep the technical term in brackets,
  * only on its first mention. When the term is qualified ("high porosity") the
  * plain phrase is appended instead so the sentence still reads correctly.
+ *
+ * Idempotent: text that has already been expanded once is left alone, so a
+ * string passed through more than one beginner surface never ends up with
+ * nested "(this is called (this is called …))" phrasing.
  */
 export function plainLanguage(text: string): string {
   let out = text;
   for (const [term, plain] of PLAIN_TERMS) {
+    // Already expanded on a previous pass — leave it as it is.
+    if (out.toLowerCase().includes(plain.toLowerCase())) continue;
     const re = new RegExp(`(\\b(?:high|low|medium|fine|coarse|your|the)\\s+)?\\b${term}\\b`, "i");
     const m = out.match(re);
     if (!m) continue;
@@ -87,6 +93,7 @@ export function plainLanguage(text: string): string {
   }
   return out;
 }
+
 
 export interface BeginnerStep {
   /** One action, plain language. */

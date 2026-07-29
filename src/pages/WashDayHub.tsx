@@ -20,6 +20,8 @@ import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext
 import BrandBanner from "@/components/BrandBanner";
 import { useDynamicWashTip } from "@/hooks/useDynamicWashTip";
 import { Sparkles } from "lucide-react";
+import AiProse from "@/components/tips/AiProse";
+import LevelGate from "@/components/tips/LevelGate";
 
 
 const monthNames = [
@@ -424,9 +426,9 @@ const WashDayHub = () => {
               <p className="text-sm font-semibold text-destructive font-body">
                 {overdue.diffDays} days since your last wash day
               </p>
-              <p className="text-[12px] leading-snug text-destructive/90 font-body">
-                {overdueReason}
-              </p>
+              <LevelGate min={2}>
+                <AiProse text={overdueReason} className="text-destructive/90" />
+              </LevelGate>
               <button
                 onClick={() => navigate("/wash/step-1")}
                 className="text-[12px] font-semibold text-destructive underline underline-offset-2 mt-1"
@@ -468,9 +470,11 @@ const WashDayHub = () => {
               <p className="font-display text-[15px] leading-snug mt-1 break-words">
                 {educational.headline}
               </p>
-              <p className="font-body text-[12.5px] leading-relaxed text-foreground/80 mt-2 break-words">
-                Why this matters — {educational.why}
-              </p>
+              <LevelGate min={2}>
+                <div className="mt-2">
+                  <AiProse text={`Why this matters — ${educational.why}`} />
+                </div>
+              </LevelGate>
               <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
                   Next wash reminder
@@ -639,14 +643,13 @@ const DynamicWashTipCard = () => {
           <p className="font-display text-[15px] leading-snug mt-1 break-words">
             {tip.headline}
           </p>
-          <p className="font-body text-[12.5px] leading-relaxed text-foreground/80 mt-2 break-words">
-            {tip.why}
-          </p>
+          <AiProse text={tip.why} className="mt-2" />
           {tip.technique && (
-            <p className="font-body text-[12.5px] leading-relaxed text-foreground/80 mt-2 break-words">
-              <span className="font-semibold">How: </span>
-              {tip.technique}
-            </p>
+            <LevelGate min={2}>
+              <div className="mt-2">
+                <AiProse text={`How: ${tip.technique}`} />
+              </div>
+            </LevelGate>
           )}
         </div>
       </div>

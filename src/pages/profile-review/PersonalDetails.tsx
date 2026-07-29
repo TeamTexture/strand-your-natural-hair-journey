@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import LevelGate from "@/components/tips/LevelGate";
 import ReviewField from "@/components/ReviewField";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -160,9 +161,11 @@ const PersonalDetailsReview = () => {
       />
 
       <div className="px-5 pb-8 space-y-3">
-        <p className="text-[13px] text-muted-foreground leading-snug pb-1">
+        <LevelGate min={2}>
+          <p className="text-[13px] text-muted-foreground leading-snug pb-1">
           Tap the pencil next to any field to update just that one thing.
         </p>
+        </LevelGate>
 
         {/* Profile photo — dedicated card */}
         <div className="rounded-[14px] border border-border bg-card p-4">
@@ -332,9 +335,11 @@ const PersonalDetailsReview = () => {
           <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground font-body mb-2">
             Health & medical
           </div>
-          <p className="text-[13px] text-muted-foreground leading-snug pb-2">
-            These directly shape your STRAND guidance. Edit any field individually.
-          </p>
+          <LevelGate min={2}>
+            <p className="text-[13px] text-muted-foreground leading-snug pb-2">
+              These directly shape your STRAND guidance. Edit any field individually.
+            </p>
+          </LevelGate>
           <HealthFieldsSection />
         </div>
       </div>

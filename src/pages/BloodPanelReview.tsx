@@ -53,6 +53,10 @@ import {
 } from "@/data/bloodMarkerExplanations";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import TipsBlock from "@/components/tips/TipsBlock";
+import AiProse from "@/components/tips/AiProse";
+import { shortForm, wantsDetail, wantsWhy, type GuidanceTip } from "@/lib/tipsRender";
 
 interface PanelRow {
   id: string;
@@ -187,6 +191,7 @@ export default function BloodPanelReview() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { level } = useTipsLevel();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
@@ -447,6 +452,30 @@ export default function BloodPanelReview() {
               </div>
             </SurfaceCard>
 
+            {/* Priority actions — one at level 1, more as the level rises */}
+            {(() => {
+              const flaggedRows = results.filter((r) => r.status === "low" || r.status === "high");
+              if (flaggedRows.length === 0) return null;
+              const tips: GuidanceTip[] = flaggedRows.map((r, i) => {
+                const info = MARKER_EXPLANATIONS[r.marker];
+                const status = (r.status ?? "untested") as BloodStatus;
+                const action = status === "low" ? info?.ifLow : status === "high" ? info?.ifHigh : undefined;
+                return {
+                  priority: flaggedRows.length - i,
+                  short: action ? `${r.marker}: ${action}` : `Follow up on your ${r.marker.toLowerCase()} result with your GP.`,
+                  why: info?.whyItMatters,
+                };
+              });
+              return (
+                <section className="space-y-2">
+                  <SectionLabel>Priority actions</SectionLabel>
+                  <SurfaceCard>
+                    <TipsBlock idPrefix="panel-priority" tips={tips} reassurance="Start with the first one — the rest can wait." />
+                  </SurfaceCard>
+                </section>
+              );
+            })()}
+
             {/* Categorised markers */}
             {CATEGORY_ORDER.map((cat) => {
               const rows = grouped[cat];
@@ -471,7 +500,7 @@ export default function BloodPanelReview() {
                         return (
                           <li key={r.marker}>
                             <button
-                              onClick={() => toggle(r.marker)}
+                              onClick={() => level > 1 && toggle(r.marker)}
                               className="w-full flex items-center gap-3 px-4 py-3 text-left"
                             >
                               <div className="flex-1 min-w-0">
@@ -479,7 +508,11 @@ export default function BloodPanelReview() {
                                   {r.marker}
                                 </p>
                                 <p className="text-xs text-muted-foreground font-body mt-0.5 truncate">
-                                  {ref ? `Normal ${ref}` : "Reference not set"}
+                                  {level === 1 && isFlag && info
+                                    ? shortForm(info.whyItMatters, 1)
+                                    : ref
+                                      ? `Normal ${ref}`
+                                      : "Reference not set"}
                                 </p>
                               </div>
                               <div className="text-right shrink-0">
@@ -513,35 +546,37 @@ export default function BloodPanelReview() {
                                   {statusLabel(status)}
                                 </span>
                               </div>
-                              <span className="shrink-0 ml-1">
-                                {isOpen ? (
-                                  <ChevronUp className="size-4 text-muted-foreground" />
-                                ) : (
-                                  <ChevronDown className="size-4 text-muted-foreground" />
-                                )}
-                              </span>
+                              {level > 1 && (
+                                <span className="shrink-0 ml-1">
+                                  {isOpen ? (
+                                    <ChevronUp className="size-4 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronDown className="size-4 text-muted-foreground" />
+                                  )}
+                                </span>
+                              )}
                             </button>
 
                             {isOpen && (
                               <div className="px-4 pt-4 pb-5 text-xs font-body text-foreground/80 space-y-3 bg-secondary/40 border-t border-border/40">
                                 {info ? (
                                   <>
-                                    <div className="space-y-1.5">
-                                      <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
-                                        What it is
-                                      </p>
-                                      <p className="leading-relaxed">
-                                        {info.what}
-                                      </p>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                      <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
-                                        Why it matters
-                                      </p>
-                                      <p className="leading-relaxed">
-                                        {info.whyItMatters}
-                                      </p>
-                                    </div>
+                                    {wantsDetail(level) && (
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
+                                          What it is
+                                        </p>
+                                        <AiProse text={info.what} />
+                                      </div>
+                                    )}
+                                    {wantsWhy(level) && (
+                                      <div className="space-y-1.5">
+                                        <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
+                                          Why it matters
+                                        </p>
+                                        <AiProse text={info.whyItMatters} />
+                                      </div>
+                                    )}
                                     {isFlag && target && (
                                       <div className="space-y-1.5 rounded-xl bg-warn/10 px-3 py-2.5">
                                         <p className="text-[11px] uppercase tracking-wide font-semibold text-warn">
@@ -557,9 +592,7 @@ export default function BloodPanelReview() {
                                         <p className="text-[11px] uppercase tracking-wide font-semibold text-foreground">
                                           If low
                                         </p>
-                                        <p className="leading-relaxed">
-                                          {info.ifLow}
-                                        </p>
+                                        <AiProse text={info.ifLow} />
                                       </div>
                                     )}
                                     {status === "high" && info.ifHigh && (
@@ -567,9 +600,7 @@ export default function BloodPanelReview() {
                                         <p className="text-[11px] uppercase tracking-wide font-semibold text-foreground">
                                           If high
                                         </p>
-                                        <p className="leading-relaxed">
-                                          {info.ifHigh}
-                                        </p>
+                                        <AiProse text={info.ifHigh} />
                                       </div>
                                     )}
                                   </>

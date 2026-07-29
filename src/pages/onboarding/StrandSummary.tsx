@@ -14,8 +14,6 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { limitTips } from "@/lib/tipsLevel";
-import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 import { useGoals } from "@/hooks/useGoals";
 import SectionLabel from "@/components/SectionLabel";
@@ -27,6 +25,11 @@ import { buildAiContext } from "@/lib/aiContext";
 import { computeStrandSummaryFingerprint } from "@/lib/strandSummaryFingerprint";
 import { toast } from "sonner";
 import { useSmartInline } from "@/lib/smartInline";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { BeginnerDoubleCleanse } from "@/components/beginner/BeginnerNonNegotiables";
+import LevelGate from "@/components/tips/LevelGate";
+import type { GuidanceTip } from "@/lib/tipsRender";
 
 const MAX_PHOTOS = 5;
 
@@ -66,25 +69,6 @@ interface PhotoItem {
 }
 
 
-// Pick a topical icon based on keywords in the tip text
-const pickIcon = (text: string): LucideIcon => {
-  const t = text.toLowerCase();
-  if (/tt heat hat|heat hat|blow.?dry|flat.?iron|straight|thermal|heat/.test(t)) return Flame;
-  if (/clarif|chelat|mineral|build.?up|shampoo/.test(t)) return Waves;
-  if (/moistur|hydrat|water|conditioner|leave.?in|lco|lok/.test(t)) return Droplets;
-  if (/protein|bond|keratin|strength/.test(t)) return Shield;
-  if (/trim|scissor|split end|cut/.test(t)) return Scissors;
-  if (/night|sleep|bonnet|satin|silk|pillow/.test(t)) return Moon;
-  if (/sun|uv|spf|summer/.test(t)) return Sun;
-  if (/scalp|massage|follicle|circulation/.test(t)) return HeartPulse;
-  if (/oil|seal|jbco|castor|jojoba|argan/.test(t)) return Leaf;
-  if (/wind|air.?dry|diffus/.test(t)) return Wind;
-  if (/supplement|vitamin|iron|ferritin|biotin|zinc/.test(t)) return Pill;
-  if (/diet|nutrition|protein.?rich|food|eat|omega/.test(t)) return Apple;
-  if (/exercise|activity|stress|cortisol/.test(t)) return Activity;
-  if (/week|month|day|schedule|routine|frequency/.test(t)) return Calendar;
-  return Sparkle;
-};
 
 // Legacy signature kept for callers; product/ingredient/heat-hat linking is
 // now delegated to the shared smart-inline renderer via `useSmartInline()`.
@@ -315,7 +299,7 @@ const StrandSummary = () => {
 
         {summary && (
           <>
-            {/* Overview — split long paragraph into readable sentences */}
+            {/* Overview — condensed to the user's chosen support level */}
             <SurfaceCard>
               <div className="flex items-center gap-2 mb-3">
                 <span className="size-7 rounded-full bg-primary/15 flex items-center justify-center">
@@ -323,17 +307,29 @@ const StrandSummary = () => {
                 </span>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Overview</p>
               </div>
-              <div className="space-y-2">
-                {summary.overview
-                  .split(/(?<=[.!?])\s+(?=[A-Z])/)
-                  .filter(Boolean)
-                  .map((sentence, i) => (
-                    <p key={i} className="text-[13.5px] leading-relaxed text-foreground/90">
-                      {renderRichText(sentence, `ov-${i}`)}
-                    </p>
-                  ))}
-              </div>
+              <AiProse text={summary.overview} />
             </SurfaceCard>
+
+            {/* Two-step cleanse is non-negotiable education — always visible,
+                only its depth changes. Full illustrated version at level 4. */}
+            {showBeginnerHelp ? (
+              <BeginnerDoubleCleanse />
+            ) : (
+              <SurfaceCard>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold mb-2">
+                  The double cleanse
+                </p>
+                <TipsBlock
+                  idPrefix="double-cleanse"
+                  tips={[{
+                    priority: 100,
+                    alwaysShow: true,
+                    short: "Wash twice every wash day — once for your scalp, once for your hair.",
+                    why: "One wash lifts scalp build-up; the second is what actually cleans the hair strand itself.",
+                  }]}
+                />
+              </SurfaceCard>
+            )}
 
 
             {summary.routine_tips.length > 0 && (
@@ -344,32 +340,36 @@ const StrandSummary = () => {
                   </span>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Routine tips</p>
                 </div>
-                {showBeginnerHelp ? (
-                  <BeginnerSteps
-                    steps={limitTips(summary.routine_tips, tipsLevel).map((b) => ({ text: b }))}
-                  />
-                ) : (
-                <ul key={tipsLevel} className="space-y-2 animate-in fade-in-0 duration-300">
-                    {limitTips(summary.routine_tips, tipsLevel).map((b, i) => {
-                      const Icon = pickIcon(b);
-                      return (
-                        <li key={i} className="flex gap-2.5 items-start rounded-[12px] bg-secondary/40 px-3 py-2.5">
-                          <span className="mt-0.5 size-7 rounded-full bg-background border border-primary/20 flex items-center justify-center shrink-0">
-                            <Icon className="size-3.5 text-primary" />
-                          </span>
-                          <span className="flex-1 text-[13px] leading-snug text-foreground/90">
-                            {renderRichText(b, `rt-${i}`)}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                {showBeginnerHelp && <BeginnerReassurance />}
+                <TipsBlock
+                  idPrefix="routine-tip"
+                  tips={summary.routine_tips.map((b, i): GuidanceTip => ({
+                    priority: summary.routine_tips.length - i,
+                    short: b,
+                  }))}
+                />
                 <TipsLevelPrompt className="mt-3" />
               </SurfaceCard>
             )}
-            {showBeginnerHelp && hasLengthGoal && <BeginnerTrimEducation />}
+            {/* Trim/length-retention education is non-negotiable — always
+                visible, illustrated in full at level 4. */}
+            {showBeginnerHelp && hasLengthGoal ? (
+              <BeginnerTrimEducation />
+            ) : hasLengthGoal ? (
+              <SurfaceCard>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold mb-2">
+                  Trims &amp; length retention
+                </p>
+                <TipsBlock
+                  idPrefix="trim-education"
+                  tips={[{
+                    priority: 100,
+                    alwaysShow: true,
+                    short: "Trimming doesn't make hair grow faster — it removes damaged ends so you keep the length you're growing.",
+                    why: "Growth happens at the scalp. Split ends travel further up the strand over time, so trimming stops that damage before it costs you more length.",
+                  }]}
+                />
+              </SurfaceCard>
+            ) : null}
           </>
         )}
 

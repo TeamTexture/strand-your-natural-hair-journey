@@ -9,6 +9,7 @@
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -96,7 +97,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: `${systemPrompt}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
             { role: "user", content: userPayload },
           ],
           tools: [

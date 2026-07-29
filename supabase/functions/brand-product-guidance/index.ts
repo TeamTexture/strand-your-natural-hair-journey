@@ -6,6 +6,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: `${SYSTEM}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | null | undefined)?.tipsLevel))}` },
           { role: "user", content: userMsg },
         ],
         response_format: { type: "json_object" },

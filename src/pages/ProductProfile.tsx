@@ -28,6 +28,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
+import AiProse from "@/components/tips/AiProse";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { condenseProse } from "@/lib/tipsRender";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
 interface IngredientFlag {
@@ -59,6 +62,7 @@ const StarPicker = ({ value, onChange }: { value: number; onChange: (n: number) 
 
 const ProductProfile = () => {
   const navigate = useNavigate();
+  const { level: tipsLevel } = useTipsLevel();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { allProducts, loading, setShelf, setWishlist, remove, reload } = useUserProducts("all");
@@ -369,9 +373,7 @@ const ProductProfile = () => {
           {aiLoading ? (
             <LoadingDot label="Personalising guidance for your profile…" />
           ) : (aiSummary || product.ai_summary) ? (
-            <p className="text-sm leading-snug whitespace-pre-line">
-              {aiSummary ?? product.ai_summary}
-            </p>
+            <AiProse text={aiSummary ?? product.ai_summary} />
           ) : aiError ? (
             <p className="text-sm leading-snug text-muted-foreground">
               Could not load guidance. {aiError}
@@ -549,7 +551,7 @@ const ProductProfile = () => {
                         <p className="text-sm font-medium leading-tight">{name}</p>
                         {aiFlag?.body && (
                           <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                            {aiFlag.body}
+                            {condenseProse(aiFlag.body, tipsLevel)}
                           </p>
                         )}
                         {isClickable && (

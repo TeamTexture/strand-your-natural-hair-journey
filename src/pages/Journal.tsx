@@ -25,6 +25,12 @@ import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { useMoodboards } from "@/hooks/useMoodboards";
 import GoalEditorSheet from "@/components/GoalEditorSheet";
 import GoalDetailSheet from "@/components/GoalDetailSheet";
+import LevelGate from "@/components/tips/LevelGate";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
+import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -53,6 +59,34 @@ const Journal = () => {
   const { user } = useAuth();
   const { signals, banner, loading } = useJournalEncouragement();
   const { goals, lengthGoal, loading: goalsLoading } = useGoals();
+  const { level } = useTipsLevel();
+
+  const goalTips: GuidanceTip[] = useMemo(() => {
+    const tips: GuidanceTip[] = [
+      {
+        priority: 5,
+        short: "Set one goal at a time so progress is easy to track.",
+        why: "Splitting focus across several goals makes it harder to tell what is actually working.",
+      },
+      {
+        priority: 4,
+        short: "Update your goal whenever your target or timeline changes.",
+        why: "A stale goal stops giving you useful feedback on where you really are.",
+      },
+    ];
+    if (lengthGoal) {
+      tips.push({
+        priority: 10,
+        short: "Trims keep length — they don't speed up growth.",
+        why: "The hair you can see is not alive, so it can't heal itself. Growth only happens at the scalp, so a trim removes damage that would otherwise keep splitting upward, but it doesn't make new hair grow any faster.",
+        define: "\"Retention\" just means keeping the length you already have, rather than losing it to breakage.",
+        dos: ["Trim only when ends look damaged", "Handle wet hair gently to protect length"],
+        donts: ["Trim on a fixed schedule expecting faster growth", "Pull through tangles instead of easing them out"],
+        alwaysShow: true,
+      });
+    }
+    return tips;
+  }, [lengthGoal]);
   const { boards: moodboards, loading: boardsLoading } = useMoodboards();
   // Only surface boards that actually have content (or the Favourites board if it has favourites).
   const populatedBoards = useMemo(
@@ -186,11 +220,13 @@ const Journal = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="Style Journal" back={false} />
 
-      <div className="px-5 pb-2">
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          The place to document your favourite styles and track every step of your hair journey.
-        </p>
-      </div>
+      <LevelGate min={2}>
+        <div className="px-5 pb-2">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            The place to document your favourite styles and track every step of your hair journey.
+          </p>
+        </div>
+      </LevelGate>
 
       <div className="px-5 pb-4">
         <div className="rounded-[14px] p-4 bg-gradient-to-r from-primary to-[#8B6914] text-primary-foreground">
@@ -207,7 +243,7 @@ const Journal = () => {
                 </p>
               )}
               <p className="text-base font-semibold">{banner.headline}</p>
-              <p className="font-body text-sm opacity-90 mt-1">{banner.subline}</p>
+              <AiProse text={banner.subline} className="!text-primary-foreground/90 font-body text-sm mt-1" />
             </>
           )}
         </div>
@@ -219,6 +255,9 @@ const Journal = () => {
             Goals & Challenges
           </h2>
         </div>
+
+        <TipsBlock tips={goalTips} idPrefix="goal-tip" />
+        {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
 
         {goalsLoading ? (
           <SurfaceCard>
@@ -252,9 +291,11 @@ const Journal = () => {
           <SurfaceCard className="text-center">
             <Target className="size-6 text-primary mx-auto mb-2" />
             <p className="text-sm font-medium">Set your first goal</p>
-            <p className="text-[11px] text-muted-foreground mt-1 mb-3">
-              Track length retention or any hair challenge you're working on.
-            </p>
+            <LevelGate min={2}>
+              <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+                Track length retention or any hair challenge you're working on.
+              </p>
+            </LevelGate>
             <Button variant="gold" size="pill" onClick={() => openEditor(null)}>
               + Add a goal
             </Button>
@@ -462,9 +503,11 @@ const Journal = () => {
           <div className="px-5 pb-6 space-y-3">
             <SurfaceCard className="text-center">
               <p className="text-sm font-medium">No mood boards yet</p>
-              <p className="text-[11px] text-muted-foreground mt-1 mb-3">
-                Create a board and start saving inspiration to see it here.
-              </p>
+              <LevelGate min={2}>
+                <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+                  Create a board and start saving inspiration to see it here.
+                </p>
+              </LevelGate>
               <Button variant="gold" size="pill" onClick={() => navigate("/journal/moodboards")}>
                 + Create a mood board
               </Button>

@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { shortForm, type GuidanceTip } from "@/lib/tipsRender";
 
 interface Deficiency {
   marker: string;
@@ -29,6 +33,7 @@ interface Summary {
 const BloodAiSummary = () => {
   const navigate = useNavigate();
   const { values } = useBloodValues();
+  const { level } = useTipsLevel();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +61,7 @@ const BloodAiSummary = () => {
     const promptVersion = "v3-trend-analysis";
     return {
       payload: { bloodResults, hairProfile, healthProfile, heritage },
-      fingerprint: JSON.stringify({ bloodResults, hairProfile, healthProfile, heritage, promptVersion }),
+      fingerprint: JSON.stringify({ bloodResults, hairProfile, healthProfile, heritage, promptVersion, tipsLevel: level }),
     };
   };
 
@@ -216,7 +221,7 @@ const BloodAiSummary = () => {
                       <p className="text-[11px] text-muted-foreground font-body">{d.value}</p>
                     )}
                     <p className="text-xs text-foreground/85 font-body mt-1 leading-relaxed">
-                      {d.hair_impact}
+                      {shortForm(d.hair_impact, level)}
                     </p>
                   </div>
                 </div>
@@ -232,21 +237,19 @@ const BloodAiSummary = () => {
 
         <SectionLabel>What this means for your hair</SectionLabel>
         <SurfaceCard>
-          <p className="text-sm leading-relaxed font-body">{summary.overall_summary}</p>
+          <AiProse text={summary.overall_summary} className="text-sm" />
         </SurfaceCard>
 
         <SectionLabel>Your priority actions</SectionLabel>
-        <SurfaceCard padded={false}>
-          <ol className="divide-y divide-border/60">
-            {summary.priority_actions.map((a, i) => (
-              <li key={i} className="flex gap-3 px-4 py-3 text-sm font-body">
-                <span className="size-6 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center shrink-0">
-                  {i + 1}
-                </span>
-                <span className="leading-relaxed">{a}</span>
-              </li>
-            ))}
-          </ol>
+        <SurfaceCard>
+          <TipsBlock
+            idPrefix="blood-priority"
+            tips={summary.priority_actions.map((a, i): GuidanceTip => ({
+              priority: summary.priority_actions.length - i,
+              short: a,
+            }))}
+            reassurance="You don't need to tackle all of this today — start with the first one."
+          />
         </SurfaceCard>
 
         <div className="pt-2 space-y-3">

@@ -11,6 +11,9 @@ import AppointmentCard from "@/components/AppointmentCard";
 import type { AppointmentCardData } from "@/components/AppointmentCard";
 import EnquiriesListInline from "@/components/EnquiriesListInline";
 import { Button } from "@/components/ui/button";
+import LevelGate from "@/components/tips/LevelGate";
+import TipsBlock from "@/components/tips/TipsBlock";
+import type { GuidanceTip } from "@/lib/tipsRender";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
@@ -79,6 +82,19 @@ const ApptPhotos = ({ appointmentId }: { appointmentId: string }) => {
 };
 
 type Tab = "appointments" | "enquiries";
+
+const APPT_TIPS: GuidanceTip[] = [
+  {
+    priority: 5,
+    short: "Log appointments right after your visit while details are fresh.",
+    why: "Notes written the same day capture what your professional said far more accurately than a recollection weeks later.",
+  },
+  {
+    priority: 3,
+    short: "Add a photo of the result so you can compare it at your next visit.",
+    why: "A photo gives you and your professional a shared reference point for what worked.",
+  },
+];
 
 const Appointments = () => {
   const navigate = useNavigate();
@@ -256,6 +272,9 @@ const Appointments = () => {
               + Log Appointment
             </Button>
           </div>
+          <div className="mt-4">
+            <TipsBlock tips={APPT_TIPS} idPrefix="appt-empty-tip" />
+          </div>
         </div>
       ) : (
         <>
@@ -365,9 +384,11 @@ const Appointments = () => {
         >
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">🔍 Find Recommended Professionals</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Verified trichologists, dermatologists & curl specialists
-            </p>
+            <LevelGate min={2}>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Verified trichologists, dermatologists & curl specialists
+              </p>
+            </LevelGate>
           </div>
           <ChevronRight className="size-5 text-primary shrink-0" />
         </button>

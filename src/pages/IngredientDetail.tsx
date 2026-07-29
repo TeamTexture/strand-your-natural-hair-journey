@@ -6,7 +6,10 @@ import SectionLabel from "@/components/SectionLabel";
 import MarketedPurposeSelector from "@/components/MarketedPurposeSelector";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { limitTips } from "@/lib/tipsLevel";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import LevelGate from "@/components/tips/LevelGate";
+import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
 import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import {
   classifySurfactant,
@@ -122,14 +125,6 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
   };
 }
 
-/** First-sentence extractor for collapsed AI summary. Falls back to a
- *  trimmed substring + ellipsis when no terminal punctuation is found. */
-const firstSentence = (text: string): string => {
-  const match = text.match(/^[^.!?]+[.!?]/);
-  if (match) return match[0];
-  return text.length > 120 ? text.substring(0, 120).trim() + "…" : text;
-};
-
 const formatRelative = (iso: string | null): string | null => {
   if (!iso) return null;
   const d = new Date(iso);
@@ -184,7 +179,7 @@ const IngredientDetail = () => {
     [allProducts, productKey],
   );
 
-  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
+  const { showBeginnerHelp } = useTipsLevel();
 
 
   const returnAfterAutoSave = useCallback(
@@ -211,8 +206,6 @@ const IngredientDetail = () => {
   const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [shelfBusy, setShelfBusy] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [useCasesExpanded, setUseCasesExpanded] = useState(false);
   const [tipsExpanded, setTipsExpanded] = useState(false);
 
   // Marketed purpose — what the product is SOLD for. The AI works this out
@@ -939,47 +932,22 @@ const IngredientDetail = () => {
             {/* AI Summary — personalised to hair, health, lifestyle */}
             <SurfaceCard tone="gold">
               <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              {(() => {
-                const full = analysis.summary ?? "";
-                const teaser = firstSentence(full);
-                const hasMore = teaser.length < full.length;
-                return (
-                  <>
-                    <p className="text-sm leading-snug text-foreground/85 whitespace-pre-line">
-                      {summaryExpanded || !hasMore ? full : teaser}
-                    </p>
-                    {hasMore && (
-                      <button
-                        type="button"
-                        onClick={() => setSummaryExpanded((v) => !v)}
-                        className="mt-2 text-[10px] uppercase tracking-[0.18em] text-primary"
-                      >
-                        {summaryExpanded ? "Read less" : "Read more"}
-                      </button>
-                    )}
-                  </>
-                );
-              })()}
+              <AiProse text={analysis.summary} />
             </SurfaceCard>
 
             {/* Personalised "How to use this for your hair" */}
             {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
-                <SurfaceCard className="space-y-3">
-                  {analysis.personalised_guidance.map((tip, idx) => (
-                    <div key={`${tip.title}-${idx}`} className="flex items-start gap-3">
-                      <span className="size-6 rounded-full bg-primary/15 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-tight">{tip.title}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed whitespace-pre-line">
-                          {tip.body}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                <SurfaceCard>
+                  <TipsBlock
+                    idPrefix="pg"
+                    tips={analysis.personalised_guidance.map((tip, idx) => ({
+                      priority: analysis.personalised_guidance!.length - idx,
+                      short: tip.title,
+                      why: tip.body,
+                    }))}
+                  />
                 </SurfaceCard>
               </>
             )}
@@ -1053,12 +1021,14 @@ const IngredientDetail = () => {
                   ]}
                 />
               ) : (
-                <p className="text-sm leading-relaxed text-foreground/85">
-                  {purposeNote ??
+                <AiProse
+                  text={
+                    purposeNote ??
                     (purpose
                       ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
-                      : "We're basing this guidance on the ingredients alone.")}
-                </p>
+                      : "We're basing this guidance on the ingredients alone.")
+                  }
+                />
               )}
               {purposeLowConfidence && (
                 <p className="text-[11px] leading-snug text-muted-foreground">
@@ -1087,29 +1057,15 @@ const IngredientDetail = () => {
             {analysis.use_cases && analysis.use_cases.length > 0 && (
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
-                <SurfaceCard className="space-y-2">
-                  {showBeginnerHelp && (
-                    <BeginnerSteps
-                      steps={limitTips(analysis.use_cases, tipsLevel).map((t) => ({ text: t }))}
-                    />
-                  )}
-                  {!showBeginnerHelp && (useCasesExpanded ? limitTips(analysis.use_cases, tipsLevel) : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
-                    <div key={`uc-${idx}`} className="flex items-start gap-2">
-                      <span className="text-primary shrink-0 mt-1">•</span>
-                      <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
-                    </div>
-                  ))}
-                  {!showBeginnerHelp && limitTips(analysis.use_cases, tipsLevel).length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setUseCasesExpanded((v) => !v)}
-                      className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1"
-                    >
-                      {useCasesExpanded
-                        ? "Show less"
-                        : `Read ${limitTips(analysis.use_cases, tipsLevel).length - 1} more tip${limitTips(analysis.use_cases, tipsLevel).length - 1 === 1 ? "" : "s"}`}
-                    </button>
-                  )}
+                <SurfaceCard>
+                  <TipsBlock
+                    idPrefix="uc"
+                    tips={analysis.use_cases.map((t, idx) => ({
+                      priority: analysis.use_cases!.length - idx,
+                      short: t,
+                      alwaysShow: idx === 0,
+                    }))}
+                  />
                 </SurfaceCard>
               </>
             )}
@@ -1117,22 +1073,16 @@ const IngredientDetail = () => {
             {analysis.tips && analysis.tips.length > 0 && (
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
-                <SurfaceCard className="space-y-2">
-                  {showBeginnerHelp ? (
-                    <>
-                      <BeginnerSteps
-                        steps={limitTips(analysis.tips, tipsLevel).map((t) => ({ text: t }))}
-                      />
-                      <BeginnerReassurance />
-                    </>
-                  ) : (
-                    limitTips(analysis.tips, tipsLevel).map((tip, idx) => (
-                      <div key={`tip-${idx}`} className="flex items-start gap-2">
-                        <span className="text-primary shrink-0 mt-1">•</span>
-                        <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
-                      </div>
-                    ))
-                  )}
+                <SurfaceCard>
+                  <TipsBlock
+                    idPrefix="pt"
+                    tips={analysis.tips.map((t, idx) => ({
+                      priority: analysis.tips!.length - idx,
+                      short: t,
+                      alwaysShow: idx === 0,
+                    }))}
+                    reassurance="Take it one step at a time."
+                  />
                   <TipsLevelPrompt className="mt-1" />
                 </SurfaceCard>
               </>
@@ -1418,46 +1368,39 @@ const IngredientDetail = () => {
 
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">
-                      What it actually is
+                      What this is
                     </p>
-                    <p className="text-sm leading-relaxed text-foreground/85">
-                      {whatItIs || ing.body}
-                    </p>
+                    <AiProse text={whatItIs || ing.body} />
                   </div>
 
-
-
-
-                  {benefits.length > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
-                        What it does in this formula
-                      </p>
-                      <ul className="space-y-1.5">
-                        {benefits.map((b, i) => (
-                          <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
-                            <span className="text-primary shrink-0 mt-0.5">•</span>
-                            <span>{b}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <LevelGate min={3}>
+                    {benefits.length > 0 && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                          What it does in this formula
+                        </p>
+                        <ul className="space-y-1.5">
+                          {benefits.map((b, i) => (
+                            <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
+                              <span className="text-primary shrink-0 mt-0.5">•</span>
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </LevelGate>
 
                   <div className="rounded-lg bg-primary/8 border border-primary/25 p-3">
                     <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold mb-1.5">
-                      What this means for your hair type
+                      What this means for your hair
                     </p>
                     {profileLoading && !meansForYou && (
                       <p className="text-sm leading-relaxed text-muted-foreground italic">
                         Tailoring this to your hair…
                       </p>
                     )}
-                    {meansForYou && (
-                      <p className="text-sm leading-relaxed text-foreground/90">
-                        {meansForYou}
-                      </p>
-                    )}
+                    {meansForYou && <AiProse text={meansForYou} />}
                     {!profileLoading && !meansForYou && profileError && (
                       <p className="text-sm leading-relaxed text-muted-foreground italic">
                         Personalised guidance unavailable right now.

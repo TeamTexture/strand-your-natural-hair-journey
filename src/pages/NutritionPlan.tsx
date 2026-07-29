@@ -17,6 +17,9 @@ import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useSavedMeals, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
 import { toast } from "sonner";
+import AiProse from "@/components/tips/AiProse";
+import { condenseProse, limitSupporting, wantsDetail, wantsWhy } from "@/lib/tipsRender";
+import type { TipsLevel } from "@/lib/tipsLevel";
 
 
 type Diet = "omnivore" | "vegetarian" | "vegan" | "unknown";
@@ -384,7 +387,27 @@ const MealCard = ({
   );
 };
 
+/**
+ * Support-level quantity rule for supplements.
+ * L1 — high priority only. L2 — high + medium. L3/L4 — everything.
+ */
+const filterSupplementsByLevel = (
+  list: AiSupplement[],
+  level: TipsLevel,
+): AiSupplement[] => {
+  const rank = (s: AiSupplement) =>
+    s.priority === "high" ? 3 : s.priority === "low" ? 1 : 2;
+  const sorted = [...list].sort((a, b) => rank(b) - rank(a));
+  if (level === 1) {
+    const high = sorted.filter((s) => rank(s) === 3);
+    return high.length > 0 ? high : sorted.slice(0, 1);
+  }
+  if (level === 2) return sorted.filter((s) => rank(s) >= 2);
+  return sorted;
+};
+
 // ── Deterministic fallback supplements (only used if AI omits them) ─────
+
 
 const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
   const isVeg = p.diet === "vegan" || p.diet === "vegetarian";
@@ -415,6 +438,7 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
 const NutritionPlan = () => {
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
+  const { level } = useTipsLevel();
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
@@ -590,10 +614,12 @@ const NutritionPlan = () => {
 
   // Supplements — prefer AI (personalised, layman's terms); fall back to
   // deterministic list only if AI didn't return them.
-  const supplements: AiSupplement[] =
+  const supplements: AiSupplement[] = filterSupplementsByLevel(
     plan?.supplements && plan.supplements.length > 0
       ? plan.supplements
-      : buildFallbackSupplements(profile);
+      : buildFallbackSupplements(profile),
+    level,
+  );
 
   const renderLoading = (label: string) => {
     const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
@@ -629,7 +655,17 @@ const NutritionPlan = () => {
     if (aiLoading && !cards) {
       return renderLoading("Personalising your plan…");
     }
-    if (!cards || cards.length === 0) {
+    const shown = limitSupporting(cards, level);
+    if (shown.length === 0) {
+      if (level === 1) {
+        return (
+          <SurfaceCard tone="gold">
+            <p className="text-xs font-body leading-relaxed">
+              Kept simple at level 1 — focus on your supplements. Turn up your guidance level for {kind === "diet" ? "diet ideas" : "what to avoid"}.
+            </p>
+          </SurfaceCard>
+        );
+      }
       return (
         <SurfaceCard tone="gold">
           <p className="text-xs font-body leading-relaxed">
@@ -638,7 +674,7 @@ const NutritionPlan = () => {
         </SurfaceCard>
       );
     }
-    return cards.map((c, i) =>
+    return shown.map((c, i) =>
       kind === "diet" ? (
         <DietCard key={`${c.name}-${i}`} c={c} />
       ) : (
@@ -668,7 +704,7 @@ const NutritionPlan = () => {
               </div>
               <p className="font-display text-[15px] leading-tight text-foreground pt-1">Why this plan</p>
             </div>
-            <RichBody text={plan.summary} />
+            <AiProse text={plan.summary} />
           </div>
         )}
 
@@ -776,9 +812,9 @@ const NutritionPlan = () => {
               <>
                 {mealsLoading && !meals ? (
                   renderLoading("Cooking up your meal ideas…")
-                ) : meals && meals.length > 0 ? (
+                ) : meals && limitSupporting(meals, level).length > 0 ? (
                   <>
-                    {meals.map((m, i) => (
+                    {limitSupporting(meals, level).map((m, i) => (
                       <MealCard
                         key={`${m.name}-${i}`}
                         meal={m}

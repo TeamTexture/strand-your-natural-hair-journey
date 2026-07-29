@@ -6,6 +6,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: `${SYSTEM}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}` },
           {
             role: "user",
             content: `User data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,

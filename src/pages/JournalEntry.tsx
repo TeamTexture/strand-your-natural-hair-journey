@@ -51,6 +51,12 @@ import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
+import { useGoals } from "@/hooks/useGoals";
+import LevelGate from "@/components/tips/LevelGate";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
+import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -213,6 +219,33 @@ const JournalEntry = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { level } = useTipsLevel();
+  const { lengthGoal } = useGoals();
+
+  const reflectionTips: GuidanceTip[] = useMemo(() => {
+    const tips: GuidanceTip[] = [
+      {
+        priority: 5,
+        short: "Log the products and technique while they're fresh in your mind.",
+        why: "Small details — order of application, how long you left something in — are what let you spot patterns later.",
+      },
+      {
+        priority: 3,
+        short: "Note anything you'd change next time.",
+        why: "This is the field that actually improves your routine over time.",
+      },
+    ];
+    if (lengthGoal) {
+      tips.push({
+        priority: 10,
+        short: "A trim in your notes is about keeping length, not growing it faster.",
+        why: "Hair you can see is not alive, so it can't repair itself — a trim only removes damage that would keep travelling up the strand.",
+        alwaysShow: true,
+      });
+    }
+    return tips;
+  }, [lengthGoal]);
+
   // Brand-new entries arrive at /journal/entry/new. We mint a stable per-session
   // id so all the localStorage keys (photos, reflection) line up, and synthesize
   // a blank `entry` so the screen renders normally instead of hitting the
@@ -929,15 +962,17 @@ const JournalEntry = () => {
       </SectionLabel>
       <div className="px-5 pb-4">
         <SurfaceCard>
-          {photoPaths.length === 0 ? (
-            <p className="text-xs text-muted-foreground mb-3">
-              Add up to {MAX_PHOTOS} photos or short videos (MP4 / MOV). Drag to reorder — the first item is the cover shown on your Hair Journal.
-            </p>
-          ) : (
-            <p className="text-[11px] text-muted-foreground mb-3">
-              Drag to reorder. The first item is the cover.
-            </p>
-          )}
+          <LevelGate min={2}>
+            {photoPaths.length === 0 ? (
+              <p className="text-xs text-muted-foreground mb-3">
+                Add up to {MAX_PHOTOS} photos or short videos (MP4 / MOV). Drag to reorder — the first item is the cover shown on your Hair Journal.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground mb-3">
+                Drag to reorder. The first item is the cover.
+              </p>
+            )}
+          </LevelGate>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
             <SortableContext items={photoPaths} strategy={rectSortingStrategy}>
@@ -1002,9 +1037,11 @@ const JournalEntry = () => {
       <div className="px-5 pb-4">
         <SurfaceCard>
           {selectedProducts.length === 0 ? (
-            <p className="text-xs text-muted-foreground mb-3">
-              Track which products you used in this style.
-            </p>
+            <LevelGate min={2} fallback={null}>
+              <p className="text-xs text-muted-foreground mb-3">
+                Track which products you used in this style.
+              </p>
+            </LevelGate>
           ) : (
             <div className="flex flex-wrap gap-2 mb-3">
               {selectedProducts.map((p) => (
@@ -1055,9 +1092,15 @@ const JournalEntry = () => {
       {/* Reflection prompts — each one supports a voicenote that can be
        *  transcribed straight into the text box below it. */}
       <SectionLabel>Reflection</SectionLabel>
-      <p className="px-5 -mt-1 mb-2 text-[11px] text-muted-foreground">
-        Tap the mic to record — then "Transcribe to text" drops your words into the box.
-      </p>
+      <LevelGate min={2}>
+        <p className="px-5 -mt-1 mb-2 text-[11px] text-muted-foreground">
+          Tap the mic to record — then "Transcribe to text" drops your words into the box.
+        </p>
+      </LevelGate>
+      <div className="px-5 -mt-1 mb-2">
+        <TipsBlock tips={reflectionTips} idPrefix="reflection-tip" />
+        {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
+      </div>
       <div className="px-5 pb-4 space-y-3">
         <SurfaceCard>
           <VoiceNoteField

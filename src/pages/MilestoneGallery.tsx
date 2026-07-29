@@ -16,6 +16,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
+import { useGoals } from "@/hooks/useGoals";
+import LevelGate from "@/components/tips/LevelGate";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { wantsBeginner } from "@/lib/tipsRender";
+import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 
 interface Row {
   id: string;
@@ -35,6 +40,8 @@ const MilestoneGallery = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { upload, sign, uploading } = usePhotoUploader("milestone-photos");
+  const { lengthGoal } = useGoals();
+  const { level } = useTipsLevel();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,9 +96,11 @@ const MilestoneGallery = () => {
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Progress Photos" onBack={smartBack(navigate, "/profile")} />
-      <ItalicSub>
-        A 6-week cadence is enough to see real change without obsessing day to day.
-      </ItalicSub>
+      <LevelGate min={2}>
+        <ItalicSub>
+          A 6-week cadence is enough to see real change without obsessing day to day.
+        </ItalicSub>
+      </LevelGate>
 
       <div className="px-5 pb-6 space-y-4">
         <SurfaceCard tone="gold">
@@ -114,6 +123,8 @@ const MilestoneGallery = () => {
             </p>
           )}
         </SurfaceCard>
+
+        {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
 
         <Button
           variant="gold"

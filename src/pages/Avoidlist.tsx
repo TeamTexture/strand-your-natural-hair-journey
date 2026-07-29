@@ -18,6 +18,10 @@ import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
 import BrandLink from "@/components/BrandLink";
+import DetailCard from "@/components/tips/DetailCard";
+import LevelGate from "@/components/tips/LevelGate";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { limitSupporting } from "@/lib/tipsRender";
 
 const Avoidlist = () => {
   const [exporting, setExporting] = useState(false);
@@ -92,12 +96,16 @@ const Avoidlist = () => {
       />
 
       <ItalicSub>
-        Built automatically from the products you've put on your shelf and
-        favourited. An ingredient earns a{" "}
+        An ingredient earns a{" "}
         <span className="text-primary font-medium">flag</span> when it shows up
-        in 3 or more of those products. Tap any flag to learn what the
-        ingredient is, what it does, and which of your products contain it —
-        purely educational, no good or bad.
+        in 3 or more of your products.
+        <LevelGate min={2}>
+          {" "}
+          Built automatically from the products you've put on your shelf and
+          favourited. Tap any flag to learn what the ingredient is, what it
+          does, and which of your products contain it — purely educational,
+          no good or bad.
+        </LevelGate>
       </ItalicSub>
 
       {loading ? (
@@ -177,6 +185,7 @@ const IngredientRow = ({
   // Only fetch when the row is open. The hook respects this via `enabled`
   // so a closed row makes zero network calls.
   const profileQuery = useIngredientProfile(row.ingredient, row.reason, isOpen);
+  const { level } = useTipsLevel();
 
   return (
     <SurfaceCard className="p-0 overflow-hidden">
@@ -203,50 +212,57 @@ const IngredientRow = ({
 
       {isOpen && (
         <div className="border-t border-border bg-muted/30 px-3 py-3 space-y-3">
-          {/* AI profile — what it is, benefits, personalised notes */}
+          {/* AI profile — what it is, benefits, personalised notes.
+              Level 1: name + one-line relevance only (the header above already
+              covers this, so nothing further renders).
+              Level 2-3: what it is + supporting detail, capped by level.
+              Level 4: plain-English "what this is → what it means → what to
+              do" via DetailCard. */}
           <div className="space-y-2">
-            {profileQuery.isLoading && (
-              <p className="text-[11px] text-muted-foreground italic">
-                Building your personalised ingredient profile…
-              </p>
-            )}
-            {profileQuery.isError && (
-              <p className="text-[11px] text-destructive">
-                Couldn't load profile — pull down to refresh and try again.
-              </p>
-            )}
-            {profileQuery.data && (
-              <div className="space-y-2.5">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
-                    What it is
-                  </p>
-                  <p className="text-xs leading-snug">
-                    {profileQuery.data.what_it_is}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
-                    What it does
-                  </p>
-                  <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
-                    {profileQuery.data.benefits.map((b, i) => (
-                      <li key={i}>{b}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
-                    For your hair specifically
-                  </p>
-                  <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
-                    {profileQuery.data.personal_notes.map((n, i) => (
-                      <li key={i}>{n}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
+            <LevelGate min={2}>
+              {profileQuery.isLoading && (
+                <p className="text-[11px] text-muted-foreground italic">
+                  Building your personalised ingredient profile…
+                </p>
+              )}
+              {profileQuery.isError && (
+                <p className="text-[11px] text-destructive">
+                  Couldn't load profile — pull down to refresh and try again.
+                </p>
+              )}
+              {profileQuery.data && (
+                <DetailCard
+                  title={row.ingredient}
+                  className="!p-0 !border-0 !bg-transparent !rounded-none"
+                  relevance={row.reason}
+                  what={profileQuery.data.what_it_is}
+                  action={profileQuery.data.personal_notes[0]}
+                >
+                  <div className="space-y-2.5 mt-1">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
+                        What it does
+                      </p>
+                      <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
+                        {limitSupporting(profileQuery.data.benefits, level).map((b, i) => (
+                          <li key={i}>{b}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
+                        For your hair specifically
+                      </p>
+                      <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
+                        {limitSupporting(profileQuery.data.personal_notes, level).map((n, i) => (
+                          <li key={i}>{n}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </DetailCard>
+              )}
+            </LevelGate>
           </div>
 
           {/* Matching products from the user's library */}

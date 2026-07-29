@@ -29,6 +29,8 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import HeatToolPicker from "@/components/HeatToolPicker";
 import { useUserTools } from "@/hooks/useUserTools";
+import AiProse from "@/components/tips/AiProse";
+import LevelGate from "@/components/tips/LevelGate";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
@@ -580,12 +582,16 @@ const WashStep1 = () => {
               <div className="size-8 rounded-full bg-destructive/15 text-destructive flex items-center justify-center shrink-0 text-sm font-bold">!</div>
               <div className="flex-1">
                 <p className="text-[12px] font-semibold mb-1">Co-wash isn't a deep cleanse</p>
-                <p className="text-[11.5px] leading-snug text-muted-foreground">
-                  Co-washes use <strong>cationic</strong> conditioning surfactants — they smooth and lift light dirt, but they can't emulsify oily build-up (sebum, butters, silicones, mineral residue). Only <strong>anionic</strong> surfactants in a true shampoo can lift that residue from the scalp and strands.
-                </p>
-                <p className="text-[11.5px] leading-snug text-muted-foreground mt-1.5">
-                  Pair co-washes with a proper cleanse <strong>at least every 2–3 weeks</strong> to prevent build-up, flakes and scalp inflammation.
-                </p>
+                <LevelGate min={2} fallback={
+                  <p className="text-[11.5px] leading-snug text-muted-foreground">
+                    Pair co-washes with a proper cleanse at least every 2–3 weeks so build-up doesn't sit on the scalp.
+                  </p>
+                }>
+                  <AiProse
+                    className="text-muted-foreground"
+                    text="Co-washes use cationic conditioning surfactants — they smooth and lift light dirt, but they can't emulsify oily build-up (sebum, butters, silicones, mineral residue). Only anionic surfactants in a true shampoo can lift that residue from the scalp and strands. Pair co-washes with a proper cleanse at least every 2–3 weeks to prevent build-up, flakes and scalp inflammation."
+                  />
+                </LevelGate>
               </div>
             </div>
           </SurfaceCard>
@@ -723,14 +729,9 @@ const WashStep1 = () => {
                     ) : heatRationale ? (
                       <div className="space-y-1.5">
                         <p className="text-[11.5px] font-semibold">{heatRationale.headline}</p>
-                        <ul className="space-y-1">
-                          {heatRationale.reasons.map((r, i) => (
-                            <li key={i} className="flex gap-1.5 text-[11px] text-foreground/80">
-                              <span className="text-primary">•</span>
-                              <span>{r}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <LevelGate min={2}>
+                          <AiProse text={heatRationale.reasons.join(" ")} className="text-[11px]" />
+                        </LevelGate>
                       </div>
                     ) : (
                       <p className="text-[11px] text-muted-foreground">

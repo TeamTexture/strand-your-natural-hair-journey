@@ -4,6 +4,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
+import LevelGate from "@/components/tips/LevelGate";
 import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,7 +59,7 @@ const ProfileStep3Hair = () => {
     <ScreenLayout>
       <TitleBar title="Hair Characteristics" right={<span>5 of 9</span>} />
       <ProgressDots total={9} current={5} />
-      <ItalicSub>Fill these in from your consultation notes. These are the real clinical markers — not curl typing.</ItalicSub>
+      <LevelGate min={2}><ItalicSub>Fill these in from your consultation notes. These are the real clinical markers — not curl typing.</ItalicSub></LevelGate>
 
       <div className="px-5 pb-8 space-y-5">
         <TagGroup multi={false} label="Strand Diameter" options={["Fine", "Medium", "Coarse", "Mixed"]} value={diameter} onChange={setDiameter} />

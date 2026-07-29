@@ -11,6 +11,8 @@ import BrandLink from "@/components/BrandLink";
 import ProductThumb from "@/components/ProductThumb";
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { useUserProducts } from "@/hooks/useUserProducts";
+import AiProse from "@/components/tips/AiProse";
+import LevelGate from "@/components/tips/LevelGate";
 
 const SectionHeader = ({ icon: Icon, label }: { icon: LucideIcon; label: string }) => (
   <div className="flex items-center gap-2">
@@ -97,21 +99,18 @@ const IngredientResearch = () => {
               <div className="space-y-3">
                 <SurfaceCard className="space-y-3">
                   <SectionHeader icon={FlaskConical} label="What it is" />
-                  <p className="text-sm leading-relaxed text-foreground/85">
-                    {profile.data.what_it_is}
-                  </p>
+                  <AiProse text={profile.data.what_it_is} />
                 </SurfaceCard>
 
                 {profile.data.what_it_means_for_you && (
                   <SurfaceCard tone="gold" className="space-y-3">
                     <SectionHeader icon={Sparkles} label="What it means for you" />
-                    <p className="text-sm leading-relaxed text-foreground/85">
-                      {profile.data.what_it_means_for_you}
-                    </p>
+                    <AiProse text={profile.data.what_it_means_for_you} />
                   </SurfaceCard>
                 )}
 
                 {profile.data.benefits?.length > 0 && (
+                  <LevelGate min={2} fallback={null}>
                   <SurfaceCard className="space-y-3">
                     <SectionHeader icon={Leaf} label="In a formula" />
                     <div className="space-y-2">
@@ -123,6 +122,7 @@ const IngredientResearch = () => {
                       ))}
                     </div>
                   </SurfaceCard>
+                  </LevelGate>
                 )}
               </div>
             ) : null}

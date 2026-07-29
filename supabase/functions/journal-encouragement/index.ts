@@ -15,6 +15,7 @@ import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: systemWithRag },
+            { role: "system", content: `${systemWithRag}\n\n${buildTipsLevelBlock((body as Record<string, unknown>).tipsLevel)}` },
             { role: "user", content: userPayload },
           ],
           tools: [
