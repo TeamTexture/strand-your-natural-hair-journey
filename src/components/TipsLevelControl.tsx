@@ -1,43 +1,59 @@
-import { TIPS_LEVEL_HINT, TIPS_LEVEL_LABEL, type TipsLevel } from "@/lib/tipsLevel";
+import {
+  TIPS_LEVELS,
+  TIPS_LEVEL_HINT,
+  TIPS_LEVEL_LABEL,
+  type TipsLevel,
+} from "@/lib/tipsLevel";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { cn } from "@/lib/utils";
 
-const OPTIONS: TipsLevel[] = ["essential", "detailed"];
-
-/** Settings control for the tips density preference. */
+/** Settings control for the dynamic support scale (1–4). */
 const TipsLevelControl = () => {
   const { level, setLevel } = useTipsLevel();
 
   return (
     <div>
-      <p className="text-[13px] font-semibold leading-tight">Tips level</p>
+      <p className="text-[13px] font-semibold leading-tight">Guidance level</p>
       <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-        How much guidance you see on wash day, your dashboard, and product summaries.
+        How much support you see on wash day, your dashboard, product summaries
+        and AI guidance.
       </p>
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        {OPTIONS.map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => setLevel(opt)}
-            className={cn(
-              "p-3 rounded-[10px] border text-left transition-colors",
-              level === opt
-                ? "border-primary bg-primary/8"
-                : "border-border bg-background hover:border-primary/40",
-            )}
-          >
-            <span className="block text-[12px] font-semibold">
-              {TIPS_LEVEL_LABEL[opt]}
-              {opt === "detailed" && (
-                <span className="font-normal text-muted-foreground"> (hand-holding)</span>
+
+      <div className="mt-3">
+        <input
+          type="range"
+          min={1}
+          max={4}
+          step={1}
+          value={level}
+          onChange={(e) => setLevel(Number(e.target.value) as TipsLevel)}
+          aria-label="Guidance level"
+          className="w-full accent-primary"
+        />
+        <div className="flex justify-between mt-1.5">
+          {TIPS_LEVELS.map((lv) => (
+            <button
+              key={lv}
+              type="button"
+              onClick={() => setLevel(lv)}
+              className={cn(
+                "text-[9px] leading-tight w-1/4 text-center transition-colors",
+                lv === level ? "text-primary font-semibold" : "text-muted-foreground",
               )}
-            </span>
-            <span className="block text-[10px] text-muted-foreground mt-1 leading-snug">
-              {TIPS_LEVEL_HINT[opt]}
-            </span>
-          </button>
-        ))}
+            >
+              {TIPS_LEVEL_LABEL[lv]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-[10px] border border-primary/30 bg-primary/5 p-3">
+        <p className="text-[12px] font-semibold">
+          Level {level} — {TIPS_LEVEL_LABEL[level]}
+        </p>
+        <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+          {TIPS_LEVEL_HINT[level]}
+        </p>
       </div>
     </div>
   );
