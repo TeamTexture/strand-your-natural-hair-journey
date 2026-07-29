@@ -39,6 +39,8 @@ import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import BrandLink from "@/components/BrandLink";
 import { stripStaleDates } from "@/lib/stripStaleDates";
+import AiProse from "@/components/tips/AiProse";
+import LevelGate from "@/components/tips/LevelGate";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -541,21 +543,23 @@ const WashDayDetail = () => {
               </div>
             )}
 
-            {styling.note?.trim() && (
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Styling note</p>
-                <p className="text-sm leading-relaxed whitespace-pre-line">{styling.note}</p>
-              </div>
-            )}
+            <LevelGate min={2}>
+              {styling.note?.trim() && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Styling note</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-line">{styling.note}</p>
+                </div>
+              )}
 
-            {stylingAudioUrl && (
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1 flex items-center gap-1.5">
-                  <Mic className="size-3" /> Styling voice note
-                </p>
-                <audio controls src={stylingAudioUrl} className="w-full" />
-              </div>
-            )}
+              {stylingAudioUrl && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1 flex items-center gap-1.5">
+                    <Mic className="size-3" /> Styling voice note
+                  </p>
+                  <audio controls src={stylingAudioUrl} className="w-full" />
+                </div>
+              )}
+            </LevelGate>
           </SurfaceCard>
         ) : null}
 
@@ -638,7 +642,7 @@ const WashDayDetail = () => {
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2 flex items-center gap-1.5">
               <Sparkles className="size-3" /> Strand observation
             </p>
-            <p className="text-sm leading-relaxed whitespace-pre-line">{stripStaleDates(wd.ai_insight)}</p>
+            <AiProse text={stripStaleDates(wd.ai_insight)} className="whitespace-pre-line" />
           </SurfaceCard>
         )}
 

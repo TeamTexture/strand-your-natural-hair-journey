@@ -7,6 +7,10 @@ import MarketedPurposeSelector from "@/components/MarketedPurposeSelector";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { limitTips } from "@/lib/tipsLevel";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import LevelGate from "@/components/tips/LevelGate";
+import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
 import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import {
   classifySurfactant,

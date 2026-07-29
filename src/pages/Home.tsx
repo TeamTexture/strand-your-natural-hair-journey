@@ -1,5 +1,5 @@
 import TipsLevelButton from "@/components/TipsLevelButton";
-import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
+import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
@@ -37,6 +37,11 @@ import { lookupHardWater } from "@/lib/hardWater";
 import { useSmartInline } from "@/lib/smartInline";
 import BrandBanner from "@/components/BrandBanner";
 import { titleCase } from "@/lib/humanise";
+import TipsBlock from "@/components/tips/TipsBlock";
+import AiProse from "@/components/tips/AiProse";
+import LevelGate from "@/components/tips/LevelGate";
+import { limitSupporting, type GuidanceTip } from "@/lib/tipsRender";
+import { TIPS_LEVEL_MAX } from "@/lib/tipsLevel";
 
 
 // Rich text rendering is delegated to useSmartInline() inside the component
@@ -80,7 +85,7 @@ const Home = () => {
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
-  const { showBeginnerHelp } = useTipsLevel();
+  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
@@ -303,6 +308,9 @@ const Home = () => {
     const d = new Date(iso);
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   };
+
+  const alertCap = TIPS_LEVEL_MAX[tipsLevel];
+  const displayedAlerts = Number.isFinite(alertCap) ? visibleAlerts.slice(0, alertCap) : visibleAlerts;
 
   const lastWashSub = lastWash
     ? `Last: ${daysSinceLast === 0 ? "today" : `${daysSinceLast} day${daysSinceLast === 1 ? "" : "s"} ago`}`
@@ -647,45 +655,19 @@ const Home = () => {
                         <p className="text-sm font-medium leading-snug">
                           {renderRichText(goalTip.headline)}
                         </p>
-                        <p className="text-xs text-foreground/80 leading-relaxed mt-1">
-                          {renderRichText(goalTip.body)}
-                        </p>
+                        <LevelGate min={1}>
+                          <AiProse className="mt-1" text={goalTip.body} />
+                        </LevelGate>
                         {goalTip.actions?.length > 0 && (
-                          showBeginnerHelp ? (
-                            <BeginnerSteps
-                              className="mt-2"
-                              steps={goalTip.actions.slice(0, 3).map((a) => ({
-                                text: typeof a === "string" ? a : a.action,
-                                detail: typeof a === "string" ? undefined : a.why,
-                              }))}
-                            />
-                          ) : (
-                          <ul className="mt-2 space-y-2">
-                            {goalTip.actions.slice(0, 3).map((a, i) => {
-                              const actionText = typeof a === "string" ? a : a.action;
-                              const why = typeof a === "string" ? "" : a.why;
-                              return (
-                                <li
-                                  key={i}
-                                  className="text-xs text-foreground/80 leading-snug flex gap-1.5"
-                                >
-                                  <span className="text-primary mt-0.5">•</span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-foreground">
-                                      {renderRichText(actionText)}
-                                    </p>
-                                    {why && (
-                                      <p className="text-[11px] text-muted-foreground/90 leading-snug mt-0.5">
-                                        <span className="uppercase tracking-wider text-primary/70 text-[9px] font-semibold mr-1">Why</span>
-                                        {renderRichText(why)}
-                                      </p>
-                                    )}
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                          )
+                          <TipsBlock
+                            className="mt-2"
+                            idPrefix="goaltip"
+                            tips={goalTip.actions.map((a, i): GuidanceTip => ({
+                              priority: goalTip.actions.length - i,
+                              short: typeof a === "string" ? a : a.action,
+                              why: typeof a === "string" ? undefined : a.why,
+                            }))}
+                          />
                         )}
 
                       </>
@@ -750,7 +732,7 @@ const Home = () => {
                     {` · ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"}`}
                   </p>
                   <ul className="mt-2 space-y-1">
-                    {bloodSummary.insights.map((line, i) => {
+                    {limitSupporting(bloodSummary.insights, tipsLevel).map((line, i) => {
                       const isNegative = /^(low|high)\b/i.test(line);
                       const isPositive = /back in range|within normal/i.test(line);
                       const dotClass = isNegative
@@ -788,9 +770,9 @@ const Home = () => {
         <SurfaceCard data-tour="alerts" tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
-              🔔 Alerts {visibleAlerts.length > 0 && `(${visibleAlerts.length})`}
+              🔔 Alerts {displayedAlerts.length > 0 && `(${displayedAlerts.length})`}
             </span>
-            {visibleAlerts.length > 0 && (
+            {displayedAlerts.length > 0 && (
               <button
                 onClick={() => {
                   dismissAll();
@@ -807,14 +789,21 @@ const Home = () => {
               <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/60">
                 Checking your data…
               </p>
-            ) : visibleAlerts.length === 0 ? (
+            ) : displayedAlerts.length === 0 ? (
               <div className="mx-1 my-1 p-3 rounded-[10px] border border-good/40 bg-good/10">
                 <p className="text-xs text-good font-medium">
                   No alerts right now. Your hair is on track ✓
                 </p>
               </div>
+            ) : showBeginnerHelp ? (
+              <div className="px-1 pb-1">
+                <BeginnerSteps
+                  steps={displayedAlerts.map((a) => ({ text: `${a.emoji} ${a.title}`, detail: a.body }))}
+                />
+                <BeginnerReassurance>Tap any card above to sort it out — one thing at a time.</BeginnerReassurance>
+              </div>
             ) : (
-              visibleAlerts.map((a) => {
+              displayedAlerts.map((a) => {
                 const isDanger = a.tone === "danger";
                 return (
                 <div
@@ -832,7 +821,9 @@ const Home = () => {
                     <p className={`text-xs font-medium leading-tight ${isDanger ? "text-red-100" : "text-alert-dark-foreground"}`}>
                       {a.emoji} {a.title}
                     </p>
-                    <p className={`text-[11px] mt-1 ${isDanger ? "text-red-100/85" : "text-alert-dark-foreground/70"}`}>{a.body}</p>
+                    <LevelGate min={2}>
+                      <p className={`text-[11px] mt-1 ${isDanger ? "text-red-100/85" : "text-alert-dark-foreground/70"}`}>{a.body}</p>
+                    </LevelGate>
                   </button>
                   <button
                     onClick={(e) => {

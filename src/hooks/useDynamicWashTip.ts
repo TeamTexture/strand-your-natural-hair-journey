@@ -9,6 +9,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
 
 export interface DynamicWashTip {
   headline: string;
@@ -61,9 +62,10 @@ async function loadContext(userId: string) {
 
 export function useDynamicWashTip() {
   const { user } = useAuth();
+  const { level } = useTipsLevel();
 
   return useQuery({
-    queryKey: ["wash_day_tip_v1", user?.id],
+    queryKey: ["wash_day_tip_v1", user?.id, level],
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -102,6 +104,7 @@ export function useDynamicWashTip() {
           goals: ctx.goals.map((g) => ({ title: g.title, category: g.kind ?? undefined })),
           bloodFlags: ctx.bloodFlags,
           hasWashHistory: ctx.hasWashHistory,
+          tipsLevel: level,
         },
       });
       if (error) {
