@@ -85,7 +85,7 @@ ${clean}`;
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3.6-flash",
         messages: [{ role: "user", content: kind === "tool" ? toolPrompt : productPrompt }],
         response_format: { type: "json_object" },
       }),

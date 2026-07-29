@@ -390,7 +390,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-3.6-flash",
           messages: [
             { role: "system", content: `${STRAND_PERSONA}\n\n${VOICE_PRINCIPLES}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}` },
             { role: "user", content: JSON.stringify(userPayload) },
