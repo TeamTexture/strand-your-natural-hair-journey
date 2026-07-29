@@ -519,7 +519,7 @@ const WashStep1 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={smartBack(navigate, "/wash-day")} />
+      <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={smartBack(navigate, "/wash-day")} tips />
       <ProgressDots total={4} current={1} />
       <ItalicSub>
         Tap <strong>Add</strong> for steps you did and <strong>Skip</strong> for steps you didn't — be honest, it makes your history more useful.
@@ -527,7 +527,14 @@ const WashStep1 = () => {
 
       <WashGuidanceCard />
 
+      {showBeginnerHelp && (
+        <div className="px-5 mb-3">
+          <BeginnerDoubleCleanse />
+        </div>
+      )}
+
       <div className="px-5 space-y-3 pb-8">
+
         <StepCard
           step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment" }}
           state={prePoo}
