@@ -985,12 +985,11 @@ const IngredientDetail = () => {
                             key={`${i.name}-${idx}`}
                             type="button"
                             onClick={() => setSelectedIngredient(i)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
                           >
                             {isFlagged && (
                               <Flag
-                                className="size-3 shrink-0 fill-current"
-                                style={{ color: "hsl(40 65% 32%)" }}
+                                className="size-3 shrink-0 fill-current text-primary"
                                 aria-label="flagged ingredient"
                               />
                             )}
@@ -1322,8 +1321,7 @@ const IngredientDetail = () => {
                   <DialogTitle className="font-display text-lg leading-tight flex items-start gap-2">
                     {isFlagged && (
                       <Flag
-                        className="size-4 mt-1 shrink-0 fill-current"
-                        style={{ color: "hsl(40 65% 32%)" }}
+                        className="size-4 mt-1 shrink-0 fill-current text-primary"
                         aria-label="flagged ingredient"
                       />
                     )}
@@ -1410,8 +1408,7 @@ const IngredientDetail = () => {
                     <div className="rounded-lg bg-muted/40 border border-border/60 p-3">
                       <p className="text-[11px] leading-relaxed text-foreground/85">
                         <Flag
-                          className="inline size-3 mr-1 fill-current align-[-1px]"
-                          style={{ color: "hsl(40 65% 32%)" }}
+                          className="inline size-3 mr-1 fill-current align-[-1px] text-primary"
                         />
                         In 3+ of your favourite shelf products.
                       </p>

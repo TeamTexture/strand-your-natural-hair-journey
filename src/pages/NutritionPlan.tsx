@@ -186,6 +186,7 @@ const StrandTipBox = ({ text }: { text: string }) => {
 
 const SupplementCard = ({ s }: { s: AiSupplement }) => {
   const { rest, tips } = splitStrandTips(s.body);
+  const { level } = useTipsLevel();
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
       <div className="flex gap-3">
@@ -195,7 +196,7 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
             <p className="font-display text-[17px] leading-tight text-foreground">{s.name}</p>
             <PriorityChip level={s.priority} />
           </div>
-          {s.dose && (
+          {s.dose && level >= 2 && (
             <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1">
               <Pill className="size-3 text-primary" />
               <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
@@ -211,13 +212,14 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
 
 const DietCard = ({ c }: { c: AiCard }) => {
   const { rest, tips } = splitStrandTips(c.body);
+  const { level } = useTipsLevel();
   return (
     <SurfaceCard className="border-l-4 border-l-good">
       <div className="flex gap-3">
         <IconBubble emoji={c.emoji || "🥗"} tone="good" />
         <div className="flex-1 min-w-0">
           <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
+          {level >= 2 && rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
           {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
@@ -227,6 +229,7 @@ const DietCard = ({ c }: { c: AiCard }) => {
 
 const AvoidCard = ({ c }: { c: AiCard }) => {
   const { rest, tips } = splitStrandTips(c.body);
+  const { level } = useTipsLevel();
   return (
     <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
       <div className="flex gap-3">
@@ -236,7 +239,7 @@ const AvoidCard = ({ c }: { c: AiCard }) => {
             <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
             <SeverityChip level={c.severity} />
           </div>
-          {rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
+          {level >= 2 && rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
           {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
