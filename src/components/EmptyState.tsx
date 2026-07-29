@@ -1,6 +1,9 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import SurfaceCard from "./SurfaceCard";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { condenseProse } from "@/lib/tipsRender";
+import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 
 interface Props {
   /** Large emoji or icon shown above the message. */
@@ -20,15 +23,23 @@ interface Props {
  * Reusable empty-state card. Use whenever a list, shelf, or board has no
  * data yet so the user always sees something intentional — never a blank screen.
  */
-const EmptyState = ({ icon, message, hint, action, tone = "gold", className }: Props) => (
-  <SurfaceCard tone={tone} className={cn("text-center space-y-2 py-6", className)}>
-    {icon && <div className="text-4xl leading-none mb-1">{icon}</div>}
-    <p className="font-display text-[16px] leading-snug text-foreground">{message}</p>
-    {hint && (
-      <p className="font-body text-[14px] text-muted-foreground leading-snug">{hint}</p>
-    )}
-    {action && <div className="pt-2">{action}</div>}
-  </SurfaceCard>
-);
+const EmptyState = ({ icon, message, hint, action, tone = "gold", className }: Props) => {
+  const { level } = useTipsLevel();
+  const visibleHint = hint && level > 1
+    ? level >= 4
+      ? plainLanguage(hint)
+      : condenseProse(hint, level)
+    : "";
+  return (
+    <SurfaceCard tone={tone} className={cn("text-center space-y-2 py-6", className)}>
+      {icon && <div className="text-4xl leading-none mb-1">{icon}</div>}
+      <p className="font-display text-[16px] leading-snug text-foreground">{message}</p>
+      {visibleHint && (
+        <p key={level} className="font-body text-[14px] text-muted-foreground leading-snug animate-in fade-in-0 duration-300">{visibleHint}</p>
+      )}
+      {action && <div className="pt-2">{action}</div>}
+    </SurfaceCard>
+  );
+};
 
 export default EmptyState;

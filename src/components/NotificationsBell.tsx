@@ -3,6 +3,8 @@ import { Bell, CheckCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { condenseProse } from "@/lib/tipsRender";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +25,7 @@ const NotificationsBell = () => {
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
+  const { level } = useTipsLevel();
 
   if (!user) return null;
 
@@ -83,7 +86,7 @@ const NotificationsBell = () => {
                       </p>
                       {n.body && (
                         <p className="text-[11.5px] font-body text-foreground/65 leading-snug line-clamp-2 mt-0.5">
-                          {n.body}
+                          {condenseProse(n.body, level)}
                         </p>
                       )}
                       <p className="text-[10px] font-body text-foreground/45 mt-1">{timeAgo(n.created_at)} ago</p>

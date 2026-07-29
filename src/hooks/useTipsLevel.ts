@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { myProfileKey, useMyProfile, type MyProfileRow } from "@/hooks/useMyProfile";
+import { invalidateAiContextCache } from "@/lib/aiContext";
 import {
   DEFAULT_TIPS_LEVEL,
   TIPS_LEVEL_PROMPTED_KEY,
@@ -81,6 +82,7 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
       } catch { /* private mode */ }
       setLevelState(safeNext);
       levelRef.current = safeNext;
+      invalidateAiContextCache();
       if (markPrompted) {
         setPrompted(true);
       }

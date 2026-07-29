@@ -13,6 +13,8 @@ import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
 import ProductThumb from "@/components/ProductThumb";
+import TipsBlock from "@/components/tips/TipsBlock";
+import LevelGate from "@/components/tips/LevelGate";
 
 import VoiceNoteField from "@/components/VoiceNoteField";
 import { Button } from "@/components/ui/button";
@@ -185,11 +187,41 @@ const WashStepStyling = () => {
     <ScreenLayout>
       <TitleBar title="Wash Day" right={<span>4 of 5</span>} onBack={smartBack(navigate, "/wash/step-3")} />
       <ProgressDots total={5} current={4} />
-      <ItalicSub>
-        Now the styling — what you chose, what you used, and how it sat with you this week.
-      </ItalicSub>
+      <LevelGate min={2} fallback={<ItalicSub>Log the style and products you used.</ItalicSub>}>
+        <ItalicSub>
+          Now the styling — what you chose, what you used, and how it sat with you this week.
+        </ItalicSub>
+      </LevelGate>
 
       <div className="px-5 pb-10 space-y-5">
+        <SurfaceCard tone="gold">
+          <TipsBlock
+            idPrefix="wash-styling"
+            reassurance="This is your record, not a test. The pattern matters more than one perfect entry."
+            tips={[
+              {
+                priority: 4,
+                short: "Pick the style you actually wore after washing.",
+                why: "The style affects tension, moisture loss and how long the results last.",
+              },
+              {
+                priority: 3,
+                short: "Select every styling product that touched your hair.",
+                why: "This keeps product use counts accurate and helps future tips compare results fairly.",
+              },
+              {
+                priority: 2,
+                short: "Add one finished-style photo if you can.",
+                why: "Photos make progress easier to compare than memory alone.",
+              },
+              {
+                priority: 1,
+                short: "Log stress honestly.",
+                why: "Stress can affect scalp comfort, shedding and how much energy you have for styling.",
+              },
+            ]}
+          />
+        </SurfaceCard>
         <TG label="Style You Chose" options={STYLE_OPTIONS} value={style} onChange={setStyle} error={submitted && errors.style} />
 
         <div>

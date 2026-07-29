@@ -3,7 +3,6 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
-import MarketedPurposeSelector from "@/components/MarketedPurposeSelector";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import AiProse from "@/components/tips/AiProse";
@@ -210,11 +209,9 @@ const IngredientDetail = () => {
   const [tipsExpanded, setTipsExpanded] = useState(false);
 
   // Marketed purpose — what the product is SOLD for. The AI works this out
-  // automatically from the scan (title, brand, claims + the INCI list); the
-  // user is never asked. The quiet edit link below is a correction path only.
+  // automatically from the scan/title/claims + the INCI list; the user is not
+  // asked to classify it manually.
   const [purpose, setPurpose] = useState<MarketedPurpose | null>(null);
-  const [purposeEditOpen, setPurposeEditOpen] = useState(false);
-  const [userSetPurpose, setUserSetPurpose] = useState(false);
 
   const detected = (freshAnalysis ?? analysis) as
     | { marketed_purpose?: unknown; marketed_purpose_note?: unknown; marketed_purpose_confidence?: unknown }
@@ -229,7 +226,6 @@ const IngredientDetail = () => {
     const stored = (productRow as { marketed_purpose?: unknown } | null)?.marketed_purpose;
     if (isMarketedPurpose(stored)) {
       setPurpose(stored);
-      setUserSetPurpose(true);
       return;
     }
     const fromScan = (freshAnalysis as { marketed_purpose?: unknown } | null)?.marketed_purpose;
@@ -237,44 +233,40 @@ const IngredientDetail = () => {
       setPurpose(fromScan);
       return;
     }
+    const titleFirstText = [
+      productName,
+      (freshAnalysis as { product_name?: unknown } | null)?.product_name,
+      productRow?.name,
+      productBrand,
+      productRow?.brand,
+      analysis?.summary,
+    ]
+      .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      .join(" ");
     setPurpose(
-      inferMarketedPurpose(
-        [productRow?.name, productRow?.brand, analysis?.summary].filter(Boolean).join(" "),
-      ) ?? "general_all_hair_types",
+      inferMarketedPurpose(titleFirstText) ?? "general_all_hair_types",
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productRow?.id, freshAnalysis]);
+  }, [productRow?.id, productRow?.name, productRow?.brand, productName, productBrand, analysis?.summary, freshAnalysis]);
 
-  const savePurpose = useCallback(
-    async (next: MarketedPurpose) => {
-      setPurpose(next);
-      setUserSetPurpose(true);
-      setPurposeEditOpen(false);
-      if (!productRow?.id) return;
-      const { error } = await supabase
-        .from("user_products")
-        .update({ marketed_purpose: next })
-        .eq("id", productRow.id);
-      if (error) {
-        console.error(error);
-        toast.error("Could not save what this product is marketed for");
-        return;
-      }
-      void reload();
-    },
-    [productRow?.id, reload],
-  );
+  const purposeGuidance = useMemo(() => {
+    const label = purpose ? MARKETED_PURPOSE_LABEL[purpose] : "this product type";
+    const note = purposeNote ?? (purpose
+      ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
+      : "STRAND is basing this on the product title, claims and ingredient list.");
+    return `This is mainly for ${label.toLowerCase()}. ${note} STRAND uses that purpose to judge whether the cleanser strength and support ingredients make sense for what the product is sold to do. Exact percentages are not published, so this is a practical reading of the title, claims and ingredient order.`;
+  }, [purpose, purposeNote]);
 
   // Persist what the AI detected so later analyses reuse it — silently.
   useEffect(() => {
-    if (userSetPurpose || !purpose || !productRow?.id) return;
+    if (!purpose || !productRow?.id) return;
     if ((productRow as { marketed_purpose?: unknown }).marketed_purpose === purpose) return;
     void supabase
       .from("user_products")
       .update({ marketed_purpose: purpose })
       .eq("id", productRow.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [purpose, productRow?.id, userSetPurpose]);
+  }, [purpose, productRow?.id]);
 
   const { flags } = useIngredientLists();
   // Single unified "flagged" set — appears in 3+ of the user's products.
@@ -993,12 +985,11 @@ const IngredientDetail = () => {
                             key={`${i.name}-${idx}`}
                             type="button"
                             onClick={() => setSelectedIngredient(i)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[11px] font-medium leading-tight hover:bg-primary/90 active:scale-[0.97] transition"
                           >
                             {isFlagged && (
                               <Flag
-                                className="size-3 shrink-0 fill-current"
-                                style={{ color: "hsl(40 65% 32%)" }}
+                                className="size-3 shrink-0 fill-current text-primary"
                                 aria-label="flagged ingredient"
                               />
                             )}
@@ -1039,22 +1030,18 @@ const IngredientDetail = () => {
                 <BeginnerSteps
                   steps={[
                     {
-                      text:
-                        purposeNote ??
-                        (purpose ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose] : "We're reading this from the ingredients."),
+                      text: `This is mainly for ${purpose ? MARKETED_PURPOSE_LABEL[purpose].toLowerCase() : "this product type"}.`,
+                      detail: purposeNote ?? (purpose ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose] : "STRAND is reading the title and ingredients."),
+                    },
+                    {
+                      text: "Use this product for the job it is sold to do.",
+                      detail: "Then check the ingredient list to decide whether it is gentle, strong, scalp-focused or better kept occasional.",
                     },
                   ]}
                 />
-              ) : tipsLevel >= 2 ? (
-                <AiProse
-                  text={
-                    purposeNote ??
-                    (purpose
-                      ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
-                      : "We're basing this guidance on the ingredients alone.")
-                  }
-                />
-              ) : null}
+              ) : (
+                <AiProse text={purposeGuidance} />
+              )}
               {purposeLowConfidence && tipsLevel >= 3 && (
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   The label didn't say much, so this is judged from the ingredients alone.
@@ -1334,8 +1321,7 @@ const IngredientDetail = () => {
                   <DialogTitle className="font-display text-lg leading-tight flex items-start gap-2">
                     {isFlagged && (
                       <Flag
-                        className="size-4 mt-1 shrink-0 fill-current"
-                        style={{ color: "hsl(40 65% 32%)" }}
+                        className="size-4 mt-1 shrink-0 fill-current text-primary"
                         aria-label="flagged ingredient"
                       />
                     )}
@@ -1362,13 +1348,11 @@ const IngredientDetail = () => {
                         <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold mb-1">
                           {SURFACTANT_ROLE_LABEL[role]}
                         </p>
-                        <p className="text-[12px] leading-snug text-foreground/85">
-                          {SURFACTANT_ROLE_NOTE[role]}
-                        </p>
+                        <AiProse text={SURFACTANT_ROLE_NOTE[role]} />
                         {purpose && (
-                          <p className="text-[12px] leading-snug text-foreground/85 mt-1.5">
-                            {MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]}
-                          </p>
+                          <div className="mt-1.5">
+                            <AiProse text={MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]} />
+                          </div>
                         )}
                       </div>
                     );
@@ -1387,14 +1371,18 @@ const IngredientDetail = () => {
                         <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
                           What it does in this formula
                         </p>
-                        <ul className="space-y-1.5">
-                          {benefits.map((b, i) => (
-                            <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
-                              <span className="text-primary shrink-0 mt-0.5">•</span>
-                              <span>{b}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        {showBeginnerHelp ? (
+                          <BeginnerSteps steps={benefits.map((b) => ({ text: b }))} />
+                        ) : (
+                          <ul className="space-y-1.5">
+                            {benefits.map((b, i) => (
+                              <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
+                                <span className="text-primary shrink-0 mt-0.5">•</span>
+                                <span>{b}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     )}
                   </LevelGate>
@@ -1420,8 +1408,7 @@ const IngredientDetail = () => {
                     <div className="rounded-lg bg-muted/40 border border-border/60 p-3">
                       <p className="text-[11px] leading-relaxed text-foreground/85">
                         <Flag
-                          className="inline size-3 mr-1 fill-current align-[-1px]"
-                          style={{ color: "hsl(40 65% 32%)" }}
+                          className="inline size-3 mr-1 fill-current align-[-1px] text-primary"
                         />
                         In 3+ of your favourite shelf products.
                       </p>
@@ -1433,11 +1420,15 @@ const IngredientDetail = () => {
                       <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold">
                         Also in your products
                       </p>
-                      <p className="text-[11px] leading-relaxed text-muted-foreground mt-1">
-                        {alsoInProducts.length > 0
-                          ? "Other shelf or wishlist products that include this ingredient."
-                          : "No other shelf or wishlist products include this ingredient yet."}
-                      </p>
+                      <LevelGate min={2}>
+                        <AiProse
+                          className="mt-1"
+                          text={alsoInProducts.length > 0
+                            ? "Other shelf or wishlist products that include this ingredient. At guided levels, use this to spot repeated exposure across your routine."
+                            : "No other shelf or wishlist products include this ingredient yet. If you add more products later, STRAND will show repeats here."
+                          }
+                        />
+                      </LevelGate>
                     </div>
 
                     {shelfMatches.length > 0 && (
