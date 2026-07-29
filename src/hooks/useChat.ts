@@ -132,6 +132,79 @@ export function useChatThreads(scope?: ActiveRoleView | "all") {
   return { ...query, data: filtered } as typeof query;
 }
 
+export interface ChatThreadMeta {
+  preview: string;
+  preview_mine: boolean;
+  preview_read: boolean;
+  unread: number;
+}
+
+/**
+ * Shared last-message + unread map for a set of threads.
+ * One cache entry serves the Messages list AND the global chat widget, so
+ * switching between them is instant. Deliberately two small queries instead
+ * of pulling every message ever sent: the previews query is capped, and the
+ * unread query only touches rows that are still unread.
+ */
+export function useChatThreadMeta(threads: ChatThread[] | undefined) {
+  const { user } = useAuth();
+  const view = useActiveRoleView();
+  const ids = useMemo(
+    () => (threads ?? []).map((t) => t.id).sort(),
+    [threads],
+  );
+  return useQuery({
+    queryKey: ["chat_thread_meta", user?.id, view, ids.join(",")],
+    enabled: !!user?.id && ids.length > 0,
+    staleTime: 30_000,
+    gcTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
+    queryFn: async (): Promise<Map<string, ChatThreadMeta>> => {
+      const byId = new Map((threads ?? []).map((t) => [t.id, t]));
+      const isMine = (m: { sender_id: string | null; sender_role: string | null; thread_id: string }) => {
+        const t = byId.get(m.thread_id);
+        return t ? messageIsMine(m, t, user!.id, view) : m.sender_id === user!.id;
+      };
+
+      const [previewRes, unreadRes] = await Promise.all([
+        supabase
+          .from("chat_messages")
+          .select("thread_id, body, sender_id, sender_role, read_at, kind, created_at")
+          .in("thread_id", ids)
+          .eq("kind", "text")
+          .order("created_at", { ascending: false })
+          .limit(Math.min(400, ids.length * 12)),
+        supabase
+          .from("chat_messages")
+          .select("thread_id, sender_id, sender_role")
+          .in("thread_id", ids)
+          .is("read_at", null)
+          .not("sender_id", "is", null),
+      ]);
+
+      const meta = new Map<string, ChatThreadMeta>();
+      const get = (id: string) =>
+        meta.get(id) ?? { preview: "", preview_mine: false, preview_read: false, unread: 0 };
+
+      for (const m of previewRes.data ?? []) {
+        const cur = get(m.thread_id);
+        if (!cur.preview) {
+          cur.preview = m.body ?? "";
+          cur.preview_mine = isMine(m);
+          cur.preview_read = !!m.read_at;
+        }
+        meta.set(m.thread_id, cur);
+      }
+      for (const m of unreadRes.data ?? []) {
+        const cur = get(m.thread_id);
+        if (!isMine(m)) cur.unread += 1;
+        meta.set(m.thread_id, cur);
+      }
+      return meta;
+    },
+  });
+}
+
 
 /** Single thread + its messages, with realtime updates. */
 export function useChatThread(threadId: string | null | undefined) {
