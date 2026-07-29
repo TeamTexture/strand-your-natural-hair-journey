@@ -1099,31 +1099,29 @@ const IngredientDetail = () => {
             )}
 
             {analysis.pair_with && analysis.pair_with.length > 0 && (
-              <>
+              <LevelGate min={2}>
                 <SectionLabel>Pair with (from your shelf)</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {analysis.pair_with.map((p, idx) => (
+                  {(tipsLevel === 2 ? analysis.pair_with.slice(0, 2) : analysis.pair_with).map((p, idx) => (
                     <div key={`pair-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">
                         <span className="font-medium">{p.item}</span>
-                        {p.why ? <span className="text-foreground/70"> — {p.why}</span> : null}
+                        {p.why && tipsLevel >= 3 ? <span className="text-foreground/70"> — {p.why}</span> : null}
                       </p>
                     </div>
                   ))}
                 </SurfaceCard>
-              </>
+              </LevelGate>
             )}
 
             {analysis.routine_suggestion && (
-              <>
+              <LevelGate min={2}>
                 <SectionLabel>Slot into your routine</SectionLabel>
                 <SurfaceCard>
-                  <p className="text-sm leading-relaxed text-foreground/85">
-                    {analysis.routine_suggestion}
-                  </p>
+                  <AiProse text={analysis.routine_suggestion} className="text-sm" />
                 </SurfaceCard>
-              </>
+              </LevelGate>
             )}
 
 
