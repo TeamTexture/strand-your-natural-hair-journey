@@ -2302,7 +2302,7 @@ export type Database = {
           onboarding_completed_at: string | null
           phone_number: string | null
           postcode: string | null
-          tips_level: string
+          tips_level: number
           tips_level_prompted_at: string | null
           updated_at: string
           user_id: string
@@ -2320,7 +2320,7 @@ export type Database = {
           onboarding_completed_at?: string | null
           phone_number?: string | null
           postcode?: string | null
-          tips_level?: string
+          tips_level?: number
           tips_level_prompted_at?: string | null
           updated_at?: string
           user_id: string
@@ -2338,7 +2338,7 @@ export type Database = {
           onboarding_completed_at?: string | null
           phone_number?: string | null
           postcode?: string | null
-          tips_level?: string
+          tips_level?: number
           tips_level_prompted_at?: string | null
           updated_at?: string
           user_id?: string

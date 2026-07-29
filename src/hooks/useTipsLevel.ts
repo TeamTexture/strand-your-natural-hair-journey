@@ -5,7 +5,9 @@ import {
   DEFAULT_TIPS_LEVEL,
   TIPS_LEVEL_PROMPTED_KEY,
   TIPS_LEVEL_STORAGE_KEY,
-  isTipsLevel,
+  coerceTipsLevel,
+  showsBeginnerHelp,
+  showsExplanations,
   type TipsLevel,
 } from "@/lib/tipsLevel";
 
@@ -16,8 +18,7 @@ const promptListeners = new Set<(dismissed: boolean) => void>();
 
 const readCached = (): TipsLevel => {
   try {
-    const raw = localStorage.getItem(TIPS_LEVEL_STORAGE_KEY);
-    return isTipsLevel(raw) ? raw : DEFAULT_TIPS_LEVEL;
+    return coerceTipsLevel(localStorage.getItem(TIPS_LEVEL_STORAGE_KEY));
   } catch {
     return DEFAULT_TIPS_LEVEL;
   }
@@ -32,11 +33,11 @@ const readPrompted = (): boolean => {
 };
 
 /**
- * Tips density preference (`profiles.tips_level`).
+ * Support-level preference (`profiles.tips_level`, 1–4).
  *
  * Returns the current level, a setter that persists to the backend, and
  * `needsPrompt` — true until the user has answered the one-time inline
- * "essentials or full guidance?" question.
+ * "how much guidance do you want?" question.
  */
 export function useTipsLevel() {
   const { user } = useAuth();
@@ -64,10 +65,10 @@ export function useTipsLevel() {
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled || !data) return;
-      const next = isTipsLevel(data.tips_level) ? data.tips_level : DEFAULT_TIPS_LEVEL;
+      const next = coerceTipsLevel(data.tips_level);
       setLevelState(next);
       try {
-        localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, next);
+        localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, String(next));
       } catch { /* private mode */ }
       if (data.tips_level_prompted_at) {
         setPrompted(true);
@@ -82,7 +83,7 @@ export function useTipsLevel() {
   const persist = useCallback(
     async (next: TipsLevel, markPrompted: boolean) => {
       try {
-        localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, next);
+        localStorage.setItem(TIPS_LEVEL_STORAGE_KEY, String(next));
         if (markPrompted) localStorage.setItem(TIPS_LEVEL_PROMPTED_KEY, "1");
       } catch { /* private mode */ }
       setLevelState(next);
@@ -106,5 +107,14 @@ export function useTipsLevel() {
   const setLevel = useCallback((next: TipsLevel) => { void persist(next, false); }, [persist]);
   const answerPrompt = useCallback((next: TipsLevel) => { void persist(next, true); }, [persist]);
 
-  return { level, setLevel, answerPrompt, needsPrompt: !prompted };
+  return {
+    level,
+    setLevel,
+    answerPrompt,
+    needsPrompt: !prompted,
+    /** Show the "why" behind each tip (level 3+). */
+    showExplanations: showsExplanations(level),
+    /** Show inline beginner definitions + encouragement (level 4). */
+    showBeginnerHelp: showsBeginnerHelp(level),
+  };
 }
