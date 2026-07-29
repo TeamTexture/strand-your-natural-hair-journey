@@ -1035,23 +1035,8 @@ const IngredientDetail = () => {
                   The label didn't say much, so this is judged from the ingredients alone.
                 </p>
               )}
-              <button
-                type="button"
-                onClick={() => setPurposeEditOpen(true)}
-                className="text-[11px] text-muted-foreground underline underline-offset-2"
-              >
-                Not right? Edit product type
-              </button>
             </SurfaceCard>
 
-            <Dialog open={purposeEditOpen} onOpenChange={setPurposeEditOpen}>
-              <DialogContent className="max-w-[320px] rounded-[18px]">
-                <DialogHeader>
-                  <DialogTitle className="font-display text-base">Edit product type</DialogTitle>
-                </DialogHeader>
-                <MarketedPurposeSelector value={purpose} onChange={savePurpose} />
-              </DialogContent>
-            </Dialog>
 
 
             {analysis.use_cases && analysis.use_cases.length > 0 && (
