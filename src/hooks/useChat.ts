@@ -117,8 +117,15 @@ export function useChatThreads(scope?: ActiveRoleView | "all") {
   const filtered = useMemo(() => {
     if (!user?.id || !query.data) return query.data;
     if (view === "all") return query.data;
-    return query.data.filter((t) => threadMatchesView(t, user.id, view));
+    const scoped = query.data.filter((t) => threadMatchesView(t, user.id, view));
+    // Multi-role accounts (admin / pro / brand) share one inbox. If the
+    // current view has no threads but the account does, show everything
+    // rather than an empty inbox — a STRAND Team thread must never look
+    // like it disappeared just because the view toggle sits elsewhere.
+    if (scoped.length === 0 && query.data.length > 0) return query.data;
+    return scoped;
   }, [query.data, user?.id, view]);
+
   return { ...query, data: filtered } as typeof query;
 }
 
