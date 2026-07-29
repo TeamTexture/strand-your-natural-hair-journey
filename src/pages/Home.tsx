@@ -1,4 +1,6 @@
 import TipsLevelButton from "@/components/TipsLevelButton";
+import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -77,6 +79,7 @@ const Home = () => {
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
+  const { showBeginnerHelp } = useTipsLevel();
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
