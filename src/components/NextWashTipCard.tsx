@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import type { TipsLevel } from "@/lib/tipsLevel";
+import { TIPS_LEVEL_MAX } from "@/lib/tipsLevel";
+import { condenseProse } from "@/lib/tipsRender";
 
 
 interface NextWashTipCardProps {
@@ -550,10 +551,9 @@ export function NextWashTipCard({
       : "";
   const effectiveWhy = [overflow, rawWhy].filter(Boolean).join("\n\n");
   const allSections = buildTipSections(effectiveWhy);
-  // Support level controls how much of the reasoning is unpacked. Level 1 keeps
-  // the single most important section; level 4 shows the full breakdown.
-  const sectionCap: Record<TipsLevel, number> = { 1: 1, 2: 2, 3: 5, 4: Number.POSITIVE_INFINITY };
-  const cap = sectionCap[level];
+  // Support level controls how much of the reasoning is unpacked. Use the
+  // shared scale so every guidance surface responds consistently.
+  const cap = TIPS_LEVEL_MAX[level];
   const sections = Number.isFinite(cap) ? allSections.slice(0, cap) : allSections;
 
 
@@ -609,7 +609,7 @@ export function NextWashTipCard({
                         </p>
                       </div>
                       <p className="text-[#E0D7CC]/90 text-[13px] leading-relaxed font-body break-words pl-9">
-                        {renderInline(body, `p${i}`, products)}
+                        {renderInline(condenseProse(body, level), `p${i}`, products)}
                       </p>
                     </div>
                   ))}

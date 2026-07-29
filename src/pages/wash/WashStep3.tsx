@@ -8,6 +8,8 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import VoiceNoteField from "@/components/VoiceNoteField";
+import TipsBlock from "@/components/tips/TipsBlock";
+import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -96,11 +98,37 @@ const WashStep3 = () => {
     <ScreenLayout>
       <TitleBar title="Wash Day" right={<span>3 of 5</span>} onBack={smartBack(navigate, "/wash/step-2")} />
       <ProgressDots total={5} current={3} />
-      <ItalicSub>
-        Moisture is in how your hair moves and feels — not a label. Tell us in your own words.
-      </ItalicSub>
+      <LevelGate min={2} fallback={<ItalicSub>Tell us how your hair feels today.</ItalicSub>}>
+        <ItalicSub>
+          Moisture is in how your hair moves and feels — not a label. Tell us in your own words.
+        </ItalicSub>
+      </LevelGate>
 
       <div className="px-5 pb-8 space-y-4">
+        <SurfaceCard tone="gold">
+          <TipsBlock
+            idPrefix="wash-step3"
+            reassurance="A short note is enough. Your words help your future advice feel more personal."
+            tips={[
+              {
+                priority: 4,
+                short: "Say the first three words that describe your hair.",
+                why: "Words like soft, coated, rough, springy or limp help connect products to results.",
+              },
+              {
+                priority: 3,
+                short: "Mention how your ends feel.",
+                why: "Ends are the oldest part of the hair, so they often show dryness or breakage first.",
+                define: "Ends means the tips of your hair strands.",
+              },
+              {
+                priority: 2,
+                short: "Use the voice note if typing feels like too much.",
+                why: "A natural spoken note captures more detail than a forced perfect sentence.",
+              },
+            ]}
+          />
+        </SurfaceCard>
         <VoiceNoteField
           label="How does your hair feel?"
           placeholder="My hair feels..."

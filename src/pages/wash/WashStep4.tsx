@@ -7,6 +7,8 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
+import AiProse from "@/components/tips/AiProse";
+import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -292,7 +294,9 @@ const WashStep4 = () => {
     <ScreenLayout>
       <TitleBar title="Wash Day" right={<span>5 of 5</span>} onBack={smartBack(navigate, "/wash/step-styling")} />
       <ProgressDots total={5} current={5} />
-      <ItalicSub>Your wash day summary. Tap any section to edit.</ItalicSub>
+      <LevelGate min={2} fallback={<ItalicSub>Review and save.</ItalicSub>}>
+        <ItalicSub>Your wash day summary. Tap any section to edit.</ItalicSub>
+      </LevelGate>
 
       <div className="px-5 pb-8 space-y-3">
         <Card
@@ -309,7 +313,7 @@ const WashStep4 = () => {
           title="How Your Hair Felt"
           body={
             step3.note ? (
-              <p className="font-body text-sm text-muted-foreground leading-snug">"{step3.note}"</p>
+              <AiProse className="text-sm text-muted-foreground leading-snug" text={`"${step3.note}"`} />
             ) : (
               <p className="font-body text-sm text-muted-foreground italic">
                 No reflection added yet — tap to write or record one.

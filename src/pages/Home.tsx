@@ -40,7 +40,6 @@ import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { limitSupporting, type GuidanceTip } from "@/lib/tipsRender";
-import { TIPS_LEVEL_MAX } from "@/lib/tipsLevel";
 
 
 // Rich text rendering is delegated to useSmartInline() inside the component

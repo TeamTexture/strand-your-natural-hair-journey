@@ -6,6 +6,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ProgressDots from "@/components/ProgressDots";
 import Tag from "@/components/Tag";
+import SurfaceCard from "@/components/SurfaceCard";
+import TipsBlock from "@/components/tips/TipsBlock";
+import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -80,9 +83,38 @@ const WashStep2 = () => {
       <ProgressDots total={5} current={2} />
 
       <div className="px-5 pb-8 space-y-5">
-        <p className="text-[11px] text-muted-foreground">
-          How did your scalp and strands feel through this wash?
-        </p>
+        <LevelGate min={2} fallback={
+          <p className="text-[11px] text-muted-foreground">Pick what stands out most.</p>
+        }>
+          <p className="text-[11px] text-muted-foreground">
+            How did your scalp and strands feel through this wash?
+          </p>
+        </LevelGate>
+        <SurfaceCard tone="gold">
+          <TipsBlock
+            idPrefix="wash-step2"
+            reassurance="You are not grading your hair — you are spotting patterns."
+            tips={[
+              {
+                priority: 4,
+                short: "Choose the scalp feeling that was strongest today.",
+                why: "Scalp comfort helps STRAND spot when cleansing, build-up or tension needs attention.",
+                define: "Your scalp is the skin your hair grows from.",
+              },
+              {
+                priority: 3,
+                short: "Mark breakage by what you saw in your hands or tools.",
+                why: "A few shed hairs are normal; repeated short broken pieces can mean the routine needs changing.",
+                define: "Breakage means snapped hair pieces, not full shed hairs with a tiny bulb at the end.",
+              },
+              {
+                priority: 2,
+                short: "If you are unsure, pick the closest answer and keep going.",
+                why: "A single log does not need to be perfect. Patterns over several wash days matter more.",
+              },
+            ]}
+          />
+        </SurfaceCard>
         <TG label="Scalp Feel" options={["Clean", "Itchy", "Tender", "Dry / flaky", "Greasy", "Balanced"]} value={scalp} onChange={setScalp} required error={submitted && errors.scalp} />
         <TG label="Breakage" options={["None", "Minimal — normal shedding", "Moderate", "A lot — concerned"]} value={breakage} onChange={setBreakage} required error={submitted && errors.breakage} />
 
