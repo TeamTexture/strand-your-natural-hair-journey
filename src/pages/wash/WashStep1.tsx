@@ -24,6 +24,8 @@ import { buildAiContext } from "@/lib/aiContext";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import WashGuidanceCard from "@/components/WashGuidanceCard";
+import { BeginnerDoubleCleanse } from "@/components/beginner/BeginnerNonNegotiables";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import HeatToolPicker from "@/components/HeatToolPicker";
 import { useUserTools } from "@/hooks/useUserTools";
@@ -263,6 +265,7 @@ const WashStep1 = () => {
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
+  const { showBeginnerHelp } = useTipsLevel();
   const [prePoo, setPrePoo] = useState<StepState>("todo");
   const [cleanse, setCleanse] = useState<StepState>("todo");
   const [coWash, setCoWash] = useState<StepState>("todo");
@@ -519,7 +522,7 @@ const WashStep1 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={smartBack(navigate, "/wash-day")} />
+      <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={smartBack(navigate, "/wash-day")} tips />
       <ProgressDots total={4} current={1} />
       <ItalicSub>
         Tap <strong>Add</strong> for steps you did and <strong>Skip</strong> for steps you didn't — be honest, it makes your history more useful.
@@ -527,7 +530,14 @@ const WashStep1 = () => {
 
       <WashGuidanceCard />
 
+      {showBeginnerHelp && (
+        <div className="px-5 mb-3">
+          <BeginnerDoubleCleanse />
+        </div>
+      )}
+
       <div className="px-5 space-y-3 pb-8">
+
         <StepCard
           step={{ id: "1", emoji: "🌿", name: "Pre-Poo", sub: "Pre-wash treatment" }}
           state={prePoo}

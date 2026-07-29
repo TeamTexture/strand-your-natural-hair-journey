@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import SurfaceCard from "@/components/SurfaceCard";
 import RichBody from "@/components/RichBody";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -149,8 +151,16 @@ const splitStrandTips = (raw: string): { rest: string; tips: string[] } => {
 };
 
 const StrandTipBox = ({ text }: { text: string }) => {
+  const { showBeginnerHelp } = useTipsLevel();
   // Support **bold** inline within the tip text.
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  if (showBeginnerHelp) {
+    return (
+      <div className="mt-3">
+        <BeginnerSteps steps={[{ text: text.replace(/\*\*/g, "") }]} />
+      </div>
+    );
+  }
   return (
     <div className="mt-3 rounded-lg border-2 border-primary/70 bg-primary/[0.06] px-3 py-2.5">
       <div className="flex items-center gap-1.5">

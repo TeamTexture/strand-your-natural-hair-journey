@@ -1,4 +1,6 @@
 import TipsLevelButton from "@/components/TipsLevelButton";
+import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -77,6 +79,7 @@ const Home = () => {
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
+  const { showBeginnerHelp } = useTipsLevel();
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
@@ -653,6 +656,15 @@ const Home = () => {
                           {renderRichText(goalTip.body)}
                         </p>
                         {goalTip.actions?.length > 0 && (
+                          showBeginnerHelp ? (
+                            <BeginnerSteps
+                              className="mt-2"
+                              steps={goalTip.actions.slice(0, 3).map((a) => ({
+                                text: typeof a === "string" ? a : a.action,
+                                detail: typeof a === "string" ? undefined : a.why,
+                              }))}
+                            />
+                          ) : (
                           <ul className="mt-2 space-y-2">
                             {goalTip.actions.slice(0, 3).map((a, i) => {
                               const actionText = typeof a === "string" ? a : a.action;
@@ -678,7 +690,9 @@ const Home = () => {
                               );
                             })}
                           </ul>
+                          )
                         )}
+
                       </>
                     ) : tipLoading ? (
                       <div className="flex items-center gap-2">

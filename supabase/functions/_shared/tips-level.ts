@@ -17,7 +17,7 @@ const DIRECTIVE: Record<TipsLevel, string> = {
   1: "Support level 1 (Minimal). Give only the single highest-priority point per section. Concise and direct. No preamble, no definitions, no encouragement padding.",
   2: "Support level 2 (Essentials). Give the top two or three priority points per section, short-form wording, minimal explanation.",
   3: "Support level 3 (Guided). Give most points with a clear explanation of the why behind each one, in plain but assured clinical language.",
-  4: "Support level 4 (Hand-holding). Assume a total beginner who has never done their own hair. Give everything: explain the why in full, frame each action step by step, define technical terms inline the first time they appear (porosity, surfactant, elasticity, density, clarifying), and include warm encouragement.",
+  4: "Support level 4 (Hand-holding — \"dummies guide\" mode). Write for someone who has NEVER done their own hair and finds text-heavy guidance intimidating. Reading age 9-10: short sentences, plain words, no jargon at all. One action per line, numbered when it is a sequence (e.g. '1. Wet your hair fully. 2. Put a coin-sized amount of shampoo in your palm.'). Where a technical term is unavoidable, give the plain-English phrase first with the term in brackets, e.g. 'how easily your hair drinks up water (this is called porosity)'. Give timings in plain minutes. Where practice commonly goes wrong, give a clear do and a clear don't. Warm and friendly, assume zero prior knowledge, never assume the reader has done this before.",
 };
 
 /** System block instructing the model how verbose and how beginner-friendly

@@ -7,6 +7,7 @@ import MarketedPurposeSelector from "@/components/MarketedPurposeSelector";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { limitTips } from "@/lib/tipsLevel";
+import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import {
   classifySurfactant,
   inferMarketedPurpose,
@@ -182,7 +183,7 @@ const IngredientDetail = () => {
     [allProducts, productKey],
   );
 
-  const { level: tipsLevel } = useTipsLevel();
+  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
 
   // Marketed purpose — what the product is SOLD for. Drives how we describe
   // surfactant strength (exact percentages are never published).
@@ -1018,13 +1019,18 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {(useCasesExpanded ? limitTips(analysis.use_cases, tipsLevel) : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
+                  {showBeginnerHelp && (
+                    <BeginnerSteps
+                      steps={limitTips(analysis.use_cases, tipsLevel).map((t) => ({ text: t }))}
+                    />
+                  )}
+                  {!showBeginnerHelp && (useCasesExpanded ? limitTips(analysis.use_cases, tipsLevel) : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
                     <div key={`uc-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
-                  {limitTips(analysis.use_cases, tipsLevel).length > 1 && (
+                  {!showBeginnerHelp && limitTips(analysis.use_cases, tipsLevel).length > 1 && (
                     <button
                       type="button"
                       onClick={() => setUseCasesExpanded((v) => !v)}
@@ -1043,12 +1049,21 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {limitTips(analysis.tips, tipsLevel).map((tip, idx) => (
-                    <div key={`tip-${idx}`} className="flex items-start gap-2">
-                      <span className="text-primary shrink-0 mt-1">•</span>
-                      <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
-                    </div>
-                  ))}
+                  {showBeginnerHelp ? (
+                    <>
+                      <BeginnerSteps
+                        steps={limitTips(analysis.tips, tipsLevel).map((t) => ({ text: t }))}
+                      />
+                      <BeginnerReassurance />
+                    </>
+                  ) : (
+                    limitTips(analysis.tips, tipsLevel).map((tip, idx) => (
+                      <div key={`tip-${idx}`} className="flex items-start gap-2">
+                        <span className="text-primary shrink-0 mt-1">•</span>
+                        <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
+                      </div>
+                    ))
+                  )}
                   <TipsLevelPrompt className="mt-1" />
                 </SurfaceCard>
               </>

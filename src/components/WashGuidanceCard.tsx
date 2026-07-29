@@ -6,6 +6,8 @@ import { useSmartInline } from "@/lib/smartInline";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { limitTips } from "@/lib/tipsLevel";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
+import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+
 
 interface HairProfile {
   porosity?: string[];
@@ -130,32 +132,33 @@ const WashGuidanceCard = () => {
             For your hair today
           </p>
         </div>
-        <ul key={level} className="space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-300">
-          {tips.map((t, i) => (
-            <li key={i} className="flex gap-2 text-[12px] leading-snug">
-              <span className="text-primary mt-0.5 shrink-0">•</span>
-              <span className="flex-1">
-                {renderTip(t.short, `tip-${i}`)}
-                {showExplanations && (
-                  <span className="block text-[11px] text-muted-foreground mt-1">
-                    {renderTip(t.why, `why-${i}`)}
-                  </span>
-                )}
-                {showBeginnerHelp && t.define && (
-                  <span className="block text-[10px] text-muted-foreground/90 italic mt-1">
-                    {t.define}
-                  </span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-        {showBeginnerHelp && (
-          <p className="text-[11px] text-muted-foreground mt-3 leading-snug">
-            Take it one step at a time — you don't need to get all of this right
-            today.
-          </p>
+        {showBeginnerHelp ? (
+          <BeginnerSteps
+            key="beginner"
+            steps={tips.map((t) => ({
+              text: t.short,
+              detail: t.why,
+              define: t.define,
+            }))}
+          />
+        ) : (
+          <ul key={level} className="space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-300">
+            {tips.map((t, i) => (
+              <li key={i} className="flex gap-2 text-[12px] leading-snug">
+                <span className="text-primary mt-0.5 shrink-0">•</span>
+                <span className="flex-1">
+                  {renderTip(t.short, `tip-${i}`)}
+                  {showExplanations && (
+                    <span className="block text-[11px] text-muted-foreground mt-1">
+                      {renderTip(t.why, `why-${i}`)}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
+        {showBeginnerHelp && <BeginnerReassurance />}
         <TipsLevelPrompt className="mt-3" />
       </SurfaceCard>
     </div>
@@ -163,3 +166,4 @@ const WashGuidanceCard = () => {
 };
 
 export default WashGuidanceCard;
+
