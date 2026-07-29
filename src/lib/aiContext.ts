@@ -327,7 +327,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
       const { data: prof } = await supabase
         .from("profiles")
         .select("tips_level")
-        .eq("id", userId)
+        .eq("user_id", userId)
         .maybeSingle();
       if (prof) tipsLevel = coerceTipsLevel(prof.tips_level);
     }
