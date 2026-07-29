@@ -6,6 +6,8 @@ import { useSmartInline } from "@/lib/smartInline";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { limitTips } from "@/lib/tipsLevel";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
+import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+
 
 interface HairProfile {
   porosity?: string[];
