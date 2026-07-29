@@ -412,11 +412,7 @@ export default function BloodPanelReview() {
                   </div>
                   {(() => {
                     const purpose = describeTestPurpose(panel.test_type, panel.label);
-                    return purpose ? (
-                      <p className="mt-2.5 text-xs font-body text-foreground/70 leading-snug">
-                        {purpose}
-                      </p>
-                    ) : null;
+                    return purpose ? <AiProse text={purpose} className="mt-2.5" /> : null;
                   })()}
 
                 </div>
@@ -484,9 +480,7 @@ export default function BloodPanelReview() {
               return (
                 <section key={cat} className="space-y-2">
                   <SectionLabel>{meta.label}</SectionLabel>
-                  <p className="text-xs font-body text-muted-foreground -mt-1">
-                    {meta.blurb}
-                  </p>
+                  <AiProse text={meta.blurb} className="-mt-1 text-muted-foreground" />
                   <SurfaceCard padded={false}>
                     <ul className="divide-y divide-border/60">
                       {rows.map((r) => {

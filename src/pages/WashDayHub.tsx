@@ -22,6 +22,8 @@ import { useDynamicWashTip } from "@/hooks/useDynamicWashTip";
 import { Sparkles } from "lucide-react";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 
 
 const monthNames = [
@@ -288,6 +290,7 @@ const WashDayHub = () => {
   const { washDays, loading } = useWashDays();
   const { goals } = useGoals();
   const { user } = useAuth();
+  const { level, showBeginnerHelp } = useTipsLevel();
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
 
@@ -479,9 +482,19 @@ const WashDayHub = () => {
                 <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
                   Next wash reminder
                 </p>
+              {showBeginnerHelp ? (
+                <BeginnerSteps
+                  className="mt-2"
+                  steps={[
+                    { text: educational.reminder },
+                    { text: "Put the wash day in your calendar now.", detail: "That gives your scalp routine a clear rhythm." },
+                  ]}
+                />
+              ) : (
                 <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
-                  {educational.reminder}
+                  {level === 1 ? "Keep your next wash day visible." : educational.reminder}
                 </p>
+              )}
                 {educational.nextDateIso && (
                   <div className="mt-3 flex flex-col gap-2">
                     {scheduledSet.has(educational.nextDateIso) ? (
@@ -518,9 +531,11 @@ const WashDayHub = () => {
                   </div>
                 )}
               </div>
-              <p className="font-body text-[11.5px] text-muted-foreground mt-3">
-                💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
-              </p>
+              <LevelGate min={2}>
+                <p className="font-body text-[11.5px] text-muted-foreground mt-3">
+                  💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
+                </p>
+              </LevelGate>
             </div>
           </div>
         </SurfaceCard>
@@ -628,6 +643,7 @@ const WashDayHub = () => {
 
 const DynamicWashTipCard = () => {
   const { data: tip, isLoading } = useDynamicWashTip();
+  const { showBeginnerHelp } = useTipsLevel();
   if (isLoading && !tip) return null;
   if (!tip) return null;
   return (
@@ -643,8 +659,18 @@ const DynamicWashTipCard = () => {
           <p className="font-display text-[15px] leading-snug mt-1 break-words">
             {tip.headline}
           </p>
-          <AiProse text={tip.why} className="mt-2" />
-          {tip.technique && (
+          {showBeginnerHelp ? (
+            <BeginnerSteps
+              className="mt-2"
+              steps={[
+                { text: tip.headline, detail: tip.why },
+                ...(tip.technique ? [{ text: tip.technique }] : []),
+              ]}
+            />
+          ) : (
+            <AiProse text={tip.why} className="mt-2" />
+          )}
+          {tip.technique && !showBeginnerHelp && (
             <LevelGate min={2}>
               <div className="mt-2">
                 <AiProse text={`How: ${tip.technique}`} />

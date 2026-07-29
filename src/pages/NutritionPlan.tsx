@@ -154,7 +154,8 @@ const splitStrandTips = (raw: string): { rest: string; tips: string[] } => {
 };
 
 const StrandTipBox = ({ text }: { text: string }) => {
-  const { showBeginnerHelp } = useTipsLevel();
+  const { level, showBeginnerHelp } = useTipsLevel();
+  if (level === 1) return null;
   // Support **bold** inline within the tip text.
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   if (showBeginnerHelp) {
@@ -176,7 +177,7 @@ const StrandTipBox = ({ text }: { text: string }) => {
         {parts.map((p, i) =>
           /^\*\*[^*]+\*\*$/.test(p)
             ? <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
-            : <span key={i}>{p}</span>
+            : <span key={i}>{condenseProse(p, level)}</span>
         )}
       </p>
     </div>

@@ -1,4 +1,7 @@
 import { Sparkles } from "lucide-react";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { condenseProse, splitSentences } from "@/lib/tipsRender";
+import { pickTipIcon, plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { useSmartInline, normaliseHeatLanguage } from "@/lib/smartInline";
 
 const chunkSentences = (text: string, perChunk = 2): string[] => {
@@ -83,7 +86,40 @@ interface RichBodyProps {
 
 const RichBody = ({ text, className = "", strandTipLast = false }: RichBodyProps) => {
   const smartInline = useSmartInline();
+  const { level } = useTipsLevel();
   const raw = normaliseText(text);
+
+  if (level <= 2) {
+    const condensed = condenseProse(raw, level);
+    if (!condensed) return null;
+    return (
+      <p key={level} className={`text-xs text-foreground/85 font-body leading-relaxed animate-in fade-in-0 duration-300 ${className}`}>
+        {smartInline(condensed, "dense")}
+      </p>
+    );
+  }
+
+  if (level >= 4) {
+    const lines = splitSentences(condenseProse(raw, level));
+    return (
+      <div key={level} className={`space-y-2 animate-in fade-in-0 duration-300 ${className}`}>
+        {lines.map((line, i) => {
+          const Icon = pickTipIcon(line);
+          return (
+            <div key={i} className="flex items-start gap-2.5">
+              <span className="size-7 rounded-full bg-primary/12 flex items-center justify-center shrink-0 mt-[1px]">
+                <Icon className="size-3.5 text-primary" />
+              </span>
+              <p className="flex-1 text-[13px] leading-relaxed text-foreground/90">
+                {smartInline(plainLanguage(line), `beginner-${i}`)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   let paras = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   if (paras.length <= 1 && raw.length > 220) {
     paras = chunkSentences(raw, 2);
