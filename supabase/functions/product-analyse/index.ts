@@ -45,6 +45,8 @@ import {
   RETURN_PRODUCT_ANALYSIS_SCHEMA,
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
+import { MARKETED_PURPOSE_RULES } from "../_shared/marketed-purpose.ts";
+
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
 
@@ -152,6 +154,8 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
    - usage_instructions: VERBATIM directions from the manufacturer if visible on photo 2 OR resolved via web_search. If neither source provides directions, return "" — never invent.
    - use_cases: 2–4 concrete tips for how THIS user should use the product, anchored in their hair traits, current_hairstyle, or goals. Do NOT repeat manufacturer directions.
    - tips: 2–4 personalised reasoning tips about fit/usage that go beyond use_cases. Anchor each in the user's data.
+
+${MARKETED_PURPOSE_RULES}
 
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE:
 Moisture comes from water. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. Use this phrasing only.
@@ -311,13 +315,16 @@ LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your 
 8. use_cases: 2–4 concrete tips for how THIS user should use the product, written in their context. Each tip MUST tie back to one of: their hair profile, current_hairstyle, a goal, or a challenge they listed (e.g. "Use weekly on wash day to support your length-retention goal", "Smooth onto edges between braid refreshes — your braids are 4 weeks in"). Do NOT repeat the manufacturer's directions here; build on them with personal reasoning.
 9. Output STRICT JSON only. No prose, no code fences.
 
+${MARKETED_PURPOSE_RULES}
+
 SCHEMA
 {
   "product_name": string,
   "brand": string,
   "category": "shampoo"|"conditioner"|"treatment"|"styler"|"oil"|"mask"|"leave-in"|"other",
   "ingredients": string[],
-  "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string}],
+  "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string, "surfactant_role": "primary"|"secondary"|"none"}],
+  "marketed_purpose": "dry_hair"|"damaged_hair"|"colour_treated"|"greasy_oily"|"general_all_hair_types"|"moisture"|"repair"|"clarifying",
   "match_score": number,
   "ai_summary": string,
   "usage_instructions": string,

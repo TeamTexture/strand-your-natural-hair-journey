@@ -55,6 +55,7 @@ interface SummaryPayload {
   action_plan: string[];
   routine_tips: string[];
 }
+import { TRIM_EDUCATION_PROMPT } from "../_shared/trim-education.ts";
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
@@ -64,7 +65,7 @@ OUTPUT — JSON object only, no prose outside it:
 {
   "overview": string,            // 3-5 sentences. Second-person description of the user's hair, current style, and any relevant clinical/blood signals. Plain, factual, human. No pleasantries, no flattery, no filler.
   "action_plan": [],             // DEPRECATED. Always return an empty array. Fold every concrete action into routine_tips instead.
-  "routine_tips": string[]       // 4-6 items. See ROUTINE TIP RULES below. This is now the ONLY list of recommendations shown to the user, so it must carry the concrete actions AND their reasoning.
+  "routine_tips": string[]       // 4-6 items (up to 7 when the trim-education tip is required). See ROUTINE TIP RULES below. This is now the ONLY list of recommendations shown to the user, so it must carry the concrete actions AND their reasoning.
 }
 
 ROUTINE TIP RULES — CRITICAL:
@@ -82,6 +83,8 @@ Each item MUST be a single sentence that follows this shape:
 - Every tip MUST be grounded in the manuscript teachings provided below. Do not invent guidance outside them. If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one tip must reference it directly.
 
 ${CORE_ROUTINE_GUARDRAILS_PROMPT}
+
+${TRIM_EDUCATION_PROMPT}
 
 BLOOD & HEALTH INTEGRATION — REQUIRED:
 The overview and routine tips MUST weave in the user's blood work and health profile when data is present. Specifically:

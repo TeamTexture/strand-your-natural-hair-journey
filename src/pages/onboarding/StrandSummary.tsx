@@ -12,6 +12,9 @@ import {
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
+import TipsLevelPrompt from "@/components/TipsLevelPrompt";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { limitTips } from "@/lib/tipsLevel";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,6 +94,7 @@ interface Summary {
 }
 
 const StrandSummary = () => {
+  const { level: tipsLevel } = useTipsLevel();
   const renderRichText = useSmartInline();
   const navigate = useNavigate();
   const location = useLocation();
@@ -334,7 +338,7 @@ const StrandSummary = () => {
                   <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Routine tips</p>
                 </div>
                 <ul className="space-y-2">
-                  {summary.routine_tips.map((b, i) => {
+                  {limitTips(summary.routine_tips, tipsLevel).map((b, i) => {
                     const Icon = pickIcon(b);
                     return (
                       <li key={i} className="flex gap-2.5 items-start rounded-[12px] bg-secondary/40 px-3 py-2.5">
@@ -348,6 +352,7 @@ const StrandSummary = () => {
                     );
                   })}
                 </ul>
+                <TipsLevelPrompt className="mt-3" />
               </SurfaceCard>
             )}
           </>

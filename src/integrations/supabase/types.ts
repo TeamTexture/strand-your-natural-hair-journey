@@ -1932,10 +1932,12 @@ export type Database = {
           id: string
           instagram_handle: string | null
           is_published: boolean
+          listing_tier: Database["public"]["Enums"]["pro_listing_tier"]
           location: string | null
           opening_hours: Json | null
           photos: string[]
           postcode: string | null
+          referral_fee_percent: number | null
           services: Json
           specialisms: string[]
           suspended_at: string | null
@@ -1960,10 +1962,12 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           is_published?: boolean
+          listing_tier?: Database["public"]["Enums"]["pro_listing_tier"]
           location?: string | null
           opening_hours?: Json | null
           photos?: string[]
           postcode?: string | null
+          referral_fee_percent?: number | null
           services?: Json
           specialisms?: string[]
           suspended_at?: string | null
@@ -1988,10 +1992,12 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           is_published?: boolean
+          listing_tier?: Database["public"]["Enums"]["pro_listing_tier"]
           location?: string | null
           opening_hours?: Json | null
           photos?: string[]
           postcode?: string | null
+          referral_fee_percent?: number | null
           services?: Json
           specialisms?: string[]
           suspended_at?: string | null
@@ -2000,6 +2006,101 @@ export type Database = {
           website_url?: string | null
         }
         Relationships: []
+      }
+      pro_referral_attributions: {
+        Row: {
+          amount_owed: number | null
+          appointment_id: string | null
+          booking_value: number | null
+          consumer_id: string
+          created_at: string
+          directory_id: string | null
+          enquiry_id: string | null
+          event_type: string
+          id: string
+          notes: string | null
+          pro_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_owed?: number | null
+          appointment_id?: string | null
+          booking_value?: number | null
+          consumer_id: string
+          created_at?: string
+          directory_id?: string | null
+          enquiry_id?: string | null
+          event_type?: string
+          id?: string
+          notes?: string | null
+          pro_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_owed?: number | null
+          appointment_id?: string | null
+          booking_value?: number | null
+          consumer_id?: string
+          created_at?: string
+          directory_id?: string | null
+          enquiry_id?: string | null
+          event_type?: string
+          id?: string
+          notes?: string | null
+          pro_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pro_referral_attributions_directory_id_fkey"
+            columns: ["directory_id"]
+            isOneToOne: false
+            referencedRelation: "professionals_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pro_referral_attributions_enquiry_id_fkey"
+            columns: ["enquiry_id"]
+            isOneToOne: false
+            referencedRelation: "pro_enquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pro_referral_clicks: {
+        Row: {
+          created_at: string
+          directory_id: string | null
+          id: string
+          pro_user_id: string | null
+          target_url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          directory_id?: string | null
+          id?: string
+          pro_user_id?: string | null
+          target_url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          directory_id?: string | null
+          id?: string
+          pro_user_id?: string | null
+          target_url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pro_referral_clicks_directory_id_fkey"
+            columns: ["directory_id"]
+            isOneToOne: false
+            referencedRelation: "professionals_directory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pro_subscriptions: {
         Row: {
@@ -2121,14 +2222,17 @@ export type Database = {
           bio: string | null
           booking_url: string | null
           clinic_name: string | null
+          contact_email: string | null
           created_at: string
           discount_code: string | null
           discount_description: string | null
           id: string
           instagram_handle: string | null
           is_active: boolean
+          listing_tier: Database["public"]["Enums"]["pro_listing_tier"]
           name: string
           postcode: string | null
+          referral_fee_percent: number | null
           specialisms: string[]
           title: string
           type: Database["public"]["Enums"]["pro_type"]
@@ -2141,14 +2245,17 @@ export type Database = {
           bio?: string | null
           booking_url?: string | null
           clinic_name?: string | null
+          contact_email?: string | null
           created_at?: string
           discount_code?: string | null
           discount_description?: string | null
           id?: string
           instagram_handle?: string | null
           is_active?: boolean
+          listing_tier?: Database["public"]["Enums"]["pro_listing_tier"]
           name: string
           postcode?: string | null
+          referral_fee_percent?: number | null
           specialisms?: string[]
           title: string
           type: Database["public"]["Enums"]["pro_type"]
@@ -2161,14 +2268,17 @@ export type Database = {
           bio?: string | null
           booking_url?: string | null
           clinic_name?: string | null
+          contact_email?: string | null
           created_at?: string
           discount_code?: string | null
           discount_description?: string | null
           id?: string
           instagram_handle?: string | null
           is_active?: boolean
+          listing_tier?: Database["public"]["Enums"]["pro_listing_tier"]
           name?: string
           postcode?: string | null
+          referral_fee_percent?: number | null
           specialisms?: string[]
           title?: string
           type?: Database["public"]["Enums"]["pro_type"]
@@ -2192,6 +2302,8 @@ export type Database = {
           onboarding_completed_at: string | null
           phone_number: string | null
           postcode: string | null
+          tips_level: string
+          tips_level_prompted_at: string | null
           updated_at: string
           user_id: string
         }
@@ -2208,6 +2320,8 @@ export type Database = {
           onboarding_completed_at?: string | null
           phone_number?: string | null
           postcode?: string | null
+          tips_level?: string
+          tips_level_prompted_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2224,6 +2338,8 @@ export type Database = {
           onboarding_completed_at?: string | null
           phone_number?: string | null
           postcode?: string | null
+          tips_level?: string
+          tips_level_prompted_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2521,6 +2637,9 @@ export type Database = {
           last_used_at: string | null
           linked_brand_offer_id: string | null
           linked_brand_product_id: string | null
+          marketed_purpose:
+            | Database["public"]["Enums"]["product_marketed_purpose"]
+            | null
           match_score: number | null
           name: string
           off_shelf_reason: string | null
@@ -2552,6 +2671,9 @@ export type Database = {
           last_used_at?: string | null
           linked_brand_offer_id?: string | null
           linked_brand_product_id?: string | null
+          marketed_purpose?:
+            | Database["public"]["Enums"]["product_marketed_purpose"]
+            | null
           match_score?: number | null
           name: string
           off_shelf_reason?: string | null
@@ -2583,6 +2705,9 @@ export type Database = {
           last_used_at?: string | null
           linked_brand_offer_id?: string | null
           linked_brand_product_id?: string | null
+          marketed_purpose?:
+            | Database["public"]["Enums"]["product_marketed_purpose"]
+            | null
           match_score?: number | null
           name?: string
           off_shelf_reason?: string | null
@@ -3262,7 +3387,17 @@ export type Database = {
         | "Colourist"
         | "Stylist"
       pro_enquiry_status: "pending" | "accepted" | "declined" | "withdrawn"
+      pro_listing_tier: "full" | "listed_enquiry" | "external_link"
       pro_type: "Trichologist" | "Dermatologist" | "Curl Specialist"
+      product_marketed_purpose:
+        | "dry_hair"
+        | "damaged_hair"
+        | "colour_treated"
+        | "greasy_oily"
+        | "general_all_hair_types"
+        | "moisture"
+        | "repair"
+        | "clarifying"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3411,7 +3546,18 @@ export const Constants = {
         "Stylist",
       ],
       pro_enquiry_status: ["pending", "accepted", "declined", "withdrawn"],
+      pro_listing_tier: ["full", "listed_enquiry", "external_link"],
       pro_type: ["Trichologist", "Dermatologist", "Curl Specialist"],
+      product_marketed_purpose: [
+        "dry_hair",
+        "damaged_hair",
+        "colour_treated",
+        "greasy_oily",
+        "general_all_hair_types",
+        "moisture",
+        "repair",
+        "clarifying",
+      ],
     },
   },
 } as const

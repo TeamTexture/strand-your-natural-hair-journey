@@ -12,6 +12,7 @@ import UserAvatar from "@/components/UserAvatar";
 import PlusBadge from "@/components/PlusBadge";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import FontScaleControl from "@/components/FontScaleControl";
+import TipsLevelControl from "@/components/TipsLevelControl";
 import { formatTime12h } from "@/lib/formatTime";
 import { Button } from "@/components/ui/button";
 import {
@@ -776,6 +777,9 @@ const Profile = () => {
       <div className="px-5 pb-4">
         <div className="p-4 rounded-[12px] bg-card border border-border">
           <FontScaleControl />
+        </div>
+        <div className="p-4 rounded-[12px] bg-card border border-border mt-3">
+          <TipsLevelControl />
         </div>
       </div>
 

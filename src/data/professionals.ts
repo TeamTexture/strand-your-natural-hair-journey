@@ -33,6 +33,18 @@ export interface Professional {
   /** When present, this pro has a live `pro_profiles` row and enquiries
    *  should go through the in-app flow instead of an external link. */
   proUserId?: string;
+  /**
+   * Listing tier:
+   *  - "full"           Tier A — full subscriber: directory, in-app enquiries, chat, passport.
+   *  - "listed_enquiry" Tier B — directory + in-app enquiry forwarded to their email. No chat/passport.
+   *  - "external_link"  Tier C — directory + tracked outbound link only (referral partner).
+   * Curated/static entries with no tier are treated as "external_link".
+   */
+  listingTier?: "full" | "listed_enquiry" | "external_link";
+  /** Admin-set referral fee percentage (e.g. 25). */
+  referralFeePercent?: number | null;
+  /** `professionals_directory.id` when this entry came from the DB table. */
+  directoryId?: string;
   /** Optional extended contact & premises info (live pros from `pro_profiles`). */
   businessPhone?: string;
   businessEmail?: string;

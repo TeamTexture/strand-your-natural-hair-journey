@@ -3,6 +3,19 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import MarketedPurposeSelector from "@/components/MarketedPurposeSelector";
+import TipsLevelPrompt from "@/components/TipsLevelPrompt";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { limitTips } from "@/lib/tipsLevel";
+import {
+  classifySurfactant,
+  inferMarketedPurpose,
+  isMarketedPurpose,
+  MARKETED_PURPOSE_SURFACTANT_NOTE,
+  SURFACTANT_ROLE_LABEL,
+  SURFACTANT_ROLE_NOTE,
+  type MarketedPurpose,
+} from "@/lib/marketedPurpose";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import ProductPhotoTile from "@/components/ProductPhotoTile";
 import ProductThumb from "@/components/ProductThumb";
@@ -167,6 +180,48 @@ const IngredientDetail = () => {
   const productRow = useMemo(
     () => allProducts.find((p) => p.product_key === productKey) ?? null,
     [allProducts, productKey],
+  );
+
+  const { level: tipsLevel } = useTipsLevel();
+
+  // Marketed purpose — what the product is SOLD for. Drives how we describe
+  // surfactant strength (exact percentages are never published).
+  const [purpose, setPurpose] = useState<MarketedPurpose | null>(null);
+  useEffect(() => {
+    const stored = (productRow as { marketed_purpose?: unknown } | null)?.marketed_purpose;
+    if (isMarketedPurpose(stored)) {
+      setPurpose(stored);
+      return;
+    }
+    const fromScan = (freshAnalysis as { marketed_purpose?: unknown } | null)?.marketed_purpose;
+    if (isMarketedPurpose(fromScan)) {
+      setPurpose(fromScan);
+      return;
+    }
+    setPurpose(
+      inferMarketedPurpose(
+        [productRow?.name, productRow?.brand, analysis?.summary].filter(Boolean).join(" "),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productRow?.id, freshAnalysis]);
+
+  const savePurpose = useCallback(
+    async (next: MarketedPurpose) => {
+      setPurpose(next);
+      if (!productRow?.id) return;
+      const { error } = await supabase
+        .from("user_products")
+        .update({ marketed_purpose: next })
+        .eq("id", productRow.id);
+      if (error) {
+        console.error(error);
+        toast.error("Could not save what this product is marketed for");
+        return;
+      }
+      void reload();
+    },
+    [productRow?.id, reload],
   );
 
   const returnAfterAutoSave = useCallback(
@@ -949,17 +1004,27 @@ const IngredientDetail = () => {
 
 
 
+            <SectionLabel>What it's marketed for</SectionLabel>
+            <SurfaceCard>
+              <MarketedPurposeSelector value={purpose} onChange={savePurpose} />
+              <p className="text-[11px] leading-snug text-muted-foreground mt-2">
+                {purpose
+                  ? MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]
+                  : "Set this so we can judge how strong the cleansers are likely to be — brands don't publish exact percentages."}
+              </p>
+            </SurfaceCard>
+
             {analysis.use_cases && analysis.use_cases.length > 0 && (
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {(useCasesExpanded ? analysis.use_cases : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
+                  {(useCasesExpanded && tipsLevel === "detailed" ? analysis.use_cases : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
                     <div key={`uc-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
-                  {analysis.use_cases.length > 1 && (
+                  {analysis.use_cases.length > 1 && tipsLevel === "detailed" && (
                     <button
                       type="button"
                       onClick={() => setUseCasesExpanded((v) => !v)}
@@ -978,12 +1043,13 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard className="space-y-2">
-                  {analysis.tips.slice(0, 2).map((tip, idx) => (
+                  {limitTips(analysis.tips.slice(0, 2), tipsLevel).map((tip, idx) => (
                     <div key={`tip-${idx}`} className="flex items-start gap-2">
                       <span className="text-primary shrink-0 mt-1">•</span>
                       <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
                     </div>
                   ))}
+                  <TipsLevelPrompt className="mt-1" />
                 </SurfaceCard>
               </>
             )}
@@ -1245,6 +1311,26 @@ const IngredientDetail = () => {
                       Pulling the science together for your hair…
                     </p>
                   )}
+
+                  {(() => {
+                    const role = classifySurfactant(ing.name);
+                    if (role === "none") return null;
+                    return (
+                      <div className="rounded-[10px] border border-primary/25 bg-primary/5 p-3">
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold mb-1">
+                          {SURFACTANT_ROLE_LABEL[role]}
+                        </p>
+                        <p className="text-[12px] leading-snug text-foreground/85">
+                          {SURFACTANT_ROLE_NOTE[role]}
+                        </p>
+                        {purpose && (
+                          <p className="text-[12px] leading-snug text-foreground/85 mt-1.5">
+                            {MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">

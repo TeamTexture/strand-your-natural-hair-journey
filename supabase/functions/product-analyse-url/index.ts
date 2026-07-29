@@ -54,6 +54,7 @@ import {
 } from "../_shared/schemas.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
+import { MARKETED_PURPOSE_RULES } from "../_shared/marketed-purpose.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -138,6 +139,8 @@ Grounding rule: when your guidance is rooted in the retrieved manuscript passage
 
 WASH-DAY BASELINE — HARD RULE:
 When THIS product is a shampoo, cleanser, co-wash, conditioner, deep conditioner, mask, or anything that belongs in wash day, apply the Chapter 13 routine as the default logic: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. Do not present co-wash as a replacement for shampoo cleansing. Adapt for protective styles or scalp sensitivity without abandoning the need to clean both scalp and hair.
+
+${MARKETED_PURPOSE_RULES}
 
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE:
 Moisture comes from water. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. Use this phrasing only.
@@ -308,13 +311,16 @@ ABSOLUTE RULES
    directions verbatim here; build on them with personal reasoning.
 9. Output STRICT JSON only. No prose, no code fences.
 
+${MARKETED_PURPOSE_RULES}
+
 SCHEMA
 {
   "product_name": string,
   "brand": string,
   "category": "shampoo"|"conditioner"|"treatment"|"styler"|"oil"|"mask"|"leave-in"|"other",
   "ingredients": string[],
-  "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string}],
+  "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string, "surfactant_role": "primary"|"secondary"|"none"}],
+  "marketed_purpose": "dry_hair"|"damaged_hair"|"colour_treated"|"greasy_oily"|"general_all_hair_types"|"moisture"|"repair"|"clarifying",
   "match_score": number,
   "ai_summary": string,
   "usage_instructions": string,
