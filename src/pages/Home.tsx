@@ -1,4 +1,3 @@
-import TipsLevelButton from "@/components/TipsLevelButton";
 import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
@@ -338,7 +337,6 @@ const Home = () => {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <TipsLevelButton />
           <button
 
             onClick={() => navigate("/help")}

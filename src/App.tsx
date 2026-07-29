@@ -20,6 +20,7 @@ import { BackButtonProvider } from "@/components/BackButtonContext";
 import MessageNotifications from "@/components/MessageNotifications";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
+import { TipsLevelProvider } from "@/hooks/useTipsLevel";
 
 // Eager: entry + 404 (tiny, always likely to hit)
 import Index from "./pages/Index.tsx";
@@ -222,6 +223,7 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ViewAsProvider>
         <AuthProvider>
+          <TipsLevelProvider>
           <BackButtonProvider>
             <GlobalEffects />
             <MessageNotifications />
@@ -489,6 +491,7 @@ const App = () => (
               </div>
             </PhoneShell>
           </BackButtonProvider>
+          </TipsLevelProvider>
         </AuthProvider>
         </ViewAsProvider>
       </BrowserRouter>

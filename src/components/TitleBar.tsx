@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 import { safeBack } from "@/lib/smartBack";
 import NotificationsBell from "@/components/NotificationsBell";
-import TipsLevelButton from "@/components/TipsLevelButton";
 
 interface Props {
   /** Centre title text */
@@ -17,8 +16,7 @@ interface Props {
   onBack?: () => void;
   /** Where to go when there is no in-app history to pop (deep link / refresh) */
   backFallback?: string;
-  /** Show the persistent guidance-level control. Only for screens that
-   *  actually render tips or AI guidance. */
+  /** Deprecated: tips control is now rendered globally in the app shell. */
   tips?: boolean;
 }
 
@@ -55,7 +53,6 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
           )}
         </div>
         <div className="flex-shrink-0 flex items-center justify-end gap-1.5 text-xs text-muted-foreground font-body">
-          {tips && <TipsLevelButton />}
           {right}
           <NotificationsBell />
         </div>
