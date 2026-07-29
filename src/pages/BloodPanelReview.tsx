@@ -53,6 +53,10 @@ import {
 } from "@/data/bloodMarkerExplanations";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import TipsBlock from "@/components/tips/TipsBlock";
+import AiProse from "@/components/tips/AiProse";
+import { shortForm, wantsDetail, wantsWhy, type GuidanceTip } from "@/lib/tipsRender";
 
 interface PanelRow {
   id: string;
@@ -187,6 +191,7 @@ export default function BloodPanelReview() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { level } = useTipsLevel();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
@@ -446,6 +451,30 @@ export default function BloodPanelReview() {
                 </p>
               </div>
             </SurfaceCard>
+
+            {/* Priority actions — one at level 1, more as the level rises */}
+            {(() => {
+              const flaggedRows = results.filter((r) => r.status === "low" || r.status === "high");
+              if (flaggedRows.length === 0) return null;
+              const tips: GuidanceTip[] = flaggedRows.map((r, i) => {
+                const info = MARKER_EXPLANATIONS[r.marker];
+                const status = (r.status ?? "untested") as BloodStatus;
+                const action = status === "low" ? info?.ifLow : status === "high" ? info?.ifHigh : undefined;
+                return {
+                  priority: flaggedRows.length - i,
+                  short: action ? `${r.marker}: ${action}` : `Follow up on your ${r.marker.toLowerCase()} result with your GP.`,
+                  why: info?.whyItMatters,
+                };
+              });
+              return (
+                <section className="space-y-2">
+                  <SectionLabel>Priority actions</SectionLabel>
+                  <SurfaceCard>
+                    <TipsBlock idPrefix="panel-priority" tips={tips} reassurance="Start with the first one — the rest can wait." />
+                  </SurfaceCard>
+                </section>
+              );
+            })()}
 
             {/* Categorised markers */}
             {CATEGORY_ORDER.map((cat) => {

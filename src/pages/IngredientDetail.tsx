@@ -6,7 +6,6 @@ import SectionLabel from "@/components/SectionLabel";
 import MarketedPurposeSelector from "@/components/MarketedPurposeSelector";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { limitTips } from "@/lib/tipsLevel";
 import AiProse from "@/components/tips/AiProse";
 import TipsBlock from "@/components/tips/TipsBlock";
 import LevelGate from "@/components/tips/LevelGate";
@@ -126,14 +125,6 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
   };
 }
 
-/** First-sentence extractor for collapsed AI summary. Falls back to a
- *  trimmed substring + ellipsis when no terminal punctuation is found. */
-const firstSentence = (text: string): string => {
-  const match = text.match(/^[^.!?]+[.!?]/);
-  if (match) return match[0];
-  return text.length > 120 ? text.substring(0, 120).trim() + "…" : text;
-};
-
 const formatRelative = (iso: string | null): string | null => {
   if (!iso) return null;
   const d = new Date(iso);
@@ -188,7 +179,7 @@ const IngredientDetail = () => {
     [allProducts, productKey],
   );
 
-  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
+  const { showBeginnerHelp } = useTipsLevel();
 
 
   const returnAfterAutoSave = useCallback(
@@ -215,8 +206,6 @@ const IngredientDetail = () => {
   const [offShelfOpen, setOffShelfOpen] = useState(false);
   const [shelfBusy, setShelfBusy] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [useCasesExpanded, setUseCasesExpanded] = useState(false);
   const [tipsExpanded, setTipsExpanded] = useState(false);
 
   // Marketed purpose — what the product is SOLD for. The AI works this out
@@ -1068,29 +1057,15 @@ const IngredientDetail = () => {
             {analysis.use_cases && analysis.use_cases.length > 0 && (
               <>
                 <SectionLabel>How to use this for your hair</SectionLabel>
-                <SurfaceCard className="space-y-2">
-                  {showBeginnerHelp && (
-                    <BeginnerSteps
-                      steps={limitTips(analysis.use_cases, tipsLevel).map((t) => ({ text: t }))}
-                    />
-                  )}
-                  {!showBeginnerHelp && (useCasesExpanded ? limitTips(analysis.use_cases, tipsLevel) : analysis.use_cases.slice(0, 1)).map((tip, idx) => (
-                    <div key={`uc-${idx}`} className="flex items-start gap-2">
-                      <span className="text-primary shrink-0 mt-1">•</span>
-                      <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
-                    </div>
-                  ))}
-                  {!showBeginnerHelp && limitTips(analysis.use_cases, tipsLevel).length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setUseCasesExpanded((v) => !v)}
-                      className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1"
-                    >
-                      {useCasesExpanded
-                        ? "Show less"
-                        : `Read ${limitTips(analysis.use_cases, tipsLevel).length - 1} more tip${limitTips(analysis.use_cases, tipsLevel).length - 1 === 1 ? "" : "s"}`}
-                    </button>
-                  )}
+                <SurfaceCard>
+                  <TipsBlock
+                    idPrefix="uc"
+                    tips={analysis.use_cases.map((t, idx) => ({
+                      priority: analysis.use_cases!.length - idx,
+                      short: t,
+                      alwaysShow: idx === 0,
+                    }))}
+                  />
                 </SurfaceCard>
               </>
             )}
@@ -1098,22 +1073,16 @@ const IngredientDetail = () => {
             {analysis.tips && analysis.tips.length > 0 && (
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
-                <SurfaceCard className="space-y-2">
-                  {showBeginnerHelp ? (
-                    <>
-                      <BeginnerSteps
-                        steps={limitTips(analysis.tips, tipsLevel).map((t) => ({ text: t }))}
-                      />
-                      <BeginnerReassurance />
-                    </>
-                  ) : (
-                    limitTips(analysis.tips, tipsLevel).map((tip, idx) => (
-                      <div key={`tip-${idx}`} className="flex items-start gap-2">
-                        <span className="text-primary shrink-0 mt-1">•</span>
-                        <p className="text-sm leading-relaxed text-foreground/85">{tip}</p>
-                      </div>
-                    ))
-                  )}
+                <SurfaceCard>
+                  <TipsBlock
+                    idPrefix="pt"
+                    tips={analysis.tips.map((t, idx) => ({
+                      priority: analysis.tips!.length - idx,
+                      short: t,
+                      alwaysShow: idx === 0,
+                    }))}
+                    reassurance="Take it one step at a time."
+                  />
                   <TipsLevelPrompt className="mt-1" />
                 </SurfaceCard>
               </>

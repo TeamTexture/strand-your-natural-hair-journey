@@ -962,15 +962,17 @@ const JournalEntry = () => {
       </SectionLabel>
       <div className="px-5 pb-4">
         <SurfaceCard>
-          {photoPaths.length === 0 ? (
-            <p className="text-xs text-muted-foreground mb-3">
-              Add up to {MAX_PHOTOS} photos or short videos (MP4 / MOV). Drag to reorder — the first item is the cover shown on your Hair Journal.
-            </p>
-          ) : (
-            <p className="text-[11px] text-muted-foreground mb-3">
-              Drag to reorder. The first item is the cover.
-            </p>
-          )}
+          <LevelGate min={2}>
+            {photoPaths.length === 0 ? (
+              <p className="text-xs text-muted-foreground mb-3">
+                Add up to {MAX_PHOTOS} photos or short videos (MP4 / MOV). Drag to reorder — the first item is the cover shown on your Hair Journal.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground mb-3">
+                Drag to reorder. The first item is the cover.
+              </p>
+            )}
+          </LevelGate>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorder}>
             <SortableContext items={photoPaths} strategy={rectSortingStrategy}>
@@ -1035,9 +1037,11 @@ const JournalEntry = () => {
       <div className="px-5 pb-4">
         <SurfaceCard>
           {selectedProducts.length === 0 ? (
-            <p className="text-xs text-muted-foreground mb-3">
-              Track which products you used in this style.
-            </p>
+            <LevelGate min={2} fallback={null}>
+              <p className="text-xs text-muted-foreground mb-3">
+                Track which products you used in this style.
+              </p>
+            </LevelGate>
           ) : (
             <div className="flex flex-wrap gap-2 mb-3">
               {selectedProducts.map((p) => (
@@ -1088,9 +1092,15 @@ const JournalEntry = () => {
       {/* Reflection prompts — each one supports a voicenote that can be
        *  transcribed straight into the text box below it. */}
       <SectionLabel>Reflection</SectionLabel>
-      <p className="px-5 -mt-1 mb-2 text-[11px] text-muted-foreground">
-        Tap the mic to record — then "Transcribe to text" drops your words into the box.
-      </p>
+      <LevelGate min={2}>
+        <p className="px-5 -mt-1 mb-2 text-[11px] text-muted-foreground">
+          Tap the mic to record — then "Transcribe to text" drops your words into the box.
+        </p>
+      </LevelGate>
+      <div className="px-5 -mt-1 mb-2">
+        <TipsBlock tips={reflectionTips} idPrefix="reflection-tip" />
+        {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
+      </div>
       <div className="px-5 pb-4 space-y-3">
         <SurfaceCard>
           <VoiceNoteField
