@@ -653,6 +653,15 @@ const Home = () => {
                           {renderRichText(goalTip.body)}
                         </p>
                         {goalTip.actions?.length > 0 && (
+                          showBeginnerHelp ? (
+                            <BeginnerSteps
+                              className="mt-2"
+                              steps={goalTip.actions.slice(0, 3).map((a) => ({
+                                text: typeof a === "string" ? a : a.action,
+                                detail: typeof a === "string" ? undefined : a.why,
+                              }))}
+                            />
+                          ) : (
                           <ul className="mt-2 space-y-2">
                             {goalTip.actions.slice(0, 3).map((a, i) => {
                               const actionText = typeof a === "string" ? a : a.action;
@@ -678,7 +687,9 @@ const Home = () => {
                               );
                             })}
                           </ul>
+                          )
                         )}
+
                       </>
                     ) : tipLoading ? (
                       <div className="flex items-center gap-2">
