@@ -130,7 +130,7 @@ const WashGuidanceCard = () => {
             For your hair today
           </p>
         </div>
-        <ul className="space-y-2">
+        <ul key={level} className="space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-300">
           {tips.map((t, i) => (
             <li key={i} className="flex gap-2 text-[12px] leading-snug">
               <span className="text-primary mt-0.5 shrink-0">•</span>

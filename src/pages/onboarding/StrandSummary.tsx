@@ -337,7 +337,7 @@ const StrandSummary = () => {
                   </span>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Routine tips</p>
                 </div>
-                <ul className="space-y-2">
+                <ul key={tipsLevel} className="space-y-2 animate-in fade-in-0 duration-300">
                   {limitTips(summary.routine_tips, tipsLevel).map((b, i) => {
                     const Icon = pickIcon(b);
                     return (
