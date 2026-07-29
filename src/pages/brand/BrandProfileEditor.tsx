@@ -148,7 +148,7 @@ const BrandProfileEditor = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand profile" onBack={() => nav("/brand")} />
+      <TitleBar title="Brand profile" onBack={() => nav("/brand", { replace: true })} />
       <div className="px-5 pb-10 space-y-5">
         <p className="text-[12px] font-body text-foreground/70 leading-snug">
           This is what members see on your public brand page. Blank fields simply won't show.

@@ -97,7 +97,7 @@ const PlusLibraryCollection = () => {
   return (
     <PlusGate title="Library">
       <ScreenLayout>
-        <TitleBar title={c?.title ?? "Library"} onBack={() => nav("/plus/library")} />
+        <TitleBar title={c?.title ?? "Library"} onBack={() => nav("/plus/library", { replace: true })} />
         {collectionQ.isLoading || itemsQ.isLoading ? <LoadingDot /> : (
           <div className="px-4 pb-16 space-y-4">
             {c?.cover_path && (

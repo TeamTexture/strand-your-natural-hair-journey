@@ -144,7 +144,7 @@ const ForumThread = () => {
   return (
     <PlusGate title="Thread">
       <ScreenLayout>
-        <TitleBar title="Thread" onBack={() => nav("/forum")} />
+        <TitleBar title="Thread" onBack={() => nav("/forum", { replace: true })} />
         <div className="px-4 pb-32 space-y-3">
           <article className="rounded-[14px] border border-border bg-card p-4">
             <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(t.author_id)} />

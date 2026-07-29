@@ -62,7 +62,7 @@ const PlusEventDetail = () => {
   return (
     <PlusGate title="Event">
       <ScreenLayout>
-        <TitleBar title="Event" onBack={() => nav("/plus/events")} />
+        <TitleBar title="Event" onBack={() => nav("/plus/events", { replace: true })} />
         {eventQ.isLoading ? <LoadingDot /> : !e ? (
           <div className="p-8 text-center text-sm">Not found</div>
         ) : (

@@ -62,7 +62,7 @@ const PlusUpgrade = () => {
   if (hasPlus || isLoading) {
     return (
       <ScreenLayout>
-        <TitleBar title="STRAND+" onBack={() => nav("/home")} />
+        <TitleBar title="STRAND+" onBack={() => nav("/home", { replace: true })} />
         <div className="px-5 pt-8 text-center space-y-4">
           <div className="mx-auto size-16 rounded-full bg-primary/12 text-primary flex items-center justify-center">
             {isLoading ? <Loader2 className="size-8 animate-spin" /> : <Sparkles className="size-8" />}

@@ -239,7 +239,7 @@ const Subscribe = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Membership" onBack={hasAccess ? () => nav("/home") : undefined} />
+      <TitleBar title="Membership" onBack={hasAccess ? () => nav("/home", { replace: true }) : undefined} />
 
       <div className="px-5 pb-12 space-y-6">
         {hasAccess && (
