@@ -258,7 +258,7 @@ const StrandSummary = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  const goBack = () => (isRevisit ? navigate(-1) : navigate("/onboarding/photos"));
+  const goBack = () => (isRevisit ? navigate(-1) : navigate("/onboarding/photos", { replace: true }));
   const goNext = () => (isRevisit ? navigate(-1) : navigate("/onboarding/success"));
 
   return (

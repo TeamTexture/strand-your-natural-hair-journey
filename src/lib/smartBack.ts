@@ -49,7 +49,9 @@ export const smartBack = (
 
     if (nextCount >= MAX_CONSECUTIVE_BACKS) {
       resetBackCount();
-      navigate(HOME_PATH);
+      // Backwards moves must never push a new entry, otherwise the browser
+      // back button returns to the page we just left (loop).
+      navigate(HOME_PATH, { replace: true });
       return;
     }
 
@@ -58,7 +60,7 @@ export const smartBack = (
     if (hasHistory) {
       navigate(-1);
     } else {
-      navigate(fallback);
+      navigate(fallback, { replace: true });
     }
   };
 };
@@ -77,6 +79,8 @@ export const safeBack = (
   if (idx > 0 && hasInApp) {
     navigate(-1);
   } else {
-    navigate(fallback, { replace: false });
+    // Fallback is a *backwards* move — replace so we don't stack history.
+    navigate(fallback, { replace: true });
   }
 };
+
