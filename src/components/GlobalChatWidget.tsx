@@ -24,6 +24,7 @@ import {
   otherParticipantId,
   useChatThreads,
   useChatThread,
+  useChatThreadMeta,
   useMarkThreadRead,
   useSendChatMessage,
   useUnreadChatCount,
