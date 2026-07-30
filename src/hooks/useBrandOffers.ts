@@ -15,6 +15,10 @@ function useBrandOfferLiveSync() {
         qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
         qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
         qc.invalidateQueries({ queryKey: ["brand-offer"] });
+        // The owning brand/pro dashboard must reflect admin actions (approval,
+        // free relaunch, status flips) without a manual refresh.
+        qc.invalidateQueries({ queryKey: ["brand-offers"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer-totals"] });
       })
       .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_products" }, () => {
         qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
