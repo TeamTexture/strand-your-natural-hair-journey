@@ -160,8 +160,6 @@ export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
     queryKey: ["brand-offers", ownerType, user?.id],
     enabled: !!user,
     queryFn: async () => {
-    enabled: !!user,
-    queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
         .select("*, brand_offer_placements(*), brand_products(*)")
