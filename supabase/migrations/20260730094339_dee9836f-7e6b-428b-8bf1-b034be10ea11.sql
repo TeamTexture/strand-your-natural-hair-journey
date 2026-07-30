@@ -1,0 +1,1 @@
+ALTER TABLE public.user_tools ADD COLUMN IF NOT EXISTS on_wishlist boolean NOT NULL DEFAULT false;

@@ -66,7 +66,9 @@ const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) =
 );
 
 const MyToolsSection = () => {
-  const { tools, loading, addTool, updateTool, setFavourite, deleteTool } = useUserTools();
+  const { tools: allTools, loading, addTool, updateTool, setFavourite, deleteTool } = useUserTools();
+  // Wishlisted tools live on the Wishlist screen, not in My Tools (owned).
+  const tools = allTools.filter((t) => !t.on_wishlist);
   // Voicenote counts keyed off the tool_key (ProductVoicenotes works for any key).
   const { counts } = useVoicenoteCounts(tools.map((t) => t.tool_key));
 

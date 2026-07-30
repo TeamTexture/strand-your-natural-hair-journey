@@ -2957,6 +2957,7 @@ export type Database = {
           notes: string | null
           on_favourite: boolean
           on_shelf: boolean
+          on_wishlist: boolean
           rating: number | null
           source_url: string | null
           storage_path: string | null
@@ -2983,6 +2984,7 @@ export type Database = {
           notes?: string | null
           on_favourite?: boolean
           on_shelf?: boolean
+          on_wishlist?: boolean
           rating?: number | null
           source_url?: string | null
           storage_path?: string | null
@@ -3009,6 +3011,7 @@ export type Database = {
           notes?: string | null
           on_favourite?: boolean
           on_shelf?: boolean
+          on_wishlist?: boolean
           rating?: number | null
           source_url?: string | null
           storage_path?: string | null

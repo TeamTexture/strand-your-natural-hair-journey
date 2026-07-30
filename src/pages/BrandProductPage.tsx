@@ -219,6 +219,7 @@ const BrandProductPage = () => {
           notes: product.description ?? null,
           source_url: product.external_url ?? null,
           on_shelf: false,
+          on_wishlist: true,
           linked_brand_offer_id: offer.id,
           linked_brand_product_id: product.id,
         };
