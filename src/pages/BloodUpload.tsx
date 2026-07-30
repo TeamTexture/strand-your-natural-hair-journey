@@ -296,14 +296,27 @@ export default function BloodUpload() {
       return;
     }
 
-    // Photos path — up to 10. First photo becomes the panel thumbnail source.
-    setFiles(imgs);
-    setThumbSource(imgs[0]);
+    // Photos path — up to 10. Convert iPhone HEIC shots and downscale big
+    // camera images so the text stays sharp but the payload stays sendable.
+    setExtracting(true);
+    let prepared: File[];
+    try {
+      prepared = await Promise.all(imgs.map((f) => preparePhotoForOcr(f)));
+    } catch (err) {
+      setExtracting(false);
+      console.error("photo prep failed:", err);
+      toast.error((err as Error).message || "Couldn't read that photo. Try a JPEG or PNG.");
+      return;
+    }
+    setExtracting(false);
+    setFiles(prepared);
+    setThumbSource(prepared[0]);
     setThumbPreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(imgs[0]);
+      return URL.createObjectURL(prepared[0]);
     });
-    await runExtract(imgs);
+    await runExtract(prepared);
+
   }, [runExtract]);
 
   const submitPassword = async () => {
