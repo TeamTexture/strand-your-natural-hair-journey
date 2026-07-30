@@ -1,0 +1,1 @@
+UPDATE public.user_tools SET on_wishlist = true WHERE linked_brand_product_id IS NOT NULL AND on_shelf = false;
