@@ -3,7 +3,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle, Camera } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -109,6 +109,7 @@ export default function BloodUpload() {
   const { hasAccess } = useConsumerSubscription();
   const { level } = useTipsLevel();
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [rows, setRows] = useState<ExtractedRow[]>([]);
