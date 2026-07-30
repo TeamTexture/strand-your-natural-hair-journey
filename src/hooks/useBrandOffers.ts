@@ -155,8 +155,11 @@ export function useBrandProfile() {
 
 export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
   const { user } = useAuth();
+  useBrandOfferLiveSync();
   return useQuery({
     queryKey: ["brand-offers", ownerType, user?.id],
+    enabled: !!user,
+    queryFn: async () => {
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
