@@ -279,6 +279,10 @@ const AdminBrandOfferReview = () => {
           ends_on: endDate,
           rejected_at: null,
           rejection_reason: null,
+          // Present the relaunch to the brand exactly like a fresh approval +
+          // payment so their dashboard shows it under Live with metrics.
+          approved_at: new Date().toISOString(),
+          paid_at: new Date().toISOString(),
         })
         .eq("id", offer.id);
       if (oErr) throw oErr;
