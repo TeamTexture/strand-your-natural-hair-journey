@@ -54,7 +54,7 @@ const WishlistTools = () => {
               className="text-muted-foreground"
               aria-label={`Remove ${t.name} from wishlist`}
               onClick={async () => {
-                await deleteTool(t.id);
+                await deleteTool(t);
               }}
             >
               <Trash2 className="size-4" />
