@@ -34,6 +34,7 @@ import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
+import WishlistTools from "@/components/WishlistTools";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -217,6 +218,8 @@ const Wishlist = () => {
           })
         )}
       </div>
+
+      {!batch.selectMode && <WishlistTools />}
 
       {batch.selectMode && (
         <BatchActionBar
