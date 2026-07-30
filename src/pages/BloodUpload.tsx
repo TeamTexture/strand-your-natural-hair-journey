@@ -223,9 +223,15 @@ export default function BloodUpload() {
     const arr = Array.from(list);
     if (arr.length === 0) return;
 
-    const pdfs = arr.filter((f) => f.type === "application/pdf");
-    const imgs = arr.filter((f) => f.type.startsWith("image/"));
-    const other = arr.filter((f) => !pdfs.includes(f) && !imgs.includes(f));
+    const isPdfFile = (f: File) => f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+    // Some phones hand us an empty MIME type for camera photos / HEIC images,
+    // so fall back to the file extension before rejecting anything.
+    const isImageFile = (f: File) =>
+      f.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|heic|heif|bmp|tiff?)$/i.test(f.name);
+
+    const pdfs = arr.filter(isPdfFile);
+    const imgs = arr.filter((f) => !isPdfFile(f) && isImageFile(f));
+    const other = arr.filter((f) => !isPdfFile(f) && !isImageFile(f));
     if (other.length > 0) {
       toast.error("Only PDF or image files are supported.");
       return;
@@ -242,11 +248,12 @@ export default function BloodUpload() {
       toast.error("Up to 10 photos allowed.");
       return;
     }
-    const tooBig = arr.find((f) => f.size > 15 * 1024 * 1024);
+    const tooBig = arr.find((f) => f.size > 25 * 1024 * 1024);
     if (tooBig) {
-      toast.error(`"${tooBig.name}" is over 15 MB. Please choose a smaller file.`);
+      toast.error(`"${tooBig.name}" is over 25 MB. Please choose a smaller file.`);
       return;
     }
+
 
     setRows([]);
 
