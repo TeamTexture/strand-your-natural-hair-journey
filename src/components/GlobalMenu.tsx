@@ -239,22 +239,22 @@ const GlobalMenu = () => {
           paddingBottom: "6px",
         }}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 min-w-0 shrink">
         {canGoBack ? (
           <button
             type="button"
             aria-label="Back"
             onClick={() => safeBack(navigate)}
-            className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
+            className="size-9 shrink-0 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
           >
             <ChevronLeft className="size-5" />
           </button>
         ) : (
-          <span className="size-9" aria-hidden />
+          <span className="size-9 shrink-0" aria-hidden />
         )}
         <GlobalChatWidget />
       </div>
-        <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1 shrink-0">
         <TipsLevelButton className="shrink-0" />
         {showViewSwitcher && (
           <DropdownMenu>
@@ -262,15 +262,16 @@ const GlobalMenu = () => {
               <button
                 type="button"
                 aria-label="Switch view"
-                className="h-9 px-2.5 rounded-full flex items-center gap-1.5 border border-border bg-card text-foreground/80 hover:bg-muted/60 transition-colors"
+                className="h-9 shrink-0 px-2.5 rounded-full flex items-center gap-1.5 whitespace-nowrap border border-border bg-card text-foreground/80 hover:bg-muted/60 transition-colors"
               >
-                <ActiveIcon className="size-4 text-primary" />
-                <span className="text-[11px] font-body font-medium leading-none hidden sm:inline">
+                <ActiveIcon className="size-4 shrink-0 text-primary" />
+                <span className="text-[11px] font-body font-medium leading-none whitespace-nowrap hidden sm:inline">
                   {viewMeta[activeView].label}
                 </span>
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end" className="w-48">
               {isConsumer && (isAdmin || activeView !== "pro") && (
                 <DropdownMenuItem
