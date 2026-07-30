@@ -3,7 +3,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle, Camera } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -37,6 +37,8 @@ import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { titleCase } from "@/lib/humanise";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
+
 
 
 interface ExtractedRow {
@@ -48,7 +50,49 @@ interface ExtractedRow {
   raw_value: string;
 }
 
+/**
+ * Prepares a picked/captured photo for AI extraction:
+ *  - converts iPhone HEIC/HEIF to JPEG
+ *  - downscales very large camera shots (long edge 2400px) while keeping the
+ *    small print on a lab report legible
+ */
+async function preparePhotoForOcr(file: File): Promise<File> {
+  const jpeg = await convertHeicToJpeg(file);
+  try {
+    const url = URL.createObjectURL(jpeg);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Could not decode image"));
+      el.src = url;
+    });
+    const MAX = 2400;
+    const ratio = Math.min(1, MAX / Math.max(img.width, img.height));
+    if (ratio === 1 && jpeg.size < 4 * 1024 * 1024) {
+      URL.revokeObjectURL(url);
+      return jpeg;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * ratio);
+    canvas.height = Math.round(img.height * ratio);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not available");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    const blob: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Encode failed"))), "image/jpeg", 0.88),
+    );
+    return new File([blob], jpeg.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch (e) {
+    console.warn("preparePhotoForOcr: falling back to original", e);
+    return jpeg;
+  }
+}
+
 async function fileToBase64(file: File): Promise<string> {
+
   const buf = await file.arrayBuffer();
   const bytes = new Uint8Array(buf);
   let binary = "";
@@ -65,6 +109,7 @@ export default function BloodUpload() {
   const { hasAccess } = useConsumerSubscription();
   const { level } = useTipsLevel();
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [rows, setRows] = useState<ExtractedRow[]>([]);
@@ -223,9 +268,15 @@ export default function BloodUpload() {
     const arr = Array.from(list);
     if (arr.length === 0) return;
 
-    const pdfs = arr.filter((f) => f.type === "application/pdf");
-    const imgs = arr.filter((f) => f.type.startsWith("image/"));
-    const other = arr.filter((f) => !pdfs.includes(f) && !imgs.includes(f));
+    const isPdfFile = (f: File) => f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+    // Some phones hand us an empty MIME type for camera photos / HEIC images,
+    // so fall back to the file extension before rejecting anything.
+    const isImageFile = (f: File) =>
+      f.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|heic|heif|bmp|tiff?)$/i.test(f.name);
+
+    const pdfs = arr.filter(isPdfFile);
+    const imgs = arr.filter((f) => !isPdfFile(f) && isImageFile(f));
+    const other = arr.filter((f) => !isPdfFile(f) && !isImageFile(f));
     if (other.length > 0) {
       toast.error("Only PDF or image files are supported.");
       return;
@@ -242,11 +293,12 @@ export default function BloodUpload() {
       toast.error("Up to 10 photos allowed.");
       return;
     }
-    const tooBig = arr.find((f) => f.size > 15 * 1024 * 1024);
+    const tooBig = arr.find((f) => f.size > 25 * 1024 * 1024);
     if (tooBig) {
-      toast.error(`"${tooBig.name}" is over 15 MB. Please choose a smaller file.`);
+      toast.error(`"${tooBig.name}" is over 25 MB. Please choose a smaller file.`);
       return;
     }
+
 
     setRows([]);
 
@@ -289,14 +341,27 @@ export default function BloodUpload() {
       return;
     }
 
-    // Photos path — up to 10. First photo becomes the panel thumbnail source.
-    setFiles(imgs);
-    setThumbSource(imgs[0]);
+    // Photos path — up to 10. Convert iPhone HEIC shots and downscale big
+    // camera images so the text stays sharp but the payload stays sendable.
+    setExtracting(true);
+    let prepared: File[];
+    try {
+      prepared = await Promise.all(imgs.map((f) => preparePhotoForOcr(f)));
+    } catch (err) {
+      setExtracting(false);
+      console.error("photo prep failed:", err);
+      toast.error((err as Error).message || "Couldn't read that photo. Try a JPEG or PNG.");
+      return;
+    }
+    setExtracting(false);
+    setFiles(prepared);
+    setThumbSource(prepared[0]);
     setThumbPreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(imgs[0]);
+      return URL.createObjectURL(prepared[0]);
     });
-    await runExtract(imgs);
+    await runExtract(prepared);
+
   }, [runExtract]);
 
   const submitPassword = async () => {
@@ -575,11 +640,24 @@ export default function BloodUpload() {
                 </p>
                 <LevelGate min={2}>
                   <p className="text-xs text-foreground/60 font-body">
-                    Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 15 MB each
+                    Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 25 MB each
                   </p>
                 </LevelGate>
               </div>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-pill mt-3 font-body"
+              onClick={(e) => { e.stopPropagation(); cameraRef.current?.click(); }}
+            >
+              <Camera className="size-4 mr-2" /> Take a photo of your results
+            </Button>
+            <LevelGate min={3}>
+              <p className="text-[11px] text-foreground/55 font-body mt-2 text-center leading-snug">
+                Lay the page flat in good light and fill the frame. Add one photo per page — we'll merge them.
+              </p>
+            </LevelGate>
             <input
               ref={inputRef}
               type="file"
@@ -588,8 +666,17 @@ export default function BloodUpload() {
               className="hidden"
               onChange={(e) => onFiles(e.target.files)}
             />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => onFiles(e.target.files)}
+            />
           </SurfaceCard>
         )}
+
 
         {isOnboarding && !savedInOnboarding && files.length === 0 && (
           <div className="space-y-2">
