@@ -37,6 +37,8 @@ import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { titleCase } from "@/lib/humanise";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
+
 
 
 interface ExtractedRow {
