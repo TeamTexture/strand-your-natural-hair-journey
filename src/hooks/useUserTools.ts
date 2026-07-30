@@ -35,6 +35,7 @@ export interface UserTool {
   rating: number | null;
   notes: string | null;
   on_shelf: boolean;
+  on_wishlist: boolean;
   on_favourite: boolean;
   added_at: string;
   last_used_at: string | null;
@@ -182,7 +183,7 @@ export function useUserTools() {
   const updateTool = useCallback(
     async (
       id: string,
-      patch: Partial<Pick<UserTool, "name" | "brand" | "category" | "rating" | "notes" | "on_shelf" | "on_favourite">>,
+      patch: Partial<Pick<UserTool, "name" | "brand" | "category" | "rating" | "notes" | "on_shelf" | "on_wishlist" | "on_favourite">>,
     ) => {
       if (!user) return false;
       const { error } = await supabase
