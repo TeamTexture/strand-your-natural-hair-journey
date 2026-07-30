@@ -639,11 +639,24 @@ export default function BloodUpload() {
                 </p>
                 <LevelGate min={2}>
                   <p className="text-xs text-foreground/60 font-body">
-                    Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 15 MB each
+                    Drag & drop, or tap to choose · 1 PDF or up to 10 photos · max 25 MB each
                   </p>
                 </LevelGate>
               </div>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-pill mt-3 font-body"
+              onClick={(e) => { e.stopPropagation(); cameraRef.current?.click(); }}
+            >
+              <Camera className="size-4 mr-2" /> Take a photo of your results
+            </Button>
+            <LevelGate min={3}>
+              <p className="text-[11px] text-foreground/55 font-body mt-2 text-center leading-snug">
+                Lay the page flat in good light and fill the frame. Add one photo per page — we'll merge them.
+              </p>
+            </LevelGate>
             <input
               ref={inputRef}
               type="file"
@@ -652,8 +665,17 @@ export default function BloodUpload() {
               className="hidden"
               onChange={(e) => onFiles(e.target.files)}
             />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => onFiles(e.target.files)}
+            />
           </SurfaceCard>
         )}
+
 
         {isOnboarding && !savedInOnboarding && files.length === 0 && (
           <div className="space-y-2">
