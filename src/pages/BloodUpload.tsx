@@ -48,7 +48,49 @@ interface ExtractedRow {
   raw_value: string;
 }
 
+/**
+ * Prepares a picked/captured photo for AI extraction:
+ *  - converts iPhone HEIC/HEIF to JPEG
+ *  - downscales very large camera shots (long edge 2400px) while keeping the
+ *    small print on a lab report legible
+ */
+async function preparePhotoForOcr(file: File): Promise<File> {
+  const jpeg = await convertHeicToJpeg(file);
+  try {
+    const url = URL.createObjectURL(jpeg);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Could not decode image"));
+      el.src = url;
+    });
+    const MAX = 2400;
+    const ratio = Math.min(1, MAX / Math.max(img.width, img.height));
+    if (ratio === 1 && jpeg.size < 4 * 1024 * 1024) {
+      URL.revokeObjectURL(url);
+      return jpeg;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * ratio);
+    canvas.height = Math.round(img.height * ratio);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not available");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    const blob: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Encode failed"))), "image/jpeg", 0.88),
+    );
+    return new File([blob], jpeg.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch (e) {
+    console.warn("preparePhotoForOcr: falling back to original", e);
+    return jpeg;
+  }
+}
+
 async function fileToBase64(file: File): Promise<string> {
+
   const buf = await file.arrayBuffer();
   const bytes = new Uint8Array(buf);
   let binary = "";
