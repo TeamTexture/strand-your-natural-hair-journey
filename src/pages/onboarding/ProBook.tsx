@@ -93,6 +93,10 @@ const ProBook = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
+  const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(
+    null,
+  );
+
 
   const featured = useMemo(() => pros.filter((p) => p.featured), [pros]);
   const searchResults = useMemo(
