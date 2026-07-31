@@ -14,8 +14,15 @@ import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 
-const ProCard = ({ p }: { p: Professional }) => {
+const ProCard = ({
+  p,
+  onEnquire,
+}: {
+  p: Professional;
+  onEnquire: (pro: { proUserId: string; name: string }) => void;
+}) => {
   const bookHref = normalizeWebsiteUrl(p.bookingUrl || p.website || p.instaUrl || "");
+  const canEnquireInApp = !!p.proUserId;
   return (
     <SurfaceCard padded={false} className="overflow-hidden">
       <div className="p-4 flex gap-3">
