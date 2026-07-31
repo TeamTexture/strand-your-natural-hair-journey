@@ -27,6 +27,7 @@ const SplashScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
   useEffect(() => {
     try {
@@ -79,10 +80,12 @@ const SplashScreen = () => {
         password,
       });
       if (error) throw error;
+      setFailedAttempts(0);
       toast.success("Signed in");
       const target = data.user?.id ? await getPostSignInTarget(data.user.id) : "/";
       navigate(target, { replace: true });
     } catch (err: unknown) {
+      setFailedAttempts((n) => n + 1);
       const msg = err instanceof Error ? err.message : "Something went wrong";
       toast.error(msg);
     } finally {
@@ -157,6 +160,32 @@ const SplashScreen = () => {
         <Button variant="gold" size="pill" type="submit" disabled={loading}>
           {loading ? "Please wait…" : "Sign In"}
         </Button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/forgot-password")}
+          className="text-xs text-muted-foreground hover:text-foreground text-center underline underline-offset-4"
+        >
+          Forgot your password?
+        </button>
+
+        {failedAttempts >= 3 && (
+          <div className="rounded-2xl border border-primary/50 bg-primary/5 px-4 py-3 text-center space-y-2">
+            <p className="text-xs text-foreground">
+              Having trouble signing in? You can reset your password.
+            </p>
+            <Button
+              type="button"
+              variant="gold"
+              size="pill"
+              onClick={() => navigate("/forgot-password")}
+            >
+              Reset my password
+            </Button>
+          </div>
+        )}
+
+
 
         <div className="mt-5 pt-5 border-t border-border/60 space-y-2">
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground text-center">
