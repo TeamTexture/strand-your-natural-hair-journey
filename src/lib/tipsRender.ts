@@ -54,10 +54,36 @@ export function splitSentences(text: string): string[] {
     .filter(Boolean);
 }
 
+/** Sentences that only state a fact or bust a myth teach nothing on their own,
+ *  so they must never become the whole of a condensed tip. */
+const NON_ACTIONABLE = /(does not|doesn't|don't|won't|will not|isn't|is not|never)\s+(make|help|mean|grow|cause|speed)/i;
+const ACTIONABLE = /\b(every|each|weeks?|months?|days?|when|if|aim|keep|use|book|trim|wash|apply|check|start|switch|avoid|do|leave|rinse|section|protect|once|twice)\b/i;
+
+/** Pick the sentences that carry the actual guidance, in original order, so a
+ *  condensed tip still tells the user what to do — never just a bare fact. */
+function pickGuidance(sentences: string[], max: number): string[] {
+  if (sentences.length <= max) return sentences;
+  const scored = sentences.map((s, i) => {
+    let score = 0;
+    if (ACTIONABLE.test(s)) score += 2;
+    if (NON_ACTIONABLE.test(s) && !ACTIONABLE.test(s)) score -= 3;
+    return { s, i, score };
+  });
+  return scored
+    .slice()
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .slice(0, max)
+    .sort((a, b) => a.i - b.i)
+    .map((e) => e.s);
+}
+
 /**
  * Trim any block of prose (AI summary, explanation, marker overview) to the
  * verbosity the level allows. Level 4 additionally puts plain-English first for
  * technical terms.
+ *
+ * Condensing keeps the sentences that actually guide the user (action, cadence,
+ * trigger) rather than blindly taking the first N sentences.
  */
 export function condenseProse(text: string | null | undefined, level: TipsLevel): string {
   if (!text) return "";
@@ -65,8 +91,9 @@ export function condenseProse(text: string | null | undefined, level: TipsLevel)
   if (level >= 4) return plainLanguage(clean);
   const max = PROSE_SENTENCES[level];
   if (!Number.isFinite(max)) return clean;
-  return splitSentences(clean).slice(0, max).join(" ");
+  return pickGuidance(splitSentences(clean), max).join(" ");
 }
+
 
 /**
  * Strip the trailing "why" clause from a one-line instruction so levels 1–2
