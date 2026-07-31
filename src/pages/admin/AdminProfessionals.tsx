@@ -25,6 +25,7 @@ interface ProUsageRow {
   is_published: boolean;
   suspended_at: string | null;
   access_restricted: boolean;
+  complimentary_access: boolean;
   application_status: string | null;
   application_created_at: string | null;
   sub_status: string | null;
