@@ -517,6 +517,19 @@ const AdminProfessionals = () => {
                     {r.is_published ? <><EyeOff className="size-3.5 mr-1" /> Unpublish</> : <><Eye className="size-3.5 mr-1" /> Publish</>}
                   </Button>
                 </div>
+                <div className="mt-3 flex items-center justify-between gap-3 pt-3 border-t border-border">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-body font-medium">Complimentary access</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Free Pro access. Overrides Stripe status.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={r.complimentary_access}
+                    disabled={toggleComplimentary.isPending || r.access_restricted}
+                    onCheckedChange={(v) => toggleComplimentary.mutate({ userId: r.user_id, value: v })}
+                  />
+                </div>
                 <div className="mt-2">
                   <MessageButton userId={r.user_id} subjectRole="pro" />
                 </div>
