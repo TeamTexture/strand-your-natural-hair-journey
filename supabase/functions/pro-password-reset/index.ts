@@ -106,8 +106,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: FROM,
         to: [rawEmail],
-        subject: "Reset your STRAND Pro password",
-        html: emailHtml(data.properties.action_link),
+        subject: isPro ? "Reset your STRAND Pro password" : "Reset your STRAND password",
+        html: emailHtml(data.properties.action_link, isPro),
       }),
     });
 
