@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
 import { logUserSession } from "@/lib/sessionTracker";
 import { useViewAs } from "@/hooks/useViewAs";
+import { beginRecoveryLock, clearRecoveryLock } from "@/lib/recoveryLock";
 
 interface AuthCtx {
   session: Session | null;
@@ -54,7 +55,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      // A recovery link signs the user in before they've proven a password.
+      // Lock the browser to the reset screen until the new password is saved.
+      if (event === "PASSWORD_RECOVERY") {
+        beginRecoveryLock(window.location.pathname.startsWith("/pro") ? "pro" : "member");
+      }
       if (event === "SIGNED_OUT") {
+        clearRecoveryLock();
         purgeStrandUserScopedKeys("SIGNED_OUT-event");
       }
       if (event === "SIGNED_IN" && s?.user?.id) {
@@ -80,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     purgeStrandUserScopedKeys("signOut-handler");
+    clearRecoveryLock();
     if (isViewingAs) stopViewAs();
     await supabase.auth.signOut();
   };
