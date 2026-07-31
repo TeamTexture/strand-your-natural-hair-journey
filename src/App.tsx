@@ -67,6 +67,8 @@ const ColourReview = lazy(() => import("./pages/profile-review/ColourReview"));
 // Pro portal
 const ProApply = lazy(() => import("./pages/pro/ProApply"));
 const ProAuth = lazy(() => import("./pages/pro/ProAuth"));
+const ProForgotPassword = lazy(() => import("./pages/pro/ProForgotPassword"));
+const ProResetPassword = lazy(() => import("./pages/pro/ProResetPassword"));
 const ProLanding = lazy(() => import("./pages/pro/ProLanding"));
 const ProWelcome = lazy(() => import("./pages/pro/ProWelcome"));
 const ProDashboard = lazy(() => import("./pages/pro/ProDashboard"));
@@ -306,6 +308,8 @@ const App = () => (
 
               {/* Professional portal (Phase A/B — application + admin vetting) */}
               <Route path="/pro/auth" element={<ProAuth />} />
+              <Route path="/pro/forgot-password" element={<ProForgotPassword />} />
+              <Route path="/pro/reset-password" element={<ProResetPassword />} />
               <Route path="/pro/landing" element={<Protected><ProLanding /></Protected>} />
               <Route path="/pro/apply" element={<Protected><ProApply /></Protected>} />
               <Route path="/pro/welcome" element={<Protected><ProWelcome /></Protected>} />
