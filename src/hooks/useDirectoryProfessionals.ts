@@ -192,15 +192,27 @@ export function useDirectoryProfessionals() {
             .filter((v) => typeof v === "string" && v.trim().length > 0).length +
           (p.specs?.length ?? 0);
 
-        // Live pros take precedence, then curated DB rows, then static seed.
-        const byKey = new Map<string, Professional>();
-        for (const p of [...livePros, ...dbPros, ...PROFESSIONALS]) {
+        // Live pros always win over curated DB rows / static seed for the same
+        // person, so their in-app "Enquire Now" flow is never replaced by an
+        // external booking link.
+        const byKey = new Map<string, { pro: Professional; rank: number }>();
+        const ranked: Array<[Professional, number]> = [
+          ...livePros.map((p) => [p, 2] as [Professional, number]),
+          ...dbPros.map((p) => [p, 1] as [Professional, number]),
+          ...PROFESSIONALS.map((p) => [p, 0] as [Professional, number]),
+        ];
+        for (const [p, rank] of ranked) {
           const key = norm(p.name);
           const existing = byKey.get(key);
-          if (!existing || populationScore(p) > populationScore(existing)) {
-            byKey.set(key, p);
+          if (
+            !existing ||
+            rank > existing.rank ||
+            (rank === existing.rank && populationScore(p) > populationScore(existing.pro))
+          ) {
+            byKey.set(key, { pro: p, rank });
           }
         }
+
         // Editorial allowlist — only these professionals appear in the directory.
         const ALLOWED = [
           "yvonneabimbola",
