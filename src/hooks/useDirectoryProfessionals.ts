@@ -197,7 +197,17 @@ export function useDirectoryProfessionals() {
             byKey.set(key, p);
           }
         }
-        const merged = Array.from(byKey.values());
+        // Editorial allowlist — only these professionals appear in the directory.
+        const ALLOWED = [
+          "yvonneabimbola",
+          "ericaliburd",
+          "samanthastewart",
+          "paigelewin",
+        ];
+        const merged = Array.from(byKey.values()).filter((p) => {
+          const key = norm(p.name);
+          return ALLOWED.some((a) => key.includes(a));
+        });
 
         setPros(merged);
         setError(null);
