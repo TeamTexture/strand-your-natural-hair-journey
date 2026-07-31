@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
       return json(502, { error: "We couldn't send the email just now. Please try again." });
     }
 
-    return json(200, GENERIC);
+    return json(200, SENT);
   } catch (err) {
     console.error("pro-password-reset error", err);
     return json(500, { error: "Something went wrong. Please try again." });
