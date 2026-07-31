@@ -9,6 +9,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
+import EnquiryDialog from "@/components/EnquiryDialog";
 import { Button } from "@/components/ui/button";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
