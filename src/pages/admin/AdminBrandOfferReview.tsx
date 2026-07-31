@@ -317,7 +317,38 @@ const AdminBrandOfferReview = () => {
     }
   };
 
+  // Cross-member totals (SECURITY DEFINER RPC — admins see every offer), with a
+  // fallback to the offer's own stat rows if the RPC returns nothing yet.
+  const rowStats = (offer.brand_offer_stats ?? []) as Array<{
+    slot: string | null; impressions: number | null; taps: number | null;
+    wishlist_adds: number | null; code_copies: number | null; link_clicks: number | null;
+  }>;
+  const rowTotals = rowStats.reduce(
+    (acc, s) => ({
+      impressions: acc.impressions + (s.impressions ?? 0),
+      taps: acc.taps + (s.taps ?? 0),
+      wishlist_adds: acc.wishlist_adds + (s.wishlist_adds ?? 0),
+      code_copies: acc.code_copies + (s.code_copies ?? 0),
+      link_clicks: acc.link_clicks + (s.link_clicks ?? 0),
+    }),
+    { impressions: 0, taps: 0, wishlist_adds: 0, code_copies: 0, link_clicks: 0 },
+  );
+  const stats = (id ? totalsMap[id] : undefined) ?? rowTotals;
+  const interestTotal = (id ? interestMap[id]?.total : 0) ?? 0;
+
+  const slotStats = Object.values(
+    rowStats.reduce<Record<string, { slot: string; impressions: number; taps: number; link_clicks: number }>>((acc, s) => {
+      const key = s.slot ?? "other";
+      const entry = (acc[key] = acc[key] ?? { slot: key, impressions: 0, taps: 0, link_clicks: 0 });
+      entry.impressions += s.impressions ?? 0;
+      entry.taps += s.taps ?? 0;
+      entry.link_clicks += s.link_clicks ?? 0;
+      return acc;
+    }, {}),
+  );
+
   const placements = offer.brand_offer_placements ?? [];
+
   const bySlot = placements.reduce<Record<string, string[]>>((acc, p) => {
     (acc[p.slot] = acc[p.slot] ?? []).push(p.placement_date);
     return acc;
