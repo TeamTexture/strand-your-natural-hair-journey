@@ -231,135 +231,134 @@ const GlobalMenu = () => {
 
 
   return (
-    <div className="shrink-0 border-b border-border/40 bg-background">
-      <div
-        className="flex items-center justify-between px-3"
-        style={{
-          paddingTop: "max(env(safe-area-inset-top, 0px), 6px)",
-          paddingBottom: "6px",
-        }}
-      >
-        <div className="flex items-center gap-1 min-w-0 shrink">
-        {canGoBack ? (
-          <button
-            type="button"
-            aria-label="Back"
-            onClick={() => safeBack(navigate)}
-            className="size-9 shrink-0 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-        ) : (
-          <span className="size-9 shrink-0" aria-hidden />
-        )}
-        <GlobalChatWidget />
-      </div>
-        <div className="flex items-center gap-1 shrink-0">
-        <TipsLevelButton className="shrink-0" />
-        {showViewSwitcher && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+      <div className="shrink-0 border-b border-border/40 bg-background">
+        <div
+          className="flex items-center justify-between px-3"
+          style={{
+            paddingTop: "max(env(safe-area-inset-top, 0px), 6px)",
+            paddingBottom: "6px",
+          }}
+        >
+          <div className="flex items-center gap-1 shrink-0">
+            <GlobalChatWidget />
+            {canGoBack ? (
               <button
                 type="button"
-                aria-label="Switch view"
-                className="h-9 shrink-0 px-2.5 rounded-full flex items-center gap-1.5 whitespace-nowrap border border-border bg-card text-foreground/80 hover:bg-muted/60 transition-colors"
+                aria-label="Back"
+                onClick={() => safeBack(navigate)}
+                className="size-9 shrink-0 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
               >
-                <ActiveIcon className="size-4 shrink-0 text-primary" />
-                <span className="text-[11px] font-body font-medium leading-none whitespace-nowrap hidden sm:inline">
-                  {viewMeta[activeView].label}
-                </span>
-                <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
+                <ChevronLeft className="size-5" />
               </button>
-            </DropdownMenuTrigger>
+            ) : (
+              <span className="size-9 shrink-0" aria-hidden />
+            )}
+          </div>
+          <div className="flex items-center gap-1 min-w-0 shrink">
+            <TipsLevelButton className="shrink-0" />
+            {showViewSwitcher && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Switch view"
+                    className="h-9 shrink-0 px-2.5 rounded-full flex items-center gap-1.5 whitespace-nowrap border border-border bg-card text-foreground/80 hover:bg-muted/60 transition-colors max-w-[120px]"
+                  >
+                    <ActiveIcon className="size-4 shrink-0 text-primary" />
+                    <span className="text-[11px] font-body font-medium leading-none whitespace-nowrap hidden sm:inline truncate">
+                      {viewMeta[activeView].label}
+                    </span>
+                    <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-48">
-              {isConsumer && (isAdmin || activeView !== "pro") && (
-                <DropdownMenuItem
-                  onClick={() => navigate(viewMeta.consumer.to)}
-                  className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
-                >
-                  <HomeIcon className="size-4 mr-2" /> My STRAND
-                </DropdownMenuItem>
-              )}
-              {isProfessional && (
-                <DropdownMenuItem
-                  onClick={() => navigate(viewMeta.pro.to)}
-                  className={activeView === "pro" ? "bg-primary/10 text-primary" : ""}
-                >
-                  <Briefcase className="size-4 mr-2" /> Professional
-                </DropdownMenuItem>
-              )}
-              {isBrand && (
-                <DropdownMenuItem
-                  onClick={() => navigate(viewMeta.brand.to)}
-                  className={activeView === "brand" ? "bg-primary/10 text-primary" : ""}
-                >
-                  <Store className="size-4 mr-2" /> Brand
-                </DropdownMenuItem>
-              )}
-              {isAdmin && (
-                <DropdownMenuItem
-                  onClick={() => navigate(viewMeta.admin.to)}
-                  className={activeView === "admin" ? "bg-primary/10 text-primary" : ""}
-                >
-                  <ShieldCheck className="size-4 mr-2" /> Admin
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-        {activeView === "consumer" && !hasPlus && !isOnboarding && (
-          <TooltipProvider delayDuration={150}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Upgrade to STRAND+"
-                  onClick={() => navigate("/plus/upgrade")}
-                  className="h-9 pl-3 pr-2 rounded-full flex items-center gap-1.5 bg-brown text-brown-foreground border border-brown hover:opacity-90 transition-opacity"
-                >
-                  <span className="text-[11px] font-body font-bold tracking-wide uppercase">Upgrade</span>
-                  <span className="size-4 rounded-full bg-brown-foreground/20 flex items-center justify-center text-[11px] font-body font-bold leading-none">+</span>
-                </button>
+                <DropdownMenuContent align="end" className="w-48">
+                  {isConsumer && (isAdmin || activeView !== "pro") && (
+                    <DropdownMenuItem
+                      onClick={() => navigate(viewMeta.consumer.to)}
+                      className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
+                    >
+                      <HomeIcon className="size-4 mr-2" /> My STRAND
+                    </DropdownMenuItem>
+                  )}
+                  {isProfessional && (
+                    <DropdownMenuItem
+                      onClick={() => navigate(viewMeta.pro.to)}
+                      className={activeView === "pro" ? "bg-primary/10 text-primary" : ""}
+                    >
+                      <Briefcase className="size-4 mr-2" /> Professional
+                    </DropdownMenuItem>
+                  )}
+                  {isBrand && (
+                    <DropdownMenuItem
+                      onClick={() => navigate(viewMeta.brand.to)}
+                      className={activeView === "brand" ? "bg-primary/10 text-primary" : ""}
+                    >
+                      <Store className="size-4 mr-2" /> Brand
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem
+                      onClick={() => navigate(viewMeta.admin.to)}
+                      className={activeView === "admin" ? "bg-primary/10 text-primary" : ""}
+                    >
+                      <ShieldCheck className="size-4 mr-2" /> Admin
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {activeView === "consumer" && !hasPlus && !isOnboarding && (
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Upgrade to STRAND+"
+                      onClick={() => navigate("/plus/upgrade")}
+                      className="h-9 pl-3 pr-2 rounded-full flex items-center gap-1.5 bg-brown text-brown-foreground border border-brown hover:opacity-90 transition-opacity shrink-0"
+                    >
+                      <span className="text-[11px] font-body font-bold tracking-wide uppercase">Upgrade</span>
+                      <span className="size-4 rounded-full bg-brown-foreground/20 flex items-center justify-center text-[11px] font-body font-bold leading-none">+</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" sideOffset={6}>
+                    <span>Upgrade to STRAND+</span>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {location.pathname === "/home" && (
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Take the tour"
+                      onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
+                      className="size-9 rounded-full flex items-center justify-center text-primary bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors shrink-0"
+                    >
+                      <Star className="size-[18px] fill-current" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" sideOffset={6}>
+                    <span>Take the tour</span>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <button
+              type="button"
+              aria-label="Open menu"
+              data-tour="global-menu"
+              onClick={() => setOpen(true)}
+              className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors shrink-0"
+            >
+              <Menu className="size-5" />
+            </button>
+          </div>
 
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={6}>
-                <span>Upgrade to STRAND+</span>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        {location.pathname === "/home" && (
-          <TooltipProvider delayDuration={150}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Take the tour"
-                  onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
-                  className="size-9 rounded-full flex items-center justify-center text-primary bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors"
-                >
-                  <Star className="size-[18px] fill-current" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={6}>
-                <span>Take the tour</span>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        <button
-          type="button"
-          aria-label="Open menu"
-          data-tour="global-menu"
-          onClick={() => setOpen(true)}
-          className="size-9 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
-        >
-          <Menu className="size-5" />
-        </button>
         </div>
-
-      </div>
       {activeView === "consumer" && <GlobalTipsDensityStrip />}
 
       <Sheet open={open} onOpenChange={setOpen}>
