@@ -3141,6 +3141,7 @@ export type Database = {
           application_status: string
           appointments_total: number
           appointments_upcoming: number
+          complimentary_access: boolean
           contact_email: string
           created_at: string
           discipline: string
