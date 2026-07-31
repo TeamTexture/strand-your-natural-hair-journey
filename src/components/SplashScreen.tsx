@@ -161,6 +161,32 @@ const SplashScreen = () => {
           {loading ? "Please wait…" : "Sign In"}
         </Button>
 
+        <button
+          type="button"
+          onClick={() => navigate("/forgot-password")}
+          className="text-xs text-muted-foreground hover:text-foreground text-center underline underline-offset-4"
+        >
+          Forgot your password?
+        </button>
+
+        {failedAttempts >= 3 && (
+          <div className="rounded-2xl border border-primary/50 bg-primary/5 px-4 py-3 text-center space-y-2">
+            <p className="text-xs text-foreground">
+              Having trouble signing in? You can reset your password.
+            </p>
+            <Button
+              type="button"
+              variant="gold"
+              size="pill"
+              onClick={() => navigate("/forgot-password")}
+            >
+              Reset my password
+            </Button>
+          </div>
+        )}
+
+
+
         <div className="mt-5 pt-5 border-t border-border/60 space-y-2">
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground text-center">
             New here? Choose your account
