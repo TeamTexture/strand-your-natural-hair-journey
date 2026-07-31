@@ -26,7 +26,7 @@ const GENERIC = {
   message: "If an account exists for this email, a reset link is on its way.",
 };
 
-const emailHtml = (link: string) => `<!doctype html>
+const emailHtml = (link: string, isPro: boolean) => `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#F7F3EE;font-family:Helvetica,Arial,sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F3EE;padding:32px 0;">
@@ -34,10 +34,14 @@ const emailHtml = (link: string) => `<!doctype html>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFFFF;border-radius:16px;padding:36px 32px;">
           <tr><td align="center" style="padding-bottom:24px;">
             <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:0.34em;color:#3B2E26;text-transform:uppercase;">STRAND</div>
-            <div style="font-family:Georgia,serif;font-size:11px;letter-spacing:0.28em;color:#B08D4F;text-transform:uppercase;margin-top:8px;">Professional</div>
+            ${
+              isPro
+                ? `<div style="font-family:Georgia,serif;font-size:11px;letter-spacing:0.28em;color:#B08D4F;text-transform:uppercase;margin-top:8px;">Professional</div>`
+                : ""
+            }
           </td></tr>
           <tr><td style="font-size:15px;line-height:1.6;color:#3B2E26;padding-bottom:24px;">
-            <p style="margin:0 0 14px;">We received a request to reset the password for your STRAND Pro account.</p>
+            <p style="margin:0 0 14px;">We received a request to reset the password for your STRAND${isPro ? " Pro" : ""} account.</p>
             <p style="margin:0;">Tap the button below to choose a new password.</p>
           </td></tr>
           <tr><td align="center" style="padding-bottom:24px;">
@@ -59,10 +63,14 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const rawEmail = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    // Audience only changes the email copy — the mechanism is identical.
+    const isPro = body?.audience !== "member";
     const redirectTo =
       typeof body?.redirectTo === "string" && /^https?:\/\//.test(body.redirectTo)
         ? body.redirectTo
-        : "https://www.mystrand.co.uk/pro/reset-password";
+        : isPro
+          ? "https://www.mystrand.co.uk/pro/reset-password"
+          : "https://www.mystrand.co.uk/reset-password";
 
     if (!rawEmail || rawEmail.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
       return json(400, { error: "Please enter a valid email address." });
@@ -98,8 +106,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: FROM,
         to: [rawEmail],
-        subject: "Reset your STRAND Pro password",
-        html: emailHtml(data.properties.action_link),
+        subject: isPro ? "Reset your STRAND Pro password" : "Reset your STRAND password",
+        html: emailHtml(data.properties.action_link, isPro),
       }),
     });
 
