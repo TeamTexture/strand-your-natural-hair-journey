@@ -269,6 +269,8 @@ const Directory = () => {
           results.map((p) => {
             const enq = p.proUserId ? enquiryByPro.get(p.proUserId) : undefined;
             const activeEnq = enq && enq.status !== "withdrawn" && enq.status !== "declined";
+            const chatThreadId = p.proUserId ? threadByPro.get(p.proUserId) : undefined;
+
             const enqLabel =
               enq?.status === "accepted" ? "Accepted"
               : enq?.status === "pending" ? "Enquiry sent"
