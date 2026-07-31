@@ -260,6 +260,23 @@ const AdminProfessionals = () => {
     onError: (err) => toast.error((err as Error).message ?? "Could not update"),
   });
 
+  const toggleComplimentary = useMutation({
+    mutationFn: async ({ userId, value }: { userId: string; value: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ complimentary_access: value })
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["admin", "pro-usage"] });
+      toast.success(v.value ? "Complimentary access granted." : "Complimentary access removed.");
+    },
+    onError: (err) => toast.error((err as Error).message ?? "Could not update"),
+  });
+
+
+
   const restrict = useMutation({
     mutationFn: async (userId: string) => {
       const { data, error } = await supabase.functions.invoke("admin-restrict-user", { body: { user_id: userId } });
