@@ -364,8 +364,9 @@ const StrandSummary = () => {
                   tips={[{
                     priority: 100,
                     alwaysShow: true,
-                    short: "Trimming doesn't make hair grow faster — it removes damaged ends so you keep the length you're growing.",
-                    why: "Growth happens at the scalp. Split ends travel further up the strand over time, so trimming stops that damage before it costs you more length.",
+                    short: "Keep your ends maintained with a small trim roughly every three to four months — sooner if they feel rough, tangle easily or split. Confirm the rhythm with your STRAND professional.",
+                    why: "Trimming doesn't speed up growth — growth happens at the scalp — but split ends travel further up the strand over time, so regular maintenance is how you keep the length you're growing.",
+
                   }]}
                 />
               </SurfaceCard>
