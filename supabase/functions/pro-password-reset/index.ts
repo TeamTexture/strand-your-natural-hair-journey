@@ -90,11 +90,22 @@ Deno.serve(async (req) => {
       options: { redirectTo },
     });
 
-    // Unknown email (or any generation failure): stay generic, log server-side.
+    // Per product decision, unknown emails are rejected explicitly so users
+    // aren't left waiting for an email that will never arrive.
     if (error || !data?.properties?.action_link) {
+      const msg = (error?.message ?? "").toLowerCase();
+      const notFound =
+        !error ||
+        msg.includes("not found") ||
+        msg.includes("no user") ||
+        msg.includes("invalid") ||
+        error.status === 400 ||
+        error.status === 404;
       console.log("pro-password-reset: no link generated", error?.message);
-      return json(200, GENERIC);
+      if (notFound) return json(404, { error: NO_ACCOUNT, code: "no_account" });
+      return json(502, { error: "We couldn't send the email just now. Please try again." });
     }
+
 
     if (!RESEND_API_KEY) {
       console.error("pro-password-reset: RESEND_API_KEY missing");
