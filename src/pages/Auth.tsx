@@ -285,10 +285,10 @@ const Auth = () => {
         {mode === "signin" && (
           <button
             type="button"
-            onClick={() => sendResetEmail(email)}
+            onClick={() => navigate("/forgot-password")}
             className="mt-4 text-center text-xs text-primary hover:underline"
           >
-            Forgot password? Send reset email
+            Forgot password?
           </button>
         )}
 
