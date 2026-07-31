@@ -27,6 +27,7 @@ const SplashScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
   useEffect(() => {
     try {
@@ -79,10 +80,12 @@ const SplashScreen = () => {
         password,
       });
       if (error) throw error;
+      setFailedAttempts(0);
       toast.success("Signed in");
       const target = data.user?.id ? await getPostSignInTarget(data.user.id) : "/";
       navigate(target, { replace: true });
     } catch (err: unknown) {
+      setFailedAttempts((n) => n + 1);
       const msg = err instanceof Error ? err.message : "Something went wrong";
       toast.error(msg);
     } finally {
