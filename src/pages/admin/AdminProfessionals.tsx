@@ -12,6 +12,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ interface ProUsageRow {
   is_published: boolean;
   suspended_at: string | null;
   access_restricted: boolean;
+  complimentary_access: boolean;
   application_status: string | null;
   application_created_at: string | null;
   sub_status: string | null;
@@ -220,6 +222,7 @@ const AdminProfessionals = () => {
         is_published: !!r.is_published,
         suspended_at: (r.suspended_at as string) ?? null,
         access_restricted: !!r.access_restricted,
+        complimentary_access: !!r.complimentary_access,
         application_status: (r.application_status as string) ?? null,
         application_created_at: (r.application_created_at as string) ?? null,
         sub_status: (r.sub_status as string) ?? null,
@@ -257,6 +260,23 @@ const AdminProfessionals = () => {
     },
     onError: (err) => toast.error((err as Error).message ?? "Could not update"),
   });
+
+  const toggleComplimentary = useMutation({
+    mutationFn: async ({ userId, value }: { userId: string; value: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ complimentary_access: value })
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["admin", "pro-usage"] });
+      toast.success(v.value ? "Complimentary access granted." : "Complimentary access removed.");
+    },
+    onError: (err) => toast.error((err as Error).message ?? "Could not update"),
+  });
+
+
 
   const restrict = useMutation({
     mutationFn: async (userId: string) => {
@@ -431,6 +451,11 @@ const AdminProfessionals = () => {
                             Suspended
                           </span>
                         )}
+                        {r.complimentary_access && !r.access_restricted && (
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-primary/15 text-primary">
+                            Complimentary
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {r.discipline ?? "—"}{r.email ? ` · ${r.email}` : ""}
@@ -497,6 +522,19 @@ const AdminProfessionals = () => {
                   >
                     {r.is_published ? <><EyeOff className="size-3.5 mr-1" /> Unpublish</> : <><Eye className="size-3.5 mr-1" /> Publish</>}
                   </Button>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3 pt-3 border-t border-border">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-body font-medium">Complimentary access</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Free Pro access. Overrides Stripe status.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={r.complimentary_access}
+                    disabled={toggleComplimentary.isPending || r.access_restricted}
+                    onCheckedChange={(v) => toggleComplimentary.mutate({ userId: r.user_id, value: v })}
+                  />
                 </div>
                 <div className="mt-2">
                   <MessageButton userId={r.user_id} subjectRole="pro" />
