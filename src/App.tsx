@@ -31,6 +31,7 @@ import NotFound from "./pages/NotFound.tsx";
 // low-risk perf win on cold loads (mobile in particular).
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const SetupGuide = lazy(() => import("./pages/SetupGuide"));
 const Walkthrough = lazy(() => import("./pages/Walkthrough"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
