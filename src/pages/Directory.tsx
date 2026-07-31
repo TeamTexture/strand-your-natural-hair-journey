@@ -64,6 +64,20 @@ const Directory = () => {
     return map;
   }, [myEnquiries]);
 
+  // Once an enquiry has opened a conversation, the card's action becomes
+  // "Chat Now" straight into that thread.
+  const { data: chatThreads } = useChatThreads("all");
+  const threadByPro = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of chatThreads ?? []) {
+      if (t.thread_type !== "client_pro" || !t.pro_user_id) continue;
+      if (user && t.consumer_id !== user.id) continue;
+      if (!map.has(t.pro_user_id)) map.set(t.pro_user_id, t.id);
+    }
+    return map;
+  }, [chatThreads, user]);
+
+
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
     [pros, query, tab, bloodOnly],
