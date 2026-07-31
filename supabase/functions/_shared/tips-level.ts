@@ -32,6 +32,8 @@ export function buildTipsLevelBlock(value: unknown): string {
     DIRECTIVE[level],
     "",
     "Order every list you produce by priority — most important first — so that trimming the list never drops the point that matters most.",
+    "SHORTER MUST STILL TEACH. At every level, condensing means rewriting, not deleting sentences from a longer answer. Whatever survives must stand alone as usable guidance: the action, the baseline frequency or trigger, and the sign to watch for. A line like \"trimming doesn't make your hair grow faster\" is a fact, not guidance — it may never be the whole tip at any level. Even an advanced user is here to learn, so every tip must move their understanding or their routine forward.",
     "Non-negotiable: the two-step cleanse protocol, and trim/length-retention education when a length or retention goal is present, must ALWAYS be covered whatever the support level. The level changes how much you explain them, never whether they appear.",
+
   ].join("\n");
 }
