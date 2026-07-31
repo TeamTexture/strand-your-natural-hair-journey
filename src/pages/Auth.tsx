@@ -86,14 +86,20 @@ const Auth = () => {
     password.length >= 6 &&
     (mode !== "signup" || (confirmPassword.length >= 6 && passwordsMatch));
 
+  // Branded reset email (Resend, noreply@mystrand.co.uk) via the shared
+  // password-reset edge function — same mechanism as the pro flow.
   const sendResetEmail = async (targetEmail: string) => {
     if (!targetEmail) {
-      toast.error("Enter your email first, then tap Forgot password.");
+      navigate("/forgot-password");
       return;
     }
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const { error } = await supabase.functions.invoke("pro-password-reset", {
+        body: {
+          email: targetEmail.trim(),
+          audience: "member",
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
       });
       if (error) throw error;
       toast.success("Password reset email sent — check your inbox.");
