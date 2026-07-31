@@ -211,6 +211,17 @@ const ProAuth = () => {
             </Field>
           )}
 
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={() => nav("/pro/forgot-password")}
+              className="w-full text-right text-[12px] text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              Forgot password?
+            </button>
+          )}
+
+
           <Button variant="gold" size="pill" type="submit" disabled={busy}>
             {busy ? "Please wait…" : mode === "signup" ? "Create pro account →" : "Sign In →"}
           </Button>
