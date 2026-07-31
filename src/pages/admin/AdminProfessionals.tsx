@@ -451,6 +451,11 @@ const AdminProfessionals = () => {
                             Suspended
                           </span>
                         )}
+                        {r.complimentary_access && !r.access_restricted && (
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-primary/15 text-primary">
+                            Complimentary
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {r.discipline ?? "—"}{r.email ? ` · ${r.email}` : ""}
