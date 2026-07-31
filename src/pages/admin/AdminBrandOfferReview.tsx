@@ -20,9 +20,20 @@ import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBad
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
+  useBrandOfferTotals,
   BrandOfferRevision,
 } from "@/hooks/useBrandOffers";
+import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useQueryClient } from "@tanstack/react-query";
+
+const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
+  <SurfaceCard className="text-center py-3">
+    <Icon className="size-4 text-primary mx-auto" />
+    <p className="font-display text-xl mt-1">{value}</p>
+    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
+  </SurfaceCard>
+);
+
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
