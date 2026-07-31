@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Check, X, Pause, ExternalLink, Maximize2, Rocket } from "lucide-react";
+import { Check, X, Pause, ExternalLink, Maximize2, Rocket, Eye, MousePointerClick, Ticket, Heart, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -20,9 +20,20 @@ import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBad
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
+  useBrandOfferTotals,
   BrandOfferRevision,
 } from "@/hooks/useBrandOffers";
+import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useQueryClient } from "@tanstack/react-query";
+
+const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
+  <SurfaceCard className="text-center py-3">
+    <Icon className="size-4 text-primary mx-auto" />
+    <p className="font-display text-xl mt-1">{value}</p>
+    <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
+  </SurfaceCard>
+);
+
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
@@ -181,6 +192,9 @@ const AdminBrandOfferReview = () => {
   const revisionMode = params.get("revision") !== null;
   const { data: offer, isLoading } = useBrandOffer(id);
   const { data: pendingRevision } = usePendingRevision(id);
+  const { data: totalsMap = {} } = useBrandOfferTotals(id ? [id] : []);
+  const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
+
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [heroOpen, setHeroOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -303,7 +317,38 @@ const AdminBrandOfferReview = () => {
     }
   };
 
+  // Cross-member totals (SECURITY DEFINER RPC — admins see every offer), with a
+  // fallback to the offer's own stat rows if the RPC returns nothing yet.
+  const rowStats = (offer.brand_offer_stats ?? []) as Array<{
+    slot: string | null; impressions: number | null; taps: number | null;
+    wishlist_adds: number | null; code_copies: number | null; link_clicks: number | null;
+  }>;
+  const rowTotals = rowStats.reduce(
+    (acc, s) => ({
+      impressions: acc.impressions + (s.impressions ?? 0),
+      taps: acc.taps + (s.taps ?? 0),
+      wishlist_adds: acc.wishlist_adds + (s.wishlist_adds ?? 0),
+      code_copies: acc.code_copies + (s.code_copies ?? 0),
+      link_clicks: acc.link_clicks + (s.link_clicks ?? 0),
+    }),
+    { impressions: 0, taps: 0, wishlist_adds: 0, code_copies: 0, link_clicks: 0 },
+  );
+  const stats = (id ? totalsMap[id] : undefined) ?? rowTotals;
+  const interestTotal = (id ? interestMap[id]?.total : 0) ?? 0;
+
+  const slotStats = Object.values(
+    rowStats.reduce<Record<string, { slot: string; impressions: number; taps: number; link_clicks: number }>>((acc, s) => {
+      const key = s.slot ?? "other";
+      const entry = (acc[key] = acc[key] ?? { slot: key, impressions: 0, taps: 0, link_clicks: 0 });
+      entry.impressions += s.impressions ?? 0;
+      entry.taps += s.taps ?? 0;
+      entry.link_clicks += s.link_clicks ?? 0;
+      return acc;
+    }, {}),
+  );
+
   const placements = offer.brand_offer_placements ?? [];
+
   const bySlot = placements.reduce<Record<string, string[]>>((acc, p) => {
     (acc[p.slot] = acc[p.slot] ?? []).push(p.placement_date);
     return acc;
@@ -387,6 +432,38 @@ const AdminBrandOfferReview = () => {
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total value</p>
               <p className="font-display text-xl">{money(offer.total_price_pence)}</p>
             </SurfaceCard>
+
+            <SectionLabel className="!px-0">Performance</SectionLabel>
+            <div className="grid grid-cols-3 gap-2">
+              <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
+              <StatBox icon={MousePointerClick} label="Taps" value={stats.taps} />
+              <StatBox icon={Ticket} label="Code copies" value={stats.code_copies} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.link_clicks} />
+              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist_adds} />
+              <StatBox icon={Users} label="Interest" value={interestTotal} />
+            </div>
+            <p className="text-[10.5px] text-muted-foreground font-body leading-snug">
+              Taps = advert opened. Code copies = discount code copied. Link clicks = tapped through to the
+              advertiser's site. Interest = members who registered interest after the campaign ended.
+            </p>
+
+            {slotStats.length > 0 && (
+              <SurfaceCard className="space-y-2">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">By placement</p>
+                {slotStats.map((s) => (
+                  <div key={s.slot} className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-body truncate">
+                      {SLOT_LABEL[s.slot as PlacementSlot] ?? "Other"}
+                    </p>
+                    <p className="text-[11px] font-body text-muted-foreground shrink-0">
+                      {s.impressions} views · {s.taps} taps · {s.link_clicks} clicks
+                    </p>
+                  </div>
+                ))}
+              </SurfaceCard>
+            )}
+
+
 
             <SectionLabel className="!px-0">Placements</SectionLabel>
             {Object.entries(bySlot).map(([slot, dates]) => (
