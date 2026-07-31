@@ -53,16 +53,20 @@ export const BeginnerTrimEducation = () => (
       <BeginnerSteps
         steps={[
           {
-            text: "Trimming does not make your hair grow faster.",
-            detail: "Growth happens at your scalp, not at the ends.",
+            text: "Keep your ends tidy with a small, regular trim.",
+            detail: "A good starting rhythm is a light trim every three to four months, and sooner if your ends feel rough, tangle a lot or look split. Your STRAND professional will tell you what is right for your ends.",
+          },
+          {
+            text: "Check your ends each wash day.",
+            detail: "Rough, knotty or see-through ends mean it is time for a trim, whatever the calendar says.",
+          },
+          {
+            text: "Trimming does not make your hair grow faster — it helps you keep the length you grow.",
+            detail: "Growth happens at your scalp. A damaged end keeps splitting further up the strand, so taking it off stops that travelling.",
           },
           {
             text: "The hair you can see is not alive.",
             detail: "Once a strand leaves your scalp it cannot repair itself. Looking after it is about keeping it, not healing it.",
-          },
-          {
-            text: "Trimming helps you keep length.",
-            detail: "A damaged end keeps splitting further up the strand. Taking it off stops that travelling.",
           },
           {
             text: "If your hair is not getting longer, it is usually breaking, not growing slowly.",
@@ -72,9 +76,10 @@ export const BeginnerTrimEducation = () => (
       />
       <DoDont
         className="mt-3"
-        dos={["Trim when ends look damaged", "Handle wet hair gently"]}
-        donts={["Trim on a fixed schedule", "Pull through tangles"]}
+        dos={["Trim on a regular rhythm", "Trim sooner if ends feel rough", "Handle wet hair gently"]}
+        donts={["Leave split ends for months", "Pull through tangles"]}
       />
+
     </SurfaceCard>
   </>
 );
