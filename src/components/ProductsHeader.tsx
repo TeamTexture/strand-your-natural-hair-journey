@@ -92,7 +92,7 @@ export const applyProductFilters = (
 ) => {
   const q = state.search.trim().toLowerCase();
   return products.filter((p) => {
-    if (state.categoryFilter && categoryBucket(p.category).key !== state.categoryFilter) return false;
+    if (state.categoryFilter && categoryBucket(p.category, p.name).key !== state.categoryFilter) return false;
     if (state.brandFilter && (p.brand ?? "") !== state.brandFilter) return false;
     if (state.ratingFilter && (p.rating ?? 0) < state.ratingFilter) return false;
     if (q) {
@@ -140,7 +140,7 @@ const ProductsHeader = ({
   const categoryOptions = useMemo(() => {
     const set = new Map<string, string>();
     for (const p of products) {
-      const { key, label } = categoryBucket(p.category);
+      const { key, label } = categoryBucket(p.category, p.name);
       set.set(key, label);
     }
     const ordered: { key: string; label: string }[] = [];

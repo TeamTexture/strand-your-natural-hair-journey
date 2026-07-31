@@ -76,7 +76,7 @@ const Products = () => {
   const groups = useMemo(() => {
     const buckets = new Map<string, { label: string; items: UserProduct[] }>();
     for (const p of filteredProducts) {
-      const { key, label } = categoryBucket(p.category);
+      const { key, label } = categoryBucket(p.category, p.name);
       if (!buckets.has(key)) buckets.set(key, { label, items: [] });
       buckets.get(key)!.items.push(p);
     }
