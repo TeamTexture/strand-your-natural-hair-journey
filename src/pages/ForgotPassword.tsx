@@ -21,10 +21,12 @@ const ForgotPassword = () => {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noAccount, setNoAccount] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = email.trim();
+    setNoAccount(false);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
       setError("Please enter a valid email address.");
       return;
@@ -45,6 +47,7 @@ const ForgotPassword = () => {
           try {
             const payload = await fnError.context.json();
             if (payload?.error) message = payload.error as string;
+            if (payload?.code === "no_account") setNoAccount(true);
           } catch {
             /* keep fallback */
           }
@@ -61,6 +64,7 @@ const ForgotPassword = () => {
       setBusy(false);
     }
   };
+
 
   return (
     <ScreenLayout>
