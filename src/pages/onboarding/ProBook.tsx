@@ -178,6 +178,13 @@ const ProBook = () => {
         >
           ← I do have a recent appointment
         </Button>
+
+        <EnquiryDialog
+          open={!!enquiryTarget}
+          onOpenChange={(o) => !o && setEnquiryTarget(null)}
+          proUserId={enquiryTarget?.proUserId ?? ""}
+          proName={enquiryTarget?.name ?? ""}
+        />
       </div>
     </ScreenLayout>
   );
