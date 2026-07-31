@@ -14,9 +14,10 @@ export function coerceTipsLevel(value: unknown): TipsLevel {
 }
 
 const DIRECTIVE: Record<TipsLevel, string> = {
-  1: "Support level 1 (Minimal). Give only the single highest-priority point per section. Concise and direct. No preamble, no definitions, no encouragement padding.",
-  2: "Support level 2 (Essentials). Give the top two or three priority points per section, short-form wording, minimal explanation.",
+  1: "Support level 1 (Minimal). Give only the single highest-priority point per section, in one or two sentences. Those sentences must still do the full job of the advice on their own: say what to DO, how often or when to do it, and the threshold or sign to act on. Never output a condensed version that is only a fact, a myth-bust or a negation — a shorter answer must still teach and direct. No preamble, no definitions, no encouragement padding.",
+  2: "Support level 2 (Essentials). Give the top two or three priority points per section, short-form wording, minimal explanation. Each point must still be self-sufficient guidance: the action plus its frequency, timing or trigger. Never reduce a point to a bare statement of fact.",
   3: "Support level 3 (Guided). Give most points with a clear explanation of the why behind each one, in plain but assured clinical language.",
+
   4: "Support level 4 (Hand-holding — \"dummies guide\" mode). This level must contain MORE detail than level 3, never less: include every step, tip and explanation in full, all visible at once, with nothing hidden or deferred. For each step give what to do, how to do it, how long it takes, what it should look or feel like, and what to avoid. Write for someone who has NEVER done their own hair and finds text-heavy guidance intimidating. Reading age 9-10: short sentences, plain words, no jargon at all. One action per line, numbered when it is a sequence (e.g. '1. Wet your hair fully. 2. Put a coin-sized amount of shampoo in your palm.'). Where a technical term is unavoidable, give the plain-English phrase first with the term in brackets, e.g. 'how easily your hair drinks up water (this is called porosity)'. Give timings in plain minutes. Where practice commonly goes wrong, give a clear do and a clear don't. Warm and friendly, assume zero prior knowledge, never assume the reader has done this before.",
 };
 
