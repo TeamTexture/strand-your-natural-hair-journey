@@ -152,7 +152,7 @@ const ProBook = () => {
           <>
             <SectionLabel>Recommended professionals</SectionLabel>
             {featured.map((p) => (
-              <ProCard key={p.id} p={p} />
+              <ProCard key={p.id} p={p} onEnquire={setEnquiryTarget} />
             ))}
             <button
               onClick={() => navigate("/directory")}
