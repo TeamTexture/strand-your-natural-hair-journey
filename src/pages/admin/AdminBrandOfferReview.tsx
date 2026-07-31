@@ -388,6 +388,38 @@ const AdminBrandOfferReview = () => {
               <p className="font-display text-xl">{money(offer.total_price_pence)}</p>
             </SurfaceCard>
 
+            <SectionLabel className="!px-0">Performance</SectionLabel>
+            <div className="grid grid-cols-3 gap-2">
+              <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
+              <StatBox icon={MousePointerClick} label="Taps" value={stats.taps} />
+              <StatBox icon={Ticket} label="Code copies" value={stats.code_copies} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.link_clicks} />
+              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist_adds} />
+              <StatBox icon={Users} label="Interest" value={interestTotal} />
+            </div>
+            <p className="text-[10.5px] text-muted-foreground font-body leading-snug">
+              Taps = advert opened. Code copies = discount code copied. Link clicks = tapped through to the
+              advertiser's site. Interest = members who registered interest after the campaign ended.
+            </p>
+
+            {slotStats.length > 0 && (
+              <SurfaceCard className="space-y-2">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">By placement</p>
+                {slotStats.map((s) => (
+                  <div key={s.slot} className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-body truncate">
+                      {SLOT_LABEL[s.slot as PlacementSlot] ?? "Other"}
+                    </p>
+                    <p className="text-[11px] font-body text-muted-foreground shrink-0">
+                      {s.impressions} views · {s.taps} taps · {s.link_clicks} clicks
+                    </p>
+                  </div>
+                ))}
+              </SurfaceCard>
+            )}
+
+
+
             <SectionLabel className="!px-0">Placements</SectionLabel>
             {Object.entries(bySlot).map(([slot, dates]) => (
               <SurfaceCard key={slot} className="py-2.5">
