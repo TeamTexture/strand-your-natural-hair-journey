@@ -220,10 +220,13 @@ export function useDirectoryProfessionals() {
           "samanthastewart",
           "paigelewin",
         ];
-        const merged = Array.from(byKey.values()).filter((p) => {
-          const key = norm(p.name);
-          return ALLOWED.some((a) => key.includes(a));
-        });
+        const merged = Array.from(byKey.values())
+          .map((v) => v.pro)
+          .filter((p) => {
+            const key = norm(p.name);
+            return ALLOWED.some((a) => key.includes(a));
+          });
+
 
         setPros(merged);
         setError(null);
