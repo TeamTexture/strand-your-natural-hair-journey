@@ -141,7 +141,9 @@ const ProBook = () => {
                 hint="Try a postcode, name, or specialism."
               />
             ) : (
-              searchResults.map((p) => <ProCard key={p.id} p={p} />)
+              searchResults.map((p) => (
+                <ProCard key={p.id} p={p} onEnquire={setEnquiryTarget} />
+              ))
             )}
           </>
         ) : loading && pros.length === 0 ? (
