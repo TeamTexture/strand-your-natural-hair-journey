@@ -16,8 +16,12 @@ import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/l
  *   • pull their currently-live pro_offer (if any) into the discount ribbon
  *   • surface their specialisms as tag chips (same shape as seed rows)
  */
+const ALLOWED_NAMES = ["yvonneabimbola", "ericaliburd", "samanthastewart", "paigelewin"];
+const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const isAllowed = (name: string) => ALLOWED_NAMES.some((a) => normName(name).includes(a));
+
 export function useDirectoryProfessionals() {
-  const [pros, setPros] = useState<Professional[]>(PROFESSIONALS);
+  const [pros, setPros] = useState<Professional[]>(() => PROFESSIONALS.filter((p) => isAllowed(p.name)));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -197,7 +201,17 @@ export function useDirectoryProfessionals() {
             byKey.set(key, p);
           }
         }
-        const merged = Array.from(byKey.values());
+        // Editorial allowlist — only these professionals appear in the directory.
+        const ALLOWED = [
+          "yvonneabimbola",
+          "ericaliburd",
+          "samanthastewart",
+          "paigelewin",
+        ];
+        const merged = Array.from(byKey.values()).filter((p) => {
+          const key = norm(p.name);
+          return ALLOWED.some((a) => key.includes(a));
+        });
 
         setPros(merged);
         setError(null);

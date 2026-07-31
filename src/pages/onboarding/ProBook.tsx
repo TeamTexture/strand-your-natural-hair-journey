@@ -9,13 +9,21 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
+import EnquiryDialog from "@/components/EnquiryDialog";
 import { Button } from "@/components/ui/button";
 import { searchProfessionalsIn, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 
-const ProCard = ({ p }: { p: Professional }) => {
+const ProCard = ({
+  p,
+  onEnquire,
+}: {
+  p: Professional;
+  onEnquire: (pro: { proUserId: string; name: string }) => void;
+}) => {
   const bookHref = normalizeWebsiteUrl(p.bookingUrl || p.website || p.instaUrl || "");
+  const canEnquireInApp = !!p.proUserId;
   return (
     <SurfaceCard padded={false} className="overflow-hidden">
       <div className="p-4 flex gap-3">
@@ -43,7 +51,15 @@ const ProCard = ({ p }: { p: Professional }) => {
               {p.bio}
             </p>
           ) : null}
-          {bookHref ? (
+          {canEnquireInApp ? (
+            <button
+              type="button"
+              onClick={() => onEnquire({ proUserId: p.proUserId!, name: p.name })}
+              className="inline-flex mt-2.5 items-center justify-center px-3.5 py-2 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold uppercase tracking-[0.15em] hover:bg-primary/90 transition-colors min-h-[36px]"
+            >
+              Enquire Now →
+            </button>
+          ) : bookHref ? (
             <a
               href={bookHref}
               target="_blank"
@@ -78,6 +94,10 @@ const ProBook = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
+  const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(
+    null,
+  );
+
 
   const featured = useMemo(() => pros.filter((p) => p.featured), [pros]);
   const searchResults = useMemo(
@@ -122,7 +142,9 @@ const ProBook = () => {
                 hint="Try a postcode, name, or specialism."
               />
             ) : (
-              searchResults.map((p) => <ProCard key={p.id} p={p} />)
+              searchResults.map((p) => (
+                <ProCard key={p.id} p={p} onEnquire={setEnquiryTarget} />
+              ))
             )}
           </>
         ) : loading && pros.length === 0 ? (
@@ -131,7 +153,7 @@ const ProBook = () => {
           <>
             <SectionLabel>Recommended professionals</SectionLabel>
             {featured.map((p) => (
-              <ProCard key={p.id} p={p} />
+              <ProCard key={p.id} p={p} onEnquire={setEnquiryTarget} />
             ))}
             <button
               onClick={() => navigate("/directory")}
@@ -157,6 +179,13 @@ const ProBook = () => {
         >
           ← I do have a recent appointment
         </Button>
+
+        <EnquiryDialog
+          open={!!enquiryTarget}
+          onOpenChange={(o) => !o && setEnquiryTarget(null)}
+          proUserId={enquiryTarget?.proUserId ?? ""}
+          proName={enquiryTarget?.name ?? ""}
+        />
       </div>
     </ScreenLayout>
   );
