@@ -77,8 +77,9 @@ const ForgotPassword = () => {
           </h2>
           <p className="font-body text-[13px] text-foreground/70 max-w-[280px] mt-2 leading-snug">
             {sent
-              ? "If an account exists for this email, a reset link is on its way. The link can only be used once and expires in 1 hour."
+              ? "Your reset link is on its way. It can only be used once and expires in 1 hour."
               : "Enter the email on your STRAND account and we'll send you a secure link to set a new password."}
+
           </p>
         </div>
 
