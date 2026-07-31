@@ -411,40 +411,62 @@ const StrandSummary = () => {
                   const label = new Date(items[0].createdAt).toLocaleDateString(undefined, {
                     weekday: "short", day: "numeric", month: "short", year: "numeric",
                   });
+                  const firstTime = new Date(items[0].createdAt).toLocaleTimeString(undefined, {
+                    hour: "numeric", minute: "2-digit",
+                  });
                   const timeRange = items.length > 1
-                    ? `${items.length} photos`
-                    : new Date(items[0].createdAt).toLocaleTimeString(undefined, {
-                        hour: "numeric", minute: "2-digit",
-                      });
+                    ? `${items.length} photos · from ${firstTime}`
+                    : firstTime;
+                  // Collapsed state shows the first two thumbnails so the day is
+                  // recognisable at a glance; the rest sit behind "see more".
+                  const preview = items.slice(0, 2);
+                  const extra = items.length - preview.length;
                   return (
-                    <div key={k} className="rounded-[14px] bg-[hsl(var(--ink-brown,25_25%_20%))] text-primary overflow-hidden" style={{ background: "hsl(28 30% 22%)" }}>
+                    <div key={k} className="rounded-[14px] overflow-hidden border border-primary/25 bg-primary/10">
                       <button
                         type="button"
                         onClick={() => setOpenDay(open ? null : k)}
-                        className="w-full flex items-center justify-between px-3.5 py-3 text-left"
+                        className="w-full flex items-center gap-3 px-3.5 py-3 text-left"
                       >
-                        <div>
-                          <p className="font-display text-[13px] font-semibold text-primary">{label}</p>
-                          <p className="text-[10px] text-primary/80 mt-0.5">{timeRange}</p>
+                        <div className="flex -space-x-2 shrink-0">
+                          {preview.map((p) => (
+                            <div key={p.id} className="size-11 rounded-[10px] overflow-hidden border-2 border-card bg-muted">
+                              <img src={p.url} alt="Progress" className="size-full object-cover" loading="lazy" />
+                            </div>
+                          ))}
+                          {extra > 0 && (
+                            <div className="size-11 rounded-[10px] border-2 border-card bg-primary/25 flex items-center justify-center text-[11px] font-semibold text-primary-foreground">
+                              +{extra}
+                            </div>
+                          )}
                         </div>
-                        <span className="text-[10px] font-medium text-primary/90 uppercase tracking-[0.12em]">
-                          {open ? "Hide" : "View"}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-display text-[13px] font-semibold text-foreground truncate">{label}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{timeRange}</p>
+                        </div>
+                        <span className="text-[10px] font-medium text-primary uppercase tracking-[0.12em] shrink-0">
+                          {open ? "Hide" : extra > 0 ? `See all ${items.length}` : "View"}
                         </span>
                       </button>
                       {open && (
                         <div className="px-3.5 pb-3.5 space-y-2.5">
                           <div className="grid grid-cols-3 gap-2">
                             {items.map((p) => (
-                              <div key={p.id} className="relative aspect-square rounded-[10px] overflow-hidden bg-muted">
-                                <img src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" />
-                                <button
-                                  type="button"
-                                  onClick={() => removePhoto(p)}
-                                  aria-label="Remove photo"
-                                  className="absolute top-1 right-1 size-5 rounded-full bg-background/85 flex items-center justify-center text-foreground hover:text-destructive"
-                                >
-                                  <X className="size-3" />
-                                </button>
+                              <div key={p.id} className="space-y-1">
+                                <div className="relative aspect-square rounded-[10px] overflow-hidden bg-muted">
+                                  <img src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" loading="lazy" />
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhoto(p)}
+                                    aria-label="Remove photo"
+                                    className="absolute top-1 right-1 size-5 rounded-full bg-background/85 flex items-center justify-center text-foreground hover:text-destructive"
+                                  >
+                                    <X className="size-3" />
+                                  </button>
+                                </div>
+                                <p className="text-[9px] text-muted-foreground text-center">
+                                  {new Date(p.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                                </p>
                               </div>
                             ))}
                           </div>
@@ -462,6 +484,7 @@ const StrandSummary = () => {
                       )}
                     </div>
                   );
+
                 })}
 
                 {canAdd && (
