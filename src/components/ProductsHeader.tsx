@@ -26,25 +26,31 @@ const TABS: { id: ProductsTab; label: string; path: string }[] = [
 // style → seal → refresh → treat). Anything that doesn't match falls into
 // "Other" and renders last.
 export const CATEGORY_ORDER: { key: string; label: string; matchers: RegExp[] }[] = [
-  { key: "cleanser",    label: "Cleanser",         matchers: [/pre[\s-]?shampoo/i, /pre[\s-]?poo/i, /shampoo/i, /cleanser/i, /clarif/i, /co[\s-]?wash/i, /scalp\s?exfoliant/i, /scalp\s?scrub/i, /exfoliant/i] },
-  { key: "conditioner", label: "Conditioner",      matchers: [/deep\s?condition/i, /hair\s?mask/i, /^conditioner/i, /rinse[\s-]?out/i] },
+  { key: "cleanser",    label: "Cleanser",         matchers: [/pre[\s-]?shampoo/i, /pre[\s-]?poo/i, /shampoo/i, /cleanser/i, /clarif/i, /co[\s-]?wash/i, /scalp\s?exfoliant/i, /scalp\s?scrub/i, /exfoliant/i, /scalp/i] },
+  { key: "conditioner", label: "Conditioner",      matchers: [/deep\s?condition/i, /hair\s?mask/i, /\bmask\b/i, /^conditioner/i, /rinse[\s-]?out/i] },
   { key: "leavein",     label: "Leave-In",         matchers: [/leave[\s-]?in/i, /detangler/i, /milk/i] },
   { key: "styler",      label: "Styler",           matchers: [/curl\s?cream/i, /twisting/i, /styling/i, /styler/i, /custard/i, /pudding/i, /gel/i, /mousse/i, /foam/i, /jelly/i, /butter/i] },
-  { key: "serum",       label: "Serum",            matchers: [/serum/i, /elixir/i, /ampoule/i, /booster/i, /concentrate/i] },
+  { key: "serum",       label: "Serum",            matchers: [/serum/i, /elixir/i, /ampoule/i, /concentrate/i] },
   { key: "oil",         label: "Oil & Sealant",    matchers: [/^oil/i, /\boil\b/i, /sealant/i, /grease/i] },
   { key: "refresh",     label: "Refresh & Finish", matchers: [/refresh/i, /spray/i, /mist/i, /hairspray/i, /shine/i] },
   { key: "treatments",  label: "Treatment",        matchers: [/bond/i, /keratin/i, /protein/i, /treatment/i] },
-  { key: "scalp",       label: "Scalp",            matchers: [/scalp/i, /tonic/i] },
 ];
 
+const SERUM_RX = CATEGORY_ORDER.find((b) => b.key === "serum")!.matchers;
+
 /**
- * Resolve a product into a shelf section. Matches on the stored category
- * first, then falls back to the product name so a "Growth Serum" saved with a
- * generic/oil category still lands in the Serum section.
+ * Resolve a product into a shelf section. "Serum" wins outright — if the name
+ * or the stored category mentions a serum/elixir/ampoule/concentrate it lands
+ * in the Serum section even when it was saved as a treatment or oil.
  */
 export const categoryBucket = (raw: string | null | undefined, name?: string | null) => {
   const c = (raw ?? "").trim();
   const n = (name ?? "").trim();
+
+  for (const source of [n, c]) {
+    if (source && SERUM_RX.some((rx) => rx.test(source))) return { key: "serum", label: "Serum" };
+  }
+
   for (const source of [c, n]) {
     if (!source) continue;
     for (const b of CATEGORY_ORDER) {
