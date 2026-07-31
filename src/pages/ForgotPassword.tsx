@@ -115,8 +115,20 @@ const ForgotPassword = () => {
             </div>
 
             {error && (
-              <p className="text-[12px] font-body text-destructive leading-snug">{error}</p>
+              <div className="space-y-2">
+                <p className="text-[12px] font-body text-destructive leading-snug">{error}</p>
+                {noAccount && (
+                  <button
+                    type="button"
+                    onClick={() => nav("/auth?mode=signup")}
+                    className="text-primary text-[12px] font-semibold underline underline-offset-2"
+                  >
+                    Create a STRAND account →
+                  </button>
+                )}
+              </div>
             )}
+
 
             <Button variant="gold" size="pill" type="submit" disabled={busy}>
               {busy ? "Sending…" : "Send reset link →"}
