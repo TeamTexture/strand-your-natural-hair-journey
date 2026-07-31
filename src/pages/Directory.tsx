@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { useMyEnquiries, type EnquiryStatus } from "@/hooks/useEnquiries";
+import { useChatThreads } from "@/hooks/useChat";
+
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
 import { useAuth } from "@/hooks/useAuth";
