@@ -243,6 +243,7 @@ const App = () => (
               <Route path="/setup" element={<Onboard><SetupGuide /></Onboard>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
 
               {/* Onboarding (auth required so data persists) */}
