@@ -21,10 +21,14 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const GENERIC = {
+const SENT = {
   ok: true,
-  message: "If an account exists for this email, a reset link is on its way.",
+  message: "A reset link is on its way.",
 };
+
+const NO_ACCOUNT =
+  "No STRAND account is registered with that email. Check the spelling and try again, or create an account.";
+
 
 const emailHtml = (link: string, isPro: boolean) => `<!doctype html>
 <html>
@@ -86,11 +90,22 @@ Deno.serve(async (req) => {
       options: { redirectTo },
     });
 
-    // Unknown email (or any generation failure): stay generic, log server-side.
+    // Per product decision, unknown emails are rejected explicitly so users
+    // aren't left waiting for an email that will never arrive.
     if (error || !data?.properties?.action_link) {
+      const msg = (error?.message ?? "").toLowerCase();
+      const notFound =
+        !error ||
+        msg.includes("not found") ||
+        msg.includes("no user") ||
+        msg.includes("invalid") ||
+        error.status === 400 ||
+        error.status === 404;
       console.log("pro-password-reset: no link generated", error?.message);
-      return json(200, GENERIC);
+      if (notFound) return json(404, { error: NO_ACCOUNT, code: "no_account" });
+      return json(502, { error: "We couldn't send the email just now. Please try again." });
     }
+
 
     if (!RESEND_API_KEY) {
       console.error("pro-password-reset: RESEND_API_KEY missing");
@@ -120,7 +135,7 @@ Deno.serve(async (req) => {
       return json(502, { error: "We couldn't send the email just now. Please try again." });
     }
 
-    return json(200, GENERIC);
+    return json(200, SENT);
   } catch (err) {
     console.error("pro-password-reset error", err);
     return json(500, { error: "Something went wrong. Please try again." });

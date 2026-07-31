@@ -21,10 +21,12 @@ const ForgotPassword = () => {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noAccount, setNoAccount] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = email.trim();
+    setNoAccount(false);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
       setError("Please enter a valid email address.");
       return;
@@ -45,6 +47,7 @@ const ForgotPassword = () => {
           try {
             const payload = await fnError.context.json();
             if (payload?.error) message = payload.error as string;
+            if (payload?.code === "no_account") setNoAccount(true);
           } catch {
             /* keep fallback */
           }
@@ -62,6 +65,7 @@ const ForgotPassword = () => {
     }
   };
 
+
   return (
     <ScreenLayout>
       <TitleBar title="Reset password" back />
@@ -73,8 +77,9 @@ const ForgotPassword = () => {
           </h2>
           <p className="font-body text-[13px] text-foreground/70 max-w-[280px] mt-2 leading-snug">
             {sent
-              ? "If an account exists for this email, a reset link is on its way. The link can only be used once and expires in 1 hour."
+              ? "Your reset link is on its way. It can only be used once and expires in 1 hour."
               : "Enter the email on your STRAND account and we'll send you a secure link to set a new password."}
+
           </p>
         </div>
 
@@ -110,8 +115,20 @@ const ForgotPassword = () => {
             </div>
 
             {error && (
-              <p className="text-[12px] font-body text-destructive leading-snug">{error}</p>
+              <div className="space-y-2">
+                <p className="text-[12px] font-body text-destructive leading-snug">{error}</p>
+                {noAccount && (
+                  <button
+                    type="button"
+                    onClick={() => nav("/auth?mode=signup")}
+                    className="text-primary text-[12px] font-semibold underline underline-offset-2"
+                  >
+                    Create a STRAND account →
+                  </button>
+                )}
+              </div>
             )}
+
 
             <Button variant="gold" size="pill" type="submit" disabled={busy}>
               {busy ? "Sending…" : "Send reset link →"}
