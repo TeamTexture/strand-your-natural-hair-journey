@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.brand-stripe-webhook]
 verify_jwt = false
+
+[functions.pro-password-reset]
+verify_jwt = false
