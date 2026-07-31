@@ -181,6 +181,9 @@ const AdminBrandOfferReview = () => {
   const revisionMode = params.get("revision") !== null;
   const { data: offer, isLoading } = useBrandOffer(id);
   const { data: pendingRevision } = usePendingRevision(id);
+  const { data: totalsMap = {} } = useBrandOfferTotals(id ? [id] : []);
+  const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
+
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [heroOpen, setHeroOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
