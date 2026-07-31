@@ -12,6 +12,7 @@ import {
   getConsumerOnboardingStatus,
   getSubscribePath,
 } from "@/lib/consumerOnboarding";
+import { recoveryLockPath } from "@/lib/recoveryLock";
 
 type Destination = { path: string; label: string; sub: string };
 
@@ -33,6 +34,12 @@ const Index = () => {
 
   useEffect(() => {
     if (loading || !user) return;
+    // Mid password-reset: never route an unproven recovery session into the app.
+    const lockPath = recoveryLockPath();
+    if (lockPath) {
+      navigate(lockPath, { replace: true });
+      return;
+    }
     setChecking(true);
     (async () => {
       const [{ data: profile }, { data: roleRows }, { data: proApp }, { data: brandProf }, onboardingStatus] = await Promise.all([
