@@ -50,7 +50,15 @@ const ProCard = ({
               {p.bio}
             </p>
           ) : null}
-          {bookHref ? (
+          {canEnquireInApp ? (
+            <button
+              type="button"
+              onClick={() => onEnquire({ proUserId: p.proUserId!, name: p.name })}
+              className="inline-flex mt-2.5 items-center justify-center px-3.5 py-2 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold uppercase tracking-[0.15em] hover:bg-primary/90 transition-colors min-h-[36px]"
+            >
+              Enquire Now →
+            </button>
+          ) : bookHref ? (
             <a
               href={bookHref}
               target="_blank"
