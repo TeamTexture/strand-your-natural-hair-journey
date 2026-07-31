@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocalStorageMigration } from "@/hooks/useLocalStorageMigration";
 import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
+import { recoveryLockPath } from "@/lib/recoveryLock";
 import LoadingDot from "./LoadingDot";
 
 interface Props {
@@ -21,6 +22,12 @@ const RequireAuth = ({ children }: Props) => {
     purgeStrandUserScopedKeys("RequireAuth-null-user");
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/?next=${next}`} replace />;
+  }
+  // A password-recovery session is NOT proof of a password. Until the new
+  // password is saved, every protected route bounces back to the reset form.
+  const lockPath = recoveryLockPath();
+  if (lockPath && location.pathname !== lockPath) {
+    return <Navigate to={lockPath} replace />;
   }
   return <>{children}</>;
 };
