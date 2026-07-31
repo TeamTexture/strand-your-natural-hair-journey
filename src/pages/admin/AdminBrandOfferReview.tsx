@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Check, X, Pause, ExternalLink, Maximize2, Rocket } from "lucide-react";
+import { Check, X, Pause, ExternalLink, Maximize2, Rocket, Eye, MousePointerClick, Ticket, Heart, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
