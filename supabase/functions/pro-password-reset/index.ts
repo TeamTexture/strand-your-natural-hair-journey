@@ -21,10 +21,14 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const GENERIC = {
+const SENT = {
   ok: true,
-  message: "If an account exists for this email, a reset link is on its way.",
+  message: "A reset link is on its way.",
 };
+
+const NO_ACCOUNT =
+  "No STRAND account is registered with that email. Check the spelling and try again, or create an account.";
+
 
 const emailHtml = (link: string, isPro: boolean) => `<!doctype html>
 <html>
