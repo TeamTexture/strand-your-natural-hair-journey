@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import { toast } from "sonner";
+import { beginRecoveryLock, clearRecoveryLock } from "@/lib/recoveryLock";
 
 /**
  * Member reset landing. The recovery link (minted server-side and emailed via
@@ -27,12 +28,14 @@ const ResetPassword = () => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
         done = true;
+        beginRecoveryLock("member");
         setStatus("ready");
       }
     });
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         done = true;
+        beginRecoveryLock("member");
         setStatus("ready");
       }
     });
@@ -58,6 +61,8 @@ const ResetPassword = () => {
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
+      // Password proven — release the lock so the app is reachable again.
+      clearRecoveryLock();
       toast.success("Password updated. You're signed in.");
       nav("/home", { replace: true });
     } catch (err) {
