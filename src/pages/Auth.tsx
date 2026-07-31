@@ -101,13 +101,26 @@ const Auth = () => {
           redirectTo: `${window.location.origin}/reset-password`,
         },
       });
-      if (error) throw error;
+      if (error) {
+        let msg = "Couldn't send reset email";
+        if (error instanceof FunctionsHttpError) {
+          try {
+            const payload = await error.context.json();
+            if (payload?.error) msg = payload.error as string;
+          } catch {
+            /* keep fallback */
+          }
+        }
+        toast.error(msg);
+        return;
+      }
       toast.success("Password reset email sent — check your inbox.");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Couldn't send reset email";
       toast.error(msg);
     }
   };
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
