@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { useMyEnquiries, type EnquiryStatus } from "@/hooks/useEnquiries";
+import { useChatThreads } from "@/hooks/useChat";
+
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,6 +63,20 @@ const Directory = () => {
     }
     return map;
   }, [myEnquiries]);
+
+  // Once an enquiry has opened a conversation, the card's action becomes
+  // "Chat Now" straight into that thread.
+  const { data: chatThreads } = useChatThreads("all");
+  const threadByPro = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of chatThreads ?? []) {
+      if (t.thread_type !== "client_pro" || !t.pro_user_id) continue;
+      if (user && t.consumer_id !== user.id) continue;
+      if (!map.has(t.pro_user_id)) map.set(t.pro_user_id, t.id);
+    }
+    return map;
+  }, [chatThreads, user]);
+
 
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
@@ -253,6 +269,8 @@ const Directory = () => {
           results.map((p) => {
             const enq = p.proUserId ? enquiryByPro.get(p.proUserId) : undefined;
             const activeEnq = enq && enq.status !== "withdrawn" && enq.status !== "declined";
+            const chatThreadId = p.proUserId ? threadByPro.get(p.proUserId) : undefined;
+
             const enqLabel =
               enq?.status === "accepted" ? "Accepted"
               : enq?.status === "pending" ? "Enquiry sent"
@@ -472,15 +490,25 @@ const Directory = () => {
 
                       {/* Tier A — full subscriber: in-app enquiry flow */}
                       {tier === "full" && p.proUserId ? (
-                        activeEnq ? (
+                        activeEnq || chatThreadId ? (
                           <button
                             type="button"
-                            onClick={() => navigate("/profile/enquiries")}
-                            className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground border border-primary/40 rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                            onClick={() =>
+                              navigate(
+                                chatThreadId ? `/messages/${chatThreadId}` : "/profile/enquiries",
+                              )
+                            }
+                            className={cn(
+                              "py-2 text-[11px] uppercase tracking-[0.1em] rounded-md font-medium min-h-[44px] flex items-center justify-center text-center",
+                              chatThreadId
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-foreground border border-primary/40",
+                            )}
                           >
-                            View enquiry
+                            {chatThreadId ? "Chat Now" : "View enquiry"}
                           </button>
                         ) : (
+
                           <button
                             type="button"
                             onClick={() =>
