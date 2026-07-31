@@ -221,6 +221,7 @@ const AdminProfessionals = () => {
         is_published: !!r.is_published,
         suspended_at: (r.suspended_at as string) ?? null,
         access_restricted: !!r.access_restricted,
+        complimentary_access: !!r.complimentary_access,
         application_status: (r.application_status as string) ?? null,
         application_created_at: (r.application_created_at as string) ?? null,
         sub_status: (r.sub_status as string) ?? null,
