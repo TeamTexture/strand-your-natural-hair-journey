@@ -490,15 +490,25 @@ const Directory = () => {
 
                       {/* Tier A — full subscriber: in-app enquiry flow */}
                       {tier === "full" && p.proUserId ? (
-                        activeEnq ? (
+                        activeEnq || chatThreadId ? (
                           <button
                             type="button"
-                            onClick={() => navigate("/profile/enquiries")}
-                            className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground border border-primary/40 rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                            onClick={() =>
+                              navigate(
+                                chatThreadId ? `/messages/${chatThreadId}` : "/profile/enquiries",
+                              )
+                            }
+                            className={cn(
+                              "py-2 text-[11px] uppercase tracking-[0.1em] rounded-md font-medium min-h-[44px] flex items-center justify-center text-center",
+                              chatThreadId
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-foreground border border-primary/40",
+                            )}
                           >
-                            View enquiry
+                            {chatThreadId ? "Chat Now" : "View enquiry"}
                           </button>
                         ) : (
+
                           <button
                             type="button"
                             onClick={() =>
