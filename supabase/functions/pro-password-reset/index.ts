@@ -63,10 +63,14 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const rawEmail = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    // Audience only changes the email copy — the mechanism is identical.
+    const isPro = body?.audience !== "member";
     const redirectTo =
       typeof body?.redirectTo === "string" && /^https?:\/\//.test(body.redirectTo)
         ? body.redirectTo
-        : "https://www.mystrand.co.uk/pro/reset-password";
+        : isPro
+          ? "https://www.mystrand.co.uk/pro/reset-password"
+          : "https://www.mystrand.co.uk/reset-password";
 
     if (!rawEmail || rawEmail.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
       return json(400, { error: "Please enter a valid email address." });
