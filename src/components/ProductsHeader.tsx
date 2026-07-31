@@ -30,20 +30,30 @@ export const CATEGORY_ORDER: { key: string; label: string; matchers: RegExp[] }[
   { key: "conditioner", label: "Conditioner",      matchers: [/deep\s?condition/i, /hair\s?mask/i, /^conditioner/i, /rinse[\s-]?out/i] },
   { key: "leavein",     label: "Leave-In",         matchers: [/leave[\s-]?in/i, /detangler/i, /milk/i] },
   { key: "styler",      label: "Styler",           matchers: [/curl\s?cream/i, /twisting/i, /styling/i, /styler/i, /custard/i, /pudding/i, /gel/i, /mousse/i, /foam/i, /jelly/i, /butter/i] },
-  { key: "oil",         label: "Oil & Sealant",    matchers: [/^oil/i, /serum/i, /sealant/i] },
+  { key: "serum",       label: "Serum",            matchers: [/serum/i, /elixir/i, /ampoule/i, /booster/i, /concentrate/i] },
+  { key: "oil",         label: "Oil & Sealant",    matchers: [/^oil/i, /\boil\b/i, /sealant/i, /grease/i] },
   { key: "refresh",     label: "Refresh & Finish", matchers: [/refresh/i, /spray/i, /mist/i, /hairspray/i, /shine/i] },
   { key: "treatments",  label: "Treatment",        matchers: [/bond/i, /keratin/i, /protein/i, /treatment/i] },
   { key: "scalp",       label: "Scalp",            matchers: [/scalp/i, /tonic/i] },
 ];
 
-export const categoryBucket = (raw: string | null | undefined) => {
+/**
+ * Resolve a product into a shelf section. Matches on the stored category
+ * first, then falls back to the product name so a "Growth Serum" saved with a
+ * generic/oil category still lands in the Serum section.
+ */
+export const categoryBucket = (raw: string | null | undefined, name?: string | null) => {
   const c = (raw ?? "").trim();
-  if (!c) return { key: "other", label: "Treatments" };
-  for (const b of CATEGORY_ORDER) {
-    if (b.matchers.some((rx) => rx.test(c))) return { key: b.key, label: b.label };
+  const n = (name ?? "").trim();
+  for (const source of [c, n]) {
+    if (!source) continue;
+    for (const b of CATEGORY_ORDER) {
+      if (b.matchers.some((rx) => rx.test(source))) return { key: b.key, label: b.label };
+    }
   }
   return { key: "other", label: "Treatments" };
 };
+
 
 export interface ProductsFilterState {
   search: string;
@@ -82,7 +92,7 @@ export const applyProductFilters = (
 ) => {
   const q = state.search.trim().toLowerCase();
   return products.filter((p) => {
-    if (state.categoryFilter && categoryBucket(p.category).key !== state.categoryFilter) return false;
+    if (state.categoryFilter && categoryBucket(p.category, p.name).key !== state.categoryFilter) return false;
     if (state.brandFilter && (p.brand ?? "") !== state.brandFilter) return false;
     if (state.ratingFilter && (p.rating ?? 0) < state.ratingFilter) return false;
     if (q) {
@@ -130,7 +140,7 @@ const ProductsHeader = ({
   const categoryOptions = useMemo(() => {
     const set = new Map<string, string>();
     for (const p of products) {
-      const { key, label } = categoryBucket(p.category);
+      const { key, label } = categoryBucket(p.category, p.name);
       set.set(key, label);
     }
     const ordered: { key: string; label: string }[] = [];
