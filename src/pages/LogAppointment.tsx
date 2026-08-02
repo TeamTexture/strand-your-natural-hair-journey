@@ -284,6 +284,14 @@ const LogAppointment = () => {
 
     setSaving(false);
     toast.success("Appointment logged");
+    // Completed appointments with a STRAND professional flow straight into the
+    // (skippable) review composer.
+    const linkedPro = pickedFromDirectory?.proUserId ?? existingLinkedProId ?? null;
+    const reviewableId = fromId ?? savedId;
+    if (status === "completed" && linkedPro && reviewableId) {
+      navigate(`/reviews/new?appointmentId=${reviewableId}`);
+      return;
+    }
     navigate("/appointments");
   };
 
