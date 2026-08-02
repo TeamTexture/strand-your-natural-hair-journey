@@ -73,7 +73,7 @@ export const useProBookingFollowUps = () => {
           "thread_id",
           rows.map((t) => t.id),
         )
-        .eq("kind", "booking_request")
+        .or("kind.eq.booking_request,meta->>booking_opened.eq.true")
         .gte("created_at", since)
         .order("created_at", { ascending: false });
 
