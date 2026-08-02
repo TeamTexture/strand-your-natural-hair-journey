@@ -30,7 +30,11 @@ import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
 import AiProse from "@/components/tips/AiProse";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { condenseProse } from "@/lib/tipsRender";
+import { condenseProse, leadPhrase } from "@/lib/tipsRender";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import { Sparkles } from "lucide-react";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
 interface IngredientFlag {

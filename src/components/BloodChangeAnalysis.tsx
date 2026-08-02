@@ -25,6 +25,9 @@ import {
 } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import ActionList from "@/components/guidance/ActionList";
+import GuidanceBody from "@/components/guidance/GuidanceBody";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
@@ -215,21 +218,31 @@ export default function BloodChangeAnalysis({
           </div>
         ) : (
           <div className="divide-y divide-border/60">
-            {/* Headline + overall */}
+            {/* Headline + delta hero + overall */}
             <div className="p-4 space-y-2 bg-gradient-to-br from-primary/5 via-transparent to-transparent rounded-t-[14px]">
               <div className="flex items-start gap-2.5">
                 <div className="size-8 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5">
                   <Sparkles className="size-4" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="font-display text-[17px] leading-snug text-foreground">
                     {data.headline}
                   </p>
-                  <p className="text-sm text-foreground/80 font-body leading-relaxed mt-1.5">
-                    {data.overall}
-                  </p>
                 </div>
               </div>
+              {(() => {
+                const improved = data.key_changes.filter((c) => c.tone === "good").length;
+                const declined = data.key_changes.filter((c) => c.tone === "warn").length;
+                if (improved === 0 && declined === 0) return null;
+                return (
+                  <AnchorStat
+                    value={`${improved} vs ${declined}`}
+                    context="markers improved vs declined since your last test"
+                    tone={declined > improved ? "warning" : "good"}
+                  />
+                );
+              })()}
+              <GuidanceBody text={data.overall} className="mt-1.5" />
             </div>
 
             {/* Key changes */}
@@ -290,42 +303,26 @@ export default function BloodChangeAnalysis({
               </div>
             )}
 
-            {/* Focus areas */}
+            {/* Focus areas — one ActionRow per focus, "why" is the body copy */}
             {data.focus_areas.length > 0 && (
               <div className="p-4 space-y-2.5">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-body">
                   Where to focus
                 </p>
-                <div className="grid grid-cols-1 gap-2">
-                  {data.focus_areas.map((f, i) => {
-                    const Icon = ICONS[f.icon] ?? Sparkles;
-                    return (
-                      <div
-                        key={`${f.icon}-${i}`}
-                        className="rounded-[12px] border border-border/60 bg-card p-3 flex items-start gap-3"
-                      >
-                        <div
-                          className={cn(
-                            "size-9 rounded-[10px] flex items-center justify-center shrink-0",
-                            ICON_TINTS[f.icon] ?? "bg-primary/15 text-primary",
-                          )}
-                        >
-                          <Icon className="size-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-body font-semibold">
-                            {f.title}
-                          </p>
-                          <p className="text-xs text-foreground/75 font-body leading-relaxed mt-0.5">
-                            {f.body}
-                          </p>
-                          {f.action && (
-                            <ActionLink action={f.action} icon={f.icon} />
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <ActionList
+                  idPrefix="focus"
+                  actions={data.focus_areas.map((f) => ({
+                    action: f.title,
+                    why: f.body,
+                  }))}
+                  showWhy
+                />
+                <div className="space-y-1">
+                  {data.focus_areas
+                    .filter((f) => f.action)
+                    .map((f, i) => (
+                      <ActionLink key={`${f.icon}-${i}`} action={f.action as string} icon={f.icon} />
+                    ))}
                 </div>
               </div>
             )}
