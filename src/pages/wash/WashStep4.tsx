@@ -7,6 +7,8 @@ import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import { Sparkles } from "lucide-react";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
@@ -329,19 +331,13 @@ const WashStep4 = () => {
         />
 
         {obsLoading ? (
-          <SurfaceCard tone="gold">
-            <p className="text-sm leading-snug text-foreground/70">
-              <span className="font-semibold">✨ </span>
-              Creating your next wash-day tip…
-            </p>
-          </SurfaceCard>
+          <StatusCallout tone="gold" icon={Sparkles} label="Next wash-day tip">
+            Creating your next wash-day tip…
+          </StatusCallout>
         ) : obsError || !nextTip ? (
-          <SurfaceCard tone="gold">
-            <p className="text-sm leading-snug text-foreground/70">
-              <span className="font-semibold">✨ </span>
-              Couldn't create a tip right now — your wash day is still saved.
-            </p>
-          </SurfaceCard>
+          <StatusCallout tone="muted" icon={Sparkles} label="Next wash-day tip">
+            Couldn't create a tip right now — your wash day is still saved.
+          </StatusCallout>
         ) : (
           <NextWashTipCard
             action={nextTip.action}
