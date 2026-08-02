@@ -32,6 +32,10 @@ export const normaliseHeatLanguage = (raw: string) => {
     "the TT Heat Hat",
   );
   t = t.replace(/\b(?:the\s+)?TT\s+Heat\s+Hat\s+(?:TT\s+Heat\s+Hat\s*)+/gi, "the TT Heat Hat");
+  // "under your TT the TT Heat Hat" / "your TT TT Heat Hat" — the model
+  // sometimes emits a stray "TT" immediately before the linked phrase.
+  t = t.replace(/\bTT\s+(?:the\s+)?TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat");
+  t = t.replace(/\b(your|a|an|the)\s+the\s+TT\s+Heat\s+Hat\b/gi, "$1 TT Heat Hat");
   t = t.replace(/\bthe\s+the\s+TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat");
   return t.replace(/[ \t]{2,}/g, " ");
 };
