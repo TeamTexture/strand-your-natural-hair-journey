@@ -305,7 +305,7 @@ const StrandSummary = () => {
             {showBeginnerHelp ? (
               <BeginnerDoubleCleanse />
             ) : (
-              <GuidanceCard tone="gold" eyebrow="The double cleanse" icon={Droplet}>
+              <GuidanceCard tone="gold" eyebrow="The double cleanse" icon={Droplets}>
                 <TipsBlock
                   idPrefix="double-cleanse"
                   tips={[{
