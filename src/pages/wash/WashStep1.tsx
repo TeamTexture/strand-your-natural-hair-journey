@@ -31,6 +31,11 @@ import HeatToolPicker from "@/components/HeatToolPicker";
 import { useUserTools } from "@/hooks/useUserTools";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import ActionList from "@/components/guidance/ActionList";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
+import { leadPhrase } from "@/lib/tipsRender";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
@@ -267,7 +272,8 @@ const WashStep1 = () => {
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
-  const { showBeginnerHelp } = useTipsLevel();
+  const { level, showBeginnerHelp } = useTipsLevel();
+  const [heatWhyOpen, setHeatWhyOpen] = useState(false);
   const [prePoo, setPrePoo] = useState<StepState>("todo");
   const [cleanse, setCleanse] = useState<StepState>("todo");
   const [coWash, setCoWash] = useState<StepState>("todo");

@@ -1073,14 +1073,20 @@ const IngredientDetail = () => {
               <LevelGate min={2}>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard>
-                  <TipsBlock
-                    idPrefix="uc"
-                    tips={analysis.use_cases.map((t, idx) => ({
-                      priority: analysis.use_cases!.length - idx,
-                      short: t,
-                      alwaysShow: idx === 0,
-                    }))}
-                  />
+                  <ActionList idPrefix="uc" actions={analysis.use_cases.map((t) => ({ action: t }))} showWhy={false} />
+                </SurfaceCard>
+              </LevelGate>
+            )}
+
+            {analysis.usage_instructions && (
+              <LevelGate min={2}>
+                <SectionLabel>How to use it</SectionLabel>
+                <SurfaceCard>
+                  {looksSequential(analysis.usage_instructions) ? (
+                    <StepSequence steps={splitNumberedSteps(analysis.usage_instructions).map((text) => ({ text }))} />
+                  ) : (
+                    <AiProse text={analysis.usage_instructions} />
+                  )}
                 </SurfaceCard>
               </LevelGate>
             )}
@@ -1089,15 +1095,7 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard>
-                  <TipsBlock
-                    idPrefix="pt"
-                    tips={analysis.tips.map((t, idx) => ({
-                      priority: analysis.tips!.length - idx,
-                      short: t,
-                      alwaysShow: idx === 0,
-                    }))}
-                    reassurance="Take it one step at a time."
-                  />
+                  <ActionList idPrefix="pt" actions={analysis.tips.map((t) => ({ action: t }))} showWhy={false} />
                   <TipsLevelPrompt className="mt-1" />
                 </SurfaceCard>
               </>

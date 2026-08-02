@@ -13,6 +13,8 @@ import LoadingDot from "@/components/LoadingDot";
 import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2 } from "lucide-react";
 
 import { evaluate } from "@/data/bloodRanges";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
+import { Stethoscope } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useSavedMeals, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
@@ -718,16 +720,10 @@ const NutritionPlan = () => {
                 Anchored to your flagged markers
               </p>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {flaggedList.map((m) => (
-                <span
-                  key={m}
-                  className="px-2 py-0.5 rounded-full bg-warn/20 text-warn text-[11px] font-medium font-body"
-                >
-                  {m}
-                </span>
-              ))}
-            </div>
+            <KeyFactChips
+              facts={flaggedList.map((m) => ({ label: m, icon: Stethoscope, tone: "warning" as const }))}
+              tone="warning"
+            />
           </div>
         )}
 
