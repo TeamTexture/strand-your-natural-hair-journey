@@ -8,7 +8,10 @@ import { useNavigate } from "react-router-dom";
 import { AlertCircle, Camera, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ProgressDots from "@/components/ProgressDots";
+import StepProgress from "@/components/nav/StepProgress";
+import Eyebrow from "@/components/nav/Eyebrow";
+import ChoiceChips, { type Choice } from "@/components/nav/ChoiceChips";
+import { ICONS } from "@/lib/iconMap";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
@@ -185,8 +188,8 @@ const WashStepStyling = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>4 of 5</span>} onBack={smartBack(navigate, "/wash/step-3")} />
-      <ProgressDots total={5} current={4} />
+      <TitleBar title="Wash Day" onBack={smartBack(navigate, "/wash/step-3")} />
+      <div className="px-5 pt-1 pb-3"><StepProgress current={4} total={5} label="Styling" /></div>
       <LevelGate min={2} fallback={<ItalicSub>Log the style and products you used.</ItalicSub>}>
         <ItalicSub>
           Now the styling — what you chose, what you used, and how it sat with you this week.

@@ -31,6 +31,9 @@ import TipsBlock from "@/components/tips/TipsBlock";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
 import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
+import SectionHeader from "@/components/nav/SectionHeader";
+import EmptyState from "@/components/EmptyState";
+import { ICONS } from "@/lib/iconMap";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -250,11 +253,7 @@ const Journal = () => {
       </div>
 
       <div className="px-5 pb-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
-            Goals & Challenges
-          </h2>
-        </div>
+        <SectionHeader icon={ICONS.goal}>Goals & Challenges</SectionHeader>
 
         {/* ONE THEME, ONCE — a goal tip that restates the banner is suppressed. */}
         <TipsBlock tips={goalTips} idPrefix="goal-tip" dedupeAgainst={banner?.subline} />
@@ -290,25 +289,21 @@ const Journal = () => {
             </Button>
           </>
         ) : (
-          <SurfaceCard className="text-center">
-            <Target className="size-6 text-primary mx-auto mb-2" />
-            <p className="text-sm font-medium">Set your first goal</p>
-            <LevelGate min={2}>
-              <p className="text-[11px] text-muted-foreground mt-1 mb-3">
-                Track length retention or any hair challenge you're working on.
-              </p>
-            </LevelGate>
-            <Button variant="gold" size="pill" onClick={() => openEditor(null)}>
-              + Add a goal
-            </Button>
-          </SurfaceCard>
+          <EmptyState
+            icon="🎯"
+            message="Set your first goal"
+            hint="Track length retention or any hair challenge you're working on."
+            action={
+              <Button variant="gold" size="pill" onClick={() => openEditor(null)}>
+                + Add a goal
+              </Button>
+            }
+          />
         )}
 
         {futureGoals.length > 0 && (
           <div className="pt-2 space-y-3">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
-              Future goals
-            </h3>
+            <SectionHeader icon={ICONS.calendar} className="text-muted-foreground">Future goals</SectionHeader>
             {futureGoals.map((g) => (
               <GoalCard
                 key={g.id}
@@ -393,15 +388,9 @@ const Journal = () => {
                       {displayTitle}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Date logged</p>
-                      <p className="font-body text-[12px] text-foreground mt-0.5">{dateLabel}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Hairstyle</p>
-                      <p className="font-body text-[12px] text-foreground mt-0.5 truncate">{displayTitle}</p>
-                    </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Date logged</p>
+                    <p className="font-body text-[12px] text-foreground mt-0.5">{dateLabel}</p>
                   </div>
                   <div>
                     <p className="text-[9px] uppercase tracking-[0.2em] text-primary/80 font-medium mb-1.5 flex items-center gap-1">
@@ -503,17 +492,16 @@ const Journal = () => {
         <>
           <SectionLabel>Mood Boards</SectionLabel>
           <div className="px-5 pb-6 space-y-3">
-            <SurfaceCard className="text-center">
-              <p className="text-sm font-medium">No mood boards yet</p>
-              <LevelGate min={2}>
-                <p className="text-[11px] text-muted-foreground mt-1 mb-3">
-                  Create a board and start saving inspiration to see it here.
-                </p>
-              </LevelGate>
-              <Button variant="gold" size="pill" onClick={() => navigate("/journal/moodboards")}>
-                + Create a mood board
-              </Button>
-            </SurfaceCard>
+            <EmptyState
+              icon="🖼️"
+              message="No mood boards yet"
+              hint="Create a board and start saving inspiration to see it here."
+              action={
+                <Button variant="gold" size="pill" onClick={() => navigate("/journal/moodboards")}>
+                  + Create a mood board
+                </Button>
+              }
+            />
           </div>
         </>
       )}
