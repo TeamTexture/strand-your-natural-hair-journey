@@ -305,23 +305,24 @@ const StrandSummary = () => {
               <AiProse text={summary.overview} />
             </GuidanceCard>
 
-            {/* Two-step cleanse is non-negotiable education — always visible,
-                only its depth changes. Full illustrated version at level 4. */}
-            {showBeginnerHelp ? (
-              <BeginnerDoubleCleanse />
-            ) : (
-              <GuidanceCard tone="gold" eyebrow="The double cleanse" icon={Droplets}>
-                <TipsBlock
-                  idPrefix="double-cleanse"
-                  tips={[{
-                    priority: 100,
-                    alwaysShow: true,
-                    short: "Wash twice every wash day — once for your scalp, once for your hair.",
-                    why: "One wash lifts scalp build-up; the second is what actually cleans the hair strand itself.",
-                  }]}
-                />
+            {/* Wash technique lives on the Wash Day page — the summary points
+                there rather than repeating steps. */}
+            <button
+              type="button"
+              onClick={() => navigate("/wash-day")}
+              className="w-full text-left"
+            >
+              <GuidanceCard tone="gold" eyebrow="Your wash day" icon={Droplets}>
+                <p className="text-[12.5px] leading-relaxed text-foreground/85">
+                  Your wash day steps live on the Wash Day page, so you can follow them
+                  while you wash.
+                </p>
+                <span className="mt-2 inline-flex items-center gap-1 text-[11.5px] font-semibold text-primary">
+                  Open your wash day steps
+                  <ChevronRight className="size-3.5" />
+                </span>
               </GuidanceCard>
-            )}
+            </button>
 
             {summary.action_plan.length > 0 && (
               <GuidanceCard tone="gold" eyebrow="Your action plan" icon={ListChecks}>
@@ -349,23 +350,7 @@ const StrandSummary = () => {
                 <TipsLevelPrompt className="mt-3" />
               </GuidanceCard>
             )}
-            {/* Trim/length-retention education is non-negotiable — always
-                visible, illustrated in full at level 4. */}
-            {showBeginnerHelp && hasLengthGoal ? (
-              <BeginnerTrimEducation />
-            ) : hasLengthGoal ? (
-              <GuidanceCard tone="gold" eyebrow="Trims & length retention" icon={Scissors}>
-                <TipsBlock
-                  idPrefix="trim-education"
-                  tips={[{
-                    priority: 100,
-                    alwaysShow: true,
-                    short: "Keep your ends maintained with a small trim roughly every three to four months — sooner if they feel rough, tangle easily or split. Confirm the rhythm with your STRAND professional.",
-                    why: "Trimming doesn't speed up growth — growth happens at the scalp — but split ends travel further up the strand over time, so regular maintenance is how you keep the length you're growing.",
-                  }]}
-                />
-              </GuidanceCard>
-            ) : null}
+            {hasLengthGoal ? <BeginnerTrimEducation /> : null}
           </>
         )}
 
