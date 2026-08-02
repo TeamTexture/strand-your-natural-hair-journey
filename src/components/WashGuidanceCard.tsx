@@ -175,18 +175,17 @@ const WashGuidanceCard = () => {
 
   return (
     <div className="px-5 mb-3">
-      <SurfaceCard tone="gold">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="size-4 text-primary" />
-          <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
-            For your hair today
-          </p>
-        </div>
+      <GuidanceCard
+        eyebrow="For your hair today"
+        icon={Sparkles}
+        tone="gold"
+        footer={<TipsLevelPrompt />}
+      >
         <TipsBlock tips={tips} idPrefix="wash-guidance" />
-        <TipsLevelPrompt className="mt-3" />
-      </SurfaceCard>
+      </GuidanceCard>
     </div>
   );
+
 };
 
 export default WashGuidanceCard;
