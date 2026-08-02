@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import type { UserGoal } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import { extractAnchorStat } from "@/lib/guidance";
 import AiProse from "@/components/tips/AiProse";
 import TipsBlock from "@/components/tips/TipsBlock";
 import { type GuidanceTip } from "@/lib/tipsRender";
@@ -150,6 +152,20 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
 
   const setOn = goal.created_at ? formatDate(goal.created_at) : null;
 
+  // Hero stat: prefer a real weeks-remaining figure from the chosen
+  // deadline; only fall back to a number already present in the AI copy.
+  // Never invented.
+  const weeksRemaining = (() => {
+    if (!goal.target_date) return null;
+    const target = new Date(goal.target_date).getTime();
+    if (Number.isNaN(target)) return null;
+    const diffDays = Math.round((target - Date.now()) / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? Math.max(1, Math.round(diffDays / 7)) : null;
+  })();
+  const goalAnchor = weeksRemaining
+    ? { value: String(weeksRemaining), context: weeksRemaining === 1 ? "week until your target" : "weeks until your target" }
+    : extractAnchorStat(goalTip?.body);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-[20px] max-h-[92vh] overflow-y-auto">
@@ -200,6 +216,7 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
               Cached per goal id + updated_at — no extra generation. */}
           {goalTip && (
             <GuidanceCard tone="gold" eyebrow="Personalised tip" icon={Sparkles} headline={goalTip.headline}>
+              {goalAnchor && <AnchorStat value={goalAnchor.value} context={goalAnchor.context} tone="gold" />}
               <AiProse text={goalTip.body} />
               {goalTip.actions?.length > 0 && (
                 <TipsBlock

@@ -368,30 +368,51 @@ const ProductProfile = () => {
         {/* Personalised "red flag / green light" cards removed: we present
             neutral information only and leave decisions to the user. */}
 
-        <SurfaceCard tone="gold">
-          <div className="mb-1">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
-              Personalised guidance
-            </p>
-          </div>
-          {aiLoading ? (
-            <LoadingDot label="Personalising guidance for your profile…" />
-          ) : (aiSummary || product.ai_summary) ? (
-            <AiProse text={aiSummary ?? product.ai_summary} />
-          ) : aiError ? (
-            <p className="text-sm leading-snug text-muted-foreground">
-              Could not load guidance. {aiError}
-            </p>
-          ) : ingredients.length === 0 ? (
-            <p className="text-sm leading-snug text-muted-foreground">
-              Add ingredients to this product to get personalised guidance.
-            </p>
-          ) : (
-            <p className="text-sm leading-snug text-muted-foreground">
-              No guidance saved yet for this product.
-            </p>
-          )}
-        </SurfaceCard>
+{(() => {
+          const summaryText = aiSummary ?? product.ai_summary ?? "";
+          const { phrase, rest } = summaryText ? leadPhrase(summaryText) : { phrase: "", rest: "" };
+          const scoreTone: "good" | "gold" | "warning" = score >= 70 ? "good" : score >= 40 ? "gold" : "warning";
+          return (
+            <SurfaceCard tone="gold">
+              <div className="mb-1">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
+                  Personalised guidance
+                </p>
+              </div>
+              {score > 0 && (
+                <AnchorStat
+                  value={score}
+                  context="hair-profile match"
+                  tone={scoreTone}
+                />
+              )}
+              {aiLoading ? (
+                <div className="mt-3"><LoadingDot label="Personalising guidance for your profile…" /></div>
+              ) : summaryText ? (
+                <div className="mt-3">
+                  <StatusCallout tone={scoreTone} icon={Sparkles} label="Verdict">
+                    <p>
+                      {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
+                      <span className="text-foreground/75">{rest}</span>
+                    </p>
+                  </StatusCallout>
+                </div>
+              ) : aiError ? (
+                <p className="mt-3 text-sm leading-snug text-muted-foreground">
+                  Could not load guidance. {aiError}
+                </p>
+              ) : ingredients.length === 0 ? (
+                <p className="mt-3 text-sm leading-snug text-muted-foreground">
+                  Add ingredients to this product to get personalised guidance.
+                </p>
+              ) : (
+                <p className="mt-3 text-sm leading-snug text-muted-foreground">
+                  No guidance saved yet for this product.
+                </p>
+              )}
+            </SurfaceCard>
+          );
+        })()}
 
         <SurfaceCard padded={false} className="divide-y divide-border/60">
           <div className="p-3.5 flex items-center justify-between">

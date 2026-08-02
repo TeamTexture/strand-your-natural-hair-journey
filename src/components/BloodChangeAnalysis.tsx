@@ -7,16 +7,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Droplets,
-  Flame,
-  Leaf,
-  Zap,
-  ShieldAlert,
-  Activity,
   Sparkles,
-  Brain,
-  Utensils,
-  HeartPulse,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
@@ -88,32 +79,6 @@ interface Analysis {
     action?: string;
   }>;
 }
-
-const ICONS: Record<Analysis["focus_areas"][number]["icon"], typeof Droplets> = {
-  iron: Flame,
-  thyroid: Activity,
-  vitamin: Sparkles,
-  protein: Leaf,
-  hydration: Droplets,
-  scalp: Zap,
-  stress: Brain,
-  hormone: HeartPulse,
-  inflammation: ShieldAlert,
-  nutrition: Utensils,
-};
-
-const ICON_TINTS: Record<Analysis["focus_areas"][number]["icon"], string> = {
-  iron: "bg-warn/15 text-warn",
-  thyroid: "bg-primary/15 text-primary",
-  vitamin: "bg-primary/15 text-primary",
-  protein: "bg-good/15 text-good",
-  hydration: "bg-primary/15 text-primary",
-  scalp: "bg-warn/15 text-warn",
-  stress: "bg-alert-dark/15 text-alert-dark",
-  hormone: "bg-primary/15 text-primary",
-  inflammation: "bg-alert-dark/15 text-alert-dark",
-  nutrition: "bg-good/15 text-good",
-};
 
 interface Props {
   latestPanel: Panel;
