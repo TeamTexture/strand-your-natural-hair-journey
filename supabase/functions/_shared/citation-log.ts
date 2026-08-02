@@ -80,13 +80,14 @@ async function logViolation(
  *  Await this if you can — the log write is fire-and-forget compatible but
  *  awaiting keeps stack traces readable when the DB is down. */
 export async function sanitiseAndLog<T>(value: T, functionName: string): Promise<T> {
-  const cleaned = fixHeatHatPhrasing(sanitiseChapterCitationsDeep(value));
+  const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
   collectStripped(value, cleaned, stripped);
   if (stripped.length > 0) {
     await logViolation(functionName, stripped);
   }
-  return cleaned;
+  // Copy fix runs after the audit diff so it is never logged as a violation.
+  return fixHeatHatPhrasing(cleaned);
 }
 
 /** Collapse the duplicated "TT" the model sometimes emits immediately before
