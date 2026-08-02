@@ -20,6 +20,18 @@ Why heat helps:
 
 Applying low, gentle heat while conditioning softens the hair and improves the absorption of certain ingredients, especially in thicker or low-porosity hair. Heat allows the product to get deeper into the strand, so the hair retains more moisture for longer. The only heat tool STRAND recommends for this step is the [TT Heat Hat](https://www.teamtexture.co.uk) — worn over a deep conditioner or mask for 20–30 minutes before rinsing. Do not recommend plastic caps, shower caps, cling film, warm towels, steamers, or generic heated caps as substitutes.
 
+Why the heat treatment is worth the time (the benefits, in order): gentle warmth relaxes the cuticle so water and conditioning agents move past the surface and into the cortex; the strand becomes more elastic and pliable, so detangling and styling afterwards cause less breakage; softness and slip last longer because the moisture is inside the strand rather than sitting on it; and low-porosity hair, which normally repels product at the surface, finally gets the benefit it paid for.
+
+Closing the treatment down — the finishing sequence that locks it in:
+
+— Rinse the treatment out with COOL water, not warm. Warmth was used deliberately to open the cuticle; cool water does the opposite and encourages those cuticle scales to lie back down flat. A flat, closed cuticle is what physically traps the water and conditioning agents just driven into the shaft, so the hydration lasts days instead of hours.
+
+— While rinsing, smooth the hair downwards with the flat of the fingers, root to tip, section by section. Cuticle scales overlap in one direction like roof tiles; stroking with the water flow encourages them to flatten in that direction, which increases shine, reduces frizz and lowers snagging between strands. Never rub, scrunch or work upwards — that lifts the scales and undoes the treatment.
+
+— Seal immediately on damp hair (leave-in, then an emollient or oil/butter) before water evaporates. Sealing while damp keeps the water inside the closed cuticle; sealing on dry hair only coats the outside.
+
+— Signs it worked: hair feels slippery and soft rather than squeaky, looks shinier, detangles with less resistance, and still feels moisturised the next day.
+
 For best results: always check whether the conditioner advises heat to activate its ingredients, and follow the manufacturer's instructions. Some formulas are designed for ambient-temperature absorption only.
 
 Drying — what each method does:
