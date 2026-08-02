@@ -983,6 +983,48 @@ export type Database = {
           },
         ]
       }
+      curated_content: {
+        Row: {
+          content_key: string
+          created_at: string
+          generated_at: string
+          id: string
+          manuscript_grounded: boolean
+          model_version: string | null
+          payload: Json
+          published_at: string | null
+          source_passages: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content_key: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          manuscript_grounded?: boolean
+          model_version?: string | null
+          payload?: Json
+          published_at?: string | null
+          source_passages?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content_key?: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          manuscript_grounded?: boolean
+          model_version?: string | null
+          payload?: Json
+          published_at?: string | null
+          source_passages?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_rsvps: {
         Row: {
           cancelled_at: string | null

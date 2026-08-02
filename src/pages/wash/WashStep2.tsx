@@ -9,7 +9,7 @@ import StepProgress from "@/components/nav/StepProgress";
 import Eyebrow from "@/components/nav/Eyebrow";
 import ChoiceChips, { type Choice } from "@/components/nav/ChoiceChips";
 import SurfaceCard from "@/components/SurfaceCard";
-import TipsBlock from "@/components/tips/TipsBlock";
+import { CuratedTips } from "@/components/curated/CuratedContent";
 import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -107,31 +107,11 @@ const WashStep2 = () => {
             How did your scalp and strands feel through this wash?
           </p>
         </LevelGate>
-        <SurfaceCard tone="gold">
-          <TipsBlock
-            idPrefix="wash-step2"
-            reassurance="You are not grading your hair — you are spotting patterns."
-            tips={[
-              {
-                priority: 4,
-                short: "Choose the scalp feeling that was strongest today.",
-                why: "Scalp comfort helps STRAND spot when cleansing, build-up or tension needs attention.",
-                define: "Your scalp is the skin your hair grows from.",
-              },
-              {
-                priority: 3,
-                short: "Mark breakage by what you saw in your hands or tools.",
-                why: "A few shed hairs are normal; repeated short broken pieces can mean the routine needs changing.",
-                define: "Breakage means snapped hair pieces, not full shed hairs with a tiny bulb at the end.",
-              },
-              {
-                priority: 2,
-                short: "If you are unsure, pick the closest answer and keep going.",
-                why: "A single log does not need to be perfect. Patterns over several wash days matter more.",
-              },
-            ]}
-          />
-        </SurfaceCard>
+        <CuratedTips
+          contentKey="wash-log-scalp-and-breakage"
+          idPrefix="wash-step2"
+          reassurance="You are not grading your hair — you are spotting patterns."
+        />
         <MultiChoiceField label="Scalp Feel" icon={ICONS.scalp} options={SCALP_OPTIONS} value={scalp} onChange={setScalp} error={submitted && errors.scalp} />
         <MultiChoiceField label="Breakage" icon={ICONS.breakage} options={BREAKAGE_OPTIONS} value={breakage} onChange={setBreakage} error={submitted && errors.breakage} />
 
