@@ -67,6 +67,7 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import LevelGate from "@/components/tips/LevelGate";
 import AiProse from "@/components/tips/AiProse";
 import { limitSupporting } from "@/lib/tipsRender";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
 
 type PanelStatus = "logged" | "scheduled";
 
@@ -561,16 +562,11 @@ const BloodHistory = () => {
                         const shownFlags = limitSupporting(flagged, level);
                         const hiddenCount = flagged.length - shownFlags.length;
                         return (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {shownFlags.map((f) => (
-                              <span
-                                key={f.marker}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-destructive/30 bg-destructive/5 text-destructive text-[11px] font-body font-medium"
-                              >
-                                <span className="size-1.5 rounded-full bg-destructive/70" />
-                                {friendlyStatusTag(f.marker, f.status)}
-                              </span>
-                            ))}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            <KeyFactChips
+                              tone="warning"
+                              facts={shownFlags.map((f) => ({ label: friendlyStatusTag(f.marker, f.status) }))}
+                            />
                             {hiddenCount > 0 && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-body text-muted-foreground">
                                 +{hiddenCount} more
