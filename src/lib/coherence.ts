@@ -50,15 +50,21 @@ export function safeRewrite(original: string, rewritten: string): string {
  */
 export function stripDefinitionBrackets(text: string): string {
   if (!text) return text;
-  let out = text.replace(/\s*\(([^()]*)\)/g, (full, inner: string) => {
-    const content = String(inner).trim();
-    const words = content.split(/\s+/).filter(Boolean);
-    const isDefinition =
-      /^(?:this is called|i\.e\.|e\.g\.|meaning|means|aka|that is|how |the |ingredients|softening|natural|outer|cleaning)/i.test(
-        content,
-      ) || words.length >= 3;
-    return isDefinition ? "" : full;
-  });
+  let out = text.replace(
+    /(\]?)\s*\(([^()]*)\)/g,
+    (full, before: string, inner: string) => {
+      // Never touch markdown links — "[TT Heat Hat](https://…)".
+      if (before === "]") return full;
+      const content = String(inner).trim();
+      if (/^https?:\/\//i.test(content)) return full;
+      const words = content.split(/\s+/).filter(Boolean);
+      const isDefinition =
+        /^(?:this is called|i\.e\.|e\.g\.|meaning|means|aka|that is|how |the |ingredients|softening|natural|outer|cleaning)/i.test(
+          content,
+        ) || words.length >= 3;
+      return isDefinition ? "" : full;
+    },
+  );
   // Tidy the punctuation left behind.
   out = out
     .replace(/\s+([.,;:!?])/g, "$1")
