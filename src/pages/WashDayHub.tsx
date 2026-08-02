@@ -478,11 +478,15 @@ const WashDayHub = () => {
               <p className="font-display text-[15px] leading-snug mt-1 break-words">
                 {educational.headline}
               </p>
-              <LevelGate min={2}>
-                <div className="mt-2">
-                  <AiProse text={`Why this matters — ${educational.why}`} />
-                </div>
-              </LevelGate>
+              {/* MAX ONE cadence-reasoning block per page:
+                  overdue alert > AI tip card > wash rhythm why. */}
+              {!cadenceReasoningTaken && (
+                <LevelGate min={2}>
+                  <div className="mt-2">
+                    <AiProse text={`Why this matters — ${educational.why}`} />
+                  </div>
+                </LevelGate>
+              )}
               <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
                   Next wash reminder
@@ -490,16 +494,18 @@ const WashDayHub = () => {
               <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
                 {level === 1 ? "Keep your next wash day visible." : educational.reminder}
               </p>
+              {/* Level-4 depth must ADD procedure, never restate the reminder above. */}
               {showBeginnerHelp && (
                 <BeginnerSteps
                   className="mt-2"
                   steps={[
-                    { text: educational.reminder, detail: "This is when your hair and scalp will be ready for the next full wash." },
-                    { text: "Put the wash day in your calendar now.", detail: "That gives your scalp routine a clear rhythm, and you will get a reminder on the day." },
+                    { text: "Tap “Schedule this wash day” below.", detail: "That pins the date to your STRAND calendar so you can see it coming." },
+                    { text: "Then tap “Add to Google Calendar”.", detail: "You will get a reminder on your phone on the day itself." },
                     { text: "Set aside about 2 hours on the day.", detail: "Two washes, 20 minutes with conditioner on, then styling. There is no rush." },
                   ]}
                 />
               )}
+
                 {educational.nextDateIso && (
                   <div className="mt-3 flex flex-col gap-2">
                     {scheduledSet.has(educational.nextDateIso) ? (
