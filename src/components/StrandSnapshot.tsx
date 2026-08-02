@@ -199,7 +199,7 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
             >
               <div className="flex items-center gap-1.5">
                 <Icon className="size-3 text-primary shrink-0" aria-hidden />
-                <p className="text-[8.5px] uppercase tracking-[0.18em] font-bold text-muted-foreground font-body truncate">
+                <p className="text-[8.5px] uppercase tracking-[0.18em] font-bold text-muted-foreground font-body break-words">
                   {s.label}
                 </p>
                 {s.href && (

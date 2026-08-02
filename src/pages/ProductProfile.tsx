@@ -442,7 +442,8 @@ const ProductProfile = () => {
                   .filter((c): c is string => !!c && c.trim().length > 0)
                   .slice(0, 3);
                 const insight = a.insight?.replace(/\s+/g, " ").trim() ?? "";
-                const snippet = insight.length > 120 ? `${insight.slice(0, 117)}…` : insight;
+                // Never truncate guidance — show the first complete sentence instead.
+                const snippet = insight ? (insight.match(/^[^.!?]*[.!?]/)?.[0] ?? insight).trim() : "";
                 const thumb = thumbUrls[a.id];
                 return (
                   <SurfaceCard key={a.id} padded={false}>
@@ -477,7 +478,7 @@ const ProductProfile = () => {
                           </div>
                         )}
                         {snippet && (
-                          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
                             {snippet}
                           </p>
                         )}

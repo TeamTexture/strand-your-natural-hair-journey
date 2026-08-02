@@ -29,6 +29,7 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { dedupeSentences, leadPhrase, splitSentences } from "@/lib/tipsRender";
 import { restatesAction } from "@/lib/guidance";
+import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import { CircleSlash, Repeat, Ruler } from "lucide-react";
 
 
@@ -416,22 +417,81 @@ const WashDayHub = () => {
   // already rendered higher up the page is dropped from later blocks.
   const pageSeen = useMemo(() => new Set<string>(), [overdue, latestTip, educational]);
 
-  // CONSEQUENCE only — one block, no goal fragment (that becomes a chip) and no
-  // sentence that merely restates the "Log a wash day now" button.
+  // CONSEQUENCE only — one short, complete, never-truncated sentence: bold
+  // 4–6 word lead-in + em-dash + one light clause of ≤ 12 words.
   const OVERDUE_CTA = "Log a wash day now";
+  const OVERDUE_LEAD = "Buildup is settling on your scalp";
+  const OVERDUE_CLAUSE = "it can restrict follicles and slow growth.";
   const overdueReason = (() => {
     if (!overdue) return "";
-    const base =
-      "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
+    const base = `${OVERDUE_LEAD} — ${OVERDUE_CLAUSE}`;
     return splitSentences(base)
       .filter((s) => !restatesAction(s, OVERDUE_CTA))
       .join(" ");
   })();
+  // Plain-terms footnote for the overdue card (level 4 only, claim-once).
+  const overdueTerms = usePlainTermFootnotes(
+    overdue ? "sebum builds up on the scalp between washes" : "",
+    Boolean(overdue) && showBeginnerHelp,
+  );
 
   // Cadence reasoning appears at most once per page. Priority:
   // overdue alert > AI tip card > wash rhythm "why".
   const [dynamicTipShown, setDynamicTipShown] = useState(false);
   const cadenceReasoningTaken = Boolean(overdue) || Boolean(latestTip) || dynamicTipShown;
+
+  // Scheduling controls — rendered inside the overdue card as a subordinate
+  // secondary row, or on their own in the Next wash day card when not overdue.
+  const nextIso = educational.nextDateIso;
+  const schedulingRow = (secondary: boolean) => {
+    if (!nextIso) return null;
+    const pill = secondary
+      ? "min-h-[36px] text-[11.5px] px-3 py-1.5"
+      : "text-[12.5px] px-4 py-2.5";
+    return (
+      <div className={cn("flex flex-col gap-2", secondary && "sm:flex-row")}>
+        {scheduledSet.has(nextIso) ? (
+          <p className={cn("flex-1 text-center font-body text-primary/90 bg-primary/10 rounded-pill inline-flex items-center justify-center gap-1.5", pill)}>
+            ✓ Scheduled — tap the highlighted date to manage
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              const [y, m] = nextIso.split("-").map(Number);
+              setView({ year: y, month: m - 1 });
+              openScheduleDialog(nextIso);
+              setTimeout(() => {
+                document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 50);
+            }}
+            className={cn(
+              "flex-1 inline-flex items-center justify-center gap-2 rounded-pill font-semibold font-body transition",
+              pill,
+              secondary
+                ? "text-primary bg-primary/10 hover:bg-primary/15"
+                : "bg-primary text-primary-foreground shadow-sm hover:opacity-95",
+            )}
+          >
+            <CalendarClock className="size-4" />
+            Schedule this wash day
+          </button>
+        )}
+        <a
+          href={buildGoogleCalendarUrl(nextIso)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            "flex-1 inline-flex items-center justify-center gap-2 rounded-pill border border-primary/30 bg-background font-semibold text-primary font-body hover:bg-primary/5 transition",
+            pill,
+          )}
+        >
+          <CalendarPlus className="size-4" />
+          Add to Google Calendar
+        </a>
+      </div>
+    );
+  };
 
   return (
 
@@ -448,18 +508,21 @@ const WashDayHub = () => {
               eyebrow="Wash day overdue"
               icon={AlertTriangle}
               footer={
-                <button
-                  onClick={() => navigate("/wash/step-1")}
-                  className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-destructive px-4 text-[12.5px] font-semibold text-destructive-foreground shadow-sm hover:opacity-95 transition"
-                >
-                  {OVERDUE_CTA} →
-                </button>
+                <div className="space-y-2.5">
+                  <button
+                    onClick={() => navigate("/wash/step-1")}
+                    className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition"
+                  >
+                    {OVERDUE_CTA} →
+                  </button>
+                  {schedulingRow(true)}
+                  <PlainTermsFootnote terms={overdueTerms} />
+                </div>
               }
             >
               <AnchorStat
-                tone="warning"
-                value={overdue.diffDays}
-                context={`day${overdue.diffDays === 1 ? "" : "s"} since your last wash day`}
+                value={`${overdue.diffDays} day${overdue.diffDays === 1 ? "" : "s"}`}
+                context="since your last wash"
                 target={`Your rhythm: ${educational.window}`}
                 targetIcon={Repeat}
               />
@@ -473,7 +536,8 @@ const WashDayHub = () => {
                       <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-destructive/15">
                         <CircleSlash className="size-2.5 text-destructive" aria-hidden />
                       </span>
-                      <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body break-words line-clamp-3">
+                      <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body break-words">
+
                         <span className="font-semibold text-foreground">{phrase}</span>
                         {rest && <span className="text-foreground/75"> {rest}</span>}
                       </p>
@@ -520,60 +584,28 @@ const WashDayHub = () => {
           />
         </div>
 
-        {/* Wash rhythm card removed — it repeated cadence reasoning already
-            carried by the overdue alert and the AI tip card. Only the next
-            wash day scheduling actions remain. */}
-        <SurfaceCard tone="gold">
-          <div className="flex items-start gap-3">
-            <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-              <Droplets className="size-4 text-primary" />
+        {/* Scheduling only — no rhythm-reasoning prose, and hidden entirely when
+            the overdue alert is on screen (it carries the same data and the same
+            two controls). */}
+        {!overdue && nextIso && (
+          <SurfaceCard tone="gold">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
+                <Droplets className="size-4 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
+                  Next wash day
+                </p>
+                <p className="font-body text-[15px] font-semibold leading-snug text-foreground mt-1 break-words">
+                  {fmtCardDate(nextIso)}
+                </p>
+                <div className="mt-3">{schedulingRow(false)}</div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
-                Next wash day
-              </p>
-              <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
-                {level === 1 ? "Keep your next wash day visible." : educational.reminder}
-              </p>
+          </SurfaceCard>
+        )}
 
-              {educational.nextDateIso && (
-                <div className="mt-3 flex flex-col gap-2">
-                  {scheduledSet.has(educational.nextDateIso) ? (
-                    <p className="w-full text-center text-[12px] font-body text-primary/90 bg-primary/10 border border-primary/25 rounded-full px-4 py-2">
-                      ✓ Scheduled — tap the highlighted date on the calendar to manage.
-                    </p>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const iso = educational.nextDateIso!;
-                        const [y, m] = iso.split("-").map(Number);
-                        setView({ year: y, month: m - 1 });
-                        openScheduleDialog(iso);
-                        setTimeout(() => {
-                          document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }, 50);
-                      }}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold font-body px-4 py-2.5 shadow-sm hover:opacity-95 transition"
-                    >
-                      <CalendarClock className="size-4" />
-                      Schedule this wash day
-                    </button>
-                  )}
-                  <a
-                    href={buildGoogleCalendarUrl(educational.nextDateIso)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
-                  >
-                    <CalendarPlus className="size-4" />
-                    Add to Google Calendar
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </SurfaceCard>
 
       </div>
 
