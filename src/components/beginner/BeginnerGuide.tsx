@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { safeRewrite } from "@/lib/coherence";
 import {
   AlertTriangle,
   Check,
