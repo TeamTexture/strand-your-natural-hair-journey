@@ -1,8 +1,13 @@
 import {
   Activity,
+  AlertTriangle,
   CalendarDays,
+  CheckCircle2,
+  Clock,
   Droplets,
+  Flame,
   FlaskConical,
+  Gauge,
   HeartPulse,
   Layers,
   NotebookPen,
@@ -41,6 +46,11 @@ export const ICONS = {
   heat: Thermometer,
   calendar: CalendarDays,
   profile: User,
+  breakage: AlertTriangle,
+  duration: Clock,
+  stress: Gauge,
+  clean: CheckCircle2,
+  heatTool: Flame,
 } satisfies Record<string, LucideIcon>;
 
 export type IconKey = keyof typeof ICONS;
