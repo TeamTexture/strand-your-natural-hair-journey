@@ -28,7 +28,7 @@ export interface ChatMessage {
   thread_id: string;
   sender_id: string | null;
   sender_role: string | null;
-  kind: "text" | "system";
+  kind: "text" | "system" | "booking_request";
   body: string;
   meta: Record<string, unknown>;
   created_at: string;
@@ -174,7 +174,7 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
           .from("chat_messages")
           .select("thread_id, body, sender_id, sender_role, read_at, kind, created_at")
           .in("thread_id", ids)
-          .eq("kind", "text")
+          .in("kind", ["text", "booking_request"])
           .order("created_at", { ascending: false })
           .limit(Math.min(400, ids.length * 12)),
         supabase
@@ -412,7 +412,60 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
 }
 
 
+/**
+ * The booking page link of the professional in a pro–client thread.
+ * Drives the persistent "Book appointment" button for the client, and the
+ * "add your link" nudge the professional sees when it's missing.
+ */
+export function useProBookingUrl(proUserId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["pro_booking_url", proUserId],
+    enabled: !!proUserId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<{ url: string | null; proName: string }> => {
+      const { data, error } = await supabase
+        .from("pro_profiles")
+        .select("booking_url, display_name")
+        .eq("user_id", proUserId!)
+        .maybeSingle();
+      if (error) throw error;
+      const url = (data?.booking_url ?? "").trim();
+      return { url: url || null, proName: data?.display_name ?? "" };
+    },
+  });
+}
+
+/** Pro-only: post a structured booking-request card into the thread. */
+export function useSendBookingRequest(threadId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const view = useActiveRoleView();
+  return useMutation({
+    mutationFn: async (input: { bookingUrl: string; proName: string; note?: string }) => {
+      if (!threadId || !user?.id) throw new Error("Not ready");
+      const { error } = await supabase.from("chat_messages").insert({
+        thread_id: threadId,
+        sender_id: user.id,
+        sender_role: view,
+        kind: "booking_request",
+        body: `${input.proName} invites you to book`,
+        meta: {
+          booking_url: input.bookingUrl,
+          pro_name: input.proName,
+          note: input.note?.trim() || null,
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+    },
+  });
+}
+
 export function useBookAppointmentInThread() {
+
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {

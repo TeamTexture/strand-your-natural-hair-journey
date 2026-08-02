@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Upload, X } from "lucide-react";
+import { ExternalLink, Info, Plus, Trash2, Upload, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -27,6 +27,8 @@ import type { Database } from "@/integrations/supabase/types";
 import ProTour from "@/components/ProTour";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
+import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
+
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
 type ProProfileRow = Database["public"]["Tables"]["pro_profiles"]["Row"];
@@ -214,7 +216,12 @@ const ProProfile = () => {
           location: form.location || null,
           postcode: form.postcode || null,
           contact_email: form.contact_email || null,
-          booking_url: form.booking_url || null,
+          booking_url: isValidBookingUrl(form.booking_url)
+            ? normalizeBookingUrl(form.booking_url)
+            : form.booking_url.trim()
+              ? normalizeBookingUrl(form.booking_url)
+              : null,
+
           website_url: normalizeWebsiteUrl(form.website_url) || null,
           instagram_handle: normalizeInstagramHandle(form.instagram_handle) || null,
           avatar_path: form.avatar_path,
@@ -534,13 +541,40 @@ const ProProfile = () => {
             placeholder="admin@yourclinic.co.uk"
           />
         </Field>
-        <Field label="Booking URL">
+        <Field label="Booking page link">
           <Input
             value={form.booking_url}
             onChange={(e) => setForm((f) => ({ ...f, booking_url: e.target.value }))}
-            placeholder="https://"
+            placeholder="https://yoursalon.com/book"
+            inputMode="url"
+            aria-invalid={!!form.booking_url.trim() && !isValidBookingUrl(form.booking_url)}
           />
+          <div className="mt-2 flex gap-2 rounded-[12px] border border-primary/25 bg-primary/8 p-3">
+            <Info className="size-4 shrink-0 text-primary mt-[1px]" />
+            <p className="text-[11.5px] font-body leading-snug text-foreground/85">
+              Link directly to the page where clients can see your services and book — not your
+              homepage. Every extra click between the app and your booking page loses clients. This
+              link powers the Book appointment button in your chats.
+            </p>
+          </div>
+          {form.booking_url.trim() && !isValidBookingUrl(form.booking_url) && (
+            <p className="mt-2 text-[11px] font-body text-alert-dark">
+              That doesn't look like a full web address. Include the whole link, e.g.
+              https://yoursalon.com/book
+            </p>
+          )}
+          {isValidBookingUrl(form.booking_url) && (
+            <a
+              href={normalizeBookingUrl(form.booking_url)}
+              {...externalLinkProps}
+              className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 rounded-pill border border-primary/40 px-4 text-[11px] font-body font-semibold uppercase tracking-[0.08em] text-primary"
+            >
+              Test this link
+              <ExternalLink className="size-3.5" />
+            </a>
+          )}
         </Field>
+
         <Field label="Website">
           <Input
             value={form.website_url}

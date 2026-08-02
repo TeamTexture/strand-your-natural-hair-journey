@@ -3,7 +3,10 @@ import { directoryLinkForPro } from "@/lib/directoryLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
-import { BadgeCheck, Calendar, Send, User2, Minus } from "lucide-react";
+import { BadgeCheck, Calendar, CalendarPlus, ExternalLink, Send, User2, Minus } from "lucide-react";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
+import { externalLinkProps } from "@/lib/socialLinks";
+
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import TimePicker12h from "@/components/TimePicker12h";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
@@ -24,6 +27,8 @@ import {
   mySideRole,
   useBookAppointmentInThread,
   useChatThread,
+  useProBookingUrl,
+  useSendBookingRequest,
   useMarkThreadRead,
   useSendChatMessage,
   type ChatMessage,
@@ -119,7 +124,49 @@ const SystemBubble = ({ m, isPro }: { m: ChatMessage; isPro: boolean }) => {
   );
 };
 
+/** Structured booking-request card — guidance-card design language. */
+const BookingRequestCard = ({ m, mine }: { m: ChatMessage; mine: boolean }) => {
+  const meta = (m.meta ?? {}) as { booking_url?: string; pro_name?: string; note?: string | null };
+  const url = normalizeBookingUrl(meta.booking_url ?? "");
+  const proName = meta.pro_name || "Your professional";
+  return (
+    <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-2`}>
+      <div className="w-[85%] rounded-[16px] border border-primary/25 bg-primary/8 p-3.5">
+        <div className="flex items-center gap-1.5">
+          <CalendarPlus className="size-3.5 text-primary" />
+          <span className="text-[9.5px] font-body font-semibold uppercase tracking-[0.14em] text-primary">
+            Booking request
+          </span>
+        </div>
+        <p className="mt-1.5 text-sm font-body font-semibold leading-snug text-foreground">
+          {proName} invites you to book
+        </p>
+        {meta.note && (
+          <p className="mt-1 text-[12.5px] font-body leading-snug text-foreground/80 whitespace-pre-wrap">
+            {meta.note}
+          </p>
+        )}
+        {url && (
+          <a
+            href={url}
+            {...externalLinkProps}
+            className="mt-2.5 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
+          >
+            Book appointment
+            <ExternalLink className="size-3.5" />
+          </a>
+        )}
+        <div className="mt-1 flex items-center justify-end gap-1 text-[9.5px] text-muted-foreground">
+          <span>{format(new Date(m.created_at), "HH:mm")}</span>
+          {mine && <DeliveryTicks readAt={m.read_at} />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MessageBubble = ({
+
   m,
   mine,
   senderName,
@@ -223,6 +270,15 @@ const ChatThreadPage = () => {
         ? (isAdmin ? t.subject_user_id : t.admin_user_id)
         : (isPro ? t.consumer_id : t.pro_user_id)
       : null;
+
+  // The professional's booking page link drives the client-facing
+  // "Book appointment" button and the pro's own booking-request action.
+  const proUserId = !isSupport ? (t?.pro_user_id ?? null) : null;
+  const { data: proBooking } = useProBookingUrl(proUserId);
+  const bookingUrl = proBooking?.url ? normalizeBookingUrl(proBooking.url) : "";
+  const myProName = proBooking?.proName || "Your professional";
+  const sendBookingRequest = useSendBookingRequest(threadId);
+
 
   const { data: other } = useQuery({
     queryKey: ["chat_thread_other", otherId, isSupport, isAdmin, isPro],
@@ -392,6 +448,10 @@ const ChatThreadPage = () => {
                 }
                 const mine =
                   !!t && !!user ? messageIsMine(m, t, user.id, roleView) : m.sender_id === user?.id;
+                if (m.kind === "booking_request") {
+                  prevSender = null;
+                  return <BookingRequestCard key={m.id} m={m} mine={mine} />;
+                }
                 const senderKey = mine ? "me" : (m.sender_id ?? "them");
                 const showName = prevSender !== senderKey;
                 prevSender = senderKey;
@@ -411,14 +471,62 @@ const ChatThreadPage = () => {
         )}
       </div>
 
-      {isPro && !isSupport && (
-        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background">
-          <Button size="sm" variant="outline" onClick={() => setBookingOpen(true)} className="w-full uppercase tracking-[0.08em] text-[11px]">
-            <Calendar className="size-3.5 mr-1.5" />
+      {/* Client side: persistent booking action whenever the pro has a link. */}
+      {!isSupport && !isPro && bookingUrl && (
+        <div className="px-4 pt-2 pb-2 border-t border-border/60 bg-background">
+          <a
+            href={bookingUrl}
+            {...externalLinkProps}
+            className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
+          >
+            <Calendar className="size-3.5" />
             Book appointment
-          </Button>
+            <ExternalLink className="size-3.5" />
+          </a>
         </div>
       )}
+
+      {isPro && !isSupport && (
+        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBookingOpen(true)} className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]">
+              <Calendar className="size-3.5 mr-1.5" />
+              Book appointment
+            </Button>
+            {bookingUrl && (
+              <Button
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await sendBookingRequest.mutateAsync({
+                      bookingUrl,
+                      proName: myProName || "Your professional",
+                    });
+                    toast.success("Booking request sent");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not send request");
+                  }
+                }}
+                disabled={sendBookingRequest.isPending}
+                className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]"
+              >
+                <CalendarPlus className="size-3.5 mr-1.5" />
+                Send booking request
+              </Button>
+            )}
+          </div>
+          {!bookingUrl && (
+            <button
+              type="button"
+              onClick={() => nav("/pro/profile")}
+              className="w-full text-left text-[11.5px] font-body text-primary underline underline-offset-2"
+            >
+              Add your booking link to enable the Book appointment button
+            </button>
+          )}
+        </div>
+      )}
+
 
       <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background flex items-end gap-2">
         <div className="flex-1 min-w-0">
