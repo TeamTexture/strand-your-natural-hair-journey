@@ -1,3 +1,4 @@
+import AiProse from "@/components/tips/AiProse";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Mic, RotateCcw, Trash2 } from "lucide-react";
@@ -201,10 +202,9 @@ const OffShelf = () => {
                 {!batch.selectMode && isOpen && (
                   <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
                     {p.ai_summary && (
-                      <p className="text-[12px] text-muted-foreground leading-snug">
-                        {p.ai_summary}
-                      </p>
+                      <AiProse text={p.ai_summary} />
                     )}
+
                     <ProductVoicenotes
                       productKey={p.product_key}
                       productName={p.name}

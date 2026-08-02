@@ -8,6 +8,13 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import AiProse from "@/components/tips/AiProse";
 import TipsBlock from "@/components/tips/TipsBlock";
 import LevelGate from "@/components/tips/LevelGate";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import ActionList from "@/components/guidance/ActionList";
+import StepSequence from "@/components/guidance/StepSequence";
+import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import { leadPhrase } from "@/lib/tipsRender";
+import { looksSequential, splitNumberedSteps } from "@/lib/guidance";
 import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
 import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import {
@@ -922,11 +929,23 @@ const IngredientDetail = () => {
 
         {analysis && !loading && (
           <>
-            {/* AI Summary — personalised to hair, health, lifestyle */}
-            <SurfaceCard tone="gold">
-              <p className="text-xs font-semibold mb-1">🤖 AI Summary</p>
-              <AiProse text={analysis.summary} />
-            </SurfaceCard>
+            {/* AI Summary — the single verdict callout, bold lead-in only */}
+            {(() => {
+              const { phrase, rest } = leadPhrase(analysis.summary);
+              let vTone: "good" | "gold" | "warning" =
+                analysis.match_score >= 70 ? "good" : analysis.match_score >= 40 ? "gold" : "warning";
+              return (
+                <StatusCallout tone={vTone} label="Verdict">
+                  {analysis.match_score > 0 && (
+                    <AnchorStat value={analysis.match_score} context="hair-profile match" tone={vTone} className="mt-0 mb-2" />
+                  )}
+                  <p>
+                    {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
+                    <span className="text-foreground/75">{rest}</span>
+                  </p>
+                </StatusCallout>
+              );
+            })()}
 
             {/* Personalised "How to use this for your hair" */}
             {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
@@ -1054,14 +1073,20 @@ const IngredientDetail = () => {
               <LevelGate min={2}>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard>
-                  <TipsBlock
-                    idPrefix="uc"
-                    tips={analysis.use_cases.map((t, idx) => ({
-                      priority: analysis.use_cases!.length - idx,
-                      short: t,
-                      alwaysShow: idx === 0,
-                    }))}
-                  />
+                  <ActionList idPrefix="uc" actions={analysis.use_cases.map((t) => ({ action: t }))} showWhy={false} />
+                </SurfaceCard>
+              </LevelGate>
+            )}
+
+            {analysis.usage_instructions && (
+              <LevelGate min={2}>
+                <SectionLabel>How to use it</SectionLabel>
+                <SurfaceCard>
+                  {looksSequential(analysis.usage_instructions) ? (
+                    <StepSequence steps={splitNumberedSteps(analysis.usage_instructions).map((text) => ({ text }))} />
+                  ) : (
+                    <AiProse text={analysis.usage_instructions} />
+                  )}
                 </SurfaceCard>
               </LevelGate>
             )}
@@ -1070,15 +1095,7 @@ const IngredientDetail = () => {
               <>
                 <SectionLabel>Personalised tips</SectionLabel>
                 <SurfaceCard>
-                  <TipsBlock
-                    idPrefix="pt"
-                    tips={analysis.tips.map((t, idx) => ({
-                      priority: analysis.tips!.length - idx,
-                      short: t,
-                      alwaysShow: idx === 0,
-                    }))}
-                    reassurance="Take it one step at a time."
-                  />
+                  <ActionList idPrefix="pt" actions={analysis.tips.map((t) => ({ action: t }))} showWhy={false} />
                   <TipsLevelPrompt className="mt-1" />
                 </SurfaceCard>
               </>

@@ -9,7 +9,6 @@ import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +30,11 @@ import HeatToolPicker from "@/components/HeatToolPicker";
 import { useUserTools } from "@/hooks/useUserTools";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import ActionList from "@/components/guidance/ActionList";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
+import { leadPhrase } from "@/lib/tipsRender";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
@@ -267,7 +271,8 @@ const WashStep1 = () => {
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
-  const { showBeginnerHelp } = useTipsLevel();
+  const { level, showBeginnerHelp } = useTipsLevel();
+  const [heatWhyOpen, setHeatWhyOpen] = useState(false);
   const [prePoo, setPrePoo] = useState<StepState>("todo");
   const [cleanse, setCleanse] = useState<StepState>("todo");
   const [coWash, setCoWash] = useState<StepState>("todo");
@@ -712,35 +717,70 @@ const WashStep1 = () => {
                 </button>
               )}
 
-              {/* Always-available accordion — quick education before deciding */}
-              <Accordion type="single" collapsible className="border-t border-primary/20 pt-1">
-                <AccordionItem value="why-heat" className="border-b-0">
-                  <AccordionTrigger
-                    onClick={() => { if (!heatRationale && !heatLoading) void handleHeatNo(); }}
-                    className="py-2 text-[11px] font-medium text-primary hover:no-underline"
-                  >
-                    Why do a heat treatment?
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-2">
-                    {heatLoading && !heatRationale ? (
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <Loader2 className="size-3 animate-spin" /> Personalising…
-                      </div>
-                    ) : heatRationale ? (
-                      <div className="space-y-1.5">
-                        <p className="text-[11.5px] font-semibold">{heatRationale.headline}</p>
-                        <LevelGate min={2}>
-                          <AiProse text={heatRationale.reasons.join(" ")} className="text-[11px]" />
-                        </LevelGate>
-                      </div>
+              {/* Quick education before deciding — compact disclosure at levels
+                  1-2 (StatusCallout), full anatomy always-visible at 3-4 (no
+                  accordion once the depth of level 3-4 calls for it). */}
+              <div className="border-t border-primary/20 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !heatWhyOpen;
+                    setHeatWhyOpen(next);
+                    if (next && !heatRationale && !heatLoading) void handleHeatNo();
+                  }}
+                  className="py-1 text-[11px] font-medium text-primary"
+                >
+                  {heatWhyOpen ? "Hide why heat could help" : "Why do a heat treatment?"}
+                </button>
+                {heatWhyOpen && (
+                  heatLoading && !heatRationale ? (
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground py-2">
+                      <Loader2 className="size-3 animate-spin" /> Personalising…
+                    </div>
+                  ) : heatRationale ? (
+                    level <= 2 ? (
+                      <StatusCallout
+                        tone="gold"
+                        icon={Flame}
+                        label="Heat treatment"
+                        chips={<KeyFactChips text={heatRationale.reasons.join(" ")} max={1} />}
+                        className="mt-2"
+                      >
+                        {heatRationale.headline}
+                      </StatusCallout>
                     ) : (
-                      <p className="text-[11px] text-muted-foreground">
-                        Gentle heat lifts the cuticle so deep conditioner absorbs further — useful for length retention, dryness, or coarser strands.
-                      </p>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                      <GuidanceCard
+                        eyebrow="Heat treatment"
+                        icon={Flame}
+                        headline={heatRationale.headline}
+                        compact
+                        className="mt-2"
+                      >
+                        {heatRationale.reasons[0] && (() => {
+                          const { phrase, rest } = leadPhrase(heatRationale.reasons[0]);
+                          return (
+                            <p className="text-[12.5px] leading-relaxed">
+                              <span className="font-semibold text-foreground">{phrase}</span>{" "}
+                              <span className="text-foreground/75">{rest}</span>
+                            </p>
+                          );
+                        })()}
+                        {heatRationale.reasons.length > 1 && (
+                          <ActionList
+                            actions={heatRationale.reasons.slice(1).map((r) => ({ action: r }))}
+                            showWhy={false}
+                            idPrefix="heat-reason"
+                          />
+                        )}
+                      </GuidanceCard>
+                    )
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground py-2">
+                      Gentle heat lifts the cuticle so deep conditioner absorbs further — useful for length retention, dryness, or coarser strands.
+                    </p>
+                  )
+                )}
+              </div>
             </div>
           }
         />
@@ -852,20 +892,29 @@ const WashStep1 = () => {
             <div className="py-6 flex items-center justify-center text-muted-foreground text-sm gap-2">
               <Loader2 className="size-4 animate-spin" /> Building your rationale…
             </div>
-          ) : (
-            <ul className="space-y-2.5 py-1">
-              {(heatRationale?.reasons ?? []).map((r, i) => (
-                <li key={i} className="flex gap-2 text-sm">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span className="flex-1">{r}</span>
-                </li>
-              ))}
-              {(!heatRationale?.reasons || heatRationale.reasons.length === 0) && !heatLoading && (
-                <li className="text-sm text-muted-foreground">
-                  We couldn't generate a personalised reason this time. Try again after logging a bit more about your hair.
-                </li>
+          ) : heatRationale?.reasons?.length ? (
+            <div className="space-y-2.5 py-1">
+              {(() => {
+                const { phrase, rest } = leadPhrase(heatRationale.reasons[0]);
+                return (
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-semibold text-foreground">{phrase}</span>{" "}
+                    <span className="text-foreground/75">{rest}</span>
+                  </p>
+                );
+              })()}
+              {heatRationale.reasons.length > 1 && (
+                <ActionList
+                  actions={heatRationale.reasons.slice(1).map((r) => ({ action: r }))}
+                  showWhy={false}
+                  idPrefix="heat-dialog-reason"
+                />
               )}
-            </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-2">
+              We couldn't generate a personalised reason this time. Try again after logging a bit more about your hair.
+            </p>
           )}
 
           {/* Affiliate CTA — let the user buy a TT Heat Hat right from the rationale,

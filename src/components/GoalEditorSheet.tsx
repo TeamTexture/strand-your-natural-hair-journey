@@ -18,6 +18,8 @@ import { buildAiContext } from "@/lib/aiContext";
 import { useAuth } from "@/hooks/useAuth";
 import { queueHelloKleanPrompt } from "@/lib/discounts";
 import AiProse from "@/components/tips/AiProse";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import { extractAnchorStat } from "@/lib/guidance";
 import TipsBlock from "@/components/tips/TipsBlock";
 import { type GuidanceTip } from "@/lib/tipsRender";
 
@@ -313,6 +315,14 @@ const GoalEditorSheet = ({
             {!tipLoading && tip?.body && (
               <DialogDescription asChild>
                 <div className="text-left pt-1">
+                  {(() => {
+                    // Hero stat only when the AI copy actually names one —
+                    // never invented.
+                    const anchor = extractAnchorStat(tip.body);
+                    return anchor ? (
+                      <AnchorStat value={anchor.value} context={anchor.context} tone="gold" className="mb-2" />
+                    ) : null;
+                  })()}
                   <AiProse text={tip.body} />
                 </div>
               </DialogDescription>

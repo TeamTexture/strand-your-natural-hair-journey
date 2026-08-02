@@ -12,8 +12,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
-  ArrowDown,
-  ArrowUp,
   CalendarDays,
   Check,
   ChevronDown,
@@ -54,9 +52,11 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import { shortForm, wantsDetail, wantsWhy, type GuidanceTip } from "@/lib/tipsRender";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import ActionList from "@/components/guidance/ActionList";
+import MarkerBadgeRow, { type MarkerSeverity } from "@/components/blood/MarkerBadgeRow";
 
 interface PanelRow {
   id: string;
@@ -418,22 +418,16 @@ export default function BloodPanelReview() {
                 </div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-body">
-                <span className="text-foreground/70">
-                  {results.length} marker{results.length === 1 ? "" : "s"}
-                </span>
-                <span
-                  className={cn(
-                    "px-2.5 py-1 rounded-full",
-                    flaggedCount > 0
-                      ? "bg-warn/15 text-warn"
-                      : "bg-good/15 text-good",
-                  )}
-                >
-                  {flaggedCount > 0
-                    ? `${flaggedCount} outside range`
-                    : "All within range"}
-                </span>
+              <div className="mt-3 pt-3 border-t border-border/60">
+                <AnchorStat
+                  value={flaggedCount}
+                  context={
+                    flaggedCount === 1
+                      ? `marker outside range out of ${results.length}`
+                      : `markers outside range out of ${results.length}`
+                  }
+                  tone={flaggedCount > 0 ? "warning" : "good"}
+                />
               </div>
             </SurfaceCard>
 
@@ -466,7 +460,11 @@ export default function BloodPanelReview() {
                 <section className="space-y-2">
                   <SectionLabel>Priority actions</SectionLabel>
                   <SurfaceCard>
-                    <TipsBlock idPrefix="panel-priority" tips={tips} reassurance="Start with the first one — the rest can wait." />
+                    <ActionList
+                      idPrefix="panel-priority"
+                      actions={tips.map((t) => ({ action: t.short, why: t.why }))}
+                      showWhy
+                    />
                   </SurfaceCard>
                 </section>
               );
@@ -491,55 +489,37 @@ export default function BloodPanelReview() {
                         const target = shouldBeText(r.marker, status);
                         const info = MARKER_EXPLANATIONS[r.marker];
                         const isOpen = expanded.has(r.marker);
+                        const severity: MarkerSeverity =
+                          status === "low" ? "deficient" : status === "high" ? "high" : "optimal";
+                        const rowImpact =
+                          level === 1 && isFlag && info
+                            ? shortForm(info.whyItMatters, 1)
+                            : ref
+                              ? `Normal ${ref}`
+                              : "Reference not set";
                         return (
                           <li key={r.marker}>
                             <button
                               onClick={() => level > 1 && toggle(r.marker)}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                              className="w-full flex items-center gap-2 px-4 py-1.5 text-left"
                             >
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-body font-semibold truncate">
-                                  {r.marker}
-                                </p>
-                                <p className="text-xs text-muted-foreground font-body mt-0.5 truncate">
-                                  {level === 1 && isFlag && info
-                                    ? shortForm(info.whyItMatters, 1)
-                                    : ref
-                                      ? `Normal ${ref}`
-                                      : "Reference not set"}
-                                </p>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <p className="text-sm font-body font-semibold text-foreground">
-                                  {r.value ?? "–"}
-                                  {r.unit ? (
-                                    <span className="text-xs text-muted-foreground ml-1">
-                                      {r.unit}
-                                    </span>
-                                  ) : null}
-                                </p>
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center gap-1 mt-0.5 text-[10px] font-body px-2 py-0.5 rounded-full",
-                                    status === "low" &&
-                                      "bg-warn/15 text-warn",
-                                    status === "high" &&
-                                      "bg-warn/15 text-warn",
-                                    status === "normal" &&
-                                      "bg-good/15 text-good",
-                                    status === "untested" &&
-                                      "bg-muted text-foreground/60",
-                                  )}
-                                >
-                                  {status === "low" && (
-                                    <ArrowDown className="size-3" />
-                                  )}
-                                  {status === "high" && (
-                                    <ArrowUp className="size-3" />
-                                  )}
-                                  {statusLabel(status)}
-                                </span>
-                              </div>
+                              {status === "untested" ? (
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-body font-semibold truncate">{r.marker}</p>
+                                  <p className="text-xs text-muted-foreground font-body mt-0.5 truncate">
+                                    {rowImpact}
+                                  </p>
+                                </div>
+                              ) : (
+                                <MarkerBadgeRow
+                                  className="flex-1 min-w-0 py-1.5"
+                                  marker={r.marker}
+                                  severity={severity}
+                                  statusLabel={statusLabel(status)}
+                                  value={r.value != null ? `${r.value}${r.unit ? ` ${r.unit}` : ""}` : undefined}
+                                  impact={rowImpact}
+                                />
+                              )}
                               {level > 1 && (
                                 <span className="shrink-0 ml-1">
                                   {isOpen ? (

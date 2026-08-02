@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { useBloodValues, clearBloodDraft } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate } from "@/data/bloodRanges";
 import { toast } from "sonner";
-import { ShieldCheck, AlertTriangle } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import AiProse from "@/components/tips/AiProse";
-import TipsBlock from "@/components/tips/TipsBlock";
-import { shortForm, type GuidanceTip } from "@/lib/tipsRender";
+import { shortForm } from "@/lib/tipsRender";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import GuidanceBody from "@/components/guidance/GuidanceBody";
+import ActionList from "@/components/guidance/ActionList";
+import MarkerBadgeRow, { type MarkerSeverity } from "@/components/blood/MarkerBadgeRow";
 
 interface Deficiency {
   marker: string;
@@ -200,34 +202,37 @@ const BloodAiSummary = () => {
       <div className="px-5 pt-1 pb-10 space-y-4">
         <h1 className="font-display text-[26px] leading-tight text-foreground">Your Hair Health Profile</h1>
 
-        <SectionLabel>Deficiencies Detected</SectionLabel>
+        <SurfaceCard>
+          <AnchorStat
+            value={summary.deficiencies.length}
+            context={
+              summary.deficiencies.length === 1
+                ? "marker flagged from your results"
+                : "markers flagged from your results"
+            }
+            tone={hasDeficiencies ? "warning" : "good"}
+          />
+        </SurfaceCard>
+
+        <SectionLabel>Deficiencies detected</SectionLabel>
         {hasDeficiencies ? (
-          <div className="space-y-2">
-            {summary.deficiencies.map((d) => (
-              <div
-                key={d.marker}
-                className="bg-card border border-border border-l-4 border-l-warn rounded-[14px] p-3.5"
-              >
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="size-4 text-warn shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold font-body">
-                      {d.marker}{" "}
-                      <span className="text-warn text-xs font-medium uppercase tracking-[0.1em]">
-                        {d.status}
-                      </span>
-                    </p>
-                    {d.value && (
-                      <p className="text-[11px] text-muted-foreground font-body">{d.value}</p>
-                    )}
-                    <p className="text-xs text-foreground/85 font-body mt-1 leading-relaxed">
-                      {shortForm(d.hair_impact, level)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <SurfaceCard padded={false}>
+            <div className="divide-y divide-border/60 px-4">
+              {summary.deficiencies.map((d) => {
+                const severity: MarkerSeverity =
+                  d.status === "low" ? "deficient" : d.status === "high" ? "high" : "borderline";
+                return (
+                  <MarkerBadgeRow
+                    key={d.marker}
+                    marker={d.marker}
+                    severity={severity}
+                    value={d.value}
+                    impact={shortForm(d.hair_impact, level)}
+                  />
+                );
+              })}
+            </div>
+          </SurfaceCard>
         ) : (
           <SurfaceCard tone="green" className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-good" />
@@ -237,20 +242,15 @@ const BloodAiSummary = () => {
 
         <SectionLabel>What this means for your hair</SectionLabel>
         <SurfaceCard>
-          <AiProse text={summary.overall_summary} className="text-sm" />
+          <GuidanceBody text={summary.overall_summary} />
         </SurfaceCard>
 
         <SectionLabel>Your priority actions</SectionLabel>
         <SurfaceCard>
-          <TipsBlock
+          <ActionList
             idPrefix="blood-priority"
-            dedupeAgainst={summary.overall_summary}
-
-            tips={summary.priority_actions.map((a, i): GuidanceTip => ({
-              priority: summary.priority_actions.length - i,
-              short: a,
-            }))}
-            reassurance="You don't need to tackle all of this today — start with the first one."
+            actions={summary.priority_actions.map((a) => ({ action: a }))}
+            showWhy={false}
           />
         </SurfaceCard>
 
