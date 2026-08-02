@@ -150,6 +150,20 @@ export function parseGuidance(text: string | null | undefined): ParsedGuidance {
     segments.push({ label: spec.label, icon: spec.icon, tone: spec.tone, body });
   }
 
+  // FAILSAFE: a lead that ends mid-sentence (no terminator, or trailing
+  // preposition/conjunction) means the split broke real prose. Rather than
+  // render an incoherent fragment like "That directly works against", stitch
+  // everything back into one intact paragraph.
+  const leadBroken =
+    Boolean(lead) &&
+    segments.length > 0 &&
+    (!/[.!?:]$/.test(lead) ||
+      /\b(against|with|for|to|of|and|or|the|a|an|your|from|in|on|at|by|because|which|that)$/i.test(lead));
+  if (leadBroken) {
+    const whole = [lead, ...segments.map((s) => `${s.label}: ${s.body}`)].join(" ").replace(/\s+/g, " ").trim();
+    return { lead: whole, segments: [] };
+  }
+
   return { lead, segments };
 }
 
