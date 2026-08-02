@@ -368,6 +368,16 @@ export function leadPhrase(text: string): { phrase: string; rest: string } {
       break;
     }
   }
+  // Never leave the bold phrase hanging on a function word — it reads as a
+  // broken sentence. Pull the cut back until the last word carries meaning.
+  const FUNCTION_WORDS = new Set([
+    "a", "an", "and", "as", "at", "but", "by", "for", "from", "if", "in", "into",
+    "is", "it", "its", "let", "of", "on", "or", "so", "that", "the", "their",
+    "then", "this", "to", "was", "which", "while", "with", "your",
+  ]);
+  const bare = (w: string) => w.replace(/[^A-Za-z]/g, "").toLowerCase();
+  while (cut > 3 && FUNCTION_WORDS.has(bare(words[cut - 1]))) cut -= 1;
   return { phrase: words.slice(0, cut).join(" "), rest: words.slice(cut).join(" ") };
+
 }
 
