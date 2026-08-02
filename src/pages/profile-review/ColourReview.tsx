@@ -1,5 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -117,10 +117,23 @@ const ColourReview = () => {
     }
   };
 
+  // Deep link from the Strand Summary snapshot tiles — scroll the targeted
+  // field into view so the user lands exactly where they entered it.
+  useEffect(() => {
+    if (!editKey) return;
+    const id = editKey === "current_style" ? "current-hairstyle" : editKey === "planned_next_style" ? "planned-next-style" : null;
+    if (!id) return;
+    const t = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 220);
+    return () => clearTimeout(t);
+  }, [editKey]);
+
   const styleAge = useMemo(
     () => styleAgeDisplay(style?.style_set_at ?? null),
     [style?.style_set_at],
   );
+
 
   return (
     <ScreenLayout>
@@ -165,7 +178,8 @@ const ColourReview = () => {
         )}
 
         {/* Current style + duration */}
-        <div className="rounded-[14px] border border-border bg-card p-4">
+        <div id="current-hairstyle" className="rounded-[14px] border border-border bg-card p-4">
+
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
@@ -267,13 +281,17 @@ const ColourReview = () => {
           )}
         </div>
 
-        <ReviewField
-          label="Planned next style"
-          value={style?.planned_next_style ?? ""}
-          hint="Leave as 'Not sure yet' if undecided."
-          kind={{ type: "select", options: HAIRSTYLES }}
-          onSave={(v) => upsertStyle({ planned_next_style: String(v) })}
-        />
+        <div id="planned-next-style">
+          <ReviewField
+            label="Planned next style"
+            value={style?.planned_next_style ?? ""}
+            hint="Leave as 'Not sure yet' if undecided."
+            kind={{ type: "select", options: HAIRSTYLES }}
+            autoEdit={editKey === "planned_next_style"}
+            onSave={(v) => upsertStyle({ planned_next_style: String(v) })}
+          />
+        </div>
+
         <ReviewField
           label="Default / normal styles"
           value={style?.default_styles ?? []}
