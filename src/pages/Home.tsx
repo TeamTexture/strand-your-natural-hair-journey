@@ -11,7 +11,6 @@ import { ICONS } from "@/lib/iconMap";
 import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
-import SectionLabel from "@/components/SectionLabel";
 import ProductThumb from "@/components/ProductThumb";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
