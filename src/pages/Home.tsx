@@ -322,6 +322,39 @@ const Home = () => {
 
   const apptSub = nextAppt ? `Next: ${fmtDate(nextAppt.date)}` : "No upcoming appointments";
 
+  // ---- Dashboard stat tiles (anchor-first numbers, all from data already
+  // fetched above — no additional network calls). ----
+  const washDaysValue = lastWash ? `${daysSinceLast}` : "—";
+  const washDaysSub = lastWash
+    ? daysSinceLast === 0 ? "Today" : `day${daysSinceLast === 1 ? "" : "s"} ago`
+    : "Log your first wash day";
+  const washDaysTone = lastWash && daysSinceLast != null && daysSinceLast > 7 ? "warning" : "good";
+
+  const goalPct = (() => {
+    if (!lengthGoal) return null;
+    const target = lengthGoal.target_value;
+    const start = lengthGoal.start_value ?? 0;
+    const current = lengthGoal.current_value ?? 0;
+    if (target == null || target <= start) return null;
+    return Math.min(100, Math.max(0, Math.round(((current - start) / (target - start)) * 100)));
+  })();
+  const goalName = (() => {
+    if (!lengthGoal) return "No goal set yet";
+    const title = lengthGoal.title?.trim();
+    if (title && title.toLowerCase() !== "hair goal") {
+      return title.length > 28 ? `${title.slice(0, 28)}…` : title;
+    }
+    return "Your goal";
+  })();
+  const goalValue = goalPct != null ? `${goalPct}%` : "—";
+
+  const flaggedCount = bloodSummary?.flagged ?? 0;
+  const flaggedValue = bloodSummary ? `${flaggedCount}` : "—";
+  const flaggedTone = flaggedCount > 0 ? "warning" : "good";
+  const flaggedSub = bloodSummary ? "flagged markers" : "No blood work logged yet";
+
+  const shelfCount = shelfProducts.length;
+
   return (
     <ScreenLayout bottomNav>
       {/* greeting */}
@@ -367,6 +400,41 @@ const Home = () => {
         </div>
       </header>
 
+      {/* Anchor-first dashboard — the numbers that matter, tappable. */}
+      <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
+        <StatTile
+          icon={ICONS.washDay}
+          value={washDaysValue === "—" ? washDaysValue : `${washDaysValue}d`}
+          label="Last wash"
+          sub={washDaysSub}
+          tone={washDaysTone}
+          to="/wash-day"
+        />
+        <StatTile
+          icon={ICONS.goal}
+          value={goalValue}
+          label="Goal progress"
+          sub={goalName}
+          tone={goalPct != null ? "good" : "muted"}
+          to="/journal"
+        />
+        <StatTile
+          icon={ICONS.blood}
+          value={flaggedValue}
+          label="Flagged markers"
+          sub={flaggedSub}
+          tone={bloodSummary ? flaggedTone : "muted"}
+          to="/blood-history"
+        />
+        <StatTile
+          icon={ICONS.products}
+          value={`${shelfCount}`}
+          label="On my shelf"
+          sub={shelfCount > 0 ? "products" : "Add your first product"}
+          tone={shelfCount > 0 ? "good" : "muted"}
+          to="/products"
+        />
+      </div>
 
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="home" />
@@ -824,7 +892,7 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
-      <SectionLabel>Quick actions</SectionLabel>
+      <SectionHeader icon={ICONS.style} className="px-5 pt-1 pb-2">Quick actions</SectionHeader>
       <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-2.5">
 
         <button
@@ -898,7 +966,7 @@ const Home = () => {
 
       </div>
 
-      <SectionLabel>My shelf</SectionLabel>
+      <SectionHeader icon={ICONS.products} className="px-5 pt-1 pb-2">My shelf</SectionHeader>
       <div data-tour="my-shelf" className="px-5 pb-6">
 
         <SurfaceCard padded={false} className="divide-y divide-border/60">
