@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ExternalLink, Heart, Check, Loader2, Sparkles } from "lucide-react";
+import { ExternalLink, Heart, Check, Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import ActionList from "@/components/guidance/ActionList";
+import { leadPhrase } from "@/lib/tipsRender";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
