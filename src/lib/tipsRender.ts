@@ -349,3 +349,25 @@ export function leadAndRest(text: string): { lead: string; rest: string } {
   if (sentences.length <= 1) return { lead: text.trim(), rest: "" };
   return { lead: sentences[0], rest: sentences.slice(1).join(" ") };
 }
+
+/**
+ * ANTI-WALL-OF-BOLD RULE: only the first 4–7 words of a block are ever
+ * emphasised. Whole paragraphs must never be bold anywhere in the app, so every
+ * renderer splits a block into a short bold lead-in phrase plus lighter body.
+ */
+export function leadPhrase(text: string): { phrase: string; rest: string } {
+  const clean = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!clean) return { phrase: "", rest: "" };
+  const words = clean.split(" ");
+  if (words.length <= 7) return { phrase: clean, rest: "" };
+  // Prefer a natural clause boundary inside the first 7 words.
+  let cut = 6;
+  for (let i = 4; i <= 7 && i < words.length; i += 1) {
+    if (/[,—:;-]$/.test(words[i - 1])) {
+      cut = i;
+      break;
+    }
+  }
+  return { phrase: words.slice(0, cut).join(" "), rest: words.slice(cut).join(" ") };
+}
+

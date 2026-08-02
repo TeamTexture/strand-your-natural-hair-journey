@@ -6,12 +6,12 @@ import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import {
   condenseProse,
   dedupeSentences,
-  leadAndRest,
+  leadPhrase,
   splitToBlocks,
 } from "@/lib/tipsRender";
 import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import {
-  guidanceIcon,
+  createIconPicker,
   looksSequential,
   parseGuidance,
   splitNumberedSteps,
@@ -72,6 +72,10 @@ const GuidanceBody = ({
   const lead = deduped.lead;
   const leadSteps = looksSequential(lead) ? splitNumberedSteps(lead) : [];
   const leadBlocks = splitToBlocks(lead);
+  // ICON DISCIPLINE: one picker per rendered body — no icon is ever repeated,
+  // and a line with no confident match gets a neutral dot instead of a wrong
+  // icon.
+  const pickIcon = createIconPicker();
 
   // Level 1–2: a single tight paragraph, segments appended as compact lines.
   if (level <= 2) {
@@ -115,8 +119,8 @@ const GuidanceBody = ({
         leadBlocks.length > 0 && (
           <ul className="space-y-1.5">
             {leadBlocks.map((block, i) => {
-              const LineIcon = guidanceIcon(block);
-              const { lead: leadIn, rest } = leadAndRest(block);
+              const LineIcon = pickIcon(block);
+              const { phrase, rest } = leadPhrase(block);
               return (
                 <li
                   key={i}
@@ -125,22 +129,24 @@ const GuidanceBody = ({
                   <span className="mt-[3px] inline-flex items-center justify-center size-4 shrink-0 rounded-full bg-primary/12">
                     <LineIcon className="size-2.5 text-primary" aria-hidden />
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11.5px] leading-[1.55] text-foreground font-body font-semibold break-words">
-                      {render(leadIn, `${keyPrefix}-l${i}`)}
-                    </p>
+                  <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body break-words">
+                    <span className="text-foreground font-semibold">
+                      {render(phrase, `${keyPrefix}-l${i}`)}
+                    </span>
                     {rest && (
-                      <p className="mt-0.5 text-[11.5px] leading-[1.55] text-foreground/75 font-body break-words">
+                      <span className="text-foreground/75">
+                        {" "}
                         {render(rest, `${keyPrefix}-l${i}-rest`)}
-                      </p>
+                      </span>
                     )}
-                  </div>
+                  </p>
                 </li>
               );
             })}
           </ul>
         )
       )}
+
 
       {lead && <KeyFactChips text={lead} />}
 

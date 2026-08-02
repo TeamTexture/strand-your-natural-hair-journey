@@ -5,3 +5,4 @@ export { default as KeyFactChips } from "@/components/guidance/KeyFactChips";
 export { default as StepSequence, type GuidanceStep } from "@/components/guidance/StepSequence";
 export { default as StatusCallout } from "@/components/guidance/StatusCallout";
 export { default as GuidanceBody } from "@/components/guidance/GuidanceBody";
+export { default as AnchorStat } from "@/components/guidance/AnchorStat";
