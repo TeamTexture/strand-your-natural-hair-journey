@@ -436,19 +436,19 @@ const WashDayHub = () => {
         {overdue && (
           <div role="alert">
             <StatusCallout
-              tone="warning"
+              tone="gold"
               icon={AlertTriangle}
               label="Wash day overdue"
               action={
                 <button
                   onClick={() => navigate("/wash/step-1")}
-                  className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill border border-destructive/40 bg-destructive/10 px-4 text-[12.5px] font-semibold text-destructive"
+                  className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition"
                 >
                   Log a wash day now →
                 </button>
               }
             >
-              <p className="text-[13.5px] font-semibold text-destructive font-body">
+              <p className="font-display text-[15px] leading-snug text-foreground">
                 {overdue.diffDays} days since your last wash day
               </p>
               <LevelGate min={2}>
@@ -457,6 +457,7 @@ const WashDayHub = () => {
             </StatusCallout>
           </div>
         )}
+
         {/* ONE AI tip card only. The log-specific next-wash tip is fresher, so it
             wins; the generated wash-day tip is the fallback for accounts with no
             logged tip yet (and is not even fetched when the former exists). */}
