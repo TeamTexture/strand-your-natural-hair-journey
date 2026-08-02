@@ -311,7 +311,7 @@ const FACT_PATTERNS: Array<{ re: RegExp; icon: LucideIcon; format?: (m: RegExpMa
   { re: /\b(\d+)\s*(?:–|-|to)?\s*(\d+)?\s*wash\s*(?:days?|cycles?)\b/i, icon: Droplets },
   { re: /\b(\d+)\s*sections?\b/i, icon: Layers },
   { re: /\b(high|low|medium)\s+porosity\b/i, icon: Droplet },
-  { re: /\b(two-step|double)\s+cleanse\b/i, icon: Hand },
+  { re: /\b(two-step|double)\s+cleanse\b/i, icon: Droplet },
   { re: /\blength\s+retention\b/i, icon: Ruler },
   { re: /\blow\s+(?:tension|manipulation)\b/i, icon: ShieldCheck },
   { re: /\btype\s*[1-4][abc]?\b/i, icon: Sparkles },
