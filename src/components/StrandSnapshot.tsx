@@ -17,6 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGoals } from "@/hooks/useGoals";
 import { titleCase } from "@/lib/humanise";
 import { cn } from "@/lib/utils";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
 
 /**
  * StrandSnapshot — the "at a glance" header of the Strand Summary.
@@ -46,6 +48,11 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
   const { user } = useAuth();
   const { goals } = useGoals();
   const [stats, setStats] = useState<Stat[]>([]);
+  const [blood, setBlood] = useState<{
+    flaggedCount: number;
+    totalCount: number;
+    flaggedMarkers: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -75,7 +82,11 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
       const style = (styleRes.data ?? {}) as Record<string, unknown>;
       const panelId = (panelsRes.data?.[0] as { id?: string } | undefined)?.id;
 
-      let bloodStat: Stat | null = null;
+      let bloodHero: {
+        flaggedCount: number;
+        totalCount: number;
+        flaggedMarkers: string[];
+      } | null = null;
       if (panelId) {
         const { data: results } = await supabase
           .from("blood_results")
@@ -85,22 +96,11 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
         const rows = (results ?? []) as Array<{ marker: string; status: string | null }>;
         const flagged = rows.filter((r) => r.status === "low" || r.status === "high");
         if (rows.length > 0) {
-          bloodStat = flagged.length
-            ? {
-                label: "Blood work",
-                value: `${flagged.length} flagged · ${flagged
-                  .slice(0, 2)
-                  .map((f) => titleCase(f.marker.replace(/_/g, " ")))
-                  .join(", ")}`,
-                icon: Stethoscope,
-                tone: "warn",
-              }
-            : {
-                label: "Blood work",
-                value: `${rows.length} markers all in range`,
-                icon: Stethoscope,
-                tone: "good",
-              };
+          bloodHero = {
+            flaggedCount: flagged.length,
+            totalCount: rows.length,
+            flaggedMarkers: flagged.map((f) => titleCase(f.marker.replace(/_/g, " "))),
+          };
         }
       }
 
@@ -138,9 +138,10 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
           href: "/profile/colour?edit=planned_next_style",
         });
       }
-      if (bloodStat) next.push(bloodStat);
-
-      if (!cancelled) setStats(next);
+      if (!cancelled) {
+        setStats(next);
+        setBlood(bloodHero);
+      }
     })();
     return () => {
       cancelled = true;
@@ -148,10 +149,32 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, goals.length]);
 
-  if (stats.length === 0) return null;
+  if (stats.length === 0 && !blood) return null;
 
   return (
-    <ul className={cn("grid grid-cols-2 gap-2", className)}>
+    <div className={cn("space-y-3", className)}>
+      {blood && (
+        <div className="border-b border-border/60 pb-3">
+          <AnchorStat
+            value={blood.flaggedCount}
+            context={
+              blood.flaggedCount > 0
+                ? `blood marker${blood.flaggedCount === 1 ? "" : "s"} outside range, of ${blood.totalCount} checked`
+                : `of ${blood.totalCount} blood markers in range`
+            }
+            tone={blood.flaggedCount > 0 ? "warning" : "good"}
+            targetIcon={Stethoscope}
+          />
+          {blood.flaggedCount > 0 && (
+            <KeyFactChips
+              className="mt-2"
+              facts={blood.flaggedMarkers.map((m) => ({ label: m, tone: "warning" as const }))}
+              min={1}
+            />
+          )}
+        </div>
+      )}
+      <ul className="grid grid-cols-2 gap-2">
       {stats.map((s) => {
         const Icon = s.icon;
         const wide = s.label === "Main goal" || s.label === "Blood work";
@@ -190,7 +213,8 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
   );
 };
 
