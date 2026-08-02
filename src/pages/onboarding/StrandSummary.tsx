@@ -342,6 +342,8 @@ const StrandSummary = () => {
                 </div>
                 <TipsBlock
                   idPrefix="routine-tip"
+                  dedupeAgainst={summary.overview}
+
                   tips={summary.routine_tips.map((b, i): GuidanceTip => ({
                     priority: summary.routine_tips.length - i,
                     short: b,
