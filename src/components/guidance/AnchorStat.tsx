@@ -26,26 +26,20 @@ const AnchorStat = ({
   tone?: GuidanceTone;
   className?: string;
 }) => {
-  const t = TONE_CLASSES[tone];
   return (
     <div className={cn("mt-2", className)}>
-      <div className="flex items-baseline gap-2">
-        <span className={cn("font-display text-2xl leading-none tabular-nums", t.icon)}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        {/* Hero stat — large sans-serif, numeral AND unit together, ink colour. */}
+        <span className="font-body text-[34px] font-semibold leading-none tracking-tight text-foreground">
           {value}
         </span>
-        <span className="text-[12px] leading-snug text-foreground/75 font-body break-words">
+        <span className="text-[13px] leading-snug text-muted-foreground font-body break-words">
           {context}
         </span>
       </div>
       {target && (
-        <span
-          className={cn(
-            "mt-2 inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-[10.5px] font-semibold font-body",
-            t.chip,
-            t.label,
-          )}
-        >
-          {TargetIcon && <TargetIcon className="size-3" aria-hidden />}
+        <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-pill bg-primary/12 px-3 py-1.5 text-[11px] font-semibold font-body text-primary">
+          {TargetIcon && <TargetIcon className="size-3.5" aria-hidden />}
           {target}
         </span>
       )}
