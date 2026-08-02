@@ -72,6 +72,10 @@ const GuidanceBody = ({
   const lead = deduped.lead;
   const leadSteps = looksSequential(lead) ? splitNumberedSteps(lead) : [];
   const leadBlocks = splitToBlocks(lead);
+  // ICON DISCIPLINE: one picker per rendered body — no icon is ever repeated,
+  // and a line with no confident match gets a neutral dot instead of a wrong
+  // icon.
+  const pickIcon = createIconPicker();
 
   // Level 1–2: a single tight paragraph, segments appended as compact lines.
   if (level <= 2) {
