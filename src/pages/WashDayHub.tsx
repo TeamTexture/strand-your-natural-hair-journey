@@ -413,13 +413,16 @@ const WashDayHub = () => {
   // already rendered higher up the page is dropped from later blocks.
   const pageSeen = useMemo(() => new Set<string>(), [overdue, latestTip, educational]);
 
+  // CONSEQUENCE only — one block, no goal fragment (that becomes a chip) and no
+  // sentence that merely restates the "Log a wash day now" button.
+  const OVERDUE_CTA = "Log a wash day now";
   const overdueReason = (() => {
     if (!overdue) return "";
-    const base = "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
-    if (overdue.goalTitles.length) {
-      return `${base} That directly works against your goal${overdue.goalTitles.length > 1 ? "s" : ""}: ${overdue.goalTitles.join(" and ")}. Log a wash day to keep the scalp environment on track.`;
-    }
-    return `${base} Log a wash day to reset your scalp environment.`;
+    const base =
+      "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
+    return splitSentences(base)
+      .filter((s) => !restatesAction(s, OVERDUE_CTA))
+      .join(" ");
   })();
 
   // Cadence reasoning appears at most once per page. Priority:
@@ -435,28 +438,59 @@ const WashDayHub = () => {
         <BrandBanner slot="wash_day" />
         {overdue && (
           <div role="alert">
-            <StatusCallout
-              tone="gold"
+            {/* GUIDANCE CARD ANATOMY — status row → anchor stat → one
+                consequence block → fact chips → one CTA. */}
+            <GuidanceCard
+              tone="warning"
+              eyebrow="Wash day overdue"
               icon={AlertTriangle}
-              label="Wash day overdue"
-              action={
+              footer={
                 <button
                   onClick={() => navigate("/wash/step-1")}
-                  className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition"
+                  className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-destructive px-4 text-[12.5px] font-semibold text-destructive-foreground shadow-sm hover:opacity-95 transition"
                 >
-                  Log a wash day now →
+                  {OVERDUE_CTA} →
                 </button>
               }
             >
-              <p className="font-display text-[15px] leading-snug text-foreground">
-                {overdue.diffDays} days since your last wash day
-              </p>
+              <AnchorStat
+                tone="warning"
+                value={overdue.diffDays}
+                context={`day${overdue.diffDays === 1 ? "" : "s"} since your last wash day`}
+                target={`Your rhythm: ${educational.window}`}
+                targetIcon={Repeat}
+              />
               <LevelGate min={2}>
-                <AiProse text={dedupeSentences(overdueReason, pageSeen)} className="mt-1.5" />
+                {(() => {
+                  const reason = dedupeSentences(overdueReason, pageSeen);
+                  if (!reason.trim()) return null;
+                  const { phrase, rest } = leadPhrase(reason);
+                  return (
+                    <div className="flex gap-2 rounded-[10px] border border-destructive/20 bg-destructive/[0.05] px-2.5 py-2">
+                      <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-destructive/15">
+                        <CircleSlash className="size-2.5 text-destructive" aria-hidden />
+                      </span>
+                      <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body break-words line-clamp-3">
+                        <span className="font-semibold text-foreground">{phrase}</span>
+                        {rest && <span className="text-foreground/75"> {rest}</span>}
+                      </p>
+                    </div>
+                  );
+                })()}
               </LevelGate>
-            </StatusCallout>
+              {overdue.goalTitles.length > 0 && (
+                <KeyFactChips
+                  tone="warning"
+                  facts={overdue.goalTitles.map((title) => ({
+                    label: `Works against your goal: ${title}`,
+                    icon: Ruler,
+                  }))}
+                />
+              )}
+            </GuidanceCard>
           </div>
         )}
+
 
         {/* ONE AI tip card only. The log-specific next-wash tip is fresher, so it
             wins; the generated wash-day tip is the fallback for accounts with no
