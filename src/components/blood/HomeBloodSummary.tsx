@@ -3,7 +3,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import { titleCase } from "@/lib/humanise";
 import { limitSupporting } from "@/lib/tipsRender";
-import { type TipsLevel } from "@/hooks/useTipsLevel";
+import { type TipsLevel } from "@/lib/tipsLevel";
 
 export interface HomeBloodSummaryData {
   panelDate: string | null;
