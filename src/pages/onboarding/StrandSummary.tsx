@@ -9,6 +9,8 @@ import {
   Pill, Apple, Activity, Calendar, Sparkle, Waves, HeartPulse,
   ClipboardList, ListChecks, FileText, type LucideIcon,
 } from "lucide-react";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import StatusCallout from "@/components/guidance/StatusCallout";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
