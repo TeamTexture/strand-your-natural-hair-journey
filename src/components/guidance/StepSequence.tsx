@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 import { Timer } from "lucide-react";
 import { useSmartInline } from "@/lib/smartInline";
-import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { extractTime, plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { guidanceIcon } from "@/lib/guidance";
+import { dedupeSentences } from "@/lib/tipsRender";
 
 export interface GuidanceStep {
   text: string;
@@ -26,7 +26,6 @@ const StepSequence = ({
   startNumber?: number;
 }) => {
   const render = useSmartInline();
-  const { showBeginnerHelp } = useTipsLevel();
   if (steps.length === 0) return null;
 
   return (
@@ -39,8 +38,12 @@ const StepSequence = ({
       {steps.map((s, i) => {
         const Icon = guidanceIcon(s.text);
         const time = extractTime(s.text);
-        const body = showBeginnerHelp ? plainLanguage(s.text) : s.text;
-        const detail = s.detail ? (showBeginnerHelp ? plainLanguage(s.detail) : s.detail) : undefined;
+        // Definitions are never appended inline — plainLanguage only cleans the
+        // copy. A step body and its why-line are deduped against each other.
+        const body = plainLanguage(s.text);
+        const seen = new Set<string>();
+        const cleanBody = dedupeSentences(body, seen);
+        const detail = s.detail ? dedupeSentences(plainLanguage(s.detail), seen) : "";
         return (
           <li key={i} className="relative flex gap-3">
             <span className="relative z-10 size-[27px] shrink-0 rounded-full bg-primary text-primary-foreground text-[11.5px] font-bold flex items-center justify-center shadow-sm">
@@ -50,7 +53,7 @@ const StepSequence = ({
               <div className="flex items-start gap-1.5">
                 <Icon className="size-3.5 text-primary shrink-0 mt-[3px]" aria-hidden />
                 <p className="flex-1 text-[12px] leading-[1.55] text-foreground break-words">
-                  {render(body, `step-${i}`)}
+                  {render(cleanBody, `step-${i}`)}
                 </p>
               </div>
               {detail && (

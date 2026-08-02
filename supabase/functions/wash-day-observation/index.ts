@@ -8,6 +8,11 @@
 // save → no caching.
 
 import { json, preflight } from "../_shared/cors.ts";
+import {
+  fetchAdviceLedger,
+  buildAdviceLedgerBlock,
+  recordAdvice,
+} from "../_shared/advice-ledger.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -25,7 +30,7 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v1";
+const MODEL_VERSION = "claude-haiku-4-5@v2-budgets-ledger";
 
 interface RequestBody {
   steps?: Record<string, unknown>;
@@ -159,6 +164,7 @@ async function runClaude(args: {
   body: RequestBody;
   recentWashDays: unknown[];
   selectorContext: SelectorContext;
+  ledgerBlock: string;
 }): Promise<{ payload: ObservationPayload }> {
   const userText = `Today's wash day:
 ${JSON.stringify({ steps: args.body.steps ?? {}, results: args.body.results ?? {}, hairFeelNote: args.body.hairFeelNote ?? "" }, null, 2)}
@@ -175,7 +181,9 @@ Return JSON only via the return_observation tool.`;
 
   const req = await buildClaudeRequest({
     function_kind: "wash-day-observation",
-    task_instructions: buildClaudeTaskInstructions(),
+    task_instructions: `${buildClaudeTaskInstructions()}${
+      args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""
+    }`,
     user_payload: {},
     user_content: userContent,
     user_context: args.body.context ?? null,
@@ -228,6 +236,7 @@ async function runLovable(args: {
   body: RequestBody;
   bloodRows: unknown[];
   medRows: unknown[];
+  ledgerBlock: string;
 }): Promise<ObservationPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -292,7 +301,7 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${systemPrompt}${grounding.block}` },
+          { role: "system", content: `${systemPrompt}${grounding.block}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
           { role: "user", content: JSON.stringify(userPayload) },
         ],
         tools: [
@@ -388,6 +397,8 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", user.id),
     ]);
 
+    const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
+
     let result: ObservationPayload;
 
     if (provider === "claude") {
@@ -404,6 +415,7 @@ Deno.serve(async (req: Request) => {
         body,
         recentWashDays: recentRaw ?? [],
         selectorContext: buildSelectorContext(body),
+        ledgerBlock,
       });
       result = {
         ...payload,
@@ -420,6 +432,7 @@ Deno.serve(async (req: Request) => {
         body,
         bloodRows: bloodRows ?? [],
         medRows: medRows ?? [],
+        ledgerBlock,
       });
       result = {
         ...lovable,
@@ -428,6 +441,12 @@ Deno.serve(async (req: Request) => {
           _provider: "lovable",
         } as Record<string, unknown>),
       } as ObservationPayload;
+    }
+
+    {
+      const tip = result.next_wash_tip;
+      const line = typeof tip === "string" ? tip : tip?.action ?? "";
+      await recordAdvice(user.id, "wash-day-observation", [line]);
     }
 
     console.log("[wash-debug] all done", { total_ms: Date.now() - t0 });

@@ -25,6 +25,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
+import { dedupeSentences } from "@/lib/tipsRender";
 import StatusCallout from "@/components/guidance/StatusCallout";
 
 
@@ -407,6 +408,11 @@ const WashDayHub = () => {
     });
   }, [clinical, washDays, goals, today]);
 
+  // Page-level sentence dedupe: the overdue alert, the AI tip card and the
+  // wash-rhythm "why" all draw on the same cadence reasoning. Any sentence
+  // already rendered higher up the page is dropped from later blocks.
+  const pageSeen = useMemo(() => new Set<string>(), [overdue, latestTip, educational]);
+
   const overdueReason = (() => {
     if (!overdue) return "";
     const base = "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
@@ -446,7 +452,7 @@ const WashDayHub = () => {
                 {overdue.diffDays} days since your last wash day
               </p>
               <LevelGate min={2}>
-                <AiProse text={overdueReason} className="mt-1.5" />
+                <AiProse text={dedupeSentences(overdueReason, pageSeen)} className="mt-1.5" />
               </LevelGate>
             </StatusCallout>
           </div>
@@ -455,7 +461,7 @@ const WashDayHub = () => {
             wins; the generated wash-day tip is the fallback for accounts with no
             logged tip yet (and is not even fetched when the former exists). */}
         {latestTip ? (
-          <NextWashTipCard action={latestTip.action} why={latestTip.why} />
+          <NextWashTipCard action={latestTip.action} why={dedupeSentences(latestTip.why, pageSeen)} />
         ) : (
           <DynamicWashTipCard onShown={setDynamicTipShown} />
         )}
@@ -493,7 +499,7 @@ const WashDayHub = () => {
               {!cadenceReasoningTaken && (
                 <LevelGate min={2}>
                   <div className="mt-2">
-                    <AiProse text={`Why this matters — ${educational.why}`} />
+                    <AiProse text={dedupeSentences(`Why this matters — ${educational.why}`, pageSeen)} />
                   </div>
                 </LevelGate>
               )}

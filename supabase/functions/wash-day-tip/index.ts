@@ -12,6 +12,12 @@ import {
   flaggedMarkerPhrase,
 } from "../_shared/grounding.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import {
+  fetchAdviceLedger,
+  buildAdviceLedgerBlock,
+  recordAdvice,
+  userIdFromRequest,
+} from "../_shared/advice-ledger.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -29,7 +35,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v2-grounded";
+const MODEL_VERSION = "wash-tip@v3-budgets-ledger";
 
 interface TipPayload {
   headline: string;
@@ -158,6 +164,9 @@ Deno.serve(async (req) => {
     flaggedMarkerPhrase(body.bloodFlags),
   ].filter(Boolean).join(" — ");
 
+  const ledger = await fetchAdviceLedger(user.id);
+  const ledgerBlock = buildAdviceLedgerBlock(ledger);
+
   const grounding = await buildGroundingBlock({
     fn: "wash-day-tip",
     functionKind: "wash-day-observation",
@@ -178,7 +187,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}` },
+          { role: "system", content: `${SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
           {
             role: "user",
             content: `User data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
@@ -228,6 +237,8 @@ Deno.serve(async (req) => {
       { user_id: user.id, kind, payload },
       { onConflict: "user_id,kind" },
     );
+
+  await recordAdvice(user.id, "wash-day-tip", [payload.headline, payload.technique]);
 
   return json(200, { tip: payload, cached: false });
 });

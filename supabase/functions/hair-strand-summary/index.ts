@@ -56,6 +56,11 @@ interface SummaryPayload {
 }
 import { TRIM_EDUCATION_PROMPT } from "../_shared/trim-education.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import {
+  fetchAdviceLedger,
+  buildAdviceLedgerBlock,
+  recordAdvice,
+} from "../_shared/advice-ledger.ts";
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
@@ -154,6 +159,8 @@ Deno.serve(async (req: Request) => {
     // No dedicated function_kind for the strand summary — reuse
     // wash-day-observation so wash-day-mechanics (moisture-first) is always
     // pulled in, then let the selector add whatever the user's signals match.
+    const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
+
     const grounding = await buildGroundingBlock({
       fn: "hair-strand-summary",
       functionKind: "wash-day-observation",
@@ -184,7 +191,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${systemWithKnowledge}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | null | undefined)?.tipsLevel))}` },
+          { role: "system", content: `${systemWithKnowledge}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | null | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
           {
             role: "user",
             content: `User onboarding context (currentStyle, goals, hairProfile, healthProfile, bloodResults, location, history):\n\n${JSON.stringify(context)}\n\nBefore-photo count: ${body.beforePhotoCount ?? 0}`,
@@ -233,6 +240,11 @@ Deno.serve(async (req: Request) => {
     }
 
     // Persist with service role (RLS-safe — we stamp user_id explicitly)
+    await recordAdvice(user.id, "hair-strand-summary", [
+      ...(Array.isArray(payload.action_plan) ? payload.action_plan.map((a: unknown) => (typeof a === "string" ? a : (a as { action?: string })?.action ?? "")) : []),
+      ...(Array.isArray(payload.routine_tips) ? payload.routine_tips.map((t: unknown) => (typeof t === "string" ? t : (t as { tip?: string; action?: string })?.tip ?? (t as { action?: string })?.action ?? "")) : []),
+    ]);
+
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const { data: saved, error: insErr } = await admin
       .from("hair_strand_summaries")

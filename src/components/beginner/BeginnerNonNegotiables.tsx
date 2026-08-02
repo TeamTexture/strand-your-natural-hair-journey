@@ -16,20 +16,31 @@ export const BeginnerDoubleCleanse = () => (
         You wash twice, every wash day. The first wash cleans your scalp. The
         second wash cleans your hair.
       </p>
+      {/* Content and order taken from the How To Love Your Afro manuscript,
+          Chapter 13 "Building your wash day routine" — top cleansing tips
+          (tools in the shower, soak first, lather in the palms, at least two
+          cleanses), the detangling section (fingers first, then a tool, with
+          product in), and the moisture hierarchy (gentle heat, then a cool
+          rinse smoothed down with the fingers, sealing second).
+          Hard caps: headline ≤8 words, body ≤30 words, why ≤15 words. */}
       <BeginnerSteps
         steps={[
-          { text: "Soak your hair all the way through with warm water.", detail: "Do not stop until every curl is completely soaked — heavy, dripping and clumped together, right down to the roots. Work in sections and lift your hair so the water reaches the back, the nape, the crown and the thick middle. This takes as long as it takes: short or fine hair may be soaked in a minute or two, while long, thick or tightly-coiled hair can need several minutes. Don't rush it. Warm water gently lifts the tiny overlapping scales on the outside of each strand (the cuticle) so water can get inside — and water is the only thing that actually moisturises your hair. Any dry patch is a patch that never really gets cleaned or conditioned." },
-          { text: "Put a coin-sized amount of shampoo in your palm.", detail: "Rub your hands together first so it spreads evenly. Spreading it first means you clean everywhere instead of scrubbing one spot hard, which is where breakage starts." },
-          { text: "Wash 1: massage only your scalp with your fingertip pads.", detail: "Use the soft pads of your fingers, not your nails. Your scalp is skin, and this first wash lifts off oil, sweat and product so the skin your hair grows from stays healthy. Nails scratch and inflame it." },
-          { text: "Rinse it all out.", detail: "Keep rinsing until the water runs clear and your hair does not feel slippery. Leftover shampoo keeps working, and that dries your hair out." },
-          { text: "Wash 2: shampoo again, this time down the length of your hair.", detail: "The first wash was for your skin. This one cleans the hair itself, and it lathers much better now the surface dirt is gone — so you need less product and less rubbing. Truly clean hair lets conditioner and water in properly." },
-          { text: "Rinse, then squeeze out the extra water.", detail: "Squeeze gently. Do not wring or twist. Wet hair stretches and snaps far more easily than dry hair, so how you handle it now decides how much length you keep." },
-          { text: "Put conditioner on, and leave it for 20 minutes.", detail: "Conditioner smooths the lifted cuticle back down and fills in the gaps. Use the TT Heat Hat over the top while you wait — gentle warmth keeps the strand relaxed so the conditioner and water travel deep inside instead of sitting on the surface. That is what makes the softness last days, not hours." },
-          { text: "Detangle while the conditioner is still in.", detail: "Work in sections, from the ends up towards the roots, with your fingers or a wide-tooth comb. The conditioner makes the strands slippery so knots slide apart instead of tearing." },
-          { text: "Rinse the conditioner out with cool water, and smooth as you go.", detail: "Turn the tap to cool — not icy — and let it run down from root to tip, section by section, until every part has been rinsed through. Judge it by the hair, not the clock: longer, thicker hair takes longer. Cool water encourages those cuticle scales to lie flat again after the warmth. As the water runs, stroke your hair downwards with the flat of your fingers: the scales overlap in one direction like roof tiles, and smoothing with the water flow helps them close the right way. Flat, closed scales trap the moisture you just got inside the strand, so your hair stays soft and shiny for days. It should feel slippery, not squeaky — and never rub or scrunch upwards, that lifts the scales back up." },
-          { text: "Seal while your hair is still damp, then style.", detail: "Put your leave-in on first, then an oil, cream or butter on top. Damp hair still holds the water you just added; sealing now keeps it in. Sealing dry hair only coats the outside and there is nothing left inside to hold." },
+          { text: "Get set up before you start.", detail: "Clips and your detangling brush in the shower. Split your hair into four to six sections.", why: "Sections mean water and product reach every part." },
+          { text: "Soak your hair right through.", detail: "Drench it. Keep going until every curl is heavy, dripping and clumped, down to the roots.", why: "Water is the only real moisturiser." },
+          { text: "Take as long as it takes.", detail: "Fine or short hair may soak in a minute. Long, dense or coily hair needs several.", why: "A dry patch never gets cleaned or conditioned." },
+          { text: "Lather shampoo in your palms.", detail: "A coin-sized amount, rubbed between wet hands, then spread over your hair.", why: "Spreading it beats scrubbing one spot hard." },
+          { text: "Wash one: scalp only.", detail: "Massage with your fingertip pads, never your nails. Work section by section.", why: "Nails scratch and inflame the skin hair grows from." },
+          { text: "Rinse it fully out.", detail: "Keep rinsing until the water runs clear and your hair no longer feels slippery.", why: "Leftover shampoo keeps working and dries hair out." },
+          { text: "Wash two: down the lengths.", detail: "Shampoo again, this time through the hair itself. It lathers easily now.", why: "Two cleanses shift stubborn oil and product build-up." },
+          { text: "Rinse, then squeeze gently.", detail: "Press water out with your palms. Never wring or twist.", why: "Wet hair stretches and snaps far more easily." },
+          { text: "Add conditioner, keep adding water.", detail: "Work it through in sections, splashing in more water as you go to build slip.", why: "Slip is what stops knots tearing." },
+          { text: "Put your TT Heat Hat on.", detail: "Leave it on for 20 to 30 minutes while the conditioner sits.", why: "Gentle warmth carries moisture inside the strand." },
+          { text: "Detangle with fingers, then a tool.", detail: "Unpick knots with your fingers first, ends up to roots. Follow with your detangling brush.", why: "Fingers find knots a brush would rip through." },
+          { text: "Rinse cool, smoothing downwards.", detail: "Cool, not icy. Stroke each section root to tip with flat fingers as it rinses.", why: "This is what actually seals the moisture in." },
+          { text: "Seal on damp hair, then style.", detail: "Leave-in first, then a cream, butter or oil. Style straight after.", why: "Sealing only slows moisture leaving — it never replaces the cool rinse." },
         ]}
       />
+
 
       <DoDont
         className="mt-3"

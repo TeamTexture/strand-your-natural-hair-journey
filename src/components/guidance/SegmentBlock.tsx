@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useSmartInline } from "@/lib/smartInline";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
+import { leadAndRest, splitToBlocks } from "@/lib/tipsRender";
 import {
   TONE_CLASSES,
   looksSequential,
@@ -17,8 +18,10 @@ import StepSequence from "@/components/guidance/StepSequence";
  * "Technique:", "Watch for:") rendered as its own tinted box with an icon and a
  * small styled header instead of inline bold text.
  *
- * The body text is never trimmed. Where the segment is a numbered sequence it
- * is rendered as a StepSequence so the structure carries the reading load.
+ * No text is dropped. Where the segment is a numbered sequence it becomes a
+ * StepSequence; where it is a multi-topic paragraph it is split at sentence
+ * boundaries into separate paragraphs inside the block budget, first sentence
+ * bolded as the lead-in.
  */
 const SegmentBlock = ({
   segment,
@@ -30,15 +33,16 @@ const SegmentBlock = ({
   keyPrefix?: string;
 }) => {
   const render = useSmartInline();
-  const { level, showBeginnerHelp } = useTipsLevel();
+  const { level } = useTipsLevel();
   const t = TONE_CLASSES[segment.tone];
   const Icon = segment.icon;
 
-  const body = showBeginnerHelp ? plainLanguage(segment.body) : segment.body;
+  const body = plainLanguage(segment.body);
   const steps = useMemo(
     () => (looksSequential(body) ? splitNumberedSteps(body) : []),
     [body],
   );
+  const blocks = useMemo(() => splitToBlocks(body), [body]);
 
   return (
     <div className={cn("rounded-[12px] border p-3", t.box, className)}>
@@ -59,9 +63,28 @@ const SegmentBlock = ({
       {steps.length > 0 ? (
         <StepSequence className="mt-2.5" steps={steps.map((text) => ({ text }))} />
       ) : (
-        <p className="mt-2 text-[11.5px] leading-[1.55] text-foreground/85 font-body break-words">
-          {render(body, keyPrefix)}
-        </p>
+        <div className="mt-2 space-y-1.5">
+          {blocks.map((block, i) => {
+            const { lead, rest } = leadAndRest(block);
+            return (
+              <div key={i}>
+                <p
+                  className={cn(
+                    "text-[11.5px] leading-[1.55] font-body break-words",
+                    i === 0 ? "text-foreground font-semibold" : "text-foreground/85",
+                  )}
+                >
+                  {render(lead, `${keyPrefix}-b${i}`)}
+                </p>
+                {rest && (
+                  <p className="mt-0.5 text-[11.5px] leading-[1.55] text-foreground/75 font-body break-words">
+                    {render(rest, `${keyPrefix}-b${i}-rest`)}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {level >= 3 && <KeyFactChips className="mt-2.5" text={body} />}

@@ -26,6 +26,11 @@
 // "lovable"; Paige flips to "claude" only after manual verification.
 
 import { json, preflight } from "../_shared/cors.ts";
+import {
+  fetchAdviceLedger,
+  buildAdviceLedgerBlock,
+  recordAdvice,
+} from "../_shared/advice-ledger.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -55,7 +60,7 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v1";
+const MODEL_VERSION = "claude-sonnet-4-6@v2-budgets-ledger";
 
 interface RequestBody {
   /** Lovable+Gemini path (back-compat): single photo, signed URL OR data URL. */
@@ -212,6 +217,7 @@ async function runClaude(args: {
   back_image_url: string;
   context: Record<string, unknown>;
   selectorContext: SelectorContext;
+  ledgerBlock: string;
 }): Promise<{ payload: ProductAnalysisPayload; web_search_invocations: number }> {
   const userText = `Two photos of the same product follow. Photo 1 is the FRONT of the product (brand + product name + marketing claims). Photo 2 is the BACK of the product (ingredient panel + usage instructions + regulatory text). Read both. Use web_search if anything is missing or unclear.
 
@@ -236,7 +242,9 @@ Return JSON only via the return_product_analysis tool.`;
 
   const req = await buildClaudeRequest({
     function_kind: "product-analyse",
-    task_instructions: buildTaskInstructions(),
+    task_instructions: `${buildTaskInstructions()}${
+      args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""
+    }`,
     user_payload: {}, // unused — user_content overrides
     user_content: userContent,
     user_context: args.context,
@@ -343,6 +351,7 @@ SCHEMA
 async function runLovable(args: {
   image_url: string;
   context: Record<string, unknown>;
+  ledgerBlock?: string;
 }): Promise<ProductAnalysisPayload> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
@@ -383,7 +392,7 @@ Return strict JSON matching the schema in your system prompt.`;
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${LOVABLE_SYSTEM}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}` },
+          { role: "system", content: `${LOVABLE_SYSTEM}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
           {
             role: "user",
             content: [
@@ -480,6 +489,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
+
     let analysis: ProductAnalysisPayload;
 
     if (provider === "claude") {
@@ -488,6 +499,7 @@ Deno.serve(async (req: Request) => {
         back_image_url: backPhoto!,
         context: ctx,
         selectorContext: buildSelectorContext(body),
+        ledgerBlock,
       });
       analysis = {
         ...payload,
@@ -498,7 +510,7 @@ Deno.serve(async (req: Request) => {
         _web_search_count: web_search_invocations,
       };
     } else {
-      const lovable = await runLovable({ image_url: body.image_url!, context: ctx });
+      const lovable = await runLovable({ image_url: body.image_url!, context: ctx, ledgerBlock });
       analysis = {
         ...lovable,
         _provider: "lovable",
@@ -527,6 +539,14 @@ Deno.serve(async (req: Request) => {
         });
       }
     }
+
+    await recordAdvice(
+      user.id,
+      "product-analyse",
+      Array.isArray((analysis as { tips?: unknown }).tips)
+        ? ((analysis as { tips: unknown[] }).tips.map(String))
+        : [],
+    );
 
     return json(200, await sanitiseAndLog(analysis, "product-analyse"));
   } catch (e) {

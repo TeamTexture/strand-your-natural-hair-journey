@@ -138,14 +138,16 @@ export function condenseProse(text: string | null | undefined, level: TipsLevel)
   if (!text) return "";
   const raw = stripDefinitionBrackets(text.replace(/\s+/g, " ").trim());
   const clean = safeRewrite(raw, capitaliseSentences(raw));
+  // Same sentence twice is always noise, at every level.
+  const unique = dedupeSentences(clean);
   if (level >= 4) {
-    const expanded = safeRewrite(clean, plainLanguage(clean));
+    const expanded = safeRewrite(unique, plainLanguage(unique));
     return safeRewrite(expanded, capitaliseSentences(expanded));
   }
 
   const max = PROSE_SENTENCES[level];
-  if (!Number.isFinite(max)) return clean;
-  return pickGuidance(splitSentences(clean), max).join(" ");
+  if (!Number.isFinite(max)) return unique;
+  return pickGuidance(splitSentences(unique), max).join(" ");
 
 }
 
@@ -255,4 +257,95 @@ export function dedupeTips<T extends { short: string; alwaysShow?: boolean }>(
   const list = tips ?? [];
   if (!reference) return [...list];
   return list.filter((t) => t.alwaysShow || !restatesReference(t.short, reference));
+}
+
+/* ------------------------------------------------------------------ *
+ * ONE SENTENCE, ONCE — render-level sentence dedupe.
+ *
+ * Guidance for a single page is assembled from several sources (an alert, a
+ * rhythm note, an AI tip, a next-wash focus). Any sentence that has already
+ * been shown on that page is noise, so every renderer normalises sentences
+ * (lowercase, punctuation stripped) and drops exact or near duplicates before
+ * render.
+ * ------------------------------------------------------------------ */
+
+/** Comparison key for a sentence: lowercase, punctuation and spacing stripped. */
+export const sentenceKey = (sentence: string) =>
+  (sentence ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * Drop repeated sentences from a block of prose. Pass a shared `seen` set to
+ * dedupe across several blocks on the same page.
+ */
+export function dedupeSentences(
+  text: string | null | undefined,
+  seen: Set<string> = new Set(),
+): string {
+  if (!text) return "";
+  const kept: string[] = [];
+  for (const sentence of splitSentences(text)) {
+    const key = sentenceKey(sentence);
+    if (key.length < 8) {
+      kept.push(sentence);
+      continue;
+    }
+    if (seen.has(key)) continue;
+    // Near-duplicate: one sentence fully contains the other's wording.
+    let duplicate = false;
+    for (const prev of seen) {
+      if (prev.includes(key) || key.includes(prev)) {
+        duplicate = true;
+        break;
+      }
+    }
+    if (duplicate) continue;
+    seen.add(key);
+    kept.push(sentence);
+  }
+  return kept.join(" ").trim();
+}
+
+/**
+ * HARD BLOCK BUDGET (renderer-side safety net).
+ *
+ * No rendered paragraph may run past two sentences / ~40 words. Longer AI text
+ * is split at sentence boundaries into separate blocks — never truncated,
+ * never hidden.
+ */
+export const MAX_BLOCK_SENTENCES = 2;
+export const MAX_BLOCK_WORDS = 40;
+
+const wordCount = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
+
+/** Split prose into render-sized paragraphs, each within the block budget. */
+export function splitToBlocks(
+  text: string | null | undefined,
+  maxSentences = MAX_BLOCK_SENTENCES,
+  maxWords = MAX_BLOCK_WORDS,
+): string[] {
+  const sentences = splitSentences(text ?? "");
+  const blocks: string[] = [];
+  let current: string[] = [];
+  const flush = () => {
+    if (current.length) blocks.push(current.join(" "));
+    current = [];
+  };
+  for (const sentence of sentences) {
+    const projected = wordCount([...current, sentence].join(" "));
+    if (current.length >= maxSentences || (current.length > 0 && projected > maxWords)) flush();
+    current.push(sentence);
+  }
+  flush();
+  return blocks.filter(Boolean);
+}
+
+/** Lead sentence + the rest, for lead-in bolding of a dense block. */
+export function leadAndRest(text: string): { lead: string; rest: string } {
+  const sentences = splitSentences(text);
+  if (sentences.length <= 1) return { lead: text.trim(), rest: "" };
+  return { lead: sentences[0], rest: sentences.slice(1).join(" ") };
 }

@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import ViewAsBanner from "@/components/ViewAsBanner";
+import { PlainTermsProvider } from "@/lib/plainTerms";
 
 interface Props {
   children: ReactNode;
@@ -11,7 +13,11 @@ interface Props {
  *   disables overscroll bounce so the browser background never peeks through.
  * - Desktop (>=640px): 375x812 framed device on a tinted backdrop (preview only).
  */
-const PhoneShell = ({ children }: Props) => (
+const PhoneShell = ({ children }: Props) => {
+  // Plain-term definitions are claimed once per page: remounting the provider
+  // on every route change clears the claims for the new screen.
+  const { pathname } = useLocation();
+  return (
   <div className="min-h-[100dvh] w-full bg-foreground/[0.04] sm:bg-foreground/[0.06] flex items-center justify-center p-0 sm:p-6 select-none overscroll-none">
     <div
       className="
@@ -26,11 +32,14 @@ const PhoneShell = ({ children }: Props) => (
       <div className="relative z-10 h-full sm:h-[calc(100%-2rem)] sm:pt-8 flex flex-col">
         {/* Admin "View as user" banner — renders only when active. */}
         <ViewAsBanner />
-        <div className="flex-1 min-h-0">{children}</div>
+        <div className="flex-1 min-h-0">
+          <PlainTermsProvider key={pathname}>{children}</PlainTermsProvider>
+        </div>
       </div>
     </div>
-  </div>
-);
+    </div>
+  );
+};
 
 export default PhoneShell;
 
