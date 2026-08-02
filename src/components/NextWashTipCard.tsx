@@ -17,7 +17,7 @@ import {
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_MAX } from "@/lib/tipsLevel";
-import { condenseProse, leadPhrase } from "@/lib/tipsRender";
+import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
 
 
 interface NextWashTipCardProps {
@@ -182,7 +182,9 @@ const condenseHeader = (raw: string) => {
   // Try to cut at the first natural clause boundary (— , : ;) inside the first ~8 words.
   const cutMatch = cleaned.match(/^[^—,:;]{1,60}?(?=[\s]*[—,:;])/);
   if (cutMatch) return cutMatch[0].trim().replace(/[.!?]+\s*$/, "");
-  return words.slice(0, 8).join(" ") + "…";
+  // No arbitrary mid-clause cut: with no punctuation boundary the label is
+  // rendered in full rather than truncated.
+  return cleaned;
 };
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -609,7 +611,7 @@ export function NextWashTipCard({
                       const copy = condenseProse(body, level);
                       // Only the short lead-in phrase is emphasised — never a
                       // whole paragraph.
-                      const { phrase, rest } = leadPhrase(copy);
+                      const { phrase, rest } = emphasisSplit(copy);
                       return (
                         <div key={`${label}-${i}`} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 space-y-2 shadow-sm">
                           <div className="flex items-center gap-2">

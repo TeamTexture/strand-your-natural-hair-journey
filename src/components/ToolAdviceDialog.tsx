@@ -5,7 +5,7 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import ActionList from "@/components/guidance/ActionList";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
-import { leadPhrase } from "@/lib/tipsRender";
+import { emphasisSplit } from "@/lib/tipsRender";
 import {
   Dialog,
   DialogContent,
@@ -121,7 +121,7 @@ export function ToolAdviceDialog({
             </section>
           )}
           {summary && (() => {
-            const { phrase, rest } = leadPhrase(summary);
+            const { phrase, rest } = emphasisSplit(summary);
             const vTone = score == null ? "insight" : score >= 70 ? "good" : score >= 40 ? "gold" : "warning";
             return (
               <StatusCallout tone={vTone} label="Verdict">

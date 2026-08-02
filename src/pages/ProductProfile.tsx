@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { condenseProse, leadPhrase } from "@/lib/tipsRender";
+import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
@@ -369,7 +369,7 @@ const ProductProfile = () => {
 
 {(() => {
           const summaryText = aiSummary ?? product.ai_summary ?? "";
-          const { phrase, rest } = summaryText ? leadPhrase(summaryText) : { phrase: "", rest: "" };
+          const { phrase, rest } = summaryText ? emphasisSplit(summaryText) : { phrase: "", rest: "" };
           const scoreTone: "good" | "gold" | "warning" = score >= 70 ? "good" : score >= 40 ? "gold" : "warning";
           return (
             <SurfaceCard tone="gold">

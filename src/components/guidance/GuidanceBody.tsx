@@ -6,7 +6,7 @@ import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import {
   condenseProse,
   dedupeSentences,
-  leadPhrase,
+  emphasisSplit,
   splitToBlocks,
 } from "@/lib/tipsRender";
 import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
@@ -120,7 +120,7 @@ const GuidanceBody = ({
           <ul className="space-y-1.5">
             {leadBlocks.map((block, i) => {
               const LineIcon = pickIcon(block);
-              const { phrase, rest } = leadPhrase(block);
+              const { phrase, rest } = emphasisSplit(block);
               return (
                 <li
                   key={i}

@@ -13,7 +13,7 @@ import StatusCallout from "@/components/guidance/StatusCallout";
 import ActionList from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
-import { leadPhrase } from "@/lib/tipsRender";
+import { emphasisSplit } from "@/lib/tipsRender";
 import { looksSequential, splitNumberedSteps } from "@/lib/guidance";
 import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
 import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
@@ -931,7 +931,7 @@ const IngredientDetail = () => {
           <>
             {/* AI Summary — the single verdict callout, bold lead-in only */}
             {(() => {
-              const { phrase, rest } = leadPhrase(analysis.summary);
+              const { phrase, rest } = emphasisSplit(analysis.summary);
               let vTone: "good" | "gold" | "warning" =
                 analysis.match_score >= 70 ? "good" : analysis.match_score >= 40 ? "gold" : "warning";
               return (

@@ -17,7 +17,6 @@
  */
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { TIPS_LEVEL_MAX, type TipsLevel } from "@/lib/tipsLevel";
-import { capitaliseSentences } from "@/lib/sentenceCase";
 import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
 
 /**
@@ -137,12 +136,12 @@ function pickGuidance(sentences: string[], max: number): string[] {
 export function condenseProse(text: string | null | undefined, level: TipsLevel): string {
   if (!text) return "";
   const raw = stripDefinitionBrackets(text.replace(/\s+/g, " ").trim());
-  const clean = safeRewrite(raw, capitaliseSentences(raw));
+  // The AI's words and capitalisation are never mutated at render.
+  const clean = raw;
   // Same sentence twice is always noise, at every level.
   const unique = dedupeSentences(clean);
   if (level >= 4) {
-    const expanded = safeRewrite(unique, plainLanguage(unique));
-    return safeRewrite(expanded, capitaliseSentences(expanded));
+    return safeRewrite(unique, plainLanguage(unique));
   }
 
   const max = PROSE_SENTENCES[level];
@@ -351,33 +350,40 @@ export function leadAndRest(text: string): { lead: string; rest: string } {
 }
 
 /**
- * ANTI-WALL-OF-BOLD RULE: only the first 4–7 words of a block are ever
- * emphasised. Whole paragraphs must never be bold anywhere in the app, so every
- * renderer splits a block into a short bold lead-in phrase plus lighter body.
+ * TWO-WEIGHT RULE (see also the guidance renderers).
+ *
+ * A block is only ever split into two weights when the AI's own punctuation
+ * gives a REAL structural boundary — an em-dash or a colon near the start of
+ * the string, e.g. "Buildup is settling on your scalp — it can restrict
+ * follicles." There is NO arbitrary word-count cut, and the AI's words and
+ * capitalisation are never altered: whatever is not emphasised is rendered
+ * verbatim, starting exactly as the AI wrote it.
+ *
+ * With no boundary, the whole block renders in the emphasised weight. The
+ * two-sentence / ~40-word block budget keeps that from becoming a wall of bold.
  */
-export function leadPhrase(text: string): { phrase: string; rest: string } {
+export const EMPHASIS_BOUNDARY_LIMIT = 50;
+
+export function emphasisSplit(text: string): { phrase: string; rest: string } {
   const clean = String(text ?? "").replace(/\s+/g, " ").trim();
   if (!clean) return { phrase: "", rest: "" };
-  const words = clean.split(" ");
-  if (words.length <= 7) return { phrase: clean, rest: "" };
-  // Prefer a natural clause boundary inside the first 7 words.
-  let cut = 6;
-  for (let i = 4; i <= 7 && i < words.length; i += 1) {
-    if (/[,—:;-]$/.test(words[i - 1])) {
-      cut = i;
-      break;
-    }
-  }
-  // Never leave the bold phrase hanging on a function word — it reads as a
-  // broken sentence. Pull the cut back until the last word carries meaning.
-  const FUNCTION_WORDS = new Set([
-    "a", "an", "and", "as", "at", "but", "by", "for", "from", "if", "in", "into",
-    "is", "it", "its", "let", "of", "on", "or", "so", "that", "the", "their",
-    "then", "this", "to", "was", "which", "while", "with", "your",
-  ]);
-  const bare = (w: string) => w.replace(/[^A-Za-z]/g, "").toLowerCase();
-  while (cut > 3 && FUNCTION_WORDS.has(bare(words[cut - 1]))) cut -= 1;
-  return { phrase: words.slice(0, cut).join(" "), rest: words.slice(cut).join(" ") };
 
+  // Em-dash / en-dash boundary: the separator stays with the lighter remainder.
+  const dash = clean.search(/\s[—–]\s/);
+  if (dash > 0 && dash <= EMPHASIS_BOUNDARY_LIMIT) {
+    const rest = clean.slice(dash + 1).trim();
+    if (rest) return { phrase: clean.slice(0, dash).trim(), rest };
+  }
+
+  // Colon boundary: the colon belongs to the phrase it closes. Times ("9:30")
+  // and URLs are not boundaries.
+  const colon = clean.search(/:(?=\s)/);
+  if (colon > 0 && colon <= EMPHASIS_BOUNDARY_LIMIT && !/\d$/.test(clean[colon - 1])) {
+    const rest = clean.slice(colon + 1).trim();
+    if (rest) return { phrase: clean.slice(0, colon + 1).trim(), rest };
+  }
+
+  return { phrase: clean, rest: "" };
 }
+
 

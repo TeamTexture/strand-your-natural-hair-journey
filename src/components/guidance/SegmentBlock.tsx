@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useSmartInline } from "@/lib/smartInline";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
-import { leadPhrase, splitToBlocks } from "@/lib/tipsRender";
+import { emphasisSplit, splitToBlocks } from "@/lib/tipsRender";
 import {
   TONE_CLASSES,
   looksSequential,
@@ -67,7 +67,7 @@ const SegmentBlock = ({
           {blocks.map((block, i) => {
             // Only the short lead-in phrase is emphasised — never the whole
             // paragraph.
-            const { phrase, rest } = leadPhrase(block);
+            const { phrase, rest } = emphasisSplit(block);
             return (
               <p key={i} className="text-[11.5px] leading-[1.55] font-body break-words">
                 <span className={i === 0 ? "text-foreground font-semibold" : "text-foreground/85"}>

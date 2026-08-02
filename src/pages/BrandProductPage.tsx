@@ -5,7 +5,7 @@ import GuidanceCard from "@/components/guidance/GuidanceCard";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import ActionList from "@/components/guidance/ActionList";
-import { leadPhrase } from "@/lib/tipsRender";
+import { emphasisSplit } from "@/lib/tipsRender";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -351,7 +351,7 @@ const BrandProductPage = () => {
             {guidance && (
               <div className="space-y-3">
                 {guidance.fit_summary && (() => {
-                  const { phrase, rest } = leadPhrase(guidance.fit_summary);
+                  const { phrase, rest } = emphasisSplit(guidance.fit_summary);
                   return (
                     <p className="text-[13px] leading-relaxed font-body">
                       <span className="font-semibold text-foreground">{phrase}</span>
