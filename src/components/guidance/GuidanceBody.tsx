@@ -5,6 +5,7 @@ import { useSmartInline } from "@/lib/smartInline";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { condenseProse, splitSentences } from "@/lib/tipsRender";
 import {
+  guidanceIcon,
   looksSequential,
   parseGuidance,
   splitNumberedSteps,
