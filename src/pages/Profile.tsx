@@ -623,154 +623,55 @@ const Profile = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Quick jumps to editable profile sections — full-width stacked buttons
-          so titles + subtitles can breathe across the row without wrapping. */}
-      <div className="px-5 pb-3 space-y-2.5">
-        {[
-          {
-            to: "/profile/personal",
-            icon: User,
-            title: "Personal details",
-            sub: "Name, age, postcode & photo",
-          },
-          {
-            to: "/profile/hair",
-            icon: Sparkles,
-            title: "Hair details",
-            sub: "Diameter, porosity & scalp",
-          },
-          {
-            to: "/blood-history",
-            icon: Droplet,
-            title: "Blood results",
-            sub: "Review & edit tests",
-          },
-        ].map(({ to, icon: Icon, title, sub }) => (
-          <button
-            key={to}
-            onClick={() => navigate(to)}
-            className="group w-full flex items-center gap-3.5 pl-3.5 pr-4 py-3.5 rounded-[16px] bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/25 hover:border-primary/50 hover:shadow-[0_4px_18px_-8px_hsl(var(--primary)/0.35)] transition-all text-left"
-          >
-            <div className="size-11 rounded-[13px] bg-gradient-to-br from-primary/30 to-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/20 group-hover:scale-[1.03] transition-transform">
-              <Icon className="size-[18px]" strokeWidth={1.75} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-[15px] font-semibold leading-tight whitespace-nowrap">
-                {title}
-              </p>
-              <p className="text-[12px] text-foreground/65 mt-1 leading-snug whitespace-nowrap overflow-hidden text-ellipsis">
-                {sub}
-              </p>
-            </div>
-            <ChevronRight className="size-4 text-primary/70 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        ))}
+      {/* Quick jumps to editable profile sections */}
+      <div className="px-5 pb-3">
+        <SectionHeader icon={User} className="pb-2">Your details</SectionHeader>
+        <div className="space-y-2">
+          <ListRow icon={User} name="Personal details" secondary="Name, age, postcode & photo" to="/profile/personal" />
+          <ListRow icon={Sparkles} name="Hair details" secondary="Diameter, porosity & scalp" to="/profile/hair" />
+          <ListRow icon={Droplet} name="Blood results" secondary="Review & edit tests" to="/blood-history" />
+        </div>
       </div>
 
       {/* Help & Support — always-visible entry point */}
-      <div className="px-5 pb-4">
-        <button
-          onClick={() => navigate("/help")}
-          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
-        >
-          <div className="size-10 rounded-full bg-secondary text-foreground/80 flex items-center justify-center shrink-0">
-            <HelpCircle className="size-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-semibold leading-tight">Help & Support</p>
-            <p className="text-[13px] text-foreground/70 mt-0.5">
-              Install guide, FAQs and how to reach us.
-            </p>
-          </div>
-          <span className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
-        </button>
+      <div className="px-5 pb-3">
+        <ListRow icon={HelpCircle} name="Help & Support" secondary="Install guide, FAQs and how to reach us." to="/help" />
       </div>
 
       {/* App Walkthrough — re-runnable tour of the main screens */}
       <div className="px-5 pb-4">
-        <button
+        <ListRow
+          icon={Compass}
+          name="App Walkthrough"
+          secondary="A quick tour of the main STRAND screens."
           onClick={() => navigate("/walkthrough", { state: { returnTo: "/profile" } })}
-          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
-        >
-          <div className="size-10 rounded-full bg-secondary text-foreground/80 flex items-center justify-center shrink-0">
-            <Compass className="size-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-semibold leading-tight">App Walkthrough</p>
-            <p className="text-[13px] text-foreground/70 mt-0.5">
-              A quick tour of the main STRAND screens.
-            </p>
-          </div>
-          <span className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
-        </button>
+        />
       </div>
 
       {(isProfessional || isAdmin) && (
         <>
-          <SectionLabel>Switch view</SectionLabel>
-          <div className="px-5 pb-4 space-y-1">
+          <SectionHeader icon={ArrowLeftRight} className="px-5 pt-2 pb-2">Switch view</SectionHeader>
+          <div className="px-5 pb-4 space-y-2">
             {isProfessional && (
-              <button
-                onClick={() => navigate("/pro")}
-                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-              >
-                <ArrowLeftRight className="size-4 text-primary/70" />
-                <span className="flex-1">Professional dashboard</span>
-                <ChevronRight className="size-3.5 text-muted-foreground" />
-              </button>
+              <ListRow icon={ArrowLeftRight} name="Professional dashboard" to="/pro" />
             )}
             {isAdmin && (
-              <button
-                onClick={() => navigate("/admin")}
-                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-              >
-                <ShieldCheck className="size-4 text-primary/70" />
-                <span className="flex-1">Admin panel</span>
-                <ChevronRight className="size-3.5 text-muted-foreground" />
-              </button>
+              <ListRow icon={ShieldCheck} name="Admin panel" to="/admin" />
             )}
           </div>
         </>
       )}
 
-      <SectionLabel>Professionals</SectionLabel>
-      <div className="px-5 pb-4 space-y-1">
-        <button
-          onClick={() => navigate("/messages")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <MessageCircle className="size-4 text-primary/70" />
-          <span className="flex-1">Messages</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => navigate("/profile/enquiries")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <Mail className="size-4 text-primary/70" />
-          <span className="flex-1">My enquiries</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => navigate("/profile/data-access")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <KeyRound className="size-4 text-primary/70" />
-          <span className="flex-1">Data access</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
+      <SectionHeader icon={MessageCircle} className="px-5 pt-2 pb-2">Professionals</SectionHeader>
+      <div className="px-5 pb-4 space-y-2">
+        <ListRow icon={MessageCircle} name="Messages" to="/messages" />
+        <ListRow icon={Mail} name="My enquiries" to="/profile/enquiries" />
+        <ListRow icon={KeyRound} name="Data access" to="/profile/data-access" />
       </div>
 
-      <SectionLabel>Perks</SectionLabel>
-      <div className="px-5 pb-4 space-y-1">
-        <button
-          onClick={() => navigate("/profile/discounts")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <Gift className="size-4 text-primary/70" />
-          <span className="flex-1">Discounts & offers</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
+      <SectionHeader icon={Gift} className="px-5 pt-2 pb-2">Perks</SectionHeader>
+      <div className="px-5 pb-4 space-y-2">
+        <ListRow icon={Gift} name="Discounts & offers" to="/profile/discounts" />
       </div>
 
 
