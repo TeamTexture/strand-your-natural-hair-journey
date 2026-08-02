@@ -7,7 +7,7 @@ import {
   Sparkles, Loader2, Camera, Plus, X,
   Droplets, Shield, Scissors, Flame, Moon, Sun, Wind, Leaf,
   Pill, Apple, Activity, Calendar, Sparkle, Waves, HeartPulse,
-  ClipboardList, ListChecks, FileText, type LucideIcon,
+  ClipboardList, ListChecks, FileText, ChevronRight, type LucideIcon,
 } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import StrandSnapshot from "@/components/StrandSnapshot";
