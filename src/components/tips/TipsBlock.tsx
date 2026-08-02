@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { condenseProse, shortForm, selectTips, type GuidanceTip } from "@/lib/tipsRender";
+import { condenseProse, shortForm, selectTips, dedupeTips, type GuidanceTip } from "@/lib/tipsRender";
 import { BeginnerSteps, DoDont, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import { useSmartInline } from "@/lib/smartInline";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,10 @@ import { cn } from "@/lib/utils";
  * Level 3 — all tips with the "why".
  * Level 4 — illustrated numbered step cards, plain language, do/don't,
  *           inline definitions and closing reassurance.
+ *
+ * ONE THEME, ONCE — pass `dedupeAgainst` with the prose already shown above
+ * this block (an AI overview, a card body) and any tip that merely restates it
+ * is dropped before rendering.
  */
 const TipsBlock = ({
   tips,
@@ -21,6 +25,7 @@ const TipsBlock = ({
   reassurance,
   idPrefix = "tip",
   className,
+  dedupeAgainst,
 }: {
   tips: GuidanceTip[];
   /** Level-4-only correct-practice list for the whole block. */
@@ -30,10 +35,16 @@ const TipsBlock = ({
   reassurance?: string;
   idPrefix?: string;
   className?: string;
+  /** Prose already visible on the same screen — duplicate tips are suppressed. */
+  dedupeAgainst?: string | null;
 }) => {
   const { level, showExplanations, showBeginnerHelp } = useTipsLevel();
   const renderTip = useSmartInline();
-  const shown = useMemo(() => selectTips(tips, level), [tips, level]);
+  const shown = useMemo(
+    () => selectTips(dedupeTips(tips, dedupeAgainst), level),
+    [tips, level, dedupeAgainst],
+  );
+
   if (shown.length === 0) return null;
 
   if (showBeginnerHelp) {
