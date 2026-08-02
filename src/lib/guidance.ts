@@ -195,6 +195,22 @@ const FACT_PATTERNS: Array<{ re: RegExp; icon: LucideIcon; format?: (m: RegExpMa
   { re: /\b(two-step|double)\s+cleanse\b/i, icon: Hand },
   { re: /\blength\s+retention\b/i, icon: Ruler },
   { re: /\blow\s+(?:tension|manipulation)\b/i, icon: ShieldCheck },
+  { re: /\btype\s*[1-4][abc]?\b/i, icon: Sparkles },
+  { re: /\b[1-4][abc]\b(?=\s+(?:hair|strands|curls|coils))/i, icon: Sparkles },
+  { re: /\b(high|low|medium|normal)\s+density\b/i, icon: Layers },
+  { re: /\b(fine|medium|coarse)\s+(?:strands|hair|diameter)\b/i, icon: Ruler },
+  { re: /\b\d+(?:\.\d+)?[-\s]?inch(?:es)?\b/i, icon: Ruler },
+  { re: /\bTWA\b/, icon: Ruler, format: () => "TWA" },
+  { re: /\b(box braids|cornrows|twists|locs|wig|weave|protective style|loose natural)\b/i, icon: ShieldCheck },
+  { re: /\b(low|high)\s+(ferritin|vitamin\s*d|vitamin\s*b12|b12|tsh|iron|zinc|folate|haemoglobin)\b/i, icon: Stethoscope },
+  { re: /\b(ferritin|vitamin\s*d|vitamin\s*b12|tsh|thyroid|folate)\b/i, icon: Stethoscope },
+  { re: /\bdeep[-\s]condition(?:ing|er)?\b/i, icon: Droplets, format: () => "Deep condition" },
+  { re: /\bclarif(?:y|ying|ication)\b/i, icon: FlaskConical, format: () => "Clarify" },
+  { re: /\bmoisture retention\b/i, icon: Droplets },
+  { re: /\bprotein\b/i, icon: FlaskConical, format: () => "Protein" },
+  { re: /\b(satin|silk)\s+(?:bonnet|scarf|pillowcase)\b/i, icon: ShieldCheck },
+  { re: /\bleave-in\b/i, icon: Droplet, format: () => "Leave-in" },
+  { re: /\bscalp\s+(?:cleans|massage|care|health)\w*/i, icon: Hand, format: () => "Scalp care" },
 ];
 
 const titleCase = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
@@ -203,7 +219,7 @@ const titleCase = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
  * Pull the concrete parameters out of guidance prose so they can be repeated as
  * chips. The sentence itself is never modified — this is additive emphasis.
  */
-export function extractKeyFacts(text: string | null | undefined, max = 4): KeyFact[] {
+export function extractKeyFacts(text: string | null | undefined, max = 5): KeyFact[] {
   const clean = String(text ?? "").replace(/\s+/g, " ");
   if (!clean) return [];
   const out: KeyFact[] = [];
