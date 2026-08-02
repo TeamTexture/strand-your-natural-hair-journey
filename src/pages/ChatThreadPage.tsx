@@ -269,6 +269,15 @@ const ChatThreadPage = () => {
         : (isPro ? t.consumer_id : t.pro_user_id)
       : null;
 
+  // The professional's booking page link drives the client-facing
+  // "Book appointment" button and the pro's own booking-request action.
+  const proUserId = !isSupport ? (t?.pro_user_id ?? null) : null;
+  const { data: proBooking } = useProBookingUrl(proUserId);
+  const bookingUrl = proBooking ? normalizeBookingUrl(proBooking) : "";
+  const myProName = isPro ? (myProProfile?.display_name ?? "") : "";
+  const sendBookingRequest = useSendBookingRequest(threadId);
+
+
   const { data: other } = useQuery({
     queryKey: ["chat_thread_other", otherId, isSupport, isAdmin, isPro],
     enabled: !!otherId,
