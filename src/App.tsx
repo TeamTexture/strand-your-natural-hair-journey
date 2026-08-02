@@ -14,6 +14,7 @@ import PaidGate from "@/components/PaidGate";
 import OnboardingGate from "@/components/OnboardingGate";
 import RoleGate from "./components/RoleGate";
 import ProSubGate from "./components/ProSubGate";
+import ProProfileGate from "./components/ProProfileGate";
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
@@ -73,6 +74,8 @@ const ProResetPassword = lazy(() => import("./pages/pro/ProResetPassword"));
 const ProLanding = lazy(() => import("./pages/pro/ProLanding"));
 const ProWelcome = lazy(() => import("./pages/pro/ProWelcome"));
 const ProDashboard = lazy(() => import("./pages/pro/ProDashboard"));
+const ProSetup = lazy(() => import("./pages/pro/ProSetup"));
+const ProUnderReview = lazy(() => import("./pages/pro/ProUnderReview"));
 const ProProfile = lazy(() => import("./pages/pro/ProProfile"));
 const ProOffers = lazy(() => import("./pages/pro/ProOffers"));
 const ProBilling = lazy(() => import("./pages/pro/ProBilling"));
@@ -96,6 +99,7 @@ const AdminMembers = lazy(() => import("./pages/admin/AdminMembers"));
 const AdminMemberPassport = lazy(() => import("./pages/admin/AdminMemberPassport"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminProfessionals = lazy(() => import("./pages/admin/AdminProfessionals"));
+const AdminProReviews = lazy(() => import("./pages/admin/AdminProReviews"));
 const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
 const AdminViewAs = lazy(() => import("./pages/admin/AdminViewAs"));
 const AdminBrands = lazy(() => import("./pages/admin/AdminBrands"));
@@ -315,12 +319,29 @@ const App = () => (
               <Route path="/pro/landing" element={<Protected><ProLanding /></Protected>} />
               <Route path="/pro/apply" element={<Protected><ProApply /></Protected>} />
               <Route path="/pro/welcome" element={<Protected><ProWelcome /></Protected>} />
+              {/* Mandatory profile setup + review holding screen (not profile-gated) */}
+              <Route
+                path="/pro/setup"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProSetup /></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/under-review"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProUnderReview /></ProSubGate>
+                  </RoleGate>
+                }
+              />
               {/* Professional portal — dashboard gated behind an active subscription */}
               <Route
                 path="/pro"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProDashboard /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProDashboard /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -328,7 +349,7 @@ const App = () => (
                 path="/pro/profile"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProProfile /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProProfile /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -336,7 +357,7 @@ const App = () => (
                 path="/pro/offers"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProOffers /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProOffers /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -352,7 +373,7 @@ const App = () => (
                 path="/pro/enquiries"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProEnquiries /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProEnquiries /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -360,7 +381,7 @@ const App = () => (
                 path="/pro/appointments"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProAppointments /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProAppointments /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -369,7 +390,7 @@ const App = () => (
                 path="/pro/clients"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProClients /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProClients /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -377,7 +398,7 @@ const App = () => (
                 path="/pro/clients/:consumerId/past"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProPastClient /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProPastClient /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -385,7 +406,7 @@ const App = () => (
                 path="/pro/clients/:consumerId"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
-                    <ProSubGate><ProClientPassport /></ProSubGate>
+                    <ProSubGate><ProProfileGate><ProClientPassport /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />
@@ -452,11 +473,11 @@ const App = () => (
               {/* Pro promoted campaigns — reuse the brand pages via URL-based
                    owner mode. Same booking calendar + Stripe flow, gated by
                    the pro subscription instead of the brand annual fee. */}
-              <Route path="/pro/campaigns" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandDashboard /></ProSubGate></RoleGate>} />
-              <Route path="/pro/campaigns/new" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandCreateOffer /></ProSubGate></RoleGate>} />
-              <Route path="/pro/campaigns/:id" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandOfferDetail /></ProSubGate></RoleGate>} />
-              <Route path="/pro/campaigns/:id/edit" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandCreateOffer /></ProSubGate></RoleGate>} />
-              <Route path="/pro/campaigns/:id/extend" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><BrandExtendOffer /></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><ProProfileGate><BrandDashboard /></ProProfileGate></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/new" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><ProProfileGate><BrandCreateOffer /></ProProfileGate></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/:id" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><ProProfileGate><BrandOfferDetail /></ProProfileGate></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/:id/edit" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><ProProfileGate><BrandCreateOffer /></ProProfileGate></ProSubGate></RoleGate>} />
+              <Route path="/pro/campaigns/:id/extend" element={<RoleGate allow={["professional", "admin"]}><ProSubGate><ProProfileGate><BrandExtendOffer /></ProProfileGate></ProSubGate></RoleGate>} />
               <Route path="/pro/campaigns/checkout/success" element={<RoleGate allow={["professional", "admin"]}><BrandCheckoutSuccess /></RoleGate>} />
 
               <Route path="/offers/:id" element={<Paid><OfferPage /></Paid>} />
