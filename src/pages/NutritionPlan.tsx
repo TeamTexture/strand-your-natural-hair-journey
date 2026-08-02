@@ -189,11 +189,11 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
   const { level } = useTipsLevel();
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
-      <div className="flex gap-3">
+      <div className="flex items-start gap-2.5">
         <IconBubble emoji={s.emoji || "💊"} tone="gold" />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-display text-[17px] leading-tight text-foreground">{s.name}</p>
+            <p className="font-display text-[17px] leading-tight text-foreground break-words">{s.name}</p>
             <PriorityChip level={s.priority} />
           </div>
           {s.dose && level >= 2 && (
@@ -202,10 +202,10 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
               <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
             </div>
           )}
-          {rest && <RichBody text={rest} className="mt-2" strandTipLast={tips.length === 0} />}
-          {tips.map((tip, i) => <StrandTipBox key={`${s.name}-tip-${i}`} text={tip} />)}
         </div>
       </div>
+      {rest && <RichBody text={rest} className="mt-2.5" strandTipLast={tips.length === 0} />}
+      {tips.map((tip, i) => <StrandTipBox key={`${s.name}-tip-${i}`} text={tip} />)}
     </SurfaceCard>
   );
 };
@@ -215,14 +215,12 @@ const DietCard = ({ c }: { c: AiCard }) => {
   const { level } = useTipsLevel();
   return (
     <SurfaceCard className="border-l-4 border-l-good">
-      <div className="flex gap-3">
+      <div className="flex items-center gap-2.5">
         <IconBubble emoji={c.emoji || "🥗"} tone="good" />
-        <div className="flex-1 min-w-0">
-          <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-          {level >= 2 && rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
-          {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
-        </div>
+        <p className="flex-1 min-w-0 font-display text-[17px] leading-tight text-foreground break-words">{c.name}</p>
       </div>
+      {level >= 2 && rest && <RichBody text={rest} className="mt-2.5" strandTipLast={tips.length === 0} />}
+      {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
     </SurfaceCard>
   );
 };
@@ -232,17 +230,15 @@ const AvoidCard = ({ c }: { c: AiCard }) => {
   const { level } = useTipsLevel();
   return (
     <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
-      <div className="flex gap-3">
+      <div className="flex items-start gap-2.5">
         <IconBubble emoji={c.emoji || "⚠️"} tone={c.severity === "high" ? "destructive" : "warn"} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-display text-[17px] leading-tight text-foreground">{c.name}</p>
-            <SeverityChip level={c.severity} />
-          </div>
-          {level >= 2 && rest && <RichBody text={rest} className="mt-1.5" strandTipLast={tips.length === 0} />}
-          {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+          <p className="font-display text-[17px] leading-tight text-foreground break-words">{c.name}</p>
+          <SeverityChip level={c.severity} />
         </div>
       </div>
+      {level >= 2 && rest && <RichBody text={rest} className="mt-2.5" strandTipLast={tips.length === 0} />}
+      {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
     </SurfaceCard>
   );
 };
@@ -274,7 +270,7 @@ const MealCard = ({
   const [open, setOpen] = useState(false);
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
-      <div className="flex gap-3">
+      <div className="flex items-start gap-2.5">
         <IconBubble emoji={meal.emoji || "🍽️"} tone="gold" />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
@@ -322,6 +318,9 @@ const MealCard = ({
               )}
             </div>
           </div>
+        </div>
+      </div>
+      <div>
           {meal.summary && (
             <p className="mt-2 text-xs text-foreground/85 font-body leading-relaxed">
               {meal.summary}
@@ -385,7 +384,6 @@ const MealCard = ({
               )}
             </div>
           )}
-        </div>
       </div>
     </SurfaceCard>
   );
