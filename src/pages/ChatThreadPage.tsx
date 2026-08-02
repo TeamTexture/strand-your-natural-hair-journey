@@ -3,7 +3,10 @@ import { directoryLinkForPro } from "@/lib/directoryLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
-import { BadgeCheck, Calendar, Send, User2, Minus } from "lucide-react";
+import { BadgeCheck, Calendar, CalendarPlus, ExternalLink, Send, User2, Minus } from "lucide-react";
+import { normalizeBookingUrl } from "@/lib/bookingUrl";
+import { externalLinkProps } from "@/lib/socialLinks";
+
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import TimePicker12h from "@/components/TimePicker12h";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
