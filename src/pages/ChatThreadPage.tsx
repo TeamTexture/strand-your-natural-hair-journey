@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
 import { BadgeCheck, Calendar, CalendarPlus, ExternalLink, Send, User2, Minus } from "lucide-react";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
+import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { externalLinkProps } from "@/lib/socialLinks";
 
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
@@ -278,6 +279,10 @@ const ChatThreadPage = () => {
   const bookingUrl = proBooking?.url ? normalizeBookingUrl(proBooking.url) : "";
   const myProName = proBooking?.proName || "Your professional";
   const sendBookingRequest = useSendBookingRequest(threadId);
+  // Pro-side nudge: a booking request was sent (or the client opened the
+  // booking page) and nothing has been logged in the diary since.
+  const { data: bookingFollowUps = [] } = useProBookingFollowUps();
+  const needsDiaryLog = isPro && bookingFollowUps.some((f) => f.thread_id === threadId);
 
 
   const { data: other } = useQuery({
@@ -476,6 +481,14 @@ const ChatThreadPage = () => {
         <div className="px-4 pt-2 pb-2 border-t border-border/60 bg-background">
           <a
             href={bookingUrl}
+            onClick={() => {
+              // Let the pro know so they can log it in their Strand diary.
+              if (threadId) {
+                supabase.rpc("note_booking_link_opened", { _thread_id: threadId }).then(({ error }) => {
+                  if (error) console.error("Booking-open note failed:", error);
+                });
+              }
+            }}
             {...externalLinkProps}
             className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
           >
@@ -483,6 +496,29 @@ const ChatThreadPage = () => {
             Book appointment
             <ExternalLink className="size-3.5" />
           </a>
+        </div>
+      )}
+
+      {needsDiaryLog && (
+        <div className="px-4 pt-2 border-t border-border/60 bg-background">
+          <div className="rounded-[14px] border border-primary/30 bg-primary/10 p-3.5 space-y-2.5">
+            <p className="text-[12px] font-body text-foreground/85 leading-snug">
+              Client booked? Log the appointment in your Strand diary so it appears in both your
+              diaries.
+            </p>
+            <Button
+              size="sm"
+              onClick={() =>
+                nav(
+                  `/pro/appointments/log?client=${t?.consumer_id ?? ""}&thread=${threadId ?? ""}`,
+                )
+              }
+              className="w-full min-h-[44px] uppercase tracking-[0.08em] text-[11px]"
+            >
+              <CalendarPlus className="size-3.5 mr-1.5" />
+              Log appointment
+            </Button>
+          </div>
         </div>
       )}
 

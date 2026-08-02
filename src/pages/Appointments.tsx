@@ -170,6 +170,24 @@ const Appointments = () => {
     };
   }, [user]);
 
+  // Map linked pro -> chat thread so an upcoming card can deep-link into it.
+  const [proThreads, setProThreads] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("chat_threads")
+        .select("id,pro_user_id")
+        .eq("consumer_id", user.id);
+      if (cancelled || !data) return;
+      const map: Record<string, string> = {};
+      for (const t of data) if (t.pro_user_id) map[t.pro_user_id] = t.id;
+      setProThreads(map);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const today = new Date().toISOString().slice(0, 10);
 
   const filteredAppts = useMemo(() => {
@@ -333,6 +351,11 @@ const Appointments = () => {
                       <AppointmentCard
                         appointment={a}
                         variant="upcoming"
+                        onOpenChat={
+                          a.linked_pro_user_id && proThreads[a.linked_pro_user_id]
+                            ? () => navigate(`/messages/${proThreads[a.linked_pro_user_id!]}`)
+                            : undefined
+                        }
                         onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
                         onDelete={() => setDeleteTarget(a)}
                       >

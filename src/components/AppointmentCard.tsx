@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProAvatar from "@/components/ProAvatar";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
@@ -29,6 +29,9 @@ interface Props {
   /** Fires when the pro name/avatar is tapped; wired by the parent to
    *  navigate to the anchored directory URL. */
   onProClick?: () => void;
+  /** When the appointment came from a linked pro with an open chat thread,
+   *  the parent passes a handler to deep-link straight into that thread. */
+  onOpenChat?: () => void;
   children?: React.ReactNode;
 }
 
@@ -44,7 +47,20 @@ const formatDate = (iso: string): string => {
   }
 };
 
-const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, children }: Props) => {
+/** "Tomorrow", "In 3 days" — only within the next week, otherwise null. */
+const countdownLabel = (dateIso: string): string | null => {
+  const start = new Date(`${dateIso}T00:00:00`).getTime();
+  if (!Number.isFinite(start)) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((start - today.getTime()) / 864e5);
+  if (days < 0 || days > 7) return null;
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+};
+
+const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, onOpenChat, children }: Props) => {
   const proClickable = !!onProClick && !!appointment.linked_pro_user_id;
   const ProBlock = ({ children: inner }: { children: React.ReactNode }) =>
     proClickable ? (
@@ -60,6 +76,7 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, c
       <div className="flex items-center gap-3 mb-4">{inner}</div>
     );
   const isUpcoming = variant === "upcoming";
+  const countdown = countdownLabel(appointment.appointment_date);
 
   const rawReason = appointment.reason ?? "";
   const isFollowUp = /^follow-?up\b/i.test(rawReason.trim());
@@ -120,9 +137,11 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, c
                   New
                 </span>
               )}
-              <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full">
-                Soon
-              </span>
+              {countdown && (
+                <span className="bg-[#C5A059]/15 text-[#C5A059] text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full">
+                  {countdown}
+                </span>
+              )}
             </div>
           </div>
 
@@ -168,6 +187,17 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, c
           )}
 
           {children}
+
+          {onOpenChat && (
+            <button
+              type="button"
+              onClick={onOpenChat}
+              className="mt-4 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-full bg-white/10 text-[#F3ECE3] text-[11px] font-bold uppercase tracking-[0.15em] font-body hover:bg-white/15 transition-colors"
+            >
+              <MessageCircle className="size-3.5" />
+              Message {appointment.professional_name.split(/\s+/)[0]}
+            </button>
+          )}
 
           <div className="mt-4 flex items-center gap-2">
             <AddToCalendarButton

@@ -81,6 +81,7 @@ const ProOffers = lazy(() => import("./pages/pro/ProOffers"));
 const ProBilling = lazy(() => import("./pages/pro/ProBilling"));
 const ProEnquiries = lazy(() => import("./pages/pro/ProEnquiries"));
 const ProAppointments = lazy(() => import("./pages/pro/ProAppointments"));
+const ProLogAppointment = lazy(() => import("./pages/pro/ProLogAppointment"));
 const ProClientPassport = lazy(() => import("./pages/pro/ProClientPassport"));
 const ProClients = lazy(() => import("./pages/pro/ProClients"));
 const ProPastClient = lazy(() => import("./pages/pro/ProPastClient"));
@@ -382,6 +383,15 @@ const App = () => (
                 element={
                   <RoleGate allow={["professional", "admin"]}>
                     <ProSubGate><ProProfileGate><ProAppointments /></ProProfileGate></ProSubGate>
+                  </RoleGate>
+                }
+              />
+
+              <Route
+                path="/pro/appointments/log"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProProfileGate><ProLogAppointment /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />

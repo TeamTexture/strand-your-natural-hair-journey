@@ -109,6 +109,7 @@ export type Database = {
           appointment_time: string | null
           clinic_name: string | null
           created_at: string
+          created_by: string | null
           follow_up_date: string | null
           follow_up_needed: boolean
           follow_up_time: string | null
@@ -120,6 +121,8 @@ export type Database = {
           professional_name: string
           professional_type: string | null
           reason: string | null
+          reminder_sent_at: string | null
+          service: string | null
           status: string
           updated_at: string
           user_id: string
@@ -129,6 +132,7 @@ export type Database = {
           appointment_time?: string | null
           clinic_name?: string | null
           created_at?: string
+          created_by?: string | null
           follow_up_date?: string | null
           follow_up_needed?: boolean
           follow_up_time?: string | null
@@ -140,6 +144,8 @@ export type Database = {
           professional_name: string
           professional_type?: string | null
           reason?: string | null
+          reminder_sent_at?: string | null
+          service?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -149,6 +155,7 @@ export type Database = {
           appointment_time?: string | null
           clinic_name?: string | null
           created_at?: string
+          created_by?: string | null
           follow_up_date?: string | null
           follow_up_needed?: boolean
           follow_up_time?: string | null
@@ -160,6 +167,8 @@ export type Database = {
           professional_name?: string
           professional_type?: string | null
           reason?: string | null
+          reminder_sent_at?: string | null
+          service?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -3430,6 +3439,22 @@ export type Database = {
           subtitle: string
         }[]
       }
+      note_booking_link_opened: {
+        Args: { _thread_id: string }
+        Returns: undefined
+      }
+      pro_log_appointment: {
+        Args: {
+          _appointment_date: string
+          _appointment_time?: string
+          _client_user_id: string
+          _location?: string
+          _notes?: string
+          _service?: string
+        }
+        Returns: string
+      }
+      queue_appointment_reminders: { Args: never; Returns: number }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined

@@ -96,8 +96,19 @@ export default function AppointmentFollowUpDialog() {
   };
 
   const handleLater = () => {
-    rememberDismissed(pending.id);
+    // Snooze: keep the appointment open, just don't ask again this session.
     setPending(null);
+  };
+
+  const handleDidntHappen = async () => {
+    rememberDismissed(pending.id);
+    const id = pending.id;
+    setPending(null);
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "no_show" })
+      .eq("id", id);
+    if (error) console.error("Appointment not-attended update failed:", error);
   };
 
   return (
@@ -105,19 +116,29 @@ export default function AppointmentFollowUpDialog() {
       <DialogContent className="max-w-[320px]">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
-            Did you have your appointment with {who}?
+            How was your appointment with {who}?
           </DialogTitle>
           <DialogDescription>
             {dateLabel} — log how it went and we'll pre-fill everything we already
             know from your booking.
           </DialogDescription>
         </DialogHeader>
+        {/* Phase 3 extension point: the review step hooks on here — after
+            "Log appointment" completes, route into the review flow instead of
+            ending at the appointment log. */}
         <DialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button onClick={handleLog} className="w-full rounded-pill">
-            Log my appointment
+          <Button onClick={handleLog} className="w-full rounded-pill min-h-[44px]">
+            Log appointment
           </Button>
-          <Button variant="ghost" onClick={handleLater} className="w-full rounded-pill">
-            Not now
+          <Button
+            variant="outline"
+            onClick={handleDidntHappen}
+            className="w-full rounded-pill min-h-[44px]"
+          >
+            It didn't happen
+          </Button>
+          <Button variant="ghost" onClick={handleLater} className="w-full rounded-pill min-h-[44px]">
+            Not yet — ask me later
           </Button>
         </DialogFooter>
       </DialogContent>
