@@ -91,7 +91,11 @@ export function condenseProse(text: string | null | undefined, level: TipsLevel)
   if (!text) return "";
   const raw = text.replace(/\s+/g, " ").trim();
   const clean = safeRewrite(raw, capitaliseSentences(raw));
-  if (level >= 4) return safeRewrite(clean, plainLanguage(clean));
+  if (level >= 4) {
+    const expanded = safeRewrite(clean, plainLanguage(clean));
+    return safeRewrite(expanded, capitaliseSentences(expanded));
+  }
+
   const max = PROSE_SENTENCES[level];
   if (!Number.isFinite(max)) return clean;
   return pickGuidance(splitSentences(clean), max).join(" ");
