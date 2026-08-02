@@ -659,9 +659,12 @@ const WashDayHub = () => {
   );
 };
 
-const DynamicWashTipCard = () => {
+const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void }) => {
   const { data: tip, isLoading } = useDynamicWashTip();
-  const { showBeginnerHelp } = useTipsLevel();
+  useEffect(() => {
+    onShown?.(Boolean(tip));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tip]);
   if (isLoading && !tip) return null;
   if (!tip) return null;
   return (
@@ -685,19 +688,14 @@ const DynamicWashTipCard = () => {
               </div>
             </LevelGate>
           )}
-          {showBeginnerHelp && (
-            <BeginnerSteps
-              className="mt-3"
-              steps={[
-                { text: tip.headline, detail: tip.why },
-                ...(tip.technique ? [{ text: tip.technique, detail: "Take your time with this part — slow and gentle beats fast and rough." }] : []),
-              ]}
-            />
-          )}
+          {/* No BeginnerSteps here — level-4 depth comes from the server-side
+              tips-level directive expanding the generated tip itself. Repeating
+              the headline/why/technique as "steps" restated what was just read. */}
         </div>
       </div>
     </SurfaceCard>
   );
+
 };
 
 export default WashDayHub;
