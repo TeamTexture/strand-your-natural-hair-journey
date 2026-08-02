@@ -37,6 +37,7 @@ import { lookupHardWater } from "@/lib/hardWater";
 import { useSmartInline } from "@/lib/smartInline";
 import BrandBanner from "@/components/BrandBanner";
 import { titleCase } from "@/lib/humanise";
+import HomeBloodSummary from "@/components/blood/HomeBloodSummary";
 import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
@@ -741,68 +742,11 @@ const Home = () => {
         </SurfaceCard>
 
         {/* My Blood Work */}
-        <SurfaceCard data-tour="blood-work">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              My Blood Work
-            </p>
-            <button
-              onClick={() => navigate("/blood-history")}
-              className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
-            >
-              Review
-            </button>
-          </div>
-          {bloodSummary ? (
-            <button
-              onClick={() => navigate("/blood-history")}
-              className="w-full text-left"
-            >
-              <div className="flex items-start gap-3">
-                <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
-                  <Droplet className="size-5 text-primary fill-primary/40" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-display text-base font-semibold leading-snug">
-                    {titleCase(bloodSummary.label) || "Blood test"}
-                  </p>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground mt-0.5">
-                    {bloodSummary.panelDate
-                      ? new Date(bloodSummary.panelDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-                      : ""}
-                    {` · ${bloodSummary.total} marker${bloodSummary.total === 1 ? "" : "s"}`}
-                  </p>
-                  <ul className="mt-2 space-y-1">
-                    {limitSupporting(bloodSummary.insights, tipsLevel).map((line, i) => {
-                      const isNegative = /^(low|high)\b/i.test(line);
-                      const isPositive = /back in range|within normal/i.test(line);
-                      const dotClass = isNegative
-                        ? "bg-destructive"
-                        : isPositive
-                          ? "bg-good"
-                          : "bg-primary";
-                      return (
-                        <li key={i} className="flex items-start gap-2 text-xs text-foreground/85 leading-snug">
-                          <span className={`mt-1.5 size-1.5 rounded-full shrink-0 ${dotClass}`} />
-                          <span className="min-w-0">{line}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate("/blood-history")}
-              className="text-left w-full"
-            >
-              <p className="text-sm text-muted-foreground">
-                No blood work logged yet. Tap to add your first panel.
-              </p>
-            </button>
-          )}
-        </SurfaceCard>
+        <HomeBloodSummary
+          summary={bloodSummary}
+          tipsLevel={tipsLevel}
+          onOpen={() => navigate("/blood-history")}
+        />
 
 
 
