@@ -25,8 +25,11 @@ import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
-import { dedupeSentences } from "@/lib/tipsRender";
-import StatusCallout from "@/components/guidance/StatusCallout";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
+import { dedupeSentences, leadPhrase, splitSentences } from "@/lib/tipsRender";
+import { restatesAction } from "@/lib/guidance";
+import { CircleSlash, Repeat, Ruler } from "lucide-react";
 
 
 const monthNames = [
