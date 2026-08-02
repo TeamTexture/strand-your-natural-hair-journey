@@ -307,6 +307,7 @@ const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: dropoff } = useAdminDropOffCounts();
+  const { data: pendingProfileReviews = 0 } = usePendingProProfileReviewCount();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
   const revisionCount = pendingRevisions.length;
 
