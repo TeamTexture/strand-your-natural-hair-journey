@@ -29,6 +29,7 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { dedupeSentences, leadPhrase, splitSentences } from "@/lib/tipsRender";
 import { restatesAction } from "@/lib/guidance";
+import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import { CircleSlash, Repeat, Ruler } from "lucide-react";
 
 
