@@ -10,6 +10,7 @@ import {
   ClipboardList, ListChecks, FileText, type LucideIcon,
 } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
+import StrandSnapshot from "@/components/StrandSnapshot";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -296,6 +297,10 @@ const StrandSummary = () => {
           <>
             {/* Overview — condensed to the user's chosen support level, and
                 structured into lead + segment blocks with key-fact chips. */}
+            <GuidanceCard tone="gold" eyebrow="Your profile at a glance" icon={Activity}>
+              <StrandSnapshot />
+            </GuidanceCard>
+
             <GuidanceCard tone="insight" eyebrow="Overview" icon={FileText}>
               <AiProse text={summary.overview} />
             </GuidanceCard>

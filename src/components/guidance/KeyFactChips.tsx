@@ -11,17 +11,20 @@ import { extractKeyFacts } from "@/lib/guidance";
 const KeyFactChips = ({
   text,
   facts,
-  max = 4,
+  max = 5,
+  min = 2,
   className,
 }: {
   text?: string | null;
   /** Pre-built chips, when the caller already knows the parameters. */
   facts?: Array<{ label: string; icon?: React.ComponentType<{ className?: string }> }>;
   max?: number;
+  /** A single lonely chip reads as random — hide the row below this count. */
+  min?: number;
   className?: string;
 }) => {
   const items = facts ?? extractKeyFacts(text, max);
-  if (items.length === 0) return null;
+  if (items.length < (facts ? 1 : min)) return null;
   return (
     <ul className={cn("flex flex-wrap gap-1.5", className)}>
       {items.map((f, i) => {
