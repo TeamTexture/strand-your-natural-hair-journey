@@ -1,3 +1,4 @@
+import AiProse from "@/components/tips/AiProse";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Mic, RotateCcw, Trash2 } from "lucide-react";
