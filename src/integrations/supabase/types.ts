@@ -3439,6 +3439,10 @@ export type Database = {
           subtitle: string
         }[]
       }
+      note_booking_link_opened: {
+        Args: { _thread_id: string }
+        Returns: undefined
+      }
       pro_log_appointment: {
         Args: {
           _appointment_date: string
