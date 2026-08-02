@@ -8,6 +8,10 @@ import { dedupeSentences } from "@/lib/tipsRender";
 export interface GuidanceStep {
   text: string;
   detail?: string;
+  /** Reason this step matters — rendered in dark ink, never gold on cream. */
+  why?: string;
+  /** Action word used to pick the icon when the headline itself is neutral. */
+  iconHint?: string;
 }
 
 /**
@@ -36,7 +40,7 @@ const StepSequence = ({
         className="absolute left-[13px] top-3 bottom-3 w-px bg-primary/25"
       />
       {steps.map((s, i) => {
-        const Icon = guidanceIcon(s.text);
+        const Icon = guidanceIcon(s.iconHint ? `${s.iconHint} ${s.text}` : s.text);
         const time = extractTime(s.text);
         // Definitions are never appended inline — plainLanguage only cleans the
         // copy. A step body and its why-line are deduped against each other.
@@ -44,6 +48,7 @@ const StepSequence = ({
         const seen = new Set<string>();
         const cleanBody = dedupeSentences(body, seen);
         const detail = s.detail ? dedupeSentences(plainLanguage(s.detail), seen) : "";
+        const why = s.why ? dedupeSentences(plainLanguage(s.why), seen) : "";
         return (
           <li key={i} className="relative flex gap-3">
             <span className="relative z-10 size-[27px] shrink-0 rounded-full bg-primary text-primary-foreground text-[11.5px] font-bold flex items-center justify-center shadow-sm">
@@ -59,6 +64,11 @@ const StepSequence = ({
               {detail && (
                 <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground break-words pl-5">
                   {render(detail, `step-detail-${i}`)}
+                </p>
+              )}
+              {why && (
+                <p className="mt-1 text-[11.5px] leading-snug text-foreground/75 break-words pl-5">
+                  {render(why, `step-why-${i}`)}
                 </p>
               )}
               {time && (
