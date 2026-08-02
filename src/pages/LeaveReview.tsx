@@ -48,6 +48,7 @@ const LeaveReview = () => {
   const [audioPath, setAudioPath] = useState<string | null>(null);
   const [transcription, setTranscription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
 
   useEffect(() => {
     if (!appointmentId || !user) {
@@ -66,6 +67,14 @@ const LeaveReview = () => {
         .maybeSingle();
       if (cancelled) return;
       setAppt((data as Appt) ?? null);
+      // One review per appointment — don't let them start a second one.
+      const { data: existing } = await supabase
+        .from("reviews")
+        .select("id")
+        .eq("appointment_id", appointmentId)
+        .maybeSingle();
+      if (cancelled) return;
+      setAlreadyReviewed(!!existing);
       setLoading(false);
     })();
     return () => {
@@ -117,6 +126,26 @@ const LeaveReview = () => {
       <ScreenLayout>
         <TitleBar title="Leave a review" onBack={smartBack(nav, "/appointments")} />
         <p className="px-4 pt-6 text-[13px] font-body text-muted-foreground">Loading…</p>
+      </ScreenLayout>
+    );
+  }
+
+  if (alreadyReviewed) {
+    return (
+      <ScreenLayout>
+        <TitleBar title="Leave a review" onBack={smartBack(nav, "/appointments")} />
+        <div className="px-4 pt-6 space-y-4">
+          <p className="text-[13px] font-body text-muted-foreground leading-relaxed">
+            You've already reviewed this appointment. It appears on {who}'s profile once they
+            approve it.
+          </p>
+          <Button
+            onClick={() => nav("/appointments")}
+            className="w-full rounded-pill min-h-[44px]"
+          >
+            Back to appointments
+          </Button>
+        </div>
       </ScreenLayout>
     );
   }
