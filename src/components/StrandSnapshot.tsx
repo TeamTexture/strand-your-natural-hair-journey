@@ -177,7 +177,7 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
       <ul className="grid grid-cols-2 gap-2">
       {stats.map((s) => {
         const Icon = s.icon;
-        const wide = s.label === "Main goal" || s.label === "Blood work";
+        const wide = s.label === "Main goal";
         return (
           <li key={s.label} className={cn("min-w-0", wide && "col-span-2")}>
             <button
