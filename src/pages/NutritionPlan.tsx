@@ -270,7 +270,7 @@ const MealCard = ({
   const [open, setOpen] = useState(false);
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
-      <div className="flex gap-3">
+      <div className="flex items-start gap-2.5">
         <IconBubble emoji={meal.emoji || "🍽️"} tone="gold" />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
@@ -318,6 +318,9 @@ const MealCard = ({
               )}
             </div>
           </div>
+        </div>
+      </div>
+      <div>
           {meal.summary && (
             <p className="mt-2 text-xs text-foreground/85 font-body leading-relaxed">
               {meal.summary}
@@ -381,7 +384,6 @@ const MealCard = ({
               )}
             </div>
           )}
-        </div>
       </div>
     </SurfaceCard>
   );
