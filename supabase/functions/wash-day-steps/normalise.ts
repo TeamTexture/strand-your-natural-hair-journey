@@ -27,7 +27,17 @@ export function capWords(text: string, max: number): string {
   const clean = String(text ?? "").replace(/\s+/g, " ").trim();
   const words = clean.split(" ").filter(Boolean);
   if (words.length <= max) return clean;
-  return words.slice(0, max).join(" ").replace(/[,;:—-]+$/, "");
+  const kept = words.slice(0, max);
+  // Never end on a dangling connector or punctuation.
+  const connectors = new Set([
+    "then","and","but","so","or","with","to","for","of","in","on","at","the","a","an","your","her","if","when","while","before","after","because",
+  ]);
+  while (kept.length > 1) {
+    const last = kept[kept.length - 1].replace(/[^a-zA-Z]/g, "").toLowerCase();
+    if (connectors.has(last)) kept.pop();
+    else break;
+  }
+  return kept.join(" ").replace(/[\s,;:—–-]+$/, "");
 }
 
 /** Enforce caps, ONE IDEA ONCE, renumbering and the level step budget. */
