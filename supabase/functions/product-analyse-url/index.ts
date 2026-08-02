@@ -691,7 +691,7 @@ Deno.serve(async (req: Request) => {
         const cached = existing.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION && cached._provider === "claude"
-          : cached._provider !== "claude";
+          : cached._provider !== "claude" && cached._model_version === LOVABLE_MODEL_VERSION;
         const hashOk = cached._profile_snapshot_hash === profileHashEarly;
         if (versionOk && hashOk) {
           return json(200, await sanitiseAndLog(cached, "product-analyse-url"));
@@ -745,6 +745,7 @@ Deno.serve(async (req: Request) => {
       analysis = {
         ...payload,
         _provider: "lovable",
+        _model_version: LOVABLE_MODEL_VERSION,
         _generated_at: new Date().toISOString(),
       };
       if (image_url) {
@@ -756,6 +757,13 @@ Deno.serve(async (req: Request) => {
           (analysis as Record<string, unknown>).image_url = safeImg;
         }
       }
+    }
+    {
+      // Level-aware caps: 1-2 -> 2 items, 3 -> 3, 4 -> 4.
+      const cap = levelCap(coerceTipsLevel((ctx as Record<string, unknown>).tipsLevel));
+      const a = analysis as Record<string, unknown>;
+      if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
+      if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
     }
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "url-debug", phase: "all done", total_ms: Date.now() - t0 }));

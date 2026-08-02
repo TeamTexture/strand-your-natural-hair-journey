@@ -496,7 +496,7 @@ Deno.serve(async (req: Request) => {
     const tipsLevelForHash = coerceTipsLevel((ctx as Record<string, unknown>).tipsLevel);
     // Cache key includes tipsLevel (goals are already part of currentProfileHash)
     // so a support-level change or a goals change both force a fresh analysis.
-    const profileHash = `${currentProfileHash(ctx as Record<string, unknown>)}:tl${tipsLevelForHash}`;
+    const profileHash = currentProfileHash(ctx as Record<string, unknown>);
 
     // ── Cache check (only when caller passed a productKey) ────────────
     if (cacheKind && !body.force) {
