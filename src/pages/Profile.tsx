@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, type LucideIcon } from "lucide-react";
 import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
-import SectionLabel from "@/components/SectionLabel";
+import SectionHeader from "@/components/nav/SectionHeader";
+import ListRow from "@/components/nav/ListRow";
+import IconChipGrid from "@/components/nav/IconChipGrid";
+import Eyebrow from "@/components/nav/Eyebrow";
 import EmptyState from "@/components/EmptyState";
 import UserAvatar from "@/components/UserAvatar";
 import PlusBadge from "@/components/PlusBadge";
@@ -128,11 +131,10 @@ const EditableSectionLabel = ({
   children,
   onEdit,
   editLabel = "Edit",
-}: { children: React.ReactNode; onEdit: () => void; editLabel?: string }) => (
+  icon,
+}: { children: React.ReactNode; onEdit: () => void; editLabel?: string; icon?: LucideIcon }) => (
   <div className="px-5 pt-2 pb-1.5 flex items-end justify-between">
-    <span className="text-[13px] uppercase tracking-[0.18em] text-muted-foreground font-body">
-      {children}
-    </span>
+    <Eyebrow icon={icon}>{children}</Eyebrow>
     <button
       onClick={onEdit}
       className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium inline-flex items-center gap-1 px-2 -mr-2 min-h-[36px]"
@@ -620,160 +622,61 @@ const Profile = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Quick jumps to editable profile sections — full-width stacked buttons
-          so titles + subtitles can breathe across the row without wrapping. */}
-      <div className="px-5 pb-3 space-y-2.5">
-        {[
-          {
-            to: "/profile/personal",
-            icon: User,
-            title: "Personal details",
-            sub: "Name, age, postcode & photo",
-          },
-          {
-            to: "/profile/hair",
-            icon: Sparkles,
-            title: "Hair details",
-            sub: "Diameter, porosity & scalp",
-          },
-          {
-            to: "/blood-history",
-            icon: Droplet,
-            title: "Blood results",
-            sub: "Review & edit tests",
-          },
-        ].map(({ to, icon: Icon, title, sub }) => (
-          <button
-            key={to}
-            onClick={() => navigate(to)}
-            className="group w-full flex items-center gap-3.5 pl-3.5 pr-4 py-3.5 rounded-[16px] bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/25 hover:border-primary/50 hover:shadow-[0_4px_18px_-8px_hsl(var(--primary)/0.35)] transition-all text-left"
-          >
-            <div className="size-11 rounded-[13px] bg-gradient-to-br from-primary/30 to-primary/10 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/20 group-hover:scale-[1.03] transition-transform">
-              <Icon className="size-[18px]" strokeWidth={1.75} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-display text-[15px] font-semibold leading-tight whitespace-nowrap">
-                {title}
-              </p>
-              <p className="text-[12px] text-foreground/65 mt-1 leading-snug whitespace-nowrap overflow-hidden text-ellipsis">
-                {sub}
-              </p>
-            </div>
-            <ChevronRight className="size-4 text-primary/70 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        ))}
+      {/* Quick jumps to editable profile sections */}
+      <div className="px-5 pb-3">
+        <SectionHeader icon={User} className="pb-2">Your details</SectionHeader>
+        <div className="space-y-2">
+          <ListRow icon={User} name="Personal details" secondary="Name, age, postcode & photo" to="/profile/personal" />
+          <ListRow icon={Sparkles} name="Hair details" secondary="Diameter, porosity & scalp" to="/profile/hair" />
+          <ListRow icon={Droplet} name="Blood results" secondary="Review & edit tests" to="/blood-history" />
+        </div>
       </div>
 
       {/* Help & Support — always-visible entry point */}
-      <div className="px-5 pb-4">
-        <button
-          onClick={() => navigate("/help")}
-          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
-        >
-          <div className="size-10 rounded-full bg-secondary text-foreground/80 flex items-center justify-center shrink-0">
-            <HelpCircle className="size-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-semibold leading-tight">Help & Support</p>
-            <p className="text-[13px] text-foreground/70 mt-0.5">
-              Install guide, FAQs and how to reach us.
-            </p>
-          </div>
-          <span className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
-        </button>
+      <div className="px-5 pb-3">
+        <ListRow icon={HelpCircle} name="Help & Support" secondary="Install guide, FAQs and how to reach us." to="/help" />
       </div>
 
       {/* App Walkthrough — re-runnable tour of the main screens */}
       <div className="px-5 pb-4">
-        <button
+        <ListRow
+          icon={Compass}
+          name="App Walkthrough"
+          secondary="A quick tour of the main STRAND screens."
           onClick={() => navigate("/walkthrough", { state: { returnTo: "/profile" } })}
-          className="w-full flex items-center gap-3 p-3.5 rounded-[12px] bg-card border border-border hover:border-primary/50 transition-colors min-h-[56px] text-left"
-        >
-          <div className="size-10 rounded-full bg-secondary text-foreground/80 flex items-center justify-center shrink-0">
-            <Compass className="size-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-semibold leading-tight">App Walkthrough</p>
-            <p className="text-[13px] text-foreground/70 mt-0.5">
-              A quick tour of the main STRAND screens.
-            </p>
-          </div>
-          <span className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium pr-1">Open ›</span>
-        </button>
+        />
       </div>
 
       {(isProfessional || isAdmin) && (
         <>
-          <SectionLabel>Switch view</SectionLabel>
-          <div className="px-5 pb-4 space-y-1">
+          <SectionHeader icon={ArrowLeftRight} className="px-5 pt-2 pb-2">Switch view</SectionHeader>
+          <div className="px-5 pb-4 space-y-2">
             {isProfessional && (
-              <button
-                onClick={() => navigate("/pro")}
-                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-              >
-                <ArrowLeftRight className="size-4 text-primary/70" />
-                <span className="flex-1">Professional dashboard</span>
-                <ChevronRight className="size-3.5 text-muted-foreground" />
-              </button>
+              <ListRow icon={ArrowLeftRight} name="Professional dashboard" to="/pro" />
             )}
             {isAdmin && (
-              <button
-                onClick={() => navigate("/admin")}
-                className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-              >
-                <ShieldCheck className="size-4 text-primary/70" />
-                <span className="flex-1">Admin panel</span>
-                <ChevronRight className="size-3.5 text-muted-foreground" />
-              </button>
+              <ListRow icon={ShieldCheck} name="Admin panel" to="/admin" />
             )}
           </div>
         </>
       )}
 
-      <SectionLabel>Professionals</SectionLabel>
-      <div className="px-5 pb-4 space-y-1">
-        <button
-          onClick={() => navigate("/messages")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <MessageCircle className="size-4 text-primary/70" />
-          <span className="flex-1">Messages</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => navigate("/profile/enquiries")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <Mail className="size-4 text-primary/70" />
-          <span className="flex-1">My enquiries</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => navigate("/profile/data-access")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <KeyRound className="size-4 text-primary/70" />
-          <span className="flex-1">Data access</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
+      <SectionHeader icon={MessageCircle} className="px-5 pt-2 pb-2">Professionals</SectionHeader>
+      <div className="px-5 pb-4 space-y-2">
+        <ListRow icon={MessageCircle} name="Messages" to="/messages" />
+        <ListRow icon={Mail} name="My enquiries" to="/profile/enquiries" />
+        <ListRow icon={KeyRound} name="Data access" to="/profile/data-access" />
       </div>
 
-      <SectionLabel>Perks</SectionLabel>
-      <div className="px-5 pb-4 space-y-1">
-        <button
-          onClick={() => navigate("/profile/discounts")}
-          className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
-        >
-          <Gift className="size-4 text-primary/70" />
-          <span className="flex-1">Discounts & offers</span>
-          <ChevronRight className="size-3.5 text-muted-foreground" />
-        </button>
+      <SectionHeader icon={Gift} className="px-5 pt-2 pb-2">Perks</SectionHeader>
+      <div className="px-5 pb-4 space-y-2">
+        <ListRow icon={Gift} name="Discounts & offers" to="/profile/discounts" />
       </div>
 
 
 
       {/* Accessibility — global text size */}
-      <SectionLabel>Accessibility</SectionLabel>
+      <SectionHeader icon={Sparkles} className="px-5 pt-2 pb-2">Accessibility</SectionHeader>
       <div className="px-5 pb-4">
         <div className="p-4 rounded-[12px] bg-card border border-border">
           <FontScaleControl />
@@ -785,7 +688,7 @@ const Profile = () => {
 
 
       {/* Alerts — replaces the chips area when data exists */}
-      <SectionLabel>Alerts & Upcoming</SectionLabel>
+      <SectionHeader icon={AlertCircle} className="px-5 pt-2 pb-2">Alerts & Upcoming</SectionHeader>
       <div className="px-5 pb-4">
         {!apptsLoaded ? (
           <div className="h-[64px] rounded-[12px] bg-card border border-border animate-pulse" />
@@ -849,33 +752,29 @@ const Profile = () => {
       {/* Hair Profile — only if user filled it in */}
       {(hair.diameter || hair.porosity || hair.density || hair.scalp || (hair.diagnosed?.length ?? 0) > 0) && (
         <>
-          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-3-hair")}>
+          <EditableSectionLabel icon={Activity} onEdit={() => navigate("/onboarding/profile-step-3-hair")}>
             Hair Profile
           </EditableSectionLabel>
           <div className="px-5 pb-2">
-            <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {(() => {
-                // Some onboarding steps store multi-select values as arrays;
-                // older entries are plain strings. Normalize before rendering.
-                const toStr = (v: unknown): string =>
-                  Array.isArray(v) ? v.join(", ") : typeof v === "string" ? v : "";
-                const diameter = toStr(hair.diameter);
-                const porosity = toStr(hair.porosity);
-                const density = toStr(hair.density);
-                const scalp = toStr(hair.scalp);
-                return (
-                  <>
-                    {diameter && <ProfileRow icon="🧬" label="Strand diameter" value={diameter} />}
-                    {porosity && <ProfileRow icon="💧" label="Porosity" value={porosity} tone={porosity.toLowerCase().includes("high") ? "warn" : undefined} />}
-                    {density && <ProfileRow icon="🌾" label="Density" value={density} />}
-                    {scalp && <ProfileRow icon="💆" label="Scalp condition" value={scalp} tone={scalp.toLowerCase().includes("dry") || scalp.toLowerCase().includes("oily") ? "warn" : undefined} />}
-                  </>
-                );
-              })()}
-              {hair.diagnosed && hair.diagnosed.length > 0 && (
-                <ProfileRow icon="🩺" label="Diagnosed" value={hair.diagnosed.join(", ")} tone="warn" />
-              )}
-            </SurfaceCard>
+            {(() => {
+              // Some onboarding steps store multi-select values as arrays;
+              // older entries are plain strings. Normalize before rendering.
+              const toStr = (v: unknown): string =>
+                Array.isArray(v) ? v.join(", ") : typeof v === "string" ? v : "";
+              const diameter = toStr(hair.diameter);
+              const porosity = toStr(hair.porosity);
+              const density = toStr(hair.density);
+              const scalp = toStr(hair.scalp);
+              const chips: import("@/components/nav/IconChipGrid").IconChip[] = [];
+              if (diameter) chips.push({ label: "Strand diameter", value: diameter, icon: Ruler });
+              if (porosity) chips.push({ label: "Porosity", value: porosity, icon: Droplet, tone: porosity.toLowerCase().includes("high") ? "warning" : "gold" });
+              if (density) chips.push({ label: "Density", value: density, icon: Layers });
+              if (scalp) chips.push({ label: "Scalp condition", value: scalp, icon: Wind, tone: scalp.toLowerCase().includes("dry") || scalp.toLowerCase().includes("oily") ? "warning" : "gold" });
+              if (hair.diagnosed && hair.diagnosed.length > 0) {
+                chips.push({ label: "Diagnosed", value: hair.diagnosed.join(", "), icon: Stethoscope, tone: "warning" });
+              }
+              return <IconChipGrid chips={chips} columns={2} />;
+            })()}
           </div>
         </>
       )}
@@ -885,6 +784,7 @@ const Profile = () => {
         Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v))) && (
         <>
           <EditableSectionLabel
+            icon={FlaskConical}
             onEdit={() => navigate("/blood-history")}
             editLabel="Manage"
           >
@@ -970,18 +870,14 @@ const Profile = () => {
       {/* Medications — only if user added any */}
       {Array.isArray(health.medications) && health.medications.length > 0 && (
         <>
-          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-2")}>
+          <EditableSectionLabel icon={Pill} onEdit={() => navigate("/onboarding/profile-step-2")}>
             Medications
           </EditableSectionLabel>
           <div className="px-5 pb-4">
-            <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {health.medications.slice(0, 5).map((m) => (
-                <div key={m} className="flex items-center gap-3 px-4 py-3">
-                  <Pill className="size-4 text-primary shrink-0" />
-                  <span className="flex-1 text-base font-body truncate">{m}</span>
-                </div>
-              ))}
-            </SurfaceCard>
+            <IconChipGrid
+              chips={health.medications.slice(0, 5).map((m) => ({ label: m, icon: Pill, tone: "gold" as const }))}
+              columns={2}
+            />
           </div>
         </>
       )}

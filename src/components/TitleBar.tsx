@@ -46,7 +46,7 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
             <button
               onClick={handleBack}
               aria-label="Back"
-              className="-ml-2 p-2 text-foreground/80 hover:text-foreground transition-colors"
+              className="-ml-2 p-2 min-h-[44px] min-w-[44px] flex items-center text-foreground/80 hover:text-foreground transition-colors"
             >
               <ChevronLeft className="size-5" />
             </button>

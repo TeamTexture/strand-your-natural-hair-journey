@@ -68,6 +68,8 @@ import LevelGate from "@/components/tips/LevelGate";
 import AiProse from "@/components/tips/AiProse";
 import { limitSupporting } from "@/lib/tipsRender";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
+import EmptyState from "@/components/EmptyState";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 type PanelStatus = "logged" | "scheduled";
 
@@ -513,11 +515,17 @@ const BloodHistory = () => {
             <p className="text-sm font-body text-muted-foreground">Loading…</p>
           </SurfaceCard>
         ) : logged.length === 0 ? (
-          <SurfaceCard>
-            <p className="text-sm font-body">
-              No blood tests logged yet. Tap <em>Add test manually</em> to add your first one.
-            </p>
-          </SurfaceCard>
+          <EmptyState
+            icon="🩸"
+            message="No blood tests logged yet"
+            hint="Add your first test to start tracking markers over time."
+            action={
+              <Button variant="gold" size="pill" onClick={startNew} className="w-full">
+                <Plus className="size-4" />
+                Add Test Manually
+              </Button>
+            }
+          />
         ) : (
           <div className="space-y-2">
             {logged.map((p, idx) => {
@@ -579,6 +587,28 @@ const BloodHistory = () => {
                       ) : null}
                     </div>
 
+                    {idx === 0 && deltas.length > 0 && (() => {
+                      const improved = deltas.filter((d) => d.current_status === "normal" && d.previous_status !== "normal").length;
+                      const worsened = deltas.filter((d) => d.previous_status === "normal" && d.current_status !== "normal").length;
+                      const tone = worsened > improved ? "warning" : improved > worsened ? "good" : "muted";
+                      const Arrow = worsened > improved ? TrendingDown : TrendingUp;
+                      const label = worsened > improved
+                        ? `${worsened} worse`
+                        : improved > worsened
+                          ? `${improved} improved`
+                          : "No change";
+                      const chipClass = tone === "warning"
+                        ? "border-destructive/30 bg-destructive/10 text-destructive"
+                        : tone === "good"
+                          ? "border-good/30 bg-good/10 text-good"
+                          : "border-border bg-muted text-muted-foreground";
+                      return (
+                        <span className={cn("shrink-0 inline-flex items-center gap-1 self-start rounded-pill border px-2.5 py-1 text-[10.5px] font-semibold font-body", chipClass)}>
+                          <Arrow className="size-3" aria-hidden />
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <Button

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ProgressDots from "@/components/ProgressDots";
+import StepProgress from "@/components/nav/StepProgress";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
@@ -294,8 +294,8 @@ const WashStep4 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>5 of 5</span>} onBack={smartBack(navigate, "/wash/step-styling")} />
-      <ProgressDots total={5} current={5} />
+      <TitleBar title="Wash Day" onBack={smartBack(navigate, "/wash/step-styling")} />
+      <div className="px-5 pt-1 pb-3"><StepProgress current={5} total={5} label="Review & save" /></div>
       <LevelGate min={2} fallback={<ItalicSub>Review and save.</ItalicSub>}>
         <ItalicSub>Your wash day summary. Tap any section to edit.</ItalicSub>
       </LevelGate>

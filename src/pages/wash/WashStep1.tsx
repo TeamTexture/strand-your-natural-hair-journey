@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Check, X, Flame, Loader2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ProgressDots from "@/components/ProgressDots";
+import StepProgress from "@/components/nav/StepProgress";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
@@ -529,8 +529,8 @@ const WashStep1 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>1 of 4</span>} onBack={smartBack(navigate, "/wash-day")} tips />
-      <ProgressDots total={4} current={1} />
+      <TitleBar title="Wash Day" onBack={smartBack(navigate, "/wash-day")} tips />
+      <div className="px-5 pt-1 pb-3"><StepProgress current={1} total={5} label="Steps & products" /></div>
       <ItalicSub>
         Tap <strong>Add</strong> for steps you did and <strong>Skip</strong> for steps you didn't — be honest, it makes your history more useful.
       </ItalicSub>

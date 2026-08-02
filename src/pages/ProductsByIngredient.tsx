@@ -8,17 +8,19 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ListRow from "@/components/nav/ListRow";
+import ProductThumb from "@/components/ProductThumb";
 import { useUserProducts } from "@/hooks/useUserProducts";
-import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
+import type { GuidanceTone } from "@/lib/guidance";
 
-const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }) => {
-  if (p.on_shelf) return { label: "On shelf", tone: "text-good" };
-  if (p.on_wishlist) return { label: "Wishlist", tone: "text-primary" };
-  if (p.previously_on_shelf) return { label: "Off shelf", tone: "text-muted-foreground" };
-  return { label: "Saved", tone: "text-muted-foreground" };
+const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }): { label: string; tone: GuidanceTone } => {
+  if (p.on_shelf) return { label: "On shelf", tone: "good" };
+  if (p.on_wishlist) return { label: "Wishlist", tone: "gold" };
+  if (p.previously_on_shelf) return { label: "Off shelf", tone: "muted" };
+  return { label: "Saved", tone: "muted" };
 };
 
 const ProductsByIngredient = () => {
@@ -64,40 +66,22 @@ const ProductsByIngredient = () => {
           products.map((p) => {
             const s = statusLabel(p);
             return (
-              <button
+              <ListRow
                 key={p.id}
-                type="button"
-                onClick={() => navigate(`/products/profile/${p.id}`)}
-                className="w-full text-left"
-              >
-                <SurfaceCard className="!py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="size-12 rounded-[10px] bg-muted/40 overflow-hidden shrink-0 flex items-center justify-center">
-                      {p.image_url ? (
-                        <img src={p.image_url} alt="" className="size-full object-contain" loading="lazy" />
-                      ) : (
-                        <span className="text-2xl" aria-hidden>🧴</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
-                      {p.brand && (
-                        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5 truncate">
-                          <BrandLink brand={p.brand} />
-                        </p>
-                      )}
-                      <span
-                        className={cn(
-                          "text-[10px] uppercase tracking-[0.14em] font-semibold",
-                          s.tone,
-                        )}
-                      >
-                        {s.label}
-                      </span>
-                    </div>
-                  </div>
-                </SurfaceCard>
-              </button>
+                to={`/products/profile/${p.id}`}
+                leading={
+                  <ProductThumb
+                    imageUrl={p.image_url}
+                    alt={p.name}
+                    brand={p.brand}
+                    name={p.name}
+                  />
+                }
+                name={p.name}
+                secondary={p.brand ? <BrandLink brand={p.brand} /> : undefined}
+                fact={s.label}
+                factTone={s.tone}
+              />
             );
           })
         )}

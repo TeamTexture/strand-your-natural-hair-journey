@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Pause, Play } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ProgressDots from "@/components/ProgressDots";
+import StepProgress from "@/components/nav/StepProgress";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import VoiceNoteField from "@/components/VoiceNoteField";
@@ -96,8 +96,8 @@ const WashStep3 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>3 of 5</span>} onBack={smartBack(navigate, "/wash/step-2")} />
-      <ProgressDots total={5} current={3} />
+      <TitleBar title="Wash Day" onBack={smartBack(navigate, "/wash/step-2")} />
+      <div className="px-5 pt-1 pb-3"><StepProgress current={3} total={5} label="Hair feel" /></div>
       <LevelGate min={2} fallback={<ItalicSub>Tell us how your hair feels today.</ItalicSub>}>
         <ItalicSub>
           Moisture is in how your hair moves and feels — not a label. Tell us in your own words.

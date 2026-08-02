@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import BrandBanner from "@/components/BrandBanner";
 import LevelGate from "@/components/tips/LevelGate";
+import SectionHeader from "@/components/nav/SectionHeader";
 
 const Stars = ({ n }: { n: number }) => (
   <span className="text-[10px] text-primary tracking-tight">
@@ -192,15 +193,9 @@ const Products = () => {
         ) : (
           groups.map((group) => (
             <div key={group.key} className="space-y-2">
-              <div className="flex items-center gap-2 px-1 pt-1">
-                <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
-                  {group.label}
-                </h2>
-                <span className="text-[10px] text-muted-foreground/70">
-                  ({group.items.length})
-                </span>
-                <div className="flex-1 h-px bg-border/60" />
-              </div>
+              <SectionHeader className="pt-1">
+                {group.label} ({group.items.length})
+              </SectionHeader>
               {group.items.map((p) => {
                 const isOpen = expanded === p.product_key;
                 const noteCount = counts[p.product_key] ?? 0;
@@ -306,6 +301,11 @@ const Products = () => {
                             </p>
                           )}
                         </button>
+                        {p.match_score != null && (
+                          <span className="shrink-0 inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.07] px-2.5 py-1 text-[10.5px] font-semibold font-body text-primary">
+                            {p.match_score}% match
+                          </span>
+                        )}
                       </div>
                     </div>
 

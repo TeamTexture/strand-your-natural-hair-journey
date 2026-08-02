@@ -3,17 +3,14 @@ import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import Tag from "@/components/Tag";
+import Eyebrow from "@/components/nav/Eyebrow";
+import ChoiceChips, { type Choice } from "@/components/nav/ChoiceChips";
+import { ICONS } from "@/lib/iconMap";
+import { CalendarClock } from "lucide-react";
 import FormField from "@/components/FormField";
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import TipsBlock from "@/components/tips/TipsBlock";
 import type { GuidanceTip } from "@/lib/tipsRender";
@@ -39,6 +36,12 @@ const HAIRSTYLE_OPTIONS = [
   "Twist-out",
   "Finger comb coils",
   "Not sure yet",
+];
+
+const UNIT_OPTIONS: Choice[] = [
+  { value: "days", label: "Days" },
+  { value: "weeks", label: "Weeks" },
+  { value: "months", label: "Months" },
 ];
 
 interface ExistingStyleLocal {
@@ -195,9 +198,7 @@ const SetCurrentStyle = () => {
 
       <div className="px-5 pb-8 space-y-5">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
-            Current Hairstyle
-          </div>
+          <Eyebrow icon={ICONS.style} className="mb-2">Current Hairstyle</Eyebrow>
           <div className="flex flex-wrap gap-2">
             {HAIRSTYLE_OPTIONS.filter(o => o !== "Not sure yet").map(o => (
               <Tag key={o} selected={style === o} onClick={() => setStyle(o)}>
@@ -208,10 +209,8 @@ const SetCurrentStyle = () => {
         </div>
 
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
-            How long in this style
-          </div>
-          <div className="flex gap-3">
+          <Eyebrow icon={CalendarClock} className="mb-2">How long in this style</Eyebrow>
+          <div className="flex gap-3 items-start">
             <Input
               type="number"
               min={0}
@@ -219,19 +218,13 @@ const SetCurrentStyle = () => {
               onChange={(e) => setHowLongNum(e.target.value)}
               className="w-24"
             />
-            <Select
+            <ChoiceChips
+              className="flex-1"
+              columns={3}
+              options={UNIT_OPTIONS}
               value={howLongUnit}
-              onValueChange={(v) => setHowLongUnit(v as "days" | "weeks" | "months")}
-            >
-              <SelectTrigger className="flex-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="days">Days</SelectItem>
-                <SelectItem value="weeks">Weeks</SelectItem>
-                <SelectItem value="months">Months</SelectItem>
-              </SelectContent>
-            </Select>
+              onChange={(v) => setHowLongUnit(v as "days" | "weeks" | "months")}
+            />
           </div>
         </div>
 
