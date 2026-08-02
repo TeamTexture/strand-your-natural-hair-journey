@@ -27,6 +27,8 @@ import type { Database } from "@/integrations/supabase/types";
 import ProTour from "@/components/ProTour";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
+import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
+
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
 type ProProfileRow = Database["public"]["Tables"]["pro_profiles"]["Row"];
