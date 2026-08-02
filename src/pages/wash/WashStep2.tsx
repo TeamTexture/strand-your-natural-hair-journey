@@ -40,7 +40,7 @@ const MultiChoiceField = ({
   error = false,
 }: {
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   options: Choice[];
   value: string[];
   onChange: (n: string[]) => void;

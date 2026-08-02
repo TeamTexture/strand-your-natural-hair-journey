@@ -677,7 +677,7 @@ const Profile = () => {
 
 
       {/* Accessibility — global text size */}
-      <SectionLabel>Accessibility</SectionLabel>
+      <SectionHeader icon={Sparkles} className="px-5 pt-2 pb-2">Accessibility</SectionHeader>
       <div className="px-5 pb-4">
         <div className="p-4 rounded-[12px] bg-card border border-border">
           <FontScaleControl />
@@ -689,7 +689,7 @@ const Profile = () => {
 
 
       {/* Alerts — replaces the chips area when data exists */}
-      <SectionLabel>Alerts & Upcoming</SectionLabel>
+      <SectionHeader icon={AlertCircle} className="px-5 pt-2 pb-2">Alerts & Upcoming</SectionHeader>
       <div className="px-5 pb-4">
         {!apptsLoaded ? (
           <div className="h-[64px] rounded-[12px] bg-card border border-border animate-pulse" />
