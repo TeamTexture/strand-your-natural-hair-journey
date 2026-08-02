@@ -29,7 +29,6 @@ import { toast } from "sonner";
 import { useSmartInline } from "@/lib/smartInline";
 import AiProse from "@/components/tips/AiProse";
 import TipsBlock from "@/components/tips/TipsBlock";
-import { BeginnerDoubleCleanse } from "@/components/beginner/BeginnerNonNegotiables";
 import LevelGate from "@/components/tips/LevelGate";
 import type { GuidanceTip } from "@/lib/tipsRender";
 
