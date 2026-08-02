@@ -308,8 +308,10 @@ const GoalEditorSheet = ({
               {tipLoading ? "Reading your profile…" : tip?.headline ?? "Goal saved"}
             </DialogTitle>
             {!tipLoading && tip?.body && (
-              <DialogDescription className="text-left text-sm leading-relaxed pt-1">
-                {tip.body}
+              <DialogDescription asChild>
+                <div className="text-left pt-1">
+                  <AiProse text={tip.body} />
+                </div>
               </DialogDescription>
             )}
           </DialogHeader>
@@ -321,17 +323,14 @@ const GoalEditorSheet = ({
               <div className="h-3 w-3/6 bg-border/60 rounded animate-pulse" />
             </div>
           ) : tip?.actions?.length ? (
-            <ul className="space-y-2 mt-2">
-              {tip.actions.map((a, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-sm leading-snug"
-                >
-                  <span className="mt-1 inline-block size-1.5 rounded-full bg-primary flex-shrink-0" />
-                  <span>{a}</span>
-                </li>
-              ))}
-            </ul>
+            <TipsBlock
+              idPrefix="goal-editor-tip"
+              dedupeAgainst={tip.body}
+              tips={tip.actions.map((a, i): GuidanceTip => ({
+                priority: tip.actions.length - i,
+                short: a,
+              }))}
+            />
           ) : null}
 
           <DialogFooter>
