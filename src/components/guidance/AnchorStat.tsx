@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TONE_CLASSES, type GuidanceTone } from "@/lib/guidance";
+import { type GuidanceTone } from "@/lib/guidance";
 
 /**
  * AnchorStat — the visual hero of a guidance card.
