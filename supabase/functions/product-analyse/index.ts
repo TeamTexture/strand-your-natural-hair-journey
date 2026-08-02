@@ -493,7 +493,10 @@ Deno.serve(async (req: Request) => {
 
     const cacheKind = body.productKey ? `product_analyse:${body.productKey}` : null;
     const ctx = body.context ?? {};
-    const profileHash = currentProfileHash(ctx as Record<string, unknown>);
+    const tipsLevelForHash = coerceTipsLevel((ctx as Record<string, unknown>).tipsLevel);
+    // Cache key includes tipsLevel (goals are already part of currentProfileHash)
+    // so a support-level change or a goals change both force a fresh analysis.
+    const profileHash = `${currentProfileHash(ctx as Record<string, unknown>)}:tl${tipsLevelForHash}`;
 
     // ── Cache check (only when caller passed a productKey) ────────────
     if (cacheKind && !body.force) {
@@ -507,7 +510,7 @@ Deno.serve(async (req: Request) => {
         const cached = existing.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
-          : true;
+          : cached._model_version === LOVABLE_MODEL_VERSION;
         const hashOk = cached._profile_snapshot_hash === profileHash;
         if (versionOk && hashOk) {
           return json(200, await sanitiseAndLog(cached, "product-analyse"));
@@ -540,8 +543,17 @@ Deno.serve(async (req: Request) => {
       analysis = {
         ...lovable,
         _provider: "lovable",
+        _model_version: LOVABLE_MODEL_VERSION,
         _generated_at: new Date().toISOString(),
       };
+    }
+    // ── Level-aware server-side truncation — belt-and-braces on top of the
+    // prompt instructions (models occasionally over-produce).
+    {
+      const cap = levelCap(tipsLevelForHash);
+      const a = analysis as Record<string, unknown>;
+      if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
+      if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
     }
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 
