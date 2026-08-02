@@ -119,7 +119,49 @@ const SystemBubble = ({ m, isPro }: { m: ChatMessage; isPro: boolean }) => {
   );
 };
 
+/** Structured booking-request card — guidance-card design language. */
+const BookingRequestCard = ({ m, mine }: { m: ChatMessage; mine: boolean }) => {
+  const meta = (m.meta ?? {}) as { booking_url?: string; pro_name?: string; note?: string | null };
+  const url = normalizeBookingUrl(meta.booking_url ?? "");
+  const proName = meta.pro_name || "Your professional";
+  return (
+    <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-2`}>
+      <div className="w-[85%] rounded-[16px] border border-primary/25 bg-primary/8 p-3.5">
+        <div className="flex items-center gap-1.5">
+          <CalendarPlus className="size-3.5 text-primary" />
+          <span className="text-[9.5px] font-body font-semibold uppercase tracking-[0.14em] text-primary">
+            Booking request
+          </span>
+        </div>
+        <p className="mt-1.5 text-sm font-body font-semibold leading-snug text-foreground">
+          {proName} invites you to book
+        </p>
+        {meta.note && (
+          <p className="mt-1 text-[12.5px] font-body leading-snug text-foreground/80 whitespace-pre-wrap">
+            {meta.note}
+          </p>
+        )}
+        {url && (
+          <a
+            href={url}
+            {...externalLinkProps}
+            className="mt-2.5 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
+          >
+            Book appointment
+            <ExternalLink className="size-3.5" />
+          </a>
+        )}
+        <div className="mt-1 flex items-center justify-end gap-1 text-[9.5px] text-muted-foreground">
+          <span>{format(new Date(m.created_at), "HH:mm")}</span>
+          {mine && <DeliveryTicks readAt={m.read_at} />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MessageBubble = ({
+
   m,
   mine,
   senderName,
