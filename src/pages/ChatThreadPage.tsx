@@ -437,6 +437,10 @@ const ChatThreadPage = () => {
                 }
                 const mine =
                   !!t && !!user ? messageIsMine(m, t, user.id, roleView) : m.sender_id === user?.id;
+                if (m.kind === "booking_request") {
+                  prevSender = null;
+                  return <BookingRequestCard key={m.id} m={m} mine={mine} />;
+                }
                 const senderKey = mine ? "me" : (m.sender_id ?? "them");
                 const showName = prevSender !== senderKey;
                 prevSender = senderKey;
@@ -456,14 +460,62 @@ const ChatThreadPage = () => {
         )}
       </div>
 
-      {isPro && !isSupport && (
-        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background">
-          <Button size="sm" variant="outline" onClick={() => setBookingOpen(true)} className="w-full uppercase tracking-[0.08em] text-[11px]">
-            <Calendar className="size-3.5 mr-1.5" />
+      {/* Client side: persistent booking action whenever the pro has a link. */}
+      {!isSupport && !isPro && bookingUrl && (
+        <div className="px-4 pt-2 pb-2 border-t border-border/60 bg-background">
+          <a
+            href={bookingUrl}
+            {...externalLinkProps}
+            className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
+          >
+            <Calendar className="size-3.5" />
             Book appointment
-          </Button>
+            <ExternalLink className="size-3.5" />
+          </a>
         </div>
       )}
+
+      {isPro && !isSupport && (
+        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBookingOpen(true)} className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]">
+              <Calendar className="size-3.5 mr-1.5" />
+              Book appointment
+            </Button>
+            {bookingUrl && (
+              <Button
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await sendBookingRequest.mutateAsync({
+                      bookingUrl,
+                      proName: myProName || "Your professional",
+                    });
+                    toast.success("Booking request sent");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not send request");
+                  }
+                }}
+                disabled={sendBookingRequest.isPending}
+                className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]"
+              >
+                <CalendarPlus className="size-3.5 mr-1.5" />
+                Send booking request
+              </Button>
+            )}
+          </div>
+          {!bookingUrl && (
+            <button
+              type="button"
+              onClick={() => nav("/pro/profile")}
+              className="w-full text-left text-[11.5px] font-body text-primary underline underline-offset-2"
+            >
+              Add your booking link to enable the Book appointment button
+            </button>
+          )}
+        </div>
+      )}
+
 
       <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background flex items-end gap-2">
         <div className="flex-1 min-w-0">
