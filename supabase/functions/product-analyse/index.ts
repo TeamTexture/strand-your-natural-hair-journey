@@ -397,6 +397,9 @@ async function runLovable(args: {
     ragK: 5,
   });
 
+  const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
+  const tipsBlock = buildTipsLevelBlock(tipsLevel);
+
   const userMsg = `Analyse this product photo. Read the brand and product title directly from the label.
 
 User context (use to compute flags, match_score, ai_summary, and use_cases):
@@ -415,7 +418,7 @@ Return strict JSON matching the schema in your system prompt.`;
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${LOVABLE_SYSTEM}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
+          { role: "system", content: `${buildLovableSystem(tipsLevel)}\n\n${tipsBlock}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
           {
             role: "user",
             content: [
