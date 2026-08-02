@@ -168,36 +168,127 @@ export function parseGuidance(text: string | null | undefined): ParsedGuidance {
 }
 
 /* ------------------------------------------------------------------ *
- * Action icons
- * ------------------------------------------------------------------ */
+ * Action icons — MEANING ONLY
+ * ------------------------------------------------------------------ *
+ * Each entry maps a genuine concept to the icon that depicts it. If nothing
+ * matches confidently we return a neutral dot rather than a wrong icon, and a
+ * picker guarantees the same icon is never stamped twice inside one card.
+ */
 
 const ACTION_ICONS: Array<[RegExp, LucideIcon]> = [
-  [/\b(don't|do not|avoid|never|stop|reduce|careful|warning|watch)\b/i, AlertTriangle],
+  // Buildup / scalp congestion — the "stop water/residue" meaning.
+  [/(buildup|build-up|build up|residue|sebum|clog|congest|flak|itch|inflam)/i, DropletOff],
+  // Cadence and time.
+  [/\b(every\s+\d|weekly|fortnightly|monthly|rhythm|cadence|routine|consistent|overdue|due|gap between)\b/i, Repeat],
+  [/\b(minute|minutes|hour|hours|overnight|wait|leave it on|timer)\b/i, Timer],
+  [/\b(book|schedule|calendar|appointment|next wash|plan)\b/i, CalendarDays],
+  [/\b(day|days|today|tomorrow|week)\b(?=[^.]*\b(since|ago|past|last)\b)/i, CalendarClock],
+  // Goal / measurement.
+  [/\b(goal|target|aim|retention|length|growth|inch|cm)\b/i, Ruler],
+  // Cleansing and moisture.
+  [/(shampoo|cleanse|co-wash|clarif|rinse|wash)/i, Droplet],
+  [/(moistur|hydrat|water|damp|spritz|leave-in|deep condition|deep-condition|conditioner|mask)/i, Droplets],
+  // Heat.
   [/(tt heat hat|heat|warm|steam|thermal)/i, ThermometerSun],
-  [/(deep condition|deep-condition|mask|conditioner|moistur|hydrat|water|rinse|wet|damp|spritz|leave-in)/i, Droplet],
-  [/(trim|cut|split end|scissors)/i, Scissors],
+  // Protection.
   [/(protect|seal|tuck|bonnet|satin|silk|shield|low tension|low manipulation)/i, ShieldCheck],
-  [/(book|schedule|calendar|appointment|date|next wash)/i, CalendarDays],
-  [/(minute|hour|wait|leave it on|timer|overnight)/i, Timer],
-  [/(week|month|rhythm|cadence|every \d|routine|consistent|same product)/i, Repeat],
-  [/(section|part your hair|divide|four parts|quadrant)/i, Layers],
-  [/(scalp|massage|fingertip|cleanse|shampoo|wash)/i, Hand],
-  [/(measure|length|retention|growth|cm|inch)/i, Ruler],
-  [/(ingredient|protein|keratin|glycerin|oil|butter|surfactant)/i, FlaskConical],
-  [/(iron|ferritin|vitamin|blood|thyroid|marker|gp |doctor)/i, Stethoscope],
-  [/(air dry|dry|breath|humidity|wind)/i, Wind],
-  [/(gentle|beginner|first time|new to)/i, Baby],
-  [/(goal|target|aim)/i, Target],
-  [/(plan|remind|overdue|due)/i, CalendarClock],
+  // Products / ingredients.
+  [/(product|ingredient|protein|keratin|glycerin|surfactant|oil|butter|formula)/i, FlaskConical],
+  // Clinical.
+  [/(iron|ferritin|vitamin|blood|thyroid|marker|gp |doctor|tsh)/i, Stethoscope],
+  // Sectioning and technique.
+  [/(section|part your hair|divide|quadrant)/i, Layers],
+  [/(trim|cut|split end|scissors)/i, Scissors],
+  [/(massage|fingertip|finger-smooth|smooth with your fingers)/i, Hand],
+  [/\b(don't|do not|avoid|never|stop|careful|warning|watch out)\b/i, AlertTriangle],
 ];
 
-/** Match a lucide icon to an action / instruction line by keyword. */
-export function guidanceIcon(text: string): LucideIcon {
+/** Confident keyword → icon match, or undefined when nothing genuinely fits. */
+export function matchGuidanceIcon(text: string): LucideIcon | undefined {
   for (const [re, Icon] of ACTION_ICONS) {
     if (re.test(text)) return Icon;
   }
-  return Sparkles;
+  return undefined;
 }
+
+/** Neutral marker used when no icon carries real meaning for a line. */
+export const NEUTRAL_ICON: LucideIcon = Dot;
+
+/** Match a lucide icon to an action / instruction line by keyword. */
+export function guidanceIcon(text: string): LucideIcon {
+  return matchGuidanceIcon(text) ?? NEUTRAL_ICON;
+}
+
+/**
+ * Icon discipline: one picker per card. The same icon is never returned twice —
+ * a repeat falls back to the neutral dot so meaning stays honest.
+ */
+export function createIconPicker() {
+  const used = new Set<LucideIcon>();
+  return (text: string): LucideIcon => {
+    const icon = matchGuidanceIcon(text);
+    if (icon && !used.has(icon)) {
+      used.add(icon);
+      return icon;
+    }
+    return NEUTRAL_ICON;
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Anchor stat — the hero number
+ * ------------------------------------------------------------------ */
+
+export interface AnchorStatValue {
+  /** The numeral, e.g. "13". */
+  value: string;
+  /** Its context, e.g. "days since your last wash day". */
+  context: string;
+}
+
+/**
+ * Pull a number + its context out of guidance prose ("13 days since your last
+ * wash day", "20 minutes under heat", "3 markers flagged") so it can be shown
+ * as a stat instead of being buried in a sentence.
+ */
+export function extractAnchorStat(text: string | null | undefined): AnchorStatValue | null {
+  const clean = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!clean) return null;
+  const m = clean.match(
+    /\b(\d+(?:\.\d+)?)\s+(days?|weeks?|months?|minutes?|mins?|hours?|inch(?:es)?|cm|markers?|sections?|washes|wash days?)\b([^.!?]*)/i,
+  );
+  if (!m) return null;
+  const tail = (m[3] ?? "").trim().replace(/^[,—-]\s*/, "");
+  return { value: m[1], context: [m[2], tail].filter(Boolean).join(" ") };
+}
+
+/**
+ * True when a block of copy says nothing beyond what the button already says —
+ * such a block is deleted rather than rendered ("one CTA" rule).
+ */
+export function restatesAction(block: string, cta: string | null | undefined): boolean {
+  const words = (v: string) =>
+    new Set(
+      String(v ?? "")
+        .toLowerCase()
+        .replace(/[^a-z\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 2 && !STOP_WORDS.has(w)),
+    );
+  const b = words(block);
+  const c = words(cta ?? "");
+  if (b.size === 0 || c.size === 0) return false;
+  let hits = 0;
+  c.forEach((w) => { if (b.has(w)) hits += 1; });
+  // The block adds nothing when it is short and echoes the CTA's verbs/nouns.
+  return hits / c.size >= 0.6 && b.size <= c.size * 3;
+}
+
+const STOP_WORDS = new Set([
+  "the", "your", "you", "and", "for", "with", "that", "this", "now", "keep", "get",
+  "are", "was", "has", "have", "will", "can", "its", "into", "from", "out", "just",
+]);
+
 
 /* ------------------------------------------------------------------ *
  * Key-fact chips — extract-and-highlight
