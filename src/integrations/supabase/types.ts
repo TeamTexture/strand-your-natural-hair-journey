@@ -1937,9 +1937,13 @@ export type Database = {
           opening_hours: Json | null
           photos: string[]
           postcode: string | null
+          profile_review_status: Database["public"]["Enums"]["pro_profile_review_status"]
           referral_fee_percent: number | null
+          review_note: string | null
+          reviewed_at: string | null
           services: Json
           specialisms: string[]
+          submitted_at: string | null
           suspended_at: string | null
           updated_at: string
           user_id: string
@@ -1967,9 +1971,13 @@ export type Database = {
           opening_hours?: Json | null
           photos?: string[]
           postcode?: string | null
+          profile_review_status?: Database["public"]["Enums"]["pro_profile_review_status"]
           referral_fee_percent?: number | null
+          review_note?: string | null
+          reviewed_at?: string | null
           services?: Json
           specialisms?: string[]
+          submitted_at?: string | null
           suspended_at?: string | null
           updated_at?: string
           user_id: string
@@ -1997,9 +2005,13 @@ export type Database = {
           opening_hours?: Json | null
           photos?: string[]
           postcode?: string | null
+          profile_review_status?: Database["public"]["Enums"]["pro_profile_review_status"]
           referral_fee_percent?: number | null
+          review_note?: string | null
+          reviewed_at?: string | null
           services?: Json
           specialisms?: string[]
+          submitted_at?: string | null
           suspended_at?: string | null
           updated_at?: string
           user_id?: string
@@ -3392,6 +3404,11 @@ export type Database = {
         | "Stylist"
       pro_enquiry_status: "pending" | "accepted" | "declined" | "withdrawn"
       pro_listing_tier: "full" | "listed_enquiry" | "external_link"
+      pro_profile_review_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "changes_requested"
       pro_type: "Trichologist" | "Dermatologist" | "Curl Specialist"
       product_marketed_purpose:
         | "dry_hair"
@@ -3553,6 +3570,12 @@ export const Constants = {
       ],
       pro_enquiry_status: ["pending", "accepted", "declined", "withdrawn"],
       pro_listing_tier: ["full", "listed_enquiry", "external_link"],
+      pro_profile_review_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "changes_requested",
+      ],
       pro_type: ["Trichologist", "Dermatologist", "Curl Specialist"],
       product_marketed_purpose: [
         "dry_hair",
