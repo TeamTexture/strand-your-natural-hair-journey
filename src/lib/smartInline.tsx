@@ -13,6 +13,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { capitaliseSentences } from "@/lib/sentenceCase";
+import { safeRewrite } from "@/lib/coherence";
 
 export const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
 
@@ -226,7 +227,11 @@ export function useSmartInline() {
   const { products } = useUserProducts("all");
   return React.useCallback(
     (text: string, keyPrefix = "s") =>
-      renderInlineWithProducts(capitaliseSentences(text), keyPrefix, products),
+      renderInlineWithProducts(
+        safeRewrite(text, capitaliseSentences(text)),
+        keyPrefix,
+        products,
+      ),
     [products],
   );
 }

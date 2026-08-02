@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { safeRewrite } from "@/lib/coherence";
 import {
   AlertTriangle,
   Check,
@@ -83,21 +84,30 @@ const PLAIN_TERMS: Array<[string, string]> = [
  * nested "(this is called (this is called …))" phrasing.
  */
 export function plainLanguage(text: string): string {
+  if (!text) return text;
   let out = text;
   for (const [term, plain] of PLAIN_TERMS) {
     // Already expanded on a previous pass — leave it as it is.
     if (out.toLowerCase().includes(plain.toLowerCase())) continue;
-    const re = new RegExp(`(\\b(?:high|low|medium|fine|coarse|your|the)\\s+)?\\b${term}\\b`, "i");
+    // Match the term only as a standalone word, or as the tail of a hyphenated
+    // qualifier ("high-porosity"). Never substitute inside a compound, which is
+    // what produced copy like "high-how easily your hair drinks up water".
+    const re = new RegExp(
+      `((?:high|low|medium|fine|coarse|your|the)[\\s-])?\\b${term}\\b(?![\\w-])`,
+      "i",
+    );
     const m = out.match(re);
     if (!m) continue;
     const qualifier = m[1];
     const replacement = qualifier
       ? `${qualifier}${term} (${plain})`
       : `${plain} (this is called ${term})`;
-    out = out.replace(re, replacement);
+    const next = out.replace(re, replacement);
+    out = safeRewrite(out, next);
   }
-  return out;
+  return safeRewrite(text, out);
 }
+
 
 
 export interface BeginnerStep {

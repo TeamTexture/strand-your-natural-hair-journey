@@ -18,6 +18,7 @@
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { TIPS_LEVEL_MAX, type TipsLevel } from "@/lib/tipsLevel";
 import { capitaliseSentences } from "@/lib/sentenceCase";
+import { safeRewrite } from "@/lib/coherence";
 
 /** A single piece of guidance anywhere in the app. */
 export interface GuidanceTip {
@@ -88,11 +89,17 @@ function pickGuidance(sentences: string[], max: number): string[] {
  */
 export function condenseProse(text: string | null | undefined, level: TipsLevel): string {
   if (!text) return "";
-  const clean = capitaliseSentences(text.replace(/\s+/g, " ").trim());
-  if (level >= 4) return plainLanguage(clean);
+  const raw = text.replace(/\s+/g, " ").trim();
+  const clean = safeRewrite(raw, capitaliseSentences(raw));
+  if (level >= 4) {
+    const expanded = safeRewrite(clean, plainLanguage(clean));
+    return safeRewrite(expanded, capitaliseSentences(expanded));
+  }
+
   const max = PROSE_SENTENCES[level];
   if (!Number.isFinite(max)) return clean;
   return pickGuidance(splitSentences(clean), max).join(" ");
+
 }
 
 
