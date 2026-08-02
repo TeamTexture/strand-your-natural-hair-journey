@@ -638,12 +638,9 @@ const WashDayDetail = () => {
 
         {/* ── AI insight ─────────────────────── */}
         {!editing && wd.ai_insight && (
-          <SurfaceCard className="bg-primary/[0.04] border-primary/20">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2 flex items-center gap-1.5">
-              <Sparkles className="size-3" /> Strand observation
-            </p>
-            <AiProse text={stripStaleDates(wd.ai_insight)} className="whitespace-pre-line" />
-          </SurfaceCard>
+          <GuidanceCard tone="insight" eyebrow="Strand observation" icon={Sparkles}>
+            <AiProse text={stripStaleDates(wd.ai_insight)} />
+          </GuidanceCard>
         )}
 
 
