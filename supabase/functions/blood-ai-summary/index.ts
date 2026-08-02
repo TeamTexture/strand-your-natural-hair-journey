@@ -13,6 +13,11 @@
 // Same response shape: { deficiencies[], overall_summary, priority_actions[] }
 // so the existing BloodAiSummary.tsx renderer is unchanged.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  fetchAdviceLedger,
+  buildAdviceLedgerBlock,
+  recordAdvice,
+} from "../_shared/advice-ledger.ts";
 import { json, preflight } from "../_shared/cors.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -31,7 +36,7 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-opus-4-7@v1";
+const MODEL_VERSION = "claude-opus-4-7@v2-budgets-ledger";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -164,6 +169,7 @@ OUTPUT RULES
 async function runClaude(args: {
   body: RequestBody;
   recentWashSignals: unknown[];
+  ledgerBlock?: string;
 }): Promise<BloodSummaryPayload> {
   const userText = `User-supplied profile:
 ${JSON.stringify({
@@ -185,7 +191,9 @@ Return JSON only via the return_summary tool.`;
 
   const req = await buildClaudeRequest({
     function_kind: "blood-ai-summary",
-    task_instructions: buildClaudeTaskInstructions(),
+    task_instructions: `${buildClaudeTaskInstructions()}${
+      args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""
+    }`,
     user_payload: {},
     user_content: userContent,
     user_context: args.body.context ?? null,
@@ -258,7 +266,7 @@ import {
 } from "../_shared/grounding.ts";
 
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
-async function runLovable(body: RequestBody): Promise<{
+async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
   payload: BloodSummaryPayload;
   status: number;
 }> {
@@ -332,7 +340,7 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
     body: JSON.stringify({
       model: "google/gemini-3.6-flash",
       messages: [
-        { role: "system", content: `${systemPrompt}${grounding.block}` },
+        { role: "system", content: `${systemPrompt}${grounding.block}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
         { role: "user", content: JSON.stringify(userPayload) },
       ],
       tools: [
@@ -475,18 +483,20 @@ Deno.serve(async (req: Request) => {
         .slice(0, 5);
     })();
 
+    const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
+
     let returnedPayload: BloodSummaryPayload;
     let providerStamp: "claude" | "lovable";
     let claudeShadow: BloodSummaryPayload | null = null;
 
     if (provider === "claude") {
-      returnedPayload = await runClaude({ body, recentWashSignals });
+      returnedPayload = await runClaude({ body, recentWashSignals, ledgerBlock });
       providerStamp = "claude";
     } else if (provider === "parallel") {
       // Return Lovable to the user as soon as it lands. The Claude shadow
       // run is fired off in the background so the user never waits for it.
       console.log("[blood-debug] before model call", { provider: "parallel" });
-      const shadowPromise = runClaude({ body, recentWashSignals })
+      const shadowPromise = runClaude({ body, recentWashSignals, ledgerBlock })
         .then((payload) => {
           console.log(
             JSON.stringify({
@@ -518,7 +528,7 @@ Deno.serve(async (req: Request) => {
           return null;
         });
 
-      const lovableRun = await runLovable(body);
+      const lovableRun = await runLovable(body, ledgerBlock);
       console.log("[blood-debug] model call done", { provider: "parallel" });
       console.log(
         JSON.stringify({
@@ -577,7 +587,7 @@ Deno.serve(async (req: Request) => {
       else void cacheShadow();
     } else {
 
-      const r = await runLovable(body);
+      const r = await runLovable(body, ledgerBlock);
       returnedPayload = r.payload;
       providerStamp = "lovable";
     }
@@ -638,6 +648,12 @@ Deno.serve(async (req: Request) => {
           });
       }
     }
+
+    await recordAdvice(
+      user.id,
+      "blood-ai-summary",
+      returnedPayload.priority_actions ?? [],
+    );
 
     console.log("[blood-debug] all done", {
       total_ms: Date.now() - t0,
