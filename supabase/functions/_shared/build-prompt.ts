@@ -17,7 +17,7 @@
 //   [2] RAG passages              no cache (per-query)
 //   [3] task instructions         no cache (per-call)
 
-import { STRAND_PERSONA } from "./strand-persona.ts";
+import { STRAND_PERSONA, STRAND_AUDIENCE_PSYCHOLOGY } from "./strand-persona.ts";
 import { CHAPTER_WHITELIST_PROMPT } from "./book-chapters.ts";
 import {
   renderTopicBlock,
@@ -116,7 +116,9 @@ export async function buildClaudeRequest(
   const systemBlocks: SystemBlock[] = [
     {
       type: "text",
-      text: STRAND_PERSONA,
+      text: `${STRAND_PERSONA}
+
+${STRAND_AUDIENCE_PSYCHOLOGY}`,
       cache_control: { type: "ephemeral" },
     },
     {
