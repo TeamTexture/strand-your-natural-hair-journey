@@ -453,7 +453,7 @@ const WashDayHub = () => {
         {latestTip ? (
           <NextWashTipCard action={latestTip.action} why={latestTip.why} />
         ) : (
-          <DynamicWashTipCard />
+          <DynamicWashTipCard onShown={setDynamicTipShown} />
         )}
 
 
