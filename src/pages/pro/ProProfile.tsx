@@ -216,7 +216,12 @@ const ProProfile = () => {
           location: form.location || null,
           postcode: form.postcode || null,
           contact_email: form.contact_email || null,
-          booking_url: form.booking_url || null,
+          booking_url: isValidBookingUrl(form.booking_url)
+            ? normalizeBookingUrl(form.booking_url)
+            : form.booking_url.trim()
+              ? normalizeBookingUrl(form.booking_url)
+              : null,
+
           website_url: normalizeWebsiteUrl(form.website_url) || null,
           instagram_handle: normalizeInstagramHandle(form.instagram_handle) || null,
           avatar_path: form.avatar_path,
