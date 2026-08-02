@@ -45,7 +45,9 @@ const Row = ({ label, value }: { label: string; value?: string | null }) => (
 
 const PhotoStrip = ({ paths }: { paths: string[] }) => {
   const [urls, setUrls] = useState<string[]>([]);
-  useState(() => {
+  const key = paths.join("|");
+  useEffect(() => {
+    let cancelled = false;
     if (paths.length === 0) return;
     Promise.all(
       paths.slice(0, 6).map((p) =>
@@ -54,8 +56,14 @@ const PhotoStrip = ({ paths }: { paths: string[] }) => {
           .createSignedUrl(p, 3600)
           .then(({ data }) => data?.signedUrl ?? null),
       ),
-    ).then((r) => setUrls(r.filter(Boolean) as string[]));
-  });
+    ).then((r) => {
+      if (!cancelled) setUrls(r.filter(Boolean) as string[]);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
   if (urls.length === 0) return null;
   return (
     <div className="grid grid-cols-3 gap-1.5 mt-2">
