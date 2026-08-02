@@ -17,6 +17,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
 import { useAuth } from "@/hooks/useAuth";
 import { queueHelloKleanPrompt } from "@/lib/discounts";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { type GuidanceTip } from "@/lib/tipsRender";
 
 /**
  * Track the iOS visual-viewport so the sheet can shrink/translate above
