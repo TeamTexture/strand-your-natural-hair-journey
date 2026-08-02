@@ -1,18 +1,25 @@
 import { useMemo } from "react";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { condenseProse, shortForm, selectTips, dedupeTips, type GuidanceTip } from "@/lib/tipsRender";
-import { BeginnerSteps, DoDont, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
-import { useSmartInline } from "@/lib/smartInline";
+import { shortForm, selectTips, dedupeTips, type GuidanceTip } from "@/lib/tipsRender";
+import { DoDont, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+import ActionList, { type GuidanceAction } from "@/components/guidance/ActionList";
+import StepSequence from "@/components/guidance/StepSequence";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import { guidanceIcon } from "@/lib/guidance";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { cn } from "@/lib/utils";
 
 /**
  * The one component every page uses to render guidance.
  *
- * Level 1 — one top-priority tip, instruction only.
- * Level 2 — top three tips, short-form, no reasoning.
- * Level 3 — all tips with the "why".
- * Level 4 — illustrated numbered step cards, plain language, do/don't,
- *           inline definitions and closing reassurance.
+ * Design responds to the support level:
+ *  1 Minimal      — a single compact StatusCallout: icon + one action line +
+ *                   one key chip.
+ *  2 Essentials   — 2–3 icon-led ActionRows with chips, no "why" prose.
+ *  3 Guided       — all tips as ActionRows with the "why" supporting text.
+ *  4 Hand-holding — a numbered StepSequence with everything visible at once,
+ *                   plus do/don't pairs and closing reassurance. Nothing is
+ *                   collapsed or deferred.
  *
  * ONE THEME, ONCE — pass `dedupeAgainst` with the prose already shown above
  * this block (an AI overview, a card body) and any tip that merely restates it
@@ -39,7 +46,6 @@ const TipsBlock = ({
   dedupeAgainst?: string | null;
 }) => {
   const { level, showExplanations, showBeginnerHelp } = useTipsLevel();
-  const renderTip = useSmartInline();
   const shown = useMemo(
     () => selectTips(dedupeTips(tips, dedupeAgainst), level),
     [tips, level, dedupeAgainst],
@@ -47,42 +53,59 @@ const TipsBlock = ({
 
   if (shown.length === 0) return null;
 
+  // Level 4 — everything, as a fully visible numbered sequence.
   if (showBeginnerHelp) {
     const allDos = [...(dos ?? []), ...shown.flatMap((t) => t.dos ?? [])];
     const allDonts = [...(donts ?? []), ...shown.flatMap((t) => t.donts ?? [])];
     return (
-      <div className={className}>
-        <BeginnerSteps
-          key="beginner"
-          steps={shown.map((t) => ({ text: t.short, detail: t.why, define: t.define }))}
+      <div key={level} className={cn("space-y-3", className)}>
+        <StepSequence
+          steps={shown.map((t) => ({
+            text: t.short,
+            detail: [t.why, t.define].filter(Boolean).join(" "),
+          }))}
         />
+        <KeyFactChips text={shown.map((t) => `${t.short} ${t.why ?? ""}`).join(" ")} max={5} />
         {(allDos.length > 0 || allDonts.length > 0) && (
-          <DoDont className="mt-3" dos={allDos} donts={allDonts} />
+          <DoDont dos={allDos} donts={allDonts} />
         )}
         <BeginnerReassurance>{reassurance}</BeginnerReassurance>
       </div>
     );
   }
 
+  // Level 1 — one compact callout, small footprint.
+  if (level === 1) {
+    const top = shown[0];
+    const line = shortForm(top.short, level);
+    return (
+      <StatusCallout
+        key={level}
+        tone="gold"
+        icon={guidanceIcon(top.short)}
+        className={cn("animate-in fade-in-0 duration-300", className)}
+        chips={<KeyFactChips text={`${top.short} ${top.why ?? ""}`} max={1} />}
+      >
+        {line}
+      </StatusCallout>
+    );
+  }
+
+  // Levels 2–3 — icon-led action rows; the "why" appears from level 3.
+  const actions: GuidanceAction[] = shown.map((t) => ({
+    action: shortForm(t.short, level),
+    why: showExplanations ? t.why : undefined,
+  }));
+
   return (
-    <ul
+    <ActionList
       key={level}
-      className={cn("space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-300", className)}
-    >
-      {shown.map((t, i) => (
-        <li key={`${idPrefix}-${i}`} className="flex gap-2 text-[12px] leading-snug">
-          <span className="text-primary mt-0.5 shrink-0">•</span>
-          <span className="flex-1">
-            {renderTip(shortForm(t.short, level), `${idPrefix}-${i}`)}
-            {showExplanations && t.why && (
-              <span className="block text-[11px] text-muted-foreground mt-1">
-                {renderTip(condenseProse(t.why, level), `${idPrefix}-why-${i}`)}
-              </span>
-            )}
-          </span>
-        </li>
-      ))}
-    </ul>
+      actions={actions}
+      showWhy={showExplanations}
+      showChips={level >= 2}
+      idPrefix={idPrefix}
+      className={cn("animate-in fade-in-0 duration-300", className)}
+    />
   );
 };
 
