@@ -209,6 +209,10 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (ledgerUserId) {
+      await recordAdvice(ledgerUserId, "journal-encouragement", [banner.headline]);
+    }
+
     return new Response(JSON.stringify({ banner: await sanitiseAndLog(banner, "journal-encouragement") }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
