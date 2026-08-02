@@ -482,6 +482,9 @@ const WashDayHub = () => {
           />
         </div>
 
+        {/* Wash rhythm card removed — it repeated cadence reasoning already
+            carried by the overdue alert and the AI tip card. Only the next
+            wash day scheduling actions remain. */}
         <SurfaceCard tone="gold">
           <div className="flex items-start gap-3">
             <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
@@ -489,84 +492,51 @@ const WashDayHub = () => {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
-                Wash rhythm
+                Next wash day
               </p>
-              <p className="font-display text-[15px] leading-snug mt-1 break-words">
-                {educational.headline}
-              </p>
-              {/* MAX ONE cadence-reasoning block per page:
-                  overdue alert > AI tip card > wash rhythm why. */}
-              {!cadenceReasoningTaken && (
-                <LevelGate min={2}>
-                  <div className="mt-2">
-                    <AiProse text={dedupeSentences(`Why this matters — ${educational.why}`, pageSeen)} />
-                  </div>
-                </LevelGate>
-              )}
-              <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
-                  Next wash reminder
-                </p>
               <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
                 {level === 1 ? "Keep your next wash day visible." : educational.reminder}
               </p>
-              {/* Level-4 depth must ADD procedure, never restate the reminder above. */}
-              {showBeginnerHelp && (
-                <BeginnerSteps
-                  className="mt-2"
-                  steps={[
-                    { text: "Tap “Schedule this wash day” below.", detail: "That pins the date to your STRAND calendar so you can see it coming." },
-                    { text: "Then tap “Add to Google Calendar”.", detail: "You will get a reminder on your phone on the day itself." },
-                    { text: "Set aside about 2 hours on the day.", detail: "Two washes, 20 minutes with conditioner on, then styling. There is no rush." },
-                  ]}
-                />
-              )}
 
-                {educational.nextDateIso && (
-                  <div className="mt-3 flex flex-col gap-2">
-                    {scheduledSet.has(educational.nextDateIso) ? (
-                      <p className="w-full text-center text-[12px] font-body text-primary/90 bg-primary/10 border border-primary/25 rounded-full px-4 py-2">
-                        ✓ Scheduled — tap the highlighted date on the calendar to manage.
-                      </p>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const iso = educational.nextDateIso!;
-                          const [y, m] = iso.split("-").map(Number);
-                          setView({ year: y, month: m - 1 });
-                          openScheduleDialog(iso);
-                          setTimeout(() => {
-                            document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                          }, 50);
-                        }}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold font-body px-4 py-2.5 shadow-sm hover:opacity-95 transition"
-                      >
-                        <CalendarClock className="size-4" />
-                        Schedule this wash day
-                      </button>
-                    )}
-                    <a
-                      href={buildGoogleCalendarUrl(educational.nextDateIso)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
+              {educational.nextDateIso && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {scheduledSet.has(educational.nextDateIso) ? (
+                    <p className="w-full text-center text-[12px] font-body text-primary/90 bg-primary/10 border border-primary/25 rounded-full px-4 py-2">
+                      ✓ Scheduled — tap the highlighted date on the calendar to manage.
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const iso = educational.nextDateIso!;
+                        const [y, m] = iso.split("-").map(Number);
+                        setView({ year: y, month: m - 1 });
+                        openScheduleDialog(iso);
+                        setTimeout(() => {
+                          document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }, 50);
+                      }}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold font-body px-4 py-2.5 shadow-sm hover:opacity-95 transition"
                     >
-                      <CalendarPlus className="size-4" />
-                      Add to Google Calendar
-                    </a>
-                  </div>
-                )}
-              </div>
-              <LevelGate min={3}>
-                <p className="font-body text-[11.5px] text-muted-foreground mt-3">
-                  💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
-                </p>
-              </LevelGate>
-
+                      <CalendarClock className="size-4" />
+                      Schedule this wash day
+                    </button>
+                  )}
+                  <a
+                    href={buildGoogleCalendarUrl(educational.nextDateIso)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
+                  >
+                    <CalendarPlus className="size-4" />
+                    Add to Google Calendar
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </SurfaceCard>
+
       </div>
 
 
