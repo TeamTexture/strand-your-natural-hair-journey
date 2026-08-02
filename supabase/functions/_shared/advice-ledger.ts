@@ -7,9 +7,19 @@
 // Keys are normalised action fingerprints, e.g. "deep-condition-weekly-heat",
 // "two-step-cleanse", "low-tension-styles".
 
-type Client = {
-  from: (t: string) => any;
-};
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+
+declare const Deno: { env: { get(k: string): string | undefined } };
+
+type Client = { from: (t: string) => any };
+
+/** Service-role client so ledger writes are never blocked by RLS. */
+function ledgerClient(): Client | null {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  return createClient(url, key) as unknown as Client;
+}
 
 const WINDOW_DAYS = 14;
 
@@ -58,10 +68,9 @@ export interface LedgerEntry {
 }
 
 /** Fetch the user's advice from the last 14 days. */
-export async function fetchAdviceLedger(
-  admin: Client,
-  userId: string,
-): Promise<LedgerEntry[]> {
+export async function fetchAdviceLedger(userId: string): Promise<LedgerEntry[]> {
+  const admin = ledgerClient();
+  if (!admin) return [];
   try {
     const since = new Date(Date.now() - WINDOW_DAYS * 86400_000).toISOString();
     const { data } = await admin
@@ -100,7 +109,6 @@ export function buildAdviceLedgerBlock(entries: LedgerEntry[]): string {
  * must never break a generation response.
  */
 export async function recordAdvice(
-  admin: Client,
   userId: string,
   surface: string,
   lines: Array<string | null | undefined>,
@@ -121,6 +129,8 @@ export async function recordAdvice(
     created_at: new Date().toISOString(),
   }));
   if (!rows.length) return;
+  const admin = ledgerClient();
+  if (!admin) return;
   try {
     await admin
       .from("user_advice_ledger")
