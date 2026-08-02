@@ -89,7 +89,7 @@ function pickGuidance(sentences: string[], max: number): string[] {
  */
 export function condenseProse(text: string | null | undefined, level: TipsLevel): string {
   if (!text) return "";
-  const raw = text.replace(/\s+/g, " ").trim();
+  const raw = stripDefinitionBrackets(text.replace(/\s+/g, " ").trim());
   const clean = safeRewrite(raw, capitaliseSentences(raw));
   if (level >= 4) {
     const expanded = safeRewrite(clean, plainLanguage(clean));
