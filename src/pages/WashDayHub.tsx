@@ -670,32 +670,22 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
   if (isLoading && !tip) return null;
   if (!tip) return null;
   return (
-    <SurfaceCard>
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-          <Sparkles className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
-            Your wash day tip
-          </p>
-          <p className="font-display text-[15px] leading-snug mt-1 break-words">
-            {tip.headline}
-          </p>
-          <AiProse text={tip.why} className="mt-2" />
-          {tip.technique && (
-            <LevelGate min={2}>
-              <div className="mt-2">
-                <AiProse text={`How: ${tip.technique}`} />
-              </div>
-            </LevelGate>
-          )}
-          {/* No BeginnerSteps here — level-4 depth comes from the server-side
-              tips-level directive expanding the generated tip itself. Repeating
-              the headline/why/technique as "steps" restated what was just read. */}
-        </div>
-      </div>
-    </SurfaceCard>
+    <GuidanceCard
+      tone="gold"
+      eyebrow="Your wash day tip"
+      icon={Sparkles}
+      headline={tip.headline}
+    >
+      <AiProse text={tip.why} />
+      {tip.technique && (
+        <LevelGate min={2}>
+          <AiProse text={`Technique: ${tip.technique}`} />
+        </LevelGate>
+      )}
+      {/* No BeginnerSteps here — level-4 depth comes from the server-side
+          tips-level directive expanding the generated tip itself. Repeating
+          the headline/why/technique as "steps" restated what was just read. */}
+    </GuidanceCard>
   );
 
 };
