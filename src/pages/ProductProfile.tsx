@@ -28,7 +28,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
-import AiProse from "@/components/tips/AiProse";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { condenseProse, leadPhrase } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
@@ -560,26 +559,20 @@ const ProductProfile = () => {
                       )}
                       aria-expanded={isClickable ? isExpanded : undefined}
                     >
-                      <span
-                        className="shrink-0 mt-0.5 w-4 flex items-center justify-center"
-                        aria-label={isFlagged ? "flagged ingredient" : "ingredient"}
-                      >
-                        {isFlagged ? (
-                          <Flag
-                            className="size-3.5 fill-current"
-                            style={{ color: "hsl(40 65% 32%)" }}
-                            aria-label="flagged ingredient"
-                          />
-                        ) : null}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-tight">{name}</p>
-                        {aiFlag?.body && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                            {condenseProse(aiFlag.body, tipsLevel)}
-                          </p>
-                        )}
-                        {isClickable && (
+                      {aiFlag ? (
+                        <IngredientFlagRow
+                          name={name}
+                          reason={aiFlag.body ? condenseProse(aiFlag.body, tipsLevel) : undefined}
+                          flag={aiFlag.tone}
+                          className="border-none !p-0 bg-transparent flex-1"
+                        />
+                      ) : (
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-tight">{name}</p>
+                        </div>
+                      )}
+                      {isClickable && (
+                        <div className="flex-1 min-w-0 -mt-0.5">
                           <p className="text-[10px] text-primary/70 uppercase tracking-[0.15em] mt-1">
                             {matches.length === 0
                               ? "Not in your shelf or wishlist"
@@ -587,8 +580,8 @@ const ProductProfile = () => {
                                 ? "Hide products"
                                 : `Also in ${matches.length} of your product${matches.length === 1 ? "" : "s"} ›`}
                           </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </RowEl>
                     {isExpanded && matches.length > 0 && (
                       <div className="bg-secondary/40">

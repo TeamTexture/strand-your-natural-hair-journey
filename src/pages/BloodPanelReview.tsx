@@ -57,6 +57,9 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import { shortForm, wantsDetail, wantsWhy, type GuidanceTip } from "@/lib/tipsRender";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import ActionList from "@/components/guidance/ActionList";
+import MarkerBadgeRow, { type MarkerSeverity } from "@/components/blood/MarkerBadgeRow";
 
 interface PanelRow {
   id: string;
@@ -418,22 +421,16 @@ export default function BloodPanelReview() {
                 </div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-body">
-                <span className="text-foreground/70">
-                  {results.length} marker{results.length === 1 ? "" : "s"}
-                </span>
-                <span
-                  className={cn(
-                    "px-2.5 py-1 rounded-full",
-                    flaggedCount > 0
-                      ? "bg-warn/15 text-warn"
-                      : "bg-good/15 text-good",
-                  )}
-                >
-                  {flaggedCount > 0
-                    ? `${flaggedCount} outside range`
-                    : "All within range"}
-                </span>
+              <div className="mt-3 pt-3 border-t border-border/60">
+                <AnchorStat
+                  value={flaggedCount}
+                  context={
+                    flaggedCount === 1
+                      ? `marker outside range out of ${results.length}`
+                      : `markers outside range out of ${results.length}`
+                  }
+                  tone={flaggedCount > 0 ? "warning" : "good"}
+                />
               </div>
             </SurfaceCard>
 
@@ -466,7 +463,11 @@ export default function BloodPanelReview() {
                 <section className="space-y-2">
                   <SectionLabel>Priority actions</SectionLabel>
                   <SurfaceCard>
-                    <TipsBlock idPrefix="panel-priority" tips={tips} reassurance="Start with the first one — the rest can wait." />
+                    <ActionList
+                      idPrefix="panel-priority"
+                      actions={tips.map((t) => ({ action: t.short, why: t.why }))}
+                      showWhy
+                    />
                   </SurfaceCard>
                 </section>
               );
