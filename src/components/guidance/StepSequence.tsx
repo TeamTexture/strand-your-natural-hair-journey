@@ -46,7 +46,7 @@ const StepSequence = ({
             <div className="flex-1 min-w-0 pt-0.5">
               <div className="flex items-start gap-1.5">
                 <Icon className="size-3.5 text-primary shrink-0 mt-[3px]" aria-hidden />
-                <p className="flex-1 text-[13.5px] leading-relaxed text-foreground break-words">
+                <p className="flex-1 text-[12px] leading-[1.55] text-foreground break-words">
                   {render(body, `step-${i}`)}
                 </p>
               </div>

@@ -56,12 +56,12 @@ const GuidanceBody = ({
     return (
       <div key={level} className={cn("space-y-2 animate-in fade-in-0 duration-300", className)}>
         {lead && (
-          <p className="text-[13px] leading-relaxed text-foreground/85 font-body break-words">
+          <p className="text-[11.5px] leading-[1.55] text-foreground/85 font-body break-words">
             {render(lead, `${keyPrefix}-lead`)}
           </p>
         )}
         {parsed.segments.map((s, i) => (
-          <p key={i} className="text-[12.5px] leading-relaxed text-foreground/80 font-body break-words">
+          <p key={i} className="text-[11px] leading-[1.55] text-foreground/80 font-body break-words">
             <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
               {s.label}
             </span>
