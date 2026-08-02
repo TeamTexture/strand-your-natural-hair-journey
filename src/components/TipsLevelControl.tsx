@@ -19,32 +19,30 @@ const TipsLevelControl = () => {
         and AI guidance.
       </p>
 
-      <div className="mt-3">
-        <input
-          type="range"
-          min={1}
-          max={4}
-          step={1}
-          value={level}
-          onChange={(e) => setLevel(Number(e.target.value) as TipsLevel)}
-          aria-label="Guidance level"
-          className="w-full accent-primary"
-        />
-        <div className="flex justify-between mt-1.5">
-          {TIPS_LEVELS.map((lv) => (
+      <div className="mt-3 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Guidance level">
+        {TIPS_LEVELS.map((lv) => {
+          const selected = lv === level;
+          return (
             <button
               key={lv}
               type="button"
+              role="radio"
+              aria-checked={selected}
               onClick={() => setLevel(lv)}
               className={cn(
-                "text-[9px] leading-tight w-1/4 text-center transition-colors",
-                lv === level ? "text-primary font-semibold" : "text-muted-foreground",
+                "min-h-[44px] rounded-[10px] border flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors",
+                selected
+                  ? "bg-primary/15 border-primary text-primary"
+                  : "bg-card border-border text-muted-foreground hover:border-primary/40",
               )}
             >
-              {TIPS_LEVEL_LABEL[lv]}
+              <span className="text-[13px] font-bold font-body leading-none">{lv}</span>
+              <span className="text-[9px] uppercase tracking-[0.1em] font-body font-semibold leading-tight text-center">
+                {TIPS_LEVEL_LABEL[lv]}
+              </span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       <div className="mt-3 rounded-[10px] border border-primary/30 bg-primary/5 p-3">

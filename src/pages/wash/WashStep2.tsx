@@ -1,48 +1,64 @@
 import { smartBack } from "@/lib/smartBack";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Droplets, Flame, Wind, Sparkles, CheckCircle2, AlertTriangle, MinusCircle, XCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ProgressDots from "@/components/ProgressDots";
-import Tag from "@/components/Tag";
+import StepProgress from "@/components/nav/StepProgress";
+import Eyebrow from "@/components/nav/Eyebrow";
+import ChoiceChips, { type Choice } from "@/components/nav/ChoiceChips";
 import SurfaceCard from "@/components/SurfaceCard";
 import TipsBlock from "@/components/tips/TipsBlock";
 import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ICONS } from "@/lib/iconMap";
 
-const TG = ({
+const SCALP_OPTIONS: Choice[] = [
+  { value: "Clean", label: "Clean", icon: CheckCircle2 },
+  { value: "Itchy", label: "Itchy", icon: AlertTriangle },
+  { value: "Tender", label: "Tender", icon: AlertCircle },
+  { value: "Dry / flaky", label: "Dry / flaky", icon: Wind },
+  { value: "Greasy", label: "Greasy", icon: Droplets },
+  { value: "Balanced", label: "Balanced", icon: Sparkles },
+];
+
+const BREAKAGE_OPTIONS: Choice[] = [
+  { value: "None", label: "None", icon: CheckCircle2 },
+  { value: "Minimal — normal shedding", label: "Minimal — normal shedding", icon: MinusCircle },
+  { value: "Moderate", label: "Moderate", icon: ICONS.breakage },
+  { value: "A lot — concerned", label: "A lot — concerned", icon: XCircle },
+];
+
+const MultiChoiceField = ({
   label,
+  icon,
   options,
   value,
   onChange,
-  required = false,
   error = false,
 }: {
   label: string;
-  options: string[];
+  icon: React.ComponentType<{ className?: string }>;
+  options: Choice[];
   value: string[];
   onChange: (n: string[]) => void;
-  required?: boolean;
   error?: boolean;
 }) => (
   <div>
-    <div className="text-[11px] uppercase tracking-[0.18em] font-body mb-2 flex items-center gap-1.5">
-      <span className={cn(error ? "text-destructive" : "text-muted-foreground")}>{label}</span>
-      {required && <span className={cn(error ? "text-destructive" : "text-primary")}>*</span>}
+    <div className="flex items-center justify-between mb-2">
+      <Eyebrow icon={icon} tone={error ? "warning" : "gold"}>{label}</Eyebrow>
+      <span className={cn("text-[11px] font-medium", error ? "text-destructive" : "text-primary")}>*</span>
     </div>
-    <div className={cn("flex flex-wrap gap-2", error && "ring-1 ring-destructive/40 rounded-[10px] p-1.5 -m-1.5")}>
-      {options.map((o) => (
-        <Tag
-          key={o}
-          selected={value.includes(o)}
-          onClick={() => onChange(value.includes(o) ? value.filter((v) => v !== o) : [...value, o])}
-        >
-          {o}
-        </Tag>
-      ))}
+    <div className={cn(error && "ring-1 ring-destructive/40 rounded-[12px] p-1.5 -m-1.5")}>
+      <ChoiceChips
+        options={options}
+        value={value}
+        multiple
+        columns={2}
+        onChange={(v) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v])}
+      />
     </div>
     {error && (
       <p className="mt-1.5 text-[11px] text-destructive flex items-center gap-1">
@@ -79,8 +95,8 @@ const WashStep2 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Wash Day" right={<span>2 of 5</span>} onBack={smartBack(navigate, "/wash/step-1")} />
-      <ProgressDots total={5} current={2} />
+      <TitleBar title="Wash Day" onBack={smartBack(navigate, "/wash/step-1")} />
+      <div className="px-5 pt-1 pb-3"><StepProgress current={2} total={5} label="Scalp & breakage" /></div>
 
       <div className="px-5 pb-8 space-y-5">
         <LevelGate min={2} fallback={
@@ -115,8 +131,8 @@ const WashStep2 = () => {
             ]}
           />
         </SurfaceCard>
-        <TG label="Scalp Feel" options={["Clean", "Itchy", "Tender", "Dry / flaky", "Greasy", "Balanced"]} value={scalp} onChange={setScalp} required error={submitted && errors.scalp} />
-        <TG label="Breakage" options={["None", "Minimal — normal shedding", "Moderate", "A lot — concerned"]} value={breakage} onChange={setBreakage} required error={submitted && errors.breakage} />
+        <MultiChoiceField label="Scalp Feel" icon={ICONS.scalp} options={SCALP_OPTIONS} value={scalp} onChange={setScalp} error={submitted && errors.scalp} />
+        <MultiChoiceField label="Breakage" icon={ICONS.breakage} options={BREAKAGE_OPTIONS} value={breakage} onChange={setBreakage} error={submitted && errors.breakage} />
 
         <Button
           variant="gold"
