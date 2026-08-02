@@ -244,6 +244,8 @@ const BloodAiSummary = () => {
         <SurfaceCard>
           <TipsBlock
             idPrefix="blood-priority"
+            dedupeAgainst={summary.overall_summary}
+
             tips={summary.priority_actions.map((a, i): GuidanceTip => ({
               priority: summary.priority_actions.length - i,
               short: a,
