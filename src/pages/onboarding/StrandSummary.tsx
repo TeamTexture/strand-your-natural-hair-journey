@@ -207,7 +207,7 @@ const StrandSummary = () => {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
-          computeStrandSummaryFingerprint(user.id),
+          computeStrandSummaryFingerprint(user.id, tipsLevel),
         ]);
         const cached = cachedRes.data;
 

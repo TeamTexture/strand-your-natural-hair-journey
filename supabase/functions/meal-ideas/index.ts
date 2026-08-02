@@ -7,7 +7,6 @@
 // remain the reason.
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
@@ -31,8 +30,6 @@ import {
 } from "../_shared/grounding.ts";
 
 const systemPrompt = `${STRAND_PERSONA_WITH_RULES}
-
-${VOICE_PRINCIPLES}
 
 TASK
 You write 6 personalised, easy-to-cook meal ideas for a textured-hair-tracking app. Each meal must be:

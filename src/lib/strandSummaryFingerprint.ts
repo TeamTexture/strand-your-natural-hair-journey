@@ -4,7 +4,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const SUMMARY_PROMPT_VERSION = "routine-guardrails-v8-budgets-ledger";
+const SUMMARY_PROMPT_VERSION = "routine-guardrails-v9-tips-level";
 
 function djb2Hex(s: string): string {
   let h = 5381;
@@ -32,8 +32,14 @@ const TABLES: TableSpec[] = [
   { table: "user_before_photos", tsCol: "created_at" },
 ];
 
-export async function computeStrandSummaryFingerprint(userId: string): Promise<string> {
-  const parts: string[] = [`prompt:${SUMMARY_PROMPT_VERSION}`];
+export async function computeStrandSummaryFingerprint(
+  userId: string,
+  tipsLevel?: number | null,
+): Promise<string> {
+  const parts: string[] = [
+    `prompt:${SUMMARY_PROMPT_VERSION}`,
+    `tipsLevel:${tipsLevel ?? "unset"}`,
+  ];
   await Promise.all(
     TABLES.map(async ({ table, tsCol }) => {
       const { count } = await supabase

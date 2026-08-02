@@ -19,6 +19,7 @@ import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
 } from "../_shared/book-chapters.ts";
@@ -30,7 +31,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v2-budgets-ledger";
+const MODEL_VERSION = "claude-haiku-4-5@v3-tips-level";
+// One-shot per wash-day save (no cache row) — bump to signal prompt/logic changes.
+const CACHE_VERSION = "v3-tips-level";
 
 interface RequestBody {
   steps?: Record<string, unknown>;
@@ -301,7 +304,7 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${systemPrompt}${grounding.block}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
+          { role: "system", content: `${systemPrompt}${grounding.block}\n\n${buildTipsLevelBlock((args.body.context as Record<string, unknown> | null | undefined)?.tipsLevel)}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
           { role: "user", content: JSON.stringify(userPayload) },
         ],
         tools: [
@@ -425,6 +428,7 @@ Deno.serve(async (req: Request) => {
           _model_version: MODEL_VERSION,
           _generated_at: new Date().toISOString(),
           _provider: "claude",
+          _cache_version: CACHE_VERSION,
         } as Record<string, unknown>),
       } as ObservationPayload;
     } else {
@@ -439,6 +443,7 @@ Deno.serve(async (req: Request) => {
         ...({
           _generated_at: new Date().toISOString(),
           _provider: "lovable",
+          _cache_version: CACHE_VERSION,
         } as Record<string, unknown>),
       } as ObservationPayload;
     }

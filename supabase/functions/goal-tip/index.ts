@@ -6,7 +6,6 @@
 // actions are 2-3 concrete next-step strings the user can act on.
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
   KNOWLEDGE_REGISTRY,
@@ -159,8 +158,6 @@ const corsHeaders = {
 };
 
 const baseSystemPrompt = `${STRAND_PERSONA_WITH_RULES}
-
-${VOICE_PRINCIPLES}
 
 ${CORE_ROUTINE_GUARDRAILS_PROMPT}
 

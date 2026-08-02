@@ -18,7 +18,6 @@
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -34,7 +33,7 @@ declare const Deno: {
 
 // Flash is ~3–5× faster than Pro and plenty for this short, structured payload.
 const MODEL = "google/gemini-3.6-flash";
-const MODEL_VERSION = "ingredient-profile@v5-succinct";
+const MODEL_VERSION = "ingredient-profile@v6-voice-dedupe";
 
 interface RequestBody {
   ingredient: string;
@@ -100,8 +99,6 @@ const TOOL_SCHEMA = {
 
 function buildSystemPrompt(): string {
   return `${STRAND_PERSONA_WITH_RULES}
-
-${VOICE_PRINCIPLES}
 
 TASK
 Return a SHORT, clear, science-backed ingredient profile for ONE ingredient via the return_profile tool. Three fields: what_it_is, benefits, what_it_means_for_you. Audience: a curious shopper who wants a quick, honest explanation — not a deep dive, not a sales pitch, not a warning.
