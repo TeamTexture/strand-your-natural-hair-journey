@@ -70,7 +70,7 @@ OUTPUT — JSON object only, no prose outside it:
 {
   "overview": string,            // 3-5 sentences. Second-person description of the user's hair, current style, and any relevant clinical/blood signals. Plain, factual, human. No pleasantries, no flattery, no filler.
   "action_plan": [],             // DEPRECATED. Always return an empty array. Fold every concrete action into routine_tips instead.
-  "routine_tips": string[]       // 4-6 items (up to 7 when the trim-education tip is required). See ROUTINE TIP RULES below. This is now the ONLY list of recommendations shown to the user, so it must carry the concrete actions AND their reasoning.
+  "routine_tips": string[]       // 4-6 items (up to 7 when the trim-education tip is required). Rhythm and personalisation only — never step-by-step wash technique. See ROUTINE TIP RULES below. This is now the ONLY list of recommendations shown to the user, so it must carry the concrete actions AND their reasoning.
 }
 
 ROUTINE TIP RULES — CRITICAL:
@@ -83,8 +83,8 @@ Each item MUST be a single sentence that follows this shape:
 - Do NOT repeat the same action twice in different words. Each tip must be a distinct instruction.
 - BANNED phrases (too vague): "manage", "maintain", "look after", "take care of", "keep an eye on", "be mindful of", "focus on moisture", "prioritise hydration", "monitor", "consider", "try to". Rewrite any item that drifts this way.
 - BANNED — pre-poo scheduling: NEVER prescribe pre-poo as a recurring routine step. Do NOT say "pre-poo every wash", "pre-poo weekly", "pre-poo before every wash", "add a pre-poo step", or any scheduled pre-poo instruction. Pre-poo is not part of the STRAND wash-day protocol as a scheduled ritual. Only mention pre-poo if the user's data explicitly shows they already pre-poo and it's serving them — otherwise omit the concept entirely.
-- CORE WASH-DAY BASELINE: at least one routine tip must preserve the Chapter 13 structure whenever routine_tips include wash-day guidance: cleanse the scalp first with a cleansing/all-purpose shampoo, cleanse the hair second with a moisturising/conditioning shampoo, then condition. Adapt for protective styles, scalp sensitivity or build-up, but never replace shampoo cleansing with co-washing and never skip conditioner.
-- REQUIRED ROUTINE COVERAGE: routine_tips MUST include the core two-cleanse baseline, the 3–4 wash-cycle product consistency rule, and style-specific guidance when currentStyle or planned_next_style exists. If blood/health markers are flagged, include how that changes the routine without replacing the baseline.
+- SCOPE — NO WASH TECHNIQUE STEPS: the strand summary covers who this hair is (characteristics and what they mean), its current state, the user's goals, and her personalised weekly rhythm. It must NOT teach the step-by-step wash process — no ordered cleanse/condition/detangle/rinse instructions, no "first ... then ..." wash sequences, no product-application technique. Those live on the user's wash day steps. When a routine tip needs to point at the wash itself, refer to "your wash day steps" in the app instead of restating them.
+- REQUIRED ROUTINE COVERAGE: routine_tips must cover the weekly rhythm (how often to wash, condition and rest the hair), the 3–4 wash-cycle product consistency rule, and style-specific guidance when currentStyle or planned_next_style exists. If blood/health markers are flagged, include how that changes the rhythm.
 - Every tip MUST be grounded in the manuscript teachings provided below. Do not invent guidance outside them. If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one tip must reference it directly.
 
 ${CORE_ROUTINE_GUARDRAILS_PROMPT}

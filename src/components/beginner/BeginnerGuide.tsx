@@ -147,7 +147,7 @@ export const BeginnerSteps = ({
                   </p>
                 )}
                 {s.why && (
-                  <p className="mt-1 text-[11.5px] leading-snug text-primary/90 font-body">
+                  <p className="mt-1 text-[11.5px] leading-snug text-foreground/75 font-body">
                     Why: {plainLanguage(s.why)}
                   </p>
                 )}

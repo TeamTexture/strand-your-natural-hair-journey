@@ -4,7 +4,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const SUMMARY_PROMPT_VERSION = "routine-guardrails-v9-tips-level";
+const SUMMARY_PROMPT_VERSION = "routine-guardrails-v10-no-wash-technique";
 
 function djb2Hex(s: string): string {
   let h = 5381;

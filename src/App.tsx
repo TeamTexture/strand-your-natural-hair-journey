@@ -109,6 +109,7 @@ const AdminBrandCalendar = lazy(() => import("./pages/admin/AdminBrandCalendar")
 const AdminBrandOfferReview = lazy(() => import("./pages/admin/AdminBrandOfferReview"));
 const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
 const AdminLibrary = lazy(() => import("./pages/admin/AdminLibrary"));
+const AdminCuratedContent = lazy(() => import("./pages/admin/AdminCuratedContent"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 
 // Brand
@@ -488,6 +489,7 @@ const App = () => (
               <Route path="/admin/brand-offers/:id" element={<RoleGate allow={["admin"]}><AdminBrandOfferReview /></RoleGate>} />
               <Route path="/admin/brand-calendar" element={<RoleGate allow={["admin"]}><AdminBrandCalendar /></RoleGate>} />
               <Route path="/admin/moderation" element={<RoleGate allow={["admin"]}><AdminModeration /></RoleGate>} />
+              <Route path="/admin/curated-content" element={<RoleGate allow={["admin"]}><AdminCuratedContent /></RoleGate>} />
               <Route path="/admin/library" element={<RoleGate allow={["admin"]}><AdminLibrary /></RoleGate>} />
               <Route path="/admin/events" element={<RoleGate allow={["admin"]}><AdminEvents /></RoleGate>} />
 
