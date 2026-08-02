@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Loader2, Trash2 } from "lucide-react";
+import { Pencil, Loader2, Trash2, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -7,6 +7,11 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserGoal } from "@/hooks/useGoals";
+import { useGoalTip } from "@/hooks/useGoalTip";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { type GuidanceTip } from "@/lib/tipsRender";
 
 interface Props {
   open: boolean;
@@ -50,6 +55,8 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
   const [draftText, setDraftText] = useState("");
   const [draftVoice, setDraftVoice] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
+  // Cached personalised tip for this goal (id + updated_at keyed).
+  const { data: goalTip } = useGoalTip(open ? goal : null);
 
   // Load updates whenever the sheet opens for a particular goal.
   useEffect(() => {
@@ -186,6 +193,26 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
             <div>
               <p className="text-sm leading-snug">{goal.title}</p>
             </div>
+          )}
+
+          {/* Personalised guidance for this goal, rendered through the shared
+              guidance design system so it scales with the support level.
+              Cached per goal id + updated_at — no extra generation. */}
+          {goalTip && (
+            <GuidanceCard tone="gold" eyebrow="Personalised tip" icon={Sparkles} headline={goalTip.headline}>
+              <AiProse text={goalTip.body} />
+              {goalTip.actions?.length > 0 && (
+                <TipsBlock
+                  idPrefix="goal-detail-tip"
+                  dedupeAgainst={goalTip.body}
+                  tips={goalTip.actions.map((a, i): GuidanceTip => ({
+                    priority: goalTip.actions.length - i,
+                    short: typeof a === "string" ? a : a.action,
+                    why: typeof a === "string" ? undefined : a.why,
+                  }))}
+                />
+              )}
+            </GuidanceCard>
           )}
 
           <div className="border-t border-border pt-4 space-y-3">
