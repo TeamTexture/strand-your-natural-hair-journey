@@ -165,7 +165,8 @@ const ColourReview = () => {
         )}
 
         {/* Current style + duration */}
-        <div className="rounded-[14px] border border-border bg-card p-4">
+        <div id="current-hairstyle" className="rounded-[14px] border border-border bg-card p-4">
+
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
