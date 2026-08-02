@@ -28,7 +28,7 @@ export interface ChatMessage {
   thread_id: string;
   sender_id: string | null;
   sender_role: string | null;
-  kind: "text" | "system";
+  kind: "text" | "system" | "booking_request";
   body: string;
   meta: Record<string, unknown>;
   created_at: string;
