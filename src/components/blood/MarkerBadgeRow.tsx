@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { TONE_CLASSES, type GuidanceTone } from "@/lib/guidance";
-import { leadPhrase } from "@/lib/tipsRender";
+import { emphasisSplit } from "@/lib/tipsRender";
 
 export type MarkerSeverity = "deficient" | "high" | "borderline" | "optimal";
 
@@ -52,7 +52,7 @@ const MarkerBadgeRow = ({
   const t = TONE_CLASSES[meta.tone];
   const impactText = impact?.trim();
   const long = !!impactText && impactText.length > 80;
-  const { phrase, rest } = long ? leadPhrase(impactText!) : { phrase: "", rest: "" };
+  const { phrase, rest } = long ? emphasisSplit(impactText!) : { phrase: "", rest: "" };
 
   return (
     <div className={cn("py-2.5", className)}>

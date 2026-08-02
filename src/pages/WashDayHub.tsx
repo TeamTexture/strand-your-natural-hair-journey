@@ -27,7 +27,7 @@ import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
-import { dedupeSentences, leadPhrase, splitSentences } from "@/lib/tipsRender";
+import { dedupeSentences, emphasisSplit, splitSentences } from "@/lib/tipsRender";
 import { restatesAction } from "@/lib/guidance";
 import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import { CircleSlash, Repeat, Ruler } from "lucide-react";
@@ -530,7 +530,7 @@ const WashDayHub = () => {
                 {(() => {
                   const reason = dedupeSentences(overdueReason, pageSeen);
                   if (!reason.trim()) return null;
-                  const { phrase, rest } = leadPhrase(reason);
+                  const { phrase, rest } = emphasisSplit(reason);
                   return (
                     <div className="flex gap-2 rounded-[10px] border border-destructive/20 bg-destructive/[0.05] px-2.5 py-2">
                       <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-destructive/15">

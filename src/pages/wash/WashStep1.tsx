@@ -33,7 +33,7 @@ import StatusCallout from "@/components/guidance/StatusCallout";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import ActionList from "@/components/guidance/ActionList";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
-import { leadPhrase } from "@/lib/tipsRender";
+import { emphasisSplit } from "@/lib/tipsRender";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
@@ -750,7 +750,7 @@ const WashStep1 = () => {
                         className="mt-2"
                       >
                         {heatRationale.reasons[0] && (() => {
-                          const { phrase, rest } = leadPhrase(heatRationale.reasons[0]);
+                          const { phrase, rest } = emphasisSplit(heatRationale.reasons[0]);
                           return (
                             <p className="text-[12.5px] leading-relaxed">
                               <span className="font-semibold text-foreground">{phrase}</span>{" "}
@@ -888,7 +888,7 @@ const WashStep1 = () => {
           ) : heatRationale?.reasons?.length ? (
             <div className="space-y-2.5 py-1">
               {(() => {
-                const { phrase, rest } = leadPhrase(heatRationale.reasons[0]);
+                const { phrase, rest } = emphasisSplit(heatRationale.reasons[0]);
                 return (
                   <p className="text-sm leading-relaxed">
                     <span className="font-semibold text-foreground">{phrase}</span>{" "}
