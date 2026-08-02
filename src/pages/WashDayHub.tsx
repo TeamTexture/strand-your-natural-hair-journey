@@ -507,18 +507,21 @@ const WashDayHub = () => {
               eyebrow="Wash day overdue"
               icon={AlertTriangle}
               footer={
-                <button
-                  onClick={() => navigate("/wash/step-1")}
-                  className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-destructive px-4 text-[12.5px] font-semibold text-destructive-foreground shadow-sm hover:opacity-95 transition"
-                >
-                  {OVERDUE_CTA} →
-                </button>
+                <div className="space-y-2.5">
+                  <button
+                    onClick={() => navigate("/wash/step-1")}
+                    className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition"
+                  >
+                    {OVERDUE_CTA} →
+                  </button>
+                  {schedulingRow(true)}
+                  <PlainTermsFootnote terms={overdueTerms} />
+                </div>
               }
             >
               <AnchorStat
-                tone="warning"
-                value={overdue.diffDays}
-                context={`day${overdue.diffDays === 1 ? "" : "s"} since your last wash day`}
+                value={`${overdue.diffDays} day${overdue.diffDays === 1 ? "" : "s"}`}
+                context="since your last wash"
                 target={`Your rhythm: ${educational.window}`}
                 targetIcon={Repeat}
               />
@@ -532,7 +535,8 @@ const WashDayHub = () => {
                       <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-destructive/15">
                         <CircleSlash className="size-2.5 text-destructive" aria-hidden />
                       </span>
-                      <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body break-words line-clamp-3">
+                      <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body break-words">
+
                         <span className="font-semibold text-foreground">{phrase}</span>
                         {rest && <span className="text-foreground/75"> {rest}</span>}
                       </p>
