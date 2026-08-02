@@ -1,0 +1,77 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import type { Database } from "@/integrations/supabase/types";
+
+export type ProProfileRow = Database["public"]["Tables"]["pro_profiles"]["Row"];
+export type ProReviewStatus =
+  Database["public"]["Enums"]["pro_profile_review_status"];
+
+/**
+ * The signed-in professional's own profile + review status. Drives the
+ * mandatory setup flow gate (draft / changes_requested → setup,
+ * submitted → holding screen, approved → dashboard).
+ */
+export function useMyProProfile() {
+  const { actualUser } = useAuth();
+  const q = useQuery({
+    queryKey: ["pro_profile_review", actualUser?.id],
+    enabled: !!actualUser?.id,
+    queryFn: async (): Promise<ProProfileRow | null> => {
+      const { data, error } = await supabase
+        .from("pro_profiles")
+        .select("*")
+        .eq("user_id", actualUser!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as ProProfileRow | null) ?? null;
+    },
+  });
+
+  const profile = q.data ?? null;
+  const status: ProReviewStatus | null = profile
+    ? (profile.profile_review_status as ProReviewStatus)
+    : null;
+
+  return {
+    profile,
+    status,
+    needsSetup: status === "draft" || status === "changes_requested",
+    underReview: status === "submitted",
+    approved: status === "approved",
+    reviewNote: profile?.review_note ?? null,
+    isLoading: q.isLoading,
+    refetch: q.refetch,
+  };
+}
+
+/** Admin: professionals waiting for profile approval. */
+export function usePendingProProfileReviews() {
+  return useQuery({
+    queryKey: ["admin", "pro-profile-reviews"],
+    queryFn: async (): Promise<ProProfileRow[]> => {
+      const { data, error } = await supabase
+        .from("pro_profiles")
+        .select("*")
+        .eq("profile_review_status", "submitted")
+        .order("submitted_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ProProfileRow[];
+    },
+  });
+}
+
+/** Admin badge count of profiles awaiting review. */
+export function usePendingProProfileReviewCount() {
+  return useQuery({
+    queryKey: ["admin", "pro-profile-reviews", "count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("pro_profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_review_status", "submitted");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}

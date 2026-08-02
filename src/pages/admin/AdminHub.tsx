@@ -16,6 +16,7 @@ import {
   Library,
   ShieldAlert,
   CalendarDays,
+  BadgeCheck,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -26,6 +27,7 @@ import LoadingDot from "@/components/LoadingDot";
 import UnifiedCampaignCalendar from "@/components/admin/UnifiedCampaignCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
+import { usePendingProProfileReviewCount } from "@/hooks/useProProfileReview";
 import { useAllPendingRevisions, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
 import { cn } from "@/lib/utils";
 
@@ -305,6 +307,7 @@ const AdminHub = () => {
   const nav = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: dropoff } = useAdminDropOffCounts();
+  const { data: pendingProfileReviews = 0 } = usePendingProProfileReviewCount();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
   const revisionCount = pendingRevisions.length;
 
@@ -448,6 +451,13 @@ const AdminHub = () => {
                 : undefined
             }
             onClick={() => nav("/admin/applications")}
+          />
+          <NavCard
+            icon={BadgeCheck}
+            title="Profile approvals"
+            description="Professional profiles submitted for review"
+            badge={pendingProfileReviews || undefined}
+            onClick={() => nav("/admin/pro-reviews")}
           />
           <NavCard
             icon={Sparkles}
