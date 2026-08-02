@@ -1,4 +1,5 @@
 // Shared manuscript-grounding helper for the NON-Claude (Lovable/Gemini)
+// paths and for the single-path functions. Imported by many edge functions.
 // paths and for the single-path functions.
 //
 // Every consumer-facing AI surface must be genuinely grounded in the
