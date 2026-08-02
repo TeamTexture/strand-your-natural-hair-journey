@@ -17,7 +17,6 @@ import {
   ShieldAlert,
   CalendarDays,
   BadgeCheck,
-  BookCheck,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -533,12 +532,6 @@ const AdminHub = () => {
               stats ? `${stats.viewsLast7d} view${stats.viewsLast7d === 1 ? "" : "s"} in last 7 days` : undefined
             }
             onClick={() => nav("/admin/audit")}
-          />
-          <NavCard
-            icon={BookCheck}
-            title="Curated Content"
-            description="Review and publish book-grounded teaching copy"
-            onClick={() => nav("/admin/curated-content")}
           />
           <NavCard
             icon={Library}

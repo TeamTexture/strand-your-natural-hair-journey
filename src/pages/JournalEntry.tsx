@@ -56,7 +56,6 @@ import LevelGate from "@/components/tips/LevelGate";
 import TipsBlock from "@/components/tips/TipsBlock";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
-import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -1099,7 +1098,6 @@ const JournalEntry = () => {
       </LevelGate>
       <div className="px-5 -mt-1 mb-2">
         <TipsBlock tips={reflectionTips} idPrefix="reflection-tip" />
-        {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
       </div>
       <div className="px-5 pb-4 space-y-3">
         <SurfaceCard>

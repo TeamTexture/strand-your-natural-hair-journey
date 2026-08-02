@@ -17,7 +17,6 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 import { useGoals } from "@/hooks/useGoals";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
@@ -350,7 +349,6 @@ const StrandSummary = () => {
                 <TipsLevelPrompt className="mt-3" />
               </GuidanceCard>
             )}
-            {hasLengthGoal ? <BeginnerTrimEducation /> : null}
           </>
         )}
 
