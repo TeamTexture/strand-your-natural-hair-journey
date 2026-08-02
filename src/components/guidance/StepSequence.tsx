@@ -18,9 +18,12 @@ export interface GuidanceStep {
 const StepSequence = ({
   steps,
   className,
+  startNumber = 1,
 }: {
   steps: GuidanceStep[];
   className?: string;
+  /** First number in the sequence — lets stage-grouped lists keep counting. */
+  startNumber?: number;
 }) => {
   const render = useSmartInline();
   const { showBeginnerHelp } = useTipsLevel();
@@ -41,7 +44,7 @@ const StepSequence = ({
         return (
           <li key={i} className="relative flex gap-3">
             <span className="relative z-10 size-[27px] shrink-0 rounded-full bg-primary text-primary-foreground text-[11.5px] font-bold flex items-center justify-center shadow-sm">
-              {i + 1}
+              {startNumber + i}
             </span>
             <div className="flex-1 min-w-0 pt-0.5">
               <div className="flex items-start gap-1.5">

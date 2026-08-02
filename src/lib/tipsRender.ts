@@ -20,10 +20,30 @@ import { TIPS_LEVEL_MAX, type TipsLevel } from "@/lib/tipsLevel";
 import { capitaliseSentences } from "@/lib/sentenceCase";
 import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
 
+/**
+ * Wash-day stages, in the order they actually happen. Guidance is always
+ * presented in this sequence — never priority order — so the user reads it the
+ * way they will do it: before they start, cleanse, condition and heat, rinse
+ * and seal, then style.
+ */
+export type GuidanceStage = "prep" | "cleanse" | "condition" | "seal" | "style";
+
+export const STAGE_ORDER: GuidanceStage[] = ["prep", "cleanse", "condition", "seal", "style"];
+
+export const STAGE_LABELS: Record<GuidanceStage, string> = {
+  prep: "Before you start",
+  cleanse: "Cleanse",
+  condition: "Condition and heat",
+  seal: "Rinse and seal",
+  style: "Style and finish",
+};
+
 /** A single piece of guidance anywhere in the app. */
 export interface GuidanceTip {
   /** Higher = more important. Lower levels keep the highest-priority items. */
   priority: number;
+  /** Where in the wash day this belongs. Drives display order. */
+  stage?: GuidanceStage;
   /** Short-form instruction — always shown at every level. */
   short: string;
   /** The reasoning — shown at level 3+. */
@@ -37,6 +57,33 @@ export interface GuidanceTip {
   /** Non-negotiable education (two-step cleanse, trim/retention). Never
    *  dropped by the level quantity cap — only its depth changes. */
   alwaysShow?: boolean;
+}
+
+/** Sort selected tips back into wash-day order for display. Stageless tips keep
+ *  their incoming order and sit after the staged ones. */
+export function orderByStage<T extends { stage?: GuidanceStage }>(tips: T[]): T[] {
+  return [...tips]
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => {
+      const ai = a.t.stage ? STAGE_ORDER.indexOf(a.t.stage) : STAGE_ORDER.length;
+      const bi = b.t.stage ? STAGE_ORDER.indexOf(b.t.stage) : STAGE_ORDER.length;
+      return ai - bi || a.i - b.i;
+    })
+    .map((e) => e.t);
+}
+
+/** Group tips into consecutive stage sections for headed rendering. */
+export function groupByStage<T extends { stage?: GuidanceStage }>(
+  tips: T[],
+): Array<{ stage: GuidanceStage | null; label: string | null; items: T[] }> {
+  const groups: Array<{ stage: GuidanceStage | null; label: string | null; items: T[] }> = [];
+  for (const tip of orderByStage(tips)) {
+    const stage = tip.stage ?? null;
+    const last = groups[groups.length - 1];
+    if (last && last.stage === stage) last.items.push(tip);
+    else groups.push({ stage, label: stage ? STAGE_LABELS[stage] : null, items: [tip] });
+  }
+  return groups;
 }
 
 /** How many sentences of AI / editorial prose each level keeps. */
