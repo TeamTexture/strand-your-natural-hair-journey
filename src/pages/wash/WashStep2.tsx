@@ -1,6 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
 import { AlertCircle, Droplets, Flame, Wind, Sparkles, CheckCircle2, AlertTriangle, MinusCircle, XCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";

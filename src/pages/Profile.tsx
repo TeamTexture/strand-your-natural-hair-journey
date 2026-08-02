@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, type LucideIcon } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, type LucideIcon } from "lucide-react";
 import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
-import SectionLabel from "@/components/SectionLabel";
 import SectionHeader from "@/components/nav/SectionHeader";
 import ListRow from "@/components/nav/ListRow";
 import IconChipGrid from "@/components/nav/IconChipGrid";
@@ -757,29 +756,25 @@ const Profile = () => {
             Hair Profile
           </EditableSectionLabel>
           <div className="px-5 pb-2">
-            <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {(() => {
-                // Some onboarding steps store multi-select values as arrays;
-                // older entries are plain strings. Normalize before rendering.
-                const toStr = (v: unknown): string =>
-                  Array.isArray(v) ? v.join(", ") : typeof v === "string" ? v : "";
-                const diameter = toStr(hair.diameter);
-                const porosity = toStr(hair.porosity);
-                const density = toStr(hair.density);
-                const scalp = toStr(hair.scalp);
-                return (
-                  <>
-                    {diameter && <ProfileRow icon="🧬" label="Strand diameter" value={diameter} />}
-                    {porosity && <ProfileRow icon="💧" label="Porosity" value={porosity} tone={porosity.toLowerCase().includes("high") ? "warn" : undefined} />}
-                    {density && <ProfileRow icon="🌾" label="Density" value={density} />}
-                    {scalp && <ProfileRow icon="💆" label="Scalp condition" value={scalp} tone={scalp.toLowerCase().includes("dry") || scalp.toLowerCase().includes("oily") ? "warn" : undefined} />}
-                  </>
-                );
-              })()}
-              {hair.diagnosed && hair.diagnosed.length > 0 && (
-                <ProfileRow icon="🩺" label="Diagnosed" value={hair.diagnosed.join(", ")} tone="warn" />
-              )}
-            </SurfaceCard>
+            {(() => {
+              // Some onboarding steps store multi-select values as arrays;
+              // older entries are plain strings. Normalize before rendering.
+              const toStr = (v: unknown): string =>
+                Array.isArray(v) ? v.join(", ") : typeof v === "string" ? v : "";
+              const diameter = toStr(hair.diameter);
+              const porosity = toStr(hair.porosity);
+              const density = toStr(hair.density);
+              const scalp = toStr(hair.scalp);
+              const chips: import("@/components/nav/IconChipGrid").IconChip[] = [];
+              if (diameter) chips.push({ label: "Strand diameter", value: diameter, icon: Ruler });
+              if (porosity) chips.push({ label: "Porosity", value: porosity, icon: Droplet, tone: porosity.toLowerCase().includes("high") ? "warning" : "gold" });
+              if (density) chips.push({ label: "Density", value: density, icon: Layers });
+              if (scalp) chips.push({ label: "Scalp condition", value: scalp, icon: Wind, tone: scalp.toLowerCase().includes("dry") || scalp.toLowerCase().includes("oily") ? "warning" : "gold" });
+              if (hair.diagnosed && hair.diagnosed.length > 0) {
+                chips.push({ label: "Diagnosed", value: hair.diagnosed.join(", "), icon: Stethoscope, tone: "warning" });
+              }
+              return <IconChipGrid chips={chips} columns={2} />;
+            })()}
           </div>
         </>
       )}
@@ -879,14 +874,10 @@ const Profile = () => {
             Medications
           </EditableSectionLabel>
           <div className="px-5 pb-4">
-            <SurfaceCard padded={false} className="divide-y divide-border/60">
-              {health.medications.slice(0, 5).map((m) => (
-                <div key={m} className="flex items-center gap-3 px-4 py-3">
-                  <Pill className="size-4 text-primary shrink-0" />
-                  <span className="flex-1 text-base font-body truncate">{m}</span>
-                </div>
-              ))}
-            </SurfaceCard>
+            <IconChipGrid
+              chips={health.medications.slice(0, 5).map((m) => ({ label: m, icon: Pill, tone: "gold" as const }))}
+              columns={2}
+            />
           </div>
         </>
       )}
