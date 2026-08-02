@@ -967,30 +967,27 @@ const Home = () => {
       </div>
 
       <SectionHeader icon={ICONS.products} className="px-5 pt-1 pb-2">My shelf</SectionHeader>
-      <div data-tour="my-shelf" className="px-5 pb-6">
-
-        <SurfaceCard padded={false} className="divide-y divide-border/60">
-          {shelfLoading ? (
-            <div className="p-4 text-[11px] text-muted-foreground">Loading…</div>
-          ) : shelfProducts.length === 0 ? (
-            <button
-              onClick={() => navigate("/products")}
-              className="w-full p-4 text-left text-xs text-muted-foreground hover:bg-primary/5 transition-colors rounded-[14px]"
-            >
-              Your shelf is empty. Tap + to add your first product.
-            </button>
-          ) : (
-            <>
-              {shelfProducts.slice(0, 4).map((s) => {
-                const aiStars = typeof s.match_score === "number"
-                  ? Math.max(1, Math.min(5, Math.round(s.match_score / 20)))
-                  : (s.rating ?? 0);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => navigate(`/products/profile/${s.id}`)}
-                    className="w-full p-3.5 flex items-center gap-3 text-left hover:bg-primary/5 transition-colors first:rounded-t-[14px]"
-                  >
+      <div data-tour="my-shelf" className="px-5 pb-6 space-y-2">
+        {shelfLoading ? (
+          <div className="p-4 text-[11px] text-muted-foreground">Loading…</div>
+        ) : shelfProducts.length === 0 ? (
+          <button
+            onClick={() => navigate("/products")}
+            className="w-full p-4 text-left text-xs text-muted-foreground hover:bg-primary/5 transition-colors rounded-[14px] border border-border bg-card"
+          >
+            Your shelf is empty. Tap + to add your first product.
+          </button>
+        ) : (
+          <>
+            {shelfProducts.slice(0, 4).map((s) => {
+              const aiStars = typeof s.match_score === "number"
+                ? Math.max(1, Math.min(5, Math.round(s.match_score / 20)))
+                : (s.rating ?? 0);
+              return (
+                <ListRow
+                  key={s.id}
+                  onClick={() => navigate(`/products/profile/${s.id}`)}
+                  leading={
                     <ProductThumb
                       imageUrl={s.image_url}
                       storagePath={s.storage_path}
@@ -1000,31 +997,31 @@ const Home = () => {
                       cover
                       wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium font-body leading-snug break-words">{s.name}</p>
-                        {s.on_favourite && (
-                          <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground"><BrandLink brand={s.brand} /></p>
-                      <Stars n={aiStars} />
-                    </div>
-                  </button>
-                );
-              })}
-              {shelfProducts.length > 4 && (
-                <button
-                  onClick={() => navigate("/products")}
-                  className="w-full p-3.5 flex items-center justify-center gap-2 text-left text-xs uppercase tracking-[0.15em] text-primary font-medium hover:bg-primary/5 transition-colors rounded-b-[14px]"
-                >
-                  <span>See Full Shelf</span>
-                  <span aria-hidden>→</span>
-                </button>
-              )}
-            </>
-          )}
-        </SurfaceCard>
+                  }
+                  name={
+                    <span className="inline-flex items-center gap-1.5">
+                      {s.name}
+                      {s.on_favourite && (
+                        <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
+                      )}
+                    </span>
+                  }
+                  secondary={<BrandLink brand={s.brand} />}
+                  trailing={<Stars n={aiStars} />}
+                />
+              );
+            })}
+            {shelfProducts.length > 4 && (
+              <button
+                onClick={() => navigate("/products")}
+                className="w-full p-3.5 flex items-center justify-center gap-2 text-left text-xs uppercase tracking-[0.15em] text-primary font-medium hover:bg-primary/5 transition-colors rounded-[14px] border border-border bg-card"
+              >
+                <span>See Full Shelf</span>
+                <span aria-hidden>→</span>
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <HomeTour />
