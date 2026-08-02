@@ -24,6 +24,8 @@ import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import StatusCallout from "@/components/guidance/StatusCallout";
 
 
 const monthNames = [
