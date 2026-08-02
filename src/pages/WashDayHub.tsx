@@ -441,10 +441,15 @@ const WashDayHub = () => {
             </div>
           </div>
         )}
-        {latestTip && (
+        {/* ONE AI tip card only. The log-specific next-wash tip is fresher, so it
+            wins; the generated wash-day tip is the fallback for accounts with no
+            logged tip yet (and is not even fetched when the former exists). */}
+        {latestTip ? (
           <NextWashTipCard action={latestTip.action} why={latestTip.why} />
+        ) : (
+          <DynamicWashTipCard />
         )}
-        <DynamicWashTipCard />
+
 
         <div id="wash-calendar">
           <Calendar
