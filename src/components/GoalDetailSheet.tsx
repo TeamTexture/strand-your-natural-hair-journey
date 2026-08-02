@@ -55,6 +55,8 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
   const [draftText, setDraftText] = useState("");
   const [draftVoice, setDraftVoice] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
+  // Cached personalised tip for this goal (id + updated_at keyed).
+  const { data: goalTip } = useGoalTip(open ? goal : null);
 
   // Load updates whenever the sheet opens for a particular goal.
   useEffect(() => {
