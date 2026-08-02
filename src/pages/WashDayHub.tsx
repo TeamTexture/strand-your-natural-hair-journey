@@ -536,11 +536,12 @@ const WashDayHub = () => {
                   </div>
                 )}
               </div>
-              <LevelGate min={2}>
+              <LevelGate min={3}>
                 <p className="font-body text-[11.5px] text-muted-foreground mt-3">
                   💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
                 </p>
               </LevelGate>
+
             </div>
           </div>
         </SurfaceCard>
