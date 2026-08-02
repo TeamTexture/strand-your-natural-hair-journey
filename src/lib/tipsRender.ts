@@ -17,6 +17,7 @@
  */
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { TIPS_LEVEL_MAX, type TipsLevel } from "@/lib/tipsLevel";
+import { capitaliseSentences } from "@/lib/sentenceCase";
 
 /** A single piece of guidance anywhere in the app. */
 export interface GuidanceTip {
@@ -92,23 +93,6 @@ export function condenseProse(text: string | null | undefined, level: TipsLevel)
   const max = PROSE_SENTENCES[level];
   if (!Number.isFinite(max)) return clean;
   return pickGuidance(splitSentences(clean), max).join(" ");
-}
-
-/**
- * Sentence-case guard: every sentence in user-facing prose must open with a
- * capital letter, whatever the AI or a legacy cached string produced. Leaves
- * anything that isn't a lowercase letter (numbers, "£", emoji, markdown) alone.
- */
-export function capitaliseSentences(text: string | null | undefined): string {
-  if (!text) return "";
-  return String(text)
-    // Start of the string, or start of any line.
-    .replace(/(^|\n\s*)([a-z])/g, (_m, pre: string, ch: string) => pre + ch.toUpperCase())
-    // After a sentence-ending mark (optionally followed by quotes/brackets).
-    .replace(
-      /([.!?])(["'\)\]]*\s+)([a-z])/g,
-      (_m, mark: string, gap: string, ch: string) => mark + gap + ch.toUpperCase(),
-    );
 }
 
 
