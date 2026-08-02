@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, type LucideIcon } from "lucide-react";
 import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -10,6 +10,7 @@ import SectionLabel from "@/components/SectionLabel";
 import SectionHeader from "@/components/nav/SectionHeader";
 import ListRow from "@/components/nav/ListRow";
 import IconChipGrid from "@/components/nav/IconChipGrid";
+import Eyebrow from "@/components/nav/Eyebrow";
 import EmptyState from "@/components/EmptyState";
 import UserAvatar from "@/components/UserAvatar";
 import PlusBadge from "@/components/PlusBadge";
@@ -131,11 +132,10 @@ const EditableSectionLabel = ({
   children,
   onEdit,
   editLabel = "Edit",
-}: { children: React.ReactNode; onEdit: () => void; editLabel?: string }) => (
+  icon,
+}: { children: React.ReactNode; onEdit: () => void; editLabel?: string; icon?: LucideIcon }) => (
   <div className="px-5 pt-2 pb-1.5 flex items-end justify-between">
-    <span className="text-[13px] uppercase tracking-[0.18em] text-muted-foreground font-body">
-      {children}
-    </span>
+    <Eyebrow icon={icon}>{children}</Eyebrow>
     <button
       onClick={onEdit}
       className="text-[13px] uppercase tracking-[0.15em] text-primary font-medium inline-flex items-center gap-1 px-2 -mr-2 min-h-[36px]"
@@ -753,7 +753,7 @@ const Profile = () => {
       {/* Hair Profile — only if user filled it in */}
       {(hair.diameter || hair.porosity || hair.density || hair.scalp || (hair.diagnosed?.length ?? 0) > 0) && (
         <>
-          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-3-hair")}>
+          <EditableSectionLabel icon={Activity} onEdit={() => navigate("/onboarding/profile-step-3-hair")}>
             Hair Profile
           </EditableSectionLabel>
           <div className="px-5 pb-2">
@@ -789,6 +789,7 @@ const Profile = () => {
         Object.values(bloodValues).some((v) => v !== null && v !== undefined && !Number.isNaN(v))) && (
         <>
           <EditableSectionLabel
+            icon={FlaskConical}
             onEdit={() => navigate("/blood-history")}
             editLabel="Manage"
           >
@@ -874,7 +875,7 @@ const Profile = () => {
       {/* Medications — only if user added any */}
       {Array.isArray(health.medications) && health.medications.length > 0 && (
         <>
-          <EditableSectionLabel onEdit={() => navigate("/onboarding/profile-step-2")}>
+          <EditableSectionLabel icon={Pill} onEdit={() => navigate("/onboarding/profile-step-2")}>
             Medications
           </EditableSectionLabel>
           <div className="px-5 pb-4">
