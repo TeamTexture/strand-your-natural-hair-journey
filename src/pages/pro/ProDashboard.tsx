@@ -10,6 +10,7 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
 import { useProAppointments } from "@/hooks/useProAppointments";
+import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { useProClients } from "@/hooks/useProClients";
 import { useUnreadChatCount } from "@/hooks/useChat";
 
@@ -80,6 +81,7 @@ const ProDashboard = () => {
   const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
   const { data: unreadChats = 0 } = useUnreadChatCount();
   const { data: proAppointments = [] } = useProAppointments();
+  const { data: bookingFollowUps = [] } = useProBookingFollowUps();
   const today = new Date().toISOString().slice(0, 10);
   const upcomingAppointments = proAppointments
     .filter(
@@ -197,6 +199,26 @@ const ProDashboard = () => {
             tourId="pro-card-campaigns"
           />
         </div>
+
+        {hasProAccess && bookingFollowUps.length > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              nav(
+                `/pro/appointments/log?client=${bookingFollowUps[0].consumer_id}&thread=${bookingFollowUps[0].thread_id}`,
+              )
+            }
+            className="w-full text-left rounded-[14px] border border-primary/30 bg-primary/10 p-4 min-h-[44px]"
+          >
+            <p className="font-display text-[15px] font-semibold leading-tight">
+              Client booked?
+            </p>
+            <p className="text-[12px] font-body text-foreground/80 leading-snug mt-1">
+              Log the appointment in your Strand diary so it appears in both your diaries.
+              {bookingFollowUps.length > 1 ? ` ${bookingFollowUps.length} to check.` : ""}
+            </p>
+          </button>
+        )}
 
         <SectionLabel>Clients</SectionLabel>
         <div className="space-y-2.5">
