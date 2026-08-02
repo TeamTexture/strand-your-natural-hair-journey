@@ -55,6 +55,12 @@ const RETURN_RATIONALE_SCHEMA = {
   },
 } as const;
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
   const hp = (ctx.hairProfile as Record<string, unknown>) ?? {};
   const hl = (ctx.healthProfile as Record<string, unknown>) ?? {};
@@ -173,6 +179,16 @@ Rules:
 - Never name any source manuscript, author, chapter or page. Speak the guidance directly in your own voice.
 - Output ONLY JSON: { "headline": string, "reasons": string[] }`;
 
+  const groundingCtx = (args.context ?? null) as Record<string, unknown> | null;
+  const grounding = await buildGroundingBlock({
+    fn: "heat-treatment-rationale",
+    functionKind: "heat-treatment-rationale",
+    selectorContext: selectorFromAiContext(groundingCtx),
+    forceTopics: ["heat-and-moisture","porosity","wash-day-mechanics"],
+    ragQuery: ragQueryFromAiContext(groundingCtx, "heat application deep conditioning moisture retention porosity"),
+    ragK: 4,
+  });
+
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -182,7 +198,7 @@ Rules:
     body: JSON.stringify({
       model: "google/gemini-3.6-flash",
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: `${SYSTEM}${grounding.block}` },
         {
           role: "user",
           content: `Here is the user's data context. Ground the rationale in it.\n\n${JSON.stringify(args.context)}`,

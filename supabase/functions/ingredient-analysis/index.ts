@@ -333,6 +333,12 @@ async function runClaude(args: {
   return result.toolInput;
 }
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 // ── Provider: Lovable+Gemini (legacy path, preserved verbatim) ─────────
 async function runLovable(args: {
   systemPrompt: string;
@@ -341,6 +347,16 @@ async function runLovable(args: {
 }): Promise<AnalysisPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const groundingCtx = ((args.userPayload.context ?? args.userPayload) as Record<string, unknown>) as Record<string, unknown> | null;
+  const grounding = await buildGroundingBlock({
+    fn: "ingredient-analysis",
+    functionKind: "ingredient-analysis",
+    selectorContext: selectorFromAiContext(groundingCtx),
+    forceTopics: ["wash-day-mechanics","porosity","scalp-conditions","diagnosed-conditions"],
+    ragQuery: ragQueryFromAiContext(groundingCtx, "hair product ingredients surfactants proteins oils suitability scalp"),
+    ragK: 4,
+  });
 
   const aiResp = await fetch(
     "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -353,7 +369,7 @@ async function runLovable(args: {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: args.systemPrompt },
+          { role: "system", content: `${args.systemPrompt}${grounding.block}` },
           { role: "user", content: JSON.stringify(args.userPayload) },
         ],
         tools: [

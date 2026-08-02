@@ -13,12 +13,11 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { type SelectorContext } from "../_shared/knowledge/index.ts";
 import {
-  selectTopicsForContext,
-  renderTopicBlock,
-  type SelectorContext,
-} from "../_shared/knowledge/index.ts";
-import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+  buildGroundingBlock,
+  flaggedMarkerPhrase,
+} from "../_shared/grounding.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
@@ -144,37 +143,26 @@ Deno.serve(async (req: Request) => {
         ? (context.bloodResults as Array<{ marker?: string; status?: string | null }>)
         : [],
     };
-    // No dedicated function_kind for the strand summary — reuse
-    // wash-day-observation so wash-day-mechanics (moisture-first) is always
-    // pulled in, then let the selector add whatever the user's signals match.
-    const topics = selectTopicsForContext(selectorCtx, {
-      function_kind: "wash-day-observation",
-      force: ["wash-day-mechanics", "protein-and-strengthening"],
-    });
-    const knowledgeBlock = topics.map(renderTopicBlock).join("\n\n---\n\n");
 
     // Retrieve manuscript passages tailored to this user's key signals so
     // the summary is grounded in the actual book text, not just KB summaries.
     const hair = (context.hairProfile ?? {}) as Record<string, unknown>;
     const ragQuery = `Afro hair porosity ${hair.porosity ?? ""} density ${hair.density ?? ""} ${
       hair.hair_type ?? ""
-    } routine wash day moisture retention scalp ${
-      Array.isArray(context.bloodResults)
-        ? (context.bloodResults as Array<Record<string, unknown>>)
-            .filter((b) => b.status && b.status !== "normal")
-            .map((b) => b.marker ?? "")
-            .join(" ")
-        : ""
-    }`.trim();
-    let ragBlock = "";
-    try {
-      const passages = await retrievePassages(ragQuery, 5);
-      if (passages.length > 0) {
-        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
-      }
-    } catch (e) {
-      console.warn("hair-strand-summary RAG retrieval failed (continuing without):", e);
-    }
+    } routine wash day moisture retention scalp ${flaggedMarkerPhrase(context.bloodResults)}`.trim();
+
+    // No dedicated function_kind for the strand summary — reuse
+    // wash-day-observation so wash-day-mechanics (moisture-first) is always
+    // pulled in, then let the selector add whatever the user's signals match.
+    const grounding = await buildGroundingBlock({
+      fn: "hair-strand-summary",
+      functionKind: "wash-day-observation",
+      selectorContext: selectorCtx,
+      forceTopics: ["wash-day-mechanics", "protein-and-strengthening"],
+      ragQuery,
+      ragK: 5,
+    });
+
     const cs = (context.currentStyle ?? null) as Record<string, unknown> | null;
     const styleBlock = cs
       ? buildStylePlaybookBlock({
@@ -183,7 +171,7 @@ Deno.serve(async (req: Request) => {
           days_in_style: typeof cs.days_in_style === "number" ? (cs.days_in_style as number) : null,
         })
       : "";
-    const systemWithKnowledge = `${SYSTEM}\n\n${knowledgeBlock}${ragBlock}${
+    const systemWithKnowledge = `${SYSTEM}${grounding.block}${
       styleBlock ? `\n\n${styleBlock}` : ""
     }`;
 
@@ -262,10 +250,21 @@ Deno.serve(async (req: Request) => {
     if (insErr) {
       console.error("strand summary insert failed", insErr);
       // Still return the payload so the UI can render it even if persist failed.
-      return json(200, { ...payload, _persisted: false });
+      return json(200, {
+        ...payload,
+        _persisted: false,
+        _manuscript_grounded: grounding.grounded,
+        _rag_passages: grounding.passages,
+      });
     }
 
-    return json(200, { ...payload, id: saved.id, _persisted: true });
+    return json(200, {
+      ...payload,
+      id: saved.id,
+      _persisted: true,
+      _manuscript_grounded: grounding.grounded,
+      _rag_passages: grounding.passages,
+    });
   } catch (e) {
     console.error("hair-strand-summary error", e);
     return json(500, { error: e instanceof Error ? e.message : String(e) });

@@ -57,6 +57,12 @@ interface Payload {
   context?: Record<string, unknown>;
 }
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
 ${VOICE_PRINCIPLES}
@@ -103,6 +109,16 @@ Deno.serve(async (req) => {
       context: body.context ?? {},
     });
 
+    const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
+    const grounding = await buildGroundingBlock({
+      fn: "blood-change-analysis",
+      functionKind: "blood-ai-summary",
+      selectorContext: selectorFromAiContext(groundingCtx),
+      forceTopics: ["iron-and-shedding","vits-and-minerals","thyroid","hormones-and-life-stage","diagnosed-conditions"],
+      ragQuery: ragQueryFromAiContext(groundingCtx, "blood marker trends shedding regrowth ferritin iron thyroid hormones"),
+      ragK: 4,
+    });
+
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -114,7 +130,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${SYSTEM}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
+            { role: "system", content: `${SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
             { role: "user", content: userPayload },
           ],
           tools: [

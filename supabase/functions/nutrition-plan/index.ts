@@ -59,6 +59,12 @@ interface NutritionPlanPayload {
 
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 const TASK_PROMPT_LOVABLE = `TASK
 Generate a deeply personalised hair-nutrition plan with two parts: foods to eat ("diet") and things to limit ("avoid"). Speak in STRAND's professional advisory voice.
 
@@ -376,6 +382,16 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
     context: body.context ?? null,
   };
 
+  const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
+  const grounding = await buildGroundingBlock({
+    fn: "nutrition-plan",
+    functionKind: "nutrition-plan",
+    selectorContext: selectorFromAiContext(groundingCtx),
+    forceTopics: ["iron-and-shedding","vits-and-minerals","hormones-and-life-stage","thyroid","diagnosed-conditions"],
+    ragQuery: ragQueryFromAiContext(groundingCtx, "nutrition diet iron ferritin vitamins minerals hair growth shedding"),
+    ragK: 4,
+  });
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 55_000);
   let aiResp: Response;
@@ -392,7 +408,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${VOICE_PRINCIPLES}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}` },
+            { role: "system", content: `${STRAND_PERSONA}\n\n${VOICE_PRINCIPLES}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}${grounding.block}` },
             { role: "user", content: JSON.stringify(userPayload) },
           ],
           tools: [

@@ -26,6 +26,7 @@ import {
 } from "./knowledge/index.ts";
 import type { TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
+import { GROUNDING_INSTRUCTION } from "./grounding.ts";
 import { VOICE_PRINCIPLES } from "./voice.ts";
 import { buildStylePlaybookBlock } from "./style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "./routine-guidance.ts";
@@ -153,14 +154,32 @@ export async function buildClaudeRequest(
   if (input.rag_blocks && input.rag_blocks.length > 0) {
     ragBlocks = input.rag_blocks.filter((s) => typeof s === "string" && s.length > 0);
   } else if (input.rag_query && input.rag_query.trim().length > 0) {
-    const passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
-    ragBlocks = passages.map(renderPassageBlock);
+    // Retry once. Never block the user on a retrieval outage — callers
+    // stamp the payload from `grounded` below so ungrounded generations
+    // are visible in logs.
+    try {
+      let passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
+      if (passages.length === 0) {
+        passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
+      }
+      ragBlocks = passages.map(renderPassageBlock);
+    } catch {
+      ragBlocks = [];
+    }
   }
   if (ragBlocks.length > 0) {
     systemBlocks.push({
       type: "text",
-      text: `RETRIEVED PASSAGES\n\n${ragBlocks.join("\n\n---\n\n")}`,
+      text: `RETRIEVED MANUSCRIPT PASSAGES\n\n${ragBlocks.join("\n\n---\n\n")}`,
     });
+  } else if (input.rag_query && input.rag_query.trim().length > 0) {
+    console.error(JSON.stringify({
+      event: "manuscript_grounding_failed",
+      fn: input.function_kind,
+    }));
+  }
+  if (ragBlocks.length > 0 || kbBlocks.length > 0) {
+    systemBlocks.push({ type: "text", text: GROUNDING_INSTRUCTION });
   }
 
   // ── VOICE PRINCIPLES (every Claude-path function) ────────────────

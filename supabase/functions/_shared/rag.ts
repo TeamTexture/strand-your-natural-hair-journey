@@ -83,10 +83,10 @@ interface ChunkRow {
  *  the query. Uses a service-role Supabase client (bypasses RLS) since
  *  manuscript_chunks deliberately has no SELECT policy for clients.
  *
- *  The query is embedded once, then the cosine-similarity ranking is
- *  done in Postgres via the pgvector `<=>` operator. We invoke this
- *  through a `select` with an order-by; a future optimisation would
- *  promote this to an SQL function for cleaner argument passing.
+ *  Ranking happens IN THE DATABASE via the pgvector `<=>` cosine-distance
+ *  operator inside public.match_manuscript_chunks(), so the whole
+ *  manuscript is searched — not an arbitrary capped sample. The optional
+ *  chapterFilter narrows retrieval to specific chapters.
  */
 export async function retrievePassages(
   query: string,
@@ -105,7 +105,6 @@ export async function retrievePassages(
   }
 
   const queryVec = await embedQuery(query);
-  const queryVecLiteral = `[${queryVec.join(",")}]`;
 
   // Dynamic import — see file-header note. Production Deno resolves this
   // the same as a static import; tests that throw before reaching this
@@ -116,79 +115,27 @@ export async function retrievePassages(
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Use the pgvector cosine-distance operator via rpc for clean ordering.
-  // Falls back to a raw select with an embedding-distance order-by if the
-  // RPC is not registered (we don't ship one in Step 1; embedded helper
-  // here uses .select with `.order` on a synthetic distance column via
-  // a select expression).
-  let queryBuilder = admin
-    .from("manuscript_chunks")
-    .select(
-      `body, chapter, chapter_title, section_heading, page_start, page_end, similarity:embedding`,
-    );
-  if (chapterFilter && chapterFilter.length > 0) {
-    queryBuilder = queryBuilder.in("chapter", chapterFilter);
-  }
-  const { data, error } = await queryBuilder.limit(trimmedK * 50);
+  const { data, error } = await admin.rpc("match_manuscript_chunks", {
+    query_embedding: `[${queryVec.join(",")}]`,
+    match_count: trimmedK,
+    chapter_filter:
+      chapterFilter && chapterFilter.length > 0 ? chapterFilter : null,
+  });
 
   if (error) {
-    throw new Error(`manuscript_chunks query failed: ${error.message}`);
+    throw new Error(`match_manuscript_chunks rpc failed: ${error.message}`);
   }
-  const rows = (data ?? []) as Array<{
-    body: string;
-    chapter: number;
-    chapter_title: string;
-    section_heading: string | null;
-    page_start: number | null;
-    page_end: number | null;
-    similarity: unknown;
-  }>;
 
-  // Client-side cosine similarity scoring as a portable Step-1 default.
-  // The `embedding` field comes back as a string from PostgREST when
-  // selected raw; parse and score.
-  const scored: Passage[] = [];
-  for (const row of rows) {
-    const embStr = row.similarity;
-    let chunkVec: number[] | null = null;
-    if (typeof embStr === "string") {
-      try {
-        chunkVec = JSON.parse(embStr.replace(/^\[/, "[").replace(/\]$/, "]"));
-      } catch {
-        chunkVec = null;
-      }
-    } else if (Array.isArray(embStr)) {
-      chunkVec = embStr as number[];
-    }
-    if (!chunkVec || chunkVec.length !== EMBEDDING_DIMS) continue;
-    const sim = cosineSimilarity(queryVec, chunkVec);
-    scored.push({
-      body: row.body,
-      chapter: row.chapter,
-      chapter_title: row.chapter_title,
-      section_heading: row.section_heading ?? undefined,
-      page_start: row.page_start ?? undefined,
-      page_end: row.page_end ?? undefined,
-      similarity: sim,
-    });
-  }
-  scored.sort((a, b) => b.similarity - a.similarity);
-  // Reference unused variable to keep type-checkers honest about the literal.
-  void queryVecLiteral;
-  return scored.slice(0, trimmedK);
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
-  if (na === 0 || nb === 0) return 0;
-  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+  const rows = (data ?? []) as ChunkRow[];
+  return rows.map((row) => ({
+    body: row.body,
+    chapter: row.chapter,
+    chapter_title: row.chapter_title,
+    section_heading: row.section_heading ?? undefined,
+    page_start: row.page_start ?? undefined,
+    page_end: row.page_end ?? undefined,
+    similarity: typeof row.similarity === "number" ? row.similarity : 0,
+  }));
 }
 
 /**
