@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
-import SurfaceCard from "@/components/SurfaceCard";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import TipsBlock from "@/components/tips/TipsBlock";
 import type { GuidanceTip } from "@/lib/tipsRender";
