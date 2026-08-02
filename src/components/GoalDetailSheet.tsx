@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Loader2, Trash2 } from "lucide-react";
+import { Pencil, Loader2, Trash2, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -7,6 +7,11 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserGoal } from "@/hooks/useGoals";
+import { useGoalTip } from "@/hooks/useGoalTip";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import AiProse from "@/components/tips/AiProse";
+import TipsBlock from "@/components/tips/TipsBlock";
+import { type GuidanceTip } from "@/lib/tipsRender";
 
 interface Props {
   open: boolean;
