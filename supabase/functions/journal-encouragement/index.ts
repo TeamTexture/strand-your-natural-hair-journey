@@ -12,6 +12,7 @@
 
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
@@ -93,10 +94,14 @@ Deno.serve(async (req) => {
         .join(" ");
       const passages = await retrievePassages(ragQuery, 2);
       if (passages.length > 0) {
-        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}`;
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}`;
       }
     } catch (e) {
-      console.warn("journal-encouragement RAG retrieval failed (continuing):", e);
+      console.error(JSON.stringify({
+        event: "manuscript_grounding_failed",
+        fn: "journal-encouragement",
+        message: e instanceof Error ? e.message.slice(0, 120) : "unknown",
+      }));
     }
 
     const systemWithRag = `${systemPrompt}${ragBlock}`;

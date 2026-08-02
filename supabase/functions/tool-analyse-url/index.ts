@@ -214,6 +214,12 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
 // ─── Lovable path (legacy, Firecrawl + Gemini) ─────────────────────────
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 const LOVABLE_SYSTEM = `${STRAND_PERSONA}
 
 TASK
@@ -393,13 +399,23 @@ ${trimmed}
 User context (for personalisation hints):
 ${JSON.stringify(args.context ?? {}, null, 2)}`;
 
+  const groundingCtx = (args.context ?? null) as Record<string, unknown> | null;
+  const grounding = await buildGroundingBlock({
+    fn: "tool-analyse-url",
+    functionKind: "tool-analyse-url",
+    selectorContext: selectorFromAiContext(groundingCtx),
+    forceTopics: ["wash-day-mechanics","porosity","scalp-conditions","heat-and-moisture","protective-styling"],
+    ragQuery: ragQueryFromAiContext(groundingCtx, "hair tool heat detangling scalp damage Afro texture porosity"),
+    ragK: 4,
+  });
+
   const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${aiApiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "google/gemini-3.6-flash",
       messages: [
-        { role: "system", content: LOVABLE_SYSTEM },
+        { role: "system", content: `${LOVABLE_SYSTEM}${grounding.block}` },
         { role: "user", content: userMsg },
       ],
       response_format: { type: "json_object" },

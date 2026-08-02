@@ -3335,6 +3335,22 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      match_manuscript_chunks: {
+        Args: {
+          chapter_filter?: number[]
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          body: string
+          chapter: number
+          chapter_title: string
+          page_end: number
+          page_start: number
+          section_heading: string
+          similarity: number
+        }[]
+      }
       mention_search_all: {
         Args: { _limit?: number; _query: string }
         Returns: {

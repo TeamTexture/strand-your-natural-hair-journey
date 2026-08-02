@@ -291,6 +291,12 @@ Return JSON only via the return_product_analysis tool.`;
 }
 
 // ─── Provider: Lovable+Gemini (legacy, vision-only) ────────────────────
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 const LOVABLE_SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
 TASK
@@ -341,6 +347,24 @@ async function runLovable(args: {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
+  // Manuscript grounding parity with the Claude path.
+  const grounding = await buildGroundingBlock({
+    fn: "product-analyse",
+    functionKind: "product-analyse",
+    selectorContext: selectorFromAiContext(args.context),
+    forceTopics: [
+      "wash-day-mechanics",
+      "porosity",
+      "scalp-conditions",
+      "diagnosed-conditions",
+    ],
+    ragQuery: ragQueryFromAiContext(
+      args.context,
+      "hair product ingredients suitability moisture protein scalp",
+    ),
+    ragK: 5,
+  });
+
   const userMsg = `Analyse this product photo. Read the brand and product title directly from the label.
 
 User context (use to compute flags, match_score, ai_summary, and use_cases):
@@ -359,7 +383,7 @@ Return strict JSON matching the schema in your system prompt.`;
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${LOVABLE_SYSTEM}\n\n${CHAPTER_WHITELIST_PROMPT}` },
+          { role: "system", content: `${LOVABLE_SYSTEM}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}` },
           {
             role: "user",
             content: [
@@ -384,7 +408,12 @@ Return strict JSON matching the schema in your system prompt.`;
 
   const j = await aiResp.json();
   const text: string = j.choices?.[0]?.message?.content ?? "{}";
-  return JSON.parse(text) as ProductAnalysisPayload;
+  const parsed = JSON.parse(text) as ProductAnalysisPayload;
+  return {
+    ...parsed,
+    _manuscript_grounded: grounding.grounded,
+    _rag_passages: grounding.passages,
+  } as ProductAnalysisPayload;
 }
 
 // ─── Edge function entry ───────────────────────────────────────────────

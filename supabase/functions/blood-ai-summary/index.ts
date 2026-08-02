@@ -251,6 +251,12 @@ Return JSON only via the return_summary tool.`;
   return payload;
 }
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
 async function runLovable(body: RequestBody): Promise<{
   payload: BloodSummaryPayload;
@@ -258,6 +264,30 @@ async function runLovable(body: RequestBody): Promise<{
 }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  // Manuscript grounding parity with the Claude path.
+  const groundingCtx = {
+    hairProfile: body.hairProfile ?? {},
+    healthProfile: body.healthProfile ?? {},
+    bloodResults: body.bloodResults ?? [],
+  } as Record<string, unknown>;
+  const grounding = await buildGroundingBlock({
+    fn: "blood-ai-summary",
+    functionKind: "blood-ai-summary",
+    selectorContext: selectorFromAiContext(groundingCtx),
+    forceTopics: [
+      "iron-and-shedding",
+      "vits-and-minerals",
+      "thyroid",
+      "hormones-and-life-stage",
+      "diagnosed-conditions",
+    ],
+    ragQuery: ragQueryFromAiContext(
+      groundingCtx,
+      "blood markers shedding regrowth follicle ferritin iron vitamin thyroid hormones",
+    ),
+    ragK: 5,
+  });
 
   const userPayload = {
     bloodResults: (body.bloodResults ?? []).filter((b) => b.value != null || b.status),
@@ -302,7 +332,7 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
     body: JSON.stringify({
       model: "google/gemini-3.6-flash",
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: `${systemPrompt}${grounding.block}` },
         { role: "user", content: JSON.stringify(userPayload) },
       ],
       tools: [
@@ -364,7 +394,9 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
       deficiencies: Array.isArray(parsed.deficiencies) ? parsed.deficiencies as Deficiency[] : [],
       overall_summary: typeof parsed.overall_summary === "string" ? parsed.overall_summary : "",
       priority_actions: Array.isArray(parsed.priority_actions) ? parsed.priority_actions as string[] : [],
-    },
+      _manuscript_grounded: grounding.grounded,
+      _rag_passages: grounding.passages,
+    } as BloodSummaryPayload,
     status: aiResp.status,
   };
 }

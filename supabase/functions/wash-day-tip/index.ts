@@ -7,6 +7,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import {
+  buildGroundingBlock,
+  flaggedMarkerPhrase,
+} from "../_shared/grounding.ts";
+import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -24,7 +29,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v1";
+const MODEL_VERSION = "wash-tip@v2-grounded";
 
 interface TipPayload {
   headline: string;
@@ -32,6 +37,10 @@ interface TipPayload {
   technique: string;
   fingerprint: string;
   _model_version: string;
+  /** Support level the tip was written for — a mismatch is a cache miss. */
+  tipsLevel?: number | null;
+  _manuscript_grounded?: boolean;
+  _rag_passages?: number;
 }
 
 interface Body {
@@ -42,6 +51,8 @@ interface Body {
   currentStyle?: Record<string, unknown> | null;
   bloodFlags?: Array<{ marker: string; status?: string; value?: number | null }>;
   hasWashHistory?: boolean;
+  tipsLevel?: number | null;
+
 }
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
@@ -101,10 +112,13 @@ Deno.serve(async (req) => {
     .eq("kind", kind)
     .maybeSingle();
   const cachedPayload = cached?.payload as TipPayload | null;
+  const requestedLevel =
+    typeof body.tipsLevel === "number" ? body.tipsLevel : null;
   if (
     cachedPayload &&
     cachedPayload.fingerprint === body.fingerprint &&
-    cachedPayload._model_version === MODEL_VERSION
+    cachedPayload._model_version === MODEL_VERSION &&
+    (cachedPayload.tipsLevel ?? null) === requestedLevel
   ) {
     return json(200, { tip: cachedPayload, cached: true });
   }
@@ -119,6 +133,40 @@ Deno.serve(async (req) => {
     hasWashHistory: body.hasWashHistory ?? false,
   };
 
+  // ── Manuscript grounding: knowledge topics + retrieved passages ────
+  const hp = (body.hairProfile ?? {}) as Record<string, unknown>;
+  const asArray = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map(String) : v ? [String(v)] : [];
+  const selectorCtx: SelectorContext = {
+    hair: {
+      porosity: asArray(hp.porosity),
+      density: asArray(hp.density),
+      scalp: asArray(hp.scalp ?? hp.scalp_condition),
+      diagnosed: asArray(hp.diagnosed ?? hp.diagnosed_conditions),
+    },
+    health: (body.healthProfile ?? null) as unknown as SelectorContext["health"],
+    bloodResults: (body.bloodFlags ?? []) as Array<{ marker?: string; status?: string | null }>,
+  };
+  const style = (body.currentStyle ?? {}) as Record<string, unknown>;
+  const ragQuery = [
+    "wash day routine cleanse condition moisture retention scalp",
+    asArray(hp.porosity).join(" ") && `${asArray(hp.porosity).join(" ")} porosity`,
+    asArray(hp.density).join(" ") && `${asArray(hp.density).join(" ")} density`,
+    asArray(hp.scalp ?? hp.scalp_condition).join(" "),
+    style.current_hairstyle ? `currently wearing ${style.current_hairstyle}` : "",
+    (body.goals ?? []).map((g) => g.title ?? "").join(" "),
+    flaggedMarkerPhrase(body.bloodFlags),
+  ].filter(Boolean).join(" — ");
+
+  const grounding = await buildGroundingBlock({
+    fn: "wash-day-tip",
+    functionKind: "wash-day-observation",
+    selectorContext: selectorCtx,
+    forceTopics: ["wash-day-mechanics", "porosity"],
+    ragQuery,
+    ragK: 5,
+  });
+
   let aiResp: Response;
   try {
     aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -130,7 +178,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${SYSTEM}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}` },
+          { role: "system", content: `${SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}` },
           {
             role: "user",
             content: `User data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
@@ -169,6 +217,9 @@ Deno.serve(async (req) => {
     technique: String(parsed.technique ?? "").trim(),
     fingerprint: body.fingerprint,
     _model_version: MODEL_VERSION,
+    tipsLevel: requestedLevel,
+    _manuscript_grounded: grounding.grounded,
+    _rag_passages: grounding.passages,
   };
 
   await admin

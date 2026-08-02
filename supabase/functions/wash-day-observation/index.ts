@@ -217,6 +217,12 @@ Return JSON only via the return_observation tool.`;
   return { payload: result.toolInput };
 }
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
 async function runLovable(args: {
   body: RequestBody;
@@ -225,6 +231,25 @@ async function runLovable(args: {
 }): Promise<ObservationPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  // Manuscript grounding parity with the Claude path.
+  const groundingCtx = (args.body.context ?? null) as Record<string, unknown> | null;
+  const grounding = await buildGroundingBlock({
+    fn: "wash-day-observation",
+    functionKind: "wash-day-observation",
+    selectorContext: selectorFromAiContext(groundingCtx),
+    forceTopics: ["wash-day-mechanics", "porosity", "scalp-conditions"],
+    ragQuery: ragQueryFromAiContext(
+      groundingCtx,
+      `wash day cleanse condition moisture scalp feel breakage ${
+        JSON.stringify({
+          scalp: (args.body as unknown as Record<string, unknown>).scalp_feel ?? null,
+          hair: (args.body as unknown as Record<string, unknown>).hair_feel ?? null,
+        })
+      }`,
+    ),
+    ragK: 5,
+  });
 
   const userPayload = {
     ...args.body,
@@ -267,7 +292,7 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: `${systemPrompt}${grounding.block}` },
           { role: "user", content: JSON.stringify(userPayload) },
         ],
         tools: [
@@ -322,7 +347,9 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
       typeof parsed.next_wash_tip === "string"
         ? { action: parsed.next_wash_tip, why: "" }
         : parsed.next_wash_tip ?? { action: "", why: "" },
-  };
+    _manuscript_grounded: grounding.grounded,
+    _rag_passages: grounding.passages,
+  } as ObservationPayload;
 }
 
 Deno.serve(async (req: Request) => {

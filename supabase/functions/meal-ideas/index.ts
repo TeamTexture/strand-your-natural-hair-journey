@@ -24,6 +24,12 @@ interface RequestBody {
   flaggedMarkers?: string[];
 }
 
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
 const systemPrompt = `${STRAND_PERSONA_WITH_RULES}
 
 ${VOICE_PRINCIPLES}
@@ -86,6 +92,16 @@ Flagged blood markers to prioritise: ${JSON.stringify(body.flaggedMarkers ?? [])
 
 Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
 
+    const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
+    const grounding = await buildGroundingBlock({
+      fn: "meal-ideas",
+      functionKind: "nutrition-plan",
+      selectorContext: selectorFromAiContext(groundingCtx),
+      forceTopics: ["iron-and-shedding","vits-and-minerals","hormones-and-life-stage","thyroid"],
+      ragQuery: ragQueryFromAiContext(groundingCtx, "nutrition food iron ferritin vitamins minerals hair growth shedding"),
+      ragK: 4,
+    });
+
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -97,7 +113,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${systemPrompt}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
+            { role: "system", content: `${systemPrompt}${grounding.block}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
             { role: "user", content: userPayload },
           ],
           tools: [
