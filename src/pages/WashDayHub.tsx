@@ -414,7 +414,13 @@ const WashDayHub = () => {
     return `${base} Log a wash day to reset your scalp environment.`;
   })();
 
+  // Cadence reasoning appears at most once per page. Priority:
+  // overdue alert > AI tip card > wash rhythm "why".
+  const [dynamicTipShown, setDynamicTipShown] = useState(false);
+  const cadenceReasoningTaken = Boolean(overdue) || Boolean(latestTip) || dynamicTipShown;
+
   return (
+
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} tips />
       <div className="px-5 space-y-4 pb-6">
