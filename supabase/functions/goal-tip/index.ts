@@ -18,6 +18,12 @@ import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import {
+  fetchAdviceLedger,
+  buildAdviceLedgerBlock,
+  recordAdvice,
+  userIdFromRequest,
+} from "../_shared/advice-ledger.ts";
 
 /**
  * Select up to 4 manuscript topics relevant to this goal + user context.
@@ -206,6 +212,11 @@ Deno.serve(async (req) => {
     const body: RequestBody = await req.json();
     const userPayload = JSON.stringify(body);
 
+    const ledgerUserId = userIdFromRequest(req);
+    const ledgerBlock = ledgerUserId
+      ? buildAdviceLedgerBlock(await fetchAdviceLedger(ledgerUserId))
+      : "";
+
     const teachings = selectGoalTopics(body);
 
     // Retrieve manuscript passages grounded in the goal text + user signals.
@@ -278,7 +289,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${systemPrompt}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
+            { role: "system", content: `${systemPrompt}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
             { role: "user", content: userPayload },
           ],
           tools: [
@@ -361,6 +372,15 @@ Deno.serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (ledgerUserId) {
+      const actionLines = Array.isArray(tip.actions)
+        ? (tip.actions as Array<string | { action?: string }>).map((a) =>
+            typeof a === "string" ? a : a?.action ?? "",
+          )
+        : [];
+      await recordAdvice(ledgerUserId, "goal-tip", [tip.headline, ...actionLines]);
     }
 
     return new Response(

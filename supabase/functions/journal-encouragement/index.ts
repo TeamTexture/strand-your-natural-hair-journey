@@ -17,6 +17,12 @@ import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import {
+  fetchAdviceLedger,
+  buildAdviceLedgerBlock,
+  recordAdvice,
+  userIdFromRequest,
+} from "../_shared/advice-ledger.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -104,7 +110,12 @@ Deno.serve(async (req) => {
       }));
     }
 
-    const systemWithRag = `${systemPrompt}${ragBlock}`;
+    const ledgerUserId = userIdFromRequest(req);
+    const ledgerBlock = ledgerUserId
+      ? buildAdviceLedgerBlock(await fetchAdviceLedger(ledgerUserId))
+      : "";
+
+    const systemWithRag = `${systemPrompt}${ragBlock}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}`;
 
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
