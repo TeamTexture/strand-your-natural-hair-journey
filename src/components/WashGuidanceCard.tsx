@@ -38,7 +38,7 @@ const buildTips = (p: HairProfile | null): GuidanceTip[] => {
   /* ---------- 1. Before you start ---------- */
   if (dense) {
     tips.push({
-      priority: 88,
+      priority: 91,
       stage: "prep",
       short: "Section your hair into four to six parts before anything gets wet.",
       why: "Your density means water and product cannot reach the scalp evenly in one go, so sectioning is what makes every later step actually land. Density is how many strands you have on your head rather than how thick each strand is.",
