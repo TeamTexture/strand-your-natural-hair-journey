@@ -267,13 +267,17 @@ const ColourReview = () => {
           )}
         </div>
 
-        <ReviewField
-          label="Planned next style"
-          value={style?.planned_next_style ?? ""}
-          hint="Leave as 'Not sure yet' if undecided."
-          kind={{ type: "select", options: HAIRSTYLES }}
-          onSave={(v) => upsertStyle({ planned_next_style: String(v) })}
-        />
+        <div id="planned-next-style">
+          <ReviewField
+            label="Planned next style"
+            value={style?.planned_next_style ?? ""}
+            hint="Leave as 'Not sure yet' if undecided."
+            kind={{ type: "select", options: HAIRSTYLES }}
+            autoEdit={editKey === "planned_next_style"}
+            onSave={(v) => upsertStyle({ planned_next_style: String(v) })}
+          />
+        </div>
+
         <ReviewField
           label="Default / normal styles"
           value={style?.default_styles ?? []}
