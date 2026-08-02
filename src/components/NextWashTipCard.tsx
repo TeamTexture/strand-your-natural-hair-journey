@@ -182,7 +182,9 @@ const condenseHeader = (raw: string) => {
   // Try to cut at the first natural clause boundary (— , : ;) inside the first ~8 words.
   const cutMatch = cleaned.match(/^[^—,:;]{1,60}?(?=[\s]*[—,:;])/);
   if (cutMatch) return cutMatch[0].trim().replace(/[.!?]+\s*$/, "");
-  return words.slice(0, 8).join(" ") + "…";
+  // No arbitrary mid-clause cut: with no punctuation boundary the label is
+  // rendered in full rather than truncated.
+  return cleaned;
 };
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
