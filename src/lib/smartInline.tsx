@@ -13,6 +13,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { capitaliseSentences } from "@/lib/sentenceCase";
+import { safeRewrite } from "@/lib/coherence";
 
 export const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
 
