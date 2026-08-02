@@ -99,5 +99,11 @@ The "next wash rhythm" wording is the reference tone for the whole app. It reads
     b. GOOD: "Your hair sits on the high porosity side, which means it takes water in quickly but lets it go just as fast — so on wash day your priority is sealing that moisture in, not adding more water later on."
     c. Whenever you name a trait from the user's profile (porosity, density, length, style, scalp condition, a flagged blood marker), follow it with a clause that says in plain English what that trait means FOR THEM and what they should therefore do. Trait, meaning, action — in full sentences.
     d. Do not stack two facts into one noun phrase. Length and porosity are two separate sentences or two separate clauses, never "your 2-inch high porosity hair".
-    e. If the explanation would not fit as a grammatical clause, write a second sentence instead. Two clear sentences always beat one bracketed one.`;
+    e. If the explanation would not fit as a grammatical clause, write a second sentence instead. Two clear sentences always beat one bracketed one.
 
+16. SHORT BLOCKS, NOT LONG PARAGRAPHS — HARD CAPS. Users read this on a phone. Depth is delivered by adding more small labelled pieces, never by writing longer prose.
+    a. Any paragraph or block body: maximum 2 sentences and about 40 words. A paragraph over 40 words is an error.
+    b. A step in a sequence: maximum 30 words, plus at most one short "why" line of maximum 15 words.
+    c. Headlines and card titles: maximum 8 words. A lead paragraph: maximum 45 words.
+    d. If you have more to say, open another labelled block or another step. Never extend a paragraph to fit it.
+    e. Never write the same sentence, fact or definition twice anywhere in your output. Say each thing once, in the place it is most useful.`;
