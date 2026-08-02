@@ -117,10 +117,23 @@ const ColourReview = () => {
     }
   };
 
+  // Deep link from the Strand Summary snapshot tiles — scroll the targeted
+  // field into view so the user lands exactly where they entered it.
+  useEffect(() => {
+    if (!editKey) return;
+    const id = editKey === "current_style" ? "current-hairstyle" : editKey === "planned_next_style" ? "planned-next-style" : null;
+    if (!id) return;
+    const t = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 220);
+    return () => clearTimeout(t);
+  }, [editKey]);
+
   const styleAge = useMemo(
     () => styleAgeDisplay(style?.style_set_at ?? null),
     [style?.style_set_at],
   );
+
 
   return (
     <ScreenLayout>
