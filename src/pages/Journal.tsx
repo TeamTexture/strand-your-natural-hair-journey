@@ -30,7 +30,6 @@ import AiProse from "@/components/tips/AiProse";
 import TipsBlock from "@/components/tips/TipsBlock";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
-import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 import SectionHeader from "@/components/nav/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { ICONS } from "@/lib/iconMap";
@@ -258,7 +257,6 @@ const Journal = () => {
         {/* ONE THEME, ONCE — a goal tip that restates the banner is suppressed. */}
         <TipsBlock tips={goalTips} idPrefix="goal-tip" dedupeAgainst={banner?.subline} />
 
-        {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
 
         {goalsLoading ? (
           <SurfaceCard>

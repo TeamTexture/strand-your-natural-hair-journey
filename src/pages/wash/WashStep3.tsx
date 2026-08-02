@@ -8,7 +8,6 @@ import StepProgress from "@/components/nav/StepProgress";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import VoiceNoteField from "@/components/VoiceNoteField";
-import { CuratedTips } from "@/components/curated/CuratedContent";
 import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,11 +104,6 @@ const WashStep3 = () => {
       </LevelGate>
 
       <div className="px-5 pb-8 space-y-4">
-        <CuratedTips
-          contentKey="wash-log-hair-feel"
-          idPrefix="wash-step3"
-          reassurance="A short note is enough. Your words help your future advice feel more personal."
-        />
         <VoiceNoteField
           label="How does your hair feel?"
           placeholder="My hair feels..."

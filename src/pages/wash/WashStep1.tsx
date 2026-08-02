@@ -22,8 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
-import WashGuidanceCard from "@/components/WashGuidanceCard";
-import { BeginnerDoubleCleanse } from "@/components/beginner/BeginnerNonNegotiables";
+import WashDaySteps from "@/components/WashDaySteps";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import HeatToolPicker from "@/components/HeatToolPicker";
@@ -535,13 +534,7 @@ const WashStep1 = () => {
         Tap <strong>Add</strong> for steps you did and <strong>Skip</strong> for steps you didn't — be honest, it makes your history more useful.
       </ItalicSub>
 
-      <WashGuidanceCard />
-
-      {showBeginnerHelp && (
-        <div className="px-5 mb-3">
-          <BeginnerDoubleCleanse />
-        </div>
-      )}
+      <WashDaySteps className="px-5 mb-3" />
 
       <div className="px-5 space-y-3 pb-8">
 

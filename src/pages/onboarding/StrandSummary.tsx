@@ -17,7 +17,6 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import TipsLevelPrompt from "@/components/TipsLevelPrompt";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 import { useGoals } from "@/hooks/useGoals";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,6 @@ import { toast } from "sonner";
 import { useSmartInline } from "@/lib/smartInline";
 import AiProse from "@/components/tips/AiProse";
 import TipsBlock from "@/components/tips/TipsBlock";
-import { BeginnerDoubleCleanse } from "@/components/beginner/BeginnerNonNegotiables";
 import LevelGate from "@/components/tips/LevelGate";
 import type { GuidanceTip } from "@/lib/tipsRender";
 
@@ -350,7 +348,6 @@ const StrandSummary = () => {
                 <TipsLevelPrompt className="mt-3" />
               </GuidanceCard>
             )}
-            {hasLengthGoal ? <BeginnerTrimEducation /> : null}
           </>
         )}
 

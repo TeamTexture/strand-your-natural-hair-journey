@@ -20,7 +20,6 @@ import { useGoals } from "@/hooks/useGoals";
 import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { wantsBeginner } from "@/lib/tipsRender";
-import { BeginnerTrimEducation } from "@/components/beginner/BeginnerNonNegotiables";
 
 interface Row {
   id: string;
@@ -124,7 +123,6 @@ const MilestoneGallery = () => {
           )}
         </SurfaceCard>
 
-        {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
 
         <Button
           variant="gold"

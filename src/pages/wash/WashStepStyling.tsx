@@ -16,7 +16,6 @@ import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import Tag from "@/components/Tag";
 import ProductThumb from "@/components/ProductThumb";
-import { CuratedTips } from "@/components/curated/CuratedContent";
 import LevelGate from "@/components/tips/LevelGate";
 
 import VoiceNoteField from "@/components/VoiceNoteField";
@@ -200,11 +199,6 @@ const WashStepStyling = () => {
       </LevelGate>
 
       <div className="px-5 pb-10 space-y-5">
-        <CuratedTips
-          contentKey="wash-log-styling"
-          idPrefix="wash-styling"
-          reassurance="This is your record, not a test. The pattern matters more than one perfect entry."
-        />
         <TG label="Style You Chose" options={STYLE_OPTIONS} value={style} onChange={setStyle} error={submitted && errors.style} />
 
         <div>
