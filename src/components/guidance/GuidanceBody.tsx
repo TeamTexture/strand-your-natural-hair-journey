@@ -6,12 +6,12 @@ import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import {
   condenseProse,
   dedupeSentences,
-  leadAndRest,
+  leadPhrase,
   splitToBlocks,
 } from "@/lib/tipsRender";
 import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import {
-  guidanceIcon,
+  createIconPicker,
   looksSequential,
   parseGuidance,
   splitNumberedSteps,
