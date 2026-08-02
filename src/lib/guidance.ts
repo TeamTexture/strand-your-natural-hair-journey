@@ -121,7 +121,18 @@ export function parseGuidance(text: string | null | undefined): ParsedGuidance {
   if (!clean) return { lead: "", segments: [] };
 
   // Force each recognised label onto its own block boundary.
-  const marked = clean.replace(LABEL_SPLIT_RE, (_m, lbl) => `\u0000${lbl}:`);
+  //
+  // COHERENCE GUARD: a label is only a heading when it starts a block — i.e. it
+  // sits at the very beginning of the text or at the start of a line (allowing
+  // bullet/markdown prefixes). Matching mid-sentence would decapitate real
+  // prose: "That directly works against your goal: Length." must never be split
+  // into "That directly works against" + a "Goal focus" block.
+  const marked = clean.replace(LABEL_SPLIT_RE, (match, lbl: string, offset: number, full: string) => {
+    const before = full.slice(0, offset);
+    const atBlockStart = /(^|\n)[\s>*\-•\d.)]*$/.test(before);
+    if (!atBlockStart) return match;
+    return `\u0000${lbl}:`;
+  });
   const parts = marked.split("\u0000");
 
   const lead = parts[0]?.trim() ?? "";
