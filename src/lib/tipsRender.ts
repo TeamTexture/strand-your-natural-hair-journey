@@ -18,7 +18,7 @@
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { TIPS_LEVEL_MAX, type TipsLevel } from "@/lib/tipsLevel";
 import { capitaliseSentences } from "@/lib/sentenceCase";
-import { safeRewrite } from "@/lib/coherence";
+import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
 
 /** A single piece of guidance anywhere in the app. */
 export interface GuidanceTip {
