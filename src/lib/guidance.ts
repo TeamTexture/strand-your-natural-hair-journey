@@ -121,7 +121,18 @@ export function parseGuidance(text: string | null | undefined): ParsedGuidance {
   if (!clean) return { lead: "", segments: [] };
 
   // Force each recognised label onto its own block boundary.
-  const marked = clean.replace(LABEL_SPLIT_RE, (_m, lbl) => `\u0000${lbl}:`);
+  //
+  // COHERENCE GUARD: a label is only a heading when it starts a block — i.e. it
+  // sits at the very beginning of the text or at the start of a line (allowing
+  // bullet/markdown prefixes). Matching mid-sentence would decapitate real
+  // prose: "That directly works against your goal: Length." must never be split
+  // into "That directly works against" + a "Goal focus" block.
+  const marked = clean.replace(LABEL_SPLIT_RE, (match, lbl: string, offset: number, full: string) => {
+    const before = full.slice(0, offset);
+    const atBlockStart = /(^|\n)[\s>*\-•\d.)]*$/.test(before);
+    if (!atBlockStart) return match;
+    return `\u0000${lbl}:`;
+  });
   const parts = marked.split("\u0000");
 
   const lead = parts[0]?.trim() ?? "";
@@ -137,6 +148,20 @@ export function parseGuidance(text: string | null | undefined): ParsedGuidance {
     const body = m[2].trim();
     if (!body) continue;
     segments.push({ label: spec.label, icon: spec.icon, tone: spec.tone, body });
+  }
+
+  // FAILSAFE: a lead that ends mid-sentence (no terminator, or trailing
+  // preposition/conjunction) means the split broke real prose. Rather than
+  // render an incoherent fragment like "That directly works against", stitch
+  // everything back into one intact paragraph.
+  const leadBroken =
+    Boolean(lead) &&
+    segments.length > 0 &&
+    (!/[.!?:]$/.test(lead) ||
+      /\b(against|with|for|to|of|and|or|the|a|an|your|from|in|on|at|by|because|which|that)$/i.test(lead));
+  if (leadBroken) {
+    const whole = [lead, ...segments.map((s) => `${s.label}: ${s.body}`)].join(" ").replace(/\s+/g, " ").trim();
+    return { lead: whole, segments: [] };
   }
 
   return { lead, segments };
