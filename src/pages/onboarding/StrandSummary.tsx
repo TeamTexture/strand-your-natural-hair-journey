@@ -261,17 +261,10 @@ const StrandSummary = () => {
       <TitleBar title="Your Strand Summary" tips onBack={goBack} />
 
       <div className="px-5 pb-8 space-y-4">
-        <SurfaceCard tone="gold">
-          <div className="flex items-start gap-2.5">
-            <Sparkles className="size-5 text-primary shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-[12px] font-semibold mb-0.5">Personalised by AI</p>
-              <p className="text-[11.5px] leading-snug text-muted-foreground">
-                Built from everything you just shared — your hair profile, goals, blood results and habits.
-              </p>
-            </div>
-          </div>
-        </SurfaceCard>
+        <StatusCallout tone="gold" icon={Sparkles} label="Personalised by AI">
+          Built from everything you just shared — your hair profile, goals, blood
+          results and habits.
+        </StatusCallout>
 
         {/* Progress bar while loading */}
         {loading && (
@@ -299,26 +292,18 @@ const StrandSummary = () => {
 
         {summary && (
           <>
-            {/* Overview — condensed to the user's chosen support level */}
-            <SurfaceCard>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="size-7 rounded-full bg-primary/15 flex items-center justify-center">
-                  <FileText className="size-3.5 text-primary" />
-                </span>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Overview</p>
-              </div>
+            {/* Overview — condensed to the user's chosen support level, and
+                structured into lead + segment blocks with key-fact chips. */}
+            <GuidanceCard tone="insight" eyebrow="Overview" icon={FileText}>
               <AiProse text={summary.overview} />
-            </SurfaceCard>
+            </GuidanceCard>
 
             {/* Two-step cleanse is non-negotiable education — always visible,
                 only its depth changes. Full illustrated version at level 4. */}
             {showBeginnerHelp ? (
               <BeginnerDoubleCleanse />
             ) : (
-              <SurfaceCard>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold mb-2">
-                  The double cleanse
-                </p>
+              <GuidanceCard tone="gold" eyebrow="The double cleanse" icon={Droplet}>
                 <TipsBlock
                   idPrefix="double-cleanse"
                   tips={[{
@@ -328,39 +313,41 @@ const StrandSummary = () => {
                     why: "One wash lifts scalp build-up; the second is what actually cleans the hair strand itself.",
                   }]}
                 />
-              </SurfaceCard>
+              </GuidanceCard>
             )}
 
+            {summary.action_plan.length > 0 && (
+              <GuidanceCard tone="gold" eyebrow="Your action plan" icon={ListChecks}>
+                <TipsBlock
+                  idPrefix="action-plan"
+                  dedupeAgainst={summary.overview}
+                  tips={summary.action_plan.map((b, i): GuidanceTip => ({
+                    priority: summary.action_plan.length - i,
+                    short: b,
+                  }))}
+                />
+              </GuidanceCard>
+            )}
 
             {summary.routine_tips.length > 0 && (
-              <SurfaceCard>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="size-7 rounded-full bg-primary/15 flex items-center justify-center">
-                    <ClipboardList className="size-3.5 text-primary" />
-                  </span>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">Routine tips</p>
-                </div>
+              <GuidanceCard tone="insight" eyebrow="Routine tips" icon={ClipboardList}>
                 <TipsBlock
                   idPrefix="routine-tip"
-                  dedupeAgainst={summary.overview}
-
+                  dedupeAgainst={`${summary.overview} ${summary.action_plan.join(" ")}`}
                   tips={summary.routine_tips.map((b, i): GuidanceTip => ({
                     priority: summary.routine_tips.length - i,
                     short: b,
                   }))}
                 />
                 <TipsLevelPrompt className="mt-3" />
-              </SurfaceCard>
+              </GuidanceCard>
             )}
             {/* Trim/length-retention education is non-negotiable — always
                 visible, illustrated in full at level 4. */}
             {showBeginnerHelp && hasLengthGoal ? (
               <BeginnerTrimEducation />
             ) : hasLengthGoal ? (
-              <SurfaceCard>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold mb-2">
-                  Trims &amp; length retention
-                </p>
+              <GuidanceCard tone="gold" eyebrow="Trims & length retention" icon={Scissors}>
                 <TipsBlock
                   idPrefix="trim-education"
                   tips={[{
@@ -368,10 +355,9 @@ const StrandSummary = () => {
                     alwaysShow: true,
                     short: "Keep your ends maintained with a small trim roughly every three to four months — sooner if they feel rough, tangle easily or split. Confirm the rhythm with your STRAND professional.",
                     why: "Trimming doesn't speed up growth — growth happens at the scalp — but split ends travel further up the strand over time, so regular maintenance is how you keep the length you're growing.",
-
                   }]}
                 />
-              </SurfaceCard>
+              </GuidanceCard>
             ) : null}
           </>
         )}
