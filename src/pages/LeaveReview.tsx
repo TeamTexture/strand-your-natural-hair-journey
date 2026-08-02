@@ -4,7 +4,7 @@ import { Check, Star } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
-import StepProgress from "@/components/StepProgress";
+import StepProgress from "@/components/nav/StepProgress";
 import StarRatingInput from "@/components/StarRatingInput";
 import ReviewVoicenoteRecorder from "@/components/ReviewVoicenoteRecorder";
 import { Button } from "@/components/ui/button";
@@ -148,7 +148,7 @@ const LeaveReview = () => {
       <TitleBar title="Leave a review" onBack={smartBack(nav, "/appointments")} />
 
       <div className="px-4 pb-10 space-y-5">
-        <StepProgress current={step} total={3} />
+        <StepProgress current={step} total={3} label={["Rating", "Your words", "Confirm"][step - 1]} />
 
         <div className="rounded-[14px] border border-border bg-card p-4">
           <p className="font-display text-[17px] font-semibold leading-tight">{who}</p>

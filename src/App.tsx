@@ -155,6 +155,7 @@ const JournalEntry = lazy(() => import("./pages/JournalEntry"));
 const MoodboardList = lazy(() => import("./pages/MoodboardList"));
 const MoodboardBoard = lazy(() => import("./pages/MoodboardBoard"));
 const Appointments = lazy(() => import("./pages/Appointments"));
+const LeaveReview = lazy(() => import("./pages/LeaveReview"));
 const LogAppointment = lazy(() => import("./pages/LogAppointment"));
 const Directory = lazy(() => import("./pages/Directory"));
 const Profile = lazy(() => import("./pages/Profile"));
