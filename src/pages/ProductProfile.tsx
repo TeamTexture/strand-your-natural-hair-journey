@@ -559,20 +559,18 @@ const ProductProfile = () => {
                       )}
                       aria-expanded={isClickable ? isExpanded : undefined}
                     >
-                      {aiFlag ? (
-                        <IngredientFlagRow
-                          name={name}
-                          reason={aiFlag.body ? condenseProse(aiFlag.body, tipsLevel) : undefined}
-                          flag={aiFlag.tone}
-                          className="border-none !p-0 bg-transparent flex-1"
-                        />
-                      ) : (
-                        <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        {aiFlag ? (
+                          <IngredientFlagRow
+                            name={name}
+                            reason={aiFlag.body ? condenseProse(aiFlag.body, tipsLevel) : undefined}
+                            flag={aiFlag.tone}
+                            className="border-none !p-0 bg-transparent"
+                          />
+                        ) : (
                           <p className="text-sm font-medium leading-tight">{name}</p>
-                        </div>
-                      )}
-                      {isClickable && (
-                        <div className="flex-1 min-w-0 -mt-0.5">
+                        )}
+                        {isClickable && (
                           <p className="text-[10px] text-primary/70 uppercase tracking-[0.15em] mt-1">
                             {matches.length === 0
                               ? "Not in your shelf or wishlist"
@@ -580,8 +578,8 @@ const ProductProfile = () => {
                                 ? "Hide products"
                                 : `Also in ${matches.length} of your product${matches.length === 1 ? "" : "s"} ›`}
                           </p>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </RowEl>
                     {isExpanded && matches.length > 0 && (
                       <div className="bg-secondary/40">
