@@ -58,55 +58,119 @@ export function extractTime(text: string): string | null {
   return m[2] ? `${m[1]}–${m[2]} ${unit}` : `${m[1]} ${unit}`;
 }
 
-/** Plain-English replacements for unavoidable technical terms. Applied to
- *  displayed copy at level 4 so the jargon always arrives explained. */
-const PLAIN_TERMS: Array<[string, string]> = [
-  ["porosity", "how easily your hair drinks up water"],
-  ["surfactants", "the cleaning agents in shampoo"],
-  ["surfactant", "the cleaning agent in shampoo"],
-  ["elasticity", "how much your hair can stretch without snapping"],
-  ["sebum", "the natural oil your scalp makes"],
-  ["cuticles", "the outer layers of each hair"],
-  ["cuticle", "the outer layer of each hair"],
-  ["density", "how many hairs you have on your head"],
-  ["clarifying", "deep-cleaning"],
-  ["emollients", "softening ingredients"],
-  ["humectants", "ingredients that pull in water"],
+/**
+ * Plain-English teaching sentences for unavoidable technical terms.
+ *
+ * These are never injected as bracketed asides. When a term appears in copy we
+ * append a complete, grammatical sentence that explains what it means for this
+ * user — the education is part of the advice, not a parenthesis inside it.
+ */
+type PlainTerm = {
+  term: string;
+  /** Explanation used when the term appears without a qualifier. */
+  general: string;
+  /** Explanations keyed by the qualifier in front of the term. */
+  byQualifier?: Record<string, string>;
+};
+
+const PLAIN_TERMS: PlainTerm[] = [
+  {
+    term: "porosity",
+    general:
+      "Porosity is simply how easily your hair takes water in and how well it holds on to it.",
+    byQualifier: {
+      high:
+        "High porosity means your hair soaks water up quickly but lets it go just as fast, so your job on wash day is to seal that moisture in rather than add more water later.",
+      low:
+        "Low porosity means water sits on the surface before it goes in, so warmth and time are what get moisture through to the inside of each strand.",
+      medium:
+        "Medium porosity means your hair takes water in steadily and holds it reasonably well, so a consistent weekly rhythm is usually enough.",
+    },
+  },
+  {
+    term: "surfactants",
+    general:
+      "Surfactants are the cleaning agents in shampoo — they lift oil and build-up off your scalp so water can rinse it away.",
+  },
+  {
+    term: "surfactant",
+    general:
+      "A surfactant is the cleaning agent in shampoo — it lifts oil and build-up off your scalp so water can rinse it away.",
+  },
+  {
+    term: "elasticity",
+    general:
+      "Elasticity is how far your hair can stretch and spring back before it snaps, and it is the clearest sign of whether your strands need moisture or protein.",
+  },
+  {
+    term: "sebum",
+    general:
+      "Sebum is the natural oil your scalp makes, and it is what keeps your scalp comfortable between washes.",
+  },
+  {
+    term: "cuticles",
+    general:
+      "The cuticles are the tiny overlapping scales on the outside of each strand, and they lie flat when your hair is moisturised and smooth.",
+  },
+  {
+    term: "cuticle",
+    general:
+      "The cuticle is the outer layer of each strand, and when it lies flat your hair holds moisture and reflects light.",
+  },
+  {
+    term: "density",
+    general:
+      "Density is how many strands you have on your head, and it decides how much product and how much sectioning you need.",
+  },
+  {
+    term: "humectants",
+    general:
+      "Humectants are ingredients that pull water toward your hair, so they work best when you follow them with something that seals.",
+  },
+  {
+    term: "emollients",
+    general:
+      "Emollients are the softening ingredients that smooth the surface of each strand so your hair feels slippery rather than rough.",
+  },
 ];
 
+const QUALIFIERS = ["high", "low", "medium", "fine", "coarse"];
+
 /**
- * Put the plain-English phrase first and keep the technical term in brackets,
- * only on its first mention. When the term is qualified ("high porosity") the
- * plain phrase is appended instead so the sentence still reads correctly.
+ * Teach the term instead of bracketing it.
  *
- * Idempotent: text that has already been expanded once is left alone, so a
- * string passed through more than one beginner surface never ends up with
- * nested "(this is called (this is called …))" phrasing.
+ * Any existing bracketed definition is stripped, then up to two complete
+ * explanation sentences are appended so the guidance reads as one coherent
+ * paragraph. Idempotent: copy that already carries the explanation is untouched.
  */
 export function plainLanguage(text: string): string {
   if (!text) return text;
-  let out = text;
-  for (const [term, plain] of PLAIN_TERMS) {
-    // Already expanded on a previous pass — leave it as it is.
-    if (out.toLowerCase().includes(plain.toLowerCase())) continue;
-    // Match the term only as a standalone word, or as the tail of a hyphenated
-    // qualifier ("high-porosity"). Never substitute inside a compound, which is
-    // what produced copy like "high-how easily your hair drinks up water".
+  const base = stripDefinitionBrackets(text);
+  const additions: string[] = [];
+
+  for (const entry of PLAIN_TERMS) {
+    if (additions.length >= 2) break;
     const re = new RegExp(
-      `((?:high|low|medium|fine|coarse|your|the)[\\s-])?\\b${term}\\b(?![\\w-])`,
+      `(?:(${QUALIFIERS.join("|")})[\\s-])?\\b${entry.term}\\b(?![\\w-])`,
       "i",
     );
-    const m = out.match(re);
+    const m = base.match(re);
     if (!m) continue;
-    const qualifier = m[1];
-    const replacement = qualifier
-      ? `${qualifier}${term} (${plain})`
-      : `${plain} (this is called ${term})`;
-    const next = out.replace(re, replacement);
-    out = safeRewrite(out, next);
+    const qualifier = m[1]?.toLowerCase();
+    const sentence =
+      (qualifier && entry.byQualifier?.[qualifier]) || entry.general;
+    // Already explained in this copy — don't repeat it.
+    const marker = sentence.split(" ").slice(0, 5).join(" ").toLowerCase();
+    if (base.toLowerCase().includes(marker)) continue;
+    if (additions.some((a) => a === sentence)) continue;
+    additions.push(sentence);
   }
-  return safeRewrite(text, out);
+
+  if (additions.length === 0) return base;
+  const joined = `${base.replace(/\s+$/, "").replace(/([^.!?])$/, "$1.")} ${additions.join(" ")}`;
+  return safeRewrite(base, joined);
 }
+
 
 
 
