@@ -9,7 +9,7 @@ export function normalizeBookingUrl(input: string | null | undefined): string {
   if (!s) return "";
   if (/^http:\/\//i.test(s)) return `https://${s.slice(7)}`;
   if (/^https:\/\//i.test(s)) return s;
-  if (/^\/\//.test(s)) return `https:${s.slice(2)}`;
+  if (/^\/\//.test(s)) return `https://${s.slice(2)}`;
   return `https://${s}`;
 }
 
