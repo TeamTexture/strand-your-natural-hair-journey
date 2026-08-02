@@ -583,60 +583,28 @@ const WashDayHub = () => {
           />
         </div>
 
-        {/* Wash rhythm card removed — it repeated cadence reasoning already
-            carried by the overdue alert and the AI tip card. Only the next
-            wash day scheduling actions remain. */}
-        <SurfaceCard tone="gold">
-          <div className="flex items-start gap-3">
-            <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-              <Droplets className="size-4 text-primary" />
+        {/* Scheduling only — no rhythm-reasoning prose, and hidden entirely when
+            the overdue alert is on screen (it carries the same data and the same
+            two controls). */}
+        {!overdue && nextIso && (
+          <SurfaceCard tone="gold">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
+                <Droplets className="size-4 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
+                  Next wash day
+                </p>
+                <p className="font-body text-[15px] font-semibold leading-snug text-foreground mt-1 break-words">
+                  {fmtCardDate(nextIso)}
+                </p>
+                <div className="mt-3">{schedulingRow(false)}</div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
-                Next wash day
-              </p>
-              <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
-                {level === 1 ? "Keep your next wash day visible." : educational.reminder}
-              </p>
+          </SurfaceCard>
+        )}
 
-              {educational.nextDateIso && (
-                <div className="mt-3 flex flex-col gap-2">
-                  {scheduledSet.has(educational.nextDateIso) ? (
-                    <p className="w-full text-center text-[12px] font-body text-primary/90 bg-primary/10 border border-primary/25 rounded-full px-4 py-2">
-                      ✓ Scheduled — tap the highlighted date on the calendar to manage.
-                    </p>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const iso = educational.nextDateIso!;
-                        const [y, m] = iso.split("-").map(Number);
-                        setView({ year: y, month: m - 1 });
-                        openScheduleDialog(iso);
-                        setTimeout(() => {
-                          document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }, 50);
-                      }}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-[12.5px] font-semibold font-body px-4 py-2.5 shadow-sm hover:opacity-95 transition"
-                    >
-                      <CalendarClock className="size-4" />
-                      Schedule this wash day
-                    </button>
-                  )}
-                  <a
-                    href={buildGoogleCalendarUrl(educational.nextDateIso)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
-                  >
-                    <CalendarPlus className="size-4" />
-                    Add to Google Calendar
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </SurfaceCard>
 
       </div>
 
