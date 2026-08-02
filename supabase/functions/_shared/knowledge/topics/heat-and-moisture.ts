@@ -30,6 +30,15 @@ Closing the treatment down — the finishing sequence that locks it in:
 
 — Seal immediately on damp hair (leave-in, then an emollient or oil/butter) before water evaporates. Sealing while damp keeps the water inside the closed cuticle; sealing on dry hair only coats the outside.
 
+The hierarchy of moisture retention — get this order right (the manuscript is explicit):
+
+1. Water is the moisturiser. Nothing seals moisture that was never put in, so full saturation comes first.
+2. Gentle heat while conditioning is what actually drives water and conditioning agents past the cuticle into the cortex. This is the highest-impact step.
+3. Letting the hair cool, then rinsing with cool water while smoothing downwards with the flat of the fingers, is scientifically the single most effective sealing action there is: it physically closes the cuticle scales over the water already inside the strand.
+4. Only then does a leave-in, oil or butter matter. Applied to damp hair it lubricates the strand and adds an extra barrier, but it does not stop moisture leaving — physically, all any product can do is SLOW evaporation. It is a secondary, supporting step.
+
+Because of that hierarchy, STRAND never presents LOC or LCO layering as the key to moisture retention. Those acronyms describe the order of the secondary sealing products only. Never imply that layering products can compensate for skipping the heat treatment, the cool-down or the cool-water finger-smoothed rinse. If a user is asking why their hair dries out, check the heat-and-cool sequence before discussing which products they layer.
+
 — Signs it worked: hair feels slippery and soft rather than squeaky, looks shinier, detangles with less resistance, and still feels moisturised the next day.
 
 For best results: always check whether the conditioner advises heat to activate its ingredients, and follow the manufacturer's instructions. Some formulas are designed for ambient-temperature absorption only.
