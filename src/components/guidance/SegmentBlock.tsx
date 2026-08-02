@@ -65,27 +65,26 @@ const SegmentBlock = ({
       ) : (
         <div className="mt-2 space-y-1.5">
           {blocks.map((block, i) => {
-            const { lead, rest } = leadAndRest(block);
+            // Only the short lead-in phrase is emphasised — never the whole
+            // paragraph.
+            const { phrase, rest } = leadPhrase(block);
             return (
-              <div key={i}>
-                <p
-                  className={cn(
-                    "text-[11.5px] leading-[1.55] font-body break-words",
-                    i === 0 ? "text-foreground font-semibold" : "text-foreground/85",
-                  )}
-                >
-                  {render(lead, `${keyPrefix}-b${i}`)}
-                </p>
+              <p key={i} className="text-[11.5px] leading-[1.55] font-body break-words">
+                <span className={i === 0 ? "text-foreground font-semibold" : "text-foreground/85"}>
+                  {render(phrase, `${keyPrefix}-b${i}`)}
+                </span>
                 {rest && (
-                  <p className="mt-0.5 text-[11.5px] leading-[1.55] text-foreground/75 font-body break-words">
+                  <span className="text-foreground/75">
+                    {" "}
                     {render(rest, `${keyPrefix}-b${i}-rest`)}
-                  </p>
+                  </span>
                 )}
-              </div>
+              </p>
             );
           })}
         </div>
       )}
+
 
       {level >= 3 && <KeyFactChips className="mt-2.5" text={body} />}
     </div>
