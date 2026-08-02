@@ -88,11 +88,13 @@ function pickGuidance(sentences: string[], max: number): string[] {
  */
 export function condenseProse(text: string | null | undefined, level: TipsLevel): string {
   if (!text) return "";
-  const clean = capitaliseSentences(text.replace(/\s+/g, " ").trim());
-  if (level >= 4) return plainLanguage(clean);
+  const raw = text.replace(/\s+/g, " ").trim();
+  const clean = safeRewrite(raw, capitaliseSentences(raw));
+  if (level >= 4) return safeRewrite(clean, plainLanguage(clean));
   const max = PROSE_SENTENCES[level];
   if (!Number.isFinite(max)) return clean;
   return pickGuidance(splitSentences(clean), max).join(" ");
+
 }
 
 
