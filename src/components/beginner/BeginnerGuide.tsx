@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
+import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import {
   AlertTriangle,
   Check,
@@ -106,8 +107,12 @@ export const BeginnerSteps = ({
   steps: BeginnerStep[];
   className?: string;
 }) => {
+  const footnotes = usePlainTermFootnotes(
+    steps.map((s) => `${s.text} ${s.detail ?? ""}`).join(" "),
+  );
   if (steps.length === 0) return null;
   return (
+    <>
     <ol className={cn("space-y-2.5 animate-in fade-in-0 duration-300", className)}>
       {steps.map((s, i) => {
         const Icon = pickTipIcon(s.text);
@@ -151,6 +156,8 @@ export const BeginnerSteps = ({
         );
       })}
     </ol>
+    <PlainTermsFootnote terms={footnotes} className="mt-2" />
+    </>
   );
 };
 

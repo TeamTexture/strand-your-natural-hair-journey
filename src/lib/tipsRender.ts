@@ -138,14 +138,16 @@ export function condenseProse(text: string | null | undefined, level: TipsLevel)
   if (!text) return "";
   const raw = stripDefinitionBrackets(text.replace(/\s+/g, " ").trim());
   const clean = safeRewrite(raw, capitaliseSentences(raw));
+  // Same sentence twice is always noise, at every level.
+  const unique = dedupeSentences(clean);
   if (level >= 4) {
-    const expanded = safeRewrite(clean, plainLanguage(clean));
+    const expanded = safeRewrite(unique, plainLanguage(unique));
     return safeRewrite(expanded, capitaliseSentences(expanded));
   }
 
   const max = PROSE_SENTENCES[level];
-  if (!Number.isFinite(max)) return clean;
-  return pickGuidance(splitSentences(clean), max).join(" ");
+  if (!Number.isFinite(max)) return unique;
+  return pickGuidance(splitSentences(unique), max).join(" ");
 
 }
 
