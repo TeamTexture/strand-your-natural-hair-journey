@@ -57,5 +57,7 @@ export function currentProfileHash(ctx: Record<string, unknown> | null | undefin
       .sort((a, b) => String(a.marker).localeCompare(String(b.marker))),
     professional: c.professional ?? null,
   };
-  return djb2Hex(canonicalStringify(snap));
+  const level = Number((c as Record<string, unknown>).tipsLevel);
+  const tl = level >= 1 && level <= 4 ? Math.round(level) : 2;
+  return `${djb2Hex(canonicalStringify(snap))}:tl${tl}`;
 }

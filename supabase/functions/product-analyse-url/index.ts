@@ -37,6 +37,7 @@ import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
+import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
@@ -61,7 +62,14 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v1";
+const MODEL_VERSION = "claude-sonnet-4-6@v2-tipslevel-goals-caps";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v2-tipslevel-goals-caps";
+
+function levelCap(level: TipsLevel): number {
+  if (level >= 4) return 4;
+  if (level === 3) return 3;
+  return 2;
+}
 
 const INVALID_URL_MESSAGE =
   "STRAND needs a valid product page URL to analyse.";
@@ -113,7 +121,8 @@ async function sha256Hex(s: string): Promise<string> {
 }
 
 // ─── Task instructions for Claude (URL flow) ───────────────────────────
-function buildTaskInstructions(): string {
+function buildTaskInstructions(tipsLevel: TipsLevel): string {
+  const cap = levelCap(tipsLevel);
   return `You are receiving a product page URL. Use web_fetch to retrieve the page. Extract: product_name, brand, category, full INCI list (ingredients), usage instructions verbatim if present (usage_instructions). If the page is thin, gated, or in another language, use web_search to fill gaps from secondary sources. The output is identical in shape to the photo flow — return_product_analysis schema.
 
 Voice for this task: every prose field follows the VOICE PRINCIPLES from the system block. Explain mechanism first, land verdict second; use connectives ("this means", "which is why", "so"); talk to "you" not "your hair"; translate any cosmetic-chemistry term on first use in a field; professional, direct, and never over-familiar.
@@ -130,8 +139,12 @@ Field rules — strict:
 - match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, current_hairstyle suitability, blood-marker deficiencies (only when relevant to the product), and goal alignment.
 - ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, current_hairstyle, a goal, scalp condition, a flagged ingredient pattern) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
 - usage_instructions: VERBATIM directions from the manufacturer if visible on the page. If no manufacturer directions are available, return "" — never invent or paraphrase.
-- use_cases: MAXIMUM 2 items. Each item is ONE sentence (max two short sentences). Pick the 2 most actionable ways the user should use THIS product given their profile — not every possible use case. Each MUST tie back to one of: their hair profile, current_hairstyle, a goal, or a challenge they listed. Do NOT repeat manufacturer directions.
-- tips: MAXIMUM 2 items. Each item is ONE sentence. Pick the 2 most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product.
+- use_cases: MAXIMUM ${cap} items (this user's support level caps it here). Each item: ONE action sentence up to 30 words, optionally plus ONE "why" sentence up to 15 words. Pick the ${cap} most actionable ways the user should use THIS product given their profile — not every possible use case. Each MUST tie back to one of: their hair profile, current_hairstyle, a goal, or a challenge they listed. Do NOT repeat manufacturer directions.
+- tips: MAXIMUM ${cap} items, same word budget. Pick the ${cap} most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product.
+
+PERSONALISED APPLICATION DEPTH — LEVELS 3-4 ONLY: at this support level, at least one use_cases item (and routine_suggestion, when populated) must give real application detail grounded in the retrieved manuscript passages: how much to use for this user's density/length, sectioning, exactly where this product sits in THIS user's wash-day sequence (Chapter 13 two-cleanse-then-condition baseline) and their 7-day wash rhythm, and what on their shelf to pair with or avoid pairing with. At levels 1-2, give only the single highest-priority instruction, still concrete never generic.
+
+MATCH SCORE — RE-REASON EVERY TIME, NEVER ANCHOR: match_score must be re-derived from scratch on every generation using ONLY this user's current profile — goals, porosity, hair characteristics, and any flagged blood markers relevant to this product — weighed against the product's actual ingredients. NEVER anchor the score to the product's marketing claims, brand reputation, or a generic "good product" judgement.
 - pair_with: OPTIONAL. Up to 3 items from the user's shelf (context.shelf), high_rated_products, or existing tools/favourites that would layer well with THIS product for THIS user. Reference each by real name and brand. Each entry: { item, why } where "why" is one sentence tying the pairing to a user hair goal, challenge, current style, or wash-day step. Return [] if nothing on the shelf pairs meaningfully. NEVER invent products or tools.
 - routine_suggestion: OPTIONAL. 1–2 short sentences slotting THIS product into the user's routine — reference their current_style, most recent wash-day steps, or cadence when relevant. Empty string if nothing meaningful.
 
@@ -199,9 +212,10 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     max_uses: 2,
   };
 
+  const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
     function_kind: "product-analyse-url",
-    task_instructions: buildTaskInstructions(),
+    task_instructions: buildTaskInstructions(tipsLevel),
     user_payload: {},
     user_content: userContent,
     user_context: args.context,
@@ -270,7 +284,9 @@ import {
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
 
-const LOVABLE_SYSTEM = `${STRAND_PERSONA}
+function buildLovableSystem(tipsLevel: TipsLevel): string {
+  const cap = levelCap(tipsLevel);
+  return `${STRAND_PERSONA_WITH_RULES}
 
 TASK
 You are analysing a product page that the user has pasted as a URL, in Paige's voice.
@@ -309,12 +325,24 @@ ABSOLUTE RULES
    word-for-word into this field. If no manufacturer directions are visible
    on the page, set this to an empty string ("") — do NOT invent or
    paraphrase. This is the manufacturer's voice; keep it untouched.
-8. use_cases: 2–4 concrete tips for how THIS user should use the product.
-   Each tip MUST tie back to one of: their hair profile, current_hairstyle,
-   a goal, or a challenge they listed (e.g. "Use weekly on wash day to
-   support your length-retention goal", "Smooth onto edges between braid
-   refreshes — your braids are 4 weeks in"). Do NOT repeat the manufacturer's
-   directions verbatim here; build on them with personal reasoning.
+8. use_cases: MAXIMUM ${cap} concrete tips for how THIS user should use the product
+   (this user's support level caps it at ${cap}). Each item is ONE action sentence up
+   to 30 words, optionally plus ONE "why" sentence up to 15 words, and MUST tie back
+   to one of: their hair profile, current_hairstyle, a goal, or a challenge they
+   listed. Do NOT repeat the manufacturer's directions verbatim here; build on them
+   with personal reasoning.
+8b. tips: MAXIMUM ${cap} items, same word budget, anchored in the user's own data.
+8c. PERSONALISED APPLICATION DEPTH — LEVELS 3-4 ONLY: at this support level, at
+   least one use_cases item must give real application detail grounded in the
+   retrieved manuscript passages: how much to use for their density/length,
+   sectioning, where this product sits in their wash-day sequence (Chapter 13
+   two-cleanse-then-condition baseline) and their 7-day wash rhythm, and what on
+   their shelf to pair with or avoid. At levels 1-2, give only the single
+   highest-priority instruction, still concrete never generic.
+8d. MATCH SCORE — re-derive match_score from scratch every time from THIS user's
+   goals, porosity, hair characteristics and flagged blood markers weighed against
+   the product's actual ingredients. NEVER anchor it to marketing claims, brand
+   reputation, or a generic "good product" judgement.
 9. Output STRICT JSON only. No prose, no code fences.
 
 ${MARKETED_PURPOSE_RULES}
@@ -335,6 +363,7 @@ SCHEMA
   "use_cases": string[],
   "tips": string[]
 }`;
+}
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
@@ -558,6 +587,8 @@ ${trimmed}
 User context (use to compute flags, match_score, ai_summary, and use_cases):
 ${JSON.stringify(args.context ?? {}, null, 2)}`;
 
+  const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
+  const tipsBlock = buildTipsLevelBlock(tipsLevel);
   const groundingCtx = (args.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
     fn: "product-analyse-url",
@@ -574,7 +605,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     body: JSON.stringify({
       model: "google/gemini-3.6-flash",
       messages: [
-        { role: "system", content: `${LOVABLE_SYSTEM}${grounding.block}` },
+        { role: "system", content: `${buildLovableSystem(tipsLevel)}\n\n${tipsBlock}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}` },
         { role: "user", content: userMsg },
       ],
       response_format: { type: "json_object" },
@@ -660,7 +691,7 @@ Deno.serve(async (req: Request) => {
         const cached = existing.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION && cached._provider === "claude"
-          : cached._provider !== "claude";
+          : cached._provider !== "claude" && cached._model_version === LOVABLE_MODEL_VERSION;
         const hashOk = cached._profile_snapshot_hash === profileHashEarly;
         if (versionOk && hashOk) {
           return json(200, await sanitiseAndLog(cached, "product-analyse-url"));
@@ -714,6 +745,7 @@ Deno.serve(async (req: Request) => {
       analysis = {
         ...payload,
         _provider: "lovable",
+        _model_version: LOVABLE_MODEL_VERSION,
         _generated_at: new Date().toISOString(),
       };
       if (image_url) {
@@ -725,6 +757,13 @@ Deno.serve(async (req: Request) => {
           (analysis as Record<string, unknown>).image_url = safeImg;
         }
       }
+    }
+    {
+      // Level-aware caps: 1-2 -> 2 items, 3 -> 3, 4 -> 4.
+      const cap = levelCap(coerceTipsLevel((ctx as Record<string, unknown>).tipsLevel));
+      const a = analysis as Record<string, unknown>;
+      if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
+      if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
     }
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "url-debug", phase: "all done", total_ms: Date.now() - t0 }));

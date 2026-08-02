@@ -39,6 +39,8 @@ interface SnapshotInput {
   goals?: Array<Record<string, unknown>>;
   bloodResults?: Array<Record<string, unknown>>;
   professional?: unknown;
+  /** Tips level (1-4) — depth of guidance changes the analysis itself. */
+  tipsLevel?: unknown;
 }
 
 /** Compute the stable profile fingerprint. Returns an 8-char hex string. */
@@ -78,5 +80,7 @@ export function currentProfileHash(ctx: SnapshotInput | null | undefined): strin
       .sort((a, b) => String(a.marker).localeCompare(String(b.marker))),
     professional: c.professional ?? null,
   };
-  return djb2Hex(canonicalStringify(snap));
+  const level = Number(c.tipsLevel);
+  const tl = level >= 1 && level <= 4 ? Math.round(level) : 2;
+  return `${djb2Hex(canonicalStringify(snap))}:tl${tl}`;
 }

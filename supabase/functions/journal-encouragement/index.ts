@@ -15,7 +15,6 @@ import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
   fetchAdviceLedger,
@@ -47,8 +46,6 @@ interface RequestBody {
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
 const systemPrompt = `${STRAND_PERSONA}
-
-${VOICE_PRINCIPLES}
 
 TASK
 You write short data banners for STRAND, a textured-hair tracking app, in a professional science-backed voice.

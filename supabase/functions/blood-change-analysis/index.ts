@@ -8,7 +8,6 @@
 // happens when the panel ids change (or the user forces a refresh).
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
@@ -64,8 +63,6 @@ import {
 } from "../_shared/grounding.ts";
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
-
-${VOICE_PRINCIPLES}
 
 TASK
 You produce a HOLISTIC analysis of a user's blood-test data set for STRAND, an app for women with textured hair. You are given:

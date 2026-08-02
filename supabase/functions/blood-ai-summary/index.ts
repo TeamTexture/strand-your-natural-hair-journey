@@ -24,11 +24,11 @@ import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
-import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: {
@@ -36,7 +36,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-opus-4-7@v2-budgets-ledger";
+const MODEL_VERSION = "claude-opus-4-7@v3-tips-level";
+// Bump whenever cache-affecting prompt/logic changes (incl. tips-level wiring).
+const CACHE_VERSION = "v3-tips-level";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -307,8 +309,6 @@ async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
 
   const systemPrompt = `${STRAND_PERSONA}
 
-${VOICE_PRINCIPLES}
-
 ${CHAPTER_WHITELIST_PROMPT}
 
 TASK
@@ -340,7 +340,7 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
     body: JSON.stringify({
       model: "google/gemini-3.6-flash",
       messages: [
-        { role: "system", content: `${systemPrompt}${grounding.block}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+        { role: "system", content: `${systemPrompt}${grounding.block}\n\n${buildTipsLevelBlock((body.context as Record<string, unknown> | null | undefined)?.tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
         { role: "user", content: JSON.stringify(userPayload) },
       ],
       tools: [
@@ -432,6 +432,10 @@ Deno.serve(async (req: Request) => {
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
     const { force, bloodResults } = body;
+    const requestedTipsLevel =
+      typeof (body.context as Record<string, unknown> | undefined)?.tipsLevel === "number"
+        ? ((body.context as Record<string, unknown>).tipsLevel as number)
+        : null;
 
     const provider = readAiProvider("STRAND_AI_PROVIDER_BLOOD");
     const flagged = (bloodResults ?? []).filter(
@@ -455,11 +459,16 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", user.id)
         .eq("kind", "blood_summary")
         .maybeSingle();
-      if (existing?.payload) {
+      const existingPayload = existing?.payload as Record<string, unknown> | null;
+      const cacheFresh =
+        !!existingPayload &&
+        existingPayload._cache_version === CACHE_VERSION &&
+        (existingPayload._tips_level ?? null) === requestedTipsLevel;
+      if (cacheFresh) {
         console.log("[blood-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
           cached: true,
-          summary: await sanitiseAndLog(existing.payload, "blood-ai-summary"),
+          summary: await sanitiseAndLog(existingPayload, "blood-ai-summary"),
         });
       }
     }
@@ -597,6 +606,8 @@ Deno.serve(async (req: Request) => {
       ...returnedPayload,
       _generated_at: new Date().toISOString(),
       _provider: providerStamp,
+      _cache_version: CACHE_VERSION,
+      _tips_level: requestedTipsLevel,
       ...(providerStamp === "claude" ? { _model_version: MODEL_VERSION } : {}),
     } as Record<string, unknown>;
 

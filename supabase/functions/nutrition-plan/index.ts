@@ -17,7 +17,7 @@ import {
   CHAPTER_WHITELIST_PROMPT,
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
-import { VOICE_PRINCIPLES } from "../_shared/voice.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: {
@@ -25,7 +25,7 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-opus-4-7@v1";
+const MODEL_VERSION = "claude-opus-4-7@v2-tipslevel-cachekey";
 
 interface RequestBody {
   force?: boolean;
@@ -408,7 +408,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${VOICE_PRINCIPLES}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}${grounding.block}` },
+            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}${grounding.block}\n\n${buildTipsLevelBlock((groundingCtx as Record<string, unknown> | null)?.tipsLevel)}` },
             { role: "user", content: JSON.stringify(userPayload) },
           ],
           tools: [
@@ -544,7 +544,7 @@ Deno.serve(async (req: Request) => {
     // Build a signature from the inputs that should invalidate cache.
     // Provider is included so flipping the flag forces a regen.
     const sigSource = JSON.stringify({
-      schema_version: "v4-strand-tip-labels-no-signal-focus",
+      schema_version: "v5-tipslevel-cachekey",
       provider,
       diet: diet ?? null,
       alcohol: alcohol ?? null,
@@ -553,6 +553,7 @@ Deno.serve(async (req: Request) => {
       hair: (context as { hairProfile?: unknown })?.hairProfile ?? null,
       health: (context as { healthProfile?: unknown })?.healthProfile ?? null,
       goals: (context as { goals?: unknown })?.goals ?? null,
+      tipsLevel: (context as { tipsLevel?: unknown } | undefined)?.tipsLevel ?? null,
     });
     let sig = "";
     try {
