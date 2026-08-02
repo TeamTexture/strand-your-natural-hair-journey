@@ -598,22 +598,44 @@ export function NextWashTipCard({
                 </div>
 
                 <div className="space-y-3">
-                  {sections.map(({ label, Icon, body }, i) => (
-                    <div key={`${label}-${i}`} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 space-y-2 shadow-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center size-7 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/30 shrink-0">
-                          <Icon className="size-3.5 text-[#C5A059]" />
-                        </span>
-                        <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.22em] font-bold font-body">
-                          {label}
-                        </p>
-                      </div>
-                      <p className="text-[#E0D7CC]/90 text-[13px] leading-relaxed font-body break-words pl-9">
-                        {renderInline(condenseProse(body, level), `p${i}`, products)}
-                      </p>
-                    </div>
-                  ))}
+                  {(() => {
+                    // ICON DISCIPLINE — the same icon never appears twice in one
+                    // card; a repeat degrades to a neutral dot.
+                    const usedIcons = new Set<LucideIcon>();
+                    return sections.map(({ label, Icon, body }, i) => {
+                      const RowIcon = usedIcons.has(Icon) ? Dot : Icon;
+                      usedIcons.add(Icon);
+                      const copy = condenseProse(body, level);
+                      // Only the short lead-in phrase is emphasised — never a
+                      // whole paragraph.
+                      const { phrase, rest } = leadPhrase(copy);
+                      return (
+                        <div key={`${label}-${i}`} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 space-y-2 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center justify-center size-7 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/30 shrink-0">
+                              <RowIcon className="size-3.5 text-[#C5A059]" />
+                            </span>
+                            <p className="text-[#C5A059] text-[9px] uppercase tracking-[0.22em] font-bold font-body">
+                              {label}
+                            </p>
+                          </div>
+                          <p className="text-[13px] leading-relaxed font-body break-words pl-9">
+                            <span className="text-white font-semibold">
+                              {renderInline(phrase, `p${i}`, products)}
+                            </span>
+                            {rest && (
+                              <span className="text-[#E0D7CC]/80">
+                                {" "}
+                                {renderInline(rest, `p${i}-rest`, products)}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
+
               </>
             )}
           </>
