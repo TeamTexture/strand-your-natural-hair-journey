@@ -180,7 +180,7 @@ export function parseGuidance(text: string | null | undefined): ParsedGuidance {
 
 const ACTION_ICONS: Array<[RegExp, LucideIcon]> = [
   // Buildup / scalp congestion — the "stop water/residue" meaning.
-  [/(buildup|build-up|build up|residue|sebum|clog|congest|flak|itch|inflam)/i, DropletOff],
+  [/(buildup|build-up|build up|residue|sebum|clog|congest|flak|itch|inflam)/i, CircleSlash],
   // Cadence and time.
   [/\b(every\s+\d|weekly|fortnightly|monthly|rhythm|cadence|routine|consistent|overdue|due|gap between)\b/i, Repeat],
   [/\b(minute|minutes|hour|hours|overnight|wait|leave it on|timer)\b/i, Timer],
