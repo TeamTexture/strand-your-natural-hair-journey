@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   List as ListIcon,
   ChevronLeft,
+  Plus,
 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -283,6 +284,13 @@ const ProAppointments = () => {
         <p className="text-[12px] text-muted-foreground font-body leading-snug">
           Appointments your clients have linked to you. Access is gated by their consent.
         </p>
+
+        <Button
+          onClick={() => nav("/pro/appointments/log")}
+          className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
+        >
+          <Plus className="size-4 mr-2" /> Log appointment
+        </Button>
 
         {/* View toggle: List / Calendar */}
         <div className="flex items-center gap-1 p-1 rounded-full bg-secondary/60 border border-border w-full">
