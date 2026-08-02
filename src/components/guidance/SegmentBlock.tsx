@@ -59,7 +59,7 @@ const SegmentBlock = ({
       {steps.length > 0 ? (
         <StepSequence className="mt-2.5" steps={steps.map((text) => ({ text }))} />
       ) : (
-        <p className="mt-2 text-[13px] leading-relaxed text-foreground/85 font-body break-words">
+        <p className="mt-2 text-[11.5px] leading-[1.55] text-foreground/85 font-body break-words">
           {render(body, keyPrefix)}
         </p>
       )}
