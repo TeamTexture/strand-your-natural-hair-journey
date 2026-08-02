@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { shortForm, selectTips, dedupeTips, type GuidanceTip } from "@/lib/tipsRender";
+import { shortForm, selectTips, dedupeTips, groupByStage, orderByStage, type GuidanceTip } from "@/lib/tipsRender";
 import { DoDont, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
 import ActionList, { type GuidanceAction } from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
+import StageHeader from "@/components/guidance/StageHeader";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import { guidanceIcon } from "@/lib/guidance";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
@@ -46,10 +47,15 @@ const TipsBlock = ({
   dedupeAgainst?: string | null;
 }) => {
   const { level, showExplanations, showBeginnerHelp } = useTipsLevel();
+  // Selection is by priority (which tips survive the level cap); DISPLAY is
+  // always in wash-day order (prep → cleanse → condition → seal → style) so the
+  // list reads in the sequence the user will actually follow.
   const shown = useMemo(
-    () => selectTips(dedupeTips(tips, dedupeAgainst), level),
+    () => orderByStage(selectTips(dedupeTips(tips, dedupeAgainst), level)),
     [tips, level, dedupeAgainst],
   );
+  const groups = useMemo(() => groupByStage(shown), [shown]);
+  const staged = groups.some((g) => g.stage !== null);
 
   if (shown.length === 0) return null;
 
@@ -57,14 +63,36 @@ const TipsBlock = ({
   if (showBeginnerHelp) {
     const allDos = [...(dos ?? []), ...shown.flatMap((t) => t.dos ?? [])];
     const allDonts = [...(donts ?? []), ...shown.flatMap((t) => t.donts ?? [])];
+    let counter = 0;
     return (
       <div key={level} className={cn("space-y-3", className)}>
+        {staged ? (
+          <div className="space-y-4">
+            {groups.map((g, gi) => {
+              const start = counter;
+              counter += g.items.length;
+              return (
+                <div key={`${g.stage ?? "general"}-${gi}`} className="space-y-2">
+                  {g.stage && <StageHeader stage={g.stage} label={g.label!} step={gi + 1} />}
+                  <StepSequence
+                    startNumber={start + 1}
+                    steps={g.items.map((t) => ({
+                      text: t.short,
+                      detail: [t.why, t.define].filter(Boolean).join(" "),
+                    }))}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <StepSequence
           steps={shown.map((t) => ({
             text: t.short,
             detail: [t.why, t.define].filter(Boolean).join(" "),
           }))}
         />
+        )}
         <KeyFactChips text={shown.map((t) => `${t.short} ${t.why ?? ""}`).join(" ")} max={5} />
         {(allDos.length > 0 || allDonts.length > 0) && (
           <DoDont dos={allDos} donts={allDonts} />
@@ -96,6 +124,29 @@ const TipsBlock = ({
     action: shortForm(t.short, level),
     why: showExplanations ? t.why : undefined,
   }));
+
+  if (staged && level >= 2) {
+    let cursor = 0;
+    return (
+      <div key={level} className={cn("space-y-4 animate-in fade-in-0 duration-300", className)}>
+        {groups.map((g, gi) => {
+          const slice = actions.slice(cursor, cursor + g.items.length);
+          cursor += g.items.length;
+          return (
+            <div key={`${g.stage ?? "general"}-${gi}`} className="space-y-2">
+              {g.stage && <StageHeader stage={g.stage} label={g.label!} step={gi + 1} />}
+              <ActionList
+                actions={slice}
+                showWhy={showExplanations}
+                showChips={level >= 2}
+                idPrefix={`${idPrefix}-${gi}`}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <ActionList
