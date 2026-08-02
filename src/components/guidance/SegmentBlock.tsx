@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useSmartInline } from "@/lib/smartInline";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
-import { leadAndRest, splitToBlocks } from "@/lib/tipsRender";
+import { leadPhrase, splitToBlocks } from "@/lib/tipsRender";
 import {
   TONE_CLASSES,
   looksSequential,
