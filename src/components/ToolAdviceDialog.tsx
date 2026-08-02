@@ -1,6 +1,11 @@
 import { Sparkles, Copy, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import AnchorStat from "@/components/guidance/AnchorStat";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import ActionList from "@/components/guidance/ActionList";
+import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import { leadPhrase } from "@/lib/tipsRender";
 import {
   Dialog,
   DialogContent,
@@ -87,19 +92,12 @@ export function ToolAdviceDialog({
           </DialogTitle>
           {score != null && (
             <DialogDescription asChild>
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-2xl font-heading text-primary">{score}</span>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  / 100 hair-profile fit
-                </span>
-                {stars != null && (
-                  <span className="ml-auto text-primary">
-                    {"★".repeat(stars)}
-                    <span className="text-muted-foreground/40">
-                      {"★".repeat(5 - stars)}
-                    </span>
-                  </span>
-                )}
+              <div className="pt-1">
+                <AnchorStat
+                  value={score}
+                  context="/ 100 hair-profile fit"
+                  tone={score >= 70 ? "good" : score >= 40 ? "gold" : "warning"}
+                />
               </div>
             </DialogDescription>
           )}
@@ -122,14 +120,18 @@ export function ToolAdviceDialog({
               <p className="leading-relaxed">{howToUse}</p>
             </section>
           )}
-          {summary && (
-            <section>
-              <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-                What it is
-              </h4>
-              <p className="leading-relaxed">{summary}</p>
-            </section>
-          )}
+          {summary && (() => {
+            const { phrase, rest } = leadPhrase(summary);
+            const vTone = score == null ? "insight" : score >= 70 ? "good" : score >= 40 ? "gold" : "warning";
+            return (
+              <StatusCallout tone={vTone} label="Verdict">
+                <p>
+                  {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
+                  <span className="text-foreground/75">{rest}</span>
+                </p>
+              </StatusCallout>
+            );
+          })()}
           {features.length > 0 && (
             <section>
               <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
@@ -147,11 +149,7 @@ export function ToolAdviceDialog({
               <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
                 Tips
               </h4>
-              <ul className="list-disc pl-4 space-y-1">
-                {tips.map((t, i) => (
-                  <li key={i}>{t}</li>
-                ))}
-              </ul>
+              <ActionList idPrefix="tool-tip" actions={tips.map((t) => ({ action: t }))} showWhy={false} />
             </section>
           )}
           {useCases.length > 0 && (
@@ -163,15 +161,13 @@ export function ToolAdviceDialog({
             </section>
           )}
           {warnings.length > 0 && (
-            <section className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+            <section className="space-y-1.5">
               <h4 className="text-[11px] uppercase tracking-wider text-destructive mb-1 flex items-center gap-1.5">
                 <AlertTriangle className="size-3" /> Be careful
               </h4>
-              <ul className="list-disc pl-4 space-y-1">
-                {warnings.map((w, i) => (
-                  <li key={i} className="leading-relaxed">{w}</li>
-                ))}
-              </ul>
+              {warnings.map((w, i) => (
+                <IngredientFlagRow key={i} name={w.split(/[:—-]/)[0].slice(0, 40)} reason={w} flag="bad" />
+              ))}
             </section>
           )}
           {pairWith.length > 0 && (
