@@ -636,10 +636,11 @@ const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
       >
         <SurfaceCard className="hover:border-primary/50 transition-colors">
           <div className="flex items-start justify-between gap-3 mb-2">
-            <p className="text-sm font-medium leading-tight">{goal.title}</p>
+            <p className="text-sm font-medium leading-tight flex-1 min-w-0">{goal.title}</p>
+            <span className="shrink-0 font-body font-semibold text-foreground text-[15px]">{pct}%</span>
             <button
               onClick={stopAndEdit}
-              className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary"
+              className="size-7 rounded-full hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary shrink-0"
               aria-label="Edit goal"
             >
               <Pencil className="size-3.5" />

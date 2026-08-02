@@ -38,6 +38,9 @@ const STYLE_OPTIONS = [
 const DURATION_OPTIONS = ["Under 30 min", "30-60 min", "1-2 hours", "2-4 hours", "4+ hours"];
 const STRESS_OPTIONS = ["Low", "Moderate", "High"];
 
+const DURATION_CHOICES: Choice[] = DURATION_OPTIONS.map((v) => ({ value: v, label: v, icon: ICONS.duration }));
+const STRESS_CHOICES: Choice[] = STRESS_OPTIONS.map((v) => ({ value: v, label: v, icon: ICONS.stress }));
+
 const TG = ({
   label, options, value, onChange, error = false,
 }: {
@@ -228,9 +231,7 @@ const WashStepStyling = () => {
         <TG label="Style You Chose" options={STYLE_OPTIONS} value={style} onChange={setStyle} error={submitted && errors.style} />
 
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] font-body mb-2 text-muted-foreground">
-            Products Used
-          </div>
+          <Eyebrow icon={ICONS.products} className="mb-2">Products Used</Eyebrow>
           {shelfLoading ? (
             <p className="text-xs text-muted-foreground italic">Loading your shelf…</p>
           ) : shelfProducts.length === 0 ? (
@@ -284,8 +285,46 @@ const WashStepStyling = () => {
         </div>
 
 
-        <TG label="Styling Duration" options={DURATION_OPTIONS} value={duration} onChange={setDuration} error={submitted && errors.duration} />
-        <TG label="Stress This Week" options={STRESS_OPTIONS} value={stress} onChange={setStress} error={submitted && errors.stress} />
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Eyebrow icon={ICONS.duration} tone={submitted && errors.duration ? "warning" : "gold"}>Styling Duration</Eyebrow>
+            <span className={cn("text-[11px] font-medium", submitted && errors.duration ? "text-destructive" : "text-primary")}>*</span>
+          </div>
+          <div className={cn(submitted && errors.duration && "ring-1 ring-destructive/40 rounded-[12px] p-1.5 -m-1.5")}>
+            <ChoiceChips
+              options={DURATION_CHOICES}
+              value={duration}
+              multiple
+              columns={2}
+              onChange={(v) => setDuration(duration.includes(v) ? duration.filter((x) => x !== v) : [...duration, v])}
+            />
+          </div>
+          {submitted && errors.duration && (
+            <p className="mt-1.5 text-[11px] text-destructive flex items-center gap-1">
+              <AlertCircle className="size-3" /> Pick at least one
+            </p>
+          )}
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Eyebrow icon={ICONS.stress} tone={submitted && errors.stress ? "warning" : "gold"}>Stress This Week</Eyebrow>
+            <span className={cn("text-[11px] font-medium", submitted && errors.stress ? "text-destructive" : "text-primary")}>*</span>
+          </div>
+          <div className={cn(submitted && errors.stress && "ring-1 ring-destructive/40 rounded-[12px] p-1.5 -m-1.5")}>
+            <ChoiceChips
+              options={STRESS_CHOICES}
+              value={stress}
+              multiple
+              columns={3}
+              onChange={(v) => setStress(stress.includes(v) ? stress.filter((x) => x !== v) : [...stress, v])}
+            />
+          </div>
+          {submitted && errors.stress && (
+            <p className="mt-1.5 text-[11px] text-destructive flex items-center gap-1">
+              <AlertCircle className="size-3" /> Pick at least one
+            </p>
+          )}
+        </div>
 
         <VoiceNoteField
           label="Styling voicenote (optional)"
@@ -300,9 +339,7 @@ const WashStepStyling = () => {
 
         <SurfaceCard>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-medium">
-              Style Photos
-            </p>
+            <Eyebrow icon={Camera}>Style Photos</Eyebrow>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
