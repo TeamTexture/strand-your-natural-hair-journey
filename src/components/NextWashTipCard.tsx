@@ -11,12 +11,13 @@ import {
   Lightbulb,
   FlaskConical,
   Scissors,
+  Dot,
   type LucideIcon,
 } from "lucide-react";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_MAX } from "@/lib/tipsLevel";
-import { condenseProse } from "@/lib/tipsRender";
+import { condenseProse, leadPhrase } from "@/lib/tipsRender";
 
 
 interface NextWashTipCardProps {
