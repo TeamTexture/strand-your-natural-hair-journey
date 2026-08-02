@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Activity,
+  CalendarClock,
   Droplet,
   Layers,
   Ruler,
@@ -9,6 +10,8 @@ import {
   Target,
   type LucideIcon,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoals } from "@/hooks/useGoals";
@@ -28,6 +31,8 @@ interface Stat {
   value: string;
   icon: LucideIcon;
   tone?: "gold" | "warn" | "good";
+  /** Where the user originally entered this fact, so tapping the tile edits it. */
+  href?: string;
 }
 
 const first = (v: unknown): string | null => {
@@ -37,6 +42,7 @@ const first = (v: unknown): string | null => {
 };
 
 const StrandSnapshot = ({ className }: { className?: string }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { goals } = useGoals();
   const [stats, setStats] = useState<Stat[]>([]);
@@ -53,7 +59,7 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
           .maybeSingle(),
         supabase
           .from("user_style_profile")
-          .select("current_hairstyle")
+          .select("current_hairstyle, planned_next_style")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase
@@ -118,7 +124,19 @@ const StrandSnapshot = ({ className }: { className?: string }) => {
       if (lengthLabel) next.push({ label: "Length", value: lengthLabel, icon: Ruler });
       const currentStyle = first(style.current_hairstyle);
       if (currentStyle) {
-        next.push({ label: "Current style", value: titleCase(currentStyle), icon: ShieldCheck });
+        next.push({
+          label: "Current style",
+          value: titleCase(currentStyle),
+          icon: ShieldCheck,
+          href: "/profile/colour?edit=current_style",
+        });
+        const nextStyle = first(style.planned_next_style);
+        next.push({
+          label: "Next style",
+          value: nextStyle ? titleCase(nextStyle) : "Not set yet — tap to add",
+          icon: CalendarClock,
+          href: "/profile/colour?edit=planned_next_style",
+        });
       }
       if (bloodStat) next.push(bloodStat);
 
