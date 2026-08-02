@@ -188,6 +188,26 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
             </div>
           )}
 
+          {/* Personalised guidance for this goal, rendered through the shared
+              guidance design system so it scales with the support level.
+              Cached per goal id + updated_at — no extra generation. */}
+          {goalTip && (
+            <GuidanceCard tone="gold" eyebrow="Personalised tip" icon={Sparkles} headline={goalTip.headline}>
+              <AiProse text={goalTip.body} />
+              {goalTip.actions?.length > 0 && (
+                <TipsBlock
+                  idPrefix="goal-detail-tip"
+                  dedupeAgainst={goalTip.body}
+                  tips={goalTip.actions.map((a, i): GuidanceTip => ({
+                    priority: goalTip.actions.length - i,
+                    short: typeof a === "string" ? a : a.action,
+                    why: typeof a === "string" ? undefined : a.why,
+                  }))}
+                />
+              )}
+            </GuidanceCard>
+          )}
+
           <div className="border-t border-border pt-4 space-y-3">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Add an update
