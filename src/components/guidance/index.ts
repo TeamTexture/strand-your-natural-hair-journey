@@ -1,0 +1,7 @@
+export { default as GuidanceCard } from "@/components/guidance/GuidanceCard";
+export { default as SegmentBlock } from "@/components/guidance/SegmentBlock";
+export { default as ActionList, ActionRow, type GuidanceAction } from "@/components/guidance/ActionList";
+export { default as KeyFactChips } from "@/components/guidance/KeyFactChips";
+export { default as StepSequence, type GuidanceStep } from "@/components/guidance/StepSequence";
+export { default as StatusCallout } from "@/components/guidance/StatusCallout";
+export { default as GuidanceBody } from "@/components/guidance/GuidanceBody";

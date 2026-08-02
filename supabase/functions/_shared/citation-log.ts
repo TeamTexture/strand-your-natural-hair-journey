@@ -86,5 +86,31 @@ export async function sanitiseAndLog<T>(value: T, functionName: string): Promise
   if (stripped.length > 0) {
     await logViolation(functionName, stripped);
   }
-  return cleaned;
+  // Copy fix runs after the audit diff so it is never logged as a violation.
+  return fixHeatHatPhrasing(cleaned);
+}
+
+/** Collapse the duplicated "TT" the model sometimes emits immediately before
+ *  the TT Heat Hat mention ("under your TT the TT Heat Hat"). Copy fix only —
+ *  never changes the meaning of the guidance. */
+function fixHeatHatText(text: string): string {
+  return text
+    .replace(/\bTT\s+(?:the\s+)?TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat")
+    .replace(/\b(?:the\s+)?TT\s+Heat\s+Hat\s+(?:TT\s+Heat\s+Hat\s*)+/gi, "the TT Heat Hat")
+    .replace(/\b(your|a|an|the)\s+the\s+TT\s+Heat\s+Hat\b/gi, "$1 TT Heat Hat")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
+/** Deep-walk any AI payload applying the heat-hat copy fix to string leaves. */
+export function fixHeatHatPhrasing<T>(value: T): T {
+  if (typeof value === "string") return fixHeatHatText(value) as unknown as T;
+  if (Array.isArray(value)) return value.map((v) => fixHeatHatPhrasing(v)) as unknown as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = fixHeatHatPhrasing(v);
+    }
+    return out as unknown as T;
+  }
+  return value;
 }

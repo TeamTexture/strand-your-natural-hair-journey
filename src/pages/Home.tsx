@@ -21,7 +21,8 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
-import { Ruler, Sparkles } from "lucide-react";
+import { Ruler, Sparkles, Lightbulb } from "lucide-react";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
 import {
   loadClinicalContext,
   loadClinicalContextLocal,
@@ -657,27 +658,23 @@ const Home = () => {
                       Depth scales with the support level: level 1 shows the
                       headline and one action only, level 4 rebuilds it as an
                       illustrated step-by-step guide. */}
-                  <div className="mt-3 rounded-[12px] bg-primary/10 border border-primary/20 p-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Sparkles className="size-3.5 text-primary" />
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-medium">
-                        Strand tip of the day
-                      </p>
-                    </div>
+                  <GuidanceCard
+                    className="mt-3"
+                    tone="gold"
+                    compact={tipsLevel <= 2}
+                    eyebrow="Strand tip of the day"
+                    icon={Lightbulb}
+                    headline={goalTip ? renderRichText(goalTip.headline) : undefined}
+                  >
                     {goalTip ? (
                       <>
-                        <p className="text-sm font-medium leading-snug">
-                          {renderRichText(goalTip.headline)}
-                        </p>
                         <LevelGate min={2}>
-                          <AiProse className="mt-1" text={goalTip.body} />
+                          <AiProse text={goalTip.body} />
                         </LevelGate>
                         {goalTip.actions?.length > 0 && (
                           <TipsBlock
-                            className="mt-2"
                             idPrefix="goaltip"
                             dedupeAgainst={goalTip.body}
-
                             reassurance="Small, steady steps beat big changes — you only need the first one today."
                             tips={goalTip.actions.map((a, i): GuidanceTip => ({
                               priority: goalTip.actions.length - i,
@@ -686,7 +683,6 @@ const Home = () => {
                             }))}
                           />
                         )}
-
                       </>
                     ) : tipLoading ? (
                       <div className="flex items-center gap-2">
@@ -702,7 +698,7 @@ const Home = () => {
                           : "Your next Strand tip will appear once you've logged a wash day or updated your goal."}
                       </p>
                     )}
-                  </div>
+                  </GuidanceCard>
                 </div>
               );
             })()

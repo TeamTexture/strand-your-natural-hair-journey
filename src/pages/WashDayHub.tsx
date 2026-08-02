@@ -24,6 +24,8 @@ import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
+import GuidanceCard from "@/components/guidance/GuidanceCard";
+import StatusCallout from "@/components/guidance/StatusCallout";
 
 
 const monthNames = [
@@ -426,25 +428,27 @@ const WashDayHub = () => {
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="wash_day" />
         {overdue && (
-          <div
-            role="alert"
-            className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 flex gap-3"
-          >
-            <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-destructive font-body">
+          <div role="alert">
+            <StatusCallout
+              tone="warning"
+              icon={AlertTriangle}
+              label="Wash day overdue"
+              action={
+                <button
+                  onClick={() => navigate("/wash/step-1")}
+                  className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill border border-destructive/40 bg-destructive/10 px-4 text-[12.5px] font-semibold text-destructive"
+                >
+                  Log a wash day now →
+                </button>
+              }
+            >
+              <p className="text-[13.5px] font-semibold text-destructive font-body">
                 {overdue.diffDays} days since your last wash day
               </p>
               <LevelGate min={2}>
-                <AiProse text={overdueReason} className="text-destructive/90" />
+                <AiProse text={overdueReason} className="mt-1.5" />
               </LevelGate>
-              <button
-                onClick={() => navigate("/wash/step-1")}
-                className="text-[12px] font-semibold text-destructive underline underline-offset-2 mt-1"
-              >
-                Log a wash day now →
-              </button>
-            </div>
+            </StatusCallout>
           </div>
         )}
         {/* ONE AI tip card only. The log-specific next-wash tip is fresher, so it
@@ -668,32 +672,22 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
   if (isLoading && !tip) return null;
   if (!tip) return null;
   return (
-    <SurfaceCard>
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-          <Sparkles className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
-            Your wash day tip
-          </p>
-          <p className="font-display text-[15px] leading-snug mt-1 break-words">
-            {tip.headline}
-          </p>
-          <AiProse text={tip.why} className="mt-2" />
-          {tip.technique && (
-            <LevelGate min={2}>
-              <div className="mt-2">
-                <AiProse text={`How: ${tip.technique}`} />
-              </div>
-            </LevelGate>
-          )}
-          {/* No BeginnerSteps here — level-4 depth comes from the server-side
-              tips-level directive expanding the generated tip itself. Repeating
-              the headline/why/technique as "steps" restated what was just read. */}
-        </div>
-      </div>
-    </SurfaceCard>
+    <GuidanceCard
+      tone="gold"
+      eyebrow="Your wash day tip"
+      icon={Sparkles}
+      headline={tip.headline}
+    >
+      <AiProse text={tip.why} />
+      {tip.technique && (
+        <LevelGate min={2}>
+          <AiProse text={`Technique: ${tip.technique}`} />
+        </LevelGate>
+      )}
+      {/* No BeginnerSteps here — level-4 depth comes from the server-side
+          tips-level directive expanding the generated tip itself. Repeating
+          the headline/why/technique as "steps" restated what was just read. */}
+    </GuidanceCard>
   );
 
 };
