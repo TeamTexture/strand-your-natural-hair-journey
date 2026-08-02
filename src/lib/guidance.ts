@@ -15,12 +15,13 @@ import {
   CalendarClock,
   CalendarDays,
   Check,
+  CircleSlash,
   Dot,
   Droplet,
-  DropletOff,
   Droplets,
-
+  FlaskConical,
   Hand,
+
   HeartPulse,
   Info,
   Layers,
