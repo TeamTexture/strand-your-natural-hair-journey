@@ -416,17 +416,23 @@ const WashDayHub = () => {
   // already rendered higher up the page is dropped from later blocks.
   const pageSeen = useMemo(() => new Set<string>(), [overdue, latestTip, educational]);
 
-  // CONSEQUENCE only — one block, no goal fragment (that becomes a chip) and no
-  // sentence that merely restates the "Log a wash day now" button.
+  // CONSEQUENCE only — one short, complete, never-truncated sentence: bold
+  // 4–6 word lead-in + em-dash + one light clause of ≤ 12 words.
   const OVERDUE_CTA = "Log a wash day now";
+  const OVERDUE_LEAD = "Buildup is settling on your scalp";
+  const OVERDUE_CLAUSE = "it can restrict follicles and slow growth.";
   const overdueReason = (() => {
     if (!overdue) return "";
-    const base =
-      "Extended gaps between washes let sebum, product residue and environmental buildup accumulate on the scalp, which can restrict the follicle, aggravate inflammation and slow growth.";
+    const base = `${OVERDUE_LEAD} — ${OVERDUE_CLAUSE}`;
     return splitSentences(base)
       .filter((s) => !restatesAction(s, OVERDUE_CTA))
       .join(" ");
   })();
+  // Plain-terms footnote for the overdue card (level 4 only, claim-once).
+  const overdueTerms = usePlainTermFootnotes(
+    overdue ? "sebum builds up on the scalp between washes" : "",
+    Boolean(overdue) && showBeginnerHelp,
+  );
 
   // Cadence reasoning appears at most once per page. Priority:
   // overdue alert > AI tip card > wash rhythm "why".
