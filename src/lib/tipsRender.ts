@@ -150,3 +150,54 @@ export const wantsWhy = (level: TipsLevel) => level >= 3;
 export const wantsDetail = (level: TipsLevel) => level >= 2;
 /** True when a surface should render the illustrated beginner presentation. */
 export const wantsBeginner = (level: TipsLevel) => level >= 4;
+
+/* ------------------------------------------------------------------ *
+ * ONE THEME, ONCE — rendering-level de-duplication.
+ *
+ * The consumer app stacks several guidance surfaces on one screen (an AI
+ * overview + a tips list, a fresh log-specific tip + a generic rhythm note).
+ * When two blocks say the same thing, the second one is noise. These helpers
+ * let a renderer drop any item whose opening already appears in the prose the
+ * user has just read above it.
+ * ------------------------------------------------------------------ */
+
+const normaliseForCompare = (text: string) =>
+  (text ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** True when `candidate` restates something already present in `reference`. */
+export function restatesReference(
+  candidate: string | null | undefined,
+  reference: string | null | undefined,
+  compareChars = 40,
+): boolean {
+  const c = normaliseForCompare(candidate ?? "");
+  const r = normaliseForCompare(reference ?? "");
+  if (!c || !r) return false;
+  const opening = c.slice(0, compareChars).trim();
+  if (opening.length < 12) return false;
+  if (r.includes(opening)) return true;
+  // Sentence-level overlap: a high word-overlap with any reference sentence.
+  const candidateWords = new Set(opening.split(" ").filter((w) => w.length > 3));
+  if (candidateWords.size < 3) return false;
+  for (const sentence of splitSentences(r)) {
+    const words = new Set(normaliseForCompare(sentence).split(" "));
+    let hits = 0;
+    for (const w of candidateWords) if (words.has(w)) hits++;
+    if (hits / candidateWords.size >= 0.8) return true;
+  }
+  return false;
+}
+
+/** Drop tips that merely restate `reference` prose shown on the same screen. */
+export function dedupeTips<T extends { short: string; alwaysShow?: boolean }>(
+  tips: T[] | null | undefined,
+  reference: string | null | undefined,
+): T[] {
+  const list = tips ?? [];
+  if (!reference) return [...list];
+  return list.filter((t) => t.alwaysShow || !restatesReference(t.short, reference));
+}

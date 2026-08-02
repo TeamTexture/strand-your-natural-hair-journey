@@ -256,7 +256,9 @@ const Journal = () => {
           </h2>
         </div>
 
-        <TipsBlock tips={goalTips} idPrefix="goal-tip" />
+        {/* ONE THEME, ONCE — a goal tip that restates the banner is suppressed. */}
+        <TipsBlock tips={goalTips} idPrefix="goal-tip" dedupeAgainst={banner?.subline} />
+
         {wantsBeginner(level) && lengthGoal && <BeginnerTrimEducation />}
 
         {goalsLoading ? (

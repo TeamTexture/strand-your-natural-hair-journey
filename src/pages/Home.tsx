@@ -676,6 +676,8 @@ const Home = () => {
                           <TipsBlock
                             className="mt-2"
                             idPrefix="goaltip"
+                            dedupeAgainst={goalTip.body}
+
                             reassurance="Small, steady steps beat big changes — you only need the first one today."
                             tips={goalTip.actions.map((a, i): GuidanceTip => ({
                               priority: goalTip.actions.length - i,

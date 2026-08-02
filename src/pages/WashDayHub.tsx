@@ -414,7 +414,13 @@ const WashDayHub = () => {
     return `${base} Log a wash day to reset your scalp environment.`;
   })();
 
+  // Cadence reasoning appears at most once per page. Priority:
+  // overdue alert > AI tip card > wash rhythm "why".
+  const [dynamicTipShown, setDynamicTipShown] = useState(false);
+  const cadenceReasoningTaken = Boolean(overdue) || Boolean(latestTip) || dynamicTipShown;
+
   return (
+
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} tips />
       <div className="px-5 space-y-4 pb-6">
@@ -441,10 +447,15 @@ const WashDayHub = () => {
             </div>
           </div>
         )}
-        {latestTip && (
+        {/* ONE AI tip card only. The log-specific next-wash tip is fresher, so it
+            wins; the generated wash-day tip is the fallback for accounts with no
+            logged tip yet (and is not even fetched when the former exists). */}
+        {latestTip ? (
           <NextWashTipCard action={latestTip.action} why={latestTip.why} />
+        ) : (
+          <DynamicWashTipCard onShown={setDynamicTipShown} />
         )}
-        <DynamicWashTipCard />
+
 
         <div id="wash-calendar">
           <Calendar
@@ -473,11 +484,15 @@ const WashDayHub = () => {
               <p className="font-display text-[15px] leading-snug mt-1 break-words">
                 {educational.headline}
               </p>
-              <LevelGate min={2}>
-                <div className="mt-2">
-                  <AiProse text={`Why this matters — ${educational.why}`} />
-                </div>
-              </LevelGate>
+              {/* MAX ONE cadence-reasoning block per page:
+                  overdue alert > AI tip card > wash rhythm why. */}
+              {!cadenceReasoningTaken && (
+                <LevelGate min={2}>
+                  <div className="mt-2">
+                    <AiProse text={`Why this matters — ${educational.why}`} />
+                  </div>
+                </LevelGate>
+              )}
               <div className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold font-body">
                   Next wash reminder
@@ -485,16 +500,18 @@ const WashDayHub = () => {
               <p className="font-body text-[13px] leading-snug text-foreground mt-1 break-words">
                 {level === 1 ? "Keep your next wash day visible." : educational.reminder}
               </p>
+              {/* Level-4 depth must ADD procedure, never restate the reminder above. */}
               {showBeginnerHelp && (
                 <BeginnerSteps
                   className="mt-2"
                   steps={[
-                    { text: educational.reminder, detail: "This is when your hair and scalp will be ready for the next full wash." },
-                    { text: "Put the wash day in your calendar now.", detail: "That gives your scalp routine a clear rhythm, and you will get a reminder on the day." },
+                    { text: "Tap “Schedule this wash day” below.", detail: "That pins the date to your STRAND calendar so you can see it coming." },
+                    { text: "Then tap “Add to Google Calendar”.", detail: "You will get a reminder on your phone on the day itself." },
                     { text: "Set aside about 2 hours on the day.", detail: "Two washes, 20 minutes with conditioner on, then styling. There is no rush." },
                   ]}
                 />
               )}
+
                 {educational.nextDateIso && (
                   <div className="mt-3 flex flex-col gap-2">
                     {scheduledSet.has(educational.nextDateIso) ? (
@@ -531,11 +548,12 @@ const WashDayHub = () => {
                   </div>
                 )}
               </div>
-              <LevelGate min={2}>
+              <LevelGate min={3}>
                 <p className="font-body text-[11.5px] text-muted-foreground mt-3">
                   💧 {currentMonthCount} wash day{currentMonthCount === 1 ? "" : "s"} this month — {encouragement(currentMonthCount).toLowerCase()}
                 </p>
               </LevelGate>
+
             </div>
           </div>
         </SurfaceCard>
@@ -641,9 +659,12 @@ const WashDayHub = () => {
   );
 };
 
-const DynamicWashTipCard = () => {
+const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void }) => {
   const { data: tip, isLoading } = useDynamicWashTip();
-  const { showBeginnerHelp } = useTipsLevel();
+  useEffect(() => {
+    onShown?.(Boolean(tip));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tip]);
   if (isLoading && !tip) return null;
   if (!tip) return null;
   return (
@@ -667,19 +688,14 @@ const DynamicWashTipCard = () => {
               </div>
             </LevelGate>
           )}
-          {showBeginnerHelp && (
-            <BeginnerSteps
-              className="mt-3"
-              steps={[
-                { text: tip.headline, detail: tip.why },
-                ...(tip.technique ? [{ text: tip.technique, detail: "Take your time with this part — slow and gentle beats fast and rough." }] : []),
-              ]}
-            />
-          )}
+          {/* No BeginnerSteps here — level-4 depth comes from the server-side
+              tips-level directive expanding the generated tip itself. Repeating
+              the headline/why/technique as "steps" restated what was just read. */}
         </div>
       </div>
     </SurfaceCard>
   );
+
 };
 
 export default WashDayHub;
