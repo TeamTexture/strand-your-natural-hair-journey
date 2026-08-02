@@ -2408,6 +2408,59 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          appointment_id: string
+          audio_path: string | null
+          body_text: string | null
+          client_user_id: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          professional_id: string
+          rating: number
+          status: string
+          transcription_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          audio_path?: string | null
+          body_text?: string | null
+          client_user_id: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          professional_id: string
+          rating: number
+          status?: string
+          transcription_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          audio_path?: string | null
+          body_text?: string | null
+          client_user_id?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          professional_id?: string
+          rating?: number
+          status?: string
+          transcription_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_advice_ledger: {
         Row: {
           action_key: string
