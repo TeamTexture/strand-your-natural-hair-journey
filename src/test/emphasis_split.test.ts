@@ -40,7 +40,7 @@ describe("emphasisSplit", () => {
 
   it("ignores boundaries that appear late in the string", () => {
     const text =
-      "Your hair is coping well with the current routine — keep going for another two weeks.";
+      "Your hair is coping well with the routine you have been following — keep going for two weeks.";
     const { phrase, rest } = emphasisSplit(text);
     expect(rest).toBe("");
     expect(phrase).toBe(text);
