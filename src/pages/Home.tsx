@@ -3,7 +3,7 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle, Heart, Droplet, RefreshCw, Tag } from "lucide-react";
+import { HelpCircle, Heart, RefreshCw, Tag } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -41,7 +41,7 @@ import HomeBloodSummary from "@/components/blood/HomeBloodSummary";
 import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
-import { limitSupporting, type GuidanceTip } from "@/lib/tipsRender";
+import { type GuidanceTip } from "@/lib/tipsRender";
 
 
 // Rich text rendering is delegated to useSmartInline() inside the component
