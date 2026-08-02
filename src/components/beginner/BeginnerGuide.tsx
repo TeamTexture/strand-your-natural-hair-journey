@@ -80,10 +80,12 @@ export function plainLanguage(text: string): string {
 
 
 export interface BeginnerStep {
-  /** One action, plain language. */
+  /** Action headline — max 8 words. */
   text: string;
-  /** Optional extra sentence of reassurance or the why, kept simple. */
+  /** Body — max 30 words. Never a paragraph. */
   detail?: string;
+  /** One short "why" line — max 15 words. */
+  why?: string;
   /** Optional plain definition shown under the step. */
   define?: string;
 }
@@ -108,7 +110,7 @@ export const BeginnerSteps = ({
   className?: string;
 }) => {
   const footnotes = usePlainTermFootnotes(
-    steps.map((s) => `${s.text} ${s.detail ?? ""}`).join(" "),
+    steps.map((s) => `${s.text} ${s.detail ?? ""} ${s.why ?? ""}`).join(" "),
   );
   if (steps.length === 0) return null;
   return (
@@ -142,6 +144,11 @@ export const BeginnerSteps = ({
                 {s.detail && (
                   <p className="text-[12px] leading-relaxed text-muted-foreground mt-1.5">
                     {plainLanguage(s.detail)}
+                  </p>
+                )}
+                {s.why && (
+                  <p className="mt-1 text-[11.5px] leading-snug text-primary/90 font-body">
+                    Why: {plainLanguage(s.why)}
                   </p>
                 )}
                 {s.define && (
