@@ -226,7 +226,11 @@ export function useSmartInline() {
   const { products } = useUserProducts("all");
   return React.useCallback(
     (text: string, keyPrefix = "s") =>
-      renderInlineWithProducts(capitaliseSentences(text), keyPrefix, products),
+      renderInlineWithProducts(
+        safeRewrite(text, capitaliseSentences(text)),
+        keyPrefix,
+        products,
+      ),
     [products],
   );
 }
