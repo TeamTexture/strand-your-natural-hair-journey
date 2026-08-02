@@ -422,7 +422,7 @@ export function useProBookingUrl(proUserId: string | null | undefined) {
     queryKey: ["pro_booking_url", proUserId],
     enabled: !!proUserId,
     staleTime: 60_000,
-    queryFn: async (): Promise<string | null> => {
+    queryFn: async (): Promise<{ url: string | null; proName: string }> => {
       const { data, error } = await supabase
         .from("pro_profiles")
         .select("booking_url, display_name")
@@ -430,7 +430,7 @@ export function useProBookingUrl(proUserId: string | null | undefined) {
         .maybeSingle();
       if (error) throw error;
       const url = (data?.booking_url ?? "").trim();
-      return url || null;
+      return { url: url || null, proName: data?.display_name ?? "" };
     },
   });
 }

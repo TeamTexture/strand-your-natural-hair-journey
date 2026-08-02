@@ -27,6 +27,8 @@ import {
   mySideRole,
   useBookAppointmentInThread,
   useChatThread,
+  useProBookingUrl,
+  useSendBookingRequest,
   useMarkThreadRead,
   useSendChatMessage,
   type ChatMessage,
@@ -273,8 +275,8 @@ const ChatThreadPage = () => {
   // "Book appointment" button and the pro's own booking-request action.
   const proUserId = !isSupport ? (t?.pro_user_id ?? null) : null;
   const { data: proBooking } = useProBookingUrl(proUserId);
-  const bookingUrl = proBooking ? normalizeBookingUrl(proBooking) : "";
-  const myProName = isPro ? (myProProfile?.display_name ?? "") : "";
+  const bookingUrl = proBooking?.url ? normalizeBookingUrl(proBooking.url) : "";
+  const myProName = proBooking?.proName || "Your professional";
   const sendBookingRequest = useSendBookingRequest(threadId);
 
 
