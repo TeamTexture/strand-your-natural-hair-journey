@@ -61,6 +61,21 @@ export function actionKey(text: string): string {
   return uniq.join("-");
 }
 
+/** Best-effort user id from the caller's bearer token (JWT sub claim). */
+export function userIdFromRequest(req: Request): string | null {
+  try {
+    const raw = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const part = raw.split(".")[1];
+    if (!part) return null;
+    const json = JSON.parse(
+      atob(part.replace(/-/g, "+").replace(/_/g, "/").padEnd(part.length + ((4 - (part.length % 4)) % 4), "=")),
+    );
+    return typeof json?.sub === "string" ? json.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface LedgerEntry {
   action_key: string;
   headline: string | null;
