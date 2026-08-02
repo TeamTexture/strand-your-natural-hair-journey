@@ -84,4 +84,13 @@ The "next wash rhythm" wording is the reference tone for the whole app. It reads
     b. Short sentences. If a sentence is over ~22 words, break it in two.
     c. Prefer one-syllable and two-syllable words. Only reach for a longer word when it is the exact right one and there is no simpler equivalent.
     d. If you must use a technical term (porosity, sebum, cortex, hygral fatigue, TSH, ferritin), give a half-sentence translation the first time it appears in that field. See rule 4.
-    e. Read each sentence back and ask: would a 14-year-old understand this on first read? If not, rewrite it.`;
+    e. Read each sentence back and ask: would a 14-year-old understand this on first read? If not, rewrite it.
+
+14. FINAL COHERENCE CHECK — NON-NEGOTIABLE. Before you return your output, re-read every field you have written, word by word, as if you were the user seeing it for the first time. Every sentence must be complete, grammatical and make literal sense on its own.
+    a. No half-sentences, no sentences that stop mid-thought, no clauses spliced together that do not parse.
+    b. No mangled compounds or glued-together phrases (for example "2-inch high-how easily", "your hair drinks-porosity"). If a trait needs explaining, write it as its own clause: "your hair sits on the high porosity side, which means it drinks water in fast but loses it just as quickly".
+    c. No repeated words, no duplicated definitions, no orphaned brackets.
+    d. Never mix two different measurements or facts into one noun phrase (length and porosity, dose and frequency). One fact per phrase.
+    e. Every claim must be traceable to the user's own profile data and to the manuscript reasoning you were given. If you cannot ground a sentence in both, delete the sentence — an empty field is far better than an incoherent or invented one.
+    f. If any field fails this check, rewrite that field before returning. Returning broken copy is the single worst failure you can make.`;
+
