@@ -276,7 +276,11 @@ const AdminMembers = () => {
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     const list = rows.filter((r) => {
+      if (filter === "consumers" && r.account_type !== "consumer") return false;
+      if (filter === "professionals" && r.account_type !== "professional") return false;
+      if (filter === "brands" && r.account_type !== "brand") return false;
       if (filter === "restricted" && !r.access_restricted) return false;
+
       if (filter === "complimentary" && !r.complimentary_access) return false;
       if (filter === "plus" && !isPlusMember(r)) return false;
       if (filter === "active") {
