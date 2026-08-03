@@ -29,6 +29,7 @@ const StylePicker = ({
   includeNotSureYet = false,
   attributesRequired = true,
   attributeError,
+  hideStyleOptions = false,
 }: {
   value: string | null;
   onChange: (next: string) => void;
@@ -38,13 +39,16 @@ const StylePicker = ({
   /** Planned/future styles keep the attributes optional. */
   attributesRequired?: boolean;
   attributeError?: boolean;
+  /** Attributes-only mode — used for the planned next style, where the style
+   *  itself is chosen in a separate dropdown. */
+  hideStyleOptions?: boolean;
 }) => {
   const asksTension = styleAsksTension(value);
   const asksExtensions = styleAsksExtensions(value);
 
   return (
     <div className="space-y-4">
-      {STYLE_GROUPS.map((group) => (
+      {!hideStyleOptions && STYLE_GROUPS.map((group) => (
         <div key={group.label}>
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
             {group.label}
@@ -59,7 +63,7 @@ const StylePicker = ({
         </div>
       ))}
 
-      {includeNotSureYet && (
+      {!hideStyleOptions && includeNotSureYet && (
         <div className="flex flex-wrap gap-2">
           <Tag
             selected={value === NOT_SURE_YET}
