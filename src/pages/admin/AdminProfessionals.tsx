@@ -256,6 +256,7 @@ const AdminProfessionals = () => {
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["admin", "pro-usage"] });
+      qc.invalidateQueries({ queryKey: ["pro_directory"] });
       toast.success(v.publish ? "Directory profile published." : "Directory profile unpublished.");
     },
     onError: (err) => toast.error((err as Error).message ?? "Could not update"),
