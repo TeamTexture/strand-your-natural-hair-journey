@@ -128,6 +128,10 @@ const GlobalMenu = () => {
 
   const path = location.pathname;
 
+  // Tips-level preference is irrelevant on directory surfaces where the user
+  // is browsing listings, not receiving personalised guidance.
+  const isDirectoryPage = path.startsWith("/directory") || path.startsWith("/brands");
+
   const routeView = routeToView(path, location.search);
 
 
@@ -258,7 +262,7 @@ const GlobalMenu = () => {
             )}
           </div>
           <div className="flex items-center gap-1 min-w-0 shrink">
-            <TipsLevelButton className="shrink-0" />
+            {!isDirectoryPage && <TipsLevelButton className="shrink-0" />}
             {showViewSwitcher && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
