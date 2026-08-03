@@ -329,28 +329,22 @@ const Home = () => {
     : "Log your first wash day";
   const washDaysTone = lastWash && daysSinceLast != null && daysSinceLast > 7 ? "warning" : "good";
 
-  const goalPct = (() => {
-    if (!lengthGoal) return null;
-    const target = lengthGoal.target_value;
-    const start = lengthGoal.start_value ?? 0;
-    const current = lengthGoal.current_value ?? 0;
-    if (target == null || target <= start) return null;
-    return Math.min(100, Math.max(0, Math.round(((current - start) / (target - start)) * 100)));
-  })();
   const goalName = (() => {
     if (!lengthGoal) return "No goal set yet";
     const title = lengthGoal.title?.trim();
     if (title && title.toLowerCase() !== "hair goal") {
-      return title.length > 28 ? `${title.slice(0, 28)}…` : title;
+      return title.length > 20 ? `${title.slice(0, 20)}…` : title;
     }
     return "Your goal";
   })();
-  const goalValue = goalPct != null ? `${goalPct}%` : "—";
 
   const flaggedCount = bloodSummary?.flagged ?? 0;
   const flaggedValue = bloodSummary ? `${flaggedCount}` : "—";
   const flaggedTone = flaggedCount > 0 ? "warning" : "good";
-  const flaggedSub = bloodSummary ? "flagged markers" : "No blood work logged yet";
+  const flaggedSub = bloodSummary
+    ? `flagged marker${flaggedCount === 1 ? "" : "s"}`
+    : "No blood work logged yet";
+
 
   const shelfCount = shelfProducts.length;
 
@@ -411,16 +405,15 @@ const Home = () => {
         />
         <StatTile
           icon={ICONS.goal}
-          value={goalValue}
-          label="Goal progress"
-          sub={goalName}
-          tone={goalPct != null ? "good" : "muted"}
+          value={goalName}
+          label="Goal focus"
+          tone={lengthGoal ? "good" : "muted"}
           to="/journal"
         />
         <StatTile
           icon={ICONS.blood}
           value={flaggedValue}
-          label="Flagged markers"
+          label="Blood work"
           sub={flaggedSub}
           tone={bloodSummary ? flaggedTone : "muted"}
           to="/blood-history"
