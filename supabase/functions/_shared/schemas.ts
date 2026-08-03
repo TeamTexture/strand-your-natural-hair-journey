@@ -84,7 +84,13 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
         "One or two plain sentences, written to the user, naming what this product is sold to do, what that implies about cleansing strength, and — if the ingredients contradict the claim — the mismatch. Empty string only if there is genuinely nothing to say.",
     },
     match_score: { type: "integer", minimum: 0, maximum: 100 },
-    ai_summary: { type: "string" },
+    score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
+    ai_summary: {
+      type: "string",
+      description:
+        "Exactly ONE tight sentence: the overall call and the single user signal driving it. score_reasons carry the why.",
+    },
+
     usage_instructions: {
       type: "string",
       description:
