@@ -102,16 +102,20 @@ const AdminMembers = () => {
           .select("user_id, status, current_period_end, cancel_at_period_end, tier"),
         supabase.rpc("admin_list_member_emails"),
         supabase.rpc("admin_list_member_activity"),
-        supabase.from("user_roles").select("user_id, role").eq("role", "professional"),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
       if (profilesRes.error) throw profilesRes.error;
       if (subsRes.error) throw subsRes.error;
       if (emailsRes.error) throw emailsRes.error;
       if (activityRes.error) throw activityRes.error;
       if (rolesRes.error) throw rolesRes.error;
-      const proIds = new Set(
-        ((rolesRes.data ?? []) as Array<{ user_id: string }>).map((r) => r.user_id),
-      );
+      const rolesByUser = new Map<string, string[]>();
+      ((rolesRes.data ?? []) as Array<{ user_id: string; role: string }>).forEach((r) => {
+        const list = rolesByUser.get(r.user_id) ?? [];
+        list.push(r.role);
+        rolesByUser.set(r.user_id, list);
+      });
+
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
           s.user_id,
