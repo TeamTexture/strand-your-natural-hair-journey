@@ -14,6 +14,10 @@ import {
   type PublicReview,
 } from "@/hooks/useReviews";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
+import { useNavigate } from "react-router-dom";
+import { useProContactStates, proContactStatusLine } from "@/hooks/useProContactState";
+import ProContactAction from "@/components/directory/ProContactAction";
+import { formatDistanceToNow } from "date-fns";
 
 /**
  * Full public reviews list for one professional — approved reviews only,
@@ -28,6 +32,12 @@ const ProReviewsPublic = () => {
   const { data: summaries } = useReviewSummaries(proUserId ? [proUserId] : []);
   const summary = proUserId ? summaries?.get(proUserId) : undefined;
   const { data: pageRows = [], isLoading } = usePublicReviews(proUserId, page);
+  const navigate = useNavigate();
+  const { stateFor } = useProContactStates();
+  const contact = stateFor(proUserId);
+  const contactLine = proContactStatusLine(contact, (iso) =>
+    formatDistanceToNow(new Date(iso), { addSuffix: true }),
+  );
 
   // Accumulate pages so "Load more" appends rather than replaces.
   const rows = useMemo(() => {
@@ -66,6 +76,18 @@ const ProReviewsPublic = () => {
           <p className="text-[11px] font-body text-muted-foreground mt-2 leading-snug">
             Every review comes from a client who booked and attended an appointment through STRAND.
           </p>
+          {proUserId && (
+            <div className="mt-3 space-y-2">
+              {contactLine && (
+                <p className="text-[11px] font-body text-muted-foreground">{contactLine}</p>
+              )}
+              <ProContactAction
+                state={contact}
+                className="w-full"
+                onEnquire={() => navigate(`/directory?pro=${proUserId}`)}
+              />
+            </div>
+          )}
         </SurfaceCard>
 
         {isLoading && rows.length === 0 ? (
