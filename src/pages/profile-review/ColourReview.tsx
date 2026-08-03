@@ -19,6 +19,12 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
+import {
+  HAIRSTYLE_OPTIONS,
+  styleAsksTension,
+  styleAsksExtensions,
+} from "@/lib/hairstyles";
 import {
   loadClinicalContext,
   invalidateClinicalContextCache,
@@ -27,12 +33,7 @@ import {
 const NATURAL_NEVER = "Natural (never coloured)";
 const COLOUR = [NATURAL_NEVER, "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"];
 const CHEM_HIST = ["Relaxer current", "Relaxer past", "Texturiser", "Curly perm", "Heat damage", "None"];
-const HAIRSTYLES = [
-  "Loose natural", "Box braids", "Faux locs", "Cornrows", "Locs", "Wig / unit",
-  "Weave", "Relaxed", "Curly perm", "Silk press", "Wash and go",
-  "Twist-out", "Finger comb coils",
-  "Low manipulation natural style", "Bald", "Low cut",
-];
+const HAIRSTYLES = HAIRSTYLE_OPTIONS;
 const COLOUR_TYPES = ["Professional colour", "Box dye", "Henna", "Not sure"];
 const COLOUR_PRODUCTS = ["Colour", "Lightener (bleach)", "Not sure"];
 const COLOUR_TIMEFRAMES = ["Within 8 weeks", "8–12 weeks", "3 months", "6 months", "Over 6 months", "Never coloured"];
@@ -91,8 +92,18 @@ const ColourReview = () => {
   const [styleDraft, setStyleDraft] = useState(style?.current_hairstyle ?? "");
   const [num, setNum] = useState("");
   const [unit, setUnit] = useState<Unit>("days");
+  const [attrs, setAttrs] = useState<StyleAttributesValue>({ tension: null, extensions: null });
+  const [plannedAttrs, setPlannedAttrs] = useState<StyleAttributesValue>({
+    tension: null,
+    extensions: null,
+  });
 
   const openStyleEditor = () => {
+    const row = (style ?? {}) as unknown as Record<string, unknown>;
+    setAttrs({
+      tension: (row.current_style_tension as string | null) ?? null,
+      extensions: (row.current_style_extensions as boolean | null) ?? null,
+    });
     setStyleDraft(style?.current_hairstyle ?? "");
     setNum("");
     setUnit("days");
@@ -110,6 +121,8 @@ const ColourReview = () => {
       await upsertStyle({
         current_hairstyle: styleDraft || null,
         style_set_at: setAt,
+        current_style_tension: styleAsksTension(styleDraft) ? attrs.tension : null,
+        current_style_extensions: styleAsksExtensions(styleDraft) ? attrs.extensions : null,
       });
       setEditingStyle(false);
     } finally {
@@ -214,18 +227,13 @@ const ColourReview = () => {
 
           {editingStyle && (
             <div className="mt-3 space-y-3">
-              <Select value={styleDraft} onValueChange={setStyleDraft}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a style…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {HAIRSTYLES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <StylePicker
+                value={styleDraft}
+                onChange={setStyleDraft}
+                attributes={attrs}
+                onAttributesChange={setAttrs}
+                includeNotSureYet
+              />
               <div>
                 <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
                   How long in this style
@@ -290,6 +298,25 @@ const ColourReview = () => {
             autoEdit={editKey === "planned_next_style"}
             onSave={(v) => upsertStyle({ planned_next_style: String(v) })}
           />
+          {(styleAsksTension(style?.planned_next_style) ||
+            styleAsksExtensions(style?.planned_next_style)) && (
+            <div className="mt-3">
+              <StylePicker
+                hideStyleOptions
+                value={style?.planned_next_style ?? null}
+                onChange={() => {}}
+                attributes={plannedAttrs}
+                onAttributesChange={(v) => {
+                  setPlannedAttrs(v);
+                  void upsertStyle({
+                    planned_style_tension: v.tension,
+                    planned_style_extensions: v.extensions,
+                  });
+                }}
+                attributesRequired={false}
+              />
+            </div>
+          )}
         </div>
 
         <ReviewField
