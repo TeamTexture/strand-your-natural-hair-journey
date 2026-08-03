@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
+import UrlValue from "@/components/admin/UrlValue";
+import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
@@ -67,6 +69,8 @@ const RevisionDiff = ({ offer, revision }: {
   revision: BrandOfferRevision;
 }) => {
   const qc = useQueryClient();
+  const markEntityRead = useMarkAdminEntityRead();
+
   const approve = useApproveBrandOfferRevision();
   const reject = useRejectBrandOfferRevision();
   const [rejectReason, setRejectReason] = useState("");
@@ -151,6 +155,7 @@ const RevisionDiff = ({ offer, revision }: {
           onClick={async () => {
             try {
               await approve.mutateAsync({ revision_id: revision.id, offer_id: offer.id });
+              void markEntityRead("brand_offer_revision", revision.id);
               toast.success("Revision approved — creative updated");
               qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
             } catch (e) {
@@ -168,6 +173,7 @@ const RevisionDiff = ({ offer, revision }: {
           onClick={async () => {
             try {
               await reject.mutateAsync({ revision_id: revision.id, offer_id: offer.id, reason: rejectReason.trim() || null });
+              void markEntityRead("brand_offer_revision", revision.id);
               toast.success("Revision rejected");
               qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
               setRejectReason("");
@@ -191,6 +197,7 @@ const AdminBrandOfferReview = () => {
   const [params] = useSearchParams();
   const revisionMode = params.get("revision") !== null;
   const { data: offer, isLoading } = useBrandOffer(id);
+  const markOfferRead = useMarkAdminEntityRead();
   const { data: pendingRevision } = usePendingRevision(id);
   const { data: totalsMap = {} } = useBrandOfferTotals(id ? [id] : []);
   const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
@@ -205,6 +212,11 @@ const AdminBrandOfferReview = () => {
   const [relaunchStart, setRelaunchStart] = useState<string>(londonToday);
   const [relaunchDays, setRelaunchDays] = useState<number>(7);
   const [relaunching, setRelaunching] = useState(false);
+
+  useEffect(() => {
+    if (id) void markOfferRead("brand_offer", id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const ownerType: OwnerType = ((offer as { owner_type?: string | null } | undefined)?.owner_type === "pro" ? "pro" : "brand");
   const brandUserId = (offer as { brand_user_id?: string | null } | undefined)?.brand_user_id ?? null;
@@ -405,20 +417,12 @@ const AdminBrandOfferReview = () => {
             </SurfaceCard>
 
             {offer.external_url && (
-              <a
-                href={offer.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <SurfaceCard className="py-2.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Advert link</p>
-                    <p className="text-[12px] mt-0.5 break-all">{offer.external_url}</p>
-                  </div>
-                  <ExternalLink className="size-4 text-primary shrink-0" />
-                </SurfaceCard>
-              </a>
+              <SurfaceCard className="py-2.5">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Advert link</p>
+                <div className="text-[12px] mt-0.5 min-w-0">
+                  <UrlValue url={offer.external_url} label="Advert link" />
+                </div>
+              </SurfaceCard>
             )}
 
             <Dialog open={heroOpen} onOpenChange={setHeroOpen}>

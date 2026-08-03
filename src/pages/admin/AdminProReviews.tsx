@@ -10,6 +10,8 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import UrlValue from "@/components/admin/UrlValue";
+import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
 import { toast } from "sonner";
 import {
   usePendingProProfileReviews,
@@ -28,17 +30,31 @@ const DAYS: [string, string][] = [
   ["sun", "Sunday"],
 ];
 
-const Row = ({ label, value }: { label: string; value?: string | null }) => (
-  <div className="flex gap-2 text-[12px] font-body">
+const Row = ({
+  label,
+  value,
+  url,
+}: {
+  label: string;
+  value?: string | null;
+  url?: boolean;
+}) => (
+  <div className="flex gap-2 text-[12px] font-body min-w-0">
     <span className="text-muted-foreground w-[104px] shrink-0">{label}</span>
     <span
       className={
         value?.trim()
-          ? "flex-1 whitespace-pre-line break-words"
-          : "flex-1 italic text-muted-foreground"
+          ? "flex-1 min-w-0 whitespace-pre-line break-words [overflow-wrap:anywhere]"
+          : "flex-1 min-w-0 italic text-muted-foreground"
       }
     >
-      {value?.trim() ? value : "Not set"}
+      {url ? (
+        <UrlValue url={value} label={label} />
+      ) : value?.trim() ? (
+        value
+      ) : (
+        "Not set"
+      )}
     </span>
   </div>
 );
@@ -81,6 +97,8 @@ const PhotoStrip = ({ paths }: { paths: string[] }) => {
 
 const ReviewCard = ({ p }: { p: ProProfileRow }) => {
   const qc = useQueryClient();
+  const markEntityRead = useMarkAdminEntityRead();
+
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
 
@@ -104,6 +122,7 @@ const ReviewCard = ({ p }: { p: ProProfileRow }) => {
       if (error) throw error;
     },
     onSuccess: () => {
+      void markEntityRead("pro_profile", p.user_id);
       invalidate();
       toast.success("Profile approved — listing is live.");
     },
@@ -124,6 +143,7 @@ const ReviewCard = ({ p }: { p: ProProfileRow }) => {
       if (error) throw error;
     },
     onSuccess: () => {
+      void markEntityRead("pro_profile", p.user_id);
       invalidate();
       setNoteOpen(false);
       setNote("");
@@ -170,9 +190,9 @@ const ReviewCard = ({ p }: { p: ProProfileRow }) => {
             .join(", ")}
         />
         <Row label="Area served" value={p.location} />
-        <Row label="Website" value={p.website_url} />
+        <Row label="Website" value={p.website_url} url />
         <Row label="Instagram" value={p.instagram_handle} />
-        <Row label="Booking URL" value={p.booking_url} />
+        <Row label="Booking URL" value={p.booking_url} url />
         <Row
           label="Services"
           value={services
@@ -234,7 +254,7 @@ const ReviewCard = ({ p }: { p: ProProfileRow }) => {
           </div>
         </div>
       ) : (
-        <div className="flex gap-2 mt-3">
+        <div className="flex flex-col gap-2 mt-3">
           <Button
             variant="gold"
             size="pill"

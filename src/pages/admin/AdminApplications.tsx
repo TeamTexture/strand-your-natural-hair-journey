@@ -19,6 +19,8 @@ import {
   useIncompleteProApplications,
   type IncompleteProRow,
 } from "@/hooks/useIncompleteProApplications";
+import UrlValue from "@/components/admin/UrlValue";
+import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
 import { normalizeWebsiteUrl, instagramUrl, normalizeInstagramHandle, externalLinkProps } from "@/lib/socialLinks";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -105,6 +107,7 @@ const AdminApplications = () => {
     });
   }, [incompleteRows, query, sortDesc]);
 
+  const markEntityRead = useMarkAdminEntityRead();
   const decide = useMutation({
     mutationFn: async ({
       id,
@@ -136,6 +139,7 @@ const AdminApplications = () => {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
+      void markEntityRead("pro_application", vars.id);
       toast.success(`Application ${vars.status}.`);
       qc.invalidateQueries({ queryKey: ["admin", "pro_applications"] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-applications-count"] });
@@ -431,9 +435,7 @@ const ApplicationCard = ({
             })()}
             {app.website_url && (
               <Row label="Website">
-                <a href={normalizeWebsiteUrl(app.website_url)} {...externalLinkProps} className="text-primary underline underline-offset-2 break-all">
-                  {normalizeWebsiteUrl(app.website_url)}
-                </a>
+                <UrlValue url={normalizeWebsiteUrl(app.website_url)} label="Website" />
               </Row>
             )}
             {app.instagram_handle && (
@@ -532,11 +534,11 @@ const ApplicationCard = ({
 };
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="min-w-0">
+  <div className="min-w-0 max-w-full">
     <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
       {label}
     </p>
-    <p className="text-foreground break-words">{children}</p>
+    <p className="text-foreground min-w-0 break-words [overflow-wrap:anywhere]">{children}</p>
   </div>
 );
 
@@ -684,9 +686,7 @@ const IncompleteCard = ({ row }: { row: IncompleteProRow }) => {
             )}
             {app.website_url && (
               <Row label="Website">
-                <a href={normalizeWebsiteUrl(app.website_url)} {...externalLinkProps} className="text-primary underline underline-offset-2 break-all">
-                  {normalizeWebsiteUrl(app.website_url)}
-                </a>
+                <UrlValue url={normalizeWebsiteUrl(app.website_url)} label="Website" />
               </Row>
             )}
             {app.instagram_handle && (
