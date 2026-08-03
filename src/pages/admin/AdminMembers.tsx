@@ -26,11 +26,15 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import AccountTypeControl, { AccountTypeBadge } from "@/components/admin/AccountTypeControl";
+import { deriveAccountType, type AccountType } from "@/hooks/useAccountTypes";
 
 interface MemberRow {
   user_id: string;
+  account_type: AccountType;
   display_name: string | null;
   email: string | null;
+
   complimentary_access: boolean;
   access_restricted: boolean;
   created_at: string;
