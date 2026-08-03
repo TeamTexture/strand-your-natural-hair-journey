@@ -119,7 +119,10 @@ export interface PassportShareRow {
   revoked_at: string | null;
   enquiry_status: EnquiryStatus | null;
   enquiry_created_at: string | null;
+  /** Member's stored sharing consent on the latest enquiry. */
+  consent: boolean;
 }
+
 
 export function useMyPassportSharing() {
   const { user } = useAuth();
