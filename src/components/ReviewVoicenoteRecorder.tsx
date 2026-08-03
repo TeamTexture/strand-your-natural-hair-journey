@@ -68,7 +68,7 @@ const ReviewVoicenoteRecorder = ({
     let cancelled = false;
     (async () => {
       const { data } = await supabase.storage
-        .from("review-audio")
+        .from(bucket)
         .createSignedUrl(audioPath, 3600);
       if (!cancelled) setSignedUrl(data?.signedUrl ?? null);
     })();
@@ -106,9 +106,9 @@ const ReviewVoicenoteRecorder = ({
     setUploading(true);
     try {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const path = `${user.id}/reviews/${uuid()}.webm`;
+      const path = `${user.id}/${folder}/${uuid()}.webm`;
       const { error } = await supabase.storage
-        .from("review-audio")
+        .from(bucket)
         .upload(path, blob, { contentType: "audio/webm", upsert: false });
       if (error) throw error;
       onAudioPathChange(path);
@@ -183,7 +183,7 @@ const ReviewVoicenoteRecorder = ({
     const path = audioPath;
     onAudioPathChange(null);
     onTranscriptionChange("");
-    await supabase.storage.from("review-audio").remove([path]);
+    await supabase.storage.from(bucket).remove([path]);
   };
 
   const transcribe = async () => {
