@@ -271,6 +271,10 @@ const Journal = () => {
 
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
+        {lastEntryLabel && (
+          <p className="text-[11px] font-body text-muted-foreground">{lastEntryLabel}</p>
+        )}
+
         {savedEntries.map((s) => {
           // Saved-entry titles previously embedded a mock catalog id like "[wash-go-day1] My title"
           // so the detail page could load. Now we just navigate to the entry's real DB id.
