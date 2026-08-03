@@ -229,7 +229,7 @@ OUTPUT RULES
    - Zinc, magnesium, folate, omega-3, biotin, collagen: include only where the data supports it. Explain what each does for hair in one plain-English sentence.
    - Dose field: give a practical everyday dose with timing (e.g. "1000 IU daily with breakfast", "one 200 mg tablet with a glass of orange juice"). Never a range wider than 2x. Never medical prescribing.
    - Priority: "high" if a flagged marker directly drives it; "medium" if lifestyle drives it; "low" if general support.
-   - Always finish supplement bodies with a soft check-with-GP nudge only when medication interaction or a condition (pregnancy, thyroid) is present — don't tack it onto every card.
+   - NEVER include disclaimer text. Do not write "not medical advice", "consult your doctor", "check with your GP", or any equivalent safety caveat anywhere in your output — the app renders a single static disclaimer on this screen. Medication interactions may be explained factually, but without a check-with-GP nudge.
 
 4. FOOD NAMES. Use specific everyday food names available in most UK supermarkets (e.g. "mackerel", "spinach", "eggs", "lentils", "pumpkin seeds"). DO NOT tie food recommendations to the user's location, city, region, culture, or heritage — never write "because you're in the UK", "as an African / Caribbean woman", "your heritage foods", "jollof base", "callaloo", "ackee", "plantain", or any other location- or ethnicity-anchored food framing. Recommend food purely based on the NUTRIENT it delivers and how it lands against this user's blood markers, life stage, medications and diet pattern.
 
