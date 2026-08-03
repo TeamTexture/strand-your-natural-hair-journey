@@ -52,7 +52,7 @@ export function useWashDays(opts?: { static?: boolean }) {
   useEffect(() => {
     if (!user || isStatic) return;
     const channel = supabase
-      .channel(`wash_days:${user.id}`)
+      .channel(`wash_days:${user.id}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "wash_days", filter: `user_id=eq.${user.id}` },

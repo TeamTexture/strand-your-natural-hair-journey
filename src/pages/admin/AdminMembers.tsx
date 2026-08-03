@@ -26,11 +26,15 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import AccountTypeControl, { AccountTypeBadge } from "@/components/admin/AccountTypeControl";
+import { deriveAccountType, type AccountType } from "@/hooks/useAccountTypes";
 
 interface MemberRow {
   user_id: string;
+  account_type: AccountType;
   display_name: string | null;
   email: string | null;
+
   complimentary_access: boolean;
   access_restricted: boolean;
   created_at: string;
@@ -61,7 +65,17 @@ function statusBadge(row: MemberRow) {
   return { label: "No sub", cls: "bg-muted text-muted-foreground" };
 }
 
-type Filter = "all" | "active" | "plus" | "complimentary" | "restricted" | "incomplete";
+type Filter =
+  | "all"
+  | "consumers"
+  | "professionals"
+  | "brands"
+  | "active"
+  | "plus"
+  | "complimentary"
+  | "restricted"
+  | "incomplete";
+
 
 type SortKey = "recent" | "most_active";
 
@@ -78,7 +92,18 @@ const AdminMembers = () => {
   const [searchParams] = useSearchParams();
   const initialFilter = ((): Filter => {
     const f = searchParams.get("filter");
-    const valid: Filter[] = ["all", "active", "plus", "complimentary", "restricted", "incomplete"];
+    const valid: Filter[] = [
+      "all",
+      "consumers",
+      "professionals",
+      "brands",
+      "active",
+      "plus",
+      "complimentary",
+      "restricted",
+      "incomplete",
+    ];
+
     return (valid as string[]).includes(f ?? "") ? (f as Filter) : "all";
   })();
   const [q, setQ] = useState("");
@@ -102,16 +127,20 @@ const AdminMembers = () => {
           .select("user_id, status, current_period_end, cancel_at_period_end, tier"),
         supabase.rpc("admin_list_member_emails"),
         supabase.rpc("admin_list_member_activity"),
-        supabase.from("user_roles").select("user_id, role").eq("role", "professional"),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
       if (profilesRes.error) throw profilesRes.error;
       if (subsRes.error) throw subsRes.error;
       if (emailsRes.error) throw emailsRes.error;
       if (activityRes.error) throw activityRes.error;
       if (rolesRes.error) throw rolesRes.error;
-      const proIds = new Set(
-        ((rolesRes.data ?? []) as Array<{ user_id: string }>).map((r) => r.user_id),
-      );
+      const rolesByUser = new Map<string, string[]>();
+      ((rolesRes.data ?? []) as Array<{ user_id: string; role: string }>).forEach((r) => {
+        const list = rolesByUser.get(r.user_id) ?? [];
+        list.push(r.role);
+        rolesByUser.set(r.user_id, list);
+      });
+
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
           s.user_id,
@@ -144,11 +173,13 @@ const AdminMembers = () => {
           },
         ]),
       );
-      return (profilesRes.data ?? []).filter((p) => !proIds.has(p.user_id)).map((p) => {
+      return (profilesRes.data ?? []).map((p) => {
         const act = activityMap.get(p.user_id);
         return {
           user_id: p.user_id,
+          account_type: deriveAccountType(rolesByUser.get(p.user_id) ?? []),
           display_name: p.display_name,
+
           email: emailMap.get(p.user_id) ?? null,
           complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
           access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
@@ -245,7 +276,11 @@ const AdminMembers = () => {
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     const list = rows.filter((r) => {
+      if (filter === "consumers" && r.account_type !== "consumer") return false;
+      if (filter === "professionals" && r.account_type !== "professional") return false;
+      if (filter === "brands" && r.account_type !== "brand") return false;
       if (filter === "restricted" && !r.access_restricted) return false;
+
       if (filter === "complimentary" && !r.complimentary_access) return false;
       if (filter === "plus" && !isPlusMember(r)) return false;
       if (filter === "active") {
@@ -292,7 +327,23 @@ const AdminMembers = () => {
   }, [incompleteRows, q, sort]);
 
   const tabs: { key: Filter; label: string; count?: number }[] = [
-    { key: "all", label: "All" },
+    { key: "all", label: "All", count: rows.length },
+    {
+      key: "consumers",
+      label: "Consumers",
+      count: rows.filter((r) => r.account_type === "consumer").length,
+    },
+    {
+      key: "professionals",
+      label: "Professionals",
+      count: rows.filter((r) => r.account_type === "professional").length,
+    },
+    {
+      key: "brands",
+      label: "Brands",
+      count: rows.filter((r) => r.account_type === "brand").length,
+    },
+
     {
       key: "active",
       label: "Active",
@@ -457,9 +508,12 @@ const AdminMembers = () => {
                       )}
                     </p>
                   </div>
-                  <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
-                    {badge.label}
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <AccountTypeBadge type={r.account_type} />
+                    <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border">
@@ -472,6 +526,13 @@ const AdminMembers = () => {
                     View passport
                   </Button>
                 </div>
+                <AccountTypeControl
+                  userId={r.user_id}
+                  name={r.display_name}
+                  currentType={r.account_type}
+                  isSelf={isSelf}
+                />
+
                 <div className="mt-3 flex items-center justify-between gap-3 pt-3 border-t border-border">
                   <div className="min-w-0">
                     <p className="text-[12px] font-body font-medium">Complimentary access</p>
