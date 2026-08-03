@@ -359,9 +359,27 @@ const Directory = () => {
                         {p.verified} ✓
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {p.clinic}{p.location ? ` · ${p.location}` : ""}
-                    </p>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground min-w-0 flex-1">
+                        {p.clinic}{p.location ? ` · ${p.location}` : ""}
+                      </p>
+                      {ratingSummary && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/directory/${p.proUserId}/reviews`)}
+                          className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5"
+                          aria-label={`${ratingSummary.avg_rating} out of 5 from ${ratingSummary.review_count} reviews`}
+                        >
+                          <StarRating value={ratingSummary.avg_rating} size="size-3" />
+                          <span className="text-[10px] font-body font-semibold">
+                            {ratingSummary.avg_rating.toFixed(1)}
+                          </span>
+                          <span className="text-[10px] font-body text-muted-foreground">
+                            ({ratingSummary.review_count})
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
