@@ -65,7 +65,17 @@ function statusBadge(row: MemberRow) {
   return { label: "No sub", cls: "bg-muted text-muted-foreground" };
 }
 
-type Filter = "all" | "active" | "plus" | "complimentary" | "restricted" | "incomplete";
+type Filter =
+  | "all"
+  | "consumers"
+  | "professionals"
+  | "brands"
+  | "active"
+  | "plus"
+  | "complimentary"
+  | "restricted"
+  | "incomplete";
+
 
 type SortKey = "recent" | "most_active";
 
