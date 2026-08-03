@@ -139,7 +139,9 @@ function buildToolSchema(ingredientCount: number) {
     type: "object",
     properties: {
       match_score: { type: "integer", minimum: 0, maximum: 100 },
+      score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
       summary: { type: "string" },
+
       ingredients: {
         type: "array",
         ...itemsConstraint,
