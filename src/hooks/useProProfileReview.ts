@@ -16,15 +16,17 @@ export type ProReviewStatus =
  * is retained for legacy rows but never blocks the portal.
  */
 export function useMyProProfile() {
-  const { actualUser } = useAuth();
+  // Effective identity: in admin Shadow View this resolves the impersonated
+  // professional's own profile, so gating matches what they actually see.
+  const { user } = useAuth();
   const q = useQuery({
-    queryKey: ["pro_profile_review", actualUser?.id],
-    enabled: !!actualUser?.id,
+    queryKey: ["pro_profile_review", user?.id],
+    enabled: !!user?.id,
     queryFn: async (): Promise<ProProfileRow | null> => {
       const { data, error } = await supabase
         .from("pro_profiles")
         .select("*")
-        .eq("user_id", actualUser!.id)
+        .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
       return (data as ProProfileRow | null) ?? null;
@@ -43,6 +45,14 @@ export function useMyProProfile() {
     // Never gate on review any more — edits publish instantly.
     underReview: false,
     approved: status !== "draft",
+    /** Setup is done: the profile has been submitted, published or approved.
+     * Once true the acceptance/"you've been accepted" screen must never show. */
+    setupComplete:
+      !!profile &&
+      (!!profile.submitted_at ||
+        profile.is_published === true ||
+        status === "submitted" ||
+        status === "approved"),
     reviewNote: profile?.review_note ?? null,
     isLoading: q.isLoading,
     refetch: q.refetch,

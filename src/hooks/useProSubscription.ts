@@ -15,17 +15,17 @@ export type ProSubscription = {
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
 export function useProSubscription() {
-  // Pro subscription is a property of the REAL signed-in professional, not
-  // any consumer they may be "viewing as".
-  const { actualUser } = useAuth();
+  // Keyed to the effective identity so admin Shadow View reflects the
+  // impersonated professional rather than the admin's own billing state.
+  const { actualUser, user } = useAuth();
   const q = useQuery({
-    queryKey: ["pro_subscription", actualUser?.id],
-    enabled: !!actualUser?.id,
+    queryKey: ["pro_subscription", user?.id ?? actualUser?.id],
+    enabled: !!(user?.id ?? actualUser?.id),
     queryFn: async (): Promise<ProSubscription | null> => {
       const { data, error } = await supabase
         .from("pro_subscriptions")
         .select("*")
-        .eq("pro_user_id", actualUser!.id)
+        .eq("pro_user_id", (user?.id ?? actualUser!.id) as string)
         .maybeSingle();
       if (error) throw error;
       return (data as ProSubscription | null) ?? null;
