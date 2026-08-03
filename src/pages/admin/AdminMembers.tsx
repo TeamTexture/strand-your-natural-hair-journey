@@ -148,11 +148,13 @@ const AdminMembers = () => {
           },
         ]),
       );
-      return (profilesRes.data ?? []).filter((p) => !proIds.has(p.user_id)).map((p) => {
+      return (profilesRes.data ?? []).map((p) => {
         const act = activityMap.get(p.user_id);
         return {
           user_id: p.user_id,
+          account_type: deriveAccountType(rolesByUser.get(p.user_id) ?? []),
           display_name: p.display_name,
+
           email: emailMap.get(p.user_id) ?? null,
           complimentary_access: !!(p as { complimentary_access?: boolean }).complimentary_access,
           access_restricted: !!(p as { access_restricted?: boolean }).access_restricted,
