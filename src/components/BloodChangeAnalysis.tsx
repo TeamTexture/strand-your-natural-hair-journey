@@ -6,22 +6,13 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Sparkles,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
-  RefreshCw,
-  Loader2,
-} from "lucide-react";
+import { RefreshCw, Loader2 } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
 import ActionList from "@/components/guidance/ActionList";
-import GuidanceBody from "@/components/guidance/GuidanceBody";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
-import { cn } from "@/lib/utils";
 
 interface Delta {
   marker: string;
@@ -49,18 +40,7 @@ interface Panel {
 }
 
 interface Analysis {
-  headline: string;
-  overall: string;
   confidence: "low" | "medium" | "high";
-  key_changes: Array<{
-    marker: string;
-    direction: "up" | "down" | "flat";
-    from: number;
-    to: number;
-    unit: string;
-    insight: string;
-    tone: "good" | "warn" | "neutral";
-  }>;
   focus_areas: Array<{
     icon:
       | "iron"
@@ -116,6 +96,7 @@ export default function BloodChangeAnalysis({
   const cacheKey = useMemo(
     () => [
       "blood-change-analysis",
+      "v2-focus-only",
       latestPanel.id,
       previousPanel?.id ?? "none",
       latestResults.length,
@@ -134,6 +115,7 @@ export default function BloodChangeAnalysis({
       const context = await buildAiContext().catch(() => ({}));
       const { data: resp, error } = await supabase.functions.invoke(
         "blood-change-analysis",
+      "v2-focus-only",
         {
           body: {
             latestPanel,
