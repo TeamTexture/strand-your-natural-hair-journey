@@ -293,6 +293,7 @@ const Directory = () => {
               : "bg-muted text-muted-foreground";
 
             const isOwn = !!user && !!p.proUserId && p.proUserId === user.id;
+            const ratingSummary = p.proUserId ? reviewSummaries?.get(p.proUserId) : undefined;
             const openingSummary = summariseOpeningHours(p.openingHours);
             const hoursOpen = expandedHours[p.id] === true;
             const fullHours = hoursOpen ? listOpeningHours(p.openingHours) : [];
