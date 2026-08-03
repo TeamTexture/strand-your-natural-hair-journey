@@ -82,12 +82,12 @@ export function useWashDaySteps() {
       if (!user?.id) return [];
       const ctx = await loadInputs(user.id);
       const h = ctx.hair as Record<string, string | null> | null;
-      const s = ctx.style as Record<string, string | number | null> | null;
+      const s = ctx.style as Record<string, string | number | boolean | null> | null;
 
       // Fingerprint — anything here changing regenerates the sequence.
       const fingerprint = hashString(
         [
-          `v1`,
+          `v2-style-attrs`,
           h?.hair_type ?? "",
           h?.surface_texture ?? "",
           h?.porosity ?? "",
