@@ -143,6 +143,7 @@ const EnquiryCard = ({
   const phone = preview?.phone ?? enquiry.contact_phone ?? null;
   const contactMethod = enquiry.contact_method ?? null;
   const location = preview?.location ?? enquiry.location_preference ?? null;
+  const shared = !!enquiry.share_passport_consent;
   return (
     <SurfaceCard>
       <div className="flex items-start justify-between gap-3">
