@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
-import AnchorStat from "@/components/guidance/AnchorStat";
 import ActionList from "@/components/guidance/ActionList";
 import GuidanceBody from "@/components/guidance/GuidanceBody";
 import { Button } from "@/components/ui/button";

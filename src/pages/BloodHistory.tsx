@@ -69,7 +69,6 @@ import AiProse from "@/components/tips/AiProse";
 import { limitSupporting } from "@/lib/tipsRender";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import EmptyState from "@/components/EmptyState";
-import { TrendingUp, TrendingDown } from "lucide-react";
 
 type PanelStatus = "logged" | "scheduled";
 
