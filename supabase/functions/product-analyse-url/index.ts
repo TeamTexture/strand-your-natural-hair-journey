@@ -56,14 +56,21 @@ import {
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
 import { MARKETED_PURPOSE_RULES } from "../_shared/marketed-purpose.ts";
+import {
+  SCORE_REASONS_RULES,
+  sanitiseScoreReasons,
+  alignScoreWithReasons,
+  firstSentence,
+} from "../_shared/score-reasons.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v2-tipslevel-goals-caps";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v2-tipslevel-goals-caps";
+const MODEL_VERSION = "claude-sonnet-4-6@v3-score-reasons";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v3-score-reasons";
+
 
 function levelCap(level: TipsLevel): number {
   if (level >= 4) return 4;
