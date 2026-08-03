@@ -21,7 +21,7 @@ export function useIncomingChatMessages(onMessage: (m: ChatMessage) => void) {
     // Subscribe to every chat_messages insert; server-side RLS ensures we
     // only receive rows for threads the user participates in.
     const channel = supabase
-      .channel(`chat_incoming_${user.id}`)
+      .channel(`chat_incoming_${user.id}_${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages" },
