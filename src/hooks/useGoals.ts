@@ -19,6 +19,8 @@ export interface UserGoal {
   target_text: string | null;
   challenge_voice_url: string | null;
   target_voice_url: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -123,8 +125,61 @@ export const useGoals = () => {
   // Prefer an explicit length-retention goal, but fall back to the most
   // recent goal so anything the user saves in the Style Journal editor
   // (which currently writes kind="challenge") still surfaces on Home.
-  const lengthGoal =
-    goals.find((g) => g.kind === "length_retention") ?? goals[0] ?? null;
+  const activeGoals = goals.filter(
+    (g) => (g.status ?? "in_progress") === "in_progress" && !g.ended_at,
+  );
+  const pastGoals = goals
+    .filter((g) => g.status === "past" || !!g.ended_at)
+    .sort((a, b) => (b.ended_at ?? "").localeCompare(a.ended_at ?? ""));
 
-  return { goals, lengthGoal, loading, upsertGoal, deleteGoal, refresh };
+  const lengthGoal =
+    activeGoals.find((g) => g.kind === "length_retention") ??
+    activeGoals[0] ??
+    goals.find((g) => g.kind === "length_retention") ??
+    goals.find((g) => !g.ended_at) ??
+    null;
+
+  /** End a goal without deleting it — history is never wiped. */
+  const endGoal = useCallback(
+    (id: string) =>
+      upsertMutation.mutateAsync({
+        id,
+        draft: { status: "past", ended_at: new Date().toISOString() },
+      }),
+    [upsertMutation],
+  );
+
+  /**
+   * "Set new goal" — closes every currently active goal (status past,
+   * ended_at now) and creates the new one. Nothing is overwritten.
+   */
+  const startNewGoal = useCallback(
+    async (draft: GoalDraft) => {
+      const endedAt = new Date().toISOString();
+      for (const g of activeGoals) {
+        await upsertMutation.mutateAsync({
+          id: g.id,
+          draft: { status: "past", ended_at: endedAt },
+        });
+      }
+      return upsertMutation.mutateAsync({
+        draft: { ...draft, status: "in_progress", ended_at: null, started_at: endedAt },
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [upsertMutation, activeGoals.map((g) => g.id).join(",")],
+  );
+
+  return {
+    goals,
+    activeGoals,
+    pastGoals,
+    lengthGoal,
+    loading,
+    upsertGoal,
+    deleteGoal,
+    endGoal,
+    startNewGoal,
+    refresh,
+  };
 };

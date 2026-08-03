@@ -18,18 +18,18 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 
-import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { useMoodboards } from "@/hooks/useMoodboards";
 import GoalEditorSheet from "@/components/GoalEditorSheet";
+import GoalHeroCard from "@/components/journal/GoalHeroCard";
+import GoalTipsSection from "@/components/journal/GoalTipsSection";
+import GoalProgressComposer from "@/components/journal/GoalProgressComposer";
+import GoalTimelineSheet from "@/components/journal/GoalTimelineSheet";
+import PastGoalsSection from "@/components/journal/PastGoalsSection";
 import GoalDetailSheet from "@/components/GoalDetailSheet";
 import LevelGate from "@/components/tips/LevelGate";
-import AiProse from "@/components/tips/AiProse";
-import TipsBlock from "@/components/tips/TipsBlock";
-import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
 import SectionHeader from "@/components/nav/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { ICONS } from "@/lib/iconMap";
@@ -59,36 +59,15 @@ const formatEntryDate = (raw: string): string => {
 const Journal = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { signals, banner, loading } = useJournalEncouragement();
-  const { goals, lengthGoal, loading: goalsLoading } = useGoals();
-  const { level } = useTipsLevel();
+  const {
+    goals,
+    activeGoals,
+    pastGoals,
+    lengthGoal,
+    loading: goalsLoading,
+    endGoal,
+  } = useGoals();
 
-  const goalTips: GuidanceTip[] = useMemo(() => {
-    const tips: GuidanceTip[] = [
-      {
-        priority: 5,
-        short: "Set one goal at a time so progress is easy to track.",
-        why: "Splitting focus across several goals makes it harder to tell what is actually working.",
-      },
-      {
-        priority: 4,
-        short: "Update your goal whenever your target or timeline changes.",
-        why: "A stale goal stops giving you useful feedback on where you really are.",
-      },
-    ];
-    if (lengthGoal) {
-      tips.push({
-        priority: 10,
-        short: "Trims keep length — they don't speed up growth.",
-        why: "The hair you can see is not alive, so it can't heal itself. Growth only happens at the scalp, so a trim removes damage that would otherwise keep splitting upward, but it doesn't make new hair grow any faster.",
-        define: "\"Retention\" just means keeping the length you already have, rather than losing it to breakage.",
-        dos: ["Trim only when ends look damaged", "Handle wet hair gently to protect length"],
-        donts: ["Trim on a fixed schedule expecting faster growth", "Pull through tangles instead of easing them out"],
-        alwaysShow: true,
-      });
-    }
-    return tips;
-  }, [lengthGoal]);
   const { boards: moodboards, loading: boardsLoading } = useMoodboards();
   // Only surface boards that actually have content (or the Favourites board if it has favourites).
   const populatedBoards = useMemo(
@@ -103,16 +82,15 @@ const Journal = () => {
   const [editorStatus, setEditorStatus] = useState<string>("in_progress");
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewing, setViewing] = useState<UserGoal | null>(null);
-  const [chooserOpen, setChooserOpen] = useState(false);
+  const [progressGoal, setProgressGoal] = useState<UserGoal | null>(null);
+  const [timelineGoal, setTimelineGoal] = useState<UserGoal | null>(null);
+  const [newGoalConfirm, setNewGoalConfirm] = useState(false);
 
   // Goals split by status so future goals can render in their own section
   // and the primary card always reflects what's actively in-progress.
-  const inProgressGoals = useMemo(
-    () => goals.filter((g) => (g.status ?? "in_progress") === "in_progress"),
-    [goals],
-  );
+  const inProgressGoals = activeGoals;
   const futureGoals = useMemo(
-    () => goals.filter((g) => g.status === "future"),
+    () => goals.filter((g) => g.status === "future" && !g.ended_at),
     [goals],
   );
   const primaryGoal = lengthGoal && (lengthGoal.status ?? "in_progress") === "in_progress"
@@ -214,6 +192,21 @@ const Journal = () => {
     return () => { cancelled = true; };
   }, [user]);
 
+  // Neutral recency line for the entries list — no wash advice here.
+  const lastEntryLabel = useMemo(() => {
+    const latest = savedEntries[0];
+    if (!latest) return null;
+    const d = new Date(latest.entry_date);
+    if (Number.isNaN(d.getTime())) return null;
+    const days = Math.max(
+      0,
+      Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)),
+    );
+    if (days === 0) return "Last entry today";
+    if (days === 1) return "Last entry yesterday";
+    return `Last entry ${days} days ago`;
+  }, [savedEntries]);
+
   // Photo-pull effect for the old mock catalog removed — saved entries fetch
   // their own cover URL from journal_entries.photo_paths above.
 
@@ -230,34 +223,9 @@ const Journal = () => {
         </div>
       </LevelGate>
 
-      <div className="px-5 pb-4">
-        <div className="rounded-[14px] p-4 bg-gradient-to-r from-primary to-[#8B6914] text-primary-foreground">
-          {loading || !banner ? (
-            <>
-              <div className="h-4 w-2/3 bg-primary-foreground/20 rounded animate-pulse" />
-              <div className="h-3 w-5/6 bg-primary-foreground/15 rounded animate-pulse mt-2" />
-            </>
-          ) : (
-            <>
-              {signals?.milestoneLabel && (
-                <p className="text-[10px] uppercase tracking-[0.18em] opacity-80 mb-1">
-                  {signals.milestoneLabel}
-                </p>
-              )}
-              <p className="text-base font-semibold">{banner.headline}</p>
-              <AiProse text={banner.subline} className="!text-primary-foreground/90 font-body text-sm mt-1" />
-            </>
-          )}
-        </div>
-      </div>
-
+      {/* GOAL FIRST — the current goal is the hero of this page. Wash
+          messaging lives on the Wash Day page only. */}
       <div className="px-5 pb-4 space-y-3">
-        <SectionHeader icon={ICONS.goal}>Goals & Challenges</SectionHeader>
-
-        {/* ONE THEME, ONCE — a goal tip that restates the banner is suppressed. */}
-        <TipsBlock tips={goalTips} idPrefix="goal-tip" dedupeAgainst={banner?.subline} />
-
-
         {goalsLoading ? (
           <SurfaceCard>
             <div className="h-4 w-2/3 bg-border/60 rounded animate-pulse" />
@@ -265,11 +233,17 @@ const Journal = () => {
           </SurfaceCard>
         ) : primaryGoal ? (
           <>
-            <GoalCard
+            <GoalHeroCard
               goal={primaryGoal}
+              onUpdateProgress={() => setProgressGoal(primaryGoal)}
+              onSetNewGoal={() => setNewGoalConfirm(true)}
               onEdit={() => openEditor(primaryGoal)}
-              onView={() => openDetail(primaryGoal)}
+              onViewUpdates={() => setTimelineGoal(primaryGoal)}
             />
+
+            {/* How you'll get there — goal-anchored, grounded guidance. */}
+            <GoalTipsSection goal={primaryGoal} />
+
             {otherInProgress.map((g) => (
               <GoalCard
                 key={g.id}
@@ -278,13 +252,6 @@ const Journal = () => {
                 onView={() => openDetail(g)}
               />
             ))}
-            <Button
-              variant="goldOutline"
-              size="pill"
-              onClick={() => setChooserOpen(true)}
-            >
-              + Set new goal
-            </Button>
           </>
         ) : (
           <EmptyState
@@ -315,8 +282,13 @@ const Journal = () => {
       </div>
 
 
+
       <SectionLabel>Photo Journal</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
+        {lastEntryLabel && (
+          <p className="text-[11px] font-body text-muted-foreground">{lastEntryLabel}</p>
+        )}
+
         {savedEntries.map((s) => {
           // Saved-entry titles previously embedded a mock catalog id like "[wash-go-day1] My title"
           // so the detail page could load. Now we just navigate to the entry's real DB id.
@@ -504,6 +476,8 @@ const Journal = () => {
         </>
       )}
 
+      <PastGoalsSection goals={pastGoals} onOpen={(g) => setTimelineGoal(g)} />
+
       <GoalEditorSheet
         open={editorOpen}
         onOpenChange={setEditorOpen}
@@ -520,51 +494,41 @@ const Journal = () => {
         }}
       />
 
-      <AlertDialog open={chooserOpen} onOpenChange={setChooserOpen}>
+      <GoalProgressComposer
+        open={!!progressGoal}
+        onOpenChange={(o) => !o && setProgressGoal(null)}
+        goalId={progressGoal?.id ?? ""}
+      />
+      <GoalTimelineSheet
+        open={!!timelineGoal}
+        onOpenChange={(o) => !o && setTimelineGoal(null)}
+        goal={timelineGoal}
+      />
+
+      <AlertDialog open={newGoalConfirm} onOpenChange={setNewGoalConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Set a new goal</AlertDialogTitle>
+            <AlertDialogTitle>Set a new goal?</AlertDialogTitle>
             <AlertDialogDescription>
-              How would you like to handle your current goal?
+              Your current goal moves into Past goals with all of its updates kept —
+              nothing is deleted. Then you'll write the new one.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex flex-col gap-2 mt-2">
-            <Button
-              variant="gold"
-              size="pill"
-              onClick={() => {
-                setChooserOpen(false);
-                if (primaryGoal) openEditor(primaryGoal, "in_progress");
-              }}
-            >
-              Replace current goal
-            </Button>
-            <Button
-              variant="goldOutline"
-              size="pill"
-              onClick={() => {
-                setChooserOpen(false);
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                setNewGoalConfirm(false);
+                if (primaryGoal) await endGoal(primaryGoal.id);
                 openEditor(null, "in_progress");
               }}
             >
-              Add to current goal
-            </Button>
-            <Button
-              variant="goldGhost"
-              size="pill"
-              onClick={() => {
-                setChooserOpen(false);
-                openEditor(null, "future");
-              }}
-            >
-              Set as future goal
-            </Button>
-            <AlertDialogCancel className="mt-1">Cancel</AlertDialogCancel>
-          </div>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
