@@ -209,34 +209,9 @@ const Journal = () => {
         </div>
       </LevelGate>
 
-      <div className="px-5 pb-4">
-        <div className="rounded-[14px] p-4 bg-gradient-to-r from-primary to-[#8B6914] text-primary-foreground">
-          {loading || !banner ? (
-            <>
-              <div className="h-4 w-2/3 bg-primary-foreground/20 rounded animate-pulse" />
-              <div className="h-3 w-5/6 bg-primary-foreground/15 rounded animate-pulse mt-2" />
-            </>
-          ) : (
-            <>
-              {signals?.milestoneLabel && (
-                <p className="text-[10px] uppercase tracking-[0.18em] opacity-80 mb-1">
-                  {signals.milestoneLabel}
-                </p>
-              )}
-              <p className="text-base font-semibold">{banner.headline}</p>
-              <AiProse text={banner.subline} className="!text-primary-foreground/90 font-body text-sm mt-1" />
-            </>
-          )}
-        </div>
-      </div>
-
+      {/* GOAL FIRST — the current goal is the hero of this page. Wash
+          messaging lives on the Wash Day page only. */}
       <div className="px-5 pb-4 space-y-3">
-        <SectionHeader icon={ICONS.goal}>Goals & Challenges</SectionHeader>
-
-        {/* ONE THEME, ONCE — a goal tip that restates the banner is suppressed. */}
-        <TipsBlock tips={goalTips} idPrefix="goal-tip" dedupeAgainst={banner?.subline} />
-
-
         {goalsLoading ? (
           <SurfaceCard>
             <div className="h-4 w-2/3 bg-border/60 rounded animate-pulse" />
@@ -244,11 +219,17 @@ const Journal = () => {
           </SurfaceCard>
         ) : primaryGoal ? (
           <>
-            <GoalCard
+            <GoalHeroCard
               goal={primaryGoal}
+              onUpdateProgress={() => setProgressGoal(primaryGoal)}
+              onSetNewGoal={() => setNewGoalConfirm(true)}
               onEdit={() => openEditor(primaryGoal)}
-              onView={() => openDetail(primaryGoal)}
+              onViewUpdates={() => setTimelineGoal(primaryGoal)}
             />
+
+            {/* How you'll get there — goal-anchored, grounded guidance. */}
+            <GoalTipsSection goal={primaryGoal} />
+
             {otherInProgress.map((g) => (
               <GoalCard
                 key={g.id}
@@ -257,13 +238,6 @@ const Journal = () => {
                 onView={() => openDetail(g)}
               />
             ))}
-            <Button
-              variant="goldOutline"
-              size="pill"
-              onClick={() => setChooserOpen(true)}
-            >
-              + Set new goal
-            </Button>
           </>
         ) : (
           <EmptyState
@@ -292,6 +266,7 @@ const Journal = () => {
           </div>
         )}
       </div>
+
 
 
       <SectionLabel>Photo Journal</SectionLabel>
