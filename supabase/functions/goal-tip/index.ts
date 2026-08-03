@@ -172,13 +172,13 @@ Core wash-day baseline: if any action touches wash day, cleansing, shampoo, cond
 Output:
 - "headline": max 9 words. Specific to this goal. No emoji.
 - "body": 1-2 sentences (max 40 words). Connect the goal to ONE concrete signal from their profile (porosity, density, current style + duration, a blood marker, a low-rated product, a chemical history flag, etc) AND anchor the advice to a specific idea in the RETRIEVED MANUSCRIPT PASSAGES. No medical claims, no growth promises.
-- "actions": exactly 3 items. Each item is an OBJECT with:
+- "actions": exactly {{TIP_COUNT}} items. Each item is an OBJECT with:
     * "action": one imperative next step (max 12 words) that fits into their current routine — wash-day adjustments, product choices, professional check-ins.
     * "why": one short sentence (max 22 words) explaining WHY this step works, drawn from the RETRIEVED MANUSCRIPT PASSAGES and tailored to a specific profile signal (their porosity, density, curl pattern, current style + duration, scalp condition, flagged blood marker, or life stage). No jargon without a translation. Never repeat the action; explain the mechanism or the reason it matters for THIS user.
   Every action must be consistent with the passages and doable in the app (wash day, products, journal, appointments).
 
 Rules:
-- The three actions MUST be the three most valuable, high-leverage moves for THIS goal + THIS profile — not generic hair advice. If the goal is length retention, all three tips must come from length-retention teachings (growth phase, moisture retention, high-manipulation styling, wash frequency); do NOT pad with unrelated topics.
+- The actions MUST be the most valuable, high-leverage moves for THIS goal + THIS profile — not generic hair advice. If the goal is length retention, all three tips must come from length-retention teachings (growth phase, moisture retention, high-manipulation styling, wash frequency); do NOT pad with unrelated topics.
 - Prefer the RETRIEVED MANUSCRIPT PASSAGES over the CORE TEACHINGS block when the two overlap — the passages are the chapter-scoped source of truth for this goal.
 - Every tip educates as well as instructs. If you can't justify an action with a clear "why", drop it and pick a better one from the passages.
 - Reference the actual challenge/target text the user wrote.
@@ -195,6 +195,8 @@ interface RequestBody {
     status: string | null;
   };
   context: Record<string, unknown>;
+  /** How many actions to return (3–5). Journal asks for up to 5. */
+  maxTips?: number;
 }
 
 Deno.serve(async (req) => {
@@ -207,6 +209,7 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const body: RequestBody = await req.json();
+    const tipCount = Math.min(5, Math.max(3, Math.round(Number(body.maxTips) || 3)));
     const userPayload = JSON.stringify(body);
 
     const ledgerUserId = userIdFromRequest(req);
@@ -248,7 +251,7 @@ Deno.serve(async (req) => {
       ragPassageCount = passages.length;
       grounded = passages.length > 0;
       if (passages.length > 0) {
-        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all three tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}`;
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}`;
       }
     } catch {
       grounded = false;
@@ -271,6 +274,7 @@ Deno.serve(async (req) => {
       : "";
     const styleSuffix = styleBlock ? `\n\n${styleBlock}` : "";
 
+    const withCount = (t: string) => t.replaceAll("{{TIP_COUNT}}", String(tipCount));
     const systemPrompt = teachings.length > 0
       ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}${ragBlock}${styleSuffix}`
       : `${baseSystemPrompt}${ragBlock}${styleSuffix}`;
@@ -286,7 +290,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${systemPrompt}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+            { role: "system", content: `${withCount(systemPrompt)}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
             { role: "user", content: userPayload },
           ],
           tools: [
@@ -311,8 +315,8 @@ Deno.serve(async (req) => {
                         required: ["action", "why"],
                         additionalProperties: false,
                       },
-                      minItems: 3,
-                      maxItems: 3,
+                      minItems: tipCount,
+                      maxItems: tipCount,
                     },
                   },
                   required: ["headline", "body", "actions"],
