@@ -759,19 +759,26 @@ Deno.serve(async (req: Request) => {
     console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider, profileHash }));
 
     if (provider === "claude") {
-      // Run model call and og:image scrape in parallel — og fetch is ~1-3s,
-      // Claude is ~20-40s. Parallelism keeps total time bounded by Claude.
-      console.log(JSON.stringify({ tag: "url-debug", phase: "before model+og", ms: Date.now() - t0 }));
-      const [claudeRes, ogImage] = await Promise.all([
-        runClaude({ url, context: ctx, selectorContext: buildSelectorContext(body) }),
-        fetchOgImageOnly(url),
-      ]);
+      // Fetch the page ourselves first (~1-2s) and hand the text to Claude so
+      // it can answer in a single pass instead of an agentic web_fetch loop.
+      console.log(JSON.stringify({ tag: "url-debug", phase: "before prefetch", ms: Date.now() - t0 }));
+      const pre = await prefetchPage(url);
+      const ogImage = pre.imageUrl;
+      console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
+      const claudeRes = await runClaude({
+        url,
+        context: ctx,
+        selectorContext: buildSelectorContext(body),
+        pageText: pre.text,
+        pageTitle: pre.title,
+      });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
       console.log(JSON.stringify({
-        tag: "url-debug", phase: "model+og done", ms: Date.now() - t0,
+        tag: "url-debug", phase: "model done", ms: Date.now() - t0,
         used_web_fetch: web_fetch_invocations > 0, used_web_search: web_search_invocations > 0,
         og_image: ogImage ? "yes" : "no",
       }));
+
       analysis = {
         ...payload,
         _model_version: MODEL_VERSION,
