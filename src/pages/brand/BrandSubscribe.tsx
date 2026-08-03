@@ -100,9 +100,9 @@ const BrandSubscribe = () => {
   }, []);
 
   useEffect(() => {
-    // If already active and there's a next path, bounce them straight there.
-    if (isActive && nextPath && nextPath.startsWith("/")) {
-      nav(nextPath, { replace: true });
+    // Already active (paid, complimentary or admin) — never show the paywall.
+    if (isActive) {
+      nav(nextPath && nextPath.startsWith("/") ? nextPath : "/brand", { replace: true });
     }
   }, [isActive, nextPath, nav]);
 
