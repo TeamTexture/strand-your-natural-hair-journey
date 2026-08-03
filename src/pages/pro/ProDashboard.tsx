@@ -13,6 +13,7 @@ import { useProAppointments } from "@/hooks/useProAppointments";
 import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { useProClients } from "@/hooks/useProClients";
 import { useUnreadChatCount } from "@/hooks/useChat";
+import { useProReviews } from "@/hooks/useReviews";
 
 import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
