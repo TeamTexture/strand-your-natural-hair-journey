@@ -23,6 +23,10 @@ interface Props {
   /** Transcription text; empty string when not transcribed. */
   transcription: string;
   onTranscriptionChange: (next: string) => void;
+  /** Private bucket the clip is uploaded to. */
+  bucket?: string;
+  /** Folder inside the user's prefix. */
+  folder?: string;
 }
 
 const fmt = (sec: number) => {
@@ -44,6 +48,8 @@ const ReviewVoicenoteRecorder = ({
   onAudioPathChange,
   transcription,
   onTranscriptionChange,
+  bucket = "review-audio",
+  folder = "reviews",
 }: Props) => {
   const { user } = useAuth();
   const [recording, setRecording] = useState(false);
