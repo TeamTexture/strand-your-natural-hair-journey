@@ -35,7 +35,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v3-budgets-ledger";
+const MODEL_VERSION = "wash-tip@v4-style-surface-attrs";
 
 interface TipPayload {
   headline: string;
@@ -58,6 +58,12 @@ interface Body {
   bloodFlags?: Array<{ marker: string; status?: string; value?: number | null }>;
   hasWashHistory?: boolean;
   tipsLevel?: number | null;
+  /**
+   * Which surface the tip is for. "style" powers the Current Hairstyle screen —
+   * same grounded pipeline, style/tension/extension framing instead of wash
+   * sequencing, so no educational copy is hardcoded in the client.
+   */
+  surface?: "wash_day" | "style";
 
 }
 
@@ -78,6 +84,26 @@ RULES:
 - If hair porosity is high, lead with sealing/moisture-lock; if low, lead with clarifying/heat-assisted penetration.
 - Never prescribe pre-poo as a scheduled ritual. Never say "use protein weekly". Never recommend shower caps, plastic caps, warm towels, or steamers — the only heat tool referenced is the TT Heat Hat (teamtexture.co.uk).
 - Never contradict the Chapter 13 wash-day protocol (cleanse scalp → cleanse hair → condition).
+- No book/chapter citations. No emojis. No pleasantries.
+`;
+
+const STYLE_SYSTEM = `${STRAND_PERSONA_WITH_RULES}
+
+TASK — Produce ONE personalised styling tip for this specific user, grounded in the STRAND manuscript teachings and their live data (hair profile, health signals, blood flags, goals, current and planned style, style tension, whether extensions are in). This is the tip shown on their Current Hairstyle screen until their data changes.
+
+OUTPUT — JSON object only, no prose outside it:
+{
+  "headline": string,   // 3-7 words, Title Case, no trailing punctuation.
+  "why": string,        // 2-3 sentences. Ties the tip to THIS user's style, tension, extensions or a goal they set.
+  "technique": string   // 1-2 sentences. The concrete "how" for wearing, maintaining or taking down this style.
+}
+
+RULES:
+- Do NOT invent user data. Ground the tip in what IS present.
+- If style tension is high, reason about hairline and edge load and what to change.
+- If extensions are in, reason about added weight, scalp access and take-down.
+- If a length-retention goal is present, be accurate that trims preserve length rather than speeding growth.
+- Never recommend shower caps, plastic caps, warm towels, or steamers — the only heat tool referenced is the TT Heat Hat (teamtexture.co.uk).
 - No book/chapter citations. No emojis. No pleasantries.
 `;
 
@@ -108,7 +134,8 @@ Deno.serve(async (req) => {
   }
   if (!body?.fingerprint) return json(400, { error: "fingerprint required" });
 
-  const kind = "wash_day_tip";
+  const isStyle = body.surface === "style";
+  const kind = isStyle ? "style_tip" : "wash_day_tip";
 
   // Cache check — same fingerprint = same tip.
   const { data: cached } = await admin
@@ -155,11 +182,19 @@ Deno.serve(async (req) => {
   };
   const style = (body.currentStyle ?? {}) as Record<string, unknown>;
   const ragQuery = [
-    "wash day routine cleanse condition moisture retention scalp",
+    isStyle
+      ? "protective styling tension edges hairline extensions take-down scalp care"
+      : "wash day routine cleanse condition moisture retention scalp",
     asArray(hp.porosity).join(" ") && `${asArray(hp.porosity).join(" ")} porosity`,
     asArray(hp.density).join(" ") && `${asArray(hp.density).join(" ")} density`,
     asArray(hp.scalp ?? hp.scalp_condition).join(" "),
     style.current_hairstyle ? `currently wearing ${style.current_hairstyle}` : "",
+    style.current_style_tension ? `${style.current_style_tension} tension` : "",
+    style.current_style_extensions === true
+      ? "with extensions"
+      : style.current_style_extensions === false
+        ? "without extensions"
+        : "",
     (body.goals ?? []).map((g) => g.title ?? "").join(" "),
     flaggedMarkerPhrase(body.bloodFlags),
   ].filter(Boolean).join(" — ");
@@ -168,10 +203,12 @@ Deno.serve(async (req) => {
   const ledgerBlock = buildAdviceLedgerBlock(ledger);
 
   const grounding = await buildGroundingBlock({
-    fn: "wash-day-tip",
+    fn: isStyle ? "style-tip" : "wash-day-tip",
     functionKind: "wash-day-observation",
     selectorContext: selectorCtx,
-    forceTopics: ["wash-day-mechanics", "porosity"],
+    forceTopics: isStyle
+      ? ["protective-styling", "hair-architecture"]
+      : ["wash-day-mechanics", "porosity"],
     ragQuery,
     ragK: 5,
   });
@@ -187,7 +224,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+          { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
           {
             role: "user",
             content: `User data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
@@ -238,7 +275,7 @@ Deno.serve(async (req) => {
       { onConflict: "user_id,kind" },
     );
 
-  await recordAdvice(user.id, "wash-day-tip", [payload.headline, payload.technique]);
+  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.technique]);
 
   return json(200, { tip: payload, cached: false });
 });
