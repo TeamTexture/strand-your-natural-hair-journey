@@ -8,9 +8,12 @@ export type ProReviewStatus =
   Database["public"]["Enums"]["pro_profile_review_status"];
 
 /**
- * The signed-in professional's own profile + review status. Drives the
- * mandatory setup flow gate (draft / changes_requested → setup,
- * submitted → holding screen, approved → dashboard).
+ * The signed-in professional's own profile + review status.
+ *
+ * POLICY (Paige): approval is a ONE-TIME gate at application stage. Profile
+ * edits NEVER re-enter review — a saved profile publishes immediately. The
+ * only remaining gate is completeness (draft → finish setup); `underReview`
+ * is retained for legacy rows but never blocks the portal.
  */
 export function useMyProProfile() {
   const { actualUser } = useAuth();
@@ -37,8 +40,9 @@ export function useMyProProfile() {
     profile,
     status,
     needsSetup: status === "draft" || status === "changes_requested",
-    underReview: status === "submitted",
-    approved: status === "approved",
+    // Never gate on review any more — edits publish instantly.
+    underReview: false,
+    approved: status !== "draft",
     reviewNote: profile?.review_note ?? null,
     isLoading: q.isLoading,
     refetch: q.refetch,

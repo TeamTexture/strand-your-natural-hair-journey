@@ -176,7 +176,7 @@ const STEP_TITLES = [
   "Services & specialisms",
   "Opening hours",
   "Photographs",
-  "Review & submit",
+  "Review & save",
 ];
 
 const ProSetup = () => {
@@ -286,31 +286,47 @@ const ProSetup = () => {
     if (e) throw e;
   };
 
+  /**
+   * POLICY (Paige): approval is a ONE-TIME gate at application stage only.
+   * Once an application is approved, every subsequent profile save goes live
+   * on the directory immediately — there is no re-approval flow for edits.
+   * Admin suspension still removes a listing, so a suspended profile is never
+   * silently re-published here.
+   */
   const submit = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not signed in");
+      const suspended = !!profile?.suspended_at;
       const { error: e } = await supabase
         .from("pro_profiles")
         .update({
           ...payload,
-          profile_review_status: "submitted",
+          profile_review_status: "approved",
           review_note: null,
           submitted_at: new Date().toISOString(),
-          is_published: false,
+          reviewed_at: new Date().toISOString(),
+          ...(suspended ? {} : { is_published: true }),
         })
         .eq("user_id", user.id);
       if (e) throw e;
+      return { suspended };
     },
-    onSuccess: async () => {
+    onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: ["pro_profile_review"] });
       qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
       qc.invalidateQueries({ queryKey: ["pro_directory"] });
+      qc.invalidateQueries({ queryKey: ["directory"] });
       await refetch();
-      toast.success("Submitted for approval.");
-      nav("/pro/under-review", { replace: true });
+      toast.success(
+        res?.suspended
+          ? "Saved. Your listing stays hidden while your account is suspended."
+          : "Saved — your listing is live in the directory.",
+      );
+      nav("/pro/profile", { replace: true });
     },
-    onError: (e: Error) => toast.error(e.message ?? "Could not submit"),
+    onError: (e: Error) => toast.error(e.message ?? "Could not save"),
   });
+
 
   const uploadFile = async (
     file: File,
@@ -459,7 +475,7 @@ const ProSetup = () => {
                   </p>
                   <p className="text-[12px] font-body text-foreground/85 leading-snug mt-1">
                     {reviewNote?.trim() ||
-                      "The Strand Council has asked for a few adjustments before your listing goes live."}
+                      "Please finish the sections below — your listing updates as soon as you save."}
                   </p>
                 </div>
               </div>
@@ -474,10 +490,9 @@ const ProSetup = () => {
               Set up your professional profile
             </h1>
             <p className="text-[13px] font-body text-foreground/75 leading-relaxed mt-2">
-              Before your listing appears in the directory, we ask every member
-              of the Strand Council to complete their profile in full. It takes
-              about ten minutes, and it's the first thing a member reads about
-              you.
+              You're already approved, so everything you save here goes live in
+              the directory straight away. It takes about ten minutes, and it's
+              the first thing a member reads about you.
             </p>
           </div>
 
@@ -492,15 +507,15 @@ const ProSetup = () => {
                   {i === 0 && " — your name, discipline, bio and headshot"}
                 </li>
               ))}
-              <li>· A final read-through, then submit for approval.</li>
+              <li>· A final read-through, then save — it publishes instantly.</li>
             </ul>
           </SurfaceCard>
 
           <SurfaceCard>
             <p className="text-[12px] font-body text-foreground/80 leading-snug">
-              Your work saves as you go, so you can stop and come back. Once you
-              submit, the Strand Council reviews your profile by hand before it
-              goes live.
+              Your work saves as you go, so you can stop and come back. When you
+              save, your directory listing updates immediately — no second
+              approval needed.
             </p>
           </SurfaceCard>
 
@@ -1041,11 +1056,11 @@ const ProSetup = () => {
           </>
         )}
 
-        {/* --------------------------------------------- 6. Review & submit */}
+        {/* ----------------------------------------------- 6. Review & save */}
         {isReview && (
           <>
             <StepHead
-              eyebrow="Review & submit"
+              eyebrow="Review & save"
               title="One last read-through"
               blurb="Check everything reads the way you'd want a member to read it."
             />
@@ -1149,8 +1164,8 @@ const ProSetup = () => {
 
             <SurfaceCard>
               <p className="text-[12px] font-body text-foreground/80 leading-snug">
-                Submitting sends your profile to the Strand Council. Your
-                listing stays hidden from members until it's approved.
+                Saving publishes these details to your directory listing right
+                away, so members see them immediately.
               </p>
             </SurfaceCard>
           </>
@@ -1175,7 +1190,7 @@ const ProSetup = () => {
               }
               onClick={() => submit.mutate()}
             >
-              {submit.isPending ? "Submitting…" : "Submit for approval"}
+              {submit.isPending ? "Saving…" : "Save & publish"}
             </Button>
           ) : (
             <Button
