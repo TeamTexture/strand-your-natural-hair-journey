@@ -15,6 +15,7 @@ import LiveOfferCard from "@/components/brand/LiveOfferCard";
 import PastOfferCard from "@/components/brand/PastOfferCard";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
+import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
 import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,6 +57,8 @@ const StatusPill = ({ status }: { status: DerivedStatus }) => {
 const AdminBrandOffers = () => {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const markEntityRead = useMarkAdminEntityRead();
+
   const [params, setParams] = useSearchParams();
   const filter = params.get("filter"); // "pending" | "live" | "brands" | null
   const typeFilter = (params.get("type") as OwnerType | null) ?? null;
@@ -141,6 +144,7 @@ const AdminBrandOffers = () => {
       .eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Approved — brand can now pay");
+    void markEntityRead("brand_offer", id);
     qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
     qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
   };
@@ -153,6 +157,7 @@ const AdminBrandOffers = () => {
       .eq("id", rejectFor);
     if (error) return toast.error(error.message);
     toast.success("Rejected");
+    void markEntityRead("brand_offer", rejectFor);
     setRejectFor(null);
     setRejectReason("");
     qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
@@ -248,7 +253,10 @@ const AdminBrandOffers = () => {
     return (
       <button
         key={o.id}
-        onClick={() => nav(`/admin/brand-offers/${o.id}`)}
+        onClick={() => {
+          void markEntityRead("brand_offer", o.id);
+          nav(`/admin/brand-offers/${o.id}`);
+        }}
         className="w-full text-left"
       >
         <SurfaceCard className="py-3.5">
