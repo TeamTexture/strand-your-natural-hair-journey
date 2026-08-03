@@ -92,7 +92,18 @@ const AdminMembers = () => {
   const [searchParams] = useSearchParams();
   const initialFilter = ((): Filter => {
     const f = searchParams.get("filter");
-    const valid: Filter[] = ["all", "active", "plus", "complimentary", "restricted", "incomplete"];
+    const valid: Filter[] = [
+      "all",
+      "consumers",
+      "professionals",
+      "brands",
+      "active",
+      "plus",
+      "complimentary",
+      "restricted",
+      "incomplete",
+    ];
+
     return (valid as string[]).includes(f ?? "") ? (f as Filter) : "all";
   })();
   const [q, setQ] = useState("");
