@@ -1,5 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -13,11 +13,35 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatThreads } from "@/hooks/useChat";
+import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
+import SectionLabel from "@/components/SectionLabel";
 
 const AdminMessages = () => {
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: threads, isLoading } = useChatThreads();
+  const markEntityRead = useMarkAdminEntityRead();
+
+  const { data: enquiries } = useQuery({
+    queryKey: ["admin", "contact-messages"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_messages")
+        .select("id, name, email, subject, message, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    (enquiries ?? []).forEach((e) => {
+      void markEntityRead("contact_message", e.id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enquiries]);
 
   const support = useMemo(
     () => (threads ?? []).filter((t) => t.thread_type === "admin_support" && t.admin_user_id === user?.id),
@@ -114,6 +138,38 @@ const AdminMessages = () => {
           })
         )}
       </div>
+
+      {(enquiries ?? []).length > 0 && (
+        <>
+          <SectionLabel>Contact enquiries</SectionLabel>
+          <div className="px-5 pb-8 space-y-2.5">
+            {(enquiries ?? []).map((e) => (
+              <SurfaceCard key={e.id}>
+                <div className="min-w-0">
+                  <p className="font-display text-sm font-semibold leading-tight break-words">
+                    {e.subject || "Enquiry"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-body mt-0.5 break-all">
+                    {e.name} · {e.email}
+                  </p>
+                  <p className="text-[12px] font-body leading-snug mt-1.5 break-words whitespace-pre-line">
+                    {e.message}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                  </p>
+                  <a
+                    href={`mailto:${e.email}?subject=${encodeURIComponent(`Re: ${e.subject || "Your enquiry"}`)}`}
+                    className="inline-block text-[12px] text-primary underline underline-offset-2 mt-2"
+                  >
+                    Reply by email
+                  </a>
+                </div>
+              </SurfaceCard>
+            ))}
+          </div>
+        </>
+      )}
     </ScreenLayout>
   );
 };
