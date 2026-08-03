@@ -286,31 +286,47 @@ const ProSetup = () => {
     if (e) throw e;
   };
 
+  /**
+   * POLICY (Paige): approval is a ONE-TIME gate at application stage only.
+   * Once an application is approved, every subsequent profile save goes live
+   * on the directory immediately — there is no re-approval flow for edits.
+   * Admin suspension still removes a listing, so a suspended profile is never
+   * silently re-published here.
+   */
   const submit = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not signed in");
+      const suspended = !!profile?.suspended_at;
       const { error: e } = await supabase
         .from("pro_profiles")
         .update({
           ...payload,
-          profile_review_status: "submitted",
+          profile_review_status: "approved",
           review_note: null,
           submitted_at: new Date().toISOString(),
-          is_published: false,
+          reviewed_at: new Date().toISOString(),
+          ...(suspended ? {} : { is_published: true }),
         })
         .eq("user_id", user.id);
       if (e) throw e;
+      return { suspended };
     },
-    onSuccess: async () => {
+    onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: ["pro_profile_review"] });
       qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
       qc.invalidateQueries({ queryKey: ["pro_directory"] });
+      qc.invalidateQueries({ queryKey: ["directory"] });
       await refetch();
-      toast.success("Submitted for approval.");
-      nav("/pro/under-review", { replace: true });
+      toast.success(
+        res?.suspended
+          ? "Saved. Your listing stays hidden while your account is suspended."
+          : "Saved — your listing is live in the directory.",
+      );
+      nav("/pro/profile", { replace: true });
     },
-    onError: (e: Error) => toast.error(e.message ?? "Could not submit"),
+    onError: (e: Error) => toast.error(e.message ?? "Could not save"),
   });
+
 
   const uploadFile = async (
     file: File,
