@@ -252,7 +252,7 @@ RULES — STRICT:
 
 ${SCORE_REASONS_RULES}
 
-NOTE FOR THIS FUNCTION: the one-sentence overall call lives in `summary` (not ai_summary) — the SCORE REASONS rules apply to `summary` in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
+NOTE FOR THIS FUNCTION: the one-sentence overall call lives in the "summary" field (not ai_summary) — the SCORE REASONS rules apply to "summary" in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
 }
 
 // ── Selector context for KB topic matching ──────────────────────────────
