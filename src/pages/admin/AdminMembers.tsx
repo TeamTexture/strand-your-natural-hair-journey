@@ -327,7 +327,23 @@ const AdminMembers = () => {
   }, [incompleteRows, q, sort]);
 
   const tabs: { key: Filter; label: string; count?: number }[] = [
-    { key: "all", label: "All" },
+    { key: "all", label: "All", count: rows.length },
+    {
+      key: "consumers",
+      label: "Consumers",
+      count: rows.filter((r) => r.account_type === "consumer").length,
+    },
+    {
+      key: "professionals",
+      label: "Professionals",
+      count: rows.filter((r) => r.account_type === "professional").length,
+    },
+    {
+      key: "brands",
+      label: "Brands",
+      count: rows.filter((r) => r.account_type === "brand").length,
+    },
+
     {
       key: "active",
       label: "Active",
