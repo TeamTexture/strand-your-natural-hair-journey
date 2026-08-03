@@ -6,7 +6,14 @@ interface ProductAnalysisLike {
   key_ingredients?: unknown;
   ai_summary?: unknown;
   match_score?: unknown;
+  score_reasons?: unknown;
 }
+
+type SavedScoreReason = {
+  direction: "plus" | "minus";
+  factor: string;
+  reason: string;
+};
 
 type SavedKeyIngredient = {
   name: string;
@@ -67,6 +74,22 @@ const cleanScore = (value: unknown): number | null => {
   return Math.max(0, Math.min(100, Math.round(score)));
 };
 
+const cleanScoreReasons = (value: unknown): SavedScoreReason[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .flatMap((raw) => {
+      if (!raw || typeof raw !== "object") return [];
+      const row = raw as Record<string, unknown>;
+      const direction: SavedScoreReason["direction"] | null =
+        row.direction === "plus" || row.direction === "minus" ? row.direction : null;
+      const factor = cleanText(row.factor);
+      const reason = cleanText(row.reason);
+      if (!direction || !factor || !reason) return [];
+      return [{ direction, factor, reason }];
+    })
+    .slice(0, 4);
+};
+
 export function buildProductSaveFields(data: ProductAnalysisLike, fallbackName = "Untitled product") {
   return {
     name: cleanText(data.product_name) ?? fallbackName,
@@ -76,5 +99,6 @@ export function buildProductSaveFields(data: ProductAnalysisLike, fallbackName =
     key_ingredients: cleanKeyIngredients(data.key_ingredients),
     ai_summary: cleanText(data.ai_summary),
     match_score: cleanScore(data.match_score),
+    score_reasons: cleanScoreReasons(data.score_reasons),
   };
 }
