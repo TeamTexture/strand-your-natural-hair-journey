@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import ProductThumb from "@/components/ProductThumb";
+import MatchStars from "@/components/MatchStars";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProfile } from "@/hooks/useMyProfile";
@@ -51,12 +52,6 @@ import { type GuidanceTip } from "@/lib/tipsRender";
 // so product/ingredient/heat-hat links resolve against the user's shelf.
 
 
-const Stars = ({ n }: { n: number }) => (
-  <span className="text-[10px] text-primary tracking-tight" aria-label={`${n} stars`}>
-    {"★".repeat(n)}
-    <span className="text-border">{"★".repeat(5 - n)}</span>
-  </span>
-);
 
 const getTimeBasedGreeting = (date = new Date()) => {
   const h = date.getHours();
@@ -968,9 +963,6 @@ const Home = () => {
         ) : (
           <>
             {shelfProducts.slice(0, 4).map((s) => {
-              const aiStars = typeof s.match_score === "number"
-                ? Math.max(1, Math.min(5, Math.round(s.match_score / 20)))
-                : (s.rating ?? 0);
               return (
                 <ListRow
                   key={s.id}
@@ -995,7 +987,7 @@ const Home = () => {
                     </span>
                   }
                   secondary={<BrandLink brand={s.brand} />}
-                  trailing={<Stars n={aiStars} />}
+                  trailing={<MatchStars item={s} />}
                 />
               );
             })}

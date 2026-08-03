@@ -27,13 +27,28 @@ import {
 } from "../_shared/tool-schema.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
+import {
+  TOOL_SCORE_REASONS_RULES,
+  sanitiseScoreReasons,
+  alignScoreWithReasons,
+  firstSentence,
+} from "../_shared/score-reasons.ts";
+import { coerceTipsLevel, buildTipsLevelBlock, type TipsLevel } from "../_shared/tips-level.ts";
+
+/** Level-aware depth cap — identical to the product analysis paths. */
+function levelCap(level: TipsLevel): number {
+  if (level >= 4) return 4;
+  if (level === 3) return 3;
+  return 2;
+}
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v1";
+const MODEL_VERSION = "claude-haiku-4-5@v2-score-reasons";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v2-score-reasons";
 const INVALID_URL_MESSAGE = "STRAND needs a valid product page URL to analyse.";
 
 // Legacy categories the Lovable path returns (kept stable for back-compat with
@@ -95,7 +110,8 @@ async function sha256Hex(s: string): Promise<string> {
 }
 
 // ─── Claude task instructions ──────────────────────────────────────────
-function buildTaskInstructions(): string {
+function buildTaskInstructions(tipsLevel: TipsLevel): string {
+  const cap = levelCap(tipsLevel);
   return `You are receiving a hair-care TOOL product page URL (brushes, combs, hair dryers, diffusers, TT Heat Hats, bonnets, satin pillowcases, microfibre towels, curlers, wands, etc.). Use web_fetch to retrieve the page. Extract the basic identity (brand, tool name, classification) and produce a short personalised analysis for THIS user.
 
 Voice for this task: every prose field follows the VOICE PRINCIPLES from the system block. Explain the tool's mechanism first ("a TT Heat Hat holds warmth around the conditioner, which means…"), then land the verdict; use connectives; talk to "you" not "your hair"; translate any specialist term on first use in a field; professional, direct, and never over-familiar.
@@ -114,8 +130,8 @@ Field rules — strict:
    * Use "other" only if none clearly apply.
 - ai_summary: 2–3 sentences MAX. Open by naming the user signal that's driving the call (current style, a goal, a hair-type trait the tool's mechanism touches) and what the tool's mechanism means for it — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective. Paige's voice, second person.
 - key_features: MAX 4. Each item is { name, relevance } — only include features whose relevance ties back to the user's hair type, current style, goal, or a challenge directly addressed by the tool's mechanism.
-- use_cases: MAX 2 items, each ≤ 1 short sentence. Pick the 2 most actionable ways THIS user should use the tool given their profile.
-- tips: MAX 2 items, each ≤ 1 short sentence. The 2 most relevant personal signals for THIS tool.
+- use_cases: MAX ${cap} items, each ≤ 1 short sentence. Pick the 2 most actionable ways THIS user should use the tool given their profile.
+- tips: MAX ${cap} items, each ≤ 1 short sentence. The 2 most relevant personal signals for THIS tool.
 - warnings: optional, MAX 2. Only include if the tool has a contraindication for THIS user (e.g. high heat tool when user has a heat-damage challenge, dry/porous strands, chemical processing, or a length/retention goal).
 - personalisation_rationale: 2–3 sentences. MUST follow the pattern: "Because your hair is [specific trait — porosity/density/scalp/state from the profile] and you want [specific goal from the user's goals], this tool [names the specific risk from its mechanism]. If you use it, [concrete precaution]." Never generic. If a goal or trait is missing from the profile, drop that clause — do NOT invent one.
 - match_score: integer 0–100 for how well this tool fits THIS user (hair type, current style, goals, challenges). Be honest — poor fits should score 20–40, mixed 40–65, strong fits 70–90. Reserve 90+ for near-ideal matches.
@@ -136,7 +152,9 @@ Focus ONLY on signals that intersect with what the tool DOES (mechanism, heat, t
 - Tension/styling concerns unless the tool's mechanism is tension-related (e.g. don't cite tight braids when discussing a satin pillowcase).
 - Lab values, sleep, cortisol, dermatologist context unless the tool's mechanism directly addresses them.
 
-Hair-health guidance only — never medical advice.`;
+Hair-health guidance only — never medical advice.
+
+${TOOL_SCORE_REASONS_RULES}`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -156,6 +174,7 @@ Use web_fetch on this URL first. If thin/gated, fall back to web_search (combine
 User context (use to compute personalisation, ai_summary, use_cases, tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}`;
 
+  const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const userContent: ContentBlockInput[] = [{ type: "text", text: userText }];
 
   const webFetchTool: ServerTool = { type: "web_fetch_20250910", name: "web_fetch", max_uses: 2 };
@@ -163,7 +182,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
 
   const req = await buildClaudeRequest({
     function_kind: "tool-analyse-url",
-    task_instructions: buildTaskInstructions(),
+    task_instructions: buildTaskInstructions(tipsLevel),
     user_payload: {},
     user_content: userContent,
     user_context: args.context,
@@ -178,7 +197,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       input_schema: RETURN_TOOL_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
     },
     server_tools: [webFetchTool, webSearchTool],
-    max_tokens: 2600,
+    max_tokens: 3000,
   });
 
   const result = await callClaude<ToolAnalysisPayload>(req);
@@ -237,6 +256,12 @@ ABSOLUTE RULES
 4. summary: 1–2 short sentences describing what this tool does and who it's
    good for, in Paige's voice. Plain English, second person.
 5. Output STRICT JSON only. No prose, no code fences.
+6. match_score is an integer 0-100 for how well this tool fits THIS user's hair
+   characteristics, current/planned style, goals and any flagged markers the
+   tool's mechanism actually touches. Poor fits 20-40, mixed 40-65, strong
+   70-90. Reserve 90+ for near-ideal.
+7. how_to_use: 1-3 short sentences on how THIS user should use it, anchored to
+   at least one value from their profile.
 
 SCHEMA
 {
@@ -244,8 +269,13 @@ SCHEMA
   "name": string,
   "brand": string,
   "category": string,
-  "summary": string
-}`;
+  "summary": string,
+  "match_score": number,
+  "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],
+  "how_to_use": string
+}
+
+${TOOL_SCORE_REASONS_RULES}`;
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
@@ -415,7 +445,12 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     body: JSON.stringify({
       model: "google/gemini-3.6-flash",
       messages: [
-        { role: "system", content: `${LOVABLE_SYSTEM}${grounding.block}` },
+        {
+          role: "system",
+          content: `${LOVABLE_SYSTEM}\n\n${buildTipsLevelBlock(
+            coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel),
+          )}${grounding.block}`,
+        },
         { role: "user", content: userMsg },
       ],
       response_format: { type: "json_object" },
@@ -490,7 +525,7 @@ Deno.serve(async (req: Request) => {
         const cached = existing.payload as ToolAnalysisPayload & { _profile_snapshot_hash?: string };
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION && cached._provider === "claude"
-          : cached._provider !== "claude";
+          : cached._provider !== "claude" && cached._model_version === LOVABLE_MODEL_VERSION;
         const hashOk = cached._profile_snapshot_hash === profileHash;
         if (versionOk && hashOk) {
           return jsonResp(200, await sanitiseAndLog(cached, "tool-analyse-url"));
@@ -545,6 +580,7 @@ Deno.serve(async (req: Request) => {
       analysis = {
         ...payload,
         _provider: "lovable",
+        _model_version: LOVABLE_MODEL_VERSION,
         _generated_at: new Date().toISOString(),
       };
       if (image_url && !analysis.image_url) {
@@ -553,6 +589,32 @@ Deno.serve(async (req: Request) => {
         analysis.image_url = safeImg;
       }
     }
+    {
+      // Level-aware caps (1-2 -> 2 items, 3 -> 3, 4 -> 4), then make the score
+      // agree with its own working — same contract as the product paths.
+      const cap = levelCap(coerceTipsLevel((ctx as Record<string, unknown>).tipsLevel));
+      const a = analysis as Record<string, unknown>;
+      if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
+      if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
+      if (Array.isArray(a.key_features)) a.key_features = (a.key_features as unknown[]).slice(0, cap);
+
+      const reasons = sanitiseScoreReasons(a.score_reasons);
+      a.score_reasons = reasons;
+      if (typeof a.match_score === "number") {
+        a.match_score = alignScoreWithReasons(
+          Math.max(0, Math.min(100, Math.round(a.match_score as number))),
+          reasons,
+        );
+      }
+      if (reasons.length >= 2) {
+        const one = firstSentence(a.ai_summary ?? a.summary);
+        if (one) {
+          a.ai_summary = one;
+          a.summary = one;
+        }
+      }
+    }
+
     analysis._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "tool-debug", phase: "all done", total_ms: Date.now() - t0 }));
 

@@ -28,12 +28,8 @@ import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
+import MatchStars from "@/components/MatchStars";
 
-const Stars = ({ n }: { n: number }) => (
-  <span className="text-[10px] text-primary tracking-tight">
-    {"★".repeat(n)}<span className="text-border">{"★".repeat(5 - n)}</span>
-  </span>
-);
 
 const OffShelf = () => {
   const navigate = useNavigate();
@@ -170,7 +166,7 @@ const OffShelf = () => {
                       <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
                       <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <Stars n={stars} />
+                        <MatchStars item={p} />
                         {noteCount > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
                             <Mic className="size-3" /> {noteCount}

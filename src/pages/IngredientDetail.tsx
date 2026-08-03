@@ -64,6 +64,8 @@ import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
+import MatchStars from "@/components/MatchStars";
+import { starsFromScore } from "@/lib/matchStars";
 
 interface Ingredient {
   tone: "good" | "warn" | "bad";
@@ -884,7 +886,7 @@ const IngredientDetail = () => {
                 const bad = analysis.ingredients.filter((i) => i.tone === "bad").length;
                 score = Math.round(((good - bad) / total) * 50 + 50);
               }
-              const aiStars = Math.max(1, Math.min(5, Math.round(score / 20)));
+              const aiStars = Math.round(starsFromScore(score) ?? 0);
               const label =
                 aiStars >= 5 ? "Excellent match for your hair"
                 : aiStars === 4 ? "Good fit for your routine"
@@ -893,19 +895,7 @@ const IngredientDetail = () => {
                 : "Best avoided";
               return (
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-1.5" aria-label={`${aiStars} of 5 stars`}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <span
-                        key={n}
-                        className={cn(
-                          "text-2xl",
-                          n <= aiStars ? "text-primary" : "text-border",
-                        )}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
+                  <MatchStars score={score} size="lg" showValue={false} />
                   <p className="text-[11px] text-muted-foreground text-right max-w-[160px] leading-tight">
                     {label}
                   </p>

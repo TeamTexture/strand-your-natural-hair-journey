@@ -121,3 +121,22 @@ export function firstSentence(text: unknown): string {
   const m = clean.match(/^.*?[.!?](?=\s|$)/);
   return (m?.[0] ?? clean).trim();
 }
+
+/**
+ * TOOL variant of the score-reasons rules. Same contract and same sanitiser —
+ * only the definition of `factor` changes: tools have no ingredients, so the
+ * factor is a physical/mechanical property of the tool (bristle type, tooth
+ * spacing, heat range, material, retained warmth) rather than an INCI entry.
+ */
+export const TOOL_SCORE_REASONS_RULES = `SCORE REASONS — THE SCORE MUST EXPLAIN ITSELF:
+Return score_reasons: 2–4 items, each { direction: "plus" | "minus", factor, reason }.
+- factor names the CONCRETE physical or mechanical property of the tool doing the work, ≤6 words ("Fine-tooth spacing", "Retained warmth under the cap", "230°C top heat", "Satin-lined interior", "Rigid nylon bristles", "Ionic diffuser vents"). Tools have NO ingredients — never name a formulation. Never a vague quality like "well made" or "great design".
+- reason is ≤18 words and MUST name the user characteristic, goal or flagged marker that property interacts with — their porosity, density, texture, diameter, elasticity, scalp condition, current or planned style (including tension and extensions), a stated goal/challenge, or a flagged marker the tool's mechanism actually touches. A reason that could be written for any user is INVALID; rewrite it or drop the item.
+- RELEVANCE GATE: only cite a signal the tool's mechanism genuinely acts on. A satin pillowcase does not interact with tight braids' tension; a comb does not interact with ferritin; a bonnet does not interact with heat damage. If a signal is not mechanically touched by this tool, leave it out rather than reaching for it.
+- Order the strongest driver first. Include at least one minus unless this tool genuinely has no downside for this user, and at least one plus unless nothing about it helps them.
+- CONSISTENCY: match_score must agree with the reasons. Mostly pluses cannot produce a 55; heavy minuses cannot produce an 85. Re-check the number against the list before returning.
+- GROUNDING: where the retrieved manuscript passages teach the mechanism (heat and moisture, detangling, tension, friction, porosity), reason from that teaching — never name the book, chapters or pages.
+- ONE IDEA ONCE: a score reason may NOT restate a use_cases item, a tip, a key_features relevance or the how_to_use text verbatim. The verdict explains the score; "how to use" builds on it and never repeats it.
+
+AI SUMMARY — ONE SENTENCE ONLY:
+ai_summary is now exactly ONE tight sentence: the overall call (good fit / mixed fit / poor fit) and the single signal driving it. The score_reasons carry the why, so do NOT explain the reasoning again in ai_summary and never exceed one sentence.`;

@@ -9,6 +9,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ListRow from "@/components/nav/ListRow";
+import MatchStars from "@/components/MatchStars";
 import ProductThumb from "@/components/ProductThumb";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import BrandLink from "@/components/BrandLink";
@@ -78,7 +79,12 @@ const ProductsByIngredient = () => {
                   />
                 }
                 name={p.name}
-                secondary={p.brand ? <BrandLink brand={p.brand} /> : undefined}
+                secondary={
+                  <span className="inline-flex items-center gap-2">
+                    {p.brand && <BrandLink brand={p.brand} />}
+                    <MatchStars item={p} />
+                  </span>
+                }
                 fact={s.label}
                 factTone={s.tone}
               />

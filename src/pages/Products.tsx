@@ -10,6 +10,7 @@ import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import MyToolsSection from "@/components/MyToolsSection";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import ProductThumb from "@/components/ProductThumb";
+import MatchStars from "@/components/MatchStars";
 import { UrlScanProgressButton } from "@/components/UrlScanProgressButton";
 import ProductsHeader, {
   CATEGORY_ORDER,
@@ -41,11 +42,6 @@ import BrandBanner from "@/components/BrandBanner";
 import LevelGate from "@/components/tips/LevelGate";
 import SectionHeader from "@/components/nav/SectionHeader";
 
-const Stars = ({ n }: { n: number }) => (
-  <span className="text-[10px] text-primary tracking-tight">
-    {"★".repeat(n)}<span className="text-border">{"★".repeat(5 - n)}</span>
-  </span>
-);
 
 const Products = () => {
   const navigate = useNavigate();
@@ -199,10 +195,6 @@ const Products = () => {
               {group.items.map((p) => {
                 const isOpen = expanded === p.product_key;
                 const noteCount = counts[p.product_key] ?? 0;
-                const aiStars = p.match_score != null
-                  ? Math.max(1, Math.min(5, Math.round(p.match_score / 20)))
-                  : 0;
-                const stars = p.rating ?? aiStars;
                 const isSelected = batch.selected.has(p.id);
 
                 return (
@@ -283,7 +275,7 @@ const Products = () => {
                         >
                           <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <Stars n={stars} />
+                            <MatchStars item={p} />
                             {noteCount > 0 && (
                               <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
                                 <Mic className="size-3" /> {noteCount}

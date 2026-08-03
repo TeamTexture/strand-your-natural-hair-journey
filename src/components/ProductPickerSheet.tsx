@@ -10,6 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import ProductThumb from "@/components/ProductThumb";
+import MatchStars from "@/components/MatchStars";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -21,25 +22,6 @@ interface Props {
   /** Called when the user toggles a product on/off */
   onToggle: (productId: string) => void;
 }
-
-const RatingStars = ({ value }: { value: number | null }) => {
-  if (!value) return null;
-  return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`Rated ${value} of 5`}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          className={cn(
-            "size-2.5",
-            n <= Math.round(value)
-              ? "fill-primary text-primary"
-              : "text-muted-foreground/40",
-          )}
-        />
-      ))}
-    </span>
-  );
-};
 
 const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onClick: () => void }) => (
   <button
@@ -62,7 +44,7 @@ const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onCl
         {p.brand && (
           <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
         )}
-        <RatingStars value={p.rating} />
+        <MatchStars item={p} />
       </div>
     </div>
     {selected && (
