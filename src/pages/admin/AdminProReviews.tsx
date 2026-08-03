@@ -254,7 +254,7 @@ const ReviewCard = ({ p }: { p: ProProfileRow }) => {
           </div>
         </div>
       ) : (
-        <div className="flex gap-2 mt-3">
+        <div className="flex flex-col gap-2 mt-3">
           <Button
             variant="gold"
             size="pill"
