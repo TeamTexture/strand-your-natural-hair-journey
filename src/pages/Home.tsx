@@ -27,6 +27,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
 import { Ruler, Sparkles, Lightbulb } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
 import {
   loadClinicalContext,
   loadClinicalContextLocal,
