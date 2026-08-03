@@ -18,11 +18,10 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { useMyEnquiries, type EnquiryStatus } from "@/hooks/useEnquiries";
 import { useChatThreads } from "@/hooks/useChat";
 import StarRating from "@/components/StarRating";
-import ReviewItem from "@/components/ReviewItem";
-import { useReviewSummaries, usePublicReviews } from "@/hooks/useReviews";
-
+import { useReviewSummaries } from "@/hooks/useReviews";
 import DirectoryReviewPreview from "@/components/DirectoryReviewPreview";
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
+import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
