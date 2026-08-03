@@ -41,9 +41,19 @@ const ViewAsBanner = () => {
       className="w-full bg-foreground text-primary px-3 py-1.5 flex items-center gap-2 shadow-[0_1px_0_rgba(0,0,0,0.12)]"
     >
       <Eye className="size-3.5 shrink-0" />
-      <p className="text-[11px] font-body font-semibold leading-tight truncate flex-1">
-        Viewing as <span className="text-primary">{label}</span> · read-only
-      </p>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-body font-semibold leading-tight truncate">
+          Viewing as <span className="text-primary">{label}</span> · read-only
+        </p>
+        <p className="text-[10px] font-body leading-tight truncate opacity-80">
+          {rolesLoading
+            ? "Checking their access…"
+            : roleLabels
+              ? `Their access: ${roleLabels}`
+              : "Their access: no roles assigned"}
+        </p>
+      </div>
+
       <button
         type="button"
         onClick={exit}
