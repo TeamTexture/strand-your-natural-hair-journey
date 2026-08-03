@@ -307,7 +307,14 @@ const App = () => (
               <Route path="/reviews/new" element={<Paid><LeaveReview /></Paid>} />
               <Route path="/directory" element={<Directory />} />
               <Route path="/directory/:proUserId/reviews" element={<ProReviewsPublic />} />
-              <Route path="/pro/reviews" element={<Protected><ProReviews /></Protected>} />
+              <Route
+                path="/pro/reviews"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProReviews />
+                  </RoleGate>
+                }
+              />
               <Route path="/profile" element={<Onboard><Profile /></Onboard>} />
               <Route path="/profile/milestones" element={<Onboard><MilestoneGallery /></Onboard>} />
               <Route path="/profile/discounts" element={<Onboard><Discounts /></Onboard>} />
