@@ -17,6 +17,9 @@ import { searchProfessionalsIn, type ProType, type Professional } from "@/data/p
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { useMyEnquiries, type EnquiryStatus } from "@/hooks/useEnquiries";
 import { useChatThreads } from "@/hooks/useChat";
+import StarRating from "@/components/StarRating";
+import ReviewItem from "@/components/ReviewItem";
+import { useReviewSummaries, usePublicReviews } from "@/hooks/useReviews";
 
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
