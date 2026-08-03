@@ -19,8 +19,7 @@ import { cn } from "@/lib/utils";
  *  2 Essentials   — 2–3 icon-led ActionRows with chips, no "why" prose.
  *  3 Guided       — all tips as ActionRows with the "why" supporting text.
  *  4 Hand-holding — a numbered StepSequence with everything visible at once,
- *                   plus do/don't pairs and closing reassurance. Nothing is
- *                   collapsed or deferred.
+ *                   plus do/don't pairs. Nothing is collapsed or deferred.
  *
  * ONE THEME, ONCE — pass `dedupeAgainst` with the prose already shown above
  * this block (an AI overview, a card body) and any tip that merely restates it

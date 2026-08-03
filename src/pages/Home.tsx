@@ -779,9 +779,6 @@ const Home = () => {
                   { text: "Pick a date to check back in.", detail: "Three to six months is a kind timeframe." },
                 ]}
               />
-              <BeginnerReassurance>
-                You can change your goal at any time. Setting one just helps your tips get more useful.
-              </BeginnerReassurance>
               <button
                 onClick={() => navigate("/journal")}
                 className="mt-3 w-full rounded-pill bg-primary text-primary-foreground text-sm font-medium py-2.5"
