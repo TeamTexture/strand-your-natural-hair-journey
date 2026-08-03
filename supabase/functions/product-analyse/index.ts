@@ -52,6 +52,12 @@ import {
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
 import { MARKETED_PURPOSE_RULES } from "../_shared/marketed-purpose.ts";
+import {
+  SCORE_REASONS_RULES,
+  sanitiseScoreReasons,
+  alignScoreWithReasons,
+  firstSentence,
+} from "../_shared/score-reasons.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
@@ -61,8 +67,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v3-tipslevel-goals-caps";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v2-tipslevel-goals-caps";
+const MODEL_VERSION = "claude-sonnet-4-6@v4-score-reasons";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v3-score-reasons";
+
 
 /** Level-aware item cap for use_cases/tips: 1-2 -> 2, 3 -> 3, 4 -> 4. */
 function levelCap(level: TipsLevel): number {
@@ -224,7 +231,10 @@ When deciding which 1–2 signals to surface in tips/summary, ask: would a clini
 - Treatment for hair loss → diagnosed conditions, ferritin, dermatologist context. THESE labs ARE relevant here.
 
 CLARIFYING GUIDANCE — HARD RULE:
-Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)`;
+Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)
+
+${SCORE_REASONS_RULES}`;
+
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -364,11 +374,15 @@ SCHEMA
   "marketed_purpose_confidence": "high"|"low",
   "marketed_purpose_note": "one or two plain sentences telling the user what this product is sold to do and what that means for THEIR hair",
   "match_score": number,
+  "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],
   "ai_summary": string,
   "usage_instructions": string,
   "use_cases": string[],
   "tips": string[]
-}`;
+}
+
+${SCORE_REASONS_RULES}`;
+
 }
 
 async function runLovable(args: {
@@ -555,6 +569,21 @@ Deno.serve(async (req: Request) => {
       if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
       if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
     }
+    // ── Score reasons: normalise, keep the number honest, and reduce
+    // ai_summary to the single overall-call sentence.
+    {
+      const a = analysis as Record<string, unknown>;
+      const reasons = sanitiseScoreReasons(a.score_reasons);
+      a.score_reasons = reasons;
+      if (typeof a.match_score === "number") {
+        a.match_score = alignScoreWithReasons(a.match_score, reasons);
+      }
+      if (reasons.length >= 2) {
+        const one = firstSentence(a.ai_summary);
+        if (one) a.ai_summary = one;
+      }
+    }
+
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 
     // ── Upsert cache (only when keyed) ────────────────────────────────

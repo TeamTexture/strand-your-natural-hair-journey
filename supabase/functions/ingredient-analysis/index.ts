@@ -29,10 +29,19 @@ import {
   CHAPTER_WHITELIST_PROMPT,
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import {
+  SCORE_REASONS_RULES,
+  SCORE_REASONS_SCHEMA_PROPERTY,
+  sanitiseScoreReasons,
+  alignScoreWithReasons,
+  firstSentence,
+  type ScoreReason,
+} from "../_shared/score-reasons.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v9-this-product-only";
+const MODEL_VERSION = "claude-sonnet-4-6@v10-score-reasons";
+
 
 interface IngredientCard {
   name: string;
@@ -54,7 +63,9 @@ interface GuidanceTip {
 }
 interface AnalysisPayload {
   match_score: number;
+  score_reasons?: ScoreReason[];
   summary: string;
+
   ingredients: IngredientCard[];
   personalised_guidance?: GuidanceTip[];
   _model_version?: string;
@@ -139,7 +150,9 @@ function buildToolSchema(ingredientCount: number) {
     type: "object",
     properties: {
       match_score: { type: "integer", minimum: 0, maximum: 100 },
+      score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
       summary: { type: "string" },
+
       ingredients: {
         type: "array",
         ...itemsConstraint,
@@ -172,7 +185,7 @@ function buildToolSchema(ingredientCount: number) {
         },
       },
     },
-    required: ["match_score", "summary", "ingredients", "personalised_guidance"],
+    required: ["match_score", "score_reasons", "summary", "ingredients", "personalised_guidance"],
   } as Record<string, unknown>;
 }
 
@@ -235,7 +248,11 @@ RULES — STRICT:
    - Leave-in, low-porosity, box braids 3 weeks in: title: "Mist it on soaking-wet partings", body: "Three weeks into your braids, dilute in a spray bottle and mist directly onto damp scalp partings — low-porosity strands only absorb when the cuticle is already softened by water, so applying to dry braids will just sit on top."
 
 7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
-8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
+8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.
+
+${SCORE_REASONS_RULES}
+
+NOTE FOR THIS FUNCTION: the one-sentence overall call lives in the "summary" field (not ai_summary) — the SCORE REASONS rules apply to "summary" in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
 }
 
 // ── Selector context for KB topic matching ──────────────────────────────
@@ -538,6 +555,21 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
       analysis._generated_at = new Date().toISOString();
       // Note: no _model_version stamp on Lovable path — back-compat.
     }
+
+    // ── Score reasons: normalise + keep match_score honest, and reduce the
+    // verdict sentence to the single overall call.
+    {
+      const reasons = sanitiseScoreReasons(analysis.score_reasons);
+      analysis.score_reasons = reasons;
+      if (typeof analysis.match_score === "number") {
+        analysis.match_score = alignScoreWithReasons(analysis.match_score, reasons);
+      }
+      if (reasons.length >= 2) {
+        const one = firstSentence(analysis.summary);
+        if (one) analysis.summary = one;
+      }
+    }
+
 
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase

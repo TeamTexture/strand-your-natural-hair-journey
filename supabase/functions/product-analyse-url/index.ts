@@ -56,14 +56,21 @@ import {
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
 import { MARKETED_PURPOSE_RULES } from "../_shared/marketed-purpose.ts";
+import {
+  SCORE_REASONS_RULES,
+  sanitiseScoreReasons,
+  alignScoreWithReasons,
+  firstSentence,
+} from "../_shared/score-reasons.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v2-tipslevel-goals-caps";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v2-tipslevel-goals-caps";
+const MODEL_VERSION = "claude-sonnet-4-6@v3-score-reasons";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v3-score-reasons";
+
 
 function levelCap(level: TipsLevel): number {
   if (level >= 4) return 4;
@@ -179,7 +186,10 @@ Rule of thumb: if you cannot draw a line from one of the product's INGREDIENTS t
 LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your avoids", "ingredients on your avoid list", "things to avoid", or imply the user has any list of ingredients they want to avoid. The only ingredient-history signal that exists in STRAND is "consistently flagged ingredients" — ingredients that appear in 3+ of the user's saved-and-favourited products that they're actively using. Use phrasing like "consistently flagged in your history", "ingredients you've flagged across your favourites", or "appears across 3+ products on your shelf and favourites". This applies to EVERY output field.
 
 CLARIFYING GUIDANCE — HARD RULE:
-Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is.)`;
+Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is.)
+
+${SCORE_REASONS_RULES}`;
+
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -358,11 +368,15 @@ SCHEMA
   "marketed_purpose_confidence": "high"|"low",
   "marketed_purpose_note": "one or two plain sentences telling the user what this product is sold to do and what that means for THEIR hair",
   "match_score": number,
+  "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],
   "ai_summary": string,
   "usage_instructions": string,
   "use_cases": string[],
   "tips": string[]
-}`;
+}
+
+${SCORE_REASONS_RULES}`;
+
 }
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
@@ -765,6 +779,19 @@ Deno.serve(async (req: Request) => {
       if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
       if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
     }
+    {
+      const a = analysis as Record<string, unknown>;
+      const reasons = sanitiseScoreReasons(a.score_reasons);
+      a.score_reasons = reasons;
+      if (typeof a.match_score === "number") {
+        a.match_score = alignScoreWithReasons(a.match_score, reasons);
+      }
+      if (reasons.length >= 2) {
+        const one = firstSentence(a.ai_summary);
+        if (one) a.ai_summary = one;
+      }
+    }
+
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "url-debug", phase: "all done", total_ms: Date.now() - t0 }));
 

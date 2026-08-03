@@ -9,6 +9,11 @@
 // is safe; renaming or removing a field is a breaking change that
 // requires a coordinated client update.
 
+import {
+  SCORE_REASONS_SCHEMA_PROPERTY,
+  type ScoreReason,
+} from "./score-reasons.ts";
+
 /** The structured payload Claude is forced to return for both the photo
  *  and URL product-analysis flows. Mirrors the long-standing Lovable+Gemini
  *  output shape — port verbatim. */
@@ -84,7 +89,13 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
         "One or two plain sentences, written to the user, naming what this product is sold to do, what that implies about cleansing strength, and — if the ingredients contradict the claim — the mismatch. Empty string only if there is genuinely nothing to say.",
     },
     match_score: { type: "integer", minimum: 0, maximum: 100 },
-    ai_summary: { type: "string" },
+    score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
+    ai_summary: {
+      type: "string",
+      description:
+        "Exactly ONE tight sentence: the overall call and the single user signal driving it. score_reasons carry the why.",
+    },
+
     usage_instructions: {
       type: "string",
       description:
@@ -120,6 +131,8 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     "key_ingredients",
     "marketed_purpose",
     "match_score",
+    "score_reasons",
+
     "ai_summary",
     "usage_instructions",
     "use_cases",
@@ -163,6 +176,9 @@ export interface ProductAnalysisPayload {
     | "density_growth"
     | "scalp_health";
   match_score: number;
+  /** Structured "show your working" rows behind match_score. */
+  score_reasons?: ScoreReason[];
+
   ai_summary: string;
   usage_instructions: string;
   use_cases: string[];

@@ -2912,6 +2912,7 @@ export type Database = {
           previously_on_shelf: boolean
           product_key: string
           rating: number | null
+          score_reasons: Json
           source_url: string | null
           storage_path: string | null
           updated_at: string
@@ -2946,6 +2947,7 @@ export type Database = {
           previously_on_shelf?: boolean
           product_key: string
           rating?: number | null
+          score_reasons?: Json
           source_url?: string | null
           storage_path?: string | null
           updated_at?: string
@@ -2980,6 +2982,7 @@ export type Database = {
           previously_on_shelf?: boolean
           product_key?: string
           rating?: number | null
+          score_reasons?: Json
           source_url?: string | null
           storage_path?: string | null
           updated_at?: string

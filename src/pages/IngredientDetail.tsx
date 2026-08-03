@@ -61,6 +61,7 @@ import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { buildAiContext } from "@/lib/aiContext";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
+import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 
@@ -73,6 +74,7 @@ interface Ingredient {
 interface GuidanceTip { title: string; body: string }
 interface Analysis {
   match_score: number;
+  score_reasons?: ScoreReason[];
   summary: string;
   ingredients: Ingredient[];
   personalised_guidance?: GuidanceTip[];
@@ -92,6 +94,7 @@ interface FreshAnalysisPayload {
   ingredients?: string[];
   key_ingredients?: Array<{ name: string; benefit?: string; flag?: "good" | "warn" | "avoid"; reason?: string }>;
   match_score?: number;
+  score_reasons?: unknown;
   ai_summary?: string;
   usage_instructions?: string;
   use_cases?: string[];
@@ -121,6 +124,7 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
   });
   return {
     match_score: typeof fresh.match_score === "number" ? fresh.match_score : 0,
+    score_reasons: parseScoreReasons(fresh.score_reasons),
     summary: fresh.ai_summary ?? "",
     ingredients,
     usage_instructions: fresh.usage_instructions,
@@ -943,6 +947,7 @@ const IngredientDetail = () => {
                     {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
                     <span className="text-foreground/75">{rest}</span>
                   </p>
+                  <ScoreReasons reasons={parseScoreReasons(analysis.score_reasons)} />
                 </StatusCallout>
               );
             })()}
