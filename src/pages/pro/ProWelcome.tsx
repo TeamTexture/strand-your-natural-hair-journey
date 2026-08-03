@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
@@ -63,6 +63,12 @@ const ProWelcome = () => {
   };
 
   if (authLoading || rolesLoading || subLoading || profLoading) return <LoadingDot />;
+  // Do not paint the acceptance screen while the redirect effect catches up.
+  // Active/complimentary accounts and completed profiles must go straight to
+  // the dashboard without even a single-frame welcome-screen flash.
+  if ((isProfessional || isAdmin) && (isActive || isAdmin || setupComplete)) {
+    return <Navigate to="/pro" replace />;
+  }
 
   return (
     <ScreenLayout>
