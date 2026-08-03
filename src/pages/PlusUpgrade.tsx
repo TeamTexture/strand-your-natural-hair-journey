@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Sparkles, Users, BookOpen, Calendar, MessageCircle, CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import HairStrandIcon from "@/components/HairStrandIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
+import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
+import LoadingDot from "@/components/LoadingDot";
 
 const PILLARS = [
   { icon: Users, title: "Community forum", body: "Ask, share and learn with members like you." },
@@ -21,6 +23,7 @@ const PlusUpgrade = () => {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const { hasPlus, isLoading, refetch } = usePlusAccess();
+  const { canUpgrade, loading: roleLoading, homePath } = useUpgradeEligibility();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -58,6 +61,10 @@ const PlusUpgrade = () => {
     }
   };
 
+
+  // Consumer-only surface: pros, brands and admins are sent to their own home.
+  if (roleLoading) return <LoadingDot />;
+  if (!canUpgrade) return <Navigate to={homePath} replace />;
 
   if (hasPlus || isLoading) {
     return (

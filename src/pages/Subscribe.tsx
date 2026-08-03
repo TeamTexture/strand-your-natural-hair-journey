@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   CreditCard,
   CheckCircle2,
@@ -29,6 +29,8 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import { isSafeInternalPath } from "@/lib/consumerOnboarding";
+import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
+import LoadingDot from "@/components/LoadingDot";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -111,6 +113,7 @@ const Subscribe = () => {
   const {
     subscription, stripeActive, complimentary, isAdminOrPro, hasAccess, isLoading, refetch,
   } = useConsumerSubscription();
+  const { canUpgrade, loading: roleLoading, homePath } = useUpgradeEligibility();
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
   const [tier, setTier] = useState<"standard" | "plus">("standard");
 
@@ -236,6 +239,11 @@ const Subscribe = () => {
       </div>
     );
   };
+
+  // Consumer plan surface only — professional, brand and admin accounts are
+  // never shown the consumer paywall or plan upgrade options.
+  if (roleLoading) return <LoadingDot />;
+  if (!canUpgrade) return <Navigate to={homePath} replace />;
 
   return (
     <ScreenLayout>
