@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { shortForm, selectTips, dedupeTips, groupByStage, orderByStage, type GuidanceTip } from "@/lib/tipsRender";
-import { DoDont, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+import { DoDont } from "@/components/beginner/BeginnerGuide";
 import ActionList, { type GuidanceAction } from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
 import StageHeader from "@/components/guidance/StageHeader";
@@ -30,7 +30,6 @@ const TipsBlock = ({
   tips,
   dos,
   donts,
-  reassurance,
   idPrefix = "tip",
   className,
   dedupeAgainst,
@@ -40,7 +39,6 @@ const TipsBlock = ({
   dos?: string[];
   /** Level-4-only incorrect-practice list for the whole block. */
   donts?: string[];
-  reassurance?: string;
   idPrefix?: string;
   className?: string;
   /** Prose already visible on the same screen — duplicate tips are suppressed. */
@@ -97,7 +95,6 @@ const TipsBlock = ({
         {(allDos.length > 0 || allDonts.length > 0) && (
           <DoDont dos={allDos} donts={allDonts} />
         )}
-        <BeginnerReassurance>{reassurance}</BeginnerReassurance>
       </div>
     );
   }
