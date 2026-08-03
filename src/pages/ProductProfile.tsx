@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
@@ -82,6 +83,7 @@ const ProductProfile = () => {
   const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiMatchScore, setAiMatchScore] = useState<number | null>(null);
+  const [aiScoreReasons, setAiScoreReasons] = useState<ScoreReason[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -166,6 +168,7 @@ const ProductProfile = () => {
     if (product.ai_summary || product.match_score != null || hasSavedFlags) {
       setAiSummary(product.ai_summary ?? null);
       setAiMatchScore(product.match_score ?? null);
+      setAiScoreReasons(parseScoreReasons((product as unknown as { score_reasons?: unknown }).score_reasons));
       // Rehydrate per-ingredient flags from key_ingredients so the saved
       // good/warn/bad guidance shows immediately without re-calling the AI.
       const severityToTone = (
@@ -236,6 +239,8 @@ const ProductProfile = () => {
         setAiSummary(summary);
         const score = typeof data?.analysis?.match_score === "number" ? data.analysis.match_score : null;
         setAiMatchScore(score);
+        const reasons = parseScoreReasons(data?.analysis?.score_reasons);
+        setAiScoreReasons(reasons);
 
         // Persist to user_products so the next visit hydrates instantly and
         // never re-triggers the AI call. We save both the summary/score AND
@@ -265,6 +270,7 @@ const ProductProfile = () => {
             .update({
               ai_summary: summary,
               match_score: score,
+              score_reasons: reasons,
               key_ingredients: mergedKeyIngredients,
             })
             .eq("id", product.id);
@@ -394,6 +400,7 @@ const ProductProfile = () => {
                       {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
                       <span className="text-foreground/75">{rest}</span>
                     </p>
+                    <ScoreReasons reasons={aiScoreReasons} />
                   </StatusCallout>
                 </div>
               ) : aiError ? (
