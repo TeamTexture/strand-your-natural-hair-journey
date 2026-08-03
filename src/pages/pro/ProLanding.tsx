@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useMyProProfile } from "@/hooks/useProProfileReview";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -35,6 +36,7 @@ const ProLanding = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
   const { isActive, isLoading: subLoading } = useProSubscription();
+  const { setupComplete, isLoading: profLoading } = useMyProProfile();
 
   useEffect(() => {
     if (!authLoading && !user) nav("/pro/auth", { replace: true });
@@ -42,16 +44,16 @@ const ProLanding = () => {
 
   // Approved pros → welcome (if unpaid) or dashboard (if paid).
   useEffect(() => {
-    if (rolesLoading || subLoading) return;
+    if (rolesLoading || subLoading || profLoading) return;
     // Admins get full pro access without a subscription.
     if (isAdmin) {
       nav("/pro", { replace: true });
       return;
     }
     if (isProfessional) {
-      nav(isActive ? "/pro" : "/pro/welcome", { replace: true });
+      nav(isActive || setupComplete ? "/pro" : "/pro/welcome", { replace: true });
     }
-  }, [rolesLoading, subLoading, isProfessional, isAdmin, isActive, nav]);
+  }, [rolesLoading, subLoading, profLoading, setupComplete, isProfessional, isAdmin, isActive, nav]);
 
   const { data: latest, isLoading: appLoading } = useQuery({
     queryKey: ["pro_application", user?.id],
@@ -69,7 +71,7 @@ const ProLanding = () => {
     },
   });
 
-  if (authLoading || rolesLoading || subLoading || appLoading) return <LoadingDot />;
+  if (authLoading || rolesLoading || subLoading || profLoading || appLoading) return <LoadingDot />;
   if (!user) return null;
 
   const submitted = latest?.payment_confirmed_at != null;

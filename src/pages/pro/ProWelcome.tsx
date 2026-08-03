@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useMyProProfile } from "@/hooks/useProProfileReview";
 import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -25,6 +26,9 @@ const ProWelcome = () => {
   const { user, loading: authLoading } = useAuth();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
   const { isActive, isLoading: subLoading } = useProSubscription();
+  // State-driven, not a local flag: once the profile has been submitted or
+  // published, this screen has served its purpose and never shows again.
+  const { setupComplete, isLoading: profLoading } = useMyProProfile();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -34,13 +38,13 @@ const ProWelcome = () => {
   // Anyone who's already subscribed or is an admin heads straight to the
   // dashboard — this screen is only for accepted-but-unpaid pros.
   useEffect(() => {
-    if (rolesLoading || subLoading) return;
+    if (rolesLoading || subLoading || profLoading) return;
     if (!isProfessional && !isAdmin) {
       nav("/pro/landing", { replace: true });
       return;
     }
-    if (isActive || isAdmin) nav("/pro", { replace: true });
-  }, [rolesLoading, subLoading, isProfessional, isAdmin, isActive, nav]);
+    if (isActive || isAdmin || setupComplete) nav("/pro", { replace: true });
+  }, [rolesLoading, subLoading, profLoading, setupComplete, isProfessional, isAdmin, isActive, nav]);
 
   const startCheckout = async () => {
     setBusy(true);
@@ -58,7 +62,7 @@ const ProWelcome = () => {
     }
   };
 
-  if (authLoading || rolesLoading || subLoading) return <LoadingDot />;
+  if (authLoading || rolesLoading || subLoading || profLoading) return <LoadingDot />;
 
   return (
     <ScreenLayout>

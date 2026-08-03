@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useMyProProfile } from "@/hooks/useProProfileReview";
 import LoadingDot from "./LoadingDot";
 
 interface Props {
@@ -40,6 +41,9 @@ export function startProCheckoutGrace() {
 const ProSubGate = ({ children }: Props) => {
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
   const { isActive, isLoading: subLoading, refetch } = useProSubscription();
+  // Pros who have completed their profile have already passed the acceptance
+  // moment — never bounce them back to it.
+  const { setupComplete, isLoading: profLoading } = useMyProProfile();
   const grace = isProCheckoutGrace();
 
   // While in the post-payment grace window, keep polling until the
@@ -50,10 +54,10 @@ const ProSubGate = ({ children }: Props) => {
     return () => clearInterval(t);
   }, [grace, isActive, refetch]);
 
-  if (rolesLoading || subLoading) return <LoadingDot />;
+  if (rolesLoading || subLoading || profLoading) return <LoadingDot />;
   // Admins can view pro screens regardless of subscription state.
   if (isAdmin) return <>{children}</>;
-  if (isProfessional && !isActive && !grace) {
+  if (isProfessional && !isActive && !grace && !setupComplete) {
     return <Navigate to="/pro/welcome" replace />;
   }
   return <>{children}</>;
