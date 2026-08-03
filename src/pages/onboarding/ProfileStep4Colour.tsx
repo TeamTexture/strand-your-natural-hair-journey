@@ -19,28 +19,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import LevelGate from "@/components/tips/LevelGate";
 import VoiceNoteField from "@/components/VoiceNoteField";
+import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
+import {
+  HAIRSTYLE_OPTIONS,
+  styleAsksTension,
+  styleAsksExtensions,
+} from "@/lib/hairstyles";
 
 const NATURAL_NEVER = "Natural (never coloured)";
-
-const HAIRSTYLE_OPTIONS = [
-  "Loose natural",
-  "Box braids",
-  "Faux locs",
-  "Cornrows",
-  "Locs",
-  "Wig unit",
-  "Weave",
-  "Relaxed",
-  "Curly perm",
-  "Silk press",
-  "Wash and go",
-  "Twist-out",
-  "Finger comb coils",
-  "Low manipulation natural style",
-  "Bald",
-  "Low cut",
-  "Not sure yet",
-];
 
 interface TGProps {
   label: string;
@@ -105,6 +91,12 @@ const ProfileStep4Colour = () => {
   const [colourReactionDetails, setColourReactionDetails] = useState("");
   const [colourReactionAudioPath, setColourReactionAudioPath] = useState<string | null>(null);
   const [reactionError, setReactionError] = useState(false);
+  const [attrs, setAttrs] = useState<StyleAttributesValue>({ tension: null, extensions: null });
+  const [plannedAttrs, setPlannedAttrs] = useState<StyleAttributesValue>({
+    tension: null,
+    extensions: null,
+  });
+  const [attrError, setAttrError] = useState(false);
 
   const isNaturalNever = colour[0] === NATURAL_NEVER;
   const isChanging = plansToChange === "yes";
@@ -208,17 +200,24 @@ const ProfileStep4Colour = () => {
 
 
 
-        <TagGroup
-          label="Current Hairstyle"
-          options={[
-            "Loose natural", "Box braids", "Faux locs", "Cornrows", "Locs", "Wig / unit",
-            "Weave", "Relaxed", "Curly perm", "Silk press", "Wash and go",
-            "Twist-out", "Finger comb coils",
-            "Low manipulation natural style", "Bald", "Low cut",
-          ]}
-          value={style} onChange={setStyle}
-          multi={false}
-        />
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+            Current hairstyle
+          </div>
+          <StylePicker
+            value={style[0] ?? null}
+            onChange={(v) => {
+              setStyle([v]);
+              setAttrError(false);
+            }}
+            attributes={attrs}
+            onAttributesChange={(v) => {
+              setAttrs(v);
+              setAttrError(false);
+            }}
+            attributeError={attrError}
+          />
+        </div>
 
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
@@ -293,6 +292,17 @@ const ProfileStep4Colour = () => {
               onChange={setChangingTo}
               placeholder="Select your next style…"
             />
+
+            {(styleAsksTension(changingTo[0]) || styleAsksExtensions(changingTo[0])) && (
+              <StylePicker
+                hideStyleOptions
+                value={changingTo[0] ?? null}
+                onChange={() => {}}
+                attributes={plannedAttrs}
+                onAttributesChange={setPlannedAttrs}
+                attributesRequired={false}
+              />
+            )}
           </>
         )}
 
@@ -353,6 +363,17 @@ const ProfileStep4Colour = () => {
             // When "Natural (never coloured)" is selected, chemical + colour history
             // sections are hidden — persist neutral values so stale data can't leak
             // through to advice.
+            const currentStyle = style[0] ?? "";
+            if (
+              (styleAsksTension(currentStyle) && !attrs.tension) ||
+              (styleAsksExtensions(currentStyle) && attrs.extensions === null)
+            ) {
+              setAttrError(true);
+              toast.error("Answer the tension and extensions questions for this style");
+              return;
+            }
+            setAttrError(false);
+
             const chemHistToSave = isNaturalNever ? ["None"] : chemHist;
             const colourTypeToSave = isNaturalNever ? null : colourType;
             const colourProductToSave = isNaturalNever ? null : colourProduct;
@@ -376,6 +397,16 @@ const ProfileStep4Colour = () => {
                 defaultStyle,
                 colour,
                 chemHist: chemHistToSave,
+                current_style_tension: styleAsksTension(style[0]) ? attrs.tension : null,
+                current_style_extensions: styleAsksExtensions(style[0])
+                  ? attrs.extensions
+                  : null,
+                planned_style_tension: styleAsksTension(changingTo[0])
+                  ? plannedAttrs.tension
+                  : null,
+                planned_style_extensions: styleAsksExtensions(changingTo[0])
+                  ? plannedAttrs.extensions
+                  : null,
               }),
             );
             // Dual-write to user_style_profile. PHASE_1_PLAN.md §15.
@@ -394,6 +425,16 @@ const ProfileStep4Colour = () => {
                       planned_next_style: changingTo[0] ?? null,
                       planned_change_date,
                       default_styles: defaultStyle,
+                      current_style_tension: styleAsksTension(style[0]) ? attrs.tension : null,
+                      current_style_extensions: styleAsksExtensions(style[0])
+                        ? attrs.extensions
+                        : null,
+                      planned_style_tension: styleAsksTension(changingTo[0])
+                        ? plannedAttrs.tension
+                        : null,
+                      planned_style_extensions: styleAsksExtensions(changingTo[0])
+                        ? plannedAttrs.extensions
+                        : null,
                       colour_type: colourTypeToSave,
                       colour_product: colourProductToSave,
                       colour_last_treated: colourLastToSave,
