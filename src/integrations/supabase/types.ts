@@ -3718,6 +3718,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_passport_access: {
+        Args: { _grant: boolean; _pro_user_id: string }
+        Returns: string
+      }
       start_member_dm: { Args: { _other_user: string }; Returns: string }
       strand_today_london: { Args: never; Returns: string }
       submit_brand_offer_revision: {
