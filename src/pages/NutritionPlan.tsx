@@ -764,11 +764,6 @@ const NutritionPlan = () => {
             <SourceNote>
               Personalised by STRAND AI from your bloods, heritage and health profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
             </SourceNote>
-            <div className="rounded-[14px] bg-alert-dark/8 border border-alert-dark/15 p-3">
-              <p className="text-[11px] font-body leading-relaxed text-foreground/80">
-                <strong className="font-semibold">Not medical advice.</strong> Always check with your GP before starting a new supplement — especially if you're pregnant, breastfeeding, on medication, or managing a health condition.
-              </p>
-            </div>
           </TabsContent>
 
           <TabsContent value="diet" className="space-y-3 mt-4">
