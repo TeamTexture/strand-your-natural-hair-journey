@@ -248,7 +248,11 @@ RULES — STRICT:
    - Leave-in, low-porosity, box braids 3 weeks in: title: "Mist it on soaking-wet partings", body: "Three weeks into your braids, dilute in a spray bottle and mist directly onto damp scalp partings — low-porosity strands only absorb when the cuticle is already softened by water, so applying to dry braids will just sit on top."
 
 7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
-8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.`;
+8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.
+
+${SCORE_REASONS_RULES}
+
+NOTE FOR THIS FUNCTION: the one-sentence overall call lives in `summary` (not ai_summary) — the SCORE REASONS rules apply to `summary` in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
 }
 
 // ── Selector context for KB topic matching ──────────────────────────────
