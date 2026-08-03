@@ -152,7 +152,10 @@ export function usePlainTermFootnotes(
   }, [enabled, found, registry, owner]);
 }
 
-/** One small icon-led row per definition. Never inline, never repeated. */
+/**
+ * One small icon-led row per definition. The "In plain terms" label is printed
+ * once for the whole group — never repeated on each row.
+ */
 export const PlainTermsFootnote = ({
   terms,
   className,
@@ -163,20 +166,21 @@ export const PlainTermsFootnote = ({
   if (terms.length === 0) return null;
   return (
     <div className={cn("space-y-1", className)}>
+      <p className="flex items-center gap-1.5">
+        <Info className="size-3 text-primary shrink-0" aria-hidden />
+        <span className="uppercase tracking-[0.14em] text-[9px] font-bold text-primary">
+          In plain terms
+        </span>
+      </p>
       {terms.map((t) => (
         <p
           key={t.term}
-          className="flex items-start gap-1.5 text-[10.5px] leading-snug text-muted-foreground font-body"
+          className="pl-[18px] text-[10.5px] leading-snug text-muted-foreground font-body"
         >
-          <Info className="size-3 text-primary shrink-0 mt-[2px]" aria-hidden />
-          <span>
-            <span className="uppercase tracking-[0.14em] text-[9px] font-bold text-primary mr-1">
-              In plain terms
-            </span>
-            {t.sentence}
-          </span>
+          {t.sentence}
         </p>
       ))}
     </div>
   );
 };
+
