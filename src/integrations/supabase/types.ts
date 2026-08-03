@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          read_at: string | null
+          read_by: string | null
+          title: string
+          type: string
+          url: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          read_at?: string | null
+          read_by?: string | null
+          title: string
+          type: string
+          url?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          read_at?: string | null
+          read_by?: string | null
+          title?: string
+          type?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       ai_citation_violations: {
         Row: {
           cleaned_length: number | null
@@ -3350,6 +3389,14 @@ export type Database = {
           views_last_30d: number
         }[]
       }
+      admin_notifications_mark_entity_read: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: undefined
+      }
+      admin_notifications_mark_read: {
+        Args: { _ids: string[] }
+        Returns: undefined
+      }
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
       admin_role_history: {
@@ -3553,6 +3600,17 @@ export type Database = {
       }
       note_booking_link_opened: {
         Args: { _thread_id: string }
+        Returns: undefined
+      }
+      notify_admins: {
+        Args: {
+          _body: string
+          _entity_id: string
+          _entity_type: string
+          _title: string
+          _type: string
+          _url: string
+        }
         Returns: undefined
       }
       pro_log_appointment: {

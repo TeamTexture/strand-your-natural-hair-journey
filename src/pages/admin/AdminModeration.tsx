@@ -9,6 +9,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ const AdminModeration = () => {
 
 const ReportsList = () => {
   const qc = useQueryClient();
+  const markEntityRead = useMarkAdminEntityRead();
   const q = useQuery({
     queryKey: ["forum_reports_open"],
     queryFn: async () => {
@@ -72,7 +74,9 @@ const ReportsList = () => {
     const { error } = await supabase.from("forum_reports").update({
       status: "resolved", reviewed_at: new Date().toISOString(),
     }).eq("id", id);
-    if (error) toast.error(error.message); else qc.invalidateQueries({ queryKey: ["forum_reports_open"] });
+    if (error) { toast.error(error.message); return; }
+    void markEntityRead("forum_report", id);
+    qc.invalidateQueries({ queryKey: ["forum_reports_open"] });
   };
   const deleteContent = async (report: { id: string; target_kind: string; target_id: string }) => {
     if (report.target_kind === "thread") await supabase.from("forum_threads").delete().eq("id", report.target_id);
