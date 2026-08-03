@@ -176,6 +176,9 @@ export interface ProductAnalysisPayload {
     | "density_growth"
     | "scalp_health";
   match_score: number;
+  /** Structured "show your working" rows behind match_score. */
+  score_reasons?: ScoreReason[];
+
   ai_summary: string;
   usage_instructions: string;
   use_cases: string[];
