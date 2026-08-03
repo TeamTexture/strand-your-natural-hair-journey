@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { CreditCard, Inbox } from "lucide-react";
+import { CreditCard, Inbox, Lock, ShieldCheck } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -143,6 +143,7 @@ const EnquiryCard = ({
   const phone = preview?.phone ?? enquiry.contact_phone ?? null;
   const contactMethod = enquiry.contact_method ?? null;
   const location = preview?.location ?? enquiry.location_preference ?? null;
+  const shared = !!enquiry.share_passport_consent;
   return (
     <SurfaceCard>
       <div className="flex items-start justify-between gap-3">
@@ -219,17 +220,44 @@ const EnquiryCard = ({
         </p>
       )}
 
-      {enquiry.note && (
-        <p className="text-sm font-body mt-2 leading-snug border-l-2 border-primary/40 pl-2">
-          "{enquiry.note}"
+      <div
+        className={cn(
+          "mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2 border",
+          shared
+            ? "bg-good/10 border-good/40"
+            : "bg-secondary/50 border-border/60",
+        )}
+      >
+        {shared ? (
+          <ShieldCheck className="size-4 text-good shrink-0" />
+        ) : (
+          <Lock className="size-4 text-muted-foreground shrink-0" />
+        )}
+        <p
+          className={cn(
+            "text-[11.5px] font-body leading-snug",
+            shared ? "text-good font-medium" : "text-muted-foreground",
+          )}
+        >
+          {shared
+            ? "Passport shared by client"
+            : "Passport not shared"}
         </p>
-      )}
+      </div>
 
       {preview && (
-        <div className="mt-3 rounded-[10px] bg-secondary/50 p-3 space-y-1.5">
-          <p className="text-[9px] uppercase tracking-[0.15em] text-primary font-medium">
-            Passport preview
-          </p>
+        <div className="mt-2 rounded-[10px] bg-secondary/50 p-3 space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            {shared && <ShieldCheck className="size-3.5 text-good shrink-0" />}
+            <p
+              className={cn(
+                "text-[9px] uppercase tracking-[0.15em] font-medium",
+                shared ? "text-good" : "text-primary",
+              )}
+            >
+              Passport preview
+            </p>
+          </div>
           <p className="text-[12px] font-body leading-snug">{preview.hairSummary}</p>
           <p className="text-[12px] font-body leading-snug">
             {preview.flaggedMarkers > 0
