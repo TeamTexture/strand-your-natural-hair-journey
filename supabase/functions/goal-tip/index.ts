@@ -595,10 +595,13 @@ Deno.serve(async (req) => {
     }
 
     let tip: {
-      headline: string;
-      body: string;
+      headline?: string;
+      body?: string;
       key_fact?: string;
       actions?: unknown[];
+      overview?: string;
+      caution?: string;
+      signals?: unknown[];
     };
     try {
       tip = JSON.parse(toolCall.function.arguments);
@@ -610,7 +613,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (single) {
+    if (journal) {
+      // Hard guarantee of the overview + caution shape regardless of drift.
+      tip = {
+        overview: String(tip.overview ?? "").trim(),
+        caution: String(tip.caution ?? "").trim(),
+        signals: (Array.isArray(tip.signals) ? tip.signals : [])
+          .map((s) => String(s ?? "").trim())
+          .filter(Boolean)
+          .slice(0, 3),
+        actions: [],
+      };
+    } else if (single) {
       // Hard guarantee of the one-tip shape regardless of model drift.
       const keyFact = typeof tip.key_fact === "string" ? tip.key_fact.trim() : "";
       tip = {
@@ -628,11 +642,13 @@ Deno.serve(async (req) => {
           )
         : [];
       await recordAdvice(ledgerUserId, "goal-tip", [
-        tip.headline,
+        ...(tip.headline ? [tip.headline] : []),
+        ...(journal ? [tip.overview ?? "", tip.caution ?? ""] : []),
         ...(single && tip.body ? [tip.body] : []),
         ...actionLines,
-      ]);
+      ].filter(Boolean));
     }
+
 
     return new Response(
       JSON.stringify({
