@@ -231,7 +231,10 @@ When deciding which 1–2 signals to surface in tips/summary, ask: would a clini
 - Treatment for hair loss → diagnosed conditions, ferritin, dermatologist context. THESE labs ARE relevant here.
 
 CLARIFYING GUIDANCE — HARD RULE:
-Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)`;
+Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)
+
+${SCORE_REASONS_RULES}`;
+
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
