@@ -43,6 +43,7 @@ import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
 import { buildAiContext } from "@/lib/aiContext";
 import { cn } from "@/lib/utils";
+import MatchStars from "@/components/MatchStars";
 
 const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) => (
   <span className="inline-flex items-center gap-0.5">
@@ -294,11 +295,9 @@ const MyToolsSection = () => {
                       const aiScore = typeof aiScoreRaw === "number" ? aiScoreRaw : null;
                       const score =
                         typeof t.match_score === "number" ? t.match_score : aiScore;
-                      const stars =
-                        score != null ? Math.max(1, Math.min(5, Math.round(score / 20))) : 0;
                       return (
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <Stars n={stars} />
+                          <MatchStars score={score} />
                           {score != null && (
                             <span className="text-[9px] uppercase tracking-[0.12em] text-primary/80 font-semibold">
                               Strand
@@ -485,16 +484,13 @@ const MyToolsSection = () => {
               {(() => {
                 const raw = analysis?.match_score;
                 const score = typeof raw === "number" ? Math.max(0, Math.min(100, raw)) : null;
-                const stars = score != null ? Math.max(1, Math.min(5, Math.round(score / 20))) : 0;
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-0.5 text-2xl leading-none">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <span key={i} className={i <= stars ? "text-primary" : "text-border"}>★</span>
-                      ))}
-                    </span>
+                    <MatchStars score={score} size="lg" showValue={false} />
                     <span className="text-[11px] text-muted-foreground">
-                      {score != null ? "Based on your hair profile" : "Add a link to run STRAND analysis"}
+                      {score != null
+                        ? "Based on your hair profile"
+                        : "Add a link to run STRAND analysis"}
                     </span>
                   </div>
                 );

@@ -4,6 +4,11 @@
 // ingredients. The renderer (MyToolsSection.tsx) only consumes a subset
 // today; extra fields are forward-compatible.
 
+import {
+  SCORE_REASONS_SCHEMA_PROPERTY,
+  type ScoreReason,
+} from "./score-reasons.ts";
+
 export const TOOL_KIND_ENUM = [
   "heat_cap",
   "deep_conditioning_cap",
@@ -78,6 +83,7 @@ export const RETURN_TOOL_ANALYSIS_SCHEMA = {
       description:
         "How well this tool fits THIS user's hair profile, goals and current style. 0 = poor fit, 100 = ideal fit. Calibrate honestly — most tools land 40–75.",
     },
+    score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
     how_to_use: {
       type: "string",
       description:
@@ -114,6 +120,7 @@ export const RETURN_TOOL_ANALYSIS_SCHEMA = {
     "tips",
     "personalisation_rationale",
     "match_score",
+    "score_reasons",
     "how_to_use",
   ],
 } as const;
@@ -131,6 +138,7 @@ export interface ToolAnalysisPayload {
   warnings?: string[];
   personalisation_rationale: string;
   match_score: number;
+  score_reasons?: ScoreReason[];
   how_to_use: string;
   pair_with?: Array<{ item: string; why: string; source?: "shelf" | "wishlist" | "suggested" }>;
   routine_suggestion?: string;

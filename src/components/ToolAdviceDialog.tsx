@@ -5,6 +5,9 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import ActionList from "@/components/guidance/ActionList";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import ScoreReasons, { parseScoreReasons } from "@/components/product/ScoreReasons";
+import MatchStars from "@/components/MatchStars";
+import { normaliseMatchScore, scoreTone as toneForScore } from "@/lib/matchStars";
 import { emphasisSplit } from "@/lib/tipsRender";
 import {
   Dialog,
@@ -34,10 +37,8 @@ export function ToolAdviceDialog({
   primaryLabel: string;
 }) {
   if (!payload) return null;
-  const rawScore = payload.match_score;
-  const score =
-    typeof rawScore === "number" ? Math.max(0, Math.min(100, Math.round(rawScore))) : null;
-  const stars = score != null ? Math.max(1, Math.round(score / 20)) : null;
+  const score = normaliseMatchScore(payload.match_score);
+  const reasons = parseScoreReasons(payload.score_reasons);
   const summary =
     typeof payload.ai_summary === "string"
       ? payload.ai_summary
@@ -50,7 +51,16 @@ export function ToolAdviceDialog({
       : "";
   const howToUse =
     typeof payload.how_to_use === "string" ? payload.how_to_use : "";
-  const features = asStringArray(payload.key_features);
+  const features = Array.isArray(payload.key_features)
+    ? (payload.key_features as unknown[]).flatMap((f) => {
+        if (typeof f === "string" && f.trim()) return [{ name: f.trim(), relevance: "" }];
+        if (!f || typeof f !== "object") return [];
+        const row = f as Record<string, unknown>;
+        const name = typeof row.name === "string" ? row.name.trim() : "";
+        const relevance = typeof row.relevance === "string" ? row.relevance.trim() : "";
+        return name ? [{ name, relevance }] : [];
+      })
+    : [];
   const tips = asStringArray(payload.tips);
   const useCases = asStringArray(payload.use_cases);
   const routineSuggestion =
@@ -93,11 +103,10 @@ export function ToolAdviceDialog({
           {score != null && (
             <DialogDescription asChild>
               <div className="pt-1">
-                <AnchorStat
-                  value={score}
-                  context="/ 100 hair-profile fit"
-                  tone={score >= 70 ? "good" : score >= 40 ? "gold" : "warning"}
-                />
+                <AnchorStat value={score} context="hair-profile match" tone={toneForScore(score)} />
+                <div className="mt-1">
+                  <MatchStars score={score} />
+                </div>
               </div>
             </DialogDescription>
           )}
@@ -122,13 +131,14 @@ export function ToolAdviceDialog({
           )}
           {summary && (() => {
             const { phrase, rest } = emphasisSplit(summary);
-            const vTone = score == null ? "insight" : score >= 70 ? "good" : score >= 40 ? "gold" : "warning";
+            const vTone = score == null ? "insight" : toneForScore(score);
             return (
               <StatusCallout tone={vTone} label="Verdict">
                 <p>
                   {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
                   <span className="text-foreground/75">{rest}</span>
                 </p>
+                <ScoreReasons reasons={reasons} />
               </StatusCallout>
             );
           })()}
@@ -137,9 +147,12 @@ export function ToolAdviceDialog({
               <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
                 Key features
               </h4>
-              <ul className="list-disc pl-4 space-y-1">
+              <ul className="space-y-1.5">
                 {features.map((f, i) => (
-                  <li key={i}>{f}</li>
+                  <li key={i} className="text-[13px] leading-snug">
+                    <span className="font-semibold text-foreground">{f.name}</span>
+                    {f.relevance && <span className="text-foreground/70"> — {f.relevance}</span>}
+                  </li>
                 ))}
               </ul>
             </section>

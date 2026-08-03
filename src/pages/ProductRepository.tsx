@@ -6,6 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { cn } from "@/lib/utils";
 import ProductThumb from "@/components/ProductThumb";
+import MatchStars from "@/components/MatchStars";
 import { useUserProducts, UserProduct } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import BrandLink from "@/components/BrandLink";
@@ -18,11 +19,6 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "off-shelf", label: "Off Shelf" },
 ];
 
-const Stars = ({ n }: { n: number }) => (
-  <span className="text-[10px] text-primary tracking-tight">
-    {"★".repeat(n)}<span className="text-border">{"★".repeat(5 - n)}</span>
-  </span>
-);
 
 const formatDate = (iso: string | null): string | null => {
   if (!iso) return null;
@@ -101,7 +97,6 @@ const ProductRepository = () => {
           />
         ) : (
           filtered.map(p => {
-            const stars = p.rating ?? 0;
             const lastUsed = formatDate(lastUsedByProductId.get(p.id) ?? p.last_used_at);
             return (
               <button
@@ -120,7 +115,7 @@ const ProductRepository = () => {
                   <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
                   <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <Stars n={stars} />
+                    <MatchStars item={p} />
                     {lastUsed && (
                       <span className="text-[10px] text-muted-foreground">· last used {lastUsed}</span>
                     )}

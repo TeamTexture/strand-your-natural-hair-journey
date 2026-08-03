@@ -13,27 +13,14 @@ import LoadingDot from "@/components/LoadingDot";
 import ProductThumb from "@/components/ProductThumb";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { cn } from "@/lib/utils";
+import MatchStars from "@/components/MatchStars";
+import { starsForItem } from "@/lib/matchStars";
 
 const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }) => {
   if (p.on_shelf) return { label: "On shelf", tone: "text-good" };
   if (p.on_wishlist) return { label: "Wishlist", tone: "text-primary" };
   if (p.previously_on_shelf) return { label: "Off shelf", tone: "text-muted-foreground" };
   return { label: "Saved", tone: "text-muted-foreground" };
-};
-
-const Stars = ({ value }: { value: number | null }) => {
-  if (!value) {
-    return <span className="text-[11px] text-muted-foreground">No rating</span>;
-  }
-  return (
-    <span className="text-base leading-none" aria-label={`${value} stars`}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <span key={n} className={n <= value ? "text-primary" : "text-border"}>
-          ★
-        </span>
-      ))}
-    </span>
-  );
 };
 
 const BrandProducts = () => {
@@ -72,11 +59,7 @@ const BrandProducts = () => {
         ) : (
           products.map((p) => {
             const s = statusLabel(p);
-            const aiStars =
-              p.match_score != null
-                ? Math.max(1, Math.min(5, Math.round(p.match_score / 20)))
-                : null;
-            const starValue = p.rating ?? aiStars;
+            const hasStars = starsForItem(p) != null;
             return (
               <button
                 key={p.id}
@@ -109,8 +92,12 @@ const BrandProducts = () => {
                         >
                           {s.label}
                         </span>
-                        <span className="text-muted-foreground/50">•</span>
-                        <Stars value={starValue} />
+                        {hasStars && (
+                          <>
+                            <span className="text-muted-foreground/50">•</span>
+                            <MatchStars item={p} />
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

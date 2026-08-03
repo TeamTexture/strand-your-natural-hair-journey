@@ -26,6 +26,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import MatchStars from "@/components/MatchStars";
+import { starsFromScore } from "@/lib/matchStars";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
@@ -504,17 +506,19 @@ const ProductProfile = () => {
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Strand rating</p>
           <SurfaceCard>
             {(() => {
-              const stars = score > 0 ? Math.max(1, Math.min(5, Math.round(score / 20))) : 0;
+              const hasScore = starsFromScore(score > 0 ? score : null) != null;
               return (
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-0.5 text-2xl leading-none">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <span key={i} className={i <= stars ? "text-primary" : "text-border"}>★</span>
-                    ))}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {stars > 0 ? "Based on your hair profile" : "Awaiting analysis"}
-                  </span>
+                  {hasScore ? (
+                    <>
+                      <MatchStars score={score} size="lg" showValue={false} />
+                      <span className="text-[11px] text-muted-foreground">
+                        Based on your hair profile
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">Awaiting analysis</span>
+                  )}
                 </div>
               );
             })()}
