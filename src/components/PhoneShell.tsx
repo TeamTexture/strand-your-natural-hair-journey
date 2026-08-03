@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import ViewAsBanner from "@/components/ViewAsBanner";
-import { PlainTermsProvider } from "@/lib/plainTerms";
 
 interface Props {
   children: ReactNode;
@@ -33,7 +32,7 @@ const PhoneShell = ({ children }: Props) => {
         {/* Admin "View as user" banner — renders only when active. */}
         <ViewAsBanner />
         <div className="flex-1 min-h-0">
-          <PlainTermsProvider key={pathname}>{children}</PlainTermsProvider>
+          <div key={pathname} className="h-full">{children}</div>
         </div>
       </div>
     </div>
