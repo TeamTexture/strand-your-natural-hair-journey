@@ -374,11 +374,15 @@ SCHEMA
   "marketed_purpose_confidence": "high"|"low",
   "marketed_purpose_note": "one or two plain sentences telling the user what this product is sold to do and what that means for THEIR hair",
   "match_score": number,
+  "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],
   "ai_summary": string,
   "usage_instructions": string,
   "use_cases": string[],
   "tips": string[]
-}`;
+}
+
+${SCORE_REASONS_RULES}`;
+
 }
 
 async function runLovable(args: {
