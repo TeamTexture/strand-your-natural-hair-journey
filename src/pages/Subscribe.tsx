@@ -240,6 +240,11 @@ const Subscribe = () => {
     );
   };
 
+  // Consumer plan surface only — professional, brand and admin accounts are
+  // never shown the consumer paywall or plan upgrade options.
+  if (roleLoading) return <LoadingDot />;
+  if (!canUpgrade) return <Navigate to={homePath} replace />;
+
   return (
     <ScreenLayout>
       <TitleBar title="Membership" onBack={hasAccess ? () => nav("/home", { replace: true }) : undefined} />
