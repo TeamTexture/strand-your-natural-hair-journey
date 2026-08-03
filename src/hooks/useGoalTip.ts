@@ -11,12 +11,19 @@ export interface GoalTipAction {
 }
 
 export interface GoalTip {
-  headline: string;
-  body: string;
+  headline?: string;
+  body?: string;
   /** Single-tip (Home) mode only: one optional frequency/duration/tool chip. */
   key_fact?: string;
-  actions: Array<GoalTipAction | string>;
+  /** Journal variant only: the one overview block. */
+  overview?: string;
+  /** Journal variant only: the one caution block. */
+  caution?: string;
+  /** Journal variant only: the profile signals the reasoning rests on. */
+  signals?: string[];
+  actions?: Array<GoalTipAction | string>;
 }
+
 
 /**
  * Stable fingerprint of the hair characteristics + goal that the tip reasons
