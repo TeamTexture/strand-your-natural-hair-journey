@@ -160,6 +160,7 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
     queryKey: ["chat_thread_meta", user?.id, view, ids.join(",")],
     enabled: !!user?.id && ids.length > 0,
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
     gcTime: 10 * 60_000,
     placeholderData: (prev) => prev,
     queryFn: async (): Promise<Map<string, ChatThreadMeta>> => {
@@ -380,6 +381,7 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
     queryKey: ["chat_unread", user?.id, view],
     enabled: !!user?.id,
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
     gcTime: 10 * 60_000,
     placeholderData: (prev) => prev,
     queryFn: async (): Promise<number> => {

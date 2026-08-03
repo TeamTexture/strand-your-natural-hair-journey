@@ -65,6 +65,8 @@ export function usePendingProProfileReviews() {
 export function usePendingProProfileReviewCount() {
   return useQuery({
     queryKey: ["admin", "pro-profile-reviews", "count"],
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("pro_profiles")

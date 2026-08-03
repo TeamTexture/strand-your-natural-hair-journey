@@ -11,6 +11,8 @@ export function usePendingEnquiriesCount() {
   return useQuery({
     queryKey: ["pro_inbox_pending_count", user?.id],
     enabled: !!user?.id,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<number> => {
       const { count, error } = await supabase
         .from("pro_enquiries")
