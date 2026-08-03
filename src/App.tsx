@@ -238,6 +238,7 @@ const App = () => (
           <BackButtonProvider>
             <GlobalEffects />
             <MessageNotifications />
+            <NewEnquiriesAlert />
             <PhoneShell>
               <div className="flex flex-col h-full">
                 <GlobalMenu />
