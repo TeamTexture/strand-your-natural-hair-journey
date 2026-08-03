@@ -561,31 +561,43 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
   }
 }
 
-/** Lightweight og:image-only fetcher for the Claude path — Claude's native
- *  web_fetch returns text only. Runs in parallel with the model call. */
-async function fetchOgImageOnly(url: string): Promise<string | null> {
+/** Single page fetch for the Claude path: pulls the og:image AND the page
+ *  text in one request, so the model can analyse without an agentic
+ *  web_fetch round-trip (the main source of slow scans). */
+async function prefetchPage(
+  url: string,
+): Promise<{ imageUrl: string | null; title: string; text: string }> {
+  const empty = { imageUrl: null, title: "", text: "" };
   try {
     const resp = await fetch(url, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-GB,en;q=0.9",
       },
       redirect: "follow",
       signal: AbortSignal.timeout(8_000),
     });
     if (!resp.ok) {
-      console.log(JSON.stringify({ tag: "url-debug", phase: "og fetch non-ok", status: resp.status }));
-      return null;
+      console.log(JSON.stringify({ tag: "url-debug", phase: "prefetch non-ok", status: resp.status }));
+      return empty;
     }
-    const extracted = extractOgImageFromHtml(await resp.text());
-    console.log(JSON.stringify({ tag: "url-debug", phase: "image_url extracted", url: extracted }));
-    return extracted;
+    const html = await resp.text();
+    const imageUrl = extractOgImageFromHtml(html);
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const text = htmlToText(html);
+    console.log(JSON.stringify({
+      tag: "url-debug", phase: "prefetch done",
+      image_url: imageUrl, text_len: text.length,
+    }));
+    return { imageUrl, title: titleMatch ? titleMatch[1].trim() : "", text };
   } catch (e) {
-    console.error("[url-debug] og:image fetch failed", e);
-    return null;
+    console.error("[url-debug] prefetch failed", e);
+    return empty;
   }
 }
+
 
 async function runLovable(args: {
   url: string;
