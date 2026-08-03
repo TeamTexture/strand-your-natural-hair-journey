@@ -3033,10 +3033,14 @@ export type Database = {
           created_at: string
           current_colour_status: string | null
           current_hairstyle: string | null
+          current_style_extensions: boolean | null
+          current_style_tension: string | null
           default_styles: string[]
           id: string
           planned_change_date: string | null
           planned_next_style: string | null
+          planned_style_extensions: boolean | null
+          planned_style_tension: string | null
           style_set_at: string | null
           updated_at: string
           user_id: string
@@ -3052,10 +3056,14 @@ export type Database = {
           created_at?: string
           current_colour_status?: string | null
           current_hairstyle?: string | null
+          current_style_extensions?: boolean | null
+          current_style_tension?: string | null
           default_styles?: string[]
           id?: string
           planned_change_date?: string | null
           planned_next_style?: string | null
+          planned_style_extensions?: boolean | null
+          planned_style_tension?: string | null
           style_set_at?: string | null
           updated_at?: string
           user_id: string
@@ -3071,10 +3079,14 @@ export type Database = {
           created_at?: string
           current_colour_status?: string | null
           current_hairstyle?: string | null
+          current_style_extensions?: boolean | null
+          current_style_tension?: string | null
           default_styles?: string[]
           id?: string
           planned_change_date?: string | null
           planned_next_style?: string | null
+          planned_style_extensions?: boolean | null
+          planned_style_tension?: string | null
           style_set_at?: string | null
           updated_at?: string
           user_id?: string

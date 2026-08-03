@@ -82,12 +82,12 @@ export function useWashDaySteps() {
       if (!user?.id) return [];
       const ctx = await loadInputs(user.id);
       const h = ctx.hair as Record<string, string | null> | null;
-      const s = ctx.style as Record<string, string | number | null> | null;
+      const s = ctx.style as Record<string, string | number | boolean | null> | null;
 
       // Fingerprint — anything here changing regenerates the sequence.
       const fingerprint = hashString(
         [
-          `v1`,
+          `v2-style-attrs`,
           h?.hair_type ?? "",
           h?.surface_texture ?? "",
           h?.porosity ?? "",
@@ -96,6 +96,10 @@ export function useWashDaySteps() {
           h?.scalp_condition ?? "",
           s?.current_hairstyle ?? "",
           s?.planned_next_style ?? "",
+          String(s?.current_style_tension ?? ""),
+          s?.current_style_extensions === null || s?.current_style_extensions === undefined
+            ? ""
+            : String(s.current_style_extensions),
           ctx.goals.map((g) => `${g.kind ?? ""}:${g.title ?? ""}`).sort().join("|"),
           ctx.shelf.map((p) => p.id).sort().join(","),
           ctx.tools.map((t) => t.id).sort().join(","),
@@ -113,6 +117,8 @@ export function useWashDaySteps() {
                 current_hairstyle: s.current_hairstyle,
                 days_in_style: s.days_in_style,
                 planned_next_style: s.planned_next_style,
+                current_style_tension: s.current_style_tension ?? null,
+                current_style_extensions: s.current_style_extensions ?? null,
               }
             : null,
           goals: ctx.goals.map((g) => ({ title: g.title, category: g.kind ?? undefined })),
