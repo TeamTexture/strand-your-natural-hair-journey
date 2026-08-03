@@ -9,6 +9,11 @@
 // is safe; renaming or removing a field is a breaking change that
 // requires a coordinated client update.
 
+import {
+  SCORE_REASONS_SCHEMA_PROPERTY,
+  type ScoreReason,
+} from "./score-reasons.ts";
+
 /** The structured payload Claude is forced to return for both the photo
  *  and URL product-analysis flows. Mirrors the long-standing Lovable+Gemini
  *  output shape — port verbatim. */
