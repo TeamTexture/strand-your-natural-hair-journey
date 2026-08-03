@@ -19,6 +19,7 @@ import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import MessageNotifications from "@/components/MessageNotifications";
+import NewEnquiriesAlert from "@/components/pro/NewEnquiriesAlert";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
 import { TipsLevelProvider } from "@/hooks/useTipsLevel";
