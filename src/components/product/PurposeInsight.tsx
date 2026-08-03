@@ -69,7 +69,7 @@ const PurposeInsight = ({
     insight.implication,
     insight.usage_direction,
   ]
-    .map(sentence)
+    .map((s) => sentence(s))
     .filter(Boolean)
     .join(" ");
 
