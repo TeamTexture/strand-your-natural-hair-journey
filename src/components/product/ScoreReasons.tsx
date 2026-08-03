@@ -13,7 +13,9 @@ export function parseScoreReasons(value: unknown): ScoreReason[] {
   return value.flatMap((raw) => {
     if (!raw || typeof raw !== "object") return [];
     const row = raw as Record<string, unknown>;
-    const direction = row.direction === "plus" || row.direction === "minus" ? row.direction : null;
+    const direction: ScoreReason["direction"] | null =
+      row.direction === "plus" || row.direction === "minus" ? row.direction : null;
+
     const factor = typeof row.factor === "string" ? row.factor.trim() : "";
     const reason = typeof row.reason === "string" ? row.reason.trim() : "";
     if (!direction || !factor || !reason) return [];
