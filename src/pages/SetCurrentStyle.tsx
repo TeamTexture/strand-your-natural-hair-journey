@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import Tag from "@/components/Tag";
 import Eyebrow from "@/components/nav/Eyebrow";
 import ChoiceChips, { type Choice } from "@/components/nav/ChoiceChips";
 import { ICONS } from "@/lib/iconMap";
@@ -13,30 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import TipsBlock from "@/components/tips/TipsBlock";
-import type { GuidanceTip } from "@/lib/tipsRender";
-import { useGoals } from "@/hooks/useGoals";
+import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
+import {
+  HAIRSTYLE_OPTIONS,
+  styleAsksTension,
+  styleAsksExtensions,
+} from "@/lib/hairstyles";
+import { useStyleTip } from "@/hooks/useStyleTip";
 import { supabase } from "@/integrations/supabase/client";
 import {
   invalidateClinicalContextCache,
   loadClinicalContext,
 } from "@/lib/clinicalContext";
-
-const HAIRSTYLE_OPTIONS = [
-  "Loose natural",
-  "Box braids",
-  "Faux locs",
-  "Cornrows",
-  "Locs",
-  "Wig / unit",
-  "Weave",
-  "Relaxed",
-  "Curly perm",
-  "Silk press",
-  "Wash and go",
-  "Twist-out",
-  "Finger comb coils",
-  "Not sure yet",
-];
 
 const UNIT_OPTIONS: Choice[] = [
   { value: "days", label: "Days" },
@@ -66,38 +53,20 @@ const readExistingLocal = (): ExistingStyleLocal => {
   }
 };
 
-const STYLE_TIPS_BASE: GuidanceTip[] = [
-  {
-    priority: 5,
-    short: "Low-tension styles protect your edges over time.",
-    why: "Repeated pulling at the hairline is one of the most common causes of gradual edge thinning.",
-  },
-  {
-    priority: 3,
-    short: "Give your scalp a rest between long-term protective styles.",
-    why: "A short break lets you check your scalp condition and treat any tightness before reinstalling.",
-  },
-];
-
 const SetCurrentStyle = () => {
   const navigate = useNavigate();
-  const { lengthGoal } = useGoals();
-  const styleTips: GuidanceTip[] = lengthGoal
-    ? [
-        ...STYLE_TIPS_BASE,
-        {
-          priority: 10,
-          short: "Whatever style you're in, trims keep length — they don't speed growth.",
-          why: "The hair you can see is not alive, so it can't repair itself. A trim only removes damage before it travels further up the strand.",
-          alwaysShow: true,
-        },
-      ]
-    : STYLE_TIPS_BASE;
+  const { data: styleTips = [] } = useStyleTip();
 
   const [style, setStyle] = useState<string>("");
   const [howLongNum, setHowLongNum] = useState("");
   const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
   const [next, setNext] = useState<string[]>([]);
+  const [attrs, setAttrs] = useState<StyleAttributesValue>({ tension: null, extensions: null });
+  const [plannedAttrs, setPlannedAttrs] = useState<StyleAttributesValue>({
+    tension: null,
+    extensions: null,
+  });
+  const [attrError, setAttrError] = useState(false);
 
   // Hydrate from DB-first clinical context (falls back to localStorage when
   // no row exists yet — same fallback as the rest of Phase 1 reads).
@@ -118,6 +87,15 @@ const SetCurrentStyle = () => {
           setHowLongUnit(u.startsWith("week") ? "weeks" : u.startsWith("month") ? "months" : "days");
         }
         setNext(ctx.style.planned_next_style ? [ctx.style.planned_next_style] : []);
+        const row = ctx.style as unknown as Record<string, unknown>;
+        setAttrs({
+          tension: (row.current_style_tension as string | null) ?? null,
+          extensions: (row.current_style_extensions as boolean | null) ?? null,
+        });
+        setPlannedAttrs({
+          tension: (row.planned_style_tension as string | null) ?? null,
+          extensions: (row.planned_style_extensions as boolean | null) ?? null,
+        });
       }
     })();
     return () => {
@@ -130,6 +108,16 @@ const SetCurrentStyle = () => {
       toast.error("Pick your current hairstyle");
       return;
     }
+    if (
+      (styleAsksTension(style) && !attrs.tension) ||
+      (styleAsksExtensions(style) && attrs.extensions === null)
+    ) {
+      setAttrError(true);
+      toast.error("Answer the tension and extensions questions for this style");
+      return;
+    }
+    setAttrError(false);
+
     const num = parseInt(howLongNum, 10);
     const days = Number.isFinite(num)
       ? howLongUnit === "weeks"
@@ -153,6 +141,12 @@ const SetCurrentStyle = () => {
         howLong,
         howLongNum,
         howLongUnit,
+        current_style_tension: styleAsksTension(style) ? attrs.tension : null,
+        current_style_extensions: styleAsksExtensions(style) ? attrs.extensions : null,
+        planned_style_tension: styleAsksTension(next[0]) ? plannedAttrs.tension : null,
+        planned_style_extensions: styleAsksExtensions(next[0])
+          ? plannedAttrs.extensions
+          : null,
       }),
     );
 
@@ -167,6 +161,16 @@ const SetCurrentStyle = () => {
               current_hairstyle: style,
               style_set_at,
               planned_next_style: next[0] ?? null,
+              current_style_tension: styleAsksTension(style) ? attrs.tension : null,
+              current_style_extensions: styleAsksExtensions(style)
+                ? attrs.extensions
+                : null,
+              planned_style_tension: styleAsksTension(next[0])
+                ? plannedAttrs.tension
+                : null,
+              planned_style_extensions: styleAsksExtensions(next[0])
+                ? plannedAttrs.extensions
+                : null,
               // Preserve any colour/chemical/default-styles already stored —
               // those come from onboarding step 4. SetCurrentStyle only
               // changes the active style fields.
@@ -199,13 +203,13 @@ const SetCurrentStyle = () => {
       <div className="px-5 pb-8 space-y-5">
         <div>
           <Eyebrow icon={ICONS.style} className="mb-2">Current Hairstyle</Eyebrow>
-          <div className="flex flex-wrap gap-2">
-            {HAIRSTYLE_OPTIONS.filter(o => o !== "Not sure yet").map(o => (
-              <Tag key={o} selected={style === o} onClick={() => setStyle(o)}>
-                {o}
-              </Tag>
-            ))}
-          </div>
+          <StylePicker
+            value={style}
+            onChange={(v) => { setStyle(v); setAttrError(false); }}
+            attributes={attrs}
+            onAttributesChange={(v) => { setAttrs(v); setAttrError(false); }}
+            attributeError={attrError}
+          />
         </div>
 
         <div>
@@ -235,6 +239,17 @@ const SetCurrentStyle = () => {
           onChange={(v) => setNext(v.slice(-1))}
           placeholder="Select your next style…"
         />
+
+        {(styleAsksTension(next[0]) || styleAsksExtensions(next[0])) && (
+          <StylePicker
+            value={next[0] ?? null}
+            onChange={() => {}}
+            attributes={plannedAttrs}
+            onAttributesChange={setPlannedAttrs}
+            attributesRequired={false}
+            hideStyleOptions
+          />
+        )}
 
         <TipsBlock tips={styleTips} idPrefix="style-tip" />
 
