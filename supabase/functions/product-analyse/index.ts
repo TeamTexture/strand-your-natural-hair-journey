@@ -52,6 +52,12 @@ import {
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
 import { MARKETED_PURPOSE_RULES } from "../_shared/marketed-purpose.ts";
+import {
+  SCORE_REASONS_RULES,
+  sanitiseScoreReasons,
+  alignScoreWithReasons,
+  firstSentence,
+} from "../_shared/score-reasons.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
@@ -61,8 +67,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v3-tipslevel-goals-caps";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v2-tipslevel-goals-caps";
+const MODEL_VERSION = "claude-sonnet-4-6@v4-score-reasons";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v3-score-reasons";
+
 
 /** Level-aware item cap for use_cases/tips: 1-2 -> 2, 3 -> 3, 4 -> 4. */
 function levelCap(level: TipsLevel): number {
