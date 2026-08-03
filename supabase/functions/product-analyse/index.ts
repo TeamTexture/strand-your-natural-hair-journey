@@ -58,6 +58,10 @@ import {
   alignScoreWithReasons,
   firstSentence,
 } from "../_shared/score-reasons.ts";
+import {
+  PURPOSE_INSIGHT_RULES,
+  sanitisePurposeInsight,
+} from "../_shared/purpose-insight.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
@@ -67,8 +71,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v4-score-reasons";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v3-score-reasons";
+const MODEL_VERSION = "claude-sonnet-4-6@v5-purpose-insight";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v4-purpose-insight";
 
 
 /** Level-aware item cap for use_cases/tips: 1-2 -> 2, 3 -> 3, 4 -> 4. */
@@ -233,7 +237,9 @@ When deciding which 1–2 signals to surface in tips/summary, ask: would a clini
 CLARIFYING GUIDANCE — HARD RULE:
 Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)
 
-${SCORE_REASONS_RULES}`;
+${SCORE_REASONS_RULES}
+
+${PURPOSE_INSIGHT_RULES}`;
 
 }
 
@@ -381,7 +387,9 @@ SCHEMA
   "tips": string[]
 }
 
-${SCORE_REASONS_RULES}`;
+${SCORE_REASONS_RULES}
+
+${PURPOSE_INSIGHT_RULES}`;
 
 }
 
@@ -573,6 +581,7 @@ Deno.serve(async (req: Request) => {
     // ai_summary to the single overall-call sentence.
     {
       const a = analysis as Record<string, unknown>;
+      a.insight = sanitisePurposeInsight(a.insight) ?? undefined;
       const reasons = sanitiseScoreReasons(a.score_reasons);
       a.score_reasons = reasons;
       if (typeof a.match_score === "number") {

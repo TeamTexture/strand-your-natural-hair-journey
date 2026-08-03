@@ -62,14 +62,18 @@ import {
   alignScoreWithReasons,
   firstSentence,
 } from "../_shared/score-reasons.ts";
+import {
+  PURPOSE_INSIGHT_RULES,
+  sanitisePurposeInsight,
+} from "../_shared/purpose-insight.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v3-score-reasons";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v3-score-reasons";
+const MODEL_VERSION = "claude-sonnet-4-6@v4-purpose-insight";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v4-purpose-insight";
 
 
 function levelCap(level: TipsLevel): number {
@@ -188,7 +192,9 @@ LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your 
 CLARIFYING GUIDANCE — HARD RULE:
 Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is.)
 
-${SCORE_REASONS_RULES}`;
+${SCORE_REASONS_RULES}
+
+${PURPOSE_INSIGHT_RULES}`;
 
 }
 
@@ -375,7 +381,9 @@ SCHEMA
   "tips": string[]
 }
 
-${SCORE_REASONS_RULES}`;
+${SCORE_REASONS_RULES}
+
+${PURPOSE_INSIGHT_RULES}`;
 
 }
 
@@ -781,6 +789,7 @@ Deno.serve(async (req: Request) => {
     }
     {
       const a = analysis as Record<string, unknown>;
+      a.insight = sanitisePurposeInsight(a.insight) ?? undefined;
       const reasons = sanitiseScoreReasons(a.score_reasons);
       a.score_reasons = reasons;
       if (typeof a.match_score === "number") {
