@@ -79,10 +79,14 @@ const ProductsByIngredient = () => {
                   />
                 }
                 name={p.name}
-                secondary={p.brand ? <BrandLink brand={p.brand} /> : undefined}
+                secondary={
+                  <span className="inline-flex items-center gap-2">
+                    {p.brand && <BrandLink brand={p.brand} />}
+                    <MatchStars item={p} />
+                  </span>
+                }
                 fact={s.label}
                 factTone={s.tone}
-                trailing={<MatchStars item={p} />}
               />
             );
           })
