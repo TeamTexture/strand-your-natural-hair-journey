@@ -2461,6 +2461,36 @@ export type Database = {
           },
         ]
       }
+      role_change_log: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_account_type: string | null
+          id: string
+          reason: string | null
+          to_account_type: string
+          user_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_account_type?: string | null
+          id?: string
+          reason?: string | null
+          to_account_type: string
+          user_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_account_type?: string | null
+          id?: string
+          reason?: string | null
+          to_account_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_advice_ledger: {
         Row: {
           action_key: string
@@ -3261,6 +3291,7 @@ export type Database = {
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
+      account_type_of: { Args: { _user_id: string }; Returns: string }
       admin_event_rsvps: {
         Args: { _event_id: string }
         Returns: {
@@ -3321,6 +3352,22 @@ export type Database = {
       }
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
+      admin_role_history: {
+        Args: { _user_id: string }
+        Returns: {
+          changed_by: string
+          changed_by_name: string
+          created_at: string
+          from_account_type: string
+          id: string
+          reason: string
+          to_account_type: string
+        }[]
+      }
+      admin_set_account_type: {
+        Args: { _account_type: string; _reason?: string; _user_id: string }
+        Returns: string
+      }
       admin_start_support_thread:
         | { Args: { _subject_user: string }; Returns: string }
         | {
