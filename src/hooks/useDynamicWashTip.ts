@@ -23,6 +23,10 @@ const hashString = (input: string): string => {
   return Math.abs(h).toString(36);
 };
 
+export async function loadStyleTipContext(userId: string) {
+  return loadContext(userId);
+}
+
 async function loadContext(userId: string) {
   const [
     hairRes,
@@ -74,7 +78,13 @@ export function useDynamicWashTip() {
       const ctx = await loadContext(user.id);
       const h = ctx.hair as { hair_type?: string; porosity?: string; density?: string; scalp_condition?: string } | null;
       const he = ctx.health as { overall_health?: string } | null;
-      const s = ctx.style as { current_hairstyle?: string; days_in_style?: number | null; planned_next_style?: string | null } | null;
+      const s = ctx.style as {
+        current_hairstyle?: string;
+        days_in_style?: number | null;
+        planned_next_style?: string | null;
+        current_style_tension?: string | null;
+        current_style_extensions?: boolean | null;
+      } | null;
       const fingerprint = hashString(
         [
           h?.hair_type ?? "",
@@ -83,6 +93,10 @@ export function useDynamicWashTip() {
           h?.scalp_condition ?? "",
           he?.overall_health ?? "",
           s?.current_hairstyle ?? "",
+          s?.current_style_tension ?? "",
+          s?.current_style_extensions === null || s?.current_style_extensions === undefined
+            ? ""
+            : String(s.current_style_extensions),
           ctx.hasWashHistory ? "wash" : "no-wash",
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
           ctx.goals.map((g) => `${g.kind ?? ""}:${g.title ?? ""}`).sort().join("|"),
@@ -99,6 +113,8 @@ export function useDynamicWashTip() {
                 current_hairstyle: s.current_hairstyle,
                 days_in_style: s.days_in_style,
                 planned_next_style: s.planned_next_style,
+                current_style_tension: s.current_style_tension ?? null,
+                current_style_extensions: s.current_style_extensions ?? null,
               }
             : null,
           goals: ctx.goals.map((g) => ({ title: g.title, category: g.kind ?? undefined })),
