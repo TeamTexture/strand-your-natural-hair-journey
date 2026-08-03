@@ -43,7 +43,7 @@ function statusLabel(status: string | undefined) {
 const ProBilling = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { subscription, isActive, isLoading, refetch } = useProSubscription();
+  const { subscription, isActive, stripeActive, complimentary, isLoading, refetch } = useProSubscription();
   const { isAdmin } = useRoles();
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
 
@@ -103,9 +103,11 @@ const ProBilling = () => {
     }
   };
 
-  const status = isAdmin && !isActive
-    ? { label: "Admin", tone: "good" as const }
-    : statusLabel(subscription?.status);
+  const status = complimentary
+    ? { label: "Complimentary", tone: "good" as const }
+    : isAdmin && !isActive
+      ? { label: "Admin", tone: "good" as const }
+      : statusLabel(subscription?.status);
   const price = priceQ.data ?? 12.99;
 
   return (
@@ -150,7 +152,7 @@ const ProBilling = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {subscription?.current_period_end && (
+              {!complimentary && subscription?.current_period_end && (
                 <div className="flex items-center justify-between text-sm font-body">
                   <span className="text-foreground/70">
                     {subscription.cancel_at_period_end ? "Ends" : "Renews"}
@@ -158,14 +160,19 @@ const ProBilling = () => {
                   <span className="font-medium">{formatDate(subscription.current_period_end)}</span>
                 </div>
               )}
-              {subscription?.cancel_at_period_end && (
+              {!complimentary && subscription?.cancel_at_period_end && (
                 <div className="flex items-start gap-2 text-[12px] text-warn font-body">
                   <AlertCircle className="size-4 shrink-0 mt-0.5" />
                   <span>Cancellation scheduled — access continues until the end of the current period.</span>
                 </div>
               )}
 
-              {isActive ? (
+              {complimentary ? (
+                <p className="text-[12px] text-foreground/70 font-body text-center leading-relaxed">
+                  You have complimentary lifetime access to STRAND Pro. There is
+                  nothing to pay.
+                </p>
+              ) : stripeActive ? (
                 <Button
                   className="w-full rounded-pill"
                   onClick={openPortal}
