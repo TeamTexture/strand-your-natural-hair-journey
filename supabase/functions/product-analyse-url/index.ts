@@ -203,14 +203,32 @@ async function runClaude(args: {
   url: string;
   context: Record<string, unknown>;
   selectorContext: SelectorContext;
+  /** Page text we already fetched server-side. When present Claude does not
+   *  need an agentic web_fetch round-trip, which halves wall-clock time. */
+  pageText?: string | null;
+  pageTitle?: string | null;
 }): Promise<{
   payload: ProductAnalysisPayload;
   web_search_invocations: number;
   web_fetch_invocations: number;
 }> {
+  const preScraped = (args.pageText ?? "").trim();
+  const havePage = preScraped.length > 400;
+
+  const pageBlock = havePage
+    ? `Page content already fetched for you (title: ${args.pageTitle || "unknown"}). Use THIS as your primary source — do NOT call web_fetch unless the brand or INCI list is genuinely missing below:
+"""
+${preScraped.slice(0, 18000)}
+"""
+
+If the brand name or full ingredient list is missing above, then use web_search (cap 2) to fill only that gap.`
+    : `Use web_fetch on this URL first. If the fetched body is thin, gated, or missing the brand/INCI, fall back to web_search (combined cap of 4 across both tools).`;
+
   const userText = `Product page URL to analyse: ${args.url}
 
-Use web_fetch on this URL first. If the fetched body is thin, gated, or missing the brand/INCI, fall back to web_search (combined cap of 4 across both tools). Return JSON only via the return_product_analysis tool.
+${pageBlock}
+
+Return JSON only via the return_product_analysis tool.
 
 User context (use to compute key_ingredients flags, match_score, ai_summary, use_cases, and tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}`;
@@ -220,13 +238,14 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const webFetchTool: ServerTool = {
     type: "web_fetch_20250910",
     name: "web_fetch",
-    max_uses: 2,
+    max_uses: havePage ? 1 : 2,
   };
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
     max_uses: 2,
   };
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
