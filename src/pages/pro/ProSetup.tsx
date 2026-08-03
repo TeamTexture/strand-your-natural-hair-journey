@@ -304,6 +304,7 @@ const ProSetup = () => {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["pro_profile_review"] });
       qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
+      qc.invalidateQueries({ queryKey: ["pro_directory"] });
       await refetch();
       toast.success("Submitted for approval.");
       nav("/pro/under-review", { replace: true });

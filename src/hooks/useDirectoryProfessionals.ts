@@ -1,247 +1,236 @@
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PROFESSIONALS, type Professional, type ProType } from "@/data/professionals";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/lib/socialLinks";
 
 /**
- * Fetches the professionals_directory table from the backend and merges the
- * results into the curated static list. DB entries take precedence on id
- * collisions so editorial updates can override the static seed.
+ * THE directory source of truth.
  *
- * Falls back gracefully to the static list if the network/DB call fails — the
- * directory is never empty.
+ * Three layers, highest wins:
+ *   2. LIVE pros   — `pro_profiles` rows with is_published = true and no
+ *                    suspension. These are the professionals' own saved
+ *                    profiles, read live, so an edit saved in /pro/profile
+ *                    shows on the card and public profile immediately.
+ *   1. CURATED DB  — admin-managed `professionals_directory` rows (is_active).
+ *   0. STATIC SEED — the editorial cheat-sheet in src/data/professionals.ts.
  *
- * For LIVE pros (rows in `pro_profiles` with `is_published = true`) we also:
- *   • sign their avatar_path so the card renders their real photo
- *   • pull their currently-live pro_offer (if any) into the discount ribbon
- *   • surface their specialisms as tag chips (same shape as seed rows)
+ * A live pro is NEVER filtered, renamed away, or shadowed by a seed row:
+ *  • identity is keyed on `user_id` (not their display name), so renaming a
+ *    profile can't split it into two cards or drop it from the listing;
+ *  • the editorial allowlist applies ONLY to the static seed — it must never
+ *    gate real professionals who have paid for and published a listing;
+ *  • seed / curated rows for the same person (matched on normalised name) are
+ *    dropped so the live profile isn't duplicated by a stale snapshot.
+ *
+ * Cached under ["pro_directory"] — invalidate that key after any profile write
+ * (see src/pages/pro/ProProfile.tsx) and the directory repaints at once.
  */
-const ALLOWED_NAMES = ["yvonneabimbola", "ericaliburd", "samanthastewart", "paigelewin"];
-const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-const isAllowed = (name: string) => ALLOWED_NAMES.some((a) => normName(name).includes(a));
+
+/** Editorial curation for the STATIC SEED ONLY. Live pros are never gated. */
+const SEED_ALLOWED_NAMES = ["yvonneabimbola", "ericaliburd", "samanthastewart", "paigelewin"];
+const norm = (s: string) => (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const isSeedAllowed = (name: string) =>
+  SEED_ALLOWED_NAMES.some((a) => norm(name).includes(a));
+
+export const PRO_DIRECTORY_KEY = ["pro_directory"] as const;
+
+const typeFor = (discipline: string | null | undefined): ProType =>
+  discipline === "Trichologist" || discipline === "Dermatologist"
+    ? discipline
+    : "Curl Specialist";
+
+const emojiFor = (type: ProType) =>
+  type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
+
+async function loadDirectory(): Promise<Professional[]> {
+  const [{ data: curated, error: dbErr }, { data: proProfiles, error: ppErr }] =
+    await Promise.all([
+      supabase
+        .from("professionals_directory")
+        .select(
+          "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at,listing_tier,referral_fee_percent",
+        )
+        .eq("is_active", true),
+      supabase
+        .from("pro_profiles")
+        .select(
+          "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent",
+        )
+        .eq("is_published", true)
+        .is("suspended_at", null),
+    ]);
+
+  if (dbErr) throw dbErr;
+  if (ppErr) console.warn("pro_profiles load failed:", ppErr);
+
+  const liveRows = (proProfiles ?? []).filter((r) => !!r.user_id);
+  const proIds = liveRows.map((r) => r.user_id as string);
+
+  // Avatars + currently-open offers — both best-effort, degrade silently.
+  const avatarSigning = Promise.all(
+    liveRows.map(async (row) => {
+      if (!row.avatar_path) return [row.user_id as string, null] as const;
+      const { data: signed } = await supabase.storage
+        .from("pro-photos")
+        .createSignedUrl(row.avatar_path, 3600);
+      return [row.user_id as string, signed?.signedUrl ?? null] as const;
+    }),
+  );
+
+  const offersQuery =
+    proIds.length > 0
+      ? supabase
+          .from("pro_offers")
+          .select("pro_user_id,title,code,starts_at,ends_at,is_active,created_at")
+          .in("pro_user_id", proIds)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null } as const);
+
+  const [avatarPairs, { data: offers }] = await Promise.all([avatarSigning, offersQuery]);
+
+  const avatarMap = new Map<string, string | null>(avatarPairs);
+  const nowMs = Date.now();
+  const offerMap = new Map<string, { title: string; code: string | null }>();
+  for (const o of offers ?? []) {
+    const starts = o.starts_at ? new Date(o.starts_at).getTime() : -Infinity;
+    const ends = o.ends_at ? new Date(o.ends_at).getTime() : Infinity;
+    if (starts <= nowMs && ends >= nowMs && !offerMap.has(o.pro_user_id)) {
+      offerMap.set(o.pro_user_id, { title: o.title, code: o.code ?? null });
+    }
+  }
+
+  // ── Live pros — the professional's own current saved profile.
+  const livePros: Professional[] = liveRows.map((row) => {
+    const type = typeFor(row.discipline as string);
+    const handle = normalizeInstagramHandle(row.instagram_handle);
+    const instaUrl = instagramUrl(handle);
+    const offer = offerMap.get(row.user_id as string);
+    return {
+      id: row.id,
+      emoji: emojiFor(type),
+      name: row.display_name,
+      title: (row.discipline as string) ?? type,
+      type,
+      verified: "Specialist",
+      clinic: row.display_name,
+      location: row.postcode ?? row.location ?? "",
+      specs: (row.specialisms as string[] | null) ?? [],
+      bio: row.bio ?? "",
+      insta: handle ? `@${handle}` : "",
+      instaUrl,
+      website: normalizeWebsiteUrl(row.website_url) || instaUrl,
+      bookCode: offer?.code ?? "",
+      discount: offer ? (offer.code ? `${offer.code} — ${offer.title}` : offer.title) : "",
+      bookingUrl: row.booking_url ?? row.website_url ?? undefined,
+      featured: true,
+      photoUrl: avatarMap.get(row.user_id as string) ?? undefined,
+      proUserId: row.user_id as string,
+      listingTier: (row.listing_tier as Professional["listingTier"]) ?? "full",
+      referralFeePercent:
+        row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
+      businessPhone: row.business_phone ?? undefined,
+      businessEmail: row.business_email ?? undefined,
+      addressLine1: row.address_line1 ?? undefined,
+      addressLine2: row.address_line2 ?? undefined,
+      city: row.city ?? undefined,
+      openingHours: (row.opening_hours as Professional["openingHours"]) ?? undefined,
+    };
+  });
+
+  // ── Admin-curated directory rows.
+  const curatedPros: Professional[] = (curated ?? []).map((row) => {
+    const type = row.type as ProType;
+    const handle = normalizeInstagramHandle(row.instagram_handle);
+    const instaUrl = instagramUrl(handle);
+    return {
+      id: row.id,
+      emoji: emojiFor(type),
+      name: row.name,
+      title: row.title,
+      type,
+      verified: "Specialist",
+      clinic: row.clinic_name ?? row.name,
+      location: row.postcode ?? row.address ?? "",
+      specs: row.specialisms ?? [],
+      bio: row.bio ?? "",
+      insta: handle ? `@${handle}` : "",
+      instaUrl,
+      website: normalizeWebsiteUrl(row.website_url) || instaUrl,
+      bookCode: "",
+      discount: row.discount_description ?? "",
+      bookingUrl:
+        normalizeWebsiteUrl(row.booking_url) || normalizeWebsiteUrl(row.website_url) || undefined,
+      featured: true,
+      listingTier: (row.listing_tier as Professional["listingTier"]) ?? "external_link",
+      referralFeePercent:
+        row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
+      directoryId: row.id,
+    };
+  });
+
+  // A live pro owns their identity: drop any curated/seed entry for the same
+  // person so a stale snapshot can never shadow or duplicate their listing.
+  const liveNames = new Set(livePros.map((p) => norm(p.name)));
+  const shadowed = (p: Professional) => {
+    const key = norm(p.name);
+    return [...liveNames].some((ln) => ln === key || ln.includes(key) || key.includes(ln));
+  };
+
+  const populationScore = (p: Professional) =>
+    [p.bio, p.clinic, p.location, p.website, p.bookingUrl, p.discount, p.insta].filter(
+      (v) => typeof v === "string" && v.trim().length > 0,
+    ).length + (p.specs?.length ?? 0);
+
+  const byKey = new Map<string, { pro: Professional; rank: number }>();
+  const ranked: Array<[Professional, number]> = [
+    // Live pros first and unfiltered — always in the directory.
+    ...livePros.map((p) => [p, 2] as [Professional, number]),
+    ...curatedPros.filter((p) => !shadowed(p)).map((p) => [p, 1] as [Professional, number]),
+    // Editorial allowlist applies to the static seed only.
+    ...PROFESSIONALS.filter((p) => isSeedAllowed(p.name) && !shadowed(p)).map(
+      (p) => [p, 0] as [Professional, number],
+    ),
+  ];
+
+  for (const [p, rank] of ranked) {
+    // Live rows key on user_id so a display-name change never splits a card.
+    const key = p.proUserId ? `user:${p.proUserId}` : `name:${norm(p.name)}`;
+    const existing = byKey.get(key);
+    if (
+      !existing ||
+      rank > existing.rank ||
+      (rank === existing.rank && populationScore(p) > populationScore(existing.pro))
+    ) {
+      byKey.set(key, { pro: p, rank });
+    }
+  }
+
+  return Array.from(byKey.values()).map((v) => v.pro);
+}
 
 export function useDirectoryProfessionals() {
-  const [pros, setPros] = useState<Professional[]>(() => PROFESSIONALS.filter((p) => isAllowed(p.name)));
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useQuery({
+    queryKey: PRO_DIRECTORY_KEY,
+    queryFn: loadDirectory,
+    // The directory must always reflect the pros' latest saved profiles.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
+    placeholderData: () => PROFESSIONALS.filter((p) => isSeedAllowed(p.name)),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
+  const refresh = useCallback(
+    () => qc.invalidateQueries({ queryKey: PRO_DIRECTORY_KEY }),
+    [qc],
+  );
 
-    (async () => {
-      try {
-        const [{ data, error: dbErr }, { data: proProfiles, error: ppErr }] =
-          await Promise.all([
-            supabase
-              .from("professionals_directory")
-              .select(
-                "id,name,title,type,clinic_name,address,postcode,instagram_handle,website_url,booking_url,bio,specialisms,discount_description,is_active,created_at,listing_tier,referral_fee_percent",
-              )
-              .eq("is_active", true),
-            supabase
-              .from("pro_profiles")
-              .select(
-                "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent",
-              )
-              .eq("is_published", true)
-              .is("suspended_at", null),
-          ]);
-
-        if (cancelled) return;
-        if (dbErr) throw dbErr;
-        if (ppErr) console.warn("pro_profiles load failed:", ppErr);
-
-        // Sign live-pro avatars and pull any currently-active offer per pro
-        // in parallel — both are best-effort and downgrade silently on error.
-        const liveRows = proProfiles ?? [];
-        const proIds = liveRows.map((r) => r.user_id).filter(Boolean);
-
-        const avatarSigning = Promise.all(
-          liveRows.map(async (row) => {
-            if (!row.avatar_path) return [row.user_id, null] as const;
-            const { data: signed } = await supabase.storage
-              .from("pro-photos")
-              .createSignedUrl(row.avatar_path, 3600);
-            return [row.user_id, signed?.signedUrl ?? null] as const;
-          }),
-        );
-
-        const offersQuery =
-          proIds.length > 0
-            ? supabase
-                .from("pro_offers")
-                .select("pro_user_id,title,code,starts_at,ends_at,is_active,created_at")
-                .in("pro_user_id", proIds)
-                .eq("is_active", true)
-                .order("created_at", { ascending: false })
-            : Promise.resolve({ data: [], error: null } as const);
-
-        const [avatarPairs, { data: offers }] = await Promise.all([
-          avatarSigning,
-          offersQuery,
-        ]);
-        if (cancelled) return;
-
-        const avatarMap = new Map<string, string | null>(avatarPairs);
-        // Pick the newest active offer per pro whose window is currently open.
-        const nowMs = Date.now();
-        const offerMap = new Map<string, { title: string; code: string | null }>();
-        for (const o of offers ?? []) {
-          const starts = o.starts_at ? new Date(o.starts_at).getTime() : -Infinity;
-          const ends = o.ends_at ? new Date(o.ends_at).getTime() : Infinity;
-          if (starts <= nowMs && ends >= nowMs && !offerMap.has(o.pro_user_id)) {
-            offerMap.set(o.pro_user_id, { title: o.title, code: o.code ?? null });
-          }
-        }
-
-        const dbPros: Professional[] = (data ?? []).map((row) => {
-          const type = row.type as ProType;
-          const emoji =
-            type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
-          const handle = normalizeInstagramHandle(row.instagram_handle);
-          const insta = handle ? `@${handle}` : "";
-          const instaUrl = instagramUrl(handle);
-          const website = normalizeWebsiteUrl(row.website_url) || instaUrl;
-          const booking = normalizeWebsiteUrl(row.booking_url) || normalizeWebsiteUrl(row.website_url) || undefined;
-          const discount = row.discount_description ?? "";
-          return {
-            id: row.id,
-            emoji,
-            name: row.name,
-            title: row.title,
-            type,
-            verified: "Specialist",
-            clinic: row.clinic_name ?? row.name,
-            location: row.postcode ?? row.address ?? "",
-            specs: row.specialisms ?? [],
-            bio: row.bio ?? "",
-            insta,
-            instaUrl,
-            website,
-            bookCode: "",
-            discount,
-            bookingUrl: booking,
-            featured: true,
-            gmcNumber: undefined,
-            iotNumber: undefined,
-            listingTier: (row.listing_tier as Professional["listingTier"]) ?? "external_link",
-            referralFeePercent:
-              row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
-            directoryId: row.id,
-          };
-        });
-
-        // Live approved pros from pro_profiles.
-        const livePros: Professional[] = liveRows.map((row) => {
-          const t = row.discipline as string;
-          const type: ProType =
-            t === "Trichologist" || t === "Dermatologist"
-              ? (t as ProType)
-              : "Curl Specialist";
-          const emoji =
-            type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
-          const handle = normalizeInstagramHandle(row.instagram_handle);
-          const insta = handle ? `@${handle}` : "";
-          const instaUrl = instagramUrl(handle);
-          const website = normalizeWebsiteUrl(row.website_url) || instaUrl;
-          const specialisms = (row.specialisms as string[] | null) ?? [];
-          const offer = offerMap.get(row.user_id);
-          const discount = offer
-            ? offer.code
-              ? `${offer.code} — ${offer.title}`
-              : offer.title
-            : "";
-          return {
-            id: row.id,
-            emoji,
-            name: row.display_name,
-            title: t,
-            type,
-            verified: "Specialist",
-            clinic: row.display_name,
-            location: row.postcode ?? row.location ?? "",
-            specs: specialisms,
-            bio: row.bio ?? "",
-            insta,
-            instaUrl,
-            website,
-            bookCode: offer?.code ?? "",
-            discount,
-            bookingUrl: row.booking_url ?? row.website_url ?? undefined,
-            featured: true,
-            photoUrl: avatarMap.get(row.user_id) ?? undefined,
-            gmcNumber: undefined,
-            iotNumber: undefined,
-            proUserId: row.user_id ?? undefined,
-            listingTier: (row.listing_tier as Professional["listingTier"]) ?? "full",
-            referralFeePercent:
-              row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
-            businessPhone: row.business_phone ?? undefined,
-            businessEmail: row.business_email ?? undefined,
-            addressLine1: row.address_line1 ?? undefined,
-            addressLine2: row.address_line2 ?? undefined,
-            city: row.city ?? undefined,
-            openingHours: (row.opening_hours as Professional["openingHours"]) ?? undefined,
-          };
-        });
-
-        const norm = (s: string) =>
-          s.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const populationScore = (p: Professional) =>
-          [p.bio, p.clinic, p.location, p.website, p.bookingUrl, p.discount, p.insta]
-            .filter((v) => typeof v === "string" && v.trim().length > 0).length +
-          (p.specs?.length ?? 0);
-
-        // Live pros always win over curated DB rows / static seed for the same
-        // person, so their in-app "Enquire Now" flow is never replaced by an
-        // external booking link.
-        const byKey = new Map<string, { pro: Professional; rank: number }>();
-        const ranked: Array<[Professional, number]> = [
-          ...livePros.map((p) => [p, 2] as [Professional, number]),
-          ...dbPros.map((p) => [p, 1] as [Professional, number]),
-          ...PROFESSIONALS.map((p) => [p, 0] as [Professional, number]),
-        ];
-        for (const [p, rank] of ranked) {
-          const key = norm(p.name);
-          const existing = byKey.get(key);
-          if (
-            !existing ||
-            rank > existing.rank ||
-            (rank === existing.rank && populationScore(p) > populationScore(existing.pro))
-          ) {
-            byKey.set(key, { pro: p, rank });
-          }
-        }
-
-        // Editorial allowlist — only these professionals appear in the directory.
-        const ALLOWED = [
-          "yvonneabimbola",
-          "ericaliburd",
-          "samanthastewart",
-          "paigelewin",
-        ];
-        const merged = Array.from(byKey.values())
-          .map((v) => v.pro)
-          .filter((p) => {
-            const key = norm(p.name);
-            return ALLOWED.some((a) => key.includes(a));
-          });
-
-
-        setPros(merged);
-        setError(null);
-      } catch (e) {
-        console.error("useDirectoryProfessionals load failed:", e);
-        if (!cancelled) setError("Could not load latest directory");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { pros, loading, error };
+  return {
+    pros: data ?? [],
+    loading: isLoading,
+    error: error ? "Could not load latest directory" : null,
+    refresh,
+  };
 }
