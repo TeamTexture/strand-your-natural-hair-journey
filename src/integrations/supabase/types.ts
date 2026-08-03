@@ -1365,6 +1365,50 @@ export type Database = {
         }
         Relationships: []
       }
+      goal_progress_updates: {
+        Row: {
+          audio_path: string | null
+          body_text: string | null
+          created_at: string
+          goal_id: string
+          id: string
+          photo_entry_ref: string | null
+          transcription_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_path?: string | null
+          body_text?: string | null
+          created_at?: string
+          goal_id: string
+          id?: string
+          photo_entry_ref?: string | null
+          transcription_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_path?: string | null
+          body_text?: string | null
+          created_at?: string
+          goal_id?: string
+          id?: string
+          photo_entry_ref?: string | null
+          transcription_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_progress_updates_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "user_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goal_updates: {
         Row: {
           created_at: string
@@ -2587,10 +2631,12 @@ export type Database = {
           challenge_voice_url: string | null
           created_at: string
           current_value: number
+          ended_at: string | null
           id: string
           kind: string
           notes: string | null
           start_value: number
+          started_at: string | null
           status: string
           target_date: string | null
           target_text: string | null
@@ -2606,10 +2652,12 @@ export type Database = {
           challenge_voice_url?: string | null
           created_at?: string
           current_value?: number
+          ended_at?: string | null
           id?: string
           kind?: string
           notes?: string | null
           start_value?: number
+          started_at?: string | null
           status?: string
           target_date?: string | null
           target_text?: string | null
@@ -2625,10 +2673,12 @@ export type Database = {
           challenge_voice_url?: string | null
           created_at?: string
           current_value?: number
+          ended_at?: string | null
           id?: string
           kind?: string
           notes?: string | null
           start_value?: number
+          started_at?: string | null
           status?: string
           target_date?: string | null
           target_text?: string | null
