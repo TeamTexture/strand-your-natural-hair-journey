@@ -13,6 +13,10 @@ import {
   SCORE_REASONS_SCHEMA_PROPERTY,
   type ScoreReason,
 } from "./score-reasons.ts";
+import {
+  PURPOSE_INSIGHT_SCHEMA_PROPERTY,
+  type PurposeInsight,
+} from "./purpose-insight.ts";
 
 /** The structured payload Claude is forced to return for both the photo
  *  and URL product-analysis flows. Mirrors the long-standing Lovable+Gemini
@@ -90,6 +94,7 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     },
     match_score: { type: "integer", minimum: 0, maximum: 100 },
     score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
+    insight: PURPOSE_INSIGHT_SCHEMA_PROPERTY,
     ai_summary: {
       type: "string",
       description:
@@ -132,6 +137,7 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     "marketed_purpose",
     "match_score",
     "score_reasons",
+    "insight",
 
     "ai_summary",
     "usage_instructions",
@@ -178,6 +184,8 @@ export interface ProductAnalysisPayload {
   match_score: number;
   /** Structured "show your working" rows behind match_score. */
   score_reasons?: ScoreReason[];
+  /** The ONE purpose-driven insight replacing the old explanatory section. */
+  insight?: PurposeInsight;
 
   ai_summary: string;
   usage_instructions: string;

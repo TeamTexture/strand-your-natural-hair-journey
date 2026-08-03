@@ -40,7 +40,7 @@ import {
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v10-score-reasons";
+const MODEL_VERSION = "claude-sonnet-4-6@v11-purpose-insight";
 
 
 interface IngredientCard {
@@ -151,6 +151,7 @@ function buildToolSchema(ingredientCount: number) {
     properties: {
       match_score: { type: "integer", minimum: 0, maximum: 100 },
       score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
+      insight: PURPOSE_INSIGHT_SCHEMA_PROPERTY,
       summary: { type: "string" },
 
       ingredients: {
@@ -185,7 +186,7 @@ function buildToolSchema(ingredientCount: number) {
         },
       },
     },
-    required: ["match_score", "score_reasons", "summary", "ingredients", "personalised_guidance"],
+    required: ["match_score", "score_reasons", "insight", "summary", "ingredients", "personalised_guidance"],
   } as Record<string, unknown>;
 }
 
@@ -251,6 +252,8 @@ RULES — STRICT:
 8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.
 
 ${SCORE_REASONS_RULES}
+
+${PURPOSE_INSIGHT_RULES}
 
 NOTE FOR THIS FUNCTION: the one-sentence overall call lives in the "summary" field (not ai_summary) — the SCORE REASONS rules apply to "summary" in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
 }
@@ -559,6 +562,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
     // ── Score reasons: normalise + keep match_score honest, and reduce the
     // verdict sentence to the single overall call.
     {
+      analysis.insight = sanitisePurposeInsight(analysis.insight) ?? undefined;
       const reasons = sanitiseScoreReasons(analysis.score_reasons);
       analysis.score_reasons = reasons;
       if (typeof analysis.match_score === "number") {
