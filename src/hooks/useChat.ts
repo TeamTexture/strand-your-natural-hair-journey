@@ -104,7 +104,8 @@ export function useChatThreads(scope?: ActiveRoleView | "all") {
   const query = useQuery({
     queryKey: ["chat_threads", user?.id],
     enabled: !!user?.id,
-    staleTime: 60_000,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
     gcTime: 10 * 60_000,
     queryFn: async (): Promise<ChatThread[]> => {
       const { data, error } = await supabase

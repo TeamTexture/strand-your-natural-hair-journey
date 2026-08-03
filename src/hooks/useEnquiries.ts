@@ -50,6 +50,10 @@ export function useMyEnquiries() {
   return useQuery({
     queryKey: ["my_enquiries", user?.id],
     enabled: !!user?.id,
+    // Enquiry state drives the directory's Enquire/Chat now action — it must
+    // never be stale when the user returns to the app.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<Enquiry[]> => {
       const { data, error } = await supabase
         .from("pro_enquiries")

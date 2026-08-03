@@ -270,7 +270,7 @@ const ProductProfile = () => {
             .update({
               ai_summary: summary,
               match_score: score,
-              score_reasons: reasons,
+              score_reasons: reasons as unknown as never,
               key_ingredients: mergedKeyIngredients,
             })
             .eq("id", product.id);
