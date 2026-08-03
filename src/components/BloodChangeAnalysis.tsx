@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
-import AnchorStat from "@/components/guidance/AnchorStat";
 import ActionList from "@/components/guidance/ActionList";
 import GuidanceBody from "@/components/guidance/GuidanceBody";
 import { Button } from "@/components/ui/button";
@@ -195,18 +194,6 @@ export default function BloodChangeAnalysis({
                   </p>
                 </div>
               </div>
-              {(() => {
-                const improved = data.key_changes.filter((c) => c.tone === "good").length;
-                const declined = data.key_changes.filter((c) => c.tone === "warn").length;
-                if (improved === 0 && declined === 0) return null;
-                return (
-                  <AnchorStat
-                    value={`${improved} vs ${declined}`}
-                    context="markers improved vs declined since your last test"
-                    tone={declined > improved ? "warning" : "good"}
-                  />
-                );
-              })()}
               <GuidanceBody text={data.overall} className="mt-1.5" />
             </div>
 
