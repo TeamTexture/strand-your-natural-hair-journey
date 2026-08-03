@@ -186,6 +186,12 @@ export function useMyPassportSharing() {
         }
         if (active) row.granted = true;
       }
+      // A pending enquiry has no access record yet — the member's stored
+      // consent is what the toggle must reflect until the pro accepts.
+      for (const row of byPro.values()) {
+        if (row.consent && !row.revoked_at) row.granted = true;
+      }
+
       return Array.from(byPro.values()).sort((a, b) => {
         if (a.granted !== b.granted) return a.granted ? -1 : 1;
         return (b.granted_at ?? b.enquiry_created_at ?? "").localeCompare(
