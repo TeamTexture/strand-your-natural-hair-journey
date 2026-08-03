@@ -335,6 +335,28 @@ const Home = () => {
     return "Your goal";
   })();
 
+  // Short goal word for the Strand Tip of the Day chip ("Length", "Moisture").
+  const goalChipLabel = (() => {
+    if (!lengthGoal) return null;
+    const kindMap: Record<string, string> = {
+      length_retention: "Length",
+      moisture: "Moisture",
+      scalp_health: "Scalp",
+      breakage: "Breakage",
+      definition: "Definition",
+      protective_styling: "Protective styling",
+      growth: "Growth",
+      thickness: "Thickness",
+    };
+    if (lengthGoal.kind && kindMap[lengthGoal.kind]) return kindMap[lengthGoal.kind];
+    const title = lengthGoal.title?.trim();
+    if (title && title.toLowerCase() !== "hair goal") {
+      const words = title.split(/\s+/).slice(0, 2).join(" ");
+      return words.length > 18 ? `${words.slice(0, 18)}…` : words;
+    }
+    return null;
+  })();
+
   const flaggedCount = bloodSummary?.flagged ?? 0;
   const flaggedValue = bloodSummary ? `${flaggedCount}` : "—";
   const flaggedTone = flaggedCount > 0 ? "warning" : "good";
