@@ -61,6 +61,7 @@ import { useAccessRestricted } from "@/hooks/useAccessRestricted";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
+import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 import { safeBack } from "@/lib/smartBack";
 import { toast } from "sonner";
@@ -118,6 +119,8 @@ const GlobalMenu = () => {
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const { isRestricted } = useAccessRestricted();
   const { hasPlus } = usePlusAccess();
+  // Upgrade CTA is consumer-only — never for professional, brand or admin accounts.
+  const { canUpgrade } = useUpgradeEligibility();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -308,7 +311,7 @@ const GlobalMenu = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            {activeView === "consumer" && !hasPlus && !isOnboarding && (
+            {activeView === "consumer" && canUpgrade && !hasPlus && !isOnboarding && (
               <TooltipProvider delayDuration={150}>
                 <Tooltip>
                   <TooltipTrigger asChild>

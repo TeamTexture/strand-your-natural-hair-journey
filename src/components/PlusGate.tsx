@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { Sparkles, Users, BookOpen, Calendar, MessageCircle, ArrowRight } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -7,6 +7,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import SurfaceCard from "@/components/SurfaceCard";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
+import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 
 const FEATURES = [
   { icon: Users, title: "Community forum", body: "A Reddit-style space for members only." },
@@ -19,9 +20,12 @@ interface Props { children: ReactNode; title?: string }
 
 const PlusGate = ({ children, title = "STRAND+" }: Props) => {
   const { hasPlus, isLoading } = usePlusAccess();
+  const { canUpgrade, loading: roleLoading, homePath } = useUpgradeEligibility();
   const location = useLocation();
-  if (isLoading) return <LoadingDot />;
+  if (isLoading || roleLoading) return <LoadingDot />;
   if (hasPlus) return <>{children}</>;
+  // Professional / brand / admin accounts never see the consumer STRAND+ upsell.
+  if (!canUpgrade) return <Navigate to={homePath} replace />;
   const next = encodeURIComponent(location.pathname + location.search);
   return (
     <ScreenLayout>
