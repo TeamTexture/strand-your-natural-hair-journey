@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Eye, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useViewAs } from "@/hooks/useViewAs";
+import { useRoles } from "@/hooks/useRoles";
+import { ACCOUNT_TYPE_LABEL } from "@/hooks/useAccountTypes";
 
 /**
  * Sticky admin banner rendered above every route when "View as user" is
@@ -12,12 +14,17 @@ import { useViewAs } from "@/hooks/useViewAs";
 const ViewAsBanner = () => {
   const { isViewingAs, actualUser } = useAuth();
   const { viewAsDisplayName, stopViewAs } = useViewAs();
+  // useRoles resolves the SHADOWED user's roles while view-as is active.
+  const { roles, loading: rolesLoading } = useRoles();
   const qc = useQueryClient();
   const nav = useNavigate();
 
   if (!isViewingAs || !actualUser) return null;
 
   const label = viewAsDisplayName?.trim() || "another user";
+  const roleLabels = roles
+    .map((r) => ACCOUNT_TYPE_LABEL[r as keyof typeof ACCOUNT_TYPE_LABEL] ?? r)
+    .join(" · ");
 
   const exit = () => {
     stopViewAs();
@@ -27,15 +34,26 @@ const ViewAsBanner = () => {
     nav("/admin/view-as", { replace: true });
   };
 
+
   return (
     <div
       role="status"
       className="w-full bg-foreground text-primary px-3 py-1.5 flex items-center gap-2 shadow-[0_1px_0_rgba(0,0,0,0.12)]"
     >
       <Eye className="size-3.5 shrink-0" />
-      <p className="text-[11px] font-body font-semibold leading-tight truncate flex-1">
-        Viewing as <span className="text-primary">{label}</span> · read-only
-      </p>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-body font-semibold leading-tight truncate">
+          Viewing as <span className="text-primary">{label}</span> · read-only
+        </p>
+        <p className="text-[10px] font-body leading-tight truncate opacity-80">
+          {rolesLoading
+            ? "Checking their access…"
+            : roleLabels
+              ? `Their access: ${roleLabels}`
+              : "Their access: no roles assigned"}
+        </p>
+      </div>
+
       <button
         type="button"
         onClick={exit}
