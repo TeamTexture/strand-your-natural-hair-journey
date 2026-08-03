@@ -73,6 +73,77 @@ You produce a HOLISTIC analysis of a user's blood-test data set for STRAND, an a
 Weigh EVERYTHING together. The goal is not to list numbers — it is to say, in Paige Lewin's clinical-but-warm voice, what this data set means for THIS user's hair and goals right now, and where to focus.
 
 OUTPUT (JSON via the return_analysis tool):
+- focus_areas: 1–3 items ONLY — the most important takeaways from ALL the data (latest values + trends + goals + hair profile), ranked by importance. The first item MUST absorb the single most important finding in the panel. Each: { icon (one of: "iron", "thyroid", "vitamin", "protein", "hydration", "scalp", "stress", "hormone", "inflammation", "nutrition"), title (max 4 words, e.g. "Address low B12"), body (ONE crisp sentence, max 25 words, hair-relevant, reasoned through HER signals — the WHY), action (optional short verb phrase, max 8 words — the MOVE) }.
+- confidence: "low" | "medium" | "high" — how much the data set supports the analysis (low if <5 markers).
+
+Do NOT produce a headline, an overview paragraph, key-change lists, or comparative tallies. The card renders focus items and their action links and nothing else.
+
+RULES } from "../_shared/strand-persona.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve: (h: (req: Request) => Promise<Response>) => void;
+};
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+interface Delta {
+  marker: string;
+  unit: string | null;
+  previous: number | null;
+  current: number | null;
+  previous_status: string | null;
+  current_status: string | null;
+}
+
+interface Payload {
+  latestPanel: {
+    id: string;
+    date: string | null;
+    label: string | null;
+    lab_name: string | null;
+    test_type: string | null;
+  };
+  previousPanel: {
+    id: string;
+    date: string | null;
+  } | null;
+  deltas: Delta[];
+  /** All results from the latest panel — status flags feed focus areas. */
+  latestResults: Array<{
+    marker: string;
+    value: number | null;
+    unit: string | null;
+    status: string | null;
+    category: string | null;
+  }>;
+  /** aiContext slice — hair profile, health profile, goals, current style. */
+  context?: Record<string, unknown>;
+}
+
+import {
+  buildGroundingBlock,
+  ragQueryFromAiContext,
+  selectorFromAiContext,
+} from "../_shared/grounding.ts";
+
+const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
+
+TASK
+You produce a HOLISTIC analysis of a user's blood-test data set for STRAND, an app for women with textured hair. You are given:
+- The latest blood panel + all its markers (with flag: low / high / normal).
+- The previous panel (if any) with per-marker deltas.
+- The user's hair profile (texture, porosity, density, scalp state), current style, health profile, and active hair-care goals.
+
+Weigh EVERYTHING together. The goal is not to list numbers — it is to say, in Paige Lewin's clinical-but-warm voice, what this data set means for THIS user's hair and goals right now, and where to focus.
+
+OUTPUT (JSON via the return_analysis tool):
 - headline: max 12 words. One clear sentence naming the most important pattern. No emoji.
 - overall: 2–3 sentences. Ties blood data to hair characteristics + goals holistically. No lists, no bullets, no chapter/page references.
 - key_changes: 0–4 items ranked by hair-relevance (not raw magnitude). Each: { marker, direction ("up"|"down"|"flat"), from, to, unit, insight (one sentence linking to hair or the user's goal), tone ("good"|"warn"|"neutral") }.
@@ -81,13 +152,15 @@ OUTPUT (JSON via the return_analysis tool):
 - confidence: "low" | "medium" | "high" — how much the data set supports the analysis (low if <5 markers or no previous panel).
 
 RULES
-- Never fabricate values or trends. If deltas are empty, return key_changes: [].
+- Never fabricate values or trends.
 - Never recommend weekly protein treatments.
 - Never quote or cite chapters/pages verbatim — reason FROM the framework, don't cite it.
 - No medical diagnoses. Nutritional and lifestyle guidance only.
 - Keep language tight and specific. No filler ("your journey", "queen", "amazing").
 - If the user has a stated hair goal (length retention, breakage recovery, scalp health), explicitly tie at least one focus_area to it when the data supports it.
-- Prefer insight over exhaustiveness. It is better to name 2 sharp focus_areas than 4 vague ones.`;
+- Prefer insight over exhaustiveness. Two sharp focus_areas beat three vague ones.
+- ONE IDEA, ONCE: a focus item's body states the WHY; its action states the MOVE. They must not repeat each other's wording or restate the same sentence.
+- Never emit an action that has no focus item, and never more than three focus items.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -140,53 +213,15 @@ Deno.serve(async (req) => {
                 parameters: {
                   type: "object",
                   additionalProperties: false,
-                  required: [
-                    "headline",
-                    "overall",
-                    "key_changes",
-                    "focus_areas",
-                    "confidence",
-                  ],
+                  required: ["focus_areas", "confidence"],
                   properties: {
-                    headline: { type: "string" },
-                    overall: { type: "string" },
                     confidence: {
                       type: "string",
                       enum: ["low", "medium", "high"],
                     },
-                    key_changes: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        required: [
-                          "marker",
-                          "direction",
-                          "from",
-                          "to",
-                          "unit",
-                          "insight",
-                          "tone",
-                        ],
-                        properties: {
-                          marker: { type: "string" },
-                          direction: {
-                            type: "string",
-                            enum: ["up", "down", "flat"],
-                          },
-                          from: { type: "number" },
-                          to: { type: "number" },
-                          unit: { type: "string" },
-                          insight: { type: "string" },
-                          tone: {
-                            type: "string",
-                            enum: ["good", "warn", "neutral"],
-                          },
-                        },
-                      },
-                    },
                     focus_areas: {
                       type: "array",
+                      maxItems: 3,
                       items: {
                         type: "object",
                         additionalProperties: false,
