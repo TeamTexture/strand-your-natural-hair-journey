@@ -15,8 +15,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { searchProfessionalsIn, type ProType, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
-import { useMyEnquiries, type EnquiryStatus } from "@/hooks/useEnquiries";
-import { useChatThreads } from "@/hooks/useChat";
+import { useProContactStates, proContactStatusLine } from "@/hooks/useProContactState";
+import ProContactAction from "@/components/directory/ProContactAction";
 import StarRating from "@/components/StarRating";
 import { useReviewSummaries } from "@/hooks/useReviews";
 import DirectoryReviewPreview from "@/components/DirectoryReviewPreview";
@@ -43,7 +43,7 @@ const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
-  const { data: myEnquiries } = useMyEnquiries();
+  const { stateFor } = useProContactStates();
   const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
   const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
@@ -54,31 +54,6 @@ const Directory = () => {
   } | null>(null);
   const [expandedHours, setExpandedHours] = useState<Record<string, boolean>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  const enquiryByPro = useMemo(() => {
-    const map = new Map<string, { status: EnquiryStatus; created_at: string }>();
-    for (const e of myEnquiries ?? []) {
-      const existing = map.get(e.pro_user_id);
-      if (!existing || new Date(e.created_at) > new Date(existing.created_at)) {
-        map.set(e.pro_user_id, { status: e.status, created_at: e.created_at });
-      }
-    }
-    return map;
-  }, [myEnquiries]);
-
-  // Once an enquiry has opened a conversation, the card's action becomes
-  // "Chat Now" straight into that thread.
-  const { data: chatThreads } = useChatThreads("all");
-  const threadByPro = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const t of chatThreads ?? []) {
-      if (t.thread_type !== "client_pro" || !t.pro_user_id) continue;
-      if (user && t.consumer_id !== user.id) continue;
-      if (!map.has(t.pro_user_id)) map.set(t.pro_user_id, t.id);
-    }
-    return map;
-  }, [chatThreads, user]);
-
 
   const results = useMemo(
     () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
@@ -278,18 +253,20 @@ const Directory = () => {
           />
         ) : (
           results.map((p) => {
-            const enq = p.proUserId ? enquiryByPro.get(p.proUserId) : undefined;
-            const activeEnq = enq && enq.status !== "withdrawn" && enq.status !== "declined";
-            const chatThreadId = p.proUserId ? threadByPro.get(p.proUserId) : undefined;
+            const contact = stateFor(p.proUserId);
+            const hasContact = contact.kind !== "none" || !!contact.threadId;
+            const statusLine = proContactStatusLine(contact, (iso) =>
+              formatDistanceToNow(new Date(iso), { addSuffix: true }),
+            );
 
             const enqLabel =
-              enq?.status === "accepted" ? "Accepted"
-              : enq?.status === "pending" ? "Enquiry sent"
-              : enq?.status === "declined" ? "Declined"
+              contact.kind === "accepted" ? "Accepted"
+              : contact.kind === "pending" ? "Enquiry sent"
+              : contact.kind === "declined" ? "Declined"
               : "Withdrawn";
             const enqCls =
-              enq?.status === "accepted" ? "bg-good/15 text-good"
-              : enq?.status === "pending" ? "bg-warn/15 text-warn"
+              contact.kind === "accepted" ? "bg-good/15 text-good"
+              : contact.kind === "pending" ? "bg-warn/15 text-warn"
               : "bg-muted text-muted-foreground";
 
             const isOwn = !!user && !!p.proUserId && p.proUserId === user.id;
@@ -348,7 +325,7 @@ const Directory = () => {
                           <Pencil className="size-3" />
                           Edit
                         </button>
-                      ) : enq ? (
+                      ) : hasContact ? (
                         <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
                           {enqLabel}
                         </span>
@@ -476,11 +453,8 @@ const Directory = () => {
                   </div>
                 )}
 
-                {enq && (
-                  <p className="text-[11px] text-muted-foreground mt-3">
-                    You enquired {formatDistanceToNow(new Date(enq.created_at), { addSuffix: true })}
-                    {activeEnq ? " — awaiting response." : "."}
-                  </p>
+                {statusLine && (
+                  <p className="text-[11px] text-muted-foreground mt-3">{statusLine}</p>
                 )}
 
                 {!isOwn && (() => {
@@ -522,37 +496,14 @@ const Directory = () => {
                         </button>
                       )}
 
-                      {/* Tier A — full subscriber: in-app enquiry flow */}
+                      {/* Tier A — full subscriber: enquiry/chat state machine */}
                       {tier === "full" && p.proUserId ? (
-                        activeEnq || chatThreadId ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              navigate(
-                                chatThreadId ? `/messages/${chatThreadId}` : "/profile/enquiries",
-                              )
-                            }
-                            className={cn(
-                              "py-2 text-[11px] uppercase tracking-[0.1em] rounded-md font-medium min-h-[44px] flex items-center justify-center text-center",
-                              chatThreadId
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary text-foreground border border-primary/40",
-                            )}
-                          >
-                            {chatThreadId ? "Chat Now" : "View enquiry"}
-                          </button>
-                        ) : (
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
-                            }
-                            className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
-                          >
-                            {enq ? "Enquire again" : "Enquire Now"}
-                          </button>
-                        )
+                        <ProContactAction
+                          state={contact}
+                          onEnquire={() =>
+                            setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
+                          }
+                        />
                       ) : tier === "listed_enquiry" ? (
                         /* Tier B — listed + in-app enquiry forwarded to their email */
                         <button
