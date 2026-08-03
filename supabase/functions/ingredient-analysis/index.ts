@@ -29,10 +29,19 @@ import {
   CHAPTER_WHITELIST_PROMPT,
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import {
+  SCORE_REASONS_RULES,
+  SCORE_REASONS_SCHEMA_PROPERTY,
+  sanitiseScoreReasons,
+  alignScoreWithReasons,
+  firstSentence,
+  type ScoreReason,
+} from "../_shared/score-reasons.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v9-this-product-only";
+const MODEL_VERSION = "claude-sonnet-4-6@v10-score-reasons";
+
 
 interface IngredientCard {
   name: string;
