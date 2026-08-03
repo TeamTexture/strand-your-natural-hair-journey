@@ -87,15 +87,15 @@ const AdminMessages = () => {
         </p>
       </div>
 
-      <div className="px-5 pb-3 flex gap-2">
-        <Button variant="outline" size="pill" onClick={() => nav("/admin/members")} className="flex-1">
-          <MessageSquarePlus className="size-4 mr-1.5" /> Members
+      <div className="px-5 pb-3 grid grid-cols-3 gap-2">
+        <Button variant="outline" size="pill" onClick={() => nav("/admin/members")} className="w-full !px-2 !text-[12px]">
+          <MessageSquarePlus className="size-3.5 mr-1" /> Members
         </Button>
-        <Button variant="outline" size="pill" onClick={() => nav("/admin/professionals")} className="flex-1">
-          <MessageSquarePlus className="size-4 mr-1.5" /> Pros
+        <Button variant="outline" size="pill" onClick={() => nav("/admin/professionals")} className="w-full !px-2 !text-[12px]">
+          <MessageSquarePlus className="size-3.5 mr-1" /> Pros
         </Button>
-        <Button variant="outline" size="pill" onClick={() => nav("/admin/brands")} className="flex-1">
-          <MessageSquarePlus className="size-4 mr-1.5" /> Brands
+        <Button variant="outline" size="pill" onClick={() => nav("/admin/brands")} className="w-full !px-2 !text-[12px]">
+          <MessageSquarePlus className="size-3.5 mr-1" /> Brands
         </Button>
       </div>
 
