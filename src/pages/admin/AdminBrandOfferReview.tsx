@@ -197,6 +197,7 @@ const AdminBrandOfferReview = () => {
   const [params] = useSearchParams();
   const revisionMode = params.get("revision") !== null;
   const { data: offer, isLoading } = useBrandOffer(id);
+  const markOfferRead = useMarkAdminEntityRead();
   const { data: pendingRevision } = usePendingRevision(id);
   const { data: totalsMap = {} } = useBrandOfferTotals(id ? [id] : []);
   const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
@@ -211,6 +212,11 @@ const AdminBrandOfferReview = () => {
   const [relaunchStart, setRelaunchStart] = useState<string>(londonToday);
   const [relaunchDays, setRelaunchDays] = useState<number>(7);
   const [relaunching, setRelaunching] = useState(false);
+
+  useEffect(() => {
+    if (id) void markOfferRead("brand_offer", id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const ownerType: OwnerType = ((offer as { owner_type?: string | null } | undefined)?.owner_type === "pro" ? "pro" : "brand");
   const brandUserId = (offer as { brand_user_id?: string | null } | undefined)?.brand_user_id ?? null;
