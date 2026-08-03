@@ -405,16 +405,15 @@ const Home = () => {
         />
         <StatTile
           icon={ICONS.goal}
-          value={goalValue}
-          label="Goal progress"
-          sub={goalName}
-          tone={goalPct != null ? "good" : "muted"}
+          value={goalName}
+          label="Goal focus"
+          tone={lengthGoal ? "good" : "muted"}
           to="/journal"
         />
         <StatTile
           icon={ICONS.blood}
           value={flaggedValue}
-          label="Flagged markers"
+          label="Blood work"
           sub={flaggedSub}
           tone={bloodSummary ? flaggedTone : "muted"}
           to="/blood-history"
