@@ -254,6 +254,18 @@ const ProDashboard = () => {
             tourId="pro-card-appointments"
             count={upcomingAppointments.length}
           />
+          <Card
+            icon={Star}
+            title="Reviews"
+            sub={
+              pendingReviews > 0
+                ? `${pendingReviews} awaiting your approval.`
+                : "Approve client reviews for your listing."
+            }
+            onClick={() => nav("/pro/reviews")}
+            tourId="pro-card-reviews"
+            count={pendingReviews}
+          />
 
 
           <Card
