@@ -262,7 +262,7 @@ const GlobalMenu = () => {
             )}
           </div>
           <div className="flex items-center gap-1 min-w-0 shrink">
-            <TipsLevelButton className="shrink-0" />
+            {!isDirectoryPage && <TipsLevelButton className="shrink-0" />}
             {showViewSwitcher && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
