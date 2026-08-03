@@ -62,6 +62,10 @@ const PlusUpgrade = () => {
   };
 
 
+  // Consumer-only surface: pros, brands and admins are sent to their own home.
+  if (roleLoading) return <LoadingDot />;
+  if (!canUpgrade) return <Navigate to={homePath} replace />;
+
   if (hasPlus || isLoading) {
     return (
       <ScreenLayout>
