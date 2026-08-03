@@ -130,6 +130,14 @@ const ColourReview = () => {
     }
   };
 
+  useEffect(() => {
+    const row = (style ?? {}) as unknown as Record<string, unknown>;
+    setPlannedAttrs({
+      tension: (row.planned_style_tension as string | null) ?? null,
+      extensions: (row.planned_style_extensions as boolean | null) ?? null,
+    });
+  }, [style?.planned_style_tension, style?.planned_style_extensions]);
+
   // Deep link from the Strand Summary snapshot tiles — scroll the targeted
   // field into view so the user lands exactly where they entered it.
   useEffect(() => {

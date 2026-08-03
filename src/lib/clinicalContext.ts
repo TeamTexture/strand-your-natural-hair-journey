@@ -53,6 +53,11 @@ export interface StyleSlice {
   current_hairstyle: string | null;
   style_set_at: string | null;
   planned_next_style: string | null;
+  /** Style attributes — null until the user next edits their style. */
+  current_style_tension?: string | null;
+  current_style_extensions?: boolean | null;
+  planned_style_tension?: string | null;
+  planned_style_extensions?: boolean | null;
   planned_change_date: string | null;
   default_styles: string[];
   colour: string[];
@@ -223,6 +228,10 @@ interface LegacyStyle {
   style_set_on?: string;
   styleStartDate?: string;
   planned_next_style?: string;
+  current_style_tension?: string | null;
+  current_style_extensions?: boolean | null;
+  planned_style_tension?: string | null;
+  planned_style_extensions?: boolean | null;
   planned_change_date?: string;
   howLong?: string;
   howLongNum?: string;
@@ -302,6 +311,10 @@ function styleFromLocal(): StyleSlice | null {
     style_set_on: raw.style_set_on ?? raw.style_set_at ?? null,
     styleStartDate: raw.styleStartDate ?? raw.style_set_at ?? null,
     planned_next_style: raw.planned_next_style ?? null,
+    current_style_tension: raw.current_style_tension ?? null,
+    current_style_extensions: raw.current_style_extensions ?? null,
+    planned_style_tension: raw.planned_style_tension ?? null,
+    planned_style_extensions: raw.planned_style_extensions ?? null,
     planned_change_date: raw.planned_change_date ?? null,
     default_styles: raw.defaultStyle ?? [],
     defaultStyle: raw.defaultStyle ?? [],
@@ -506,7 +519,7 @@ async function loadClinicalContextUncached(
         supabase
           .from("user_style_profile")
           .select(
-            "current_colour_status, chemical_history, current_hairstyle, style_set_at, planned_next_style, planned_change_date, default_styles, colour_type, colour_product, colour_last_treated, colour_reaction, colour_reaction_details",
+            "current_colour_status, chemical_history, current_hairstyle, style_set_at, planned_next_style, planned_change_date, default_styles, colour_type, colour_product, colour_last_treated, colour_reaction, colour_reaction_details, current_style_tension, current_style_extensions, planned_style_tension, planned_style_extensions",
           )
           .eq("user_id", userId)
           .maybeSingle(),
@@ -616,6 +629,10 @@ async function loadClinicalContextUncached(
         styleStartDate: styleRow.style_set_at ?? null,
         planned_next_style: styleRow.planned_next_style ?? null,
         planned_change_date: styleRow.planned_change_date ?? null,
+        current_style_tension: styleRow.current_style_tension ?? null,
+        current_style_extensions: styleRow.current_style_extensions ?? null,
+        planned_style_tension: styleRow.planned_style_tension ?? null,
+        planned_style_extensions: styleRow.planned_style_extensions ?? null,
         default_styles: styleRow.default_styles ?? [],
         defaultStyle: styleRow.default_styles ?? [],
         colour: styleRow.current_colour_status ? [styleRow.current_colour_status] : [],
