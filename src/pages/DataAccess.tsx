@@ -6,7 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,18 +19,29 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useMyClientAccess, useRevokeAccess } from "@/hooks/useEnquiries";
+import { useMyPassportSharing, useSetPassportAccess } from "@/hooks/useEnquiries";
+
+const friendlyDate = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+
+const ENQUIRY_LABEL: Record<string, string> = {
+  pending: "Enquiry awaiting their reply",
+  accepted: "Enquiry accepted",
+  declined: "Enquiry declined",
+};
 
 const DataAccess = () => {
   const nav = useNavigate();
-  const { data: access, isLoading } = useMyClientAccess();
-  const revoke = useRevokeAccess();
+  const { data: rows, isLoading } = useMyPassportSharing();
+  const setAccess = useSetPassportAccess();
   const [names, setNames] = useState<Record<string, string>>({});
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmProId, setConfirmProId] = useState<string | null>(null);
 
   const proIds = useMemo(
-    () => Array.from(new Set((access ?? []).map((a) => a.pro_user_id))),
-    [access],
+    () => Array.from(new Set((rows ?? []).map((r) => r.pro_user_id))),
+    [rows],
   );
 
   useEffect(() => {
@@ -51,8 +62,16 @@ const DataAccess = () => {
     };
   }, [proIds]);
 
-  const target = access?.find((a) => a.id === confirmId);
-  const targetName = target ? names[target.pro_user_id] ?? "this professional" : "";
+  const targetName = confirmProId ? names[confirmProId] ?? "This professional" : "";
+
+  const grant = async (proUserId: string) => {
+    try {
+      await setAccess.mutateAsync({ proUserId, grant: true });
+      toast("Access granted — they can see your passport now");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not grant access");
+    }
+  };
 
   return (
     <ScreenLayout>
@@ -60,67 +79,86 @@ const DataAccess = () => {
 
       <div className="px-5 pb-8 space-y-3">
         <p className="text-xs font-body text-muted-foreground leading-snug">
-          These professionals currently have access to your Strand passport. Revoking is
-          immediate — they lose access to your data at once.
+          You control who sees your Strand passport. Turn a professional on to share it —
+          even before they've accepted your enquiry — and off to withdraw it. Changes take
+          effect immediately.
         </p>
 
         {isLoading ? (
           <LoadingDot label="Loading…" fullScreen={false} />
-        ) : !access || access.length === 0 ? (
+        ) : !rows || rows.length === 0 ? (
           <EmptyState
             icon="🔒"
-            message="No active access"
-            hint="No professional currently has access to your data."
+            message="Nobody has access"
+            hint="Once you enquire with a professional, they'll appear here so you can share or withdraw your passport."
           />
         ) : (
-          access.map((a) => (
-            <SurfaceCard key={a.id}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-display text-base font-semibold leading-tight">
-                    {names[a.pro_user_id] ?? "Professional"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Granted {new Date(a.granted_at).toLocaleDateString()}
-                  </p>
+          rows.map((r) => {
+            const name = names[r.pro_user_id] ?? "Professional";
+            const status = r.granted
+              ? `Access on${friendlyDate(r.granted_at) ? ` · since ${friendlyDate(r.granted_at)}` : ""}`
+              : r.revoked_at
+                ? `Access revoked${friendlyDate(r.revoked_at) ? ` · ${friendlyDate(r.revoked_at)}` : ""}`
+                : "No access — passport not shared";
+            const enquiryLine = r.enquiry_status ? ENQUIRY_LABEL[r.enquiry_status] : null;
+            return (
+              <SurfaceCard key={r.pro_user_id}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-base font-semibold leading-tight truncate">
+                      {name}
+                    </p>
+                    <p
+                      className={`text-[12px] mt-0.5 font-body ${
+                        r.granted ? "text-good" : "text-alert-dark"
+                      }`}
+                    >
+                      {status}
+                    </p>
+                    {enquiryLine && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{enquiryLine}</p>
+                    )}
+                  </div>
+                  <Switch
+                    checked={r.granted}
+                    disabled={setAccess.isPending}
+                    aria-label={r.granted ? `Withdraw access for ${name}` : `Give ${name} access`}
+                    onCheckedChange={(next) => {
+                      if (next) void grant(r.pro_user_id);
+                      else setConfirmProId(r.pro_user_id);
+                    }}
+                  />
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-alert-dark border-alert-dark/40"
-                  onClick={() => setConfirmId(a.id)}
-                >
-                  Revoke
-                </Button>
-              </div>
-            </SurfaceCard>
-          ))
+              </SurfaceCard>
+            );
+          })
         )}
       </div>
 
-      <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>
+      <AlertDialog open={!!confirmProId} onOpenChange={(o) => !o && setConfirmProId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke access?</AlertDialogTitle>
+            <AlertDialogTitle>Withdraw access?</AlertDialogTitle>
             <AlertDialogDescription>
-              {targetName} will lose access to your Strand passport immediately.
+              {targetName} will lose access to your Strand passport immediately. You can
+              switch it back on whenever you like.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (!confirmId) return;
+                if (!confirmProId) return;
                 try {
-                  await revoke.mutateAsync(confirmId);
+                  await setAccess.mutateAsync({ proUserId: confirmProId, grant: false });
                   toast("Access revoked");
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Could not revoke");
                 }
-                setConfirmId(null);
+                setConfirmProId(null);
               }}
             >
-              Revoke
+              Withdraw
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

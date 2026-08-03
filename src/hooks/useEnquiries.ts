@@ -103,6 +103,113 @@ export function useMyClientAccess() {
   });
 }
 
+/**
+ * Consumer: every professional they have a relationship with (any enquiry
+ * sent, or any access grant past or present) plus whether that professional
+ * currently holds passport access. Powers the Data access screen, where the
+ * member can turn access on or off at any time — including before the
+ * professional has accepted the enquiry.
+ */
+export interface PassportShareRow {
+  pro_user_id: string;
+  granted: boolean;
+  /** Access record id when a grant exists (active or revoked). */
+  access_id: string | null;
+  granted_at: string | null;
+  revoked_at: string | null;
+  enquiry_status: EnquiryStatus | null;
+  enquiry_created_at: string | null;
+}
+
+export function useMyPassportSharing() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["my_passport_sharing", user?.id],
+    enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<PassportShareRow[]> => {
+      const uid = user!.id;
+      const [accessRes, enquiryRes] = await Promise.all([
+        supabase
+          .from("pro_client_access")
+          .select("*")
+          .eq("consumer_id", uid)
+          .order("granted_at", { ascending: false }),
+        supabase
+          .from("pro_enquiries")
+          .select("id, pro_user_id, status, created_at")
+          .eq("consumer_id", uid)
+          .order("created_at", { ascending: false }),
+      ]);
+      if (accessRes.error) throw accessRes.error;
+      if (enquiryRes.error) throw enquiryRes.error;
+
+      const byPro = new Map<string, PassportShareRow>();
+      const ensure = (proId: string): PassportShareRow => {
+        const existing = byPro.get(proId);
+        if (existing) return existing;
+        const row: PassportShareRow = {
+          pro_user_id: proId,
+          granted: false,
+          access_id: null,
+          granted_at: null,
+          revoked_at: null,
+          enquiry_status: null,
+          enquiry_created_at: null,
+        };
+        byPro.set(proId, row);
+        return row;
+      };
+
+      for (const e of enquiryRes.data ?? []) {
+        if (e.status === "withdrawn") continue;
+        const row = ensure(e.pro_user_id);
+        if (!row.enquiry_status) {
+          row.enquiry_status = e.status as EnquiryStatus;
+          row.enquiry_created_at = e.created_at;
+        }
+      }
+      for (const a of (accessRes.data ?? []) as ClientAccess[]) {
+        const row = ensure(a.pro_user_id);
+        const active = a.revoked_at === null;
+        if (active || !row.access_id) {
+          row.access_id = a.id;
+          row.granted_at = a.granted_at;
+          row.revoked_at = a.revoked_at;
+        }
+        if (active) row.granted = true;
+      }
+      return Array.from(byPro.values()).sort((a, b) => {
+        if (a.granted !== b.granted) return a.granted ? -1 : 1;
+        return (b.granted_at ?? b.enquiry_created_at ?? "").localeCompare(
+          a.granted_at ?? a.enquiry_created_at ?? "",
+        );
+      });
+    },
+  });
+}
+
+/** Consumer: turn a professional's passport access on or off at any time. */
+export function useSetPassportAccess() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ proUserId, grant }: { proUserId: string; grant: boolean }) => {
+      const { error } = await supabase.rpc("set_passport_access", {
+        _pro_user_id: proUserId,
+        _grant: grant,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my_passport_sharing"] });
+      qc.invalidateQueries({ queryKey: ["my_client_access"] });
+      qc.invalidateQueries({ queryKey: ["my_enquiries"] });
+      qc.invalidateQueries({ queryKey: ["pro-clients"] });
+    },
+  });
+}
+
 export function useCreateEnquiry() {
   const qc = useQueryClient();
   const { user } = useAuth();
