@@ -552,6 +552,21 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
       // Note: no _model_version stamp on Lovable path — back-compat.
     }
 
+    // ── Score reasons: normalise + keep match_score honest, and reduce the
+    // verdict sentence to the single overall call.
+    {
+      const reasons = sanitiseScoreReasons(analysis.score_reasons);
+      analysis.score_reasons = reasons;
+      if (typeof analysis.match_score === "number") {
+        analysis.match_score = alignScoreWithReasons(analysis.match_score, reasons);
+      }
+      if (reasons.length >= 2) {
+        const one = firstSentence(analysis.summary);
+        if (one) analysis.summary = one;
+      }
+    }
+
+
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
       .from("ai_summaries")
