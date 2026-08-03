@@ -97,6 +97,7 @@ const ProDashboard = () => {
   const { data: proClients = [] } = useProClients();
   const { data: myReviews = [] } = useProReviews();
   const pendingReviews = myReviews.filter((r) => r.status === "pending").length;
+  const activeClientsCount = proClients.filter((c) => !c.revoked_at).length;
   const clientsSub = activeClientsCount === 0
     ? "Your client book — accepted enquiries land here."
     : `${activeClientsCount} active · notes, history and passports.`;
