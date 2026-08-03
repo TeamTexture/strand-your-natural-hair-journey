@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useComplimentaryAccess } from "@/hooks/useComplimentaryAccess";
 
 /**
  * STRAND+ access.
@@ -25,9 +26,11 @@ export function usePlusAccess() {
       return !!data;
     },
   });
+  const { complimentary, isLoading: compLoading } = useComplimentaryAccess();
   return {
-    hasPlus: !!q.data,
-    isLoading: loading || q.isLoading,
+    // Complimentary accounts hold every tier, including STRAND+.
+    hasPlus: !!q.data || complimentary,
+    isLoading: loading || q.isLoading || compLoading,
     refetch: q.refetch,
   };
 }
