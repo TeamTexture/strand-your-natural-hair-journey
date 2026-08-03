@@ -401,6 +401,10 @@ const Directory = () => {
                   <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
                 )}
 
+                {p.proUserId && ratingSummary && (
+                  <DirectoryReviewPreview proUserId={p.proUserId} />
+                )}
+
                 {/* Progressive disclosure: opening hours + address + contact.
                     Summarised inline; full week expands on tap. */}
                 {(openingSummary || streetLine || cityLine || p.businessPhone || p.businessEmail) && (
