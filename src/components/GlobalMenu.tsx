@@ -128,6 +128,10 @@ const GlobalMenu = () => {
 
   const path = location.pathname;
 
+  // Tips-level preference is irrelevant on directory surfaces where the user
+  // is browsing listings, not receiving personalised guidance.
+  const isDirectoryPage = path.startsWith("/directory") || path.startsWith("/brands");
+
   const routeView = routeToView(path, location.search);
 
 
