@@ -18,18 +18,18 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 
-import { useJournalEncouragement } from "@/hooks/useJournalEncouragement";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { useMoodboards } from "@/hooks/useMoodboards";
 import GoalEditorSheet from "@/components/GoalEditorSheet";
+import GoalHeroCard from "@/components/journal/GoalHeroCard";
+import GoalTipsSection from "@/components/journal/GoalTipsSection";
+import GoalProgressComposer from "@/components/journal/GoalProgressComposer";
+import GoalTimelineSheet from "@/components/journal/GoalTimelineSheet";
+import PastGoalsSection from "@/components/journal/PastGoalsSection";
 import GoalDetailSheet from "@/components/GoalDetailSheet";
 import LevelGate from "@/components/tips/LevelGate";
-import AiProse from "@/components/tips/AiProse";
-import TipsBlock from "@/components/tips/TipsBlock";
-import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { wantsBeginner, type GuidanceTip } from "@/lib/tipsRender";
 import SectionHeader from "@/components/nav/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { ICONS } from "@/lib/iconMap";
@@ -59,36 +59,15 @@ const formatEntryDate = (raw: string): string => {
 const Journal = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { signals, banner, loading } = useJournalEncouragement();
-  const { goals, lengthGoal, loading: goalsLoading } = useGoals();
-  const { level } = useTipsLevel();
+  const {
+    goals,
+    activeGoals,
+    pastGoals,
+    lengthGoal,
+    loading: goalsLoading,
+    endGoal,
+  } = useGoals();
 
-  const goalTips: GuidanceTip[] = useMemo(() => {
-    const tips: GuidanceTip[] = [
-      {
-        priority: 5,
-        short: "Set one goal at a time so progress is easy to track.",
-        why: "Splitting focus across several goals makes it harder to tell what is actually working.",
-      },
-      {
-        priority: 4,
-        short: "Update your goal whenever your target or timeline changes.",
-        why: "A stale goal stops giving you useful feedback on where you really are.",
-      },
-    ];
-    if (lengthGoal) {
-      tips.push({
-        priority: 10,
-        short: "Trims keep length — they don't speed up growth.",
-        why: "The hair you can see is not alive, so it can't heal itself. Growth only happens at the scalp, so a trim removes damage that would otherwise keep splitting upward, but it doesn't make new hair grow any faster.",
-        define: "\"Retention\" just means keeping the length you already have, rather than losing it to breakage.",
-        dos: ["Trim only when ends look damaged", "Handle wet hair gently to protect length"],
-        donts: ["Trim on a fixed schedule expecting faster growth", "Pull through tangles instead of easing them out"],
-        alwaysShow: true,
-      });
-    }
-    return tips;
-  }, [lengthGoal]);
   const { boards: moodboards, loading: boardsLoading } = useMoodboards();
   // Only surface boards that actually have content (or the Favourites board if it has favourites).
   const populatedBoards = useMemo(
@@ -104,15 +83,15 @@ const Journal = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewing, setViewing] = useState<UserGoal | null>(null);
   const [chooserOpen, setChooserOpen] = useState(false);
+  const [progressGoal, setProgressGoal] = useState<UserGoal | null>(null);
+  const [timelineGoal, setTimelineGoal] = useState<UserGoal | null>(null);
+  const [newGoalConfirm, setNewGoalConfirm] = useState(false);
 
   // Goals split by status so future goals can render in their own section
   // and the primary card always reflects what's actively in-progress.
-  const inProgressGoals = useMemo(
-    () => goals.filter((g) => (g.status ?? "in_progress") === "in_progress"),
-    [goals],
-  );
+  const inProgressGoals = activeGoals;
   const futureGoals = useMemo(
-    () => goals.filter((g) => g.status === "future"),
+    () => goals.filter((g) => g.status === "future" && !g.ended_at),
     [goals],
   );
   const primaryGoal = lengthGoal && (lengthGoal.status ?? "in_progress") === "in_progress"
