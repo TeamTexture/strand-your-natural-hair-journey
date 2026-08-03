@@ -115,8 +115,8 @@ export default function BloodChangeAnalysis({
       const context = await buildAiContext().catch(() => ({}));
       const { data: resp, error } = await supabase.functions.invoke(
         "blood-change-analysis",
-      "v2-focus-only",
         {
+
           body: {
             latestPanel,
             previousPanel,
