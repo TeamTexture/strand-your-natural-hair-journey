@@ -35,11 +35,16 @@ export function parsePurposeInsight(value: unknown): ProductPurposeInsight | nul
   return insight;
 }
 
-const sentence = (s: string): string => {
+/** Connectives that must stay lower-case so the chain reads as one thought. */
+const CONNECTIVE = /^(so|which|and|but|because|then|meaning|that|this)\b/i;
+
+const sentence = (s: string, keepCase = false): string => {
   if (!s) return "";
   const trimmed = s.replace(/[.\s]+$/, "");
   if (!trimmed) return "";
-  const first = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  const first = keepCase || CONNECTIVE.test(trimmed)
+    ? trimmed
+    : trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
   return `${first}.`;
 };
 
