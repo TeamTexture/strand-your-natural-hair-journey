@@ -56,6 +56,8 @@ const StatusPill = ({ status }: { status: DerivedStatus }) => {
 const AdminBrandOffers = () => {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const markEntityRead = useMarkAdminEntityRead();
+
   const [params, setParams] = useSearchParams();
   const filter = params.get("filter"); // "pending" | "live" | "brands" | null
   const typeFilter = (params.get("type") as OwnerType | null) ?? null;
