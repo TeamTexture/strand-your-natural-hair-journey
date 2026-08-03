@@ -470,7 +470,10 @@ Deno.serve(async (req) => {
     const rotation = single ? buildRotationBlock(body, goalText) : null;
     const singleSuffix = rotation
       ? `\n\n${SINGLE_TIP_TASK}\n\n${rotation.block}`
-      : "";
+      : journal
+        ? `\n\n${JOURNAL_TASK}`
+        : "";
+
 
     const withCount = (t: string) => t.replaceAll("{{TIP_COUNT}}", String(tipCount));
     const systemPrompt = teachings.length > 0
