@@ -457,6 +457,12 @@ const Directory = () => {
                   <p className="text-[11px] text-muted-foreground mt-3">{statusLine}</p>
                 )}
 
+                {/* Owner's own listing: no enquiry actions, but if a client
+                    thread exists on this listing it stays reachable. */}
+                {isOwn && contact.threadId && (
+                  <ProContactAction state={contact} className="w-full mt-3" onEnquire={() => {}} />
+                )}
+
                 {!isOwn && (() => {
                   const tier = p.listingTier ?? (p.proUserId ? "full" : "external_link");
                   const websiteHref = p.website ? normalizeWebsiteUrl(p.website) : "";
