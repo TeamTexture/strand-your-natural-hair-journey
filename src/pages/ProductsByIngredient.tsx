@@ -9,6 +9,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ListRow from "@/components/nav/ListRow";
+import MatchStars from "@/components/MatchStars";
 import ProductThumb from "@/components/ProductThumb";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import BrandLink from "@/components/BrandLink";
@@ -81,6 +82,7 @@ const ProductsByIngredient = () => {
                 secondary={p.brand ? <BrandLink brand={p.brand} /> : undefined}
                 fact={s.label}
                 factTone={s.tone}
+                trailing={<MatchStars item={p} />}
               />
             );
           })
