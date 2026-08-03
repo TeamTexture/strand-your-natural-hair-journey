@@ -96,10 +96,13 @@ const DataAccess = () => {
           rows.map((r) => {
             const name = names[r.pro_user_id] ?? "Professional";
             const status = r.granted
-              ? `Access on${friendlyDate(r.granted_at) ? ` · since ${friendlyDate(r.granted_at)}` : ""}`
+              ? r.access_id && !r.revoked_at
+                ? `Access on${friendlyDate(r.granted_at) ? ` · since ${friendlyDate(r.granted_at)}` : ""}`
+                : "Sharing on — visible once they accept your enquiry"
               : r.revoked_at
                 ? `Access revoked${friendlyDate(r.revoked_at) ? ` · ${friendlyDate(r.revoked_at)}` : ""}`
                 : "No access — passport not shared";
+
             const enquiryLine = r.enquiry_status ? ENQUIRY_LABEL[r.enquiry_status] : null;
             return (
               <SurfaceCard key={r.pro_user_id}>
