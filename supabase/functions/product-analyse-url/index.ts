@@ -203,14 +203,32 @@ async function runClaude(args: {
   url: string;
   context: Record<string, unknown>;
   selectorContext: SelectorContext;
+  /** Page text we already fetched server-side. When present Claude does not
+   *  need an agentic web_fetch round-trip, which halves wall-clock time. */
+  pageText?: string | null;
+  pageTitle?: string | null;
 }): Promise<{
   payload: ProductAnalysisPayload;
   web_search_invocations: number;
   web_fetch_invocations: number;
 }> {
+  const preScraped = (args.pageText ?? "").trim();
+  const havePage = preScraped.length > 400;
+
+  const pageBlock = havePage
+    ? `Page content already fetched for you (title: ${args.pageTitle || "unknown"}). Use THIS as your primary source — do NOT call web_fetch unless the brand or INCI list is genuinely missing below:
+"""
+${preScraped.slice(0, 18000)}
+"""
+
+If the brand name or full ingredient list is missing above, then use web_search (cap 2) to fill only that gap.`
+    : `Use web_fetch on this URL first. If the fetched body is thin, gated, or missing the brand/INCI, fall back to web_search (combined cap of 4 across both tools).`;
+
   const userText = `Product page URL to analyse: ${args.url}
 
-Use web_fetch on this URL first. If the fetched body is thin, gated, or missing the brand/INCI, fall back to web_search (combined cap of 4 across both tools). Return JSON only via the return_product_analysis tool.
+${pageBlock}
+
+Return JSON only via the return_product_analysis tool.
 
 User context (use to compute key_ingredients flags, match_score, ai_summary, use_cases, and tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}`;
@@ -220,13 +238,14 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const webFetchTool: ServerTool = {
     type: "web_fetch_20250910",
     name: "web_fetch",
-    max_uses: 2,
+    max_uses: havePage ? 1 : 2,
   };
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
     max_uses: 2,
   };
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
@@ -542,31 +561,43 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
   }
 }
 
-/** Lightweight og:image-only fetcher for the Claude path — Claude's native
- *  web_fetch returns text only. Runs in parallel with the model call. */
-async function fetchOgImageOnly(url: string): Promise<string | null> {
+/** Single page fetch for the Claude path: pulls the og:image AND the page
+ *  text in one request, so the model can analyse without an agentic
+ *  web_fetch round-trip (the main source of slow scans). */
+async function prefetchPage(
+  url: string,
+): Promise<{ imageUrl: string | null; title: string; text: string }> {
+  const empty = { imageUrl: null, title: "", text: "" };
   try {
     const resp = await fetch(url, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-GB,en;q=0.9",
       },
       redirect: "follow",
       signal: AbortSignal.timeout(8_000),
     });
     if (!resp.ok) {
-      console.log(JSON.stringify({ tag: "url-debug", phase: "og fetch non-ok", status: resp.status }));
-      return null;
+      console.log(JSON.stringify({ tag: "url-debug", phase: "prefetch non-ok", status: resp.status }));
+      return empty;
     }
-    const extracted = extractOgImageFromHtml(await resp.text());
-    console.log(JSON.stringify({ tag: "url-debug", phase: "image_url extracted", url: extracted }));
-    return extracted;
+    const html = await resp.text();
+    const imageUrl = extractOgImageFromHtml(html);
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const text = htmlToText(html);
+    console.log(JSON.stringify({
+      tag: "url-debug", phase: "prefetch done",
+      image_url: imageUrl, text_len: text.length,
+    }));
+    return { imageUrl, title: titleMatch ? titleMatch[1].trim() : "", text };
   } catch (e) {
-    console.error("[url-debug] og:image fetch failed", e);
-    return null;
+    console.error("[url-debug] prefetch failed", e);
+    return empty;
   }
 }
+
 
 async function runLovable(args: {
   url: string;
@@ -728,19 +759,26 @@ Deno.serve(async (req: Request) => {
     console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider, profileHash }));
 
     if (provider === "claude") {
-      // Run model call and og:image scrape in parallel — og fetch is ~1-3s,
-      // Claude is ~20-40s. Parallelism keeps total time bounded by Claude.
-      console.log(JSON.stringify({ tag: "url-debug", phase: "before model+og", ms: Date.now() - t0 }));
-      const [claudeRes, ogImage] = await Promise.all([
-        runClaude({ url, context: ctx, selectorContext: buildSelectorContext(body) }),
-        fetchOgImageOnly(url),
-      ]);
+      // Fetch the page ourselves first (~1-2s) and hand the text to Claude so
+      // it can answer in a single pass instead of an agentic web_fetch loop.
+      console.log(JSON.stringify({ tag: "url-debug", phase: "before prefetch", ms: Date.now() - t0 }));
+      const pre = await prefetchPage(url);
+      const ogImage = pre.imageUrl;
+      console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
+      const claudeRes = await runClaude({
+        url,
+        context: ctx,
+        selectorContext: buildSelectorContext(body),
+        pageText: pre.text,
+        pageTitle: pre.title,
+      });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
       console.log(JSON.stringify({
-        tag: "url-debug", phase: "model+og done", ms: Date.now() - t0,
+        tag: "url-debug", phase: "model done", ms: Date.now() - t0,
         used_web_fetch: web_fetch_invocations > 0, used_web_search: web_search_invocations > 0,
         og_image: ogImage ? "yes" : "no",
       }));
+
       analysis = {
         ...payload,
         _model_version: MODEL_VERSION,
