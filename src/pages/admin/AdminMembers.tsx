@@ -508,9 +508,12 @@ const AdminMembers = () => {
                       )}
                     </p>
                   </div>
-                  <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
-                    {badge.label}
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <AccountTypeBadge type={r.account_type} />
+                    <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border">
@@ -523,6 +526,13 @@ const AdminMembers = () => {
                     View passport
                   </Button>
                 </div>
+                <AccountTypeControl
+                  userId={r.user_id}
+                  name={r.display_name}
+                  currentType={r.account_type}
+                  isSelf={isSelf}
+                />
+
                 <div className="mt-3 flex items-center justify-between gap-3 pt-3 border-t border-border">
                   <div className="min-w-0">
                     <p className="text-[12px] font-body font-medium">Complimentary access</p>
