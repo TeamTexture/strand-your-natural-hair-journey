@@ -182,80 +182,7 @@ export default function BloodChangeAnalysis({
           </div>
         ) : (
           <div className="divide-y divide-border/60">
-            {/* Headline + delta hero + overall */}
-            <div className="p-4 space-y-2 bg-gradient-to-br from-primary/5 via-transparent to-transparent rounded-t-[14px]">
-              <div className="flex items-start gap-2.5">
-                <div className="size-8 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                  <Sparkles className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-[17px] leading-snug text-foreground">
-                    {data.headline}
-                  </p>
-                </div>
-              </div>
-              <GuidanceBody text={data.overall} className="mt-1.5" />
-            </div>
-
-            {/* Key changes */}
-            {data.key_changes.length > 0 && (
-              <div className="p-4 space-y-2.5">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-body">
-                  Key movements
-                </p>
-                <ul className="space-y-2">
-                  {data.key_changes.map((c) => {
-                    const Icon =
-                      c.direction === "flat"
-                        ? Minus
-                        : c.direction === "up"
-                          ? ArrowUpRight
-                          : ArrowDownRight;
-                    const tone =
-                      c.tone === "good"
-                        ? "text-good"
-                        : c.tone === "warn"
-                          ? "text-warn"
-                          : "text-foreground/70";
-                    const chipBg =
-                      c.tone === "good"
-                        ? "bg-good/10"
-                        : c.tone === "warn"
-                          ? "bg-warn/10"
-                          : "bg-muted";
-                    return (
-                      <li
-                        key={c.marker}
-                        className="flex items-start gap-3 rounded-[12px] bg-muted/40 p-3"
-                      >
-                        <div
-                          className={cn(
-                            "size-7 rounded-full flex items-center justify-center shrink-0",
-                            chipBg,
-                            tone,
-                          )}
-                        >
-                          <Icon className="size-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-body font-medium">
-                            {c.marker}
-                            <span className={cn("ml-2 text-xs font-normal", tone)}>
-                              {c.from} → {c.to} {c.unit}
-                            </span>
-                          </p>
-                          <p className="text-xs text-foreground/75 font-body leading-relaxed mt-0.5">
-                            {c.insight}
-                          </p>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-
-            {/* Focus areas — one ActionRow per focus, "why" is the body copy */}
+            {/* Where to focus — the only content on this card */}
             {data.focus_areas.length > 0 && (
               <div className="p-4 space-y-2.5">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-body">
@@ -263,7 +190,7 @@ export default function BloodChangeAnalysis({
                 </p>
                 <ActionList
                   idPrefix="focus"
-                  actions={data.focus_areas.map((f) => ({
+                  actions={data.focus_areas.slice(0, 3).map((f) => ({
                     action: f.title,
                     why: f.body,
                   }))}
@@ -271,6 +198,7 @@ export default function BloodChangeAnalysis({
                 />
                 <div className="space-y-1">
                   {data.focus_areas
+                    .slice(0, 3)
                     .filter((f) => f.action)
                     .map((f, i) => (
                       <ActionLink key={`${f.icon}-${i}`} action={f.action as string} icon={f.icon} />
@@ -278,6 +206,7 @@ export default function BloodChangeAnalysis({
                 </div>
               </div>
             )}
+
 
             <div className="px-4 py-2.5 bg-muted/30 rounded-b-[14px]">
               <p className="text-[10px] font-body text-muted-foreground">
