@@ -25,6 +25,7 @@ export function useNotifications() {
   const q = useQuery({
     queryKey: ["notifications", user?.id],
     enabled: !!user?.id,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
@@ -36,6 +37,7 @@ export function useNotifications() {
       return (data ?? []) as Notification[];
     },
   });
+
 
   useEffect(() => {
     if (!user?.id) return;
