@@ -63,7 +63,9 @@ interface GuidanceTip {
 }
 interface AnalysisPayload {
   match_score: number;
+  score_reasons?: ScoreReason[];
   summary: string;
+
   ingredients: IngredientCard[];
   personalised_guidance?: GuidanceTip[];
   _model_version?: string;
