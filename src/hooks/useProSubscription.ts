@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useComplimentaryAccess } from "@/hooks/useComplimentaryAccess";
 
 export type ProSubscription = {
   pro_user_id: string;
@@ -32,11 +33,22 @@ export function useProSubscription() {
     },
   });
 
+  const { complimentary, isLoading: compLoading } = useComplimentaryAccess();
+
   const sub = q.data ?? null;
-  const isActive =
+  const stripeActive =
     !!sub &&
     ACTIVE_STATUSES.has(sub.status) &&
     (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+  // Complimentary accounts are permanently active — never paywalled.
+  const isActive = stripeActive || complimentary;
 
-  return { subscription: sub, isActive, isLoading: q.isLoading, refetch: q.refetch };
+  return {
+    subscription: sub,
+    isActive,
+    stripeActive,
+    complimentary,
+    isLoading: q.isLoading || compLoading,
+    refetch: q.refetch,
+  };
 }

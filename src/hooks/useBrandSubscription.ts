@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useComplimentaryAccess } from "@/hooks/useComplimentaryAccess";
 
 export type BrandSubscription = {
   brand_user_id: string;
@@ -42,20 +43,25 @@ export function useBrandSubscription() {
     },
   });
 
+  const { complimentary, isLoading: compLoading } = useComplimentaryAccess();
+
   const sub = q.data ?? null;
-  const subActive =
+  const stripeActive =
     !!sub &&
     ACTIVE_STATUSES.has(sub.status) &&
     (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
-  // Admins bypass, mirroring pro/consumer helpers.
+  // Complimentary accounts never pay; admins bypass, mirroring pro/consumer helpers.
+  const subActive = stripeActive || complimentary;
   const isActive = isAdmin || subActive;
 
   return {
     subscription: sub,
     isActive,
     subActive,
+    stripeActive,
+    complimentary,
     isAdminOverride: isAdmin && !subActive,
-    isLoading: q.isLoading,
+    isLoading: q.isLoading || compLoading,
     refetch: q.refetch,
   };
 }

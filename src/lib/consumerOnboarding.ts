@@ -101,6 +101,15 @@ export async function getConsumerAccessForUser(userId: string, roles: string[] =
 export async function getBrandAccessForUser(userId: string, roles: string[] = []) {
   if (roles.includes("admin")) return true;
 
+  // Complimentary accounts always have Brand Access.
+  const compRes = await supabase
+    .from("profiles")
+    .select("complimentary_access")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if ((compRes.data as { complimentary_access?: boolean } | null)?.complimentary_access) return true;
+
+
   const { data } = await (supabase as unknown as {
     from: (table: string) => {
       select: (columns: string) => {

@@ -40,7 +40,7 @@ const BrandBilling = () => {
   const nav = useNavigate();
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
-  const { subscription, isActive, subActive, isLoading, refetch } = useBrandSubscription();
+  const { subscription, isActive, subActive, stripeActive, complimentary, isLoading, refetch } = useBrandSubscription();
   const { isAdmin } = useRoles();
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
 
@@ -110,9 +110,11 @@ const BrandBilling = () => {
     }
   };
 
-  const status = isAdmin && !subActive
-    ? { label: "Admin", tone: "good" as const }
-    : statusLabel(subscription?.status);
+  const status = complimentary
+    ? { label: "Complimentary", tone: "good" as const }
+    : isAdmin && !subActive
+      ? { label: "Admin", tone: "good" as const }
+      : statusLabel(subscription?.status);
 
   return (
     <ScreenLayout>
@@ -156,7 +158,7 @@ const BrandBilling = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {subscription?.current_period_end && (
+              {!complimentary && subscription?.current_period_end && (
                 <div className="flex items-center justify-between text-sm font-body">
                   <span className="text-foreground/70">
                     {subscription.cancel_at_period_end ? "Ends" : "Renews"}
@@ -164,20 +166,24 @@ const BrandBilling = () => {
                   <span className="font-medium">{formatDate(subscription.current_period_end)}</span>
                 </div>
               )}
-              {subscription?.cancel_at_period_end && (
+              {!complimentary && subscription?.cancel_at_period_end && (
                 <div className="flex items-start gap-2 text-[12px] text-warn font-body">
                   <AlertCircle className="size-4 shrink-0 mt-0.5" />
                   <span>Cancellation scheduled — access continues until the end of the current period.</span>
                 </div>
               )}
-              {!subActive && !isAdmin && (subscription?.status === "past_due" || subscription?.status === "unpaid") && (
+              {!complimentary && !subActive && !isAdmin && (subscription?.status === "past_due" || subscription?.status === "unpaid") && (
                 <div className="flex items-start gap-2 text-[12px] text-warn font-body">
                   <AlertCircle className="size-4 shrink-0 mt-0.5" />
                   <span>Your payment failed. Update your card in the billing portal to keep submitting new campaigns.</span>
                 </div>
               )}
 
-              {subActive ? (
+              {complimentary ? (
+                <p className="text-[12px] text-foreground/70 font-body text-center leading-relaxed">
+                  You have complimentary lifetime Brand Access. There is nothing to pay.
+                </p>
+              ) : stripeActive ? (
                 <Button className="w-full rounded-pill" onClick={openPortal} disabled={busy !== null}>
                   {busy === "portal" ? <Loader2 className="size-4 animate-spin" /> : "Manage subscription"}
                 </Button>
@@ -190,7 +196,7 @@ const BrandBilling = () => {
                     : "Subscribe"}
                 </Button>
               )}
-              {isAdmin && !subActive && (
+              {isAdmin && !subActive && !complimentary && (
                 <p className="text-[11px] text-foreground/60 font-body text-center">
                   Admin override — you have brand access without a subscription.
                 </p>
