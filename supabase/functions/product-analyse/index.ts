@@ -569,6 +569,21 @@ Deno.serve(async (req: Request) => {
       if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
       if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
     }
+    // ── Score reasons: normalise, keep the number honest, and reduce
+    // ai_summary to the single overall-call sentence.
+    {
+      const a = analysis as Record<string, unknown>;
+      const reasons = sanitiseScoreReasons(a.score_reasons);
+      a.score_reasons = reasons;
+      if (typeof a.match_score === "number") {
+        a.match_score = alignScoreWithReasons(a.match_score, reasons);
+      }
+      if (reasons.length >= 2) {
+        const one = firstSentence(a.ai_summary);
+        if (one) a.ai_summary = one;
+      }
+    }
+
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 
     // ── Upsert cache (only when keyed) ────────────────────────────────
