@@ -61,7 +61,10 @@ async function loadDirectory(): Promise<Professional[]> {
         .is("suspended_at", null),
     ]);
 
-  if (dbErr) throw dbErr;
+  // NEITHER layer may take the other down. A grant/policy gap on the curated
+  // table once threw here, which collapsed the whole query to the static seed
+  // and hid every real approved professional. Both loads now degrade silently.
+  if (dbErr) console.warn("professionals_directory load failed:", dbErr);
   if (ppErr) console.warn("pro_profiles load failed:", ppErr);
 
   const liveRows = (proProfiles ?? []).filter((r) => !!r.user_id);
