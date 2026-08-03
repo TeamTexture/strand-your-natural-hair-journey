@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BadgeCheck,
   Bell,
@@ -55,11 +55,36 @@ const NotificationsBell = () => {
   const { user } = useAuth();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
-  const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
+  const { notifications, unreadCount, markAllRead, markRead, markManyRead } = useNotifications();
   const admin = useAdminNotifications();
   const { level } = useTipsLevel();
 
+  // Mark-on-view: opening the panel marks everything currently visible read,
+  // so the badge is gone once the user has seen the list. Runs shortly after
+  // open so the unread highlight is still perceptible.
+  const markingRef = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      markingRef.current = false;
+      return;
+    }
+    const userIds = notifications.filter((n) => !n.read_at).map((n) => n.id);
+    const adminIds = admin.notifications.filter((n) => !n.read_at).map((n) => n.id);
+    if (userIds.length === 0 && adminIds.length === 0) return;
+    if (markingRef.current) return;
+    markingRef.current = true;
+    const t = window.setTimeout(() => {
+      void Promise.all([
+        userIds.length ? markManyRead(userIds) : Promise.resolve(),
+        adminIds.length ? admin.markManyRead(adminIds) : Promise.resolve(),
+      ]);
+    }, 900);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, notifications, admin.notifications]);
+
   if (!user) return null;
+
 
   const items: Item[] = [
     ...admin.notifications.map((n) => ({

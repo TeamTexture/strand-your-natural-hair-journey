@@ -25,6 +25,7 @@ export function useNotifications() {
   const q = useQuery({
     queryKey: ["notifications", user?.id],
     enabled: !!user?.id,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
@@ -36,6 +37,7 @@ export function useNotifications() {
       return (data ?? []) as Notification[];
     },
   });
+
 
   useEffect(() => {
     if (!user?.id) return;
@@ -65,5 +67,18 @@ export function useNotifications() {
     qc.invalidateQueries({ queryKey: ["notifications", user?.id] });
   };
 
-  return { notifications: q.data ?? [], unreadCount, isLoading: q.isLoading, markAllRead, markRead };
+  /** Mark a specific set of notifications read (mark-on-view of the list). */
+  const markManyRead = async (ids: string[]) => {
+    if (!user?.id || ids.length === 0) return;
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .in("id", ids)
+      .is("read_at", null);
+    qc.invalidateQueries({ queryKey: ["notifications", user.id] });
+  };
+
+  return { notifications: q.data ?? [], unreadCount, isLoading: q.isLoading, markAllRead, markRead, markManyRead };
 }
+

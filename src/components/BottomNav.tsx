@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { Home, FlaskConical, Droplets, Apple, User } from "lucide-react";
 import { tap } from "@/lib/haptics";
-import { useNotifications } from "@/hooks/useNotifications";
 
 const tabs = [
   { to: "/home", label: "Home", Icon: Home },
@@ -16,8 +15,6 @@ const tabs = [
  * the iPhone home-bar safe-area-inset-bottom.
  */
 const BottomNav = () => {
-  // Badges appear only for genuinely actionable counts (unread notifications).
-  const { unreadCount } = useNotifications();
   return (
   <nav
     aria-label="Primary"
@@ -42,14 +39,6 @@ const BottomNav = () => {
           <>
             <span className="relative">
               <Icon className={`size-5 ${isActive ? "stroke-[2]" : "stroke-[1.5]"}`} aria-hidden="true" />
-              {to === "/profile" && unreadCount > 0 && (
-                <span
-                  className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-body font-semibold flex items-center justify-center"
-                  aria-label={`${unreadCount} unread`}
-                >
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
             </span>
             <span className="text-center leading-none">{label}</span>
           </>

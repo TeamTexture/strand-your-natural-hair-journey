@@ -67,8 +67,16 @@ export function useAdminNotifications() {
     qc.invalidateQueries({ queryKey: KEY });
   };
 
-  return { notifications, unreadCount, isAdmin, markRead, markAllRead };
+  /** Mark a specific set read — mark-on-view of the bell list. */
+  const markManyRead = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    await supabase.rpc("admin_notifications_mark_read", { _ids: ids });
+    qc.invalidateQueries({ queryKey: KEY });
+  };
+
+  return { notifications, unreadCount, isAdmin, markRead, markAllRead, markManyRead };
 }
+
 
 /**
  * Clears any admin notification tied to a record the admin has just handled,
