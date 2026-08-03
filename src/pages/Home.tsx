@@ -27,6 +27,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
 import { Ruler, Sparkles, Lightbulb } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
+import KeyFactChips from "@/components/guidance/KeyFactChips";
 import {
   loadClinicalContext,
   loadClinicalContextLocal,
@@ -84,7 +85,9 @@ const Home = () => {
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal);
+  // Home shows EXACTLY ONE tip — the Strand Tip of the Day. The fuller
+  // multi-tip "How you'll get there" playbook lives on the Style Journal.
+  const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal, { single: true });
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
@@ -331,6 +334,28 @@ const Home = () => {
       return title.length > 20 ? `${title.slice(0, 20)}…` : title;
     }
     return "Your goal";
+  })();
+
+  // Short goal word for the Strand Tip of the Day chip ("Length", "Moisture").
+  const goalChipLabel = (() => {
+    if (!lengthGoal) return null;
+    const kindMap: Record<string, string> = {
+      length_retention: "Length",
+      moisture: "Moisture",
+      scalp_health: "Scalp",
+      breakage: "Breakage",
+      definition: "Definition",
+      protective_styling: "Protective styling",
+      growth: "Growth",
+      thickness: "Thickness",
+    };
+    if (lengthGoal.kind && kindMap[lengthGoal.kind]) return kindMap[lengthGoal.kind];
+    const title = lengthGoal.title?.trim();
+    if (title && title.toLowerCase() !== "hair goal") {
+      const words = title.split(/\s+/).slice(0, 2).join(" ");
+      return words.length > 18 ? `${words.slice(0, 18)}…` : words;
+    }
+    return null;
   })();
 
   const flaggedCount = bloodSummary?.flagged ?? 0;
@@ -712,34 +737,33 @@ const Home = () => {
                     )}
                   </button>
 
-                  {/* AI tip — pulled from the goal-tip edge function using
-                      the user's full profile. Cached per goal id+updated_at
-                      so it loads instantly after the first generation.
-                      Depth scales with the support level: level 1 shows the
-                      headline and one action only, level 4 rebuilds it as an
-                      illustrated step-by-step guide. */}
+                  {/* STRAND TIP OF THE DAY — exactly one tip. Eyebrow +
+                      goal chip, one bold action headline, one supporting line
+                      through her hair characteristics, and at most one key
+                      fact chip. Nothing else: no lists, no education blocks.
+                      The pillar rotates daily inside the goal's territory. */}
                   <GuidanceCard
                     className="mt-3"
                     tone="gold"
-                    compact={tipsLevel <= 2}
+                    compact
                     eyebrow="Strand tip of the day"
                     icon={Lightbulb}
+                    headerRight={
+                      goalChipLabel ? (
+                        <span className="shrink-0 inline-flex items-center rounded-pill border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold font-body text-primary">
+                          {goalChipLabel}
+                        </span>
+                      ) : undefined
+                    }
                     headline={goalTip ? renderRichText(goalTip.headline) : undefined}
                   >
                     {goalTip ? (
                       <>
-                        <LevelGate min={2}>
-                          <AiProse text={goalTip.body} />
-                        </LevelGate>
-                        {goalTip.actions?.length > 0 && (
-                          <TipsBlock
-                            idPrefix="goaltip"
-                            dedupeAgainst={goalTip.body}
-                            tips={goalTip.actions.map((a, i): GuidanceTip => ({
-                              priority: goalTip.actions.length - i,
-                              short: typeof a === "string" ? a : a.action,
-                              why: typeof a === "string" ? undefined : a.why,
-                            }))}
+                        <AiProse text={goalTip.body} />
+                        {goalTip.key_fact && (
+                          <KeyFactChips
+                            className="mt-2"
+                            facts={[{ label: goalTip.key_fact }]}
                           />
                         )}
                       </>

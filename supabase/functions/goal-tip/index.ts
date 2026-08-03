@@ -151,6 +151,139 @@ function buildRagQuery(body: RequestBody): string {
   return bits.filter(Boolean).join(" — ");
 }
 
+/**
+ * DAILY PILLAR ROTATION — Home's single-tip card.
+ *
+ * Each goal owns a small set of manuscript pillars. The Home card shows ONE
+ * tip a day, and the pillar it draws from rotates day to day so the user never
+ * sees yesterday's tip again while never leaving the goal's territory. The
+ * rotation index is derived from the calling day + goal text + profile
+ * fingerprint, so it is stable for the whole day and moves on tomorrow.
+ */
+const GOAL_PILLARS: Array<{ re: RegExp; pillars: string[] }> = [
+  {
+    re: /length|grow|retention|retain|longer/i,
+    pillars: [
+      "keeping the ends tucked away and off clothing/shoulders",
+      "moisture and deep conditioning with heat (TT Heat Hat)",
+      "low manipulation — fewer hands in the hair between wash days",
+      "protective styles chosen and worn without tension",
+      "regular trims to stop splits travelling up the strand",
+    ],
+  },
+  {
+    re: /break|snap|split|damage/i,
+    pillars: [
+      "moisture before strength — hydration first",
+      "detangling technique and section discipline",
+      "protein/strength only when the hair's behaviour asks for it",
+      "reducing tension in styling and at the hairline",
+      "trimming away compromised ends",
+    ],
+  },
+  {
+    re: /moisture|hydrat|dry|dryness|porosity/i,
+    pillars: [
+      "deep conditioning with heat (TT Heat Hat)",
+      "layering and sealing after cleansing",
+      "wash frequency matched to her porosity",
+      "night-time moisture protection",
+      "product choice for her porosity",
+    ],
+  },
+  {
+    re: /scalp|itch|flake|dandruff|seborr|folliculitis/i,
+    pillars: [
+      "cleansing the scalp properly on wash day",
+      "spotting the difference between dryness and build-up",
+      "scalp-friendly product choices",
+      "styling that lets the scalp breathe",
+      "when to involve a professional",
+    ],
+  },
+  {
+    re: /shed|thinning|fall/i,
+    pillars: [
+      "shedding versus breakage — reading what is actually coming out",
+      "internal signals and flagged markers worth tracking",
+      "reducing tension where density is thinnest",
+      "gentle handling on wash day",
+      "when to involve a professional",
+    ],
+  },
+  {
+    re: /protective|braid|twist|wig|weave/i,
+    pillars: [
+      "install tension and how it should feel",
+      "caring for the hair underneath while it's away",
+      "how long to keep a style in",
+      "taking a style down without damage",
+      "the rest period between installs",
+    ],
+  },
+  {
+    re: /definition|curl|coil|shrink/i,
+    pillars: [
+      "styling on soaking-wet hair",
+      "product application in sections",
+      "drying without disturbing the pattern",
+      "refreshing between wash days",
+      "protecting the pattern overnight",
+    ],
+  },
+];
+
+const DEFAULT_PILLARS = [
+  "wash day fundamentals",
+  "moisture and deep conditioning with heat (TT Heat Hat)",
+  "low manipulation and gentle handling",
+  "protective styling without tension",
+  "trims and end care",
+];
+
+function pillarsForGoal(goalText: string): string[] {
+  for (const { re, pillars } of GOAL_PILLARS) {
+    if (re.test(goalText ?? "")) return pillars;
+  }
+  return DEFAULT_PILLARS;
+}
+
+/** Small stable hash so the rotation seed is deterministic per day+goal+profile. */
+function stableHash(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+/** Days since epoch for the caller's local day string (YYYY-MM-DD). */
+function dayIndexOf(day: string | null | undefined): number {
+  const d = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(`${day}T00:00:00Z`) : new Date();
+  return Math.floor(d.getTime() / 86_400_000);
+}
+
+function buildRotationBlock(body: RequestBody, goalText: string): {
+  block: string;
+  pillar: string;
+} {
+  const pillars = pillarsForGoal(goalText);
+  const seed = stableHash(`${goalText}|${body.profileFingerprint ?? ""}`);
+  const pillar = pillars[(dayIndexOf(body.day) + seed) % pillars.length];
+  return {
+    pillar,
+    block: `TODAY'S PILLAR — ROTATION (do not ignore):
+This goal's territory is made of these pillars:
+${pillars.map((p, i) => `${i + 1}. ${p}`).join("\n")}
+
+TODAY you must build the single tip on this pillar: "${pillar}".
+- Stay inside the goal's territory. Never wander to an unrelated topic.
+- The RECENT ADVICE ledger below shows what she has already been told. Take a different angle on today's pillar from anything listed there — a different action, a different moment in her routine, or a progression on a habit she already has ("your deep condition habit is set — now seal your ends after each wash").
+- Never repeat a headline or action that appears in the ledger.`,
+  };
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -187,6 +320,22 @@ Rules:
 - Never name the manuscript, chapters, or page numbers in the output.
 - No clichés, no hype words, no "journey" / "queen" / "slay".`;
 
+/**
+ * Home card contract: EXACTLY ONE tip. Supersedes the 3-tip contract for this
+ * surface only — the Style Journal still asks for the multi-tip playbook.
+ */
+const SINGLE_TIP_TASK = `TASK — STRAND TIP OF THE DAY (EXACTLY ONE TIP)
+Write the single most valuable action she can take TODAY towards her stated goal, personalised through her hair type and characteristics. Use blood markers ONLY when a flagged marker genuinely changes what she should do today; otherwise leave them out entirely.
+
+Output EXACTLY these fields and nothing more:
+- "headline": the action itself, max 8 words, imperative, no emoji, no colon-prefixed label.
+- "body": ONE sentence, max 30 words: the action detail plus WHY it works for HER, naming a real characteristic from her profile (curl pattern, porosity, density, strand diameter, elasticity, scalp, current style + how long she's been in it, or a flagged marker that actually matters here). A line that could be written for any user is invalid — rewrite it.
+- "key_fact": OPTIONAL, max 4 words — a single concrete parameter only if one genuinely applies: a frequency ("Every wash day"), a duration ("20 minutes"), or a tool ("TT Heat Hat"). Omit the field entirely when there isn't a real one. Never invent one.
+
+NO lists. NO actions array. NO extra education block. NO second sentence in the body. One idea, once.
+
+Everything else in this prompt still applies: the persona and voice, the core teachings, the wash-day baseline, the retrieved manuscript passages as the source of truth, the relevance gate (never cite a signal the advice does not actually act on), never naming the book/chapters/pages, and never inventing profile data.`;
+
 interface RequestBody {
   goal: {
     challenge: string | null;
@@ -197,6 +346,17 @@ interface RequestBody {
   context: Record<string, unknown>;
   /** How many actions to return (3–5). Journal asks for up to 5. */
   maxTips?: number;
+  /**
+   * Home's Strand Tip of the Day card. When true the function returns exactly
+   * ONE tip — headline + one supporting line + at most one key fact — and no
+   * action list at all. The fuller multi-tip playbook stays on the Style
+   * Journal page (single: false / omitted).
+   */
+  single?: boolean;
+  /** Caller's local day (YYYY-MM-DD) — drives the daily pillar rotation. */
+  day?: string;
+  /** Profile+goal fingerprint — keeps the rotation stable within a day. */
+  profileFingerprint?: string;
 }
 
 Deno.serve(async (req) => {
@@ -209,7 +369,10 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const body: RequestBody = await req.json();
-    const tipCount = Math.min(5, Math.max(3, Math.round(Number(body.maxTips) || 3)));
+    const single = body.single === true || Number(body.maxTips) === 1;
+    const tipCount = single
+      ? 1
+      : Math.min(5, Math.max(3, Math.round(Number(body.maxTips) || 3)));
     const userPayload = JSON.stringify(body);
 
     const ledgerUserId = userIdFromRequest(req);
@@ -274,10 +437,18 @@ Deno.serve(async (req) => {
       : "";
     const styleSuffix = styleBlock ? `\n\n${styleBlock}` : "";
 
+    // Home's one-tip card: swap the multi-tip task for the single-tip contract
+    // and append today's rotating pillar.
+    const rotation = single ? buildRotationBlock(body, goalText) : null;
+    const singleSuffix = rotation
+      ? `\n\n${SINGLE_TIP_TASK}\n\n${rotation.block}`
+      : "";
+
     const withCount = (t: string) => t.replaceAll("{{TIP_COUNT}}", String(tipCount));
     const systemPrompt = teachings.length > 0
       ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}${ragBlock}${styleSuffix}`
       : `${baseSystemPrompt}${ragBlock}${styleSuffix}`;
+    const finalSystemPrompt = `${systemPrompt}${singleSuffix}`;
 
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -290,7 +461,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${withCount(systemPrompt)}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+            { role: "system", content: `${withCount(finalSystemPrompt)}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
             { role: "user", content: userPayload },
           ],
           tools: [
@@ -299,7 +470,18 @@ Deno.serve(async (req) => {
               function: {
                 name: "return_tip",
                 description: "Return the personalised goal tip.",
-                parameters: {
+                parameters: single
+                  ? {
+                      type: "object",
+                      properties: {
+                        headline: { type: "string" },
+                        body: { type: "string" },
+                        key_fact: { type: "string" },
+                      },
+                      required: ["headline", "body"],
+                      additionalProperties: false,
+                    }
+                  : {
                   type: "object",
                   properties: {
                     headline: { type: "string" },
@@ -364,7 +546,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    let tip: { headline: string; body: string; actions: string[] };
+    let tip: {
+      headline: string;
+      body: string;
+      key_fact?: string;
+      actions?: unknown[];
+    };
     try {
       tip = JSON.parse(toolCall.function.arguments);
     } catch (e) {
@@ -375,13 +562,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (single) {
+      // Hard guarantee of the one-tip shape regardless of model drift.
+      const keyFact = typeof tip.key_fact === "string" ? tip.key_fact.trim() : "";
+      tip = {
+        headline: String(tip.headline ?? "").trim(),
+        body: String(tip.body ?? "").trim(),
+        ...(keyFact ? { key_fact: keyFact } : {}),
+        actions: [],
+      };
+    }
+
     if (ledgerUserId) {
       const actionLines = Array.isArray(tip.actions)
         ? (tip.actions as Array<string | { action?: string }>).map((a) =>
             typeof a === "string" ? a : a?.action ?? "",
           )
         : [];
-      await recordAdvice(ledgerUserId, "goal-tip", [tip.headline, ...actionLines]);
+      await recordAdvice(ledgerUserId, "goal-tip", [
+        tip.headline,
+        ...(single && tip.body ? [tip.body] : []),
+        ...actionLines,
+      ]);
     }
 
     return new Response(
