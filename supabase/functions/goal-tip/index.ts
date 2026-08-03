@@ -501,7 +501,23 @@ Deno.serve(async (req) => {
               function: {
                 name: "return_tip",
                 description: "Return the personalised goal tip.",
-                parameters: single
+                parameters: journal
+                  ? {
+                      type: "object",
+                      properties: {
+                        overview: { type: "string" },
+                        caution: { type: "string" },
+                        signals: {
+                          type: "array",
+                          items: { type: "string" },
+                          minItems: 2,
+                          maxItems: 3,
+                        },
+                      },
+                      required: ["overview", "caution", "signals"],
+                      additionalProperties: false,
+                    }
+                  : single
                   ? {
                       type: "object",
                       properties: {
@@ -512,6 +528,7 @@ Deno.serve(async (req) => {
                       required: ["headline", "body"],
                       additionalProperties: false,
                     }
+
                   : {
                   type: "object",
                   properties: {
