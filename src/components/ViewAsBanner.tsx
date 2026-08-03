@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Eye, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useViewAs } from "@/hooks/useViewAs";
+import { useRoles } from "@/hooks/useRoles";
+import { ACCOUNT_TYPE_LABEL } from "@/hooks/useAccountTypes";
 
 /**
  * Sticky admin banner rendered above every route when "View as user" is
@@ -12,12 +14,17 @@ import { useViewAs } from "@/hooks/useViewAs";
 const ViewAsBanner = () => {
   const { isViewingAs, actualUser } = useAuth();
   const { viewAsDisplayName, stopViewAs } = useViewAs();
+  // useRoles resolves the SHADOWED user's roles while view-as is active.
+  const { roles, loading: rolesLoading } = useRoles();
   const qc = useQueryClient();
   const nav = useNavigate();
 
   if (!isViewingAs || !actualUser) return null;
 
   const label = viewAsDisplayName?.trim() || "another user";
+  const roleLabels = roles
+    .map((r) => ACCOUNT_TYPE_LABEL[r as keyof typeof ACCOUNT_TYPE_LABEL] ?? r)
+    .join(" · ");
 
   const exit = () => {
     stopViewAs();
@@ -26,6 +33,7 @@ const ViewAsBanner = () => {
     qc.clear();
     nav("/admin/view-as", { replace: true });
   };
+
 
   return (
     <div
