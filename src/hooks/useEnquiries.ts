@@ -141,7 +141,7 @@ export function useMyPassportSharing() {
           .order("granted_at", { ascending: false }),
         supabase
           .from("pro_enquiries")
-          .select("id, pro_user_id, status, created_at")
+          .select("id, pro_user_id, status, created_at, share_passport_consent")
           .eq("consumer_id", uid)
           .order("created_at", { ascending: false }),
       ]);
@@ -160,6 +160,7 @@ export function useMyPassportSharing() {
           revoked_at: null,
           enquiry_status: null,
           enquiry_created_at: null,
+          consent: false,
         };
         byPro.set(proId, row);
         return row;
@@ -171,8 +172,10 @@ export function useMyPassportSharing() {
         if (!row.enquiry_status) {
           row.enquiry_status = e.status as EnquiryStatus;
           row.enquiry_created_at = e.created_at;
+          row.consent = !!e.share_passport_consent;
         }
       }
+
       for (const a of (accessRes.data ?? []) as ClientAccess[]) {
         const row = ensure(a.pro_user_id);
         const active = a.revoked_at === null;
