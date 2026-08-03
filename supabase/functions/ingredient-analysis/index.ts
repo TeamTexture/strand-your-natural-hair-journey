@@ -174,7 +174,7 @@ function buildToolSchema(ingredientCount: number) {
         },
       },
     },
-    required: ["match_score", "summary", "ingredients", "personalised_guidance"],
+    required: ["match_score", "score_reasons", "summary", "ingredients", "personalised_guidance"],
   } as Record<string, unknown>;
 }
 
