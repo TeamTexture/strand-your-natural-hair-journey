@@ -82,7 +82,6 @@ const Journal = () => {
   const [editorStatus, setEditorStatus] = useState<string>("in_progress");
   const [detailOpen, setDetailOpen] = useState(false);
   const [viewing, setViewing] = useState<UserGoal | null>(null);
-  const [chooserOpen, setChooserOpen] = useState(false);
   const [progressGoal, setProgressGoal] = useState<UserGoal | null>(null);
   const [timelineGoal, setTimelineGoal] = useState<UserGoal | null>(null);
   const [newGoalConfirm, setNewGoalConfirm] = useState(false);
@@ -192,6 +191,21 @@ const Journal = () => {
     })();
     return () => { cancelled = true; };
   }, [user]);
+
+  // Neutral recency line for the entries list — no wash advice here.
+  const lastEntryLabel = useMemo(() => {
+    const latest = savedEntries[0];
+    if (!latest) return null;
+    const d = new Date(latest.entry_date);
+    if (Number.isNaN(d.getTime())) return null;
+    const days = Math.max(
+      0,
+      Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)),
+    );
+    if (days === 0) return "Last entry today";
+    if (days === 1) return "Last entry yesterday";
+    return `Last entry ${days} days ago`;
+  }, [savedEntries]);
 
   // Photo-pull effect for the old mock catalog removed — saved entries fetch
   // their own cover URL from journal_entries.photo_paths above.
@@ -462,6 +476,8 @@ const Journal = () => {
         </>
       )}
 
+      <PastGoalsSection goals={pastGoals} onOpen={(g) => setTimelineGoal(g)} />
+
       <GoalEditorSheet
         open={editorOpen}
         onOpenChange={setEditorOpen}
@@ -478,51 +494,41 @@ const Journal = () => {
         }}
       />
 
-      <AlertDialog open={chooserOpen} onOpenChange={setChooserOpen}>
+      <GoalProgressComposer
+        open={!!progressGoal}
+        onOpenChange={(o) => !o && setProgressGoal(null)}
+        goalId={progressGoal?.id ?? ""}
+      />
+      <GoalTimelineSheet
+        open={!!timelineGoal}
+        onOpenChange={(o) => !o && setTimelineGoal(null)}
+        goal={timelineGoal}
+      />
+
+      <AlertDialog open={newGoalConfirm} onOpenChange={setNewGoalConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Set a new goal</AlertDialogTitle>
+            <AlertDialogTitle>Set a new goal?</AlertDialogTitle>
             <AlertDialogDescription>
-              How would you like to handle your current goal?
+              Your current goal moves into Past goals with all of its updates kept —
+              nothing is deleted. Then you'll write the new one.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex flex-col gap-2 mt-2">
-            <Button
-              variant="gold"
-              size="pill"
-              onClick={() => {
-                setChooserOpen(false);
-                if (primaryGoal) openEditor(primaryGoal, "in_progress");
-              }}
-            >
-              Replace current goal
-            </Button>
-            <Button
-              variant="goldOutline"
-              size="pill"
-              onClick={() => {
-                setChooserOpen(false);
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                setNewGoalConfirm(false);
+                if (primaryGoal) await endGoal(primaryGoal.id);
                 openEditor(null, "in_progress");
               }}
             >
-              Add to current goal
-            </Button>
-            <Button
-              variant="goldGhost"
-              size="pill"
-              onClick={() => {
-                setChooserOpen(false);
-                openEditor(null, "future");
-              }}
-            >
-              Set as future goal
-            </Button>
-            <AlertDialogCancel className="mt-1">Cancel</AlertDialogCancel>
-          </div>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
