@@ -700,6 +700,16 @@ const NutritionPlan = () => {
           </p>
         </div>
 
+        <div className="mb-4 rounded-[12px] bg-muted/60 border border-border/60 px-3 py-2">
+          <div className="flex items-start gap-2">
+            <Info className="size-3.5 text-muted-foreground shrink-0 mt-[1px]" />
+            <p className="text-[11px] font-body leading-snug text-muted-foreground">
+              <strong className="font-semibold text-foreground/80">Not medical advice.</strong> Always check with your GP before starting a new supplement — especially if you're pregnant, breastfeeding, on medication, or managing a health condition.
+            </p>
+          </div>
+        </div>
+
+
         {plan?.summary && (
           <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
             <div className="flex items-start gap-2 mb-2">
