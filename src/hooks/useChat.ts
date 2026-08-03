@@ -264,7 +264,7 @@ export function useChatThread(threadId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: ["chat_widget_previews"] });
     };
     const channel = supabase
-      .channel(`chat_thread_${threadId}`)
+      .channel(`chat_thread_${threadId}_${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },

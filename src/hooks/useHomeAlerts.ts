@@ -164,7 +164,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
       "product_ratings",
       "ingredient_lists",
     ] as const;
-    const channel = supabase.channel(`home-alerts:${user.id}`);
+    const channel = supabase.channel(`home-alerts:${user.id}:${Math.random().toString(36).slice(2)}`);
     for (const table of tables) {
       channel.on(
         "postgres_changes",
