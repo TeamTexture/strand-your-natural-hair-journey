@@ -29,7 +29,6 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { dedupeSentences, emphasisSplit, splitSentences } from "@/lib/tipsRender";
 import { restatesAction } from "@/lib/guidance";
-import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import { CircleSlash, Repeat, Ruler } from "lucide-react";
 
 
@@ -429,11 +428,6 @@ const WashDayHub = () => {
       .filter((s) => !restatesAction(s, OVERDUE_CTA))
       .join(" ");
   })();
-  // Plain-terms footnote for the overdue card (level 4 only, claim-once).
-  const overdueTerms = usePlainTermFootnotes(
-    overdue ? "sebum builds up on the scalp between washes" : "",
-    Boolean(overdue) && showBeginnerHelp,
-  );
 
   // Cadence reasoning appears at most once per page. Priority:
   // overdue alert > AI tip card > wash rhythm "why".
@@ -516,7 +510,6 @@ const WashDayHub = () => {
                     {OVERDUE_CTA} →
                   </button>
                   {schedulingRow(true)}
-                  <PlainTermsFootnote terms={overdueTerms} />
                 </div>
               }
             >

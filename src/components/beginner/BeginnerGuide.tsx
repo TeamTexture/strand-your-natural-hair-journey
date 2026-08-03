@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
-import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import {
   AlertTriangle,
   Check,
@@ -64,7 +63,6 @@ export function extractTime(text: string): string | null {
  *
  * Definitions are NEVER appended to prose — that produced the same sentence
  * repeated in several blocks on one screen. A term is explained once per page
- * as a small "In plain terms" footnote row; see `src/lib/plainTerms.tsx`.
  *
  * This helper now only cleans the copy it is given: bracketed asides out,
  * coherence guarded. It is kept as the single entry point so every renderer
@@ -109,9 +107,6 @@ export const BeginnerSteps = ({
   steps: BeginnerStep[];
   className?: string;
 }) => {
-  const footnotes = usePlainTermFootnotes(
-    steps.map((s) => `${s.text} ${s.detail ?? ""} ${s.why ?? ""}`).join(" "),
-  );
   if (steps.length === 0) return null;
   return (
     <>
@@ -163,7 +158,6 @@ export const BeginnerSteps = ({
         );
       })}
     </ol>
-    <PlainTermsFootnote terms={footnotes} className="mt-2" />
     </>
   );
 };

@@ -9,7 +9,6 @@ import {
   emphasisSplit,
   splitToBlocks,
 } from "@/lib/tipsRender";
-import { PlainTermsFootnote, usePlainTermFootnotes } from "@/lib/plainTerms";
 import {
   createIconPicker,
   looksSequential,
@@ -30,7 +29,6 @@ import KeyFactChips from "@/components/guidance/KeyFactChips";
  *    split at sentence boundaries into separate blocks — never truncated.
  *  - Dense blocks lead with a bold first sentence, the rest as lighter
  *    secondary text.
- *  - Technical terms are explained once per page as an "In plain terms"
  *    footnote — never appended inline to several blocks.
  *
  * Level response:
@@ -65,8 +63,6 @@ const GuidanceBody = ({
     return { lead, segments };
   }, [parsed]);
 
-  const footnotes = usePlainTermFootnotes(condensed, level >= 2);
-
   if (!condensed) return null;
 
   const lead = deduped.lead;
@@ -97,7 +93,6 @@ const GuidanceBody = ({
             {render(s.body, `${keyPrefix}-s${i}`)}
           </p>
         ))}
-        <PlainTermsFootnote terms={footnotes} />
       </div>
     );
   }
@@ -154,7 +149,6 @@ const GuidanceBody = ({
         <SegmentBlock key={`${s.label}-${i}`} segment={s} keyPrefix={`${keyPrefix}-s${i}`} />
       ))}
 
-      <PlainTermsFootnote terms={footnotes} />
     </div>
   );
 };
