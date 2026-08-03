@@ -275,8 +275,7 @@ function buildRotationBlock(body: RequestBody, goalText: string): {
     pillar,
     block: `TODAY'S PILLAR — ROTATION (do not ignore):
 This goal's territory is made of these pillars:
-${pillars.map((p, i) => `${i + 1}. ${p}`).join("
-")}
+${pillars.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 
 TODAY you must build the single tip on this pillar: "${pillar}".
 - Stay inside the goal's territory. Never wander to an unrelated topic.
