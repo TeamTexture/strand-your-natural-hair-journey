@@ -85,6 +85,15 @@ const Directory = () => {
     [pros, query, tab, bloodOnly],
   );
 
+  // Aggregate approved-review ratings for every listed platform pro. Pros with
+  // no approved reviews are absent from the map, so nothing is rendered.
+  const proUserIds = useMemo(
+    () => pros.map((p) => p.proUserId).filter((id): id is string => !!id),
+    [pros],
+  );
+  const { data: reviewSummaries } = useReviewSummaries(proUserIds);
+
+
   // Resolve the target listing for anchoring. Covers both the owner's own
   // "view my listing" flow (?self=1) and any deep link to another pro via
   // ?pro=<userId>. Owner styling (star + Edit) is still driven off `user.id`
