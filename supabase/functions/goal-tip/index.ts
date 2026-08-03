@@ -336,6 +336,27 @@ NO lists. NO actions array. NO extra education block. NO second sentence in the 
 
 Everything else in this prompt still applies: the persona and voice, the core teachings, the wash-day baseline, the retrieved manuscript passages as the source of truth, the relevance gate (never cite a signal the advice does not actually act on), never naming the book/chapters/pages, and never inventing profile data.`;
 
+/**
+ * Style Journal contract: EXACTLY ONE OVERVIEW + ONE CAUTION. Supersedes the
+ * multi-tip playbook for that surface. Wash-day technique is explicitly out of
+ * scope — it lives on the Wash Day surfaces.
+ */
+const JOURNAL_TASK = `TASK — HOW YOU'LL GET THERE (ONE OVERVIEW + ONE CAUTION)
+Write exactly two blocks for the Style Journal goal section.
+
+Output EXACTLY these fields and nothing more:
+- "overview": 1–2 sentences, max 40 words. HOW this specific user will achieve her stated goal, reasoned through her own characteristics and current style (e.g. protecting the ends on high-porosity loose natural hair to retain length). Start with a short bold lead-in phrase followed by an em-dash, then the explanation (e.g. "Protect your ends — high porosity loses moisture fastest at the oldest part of the strand.").
+- "caution": 1–2 sentences, max 40 words. The SINGLE most important thing that would undermine this goal for HER (e.g. high-tension styling at the edges, skipping trims so splits travel up the strand). Same bold lead-in then em-dash format.
+- "signals": 2–3 items, each max 3 words — the profile characteristics this reasoning actually rests on, humanised for display (e.g. "High porosity", "Loose natural", "4 weeks in braids"). Only signals present in the payload.
+
+HARD SCOPE RULES:
+- NO wash-day or routine technique. No numbered steps, no "apply leave-in nightly", no "deep condition for 25 minutes", no product application instructions, no tool timings. That content belongs to the Wash Day surfaces and must not appear here.
+- NO actions array, NO lists, NO headline, NO extra education block.
+- One idea, once: the overview and the caution must be different ideas, and neither may restate anything in the RECENT ADVICE ledger. The advice ledger applies in full to this surface.
+- A line that could be written for any user is invalid — rewrite it through her data.
+
+Everything else in this prompt still applies: the persona and voice, the core teachings, the retrieved manuscript passages as the source of truth, the relevance gate, never naming the book/chapters/pages, and never inventing profile data.`;
+
 interface RequestBody {
   goal: {
     challenge: string | null;
@@ -344,20 +365,25 @@ interface RequestBody {
     status: string | null;
   };
   context: Record<string, unknown>;
-  /** How many actions to return (3–5). Journal asks for up to 5. */
+  /** How many actions to return (3–5). Legacy multi-tip callers only. */
   maxTips?: number;
   /**
    * Home's Strand Tip of the Day card. When true the function returns exactly
    * ONE tip — headline + one supporting line + at most one key fact — and no
-   * action list at all. The fuller multi-tip playbook stays on the Style
-   * Journal page (single: false / omitted).
+   * action list at all.
    */
   single?: boolean;
+  /**
+   * Style Journal's "How you'll get there". When "journal" the function returns
+   * ONLY { overview, caution, signals } — no actions, no wash-day technique.
+   */
+  variant?: "journal";
   /** Caller's local day (YYYY-MM-DD) — drives the daily pillar rotation. */
   day?: string;
   /** Profile+goal fingerprint — keeps the rotation stable within a day. */
   profileFingerprint?: string;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -369,10 +395,12 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const body: RequestBody = await req.json();
-    const single = body.single === true || Number(body.maxTips) === 1;
+    const journal = body.variant === "journal";
+    const single = !journal && (body.single === true || Number(body.maxTips) === 1);
     const tipCount = single
       ? 1
       : Math.min(5, Math.max(3, Math.round(Number(body.maxTips) || 3)));
+
     const userPayload = JSON.stringify(body);
 
     const ledgerUserId = userIdFromRequest(req);
@@ -442,7 +470,10 @@ Deno.serve(async (req) => {
     const rotation = single ? buildRotationBlock(body, goalText) : null;
     const singleSuffix = rotation
       ? `\n\n${SINGLE_TIP_TASK}\n\n${rotation.block}`
-      : "";
+      : journal
+        ? `\n\n${JOURNAL_TASK}`
+        : "";
+
 
     const withCount = (t: string) => t.replaceAll("{{TIP_COUNT}}", String(tipCount));
     const systemPrompt = teachings.length > 0
@@ -470,7 +501,23 @@ Deno.serve(async (req) => {
               function: {
                 name: "return_tip",
                 description: "Return the personalised goal tip.",
-                parameters: single
+                parameters: journal
+                  ? {
+                      type: "object",
+                      properties: {
+                        overview: { type: "string" },
+                        caution: { type: "string" },
+                        signals: {
+                          type: "array",
+                          items: { type: "string" },
+                          minItems: 2,
+                          maxItems: 3,
+                        },
+                      },
+                      required: ["overview", "caution", "signals"],
+                      additionalProperties: false,
+                    }
+                  : single
                   ? {
                       type: "object",
                       properties: {
@@ -481,6 +528,7 @@ Deno.serve(async (req) => {
                       required: ["headline", "body"],
                       additionalProperties: false,
                     }
+
                   : {
                   type: "object",
                   properties: {
@@ -547,10 +595,13 @@ Deno.serve(async (req) => {
     }
 
     let tip: {
-      headline: string;
-      body: string;
+      headline?: string;
+      body?: string;
       key_fact?: string;
       actions?: unknown[];
+      overview?: string;
+      caution?: string;
+      signals?: unknown[];
     };
     try {
       tip = JSON.parse(toolCall.function.arguments);
@@ -562,7 +613,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (single) {
+    if (journal) {
+      // Hard guarantee of the overview + caution shape regardless of drift.
+      tip = {
+        overview: String(tip.overview ?? "").trim(),
+        caution: String(tip.caution ?? "").trim(),
+        signals: (Array.isArray(tip.signals) ? tip.signals : [])
+          .map((s) => String(s ?? "").trim())
+          .filter(Boolean)
+          .slice(0, 3),
+        actions: [],
+      };
+    } else if (single) {
       // Hard guarantee of the one-tip shape regardless of model drift.
       const keyFact = typeof tip.key_fact === "string" ? tip.key_fact.trim() : "";
       tip = {
@@ -580,11 +642,13 @@ Deno.serve(async (req) => {
           )
         : [];
       await recordAdvice(ledgerUserId, "goal-tip", [
-        tip.headline,
+        ...(tip.headline ? [tip.headline] : []),
+        ...(journal ? [tip.overview ?? "", tip.caution ?? ""] : []),
         ...(single && tip.body ? [tip.body] : []),
         ...actionLines,
-      ]);
+      ].filter(Boolean));
     }
+
 
     return new Response(
       JSON.stringify({
