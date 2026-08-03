@@ -395,10 +395,12 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const body: RequestBody = await req.json();
-    const single = body.single === true || Number(body.maxTips) === 1;
+    const journal = body.variant === "journal";
+    const single = !journal && (body.single === true || Number(body.maxTips) === 1);
     const tipCount = single
       ? 1
       : Math.min(5, Math.max(3, Math.round(Number(body.maxTips) || 3)));
+
     const userPayload = JSON.stringify(body);
 
     const ledgerUserId = userIdFromRequest(req);
