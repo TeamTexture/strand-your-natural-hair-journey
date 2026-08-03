@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { shortForm, selectTips, dedupeTips, groupByStage, orderByStage, type GuidanceTip } from "@/lib/tipsRender";
-import { DoDont, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+import { DoDont } from "@/components/beginner/BeginnerGuide";
 import ActionList, { type GuidanceAction } from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
 import StageHeader from "@/components/guidance/StageHeader";
@@ -19,8 +19,7 @@ import { cn } from "@/lib/utils";
  *  2 Essentials   — 2–3 icon-led ActionRows with chips, no "why" prose.
  *  3 Guided       — all tips as ActionRows with the "why" supporting text.
  *  4 Hand-holding — a numbered StepSequence with everything visible at once,
- *                   plus do/don't pairs and closing reassurance. Nothing is
- *                   collapsed or deferred.
+ *                   plus do/don't pairs. Nothing is collapsed or deferred.
  *
  * ONE THEME, ONCE — pass `dedupeAgainst` with the prose already shown above
  * this block (an AI overview, a card body) and any tip that merely restates it
@@ -30,7 +29,6 @@ const TipsBlock = ({
   tips,
   dos,
   donts,
-  reassurance,
   idPrefix = "tip",
   className,
   dedupeAgainst,
@@ -40,7 +38,6 @@ const TipsBlock = ({
   dos?: string[];
   /** Level-4-only incorrect-practice list for the whole block. */
   donts?: string[];
-  reassurance?: string;
   idPrefix?: string;
   className?: string;
   /** Prose already visible on the same screen — duplicate tips are suppressed. */
@@ -97,7 +94,6 @@ const TipsBlock = ({
         {(allDos.length > 0 || allDonts.length > 0) && (
           <DoDont dos={allDos} donts={allDonts} />
         )}
-        <BeginnerReassurance>{reassurance}</BeginnerReassurance>
       </div>
     );
   }

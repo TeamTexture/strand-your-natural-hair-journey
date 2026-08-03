@@ -208,11 +208,3 @@ export const DoDont = ({
     </div>
   );
 };
-
-/** Warm one-line reassurance used to close level-4 surfaces. */
-export const BeginnerReassurance = ({ children }: { children?: ReactNode }) => (
-  <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-snug text-muted-foreground">
-    <Sparkles className="size-3.5 text-primary shrink-0 mt-[1px]" />
-    <span>{children ?? "Everything is here, so you can read it all through first and come back to any step. You do not need to get it all right today."}</span>
-  </p>
-);

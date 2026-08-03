@@ -16,7 +16,7 @@ import IngredientFlagRow from "@/components/product/IngredientFlagRow";
 import { emphasisSplit } from "@/lib/tipsRender";
 import { looksSequential, splitNumberedSteps } from "@/lib/guidance";
 import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
-import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import {
   classifySurfactant,
   inferMarketedPurpose,

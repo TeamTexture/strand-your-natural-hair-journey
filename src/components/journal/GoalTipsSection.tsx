@@ -39,7 +39,6 @@ const GoalTipsSection = ({ goal }: { goal: UserGoal }) => {
             <TipsBlock
               idPrefix="journal-goaltip"
               dedupeAgainst={tip.body}
-              reassurance="Small, steady steps beat big changes — you only need the first one today."
               tips={tip.actions.map((a, i): GuidanceTip => ({
                 priority: tip.actions.length - i,
                 short: typeof a === "string" ? a : a.action,

@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import LevelGate from "@/components/tips/LevelGate";
-import { BeginnerSteps, BeginnerReassurance } from "@/components/beginner/BeginnerGuide";
+import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
@@ -562,9 +562,6 @@ export default function BloodUpload() {
                 { text: "Check the numbers, then save", detail: "You can fix anything STRAND got wrong before you save it." },
               ]}
             />
-            <BeginnerReassurance>
-              If a page comes out blurry, just try again — nothing is saved until you tap Save.
-            </BeginnerReassurance>
           </>
         )}
 
