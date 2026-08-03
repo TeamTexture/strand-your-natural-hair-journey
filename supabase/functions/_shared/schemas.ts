@@ -131,6 +131,8 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     "key_ingredients",
     "marketed_purpose",
     "match_score",
+    "score_reasons",
+
     "ai_summary",
     "usage_instructions",
     "use_cases",
