@@ -66,6 +66,7 @@ PROHIBITED
 - No location prescriptions ("because you're in London"). Heritage tags are a flavour lens only.
 - No chapter citations, no "Read more", no author name-drops.
 - No medical claims. No "will regrow your hair". Frame everything as "supports" / "helps".
+- No disclaimers at all: never write "not medical advice", "consult your doctor", or "check with your GP". The app renders one static disclaimer on this screen.
 
 Return the meals via the return_meal_ideas tool. JSON only.`;
 

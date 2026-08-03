@@ -700,6 +700,16 @@ const NutritionPlan = () => {
           </p>
         </div>
 
+        <div className="mb-4 rounded-[12px] bg-muted/60 border border-border/60 px-3 py-2">
+          <div className="flex items-start gap-2">
+            <Info className="size-3.5 text-muted-foreground shrink-0 mt-[1px]" />
+            <p className="text-[11px] font-body leading-snug text-muted-foreground">
+              <strong className="font-semibold text-foreground/80">Not medical advice.</strong> Always check with your GP before starting a new supplement — especially if you're pregnant, breastfeeding, on medication, or managing a health condition.
+            </p>
+          </div>
+        </div>
+
+
         {plan?.summary && (
           <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
             <div className="flex items-start gap-2 mb-2">
@@ -754,11 +764,6 @@ const NutritionPlan = () => {
             <SourceNote>
               Personalised by STRAND AI from your bloods, heritage and health profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
             </SourceNote>
-            <div className="rounded-[14px] bg-alert-dark/8 border border-alert-dark/15 p-3">
-              <p className="text-[11px] font-body leading-relaxed text-foreground/80">
-                <strong className="font-semibold">Not medical advice.</strong> Always check with your GP before starting a new supplement — especially if you're pregnant, breastfeeding, on medication, or managing a health condition.
-              </p>
-            </div>
           </TabsContent>
 
           <TabsContent value="diet" className="space-y-3 mt-4">
