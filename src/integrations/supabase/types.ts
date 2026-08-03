@@ -3507,6 +3507,27 @@ export type Database = {
         }
         Returns: string
       }
+      pro_public_reviews: {
+        Args: { _limit?: number; _offset?: number; _pro: string }
+        Returns: {
+          audio_path: string
+          body_text: string
+          created_at: string
+          id: string
+          rating: number
+          reviewer_label: string
+          service: string
+          transcription_text: string
+        }[]
+      }
+      pro_review_summary: {
+        Args: { _pro_ids: string[] }
+        Returns: {
+          avg_rating: number
+          professional_id: string
+          review_count: number
+        }[]
+      }
       queue_appointment_reminders: { Args: never; Returns: number }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }

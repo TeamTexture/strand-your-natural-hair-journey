@@ -157,7 +157,8 @@ const MoodboardBoard = lazy(() => import("./pages/MoodboardBoard"));
 const Appointments = lazy(() => import("./pages/Appointments"));
 const LeaveReview = lazy(() => import("./pages/LeaveReview"));
 const LogAppointment = lazy(() => import("./pages/LogAppointment"));
-const LeaveReview = lazy(() => import("./pages/LeaveReview"));
+const ProReviews = lazy(() => import("./pages/pro/ProReviews"));
+const ProReviewsPublic = lazy(() => import("./pages/ProReviewsPublic"));
 const Directory = lazy(() => import("./pages/Directory"));
 const Profile = lazy(() => import("./pages/Profile"));
 const NutritionPlan = lazy(() => import("./pages/NutritionPlan"));
@@ -305,6 +306,15 @@ const App = () => (
               <Route path="/appointments/log" element={<Paid><LogAppointment /></Paid>} />
               <Route path="/reviews/new" element={<Paid><LeaveReview /></Paid>} />
               <Route path="/directory" element={<Directory />} />
+              <Route path="/directory/:proUserId/reviews" element={<ProReviewsPublic />} />
+              <Route
+                path="/pro/reviews"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProReviews />
+                  </RoleGate>
+                }
+              />
               <Route path="/profile" element={<Onboard><Profile /></Onboard>} />
               <Route path="/profile/milestones" element={<Onboard><MilestoneGallery /></Onboard>} />
               <Route path="/profile/discounts" element={<Onboard><Discounts /></Onboard>} />

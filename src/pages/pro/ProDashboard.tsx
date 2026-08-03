@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -13,6 +13,7 @@ import { useProAppointments } from "@/hooks/useProAppointments";
 import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { useProClients } from "@/hooks/useProClients";
 import { useUnreadChatCount } from "@/hooks/useChat";
+import { useProReviews } from "@/hooks/useReviews";
 
 import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
@@ -95,6 +96,8 @@ const ProDashboard = () => {
     ? `${(nextAppt.client_display_name ?? "Client").split(" ")[0]} · ${new Date(nextAppt.appointment_date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}${nextAppt.appointment_time ? ` · ${formatTime12h(nextAppt.appointment_time)}` : ""}`
     : "Bookings your clients link to you.";
   const { data: proClients = [] } = useProClients();
+  const { data: myReviews = [] } = useProReviews();
+  const pendingReviews = myReviews.filter((r) => r.status === "pending").length;
   const activeClientsCount = proClients.filter((c) => !c.revoked_at).length;
   const clientsSub = activeClientsCount === 0
     ? "Your client book — accepted enquiries land here."
@@ -253,6 +256,18 @@ const ProDashboard = () => {
             onClick={() => nav("/pro/appointments")}
             tourId="pro-card-appointments"
             count={upcomingAppointments.length}
+          />
+          <Card
+            icon={Star}
+            title="Reviews"
+            sub={
+              pendingReviews > 0
+                ? `${pendingReviews} awaiting your approval.`
+                : "Approve client reviews for your listing."
+            }
+            onClick={() => nav("/pro/reviews")}
+            tourId="pro-card-reviews"
+            count={pendingReviews}
           />
 
 
