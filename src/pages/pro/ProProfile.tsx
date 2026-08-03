@@ -238,9 +238,14 @@ const ProProfile = () => {
         .eq("user_id", user.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Profile saved");
-      qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
+      // One live source of truth: the pro's saved row IS the directory listing,
+      // so refresh both caches before navigating and the new data is on screen.
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] }),
+        qc.invalidateQueries({ queryKey: ["pro_directory"] }),
+      ]);
       nav("/directory");
     },
     onError: (e: Error) => {
