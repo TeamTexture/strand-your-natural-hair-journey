@@ -281,6 +281,8 @@ const ChatThreadPage = () => {
   const bookingUrl = proBooking?.url ? normalizeBookingUrl(proBooking.url) : "";
   const myProName = proBooking?.proName || "Your professional";
   const sendBookingRequest = useSendBookingRequest(threadId);
+  const [departureOpen, setDepartureOpen] = useState(false);
+  const logDeparture = useLogBookingDeparture();
   // Pro-side nudge: a booking request was sent (or the client opened the
   // booking page) and nothing has been logged in the diary since.
   const { data: bookingFollowUps = [] } = useProBookingFollowUps();
