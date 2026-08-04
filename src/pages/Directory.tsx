@@ -70,6 +70,27 @@ const Directory = () => {
     [pros, query, tab, bloodOnly],
   );
 
+  // Chip counts come from the FULL live directory (`pros` = published,
+  // unsuspended pro profiles + active curated rows), never from the filtered
+  // result set — so chips don't flicker as search/other filters change.
+  // A category with zero listings is not rendered at all.
+  const tabCounts = useMemo(() => {
+    const counts = {} as Record<ProType, number>;
+    for (const p of pros) counts[p.type] = (counts[p.type] ?? 0) + 1;
+    return counts;
+  }, [pros]);
+
+  const visibleTabs = useMemo(
+    () => tabs.filter((t) => t === "All" || (tabCounts[t] ?? 0) > 0),
+    [tabCounts],
+  );
+
+  // If the active category empties out, fall back to All so the list isn't
+  // stuck on a chip that no longer exists.
+  useEffect(() => {
+    if (tab !== "All" && (tabCounts[tab] ?? 0) === 0) setTab("All");
+  }, [tab, tabCounts]);
+
   // Aggregate approved-review ratings for every listed platform pro. Pros with
   // no approved reviews are absent from the map, so nothing is rendered.
   const proUserIds = useMemo(
@@ -220,7 +241,7 @@ const Directory = () => {
       {!bloodOnly && (
         <div className="pb-4 strand-hscroll px-5">
           <div className="flex gap-2 min-w-max">
-            {tabs.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t}
                 onClick={() => {
@@ -242,9 +263,7 @@ const Directory = () => {
               >
                 {t}
                 {t !== "All" && (
-                  <span className="ml-1.5 opacity-60">
-                    {pros.filter((p) => p.type === t).length}
-                  </span>
+                  <span className="ml-1.5 opacity-60">{tabCounts[t]}</span>
                 )}
               </button>
             ))}
