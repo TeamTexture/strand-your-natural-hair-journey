@@ -58,10 +58,10 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
           type="button"
           onClick={() => { dismissTooltip(); setOpen(true); }}
           aria-label={`Guidance level: ${TIPS_LEVEL_LABEL[level]}. Tap to change.`}
-          className="h-8 max-w-[102px] pl-2 pr-2.5 inline-flex items-center gap-1.5 rounded-pill border border-border bg-card text-foreground/80 hover:border-primary/50 hover:text-primary transition-colors"
+          className="h-8 shrink-0 pl-2 pr-2.5 inline-flex items-center gap-1.5 rounded-pill border border-border bg-card text-foreground/80 hover:border-primary/50 hover:text-primary transition-colors"
         >
           <LevelBars level={level} />
-          <span className="min-w-0 truncate text-[10px] font-body font-medium tracking-[0.04em]">
+          <span className="whitespace-nowrap text-[10px] font-body font-medium tracking-[0.04em]">
             {TIPS_LEVEL_LABEL[level]}
           </span>
         </button>
