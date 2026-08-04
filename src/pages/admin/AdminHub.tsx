@@ -10,6 +10,8 @@ import {
   Eye,
   Sparkles,
   Percent,
+  Stethoscope,
+  Droplet,
   Megaphone,
   Store,
   MessageSquare,
