@@ -942,6 +942,12 @@ const Profile = () => {
       </div>
 
       <ChangePasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
+      <BloodTestRoutesSheet
+        open={retestOpen}
+        onOpenChange={setRetestOpen}
+        neededMarkers={retestMarkers}
+        reason={retestReason}
+      />
     </ScreenLayout>
   );
 };
