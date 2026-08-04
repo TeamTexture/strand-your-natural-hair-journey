@@ -69,6 +69,9 @@ export function threadMatchesView(
   view: ActiveRoleView,
 ): boolean {
   if (t.thread_type === "client_pro") {
+    // Legacy self-referential rows (the same account on both sides) are
+    // ambiguous — they belong to neither side of the wall, so hide them.
+    if (t.consumer_id && t.consumer_id === t.pro_user_id) return false;
     if (view === "consumer") return t.consumer_id === uid;
     if (view === "pro") return t.pro_user_id === uid;
     return false; // client_pro threads never belong to admin/brand views

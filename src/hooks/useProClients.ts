@@ -40,6 +40,8 @@ export const useProClients = () => {
         .from("pro_client_access")
         .select("id,consumer_id,granted_at,revoked_at")
         .eq("pro_user_id", proId)
+        // Never list the pro's own account as one of their clients.
+        .neq("consumer_id", proId)
         .order("granted_at", { ascending: false });
       if (error) throw error;
       const rows = access ?? [];
