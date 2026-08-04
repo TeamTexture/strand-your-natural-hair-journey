@@ -230,19 +230,16 @@ export function GlossaryLabel({
   const parts = useMemo(() => splitCompoundLabel(label), [label]);
   const resolved = parts.map((p) => (p.candidate ? lookup(p.lookup) : null));
   if (!resolved.some(Boolean)) {
-    return <span className={cn("font-semibold text-foreground", className)}>{label}</span>;
+    return <GlossaryPhrase text={label} className={className} />;
   }
   return (
     <>
       {parts.map((part, i) => {
         const row = resolved[i];
         if (!row) {
-          return (
-            <span key={`gl-${i}`} className={cn("font-semibold text-foreground", className)}>
-              {part.text}
-            </span>
-          );
+          return <GlossaryPhrase key={`gl-${i}`} text={part.text} className={className} />;
         }
+
         return (
           <React.Fragment key={`gl-${i}`}>
             <IngredientToken name={row.display_name} label={part.text.trim()} className={className} />
