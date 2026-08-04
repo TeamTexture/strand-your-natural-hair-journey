@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
+import PasswordField from "@/components/PasswordField";
+import PasswordErrorNotice from "@/components/PasswordErrorNotice";
+import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
@@ -67,6 +70,7 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pwError, setPwError] = useState<MappedPasswordError | null>(null);
 
   const { user, loading: authLoading } = useAuth();
   useEffect(() => {
@@ -82,11 +86,6 @@ const Auth = () => {
 
 
   const passwordsMatch = mode !== "signup" || password === confirmPassword;
-  const canSubmit =
-    !loading &&
-    email.length > 0 &&
-    password.length >= 6 &&
-    (mode !== "signup" || (confirmPassword.length >= 6 && passwordsMatch));
 
   // Branded reset email (Resend, noreply@mystrand.co.uk) via the shared
   // password-reset edge function — same mechanism as the pro flow.
@@ -126,14 +125,26 @@ const Auth = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || password.length < 6) {
-      toast.error("Enter a valid email and a 6+ character password.");
+    if (loading) return;
+    if (!email) {
+      toast.error("Enter your email address.");
       return;
     }
-    if (mode === "signup" && password !== confirmPassword) {
-      toast.error("Passwords don't match.");
+    if (mode === "signup") {
+      const problem = passwordProblem(password);
+      if (problem) {
+        setPwError({ kind: "weak_password", message: problem });
+        return;
+      }
+      if (password !== confirmPassword) {
+        setPwError({ kind: "generic", message: "Passwords don't match." });
+        return;
+      }
+    } else if (!password) {
+      toast.error("Enter your password.");
       return;
     }
+    setPwError(null);
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -195,8 +206,12 @@ const Auth = () => {
       }
       navigate(next, { replace: true });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      toast.error(msg);
+      const mapped = mapPasswordError(err, password);
+      if (mode === "signup" && mapped.kind !== "generic") {
+        setPwError(mapped);
+      } else {
+        toast.error(mapped.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -257,18 +272,31 @@ const Auth = () => {
               placeholder="you@example.com"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
-            <PasswordInput
+          {mode === "signup" ? (
+            <PasswordField
               id="password"
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              required
-              minLength={6}
+              label="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
+              autoComplete="new-password"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPwError(null);
+              }}
+              placeholder="Choose a password"
             />
-          </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
+              <PasswordInput
+                id="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your password"
+              />
+            </div>
+          )}
 
           {mode === "signup" && (
             <div className="space-y-1.5">
@@ -277,7 +305,6 @@ const Auth = () => {
                 id="confirm-password"
                 autoComplete="new-password"
                 required
-                minLength={6}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your password"
@@ -291,7 +318,9 @@ const Auth = () => {
             </div>
           )}
 
-          <Button variant="gold" size="pill" type="submit" disabled={!canSubmit}>
+          <PasswordErrorNotice error={pwError} />
+
+          <Button variant="gold" size="pill" type="submit">
             {loading ? "Please wait…" : mode === "signup" ? "Create Account →" : "Sign In →"}
           </Button>
         </form>
