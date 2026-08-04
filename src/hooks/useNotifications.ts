@@ -24,6 +24,10 @@ export type Notification = {
 export function useNotifications() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const view = useActiveRoleView();
+  // View-scoped threads: message notifications follow the same separation.
+  const { data: viewThreads } = useChatThreads();
+
 
   const q = useQuery({
     queryKey: ["notifications", user?.id],
