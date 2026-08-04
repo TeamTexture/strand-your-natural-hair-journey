@@ -1507,6 +1507,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredients: {
+        Row: {
+          aliases: string[]
+          category: string | null
+          created_at: string
+          display_name: string
+          id: string
+          inci_key: string
+          is_common: boolean
+          model_version: string | null
+          phonetic: string | null
+          updated_at: string
+          what_it_is: string | null
+        }
+        Insert: {
+          aliases?: string[]
+          category?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          inci_key: string
+          is_common?: boolean
+          model_version?: string | null
+          phonetic?: string | null
+          updated_at?: string
+          what_it_is?: string | null
+        }
+        Update: {
+          aliases?: string[]
+          category?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          inci_key?: string
+          is_common?: boolean
+          model_version?: string | null
+          phonetic?: string | null
+          updated_at?: string
+          what_it_is?: string | null
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           created_at: string
@@ -2286,6 +2328,51 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      product_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          position: number | null
+          role_in_product: string | null
+          updated_at: string
+          user_product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          position?: number | null
+          role_in_product?: string | null
+          updated_at?: string
+          user_product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          position?: number | null
+          role_in_product?: string | null
+          updated_at?: string
+          user_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ingredients_user_product_id_fkey"
+            columns: ["user_product_id"]
+            isOneToOne: false
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_ratings: {
         Row: {
