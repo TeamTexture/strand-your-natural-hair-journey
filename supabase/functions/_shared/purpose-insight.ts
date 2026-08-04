@@ -45,7 +45,7 @@ export const PURPOSE_INSIGHT_SCHEMA_PROPERTY = {
     usage_direction: {
       type: "string",
       description:
-        "≤24 words: the concrete usage adjustment that follows — when, where and how often to use it — tied to one of her stated goals or challenges (e.g. 'use it on the first cleanse only, scalp-focused, then condition with heat to protect length retention').",
+        "≤24 words: how to get the most from it plus the signal to watch for, tied to one of her stated goals or challenges (e.g. 'work it through the scalp, then condition with heat — if lengths feel soft afterwards it suits you'). NEVER a frequency cap, limit or prohibition.",
     },
   },
   required: ["purpose", "ingredient_factor", "implication", "usage_direction"],
