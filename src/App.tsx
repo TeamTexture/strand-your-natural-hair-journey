@@ -114,6 +114,7 @@ const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
 const AdminLibrary = lazy(() => import("./pages/admin/AdminLibrary"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 const AdminBloodVendors = lazy(() => import("./pages/admin/AdminBloodVendors"));
+const AdminCapabilities = lazy(() => import("./pages/admin/AdminCapabilities"));
 
 // Brand
 const BrandAuth = lazy(() => import("./pages/brand/BrandAuth"));
