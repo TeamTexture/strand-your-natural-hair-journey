@@ -132,7 +132,12 @@ const ProAuth = () => {
         nav("/pro/landing", { replace: true });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      const mapped = mapPasswordError(err, password);
+      if (mode === "signup" && mapped.kind !== "generic") {
+        setPwError(mapped);
+      } else {
+        toast.error(mapped.message);
+      }
     } finally {
       setBusy(false);
     }
