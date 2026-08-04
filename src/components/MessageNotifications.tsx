@@ -131,11 +131,9 @@ const MessageNotifications = () => {
     (async () => {
       const lastSeen = localStorage.getItem(RETURN_KEY(user.id));
       if (!lastSeen) return; // First-ever open: no missed-message popup.
-      const { data: myThreads } = await supabase
-        .from("chat_threads")
-        .select("id")
-        .or(`pro_user_id.eq.${user.id},consumer_id.eq.${user.id},admin_user_id.eq.${user.id},subject_user_id.eq.${user.id}`);
-      const ids = (myThreads ?? []).map((t) => t.id);
+      // Only threads belonging to the view the user is currently inside, so a
+      // consumer-side message never pops up in the professional view.
+      const ids = threads.map((t) => t.id);
       if (ids.length === 0) return;
       const { data: msgs } = await supabase
         .from("chat_messages")
@@ -164,7 +162,7 @@ const MessageNotifications = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, threads]);
 
   // Update the "last seen" watermark whenever the total unread drops to 0.
   useEffect(() => {

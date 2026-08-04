@@ -261,7 +261,7 @@ const GlobalMenu = () => {
               <span className="size-9 shrink-0" aria-hidden />
             )}
           </div>
-          <div className="flex items-center gap-1 min-w-0 shrink">
+          <div className="flex items-center gap-1 min-w-0 shrink justify-end">
             {!isDirectoryPage && <TipsLevelButton className="shrink-0" />}
             {showViewSwitcher && (
               <DropdownMenu>
@@ -269,10 +269,10 @@ const GlobalMenu = () => {
                   <button
                     type="button"
                     aria-label="Switch view"
-                    className="h-9 shrink-0 px-2.5 rounded-full flex items-center gap-1.5 whitespace-nowrap border border-border bg-card text-foreground/80 hover:bg-muted/60 transition-colors max-w-[120px]"
+                    className="h-9 shrink-0 px-2.5 rounded-full flex items-center justify-start gap-1.5 whitespace-nowrap border border-border bg-card text-foreground/80 hover:bg-muted/60 transition-colors"
                   >
                     <ActiveIcon className="size-4 shrink-0 text-primary" />
-                    <span className="text-[11px] font-body font-medium leading-none whitespace-nowrap hidden sm:inline truncate">
+                    <span className="text-[11px] font-body font-medium leading-none whitespace-nowrap">
                       {viewMeta[activeView].label}
                     </span>
                     <ChevronDown className="size-3 shrink-0 text-muted-foreground" />

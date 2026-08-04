@@ -1,7 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { useChatThreads } from "@/hooks/useChat";
+import { notificationInView } from "@/lib/notificationScope";
 
 export type Notification = {
   id: string;
@@ -21,6 +24,10 @@ export type Notification = {
 export function useNotifications() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const view = useActiveRoleView();
+  // View-scoped threads: message notifications follow the same separation.
+  const { data: viewThreads } = useChatThreads();
+
 
   const q = useQuery({
     queryKey: ["notifications", user?.id],
@@ -54,11 +61,25 @@ export function useNotifications() {
     };
   }, [user?.id, qc]);
 
-  const unreadCount = (q.data ?? []).filter((n) => !n.read_at).length;
+  // Only notifications belonging to the view the user is currently inside.
+  const scoped = useMemo(() => {
+    const threadIds = new Set((viewThreads ?? []).map((t) => t.id));
+    return (q.data ?? []).filter((n) => notificationInView(n, view, threadIds));
+  }, [q.data, viewThreads, view]);
+
+  const unreadCount = scoped.filter((n) => !n.read_at).length;
 
   const markAllRead = async () => {
     if (!user?.id) return;
-    await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);
+    // Clears only what this view can actually see.
+    const ids = scoped.filter((n) => !n.read_at).map((n) => n.id);
+    if (ids.length === 0) return;
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .in("id", ids)
+      .is("read_at", null);
     qc.invalidateQueries({ queryKey: ["notifications", user.id] });
   };
 
@@ -79,6 +100,6 @@ export function useNotifications() {
     qc.invalidateQueries({ queryKey: ["notifications", user.id] });
   };
 
-  return { notifications: q.data ?? [], unreadCount, isLoading: q.isLoading, markAllRead, markRead, markManyRead };
+  return { notifications: scoped, unreadCount, isLoading: q.isLoading, markAllRead, markRead, markManyRead };
 }
 

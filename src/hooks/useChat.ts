@@ -121,13 +121,10 @@ export function useChatThreads(scope?: ActiveRoleView | "all") {
   const filtered = useMemo(() => {
     if (!user?.id || !query.data) return query.data;
     if (view === "all") return query.data;
-    const scoped = query.data.filter((t) => threadMatchesView(t, user.id, view));
-    // Multi-role accounts (admin / pro / brand) share one inbox. If the
-    // current view has no threads but the account does, show everything
-    // rather than an empty inbox — a STRAND Team thread must never look
-    // like it disappeared just because the view toggle sits elsewhere.
-    if (scoped.length === 0 && query.data.length > 0) return query.data;
-    return scoped;
+    // Strict role separation: a thread she started as a consumer must never
+    // appear in the professional view (and vice versa), even when the account
+    // holds both roles and the current view has no threads of its own.
+    return query.data.filter((t) => threadMatchesView(t, user.id, view));
   }, [query.data, user?.id, view]);
 
   return { ...query, data: filtered } as typeof query;
@@ -393,9 +390,9 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
       const inView = (rows ?? []).filter((t) =>
         view === "all" ? true : threadMatchesView(t as never, user!.id, view),
       );
-      // Never hide unread counts from a multi-role account just because the
-      // view toggle sits on a different side.
-      const scoped = inView.length > 0 ? inView : (rows ?? []);
+      // Badges follow the same strict role separation as the inbox: a
+      // consumer-side message never pings the professional view.
+      const scoped = inView;
       const ids = scoped.map((t) => t.id);
       if (ids.length === 0) return 0;
 
