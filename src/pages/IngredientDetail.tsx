@@ -221,6 +221,16 @@ const IngredientDetail = () => {
   const [analysis, setAnalysis] = useState<Analysis | null>(
     freshAnalysis ? freshToAnalysis(freshAnalysis) : null,
   );
+  // THE score for this page. Always the stored column via the shared accessor,
+  // so this page can never show a number that differs from the product card,
+  // the passport or any AI context. The analysis payload is only used for a
+  // product that has no saved row yet (a fresh scan awaiting save) — once it is
+  // saved, runAnalysis persists the score and this resolves to the column.
+  const displayScore = useMemo(
+    () => matchScoreOf(productRow) ?? normaliseMatchScore(analysis?.match_score),
+    [productRow, analysis?.match_score],
+  );
+  const displayStars = starsFromScore(displayScore);
   const [savingToShelf, setSavingToShelf] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
