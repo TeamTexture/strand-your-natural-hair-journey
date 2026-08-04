@@ -252,7 +252,7 @@ const ProDashboard = () => {
             sub={hasProAccess ? nextApptSub : "Subscribe to see linked appointments."}
             onClick={() => nav("/pro/appointments")}
             tourId="pro-card-appointments"
-            count={upcomingAppointments.length}
+            count={upcomingAppts.length}
           />
           <Card
             icon={Star}
