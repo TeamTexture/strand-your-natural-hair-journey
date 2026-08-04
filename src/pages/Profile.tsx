@@ -6,6 +6,7 @@ import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
+import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 import SectionHeader from "@/components/nav/SectionHeader";
 import ListRow from "@/components/nav/ListRow";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
@@ -417,6 +418,16 @@ const Profile = () => {
     return null;
   }, [bloodPanels]);
 
+  // Retest routes sheet — opened from the blood-test alerts on this tab.
+  const [retestOpen, setRetestOpen] = useState(false);
+  const [retestReason, setRetestReason] = useState<string | undefined>(undefined);
+  // Markers driving the alert, in blood_results.marker vocabulary, so the sheet
+  // can sort matching panels and professionals above generic ones.
+  const retestMarkers = useMemo(
+    () => flaggedBlood.map((f) => f.marker),
+    [flaggedBlood],
+  );
+
   // Build alerts list (priority: blood-flagged > wash > blood-test-due > appointments)
   const alerts = useMemo<AlertItem[]>(() => {
     const out: AlertItem[] = [];
@@ -455,7 +466,10 @@ const Profile = () => {
         label: "Blood test due",
         detail: `${months >= 1 ? `${months} month${months === 1 ? "" : "s"}` : `${bloodTestAlert.days} days`} since last test · book a new one`,
         tone: "danger",
-        onClick: () => navigate("/blood-history"),
+        onClick: () => {
+          setRetestReason("Your last test was a while ago. Two ways to get retested.");
+          setRetestOpen(true);
+        },
       });
     } else if (bloodTestAlert?.kind === "never") {
       out.push({
@@ -464,7 +478,10 @@ const Profile = () => {
         label: "Book your first blood test",
         detail: "Add recent bloods so STRAND can personalise your guidance",
         tone: "danger",
-        onClick: () => navigate("/blood-history"),
+        onClick: () => {
+          setRetestReason("Two ways to get your first test done.");
+          setRetestOpen(true);
+        },
       });
     } else if (bloodTestAlert?.kind === "scheduled") {
       out.push({
@@ -925,6 +942,12 @@ const Profile = () => {
       </div>
 
       <ChangePasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
+      <BloodTestRoutesSheet
+        open={retestOpen}
+        onOpenChange={setRetestOpen}
+        neededMarkers={retestMarkers}
+        reason={retestReason}
+      />
     </ScreenLayout>
   );
 };

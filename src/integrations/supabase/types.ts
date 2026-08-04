@@ -312,63 +312,51 @@ export type Database = {
           },
         ]
       }
-      blood_test_vendors: {
+      brand_blood_panels: {
         Row: {
           affiliate_url: string | null
-          at_home: boolean
+          brand_user_id: string
           created_at: string
           currency: string
           id: string
           is_active: boolean
-          logo_url: string | null
           markers_covered: string[]
-          name: string
-          panel_name: string | null
+          panel_name: string
           price_from: number | null
+          purchase_url: string
           regions_served: string[]
-          short_description: string | null
-          slug: string
           sort_order: number
           updated_at: string
-          url: string | null
         }
         Insert: {
           affiliate_url?: string | null
-          at_home?: boolean
+          brand_user_id: string
           created_at?: string
           currency?: string
           id?: string
           is_active?: boolean
-          logo_url?: string | null
           markers_covered?: string[]
-          name: string
-          panel_name?: string | null
+          panel_name: string
           price_from?: number | null
+          purchase_url: string
           regions_served?: string[]
-          short_description?: string | null
-          slug: string
           sort_order?: number
           updated_at?: string
-          url?: string | null
         }
         Update: {
           affiliate_url?: string | null
-          at_home?: boolean
+          brand_user_id?: string
           created_at?: string
           currency?: string
           id?: string
           is_active?: boolean
-          logo_url?: string | null
           markers_covered?: string[]
-          name?: string
-          panel_name?: string | null
+          panel_name?: string
           price_from?: number | null
+          purchase_url?: string
           regions_served?: string[]
-          short_description?: string | null
-          slug?: string
           sort_order?: number
           updated_at?: string
-          url?: string | null
         }
         Relationships: []
       }
@@ -717,6 +705,8 @@ export type Database = {
       brand_profiles: {
         Row: {
           about: string | null
+          blood_tests_verified_at: string | null
+          blood_tests_verified_by: string | null
           brand_name: string
           category: string | null
           contact_email: string | null
@@ -725,6 +715,8 @@ export type Database = {
           id: string
           instagram_handle: string | null
           logo_path: string | null
+          offers_at_home_blood_tests_claimed: boolean
+          offers_at_home_blood_tests_verified: boolean
           tiktok_handle: string | null
           updated_at: string
           user_id: string
@@ -732,6 +724,8 @@ export type Database = {
         }
         Insert: {
           about?: string | null
+          blood_tests_verified_at?: string | null
+          blood_tests_verified_by?: string | null
           brand_name: string
           category?: string | null
           contact_email?: string | null
@@ -740,6 +734,8 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           logo_path?: string | null
+          offers_at_home_blood_tests_claimed?: boolean
+          offers_at_home_blood_tests_verified?: boolean
           tiktok_handle?: string | null
           updated_at?: string
           user_id: string
@@ -747,6 +743,8 @@ export type Database = {
         }
         Update: {
           about?: string | null
+          blood_tests_verified_at?: string | null
+          blood_tests_verified_by?: string | null
           brand_name?: string
           category?: string | null
           contact_email?: string | null
@@ -755,6 +753,8 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           logo_path?: string | null
+          offers_at_home_blood_tests_claimed?: boolean
+          offers_at_home_blood_tests_verified?: boolean
           tiktok_handle?: string | null
           updated_at?: string
           user_id?: string
@@ -4027,6 +4027,10 @@ export type Database = {
           _share_passport_consent?: boolean
         }
         Returns: string
+      }
+      set_brand_blood_verification: {
+        Args: { _brand_user_id: string; _verified: boolean }
+        Returns: undefined
       }
       set_passport_access: {
         Args: { _grant: boolean; _pro_user_id: string }
