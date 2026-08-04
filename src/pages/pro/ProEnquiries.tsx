@@ -254,57 +254,68 @@ const EnquiryCard = ({
         </p>
       )}
 
-      <div
-        className={cn(
-          "mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2 border",
-          shared
-            ? "bg-good/10 border-good/40"
-            : "bg-secondary/50 border-border/60",
-        )}
-      >
-        {shared ? (
-          <ShieldCheck className="size-4 text-good shrink-0" />
-        ) : (
-          <Lock className="size-4 text-muted-foreground shrink-0" />
-        )}
-        <p
-          className={cn(
-            "text-[11.5px] font-body leading-snug",
-            shared ? "text-good font-medium" : "text-muted-foreground",
-          )}
-        >
-          {shared
-            ? "Passport shared by client"
-            : "Passport not shared"}
-        </p>
-      </div>
-
-      {preview && (
-        <div className="mt-2 rounded-[10px] bg-secondary/50 p-3 space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            {shared && <ShieldCheck className="size-3.5 text-good shrink-0" />}
+      {isPeer ? (
+        <div className="mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2 border bg-secondary/50 border-border/60">
+          <Users className="size-4 text-primary shrink-0" />
+          <p className="text-[11.5px] font-body leading-snug text-muted-foreground">
+            <span className="text-foreground font-medium">Peer enquiry</span> — from another
+            professional, so no hair passport is attached.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div
+            className={cn(
+              "mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2 border",
+              shared
+                ? "bg-good/10 border-good/40"
+                : "bg-secondary/50 border-border/60",
+            )}
+          >
+            {shared ? (
+              <ShieldCheck className="size-4 text-good shrink-0" />
+            ) : (
+              <Lock className="size-4 text-muted-foreground shrink-0" />
+            )}
             <p
               className={cn(
-                "text-[9px] uppercase tracking-[0.15em] font-medium",
-                shared ? "text-good" : "text-primary",
+                "text-[11.5px] font-body leading-snug",
+                shared ? "text-good font-medium" : "text-muted-foreground",
               )}
             >
-              Passport preview
+              {shared ? "Passport shared by client" : "Passport not shared"}
             </p>
           </div>
-          <p className="text-[12px] font-body leading-snug">{preview.hairSummary}</p>
-          <p className="text-[12px] font-body leading-snug">
-            {preview.flaggedMarkers > 0
-              ? `${preview.flaggedMarkers} flagged blood marker${preview.flaggedMarkers > 1 ? "s" : ""}`
-              : "No flagged blood markers"}
-          </p>
-          {preview.goals.length > 0 && (
-            <p className="text-[12px] font-body leading-snug">
-              Goals: {preview.goals.join(", ")}
-            </p>
+
+          {preview && (
+            <div className="mt-2 rounded-[10px] bg-secondary/50 p-3 space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                {shared && <ShieldCheck className="size-3.5 text-good shrink-0" />}
+                <p
+                  className={cn(
+                    "text-[9px] uppercase tracking-[0.15em] font-medium",
+                    shared ? "text-good" : "text-primary",
+                  )}
+                >
+                  Passport preview
+                </p>
+              </div>
+              <p className="text-[12px] font-body leading-snug">{preview.hairSummary}</p>
+              <p className="text-[12px] font-body leading-snug">
+                {preview.flaggedMarkers > 0
+                  ? `${preview.flaggedMarkers} flagged blood marker${preview.flaggedMarkers > 1 ? "s" : ""}`
+                  : "No flagged blood markers"}
+              </p>
+              {preview.goals.length > 0 && (
+                <p className="text-[12px] font-body leading-snug">
+                  Goals: {preview.goals.join(", ")}
+                </p>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
+
 
       {enquiry.status === "pending" && (
         <div className="mt-3 flex gap-2">
