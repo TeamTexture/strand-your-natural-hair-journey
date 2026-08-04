@@ -1,7 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { useChatThreads } from "@/hooks/useChat";
+import { notificationInView } from "@/lib/notificationScope";
 
 export type Notification = {
   id: string;
