@@ -58,7 +58,7 @@ export const usePendingBookingClicks = () => {
       // Missing profiles are not an error — the member can still log.
       const { data: pros } = await supabase
         .from("pro_profiles")
-        .select("user_id,display_name,discipline,clinic_name,address_line1,city")
+        .select("user_id,display_name,discipline,address_line1,city")
         .in(
           "user_id",
           collapsed.map((c) => c.professional_id),
