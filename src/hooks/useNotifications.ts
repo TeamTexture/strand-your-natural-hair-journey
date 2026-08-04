@@ -61,11 +61,25 @@ export function useNotifications() {
     };
   }, [user?.id, qc]);
 
-  const unreadCount = (q.data ?? []).filter((n) => !n.read_at).length;
+  // Only notifications belonging to the view the user is currently inside.
+  const scoped = useMemo(() => {
+    const threadIds = new Set((viewThreads ?? []).map((t) => t.id));
+    return (q.data ?? []).filter((n) => notificationInView(n, view, threadIds));
+  }, [q.data, viewThreads, view]);
+
+  const unreadCount = scoped.filter((n) => !n.read_at).length;
 
   const markAllRead = async () => {
     if (!user?.id) return;
-    await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);
+    // Clears only what this view can actually see.
+    const ids = scoped.filter((n) => !n.read_at).map((n) => n.id);
+    if (ids.length === 0) return;
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .in("id", ids)
+      .is("read_at", null);
     qc.invalidateQueries({ queryKey: ["notifications", user.id] });
   };
 
