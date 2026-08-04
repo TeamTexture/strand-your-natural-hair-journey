@@ -27,6 +27,7 @@ import { allowsMemberFeatures } from "@/lib/viewFeatures";
  */
 const ProReviewsPublic = () => {
   const { proUserId } = useParams<{ proUserId: string }>();
+  const reviewsRoleView = useActiveRoleView();
   const [page, setPage] = useState(0);
   const [loaded, setLoaded] = useState<PublicReview[]>([]);
   const { pros } = useDirectoryProfessionals();
