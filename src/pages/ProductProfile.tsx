@@ -310,7 +310,10 @@ const ProductProfile = () => {
   }
 
   const ingredients = product.ingredients ?? [];
-  const score = aiMatchScore ?? product.match_score ?? 0;
+  // Single source of truth: the persisted column (or the freshly analysed score
+  // that was just written back to it) resolved through the shared accessor.
+  const displayScore = matchScoreOf({ match_score: aiMatchScore ?? product.match_score });
+  const score = displayScore ?? 0;
 
   const updateRating = async (n: number) => {
     if (!user) return;
