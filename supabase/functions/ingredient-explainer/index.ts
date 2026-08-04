@@ -50,14 +50,52 @@ const FIT_MODEL_VERSION = "claude-sonnet-4-6@fit-v1";
 const MAX_BATCH = 40;
 
 // Ingredients that get a glossary row but are never tokenised in prose.
-const COMMON_KEYS = new Set([
+//
+// DELIBERATELY SHORT. This is an Afro-textured hair app: glycerin, denatured
+// alcohol, tocopherol and the acid/preservative group are among the most
+// discussed and most consequential ingredients our readers meet, so they MUST
+// stay tappable. Only true formulation filler belongs here.
+export const COMMON_KEYS = new Set([
   "water", "aqua", "aqua water", "water aqua", "eau",
   "parfum", "fragrance", "parfum fragrance", "fragrance parfum",
-  "sodium chloride", "citric acid", "sodium hydroxide",
-  "alcohol denat", "denatured alcohol", "ci 19140", "ci 42090",
-  "sodium benzoate", "potassium sorbate", "tocopherol",
-  "glycerin", "glycerine",
+  "sodium chloride",
 ]);
+
+/** Colour Index numbers ("CI 19140") are never worth explaining in prose. */
+const isColourIndexKey = (key: string) => /^ci\s?\d{4,6}$/.test(key);
+const isCommonKey = (key: string) => COMMON_KEYS.has(key) || isColourIndexKey(key);
+
+// ── Glossary candidacy gate ─────────────────────────────────────────────
+//
+// A glossary row must be ONE real cosmetic ingredient. Compound labels
+// ("Argan and Sweet Almond Oils") and descriptive phrases ("sulfate-free
+// amphoteric surfactant system", "mild surfactant concentration") corrupt a
+// table every user reads, so they never reach the generator and never get
+// written. The client splits compound labels and looks the parts up
+// individually instead.
+const COMPOUND_MARKERS = /(\s+and\s+|\s*&\s*|\s*\/\s*|,)/i;
+const DESCRIPTIVE_MARKERS =
+  /\b(system|systems|concentration|concentrations|blend|blends|complex|free|based|profile|balance|content|level|levels|combination|matrix|formula|formulation|ratio|percentage|dose|dosage|absence|presence|lack)\b/i;
+
+/** True when a label is worth looking up / generating as a single ingredient. */
+export function isGlossaryCandidate(raw: string): boolean {
+  const text = (raw ?? "").trim();
+  if (text.length < 3) return false;
+  if (COMPOUND_MARKERS.test(text)) return false;
+  if (DESCRIPTIVE_MARKERS.test(text)) return false;
+  // A real INCI name is short: five words is already generous.
+  if (text.split(/\s+/).length > 5) return false;
+  return true;
+}
+
+/** Rejects a generated entry whose own description admits non-recognition. */
+export function isRecognisedDescription(what: string | null | undefined): boolean {
+  const text = (what ?? "").trim();
+  if (text.length < 8) return false;
+  return !/\b(not a (?:real|recognised|known)|no(?:t)? (?:a )?recognised|unrecognised|unknown ingredient|does not appear to be|is not an ingredient|not an? (?:cosmetic )?ingredient|descriptive (?:phrase|term)|marketing (?:term|claim)|cannot identify|unable to identify)\b/i.test(text);
+}
+
+
 
 interface GlossaryRow {
   id: string;
@@ -96,7 +134,8 @@ const GLOSSARY_SCHEMA = {
   properties: {
     entries: {
       type: "array",
-      minItems: 1,
+      minItems: 0,
+
       items: {
         type: "object",
         properties: {
@@ -106,14 +145,27 @@ const GLOSSARY_SCHEMA = {
           category: { type: "string", enum: [...INGREDIENT_CATEGORIES], description: "The single closest category from the framework." },
           what_it_is: { type: "string", description: "1-2 sentences, MAX 30 WORDS, layman's terms. Explain the mechanism in plain English — what the molecule physically does. No advice, no usage instructions, no reference to any particular user." },
           aliases: { type: "array", items: { type: "string" }, description: "Common INCI synonyms and trade names for this exact molecule so lookups resolve. Empty array if none." },
-          is_common: { type: "boolean", description: "True only for ubiquitous filler/base ingredients a reader does not need explained in prose: water/aqua, parfum/fragrance, sodium chloride, citric acid, pH adjusters, colourant index numbers." },
+          is_common: { type: "boolean", description: "True ONLY for formulation filler with nothing to teach: water/aqua, parfum/fragrance, sodium chloride, and colourant index numbers (CI 19140). Everything else is false. Humectants (glycerin), alcohols (alcohol denat), antioxidants (tocopherol), acids and preservatives are NOT common — readers of a textured-hair app need those explained, so they must be false." },
         },
         required: ["input_name", "display_name", "phonetic", "category", "what_it_is", "aliases", "is_common"],
       },
     },
+    skipped: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          input_name: { type: "string", description: "The supplied name you declined to write an entry for." },
+          why: { type: "string", description: "Short reason: 'not an ingredient', 'descriptive phrase', 'multiple ingredients combined', 'unrecognised'." },
+        },
+        required: ["input_name", "why"],
+      },
+      description: "Names you did NOT write an entry for because they are not a single real cosmetic ingredient. Always return this array, empty if you wrote an entry for every name.",
+    },
   },
   required: ["entries"],
 } as Record<string, unknown>;
+
 
 function glossaryInstructions(): string {
   return `You are writing entries for STRAND's shared ingredient glossary. These entries are read by EVERY user, so they are purely factual and contain NO personalisation, NO advice and NO usage instructions.
@@ -130,9 +182,10 @@ RULES:
 2. phonetic: UK English, syllables hyphenated, the stressed syllable in CAPITALS.
 3. category: exactly one value from the enum.
 4. aliases: only true synonyms for the SAME molecule.
-5. If a supplied name is not a real cosmetic ingredient, still return an entry using the name as given, category "Solvent" and a short honest what_it_is.
+5. NEVER INVENT AN ENTRY. If a supplied name is not a single real cosmetic ingredient — it is a descriptive phrase ("sulfate-free amphoteric surfactant system", "mild surfactant concentration"), two or more ingredients combined into one label ("Argan and Sweet Almond Oils"), a marketing claim, or something you do not recognise — return NO entry for it. Put it in the skipped array with a short reason instead. This table is read by every user, so a wrong or invented row is worse than a missing one.
 6. ${NO_SOURCE_NAMING_RULE}
 7. ${NO_MEDICAL_RULE}`;
+
 }
 
 async function generateGlossary(names: string[]): Promise<Array<Record<string, unknown>>> {
@@ -145,22 +198,32 @@ async function generateGlossary(names: string[]): Promise<Array<Record<string, u
     rag_k: 3,
     tool: {
       name: "return_glossary",
-      description: "Return one factual glossary entry per supplied ingredient.",
+      description: "Return one factual glossary entry per supplied name that IS a single real cosmetic ingredient, and list every other supplied name in skipped.",
       input_schema: GLOSSARY_SCHEMA,
     },
     toolChoice: { type: "tool", name: "return_glossary" },
     max_tokens: 4096,
   });
-  const result = await callClaude<{ entries: Array<Record<string, unknown>> }>(req);
+  const result = await callClaude<{
+    entries: Array<Record<string, unknown>>;
+    skipped?: Array<{ input_name?: string; why?: string }>;
+  }>(req);
+  const skipped = result.toolInput?.skipped ?? [];
   console.log(JSON.stringify({
     function: "ingredient-explainer",
     layer: "glossary",
     count: names.length,
+    written: result.toolInput?.entries?.length ?? 0,
+    skipped_count: skipped.length,
+    // Names the model declined — these are the compound labels and descriptive
+    // phrases we must never write into the shared table.
+    skipped: skipped.slice(0, 40).map((s) => `${s?.input_name ?? "?"} (${s?.why ?? "?"})`),
     input_tokens: result.usage.input_tokens,
     output_tokens: result.usage.output_tokens,
   }));
   return result.toolInput?.entries ?? [];
 }
+
 
 /** Resolves glossary rows for a list of names, generating the misses in ONE
  *  batched call and caching them. Idempotent: an existing row is never
@@ -199,7 +262,10 @@ async function resolveGlossary(
     }
   }
 
-  const toGenerate = keys.filter((k) => !out.has(k)).slice(0, MAX_BATCH);
+  // Never send a compound label or a descriptive phrase to the generator: the
+  // glossary is shared by every user, so one bad row is read by everyone.
+  const generatable = keys.filter((k) => !out.has(k) && isGlossaryCandidate(byKey.get(k) ?? k));
+  const toGenerate = generatable.slice(0, MAX_BATCH);
   if (toGenerate.length === 0) return out;
 
   const entries = await generateGlossary(toGenerate.map((k) => byKey.get(k) ?? k));
@@ -216,10 +282,18 @@ async function resolveGlossary(
       category: e.category ? String(e.category) : null,
       what_it_is: clampWords(cleanDescriptiveCopy(String(e.what_it_is ?? "")), 32),
       aliases,
-      is_common: Boolean(e.is_common) || COMMON_KEYS.has(key),
+      is_common: Boolean(e.is_common) || isCommonKey(key),
       model_version: GLOSSARY_MODEL_VERSION,
     };
-  }).filter((r) => r.inci_key.length > 0);
+  }).filter((r) =>
+    r.inci_key.length > 0 &&
+    // Belt and braces: the model occasionally answers for a name it should
+    // have skipped, and an unrecognised entry must never be persisted.
+    isGlossaryCandidate(r.display_name) &&
+    isGlossaryCandidate(r.inci_key) &&
+    isRecognisedDescription(r.what_it_is)
+  );
+
 
   if (rows.length > 0) {
     // Idempotent: unique on inci_key, so a concurrent generation is a no-op.
@@ -491,10 +565,50 @@ async function profileFingerprint(supabase: SupabaseClient, userId: string): Pro
   return { fingerprint, hair, health };
 }
 
+// ── BACKFILL (admin only) ───────────────────────────────────────────────
+//
+// The glossary only fills as products are scanned, so a shelf that predates the
+// explainer has no tokens at all. This mode walks every existing product,
+// sourcing INCI names from BOTH `user_products.ingredients` AND the stored
+// `ingredient_analysis:<key>` summaries (many products only ever had their INCI
+// data written there), and runs each product through the SAME glossary + link
+// path as index mode. Chunked: it processes `limit` products per call and
+// returns a cursor so a caller can walk the shelf without timing out.
+
+interface BackfillProduct {
+  id: string;
+  name: string | null;
+  brand: string | null;
+  category: string | null;
+  ingredients: string[] | null;
+  product_key: string | null;
+}
+
+/** Ingredient names stored on the product row plus those inside its analysis. */
+function namesForProduct(
+  product: BackfillProduct,
+  summaryNames: Map<string, string[]>,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw: unknown) => {
+    const text = typeof raw === "string" ? raw.trim() : "";
+    if (!text) return;
+    const key = normaliseInciKey(text);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(text);
+  };
+  for (const n of product.ingredients ?? []) push(n);
+  for (const n of summaryNames.get(product.id) ?? []) push(n);
+  for (const n of product.product_key ? summaryNames.get(product.product_key) ?? [] : []) push(n);
+  return out;
+}
+
 // ── Handler ─────────────────────────────────────────────────────────────
 
 interface Body {
-  mode?: "sheet" | "index";
+  mode?: "sheet" | "index" | "backfill";
   /** sheet mode */
   name?: string;
   userProductId?: string;
@@ -505,6 +619,10 @@ interface Body {
   productCategory?: string | null;
   context?: Record<string, unknown>;
   force?: boolean;
+  /** backfill mode */
+  offset?: number;
+  limit?: number;
+  namesOnly?: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -515,6 +633,102 @@ Deno.serve(async (req) => {
     const { user, supabase } = auth;
     const body: Body = await req.json();
     const mode = body.mode ?? "sheet";
+
+    // ── BACKFILL MODE: admin only, chunked ────────────────────────────
+    if (mode === "backfill") {
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
+      });
+      if (!isAdmin) return json(403, { error: "admin only" });
+
+      const writer = serviceClient();
+      const offset = Math.max(0, Number(body.offset ?? 0) || 0);
+      const limit = Math.min(5, Math.max(1, Number(body.limit ?? 2) || 2));
+
+      const { data: productRows, error: prodErr } = await writer
+        .from("user_products")
+        .select("id, name, brand, category, ingredients, product_key")
+        .order("created_at", { ascending: true });
+      if (prodErr) return json(500, { error: prodErr.message });
+      const products = (productRows ?? []) as unknown as BackfillProduct[];
+
+      // INCI names hiding inside stored ingredient analyses.
+      const { data: summaries } = await writer
+        .from("ai_summaries")
+        .select("kind, payload")
+        .like("kind", "ingredient_analysis:%");
+      const summaryNames = new Map<string, string[]>();
+      for (const row of (summaries ?? []) as Array<{ kind: string; payload: unknown }>) {
+        const productKey = String(row.kind).slice("ingredient_analysis:".length);
+        const list = (row.payload as { ingredients?: unknown })?.ingredients;
+        if (!Array.isArray(list)) continue;
+        const names = list
+          .map((i) => (i && typeof i === "object" ? (i as { name?: unknown }).name : null))
+          .filter((n): n is string => typeof n === "string" && n.trim().length > 0);
+        const prev = summaryNames.get(productKey) ?? [];
+        summaryNames.set(productKey, [...prev, ...names]);
+      }
+
+      const allNames = new Set<string>();
+      for (const p of products) {
+        for (const n of namesForProduct(p, summaryNames)) allNames.add(normaliseInciKey(n));
+      }
+      if (body.namesOnly) {
+        return json(200, {
+          products: products.length,
+          distinct_names: allNames.size,
+          candidates: [...allNames].filter((n) => isGlossaryCandidate(n)).length,
+        });
+      }
+
+      const slice = products.slice(offset, offset + limit);
+      const report: Array<Record<string, unknown>> = [];
+      for (const product of slice) {
+        const names = namesForProduct(product, summaryNames).filter((n) => isGlossaryCandidate(n));
+        if (names.length === 0) {
+          report.push({ product: product.name, names: 0, linked: 0 });
+          continue;
+        }
+        try {
+          const glossary = await resolveGlossary(writer, names.slice(0, MAX_BATCH));
+          const links: Array<Record<string, unknown>> = [];
+          const seen = new Set<string>();
+          names.forEach((n, i) => {
+            const g = glossary.get(normaliseInciKey(n));
+            if (!g || seen.has(g.id)) return;
+            seen.add(g.id);
+            links.push({ user_product_id: product.id, ingredient_id: g.id, position: i });
+          });
+          if (links.length > 0) {
+            await writer
+              .from("product_ingredients")
+              .upsert(links, { onConflict: "user_product_id,ingredient_id", ignoreDuplicates: true });
+          }
+          report.push({ product: product.name, names: names.length, resolved: glossary.size, linked: links.length });
+        } catch (e) {
+          report.push({ product: product.name, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+
+      const nextOffset = offset + slice.length;
+      const [{ count: glossaryCount }, { count: linkCount }] = await Promise.all([
+        writer.from("glossary_terms").select("id", { count: "exact", head: true }),
+        writer.from("product_ingredients").select("user_product_id", { count: "exact", head: true }),
+      ]);
+      return json(200, {
+        processed: slice.length,
+        next_offset: nextOffset,
+        done: nextOffset >= products.length,
+        total_products: products.length,
+        distinct_names: allNames.size,
+        glossary_rows: glossaryCount ?? null,
+        product_links: linkCount ?? null,
+        report,
+      });
+    }
+
+
 
     // ── INDEX MODE: batch glossary + product index ────────────────────
     if (mode === "index") {
@@ -599,7 +813,10 @@ Deno.serve(async (req) => {
 
     const glossary = await resolveGlossary(supabase, [rawName]);
     let entry = glossary.get(key);
+    // A compound label or descriptive phrase resolves to nothing by design —
+    // the client renders it as plain text rather than a token that 404s.
     if (!entry) return json(404, { error: "ingredient could not be resolved" });
+
     // Seeded class/concept rows carry no definition until first tapped.
     entry = await fillTermDefinition(entry);
     const kind = entry.kind ?? "molecule";

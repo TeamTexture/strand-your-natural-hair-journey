@@ -9,12 +9,14 @@ export interface GlossaryRow {
   id: string;
   inci_key: string;
   display_name: string;
+  phonetic: string | null;
   aliases: string[] | null;
   is_common: boolean | null;
   kind: GlossaryKind;
   class_category: string | null;
   match_keywords: string[] | null;
 }
+
 
 /**
  * LAYER 1 — the shared glossary.
@@ -36,7 +38,7 @@ export function useIngredientGlossary() {
     queryFn: async (): Promise<GlossaryRow[]> => {
       const { data, error } = await supabase
         .from("glossary_terms")
-        .select("id, inci_key, display_name, aliases, is_common, kind, class_category, match_keywords");
+        .select("id, inci_key, display_name, phonetic, aliases, is_common, kind, class_category, match_keywords");
       if (error) throw error;
       return (data ?? []) as unknown as GlossaryRow[];
     },

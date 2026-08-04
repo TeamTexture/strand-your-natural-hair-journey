@@ -69,12 +69,20 @@ export default function IngredientExplainerSheet({
           <SheetTitle className="font-display text-[20px] leading-tight">
             {explainer?.glossary?.display_name ?? name ?? "Ingredient"}
           </SheetTitle>
-          {(kindLabel || explainer?.glossary?.phonetic) && (
-            <p className="text-[11.5px] uppercase tracking-[0.08em] text-foreground/50 font-body">
-              {kindLabel}
-              {explainer?.glossary?.phonetic ? `${kindLabel ? " · " : ""}${explainer.glossary.phonetic}` : ""}
+          {/* Pronunciation gets its own line directly beneath the name — it is
+              how you say the word, not a category, so it is never concatenated
+              with one. The category pill sits below it. */}
+          {explainer?.glossary?.phonetic && (
+            <p className="text-[12px] italic leading-snug text-muted-foreground font-body">
+              {explainer.glossary.phonetic}
             </p>
           )}
+          {kindLabel && (
+            <span className="mt-1 inline-flex w-fit items-center rounded-pill border border-border bg-muted px-2.5 py-[3px] text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/60 font-body">
+              {kindLabel}
+            </span>
+          )}
+
         </SheetHeader>
 
         {isLoading && (

@@ -45,6 +45,7 @@ import type {
 /** Function-id used to pick the default model. */
 export type FunctionKind =
   | "ingredient-analysis"
+  | "ingredient-explainer"
   | "product-analyse"
   | "product-analyse-url"
   | "tool-analyse-url"
@@ -58,6 +59,9 @@ export type FunctionKind =
  *  BuildPromptInput.model when needed (e.g. cheaper tier for a force-refresh). */
 export const FUNCTION_MODEL_MAP: Record<FunctionKind, ClaudeModel> = {
   "ingredient-analysis": "claude-sonnet-4-6",
+  // Glossary entries are short, factual and written once ever per ingredient,
+  // so the cheap tier is the right home for them.
+  "ingredient-explainer": "claude-haiku-4-5-20251001",
   "product-analyse": "claude-sonnet-4-6",
   "product-analyse-url": "claude-sonnet-4-6",
   "tool-analyse-url": "claude-haiku-4-5-20251001",
@@ -67,6 +71,7 @@ export const FUNCTION_MODEL_MAP: Record<FunctionKind, ClaudeModel> = {
   "blood-ai-summary": "claude-opus-4-7",
   "journal-encouragement": "claude-haiku-4-5-20251001",
 };
+
 
 export interface BuildPromptInput {
   function_kind: FunctionKind;
@@ -298,7 +303,10 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   }
 
   return {
-    model: input.model ?? FUNCTION_MODEL_MAP[input.function_kind],
+    // Never leave `model` undefined — an unregistered function_kind would
+    // otherwise send a request Anthropic rejects with "model: Field required".
+    model: input.model ?? FUNCTION_MODEL_MAP[input.function_kind] ?? "claude-haiku-4-5-20251001",
+
     systemBlocks,
     messages,
     tools: tools.length > 0 ? tools : undefined,

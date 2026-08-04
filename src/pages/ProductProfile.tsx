@@ -36,7 +36,7 @@ import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
-import { IngredientProductScope } from "@/components/ingredients/IngredientToken";
+import { IngredientProductScope, GlossaryLabel } from "@/components/ingredients/IngredientToken";
 import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
 
@@ -586,10 +586,22 @@ const ProductProfile = () => {
                             reason={aiFlag.body ? condenseProse(aiFlag.body, tipsLevel) : undefined}
                             flag={aiFlag.tone}
                             className="border-none !p-0 bg-transparent"
+                            // The row itself is a button when it expands the
+                            // shelf cross-reference — never nest a token button
+                            // inside it.
+                            explainable={!isClickable}
                           />
                         ) : (
-                          <p className="text-sm font-medium leading-tight">{name}</p>
+                          <p className="text-sm font-medium leading-tight">
+                            {isClickable ? (
+                              name
+                            ) : (
+                              <GlossaryLabel label={name} className="font-medium" showPhonetic />
+                            )}
+                          </p>
                         )}
+
+
                         {isClickable && (
                           <p className="text-[10px] text-primary/70 uppercase tracking-[0.15em] mt-1">
                             {matches.length === 0
