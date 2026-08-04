@@ -114,3 +114,46 @@ export const addToCalendar = (event: CalendarEvent): void => {
   // Revoke async so the browser has time to handle the click
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+
+/**
+ * Google Calendar "add event" template URL. No OAuth, no connector — it just
+ * opens Google's own pre-filled event form in a new tab, which the user then
+ * saves themselves. Times are sent as local wall-clock with a ctz hint so the
+ * event lands at the time the user actually typed.
+ */
+export const googleCalendarUrl = (event: CalendarEvent): string => {
+  const compact = (d: Date) =>
+    `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(
+      d.getMinutes(),
+    )}00`;
+
+  let dates: string;
+  const timed = event.time && /^\d{1,2}:\d{2}/.test(event.time);
+  if (timed) {
+    const [hh, mm] = event.time!.split(":").map((p) => parseInt(p, 10));
+    const start = new Date(`${event.date}T${pad(hh)}:${pad(mm)}:00`);
+    const end = new Date(start.getTime() + (event.durationMinutes ?? 60) * 60_000);
+    dates = `${compact(start)}/${compact(end)}`;
+  } else {
+    const startStamp = toAllDayStamp(event.date);
+    const next = new Date(`${event.date}T00:00:00`);
+    next.setDate(next.getDate() + 1);
+    dates = `${startStamp}/${next.getFullYear()}${pad(next.getMonth() + 1)}${pad(next.getDate())}`;
+  }
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: event.title,
+    dates,
+  });
+  if (event.location) params.set("location", event.location);
+  if (event.description) params.set("details", event.description);
+  if (timed) {
+    try {
+      params.set("ctz", Intl.DateTimeFormat().resolvedOptions().timeZone);
+    } catch {
+      /* timezone hint is a nicety, not a requirement */
+    }
+  }
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+};
