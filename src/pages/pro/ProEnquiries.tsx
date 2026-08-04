@@ -420,6 +420,8 @@ const ProEnquiries = () => {
 
   const enquiries = data ?? [];
   const previews = usePassportPreviews(enquiries);
+  const peerNames = usePeerSenders(enquiries);
+
 
   const filtered = enquiries.filter((e) => e.status === tab);
 
@@ -506,7 +508,9 @@ const ProEnquiries = () => {
             <EnquiryCard
               key={e.id}
               enquiry={e}
-              preview={previews[e.consumer_id]}
+              preview={peerNames[e.consumer_id] ? undefined : previews[e.consumer_id]}
+              peerName={peerNames[e.consumer_id]}
+
               onAccept={async () => {
                 try {
                   await accept.mutateAsync(e.id);
