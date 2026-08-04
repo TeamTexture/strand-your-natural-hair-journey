@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail } from "lucide-react";
+import { ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -574,21 +574,51 @@ const Directory = () => {
           })
         )}
 
+        {/* Role-aware footer CTA — keyed off the ACTIVE view (the same source of
+            truth the switcher uses), never the account's raw roles, so a
+            multi-role account sees the right prompt for the view it's in. */}
         <SurfaceCard tone="gold">
           <div className="space-y-2">
-            <p className="font-display text-base leading-tight">Are you a professional?</p>
-            <p className="text-xs font-body text-muted-foreground leading-snug">
-              Join the STRAND vetted directory. Trichologists, dermatologists,
-              curl specialists, colourists and stylists welcome.
-            </p>
-            <a
-              href="/pro/apply"
-              className="mt-1 inline-flex items-center justify-center w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
-            >
-              Apply Now
-            </a>
+            {allowsProFeatures(roleView) ? (
+              <>
+                <div className="flex items-start gap-2">
+                  <Tag className="size-4 text-primary shrink-0 mt-0.5" />
+                  <p className="font-display text-base leading-tight">Have an offer to share?</p>
+                </div>
+                <p className="text-xs font-body text-muted-foreground leading-snug">
+                  Members browsing this directory are already deciding who to book. A
+                  time-limited discount on a service, product or consultation puts you in front
+                  of them at that exact moment — and gives them a reason to choose you.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/pro/offers")}
+                  className="mt-1 inline-flex items-center justify-center w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
+                >
+                  Create an offer
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-start gap-2">
+                  <UserPlus className="size-4 text-primary shrink-0 mt-0.5" />
+                  <p className="font-display text-base leading-tight">Are you a professional?</p>
+                </div>
+                <p className="text-xs font-body text-muted-foreground leading-snug">
+                  Join the STRAND directory and get discovered by members actively looking for
+                  help with their hair.
+                </p>
+                <a
+                  href="/pro/apply"
+                  className="mt-1 inline-flex items-center justify-center w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
+                >
+                  Join the directory
+                </a>
+              </>
+            )}
           </div>
         </SurfaceCard>
+
       </div>
 
 
