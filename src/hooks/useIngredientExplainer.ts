@@ -76,7 +76,7 @@ export function useIngredientExplainer(
           "user_products!inner(id, name, brand, category, match_score, image_url, storage_path, on_shelf)",
         )
         .eq("ingredient_id", ing.id)
-        .eq("user_id", user!.id);
+        .eq("user_products.user_id", user!.id);
       if (error) throw error;
       const rows = (data ?? [])
         .map((r) => (r as unknown as { user_products: ShelfMatch }).user_products)
