@@ -2035,6 +2035,27 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           </div>
         </div>
 
+        {/* Freshness bar — when this passport was last pulled, plus manual refresh */}
+        <div className="px-5 pt-2.5 flex items-center justify-between gap-3">
+          <p className="text-[11px] leading-snug text-muted-foreground font-body">
+            {refreshing
+              ? "Refreshing…"
+              : fetchedAt
+                ? <>Last updated {formatDateTime(fetchedAt)} · {formatRelative(fetchedAt)}</>
+                : "Not yet loaded"}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refetch}
+            disabled={refreshing}
+            className="h-8 rounded-pill px-3 text-[11px] gap-1.5 shrink-0"
+          >
+            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
+
 
         <SectionHeader icon={Icon} title={SECTIONS.find(s => s.key === section)?.label ?? "Passport"} sub={sectionSub[section]} />
 
