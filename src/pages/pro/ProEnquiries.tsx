@@ -336,10 +336,10 @@ const EnquiryCard = ({
               onClick={onMessage}
               className="w-full uppercase tracking-[0.08em]"
             >
-              MESSAGE CLIENT
+              {isPeer ? "MESSAGE PROFESSIONAL" : "MESSAGE CLIENT"}
             </Button>
           )}
-          {onOpenPassport && (
+          {onOpenPassport && !isPeer && (
             <Button
               size="sm"
               variant="outline"
@@ -349,6 +349,7 @@ const EnquiryCard = ({
               OPEN CLIENT PASSPORT
             </Button>
           )}
+
           {onBookAppointment && (
             <Button
               size="sm"
