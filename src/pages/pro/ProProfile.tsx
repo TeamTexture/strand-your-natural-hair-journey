@@ -216,6 +216,11 @@ const ProProfile = () => {
       address_line1: profile.address_line1 ?? "",
       address_line2: profile.address_line2 ?? "",
       city: profile.city ?? "",
+      discount_code: (profile as { discount_code?: string | null }).discount_code ?? "",
+      discount_description:
+        (profile as { discount_description?: string | null }).discount_description ?? "",
+      discount_active:
+        (profile as { discount_active?: boolean | null }).discount_active === true,
     });
     const savedHours = profile.opening_hours as OpeningHours | null;
     if (savedHours && typeof savedHours === "object") {
