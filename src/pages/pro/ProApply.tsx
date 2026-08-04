@@ -387,7 +387,7 @@ const ProApply = () => {
             <Input
               value={form.address_line1}
               onChange={(e) => set("address_line1", e.target.value)}
-              placeholder="12 Harley Street"
+              
             />
           </Field>
           <Field label="Address line 2">
@@ -401,21 +401,21 @@ const ProApply = () => {
             <Input
               value={form.city}
               onChange={(e) => set("city", e.target.value)}
-              placeholder="London"
+              
             />
           </Field>
           <Field label="Postcode">
             <Input
               value={form.postcode}
               onChange={(e) => set("postcode", e.target.value)}
-              placeholder="W1G 9PG"
+              
             />
           </Field>
           <Field label="Region / area served">
             <Input
               value={form.location}
               onChange={(e) => set("location", e.target.value)}
-              placeholder="London & remote"
+              
             />
           </Field>
           <Field label="Website">
