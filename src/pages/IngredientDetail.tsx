@@ -469,7 +469,29 @@ const IngredientDetail = () => {
         );
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
-        setAnalysis(data.analysis as Analysis);
+        const fresh = data.analysis as Analysis;
+        setAnalysis(fresh);
+
+        // ONE SCORE PER PRODUCT. This page and every list row/thumbnail must
+        // resolve to the same number, so whenever this analysis produces a
+        // score for a product that is already saved, we write it straight back
+        // to user_products.match_score (the single source of truth read by
+        // MatchStars, Home, the passport and every AI context payload).
+        // Without this write-back the card kept the scan-time score while this
+        // page showed a second, independently generated one.
+        const freshScore = normaliseMatchScore(fresh?.match_score);
+        if (savedRowRef.current && freshScore != null && savedRowRef.current.match_score !== freshScore) {
+          try {
+            await supabase
+              .from("user_products")
+              .update({ match_score: freshScore })
+              .eq("id", savedRowRef.current.id);
+            await reload();
+            window.dispatchEvent(new CustomEvent("user-products-updated"));
+          } catch (syncErr) {
+            console.warn("match_score write-back failed", syncErr);
+          }
+        }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Could not analyse this product.";
         setError(msg);
@@ -478,7 +500,7 @@ const IngredientDetail = () => {
         setLoading(false);
       }
     },
-    [productKey, productName, productBrand],
+    [productKey, productName, productBrand, reload],
   );
 
   useEffect(() => {
