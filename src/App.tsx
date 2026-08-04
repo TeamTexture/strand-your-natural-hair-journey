@@ -115,6 +115,8 @@ const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
 
 // Brand
 const BrandAuth = lazy(() => import("./pages/brand/BrandAuth"));
+const BrandForgotPassword = lazy(() => import("./pages/brand/BrandForgotPassword"));
+const BrandResetPassword = lazy(() => import("./pages/brand/BrandResetPassword"));
 const BrandDashboard = lazy(() => import("./pages/brand/BrandDashboard"));
 const BrandCreateOffer = lazy(() => import("./pages/brand/BrandCreateOffer"));
 const BrandOfferDetail = lazy(() => import("./pages/brand/BrandOfferDetail"));
@@ -486,6 +488,8 @@ const App = () => (
 
               {/* Brand routes */}
               <Route path="/brand/auth" element={<BrandAuth />} />
+              <Route path="/brand/forgot-password" element={<BrandForgotPassword />} />
+              <Route path="/brand/reset-password" element={<BrandResetPassword />} />
               <Route path="/brand/subscribe" element={<RoleGate allow={["brand", "admin"]}><BrandSubscribe /></RoleGate>} />
               <Route path="/brand/billing" element={<RoleGate allow={["brand", "admin"]}><BrandBilling /></RoleGate>} />
               <Route path="/brand" element={<RoleGate allow={["brand", "admin"]}><BrandDashboard /></RoleGate>} />

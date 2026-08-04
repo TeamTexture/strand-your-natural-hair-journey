@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart, Ticket, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
+import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -52,6 +53,7 @@ const StatusPill = ({ status }: { status: DerivedStatus }) => {
 const BrandDashboard = () => {
   const nav = useNavigate();
   const { signOut } = useAuth();
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const ownerMode = useOwnerMode();
   const { data: profile, isLoading: profileLoading } = useBrandProfile();
   const { data: offers = [], isLoading } = useBrandOffers(ownerMode);
@@ -360,7 +362,15 @@ const BrandDashboard = () => {
           </div>
         )}
 
-        <div className="pt-6">
+        <div className="pt-6 space-y-2">
+          <Button
+            variant="outline"
+            size="pill"
+            onClick={() => setPasswordOpen(true)}
+            className="w-full"
+          >
+            Change password
+          </Button>
           <Button
             variant="outline"
             size="pill"
@@ -374,6 +384,7 @@ const BrandDashboard = () => {
           </Button>
         </div>
       </div>
+      <ChangePasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
     </ScreenLayout>
   );
 };

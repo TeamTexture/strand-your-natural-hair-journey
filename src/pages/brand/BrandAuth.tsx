@@ -188,6 +188,15 @@ const BrandAuth = () => {
         <Button variant="gold" size="pill" type="submit" disabled={busy} className="mt-2">
           {busy ? "Please wait…" : mode === "signup" ? "Create brand account" : "Sign in"}
         </Button>
+        {mode === "signin" && (
+          <button
+            type="button"
+            onClick={() => nav("/brand/forgot-password")}
+            className="text-center text-xs text-primary font-semibold hover:underline"
+          >
+            Forgot password?
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setMode(mode === "signup" ? "signin" : "signup")}

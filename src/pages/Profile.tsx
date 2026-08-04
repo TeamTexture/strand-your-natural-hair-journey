@@ -8,6 +8,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionHeader from "@/components/nav/SectionHeader";
 import ListRow from "@/components/nav/ListRow";
+import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import IconChipGrid from "@/components/nav/IconChipGrid";
 import Eyebrow from "@/components/nav/Eyebrow";
 import EmptyState from "@/components/EmptyState";
@@ -154,6 +155,7 @@ const Profile = () => {
   const { values: bloodValues } = useBloodValues();
 
   const [editPickerOpen, setEditPickerOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingSnapshot, setExportingSnapshot] = useState(false);
 
@@ -629,6 +631,12 @@ const Profile = () => {
           <ListRow icon={User} name="Personal details" secondary="Name, age, postcode & photo" to="/profile/personal" />
           <ListRow icon={Sparkles} name="Hair details" secondary="Diameter, porosity & scalp" to="/profile/hair" />
           <ListRow icon={Droplet} name="Blood results" secondary="Review & edit tests" to="/blood-history" />
+          <ListRow
+            icon={KeyRound}
+            name="Change password"
+            secondary="Update your sign-in password"
+            onClick={() => setPasswordOpen(true)}
+          />
         </div>
       </div>
 
@@ -915,6 +923,8 @@ const Profile = () => {
           <LogOut className="size-3.5" /> Sign out
         </button>
       </div>
+
+      <ChangePasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
     </ScreenLayout>
   );
 };

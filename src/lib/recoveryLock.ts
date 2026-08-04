@@ -14,10 +14,14 @@
 
 const KEY = "strand_password_recovery_pending";
 
-export type RecoveryAudience = "member" | "pro";
+export type RecoveryAudience = "member" | "pro" | "brand";
 
 const path = (audience: RecoveryAudience) =>
-  audience === "pro" ? "/pro/reset-password" : "/reset-password";
+  audience === "pro"
+    ? "/pro/reset-password"
+    : audience === "brand"
+      ? "/brand/reset-password"
+      : "/reset-password";
 
 export const beginRecoveryLock = (audience: RecoveryAudience = "member") => {
   try {
@@ -30,7 +34,7 @@ export const beginRecoveryLock = (audience: RecoveryAudience = "member") => {
 export const getRecoveryLock = (): RecoveryAudience | null => {
   try {
     const v = sessionStorage.getItem(KEY);
-    return v === "pro" || v === "member" ? v : null;
+    return v === "pro" || v === "member" || v === "brand" ? v : null;
   } catch {
     return null;
   }
