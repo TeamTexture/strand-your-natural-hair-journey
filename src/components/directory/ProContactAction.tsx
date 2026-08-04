@@ -13,10 +13,13 @@ export default function ProContactAction({
   state,
   onEnquire,
   className,
+  canNavigateToEnquiries = true,
 }: {
   state: ProContactState;
   onEnquire: () => void;
   className?: string;
+  /** Member-only enquiries list; professionals stay in their own view. */
+  canNavigateToEnquiries?: boolean;
 }) {
   const navigate = useNavigate();
   const base =
@@ -49,10 +52,12 @@ export default function ProContactAction({
     return (
       <button
         type="button"
-        onClick={() => navigate("/profile/enquiries")}
+        disabled={!canNavigateToEnquiries}
+        onClick={() => canNavigateToEnquiries && navigate("/profile/enquiries")}
         className={cn(
           base,
           "bg-secondary text-foreground border border-primary/40",
+          !canNavigateToEnquiries && "opacity-80",
           className,
         )}
       >
@@ -60,6 +65,7 @@ export default function ProContactAction({
       </button>
     );
   }
+
 
   // NONE / DECLINED / WITHDRAWN — enquiry allowed (immediately after a close).
   return (

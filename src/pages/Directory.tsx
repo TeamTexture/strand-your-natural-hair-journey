@@ -26,7 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
-import { allowsMemberFeatures } from "@/lib/viewFeatures";
+import { allowsMemberFeatures, allowsProFeatures } from "@/lib/viewFeatures";
 
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
@@ -48,7 +48,12 @@ const Directory = () => {
   const { stateFor } = useProContactStates();
   // Hard wall: in the Professional / Brand / Admin views the directory is
   // read-only. No member enquiry state, no member chat, no member bottom nav.
-  const memberActions = allowsMemberFeatures(useActiveRoleView());
+  const roleView = useActiveRoleView();
+  const memberActions = allowsMemberFeatures(roleView);
+  // Booking a professional is not a member-only feature: professionals are also
+  // end users and must be able to enquire with their peers.
+  const canEnquire = memberActions || allowsProFeatures(roleView);
+
   const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
   const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
