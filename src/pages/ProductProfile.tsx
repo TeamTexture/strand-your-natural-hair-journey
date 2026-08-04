@@ -27,7 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import MatchStars from "@/components/MatchStars";
-import { starsFromScore } from "@/lib/matchStars";
+import { matchScoreOf, scoreTone as toneForScore } from "@/lib/matchStars";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
