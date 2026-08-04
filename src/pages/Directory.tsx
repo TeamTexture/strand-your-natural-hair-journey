@@ -241,7 +241,7 @@ const Directory = () => {
       {!bloodOnly && (
         <div className="pb-4 strand-hscroll px-5">
           <div className="flex gap-2 min-w-max">
-            {tabs.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t}
                 onClick={() => {
@@ -263,10 +263,10 @@ const Directory = () => {
               >
                 {t}
                 {t !== "All" && (
-                  <span className="ml-1.5 opacity-60">
-                    {pros.filter((p) => p.type === t).length}
-                  </span>
+                  <span className="ml-1.5 opacity-60">{tabCounts[t]}</span>
                 )}
+              </button>
+            ))}
               </button>
             ))}
           </div>
