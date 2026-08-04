@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp, StickyNote } from "lucide-react";
+import { ChevronDown, ChevronUp, RefreshCw, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp, StickyNote } from "lucide-react";
 import ProClientNotes from "@/components/pro/ProClientNotes";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -1925,7 +1925,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
   );
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
-  const { data, loading, accessEnded } = usePassportData(userId, active);
+  const { data, loading, accessEnded, refetch, refreshing, fetchedAt } = usePassportData(userId, active);
   const tabsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -2033,6 +2033,27 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
               })}
             </div>
           </div>
+        </div>
+
+        {/* Freshness bar — when this passport was last pulled, plus manual refresh */}
+        <div className="px-5 pt-2.5 flex items-center justify-between gap-3">
+          <p className="text-[11px] leading-snug text-muted-foreground font-body">
+            {refreshing
+              ? "Refreshing…"
+              : fetchedAt
+                ? <>Last updated {formatDateTime(fetchedAt)} · {formatRelative(fetchedAt)}</>
+                : "Not yet loaded"}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refetch}
+            disabled={refreshing}
+            className="h-8 rounded-pill px-3 text-[11px] gap-1.5 shrink-0"
+          >
+            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
+            Refresh
+          </Button>
         </div>
 
 

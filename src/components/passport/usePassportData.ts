@@ -60,11 +60,19 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
   const [data, setData] = useState<PassportDataset | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessEnded, setAccessEnded] = useState(false);
+  const [nonce, setNonce] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
+
+  const refetch = () => {
+    setRefreshing(true);
+    setNonce((n) => n + 1);
+  };
 
   useEffect(() => {
     if (!userId || !active) return;
     let cancelled = false;
-    setLoading(true);
+    setLoading((prev) => (nonce === 0 ? true : prev));
     setAccessEnded(false);
     (async () => {
       const sb = supabase;
@@ -128,6 +136,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         setAccessEnded(true);
         setData(null);
         setLoading(false);
+        setRefreshing(false);
         return;
       }
 
@@ -216,9 +225,11 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         ingredientLists: asArray(ingredientLists),
       });
       setLoading(false);
+      setRefreshing(false);
+      setFetchedAt(new Date());
     })();
     return () => { cancelled = true; };
-  }, [userId, active]);
+  }, [userId, active, nonce]);
 
-  return { data, loading, accessEnded };
+  return { data, loading, accessEnded, refetch, refreshing, fetchedAt };
 };
