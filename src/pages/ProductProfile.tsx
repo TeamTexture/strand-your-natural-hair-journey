@@ -509,7 +509,7 @@ const ProductProfile = () => {
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Strand rating</p>
           <SurfaceCard>
             {(() => {
-              const hasScore = starsFromScore(score > 0 ? score : null) != null;
+              const hasScore = displayScore != null;
               return (
                 <div className="flex items-center gap-2">
                   {hasScore ? (
