@@ -42,7 +42,7 @@ const BloodTestRoutesSheet = ({
 }) => {
   const nav = useNavigate();
   const { panels, loading: panelsLoading } = useBloodTestBrandPanels();
-  const { data: pros = [], isLoading: prosLoading } = useDirectoryProfessionals();
+  const { pros, loading: prosLoading } = useDirectoryProfessionals();
 
   const orderedPanels = useMemo(
     () => orderPanelsByRelevance(panels, neededMarkers),
