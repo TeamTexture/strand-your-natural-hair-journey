@@ -136,6 +136,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         setAccessEnded(true);
         setData(null);
         setLoading(false);
+        setRefreshing(false);
         return;
       }
 
