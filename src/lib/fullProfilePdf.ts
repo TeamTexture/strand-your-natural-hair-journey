@@ -485,7 +485,7 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
       cur.card(`${p.brand ? p.brand + " — " : ""}${p.name}`, [
         { label: "Category", value: p.category || "" },
         { label: "Rating", value: p.rating ? `${p.rating}/5` : "" },
-        { label: "AI match", value: p.match_score ? `${p.match_score}/5` : "" },
+        { label: "AI match", value: p.match_score ? `${p.match_score}%` : "" },
         { label: "Times used", value: p.use_count ? String(p.use_count) : "" },
         { label: "Last used", value: fmtDate(p.last_used_at) },
         { label: "Added", value: fmtDate(p.added_to_shelf_at) },
