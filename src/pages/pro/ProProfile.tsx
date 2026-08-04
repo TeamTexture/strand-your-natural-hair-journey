@@ -178,6 +178,9 @@ const ProProfile = () => {
     address_line1: "",
     address_line2: "",
     city: "",
+    discount_code: "",
+    discount_description: "",
+    discount_active: false,
   });
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [specInput, setSpecInput] = useState("");
