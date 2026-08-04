@@ -66,7 +66,7 @@ import PurposeInsight, { parsePurposeInsight, type ProductPurposeInsight } from 
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 import MatchStars from "@/components/MatchStars";
-import { starsFromScore } from "@/lib/matchStars";
+import { starsFromScore, formatStars, normaliseMatchScore } from "@/lib/matchStars";
 
 interface Ingredient {
   tone: "good" | "warn" | "bad";
