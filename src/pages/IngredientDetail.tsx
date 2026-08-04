@@ -908,21 +908,21 @@ const IngredientDetail = () => {
                   </p>
                 );
               }
-              // Derive a 1–5 star recommendation from the AI's match_score
-              // (0–100). Fall back to ingredient-flag balance when no score
-              // is returned so the row is always populated.
-              let score = typeof analysis.match_score === "number" ? analysis.match_score : 0;
-              if (!score && analysis.ingredients?.length) {
-                const total = analysis.ingredients.length;
-                const good = analysis.ingredients.filter((i) => i.tone === "good").length;
-                const bad = analysis.ingredients.filter((i) => i.tone === "bad").length;
-                score = Math.round(((good - bad) / total) * 50 + 50);
+              // ONE mapping, ONE score. The score comes from the analysis when
+              // it has one, otherwise from the saved row — never from an
+              // ad-hoc ingredient-balance formula, which used to invent a
+              // third number for the same product. No score means no stars.
+              const score =
+                normaliseMatchScore(analysis.match_score) ??
+                normaliseMatchScore(savedRowRef.current?.match_score);
+              const stars = starsFromScore(score);
+              if (stars == null) {
+                return <p className="text-xs text-muted-foreground italic">Awaiting analysis</p>;
               }
-              const aiStars = Math.round(starsFromScore(score) ?? 0);
               const label =
-                aiStars >= 5 ? "Excellent match for your hair"
-                : aiStars === 4 ? "Good fit for your routine"
-                : aiStars === 3 ? "Use with care"
+                stars >= 4.5 ? "Excellent match for your hair"
+                : stars >= 3.5 ? "Good fit for your routine"
+                : stars >= 2.5 ? "Use with care"
                 : aiStars === 2 ? "Not ideal for your profile"
                 : "Best avoided";
               return (
