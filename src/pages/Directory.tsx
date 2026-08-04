@@ -267,8 +267,6 @@ const Directory = () => {
                 )}
               </button>
             ))}
-              </button>
-            ))}
           </div>
         </div>
       )}
