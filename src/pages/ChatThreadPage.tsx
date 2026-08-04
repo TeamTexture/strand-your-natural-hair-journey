@@ -493,9 +493,10 @@ const ChatThreadPage = () => {
             className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
           >
             <Calendar className="size-3.5" />
-            Book appointment
+            Book with {other?.name ?? "them"}
             <ExternalLink className="size-3.5" />
           </a>
+
         </div>
       )}
 
