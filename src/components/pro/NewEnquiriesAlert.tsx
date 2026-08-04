@@ -7,6 +7,8 @@ import { Inbox } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { allowsProFeatures } from "@/lib/viewFeatures";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -17,11 +19,15 @@ const NewEnquiriesAlert = () => {
   const { user } = useAuth();
   const { isProfessional, isAdmin, loading } = useRoles();
   const nav = useNavigate();
+  const view = useActiveRoleView();
+  const inProView = allowsProFeatures(view);
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (loading || !user?.id) return;
     if (!isProfessional && !isAdmin) return;
+    // Professional-only popup: never interrupt the member/brand/admin views.
+    if (!inProView) return;
     if (sessionStorage.getItem(SHOWN_KEY) === "1") return;
 
     let cancelled = false;
@@ -48,7 +54,7 @@ const NewEnquiriesAlert = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, isProfessional, isAdmin, loading]);
+  }, [user?.id, isProfessional, isAdmin, loading, inProView]);
 
   const dismiss = () => setCount(0);
   const review = () => {
@@ -57,7 +63,7 @@ const NewEnquiriesAlert = () => {
   };
 
   return (
-    <Dialog open={count > 0} onOpenChange={(o) => !o && dismiss()}>
+    <Dialog open={inProView && count > 0} onOpenChange={(o) => !o && dismiss()}>
       <DialogContent className="max-w-[320px] p-5 rounded-[18px]">
         <DialogHeader className="space-y-2">
           <div className="flex justify-center">
