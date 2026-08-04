@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { supabase } from "@/integrations/supabase/client";
+import { isPastAppointment, upcomingAppointments } from "@/lib/appointmentState";
 import { useProAppointments, type ProAppointmentRow } from "@/hooks/useProAppointments";
 import { formatTime12h } from "@/lib/formatTime";
 import { useQueryClient } from "@tanstack/react-query";
@@ -138,28 +139,16 @@ const ProAppointments = () => {
   });
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const upcoming = useMemo(
-    () =>
-      data
-        .filter(
-          (a) =>
-            !["completed", "cancelled", "no_show"].includes(a.status) &&
-            a.appointment_date >= today,
-        )
-        .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date)),
-    [data, today],
-  );
+  // Shared accessor: the pro's diary and the client's calendar read the same
+  // row through the same rule.
+  const upcoming = useMemo(() => upcomingAppointments(data), [data]);
 
   const past = useMemo(
     () =>
       data
-        .filter(
-          (a) =>
-            ["completed", "cancelled", "no_show"].includes(a.status) ||
-            a.appointment_date < today,
-        )
+        .filter(isPastAppointment)
         .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date)),
-    [data, today],
+    [data],
   );
 
   // { "yyyy-mm-dd": ProAppointmentRow[] } for O(1) day lookups in the grid.
