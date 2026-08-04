@@ -21,6 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import CapabilityClaimFields from "@/components/pro/CapabilityClaimFields";
+import {
+  claimFromRow,
+  claimPayload,
+  emptyCapabilityClaim,
+  validateCapabilityClaim,
+  type CapabilityClaim,
+} from "@/lib/proCapabilities";
 import {
   Select,
   SelectContent,
@@ -213,6 +221,8 @@ const ProSetup = () => {
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [specInput, setSpecInput] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  // Capability CLAIMS, submitted for admin review. Nothing is verified here.
+  const [claims, setClaims] = useState<CapabilityClaim>(emptyCapabilityClaim());
 
   // Prefill from the existing skeleton row.
   useEffect(() => {
@@ -244,6 +254,7 @@ const ProSetup = () => {
     if (saved && typeof saved === "object") {
       setHours({ ...defaultHours(), ...saved });
     }
+    setClaims(claimFromRow(profile as unknown as Record<string, unknown>));
     setHydrated(true);
   }, [profile, hydrated]);
 
@@ -273,8 +284,10 @@ const ProSetup = () => {
       address_line2: form.address_line2.trim() || null,
       city: form.city.trim() || null,
       opening_hours: hours as never,
+      // Claims go in as claims. Verification is an admin action, elsewhere.
+      ...(claimPayload(claims) as Record<string, unknown>),
     }),
-    [form, hours],
+    [form, hours, claims],
   );
 
   const saveDraft = async () => {
@@ -393,6 +406,9 @@ const ProSetup = () => {
         return "Please add at least one service.";
       if (form.specialisms.length === 0)
         return "Please add at least one specialism.";
+      // A ticked capability box must carry its supporting detail.
+      const claimError = validateCapabilityClaim(claims);
+      if (claimError) return claimError;
     }
     if (i === 5) {
       if (!form.cover_path && form.photos.length === 0)
@@ -914,6 +930,13 @@ const ProSetup = () => {
               <p className="text-[11px] font-body text-muted-foreground leading-snug">
                 Max 12.
               </p>
+            </div>
+
+            <div className="pt-4 space-y-2">
+              <Label className="text-xs font-body uppercase tracking-[0.12em] text-muted-foreground">
+                Clinical capabilities
+              </Label>
+              <CapabilityClaimFields value={claims} onChange={setClaims} />
             </div>
           </>
         )}

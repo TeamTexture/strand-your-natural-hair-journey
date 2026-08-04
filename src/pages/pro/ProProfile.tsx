@@ -28,6 +28,15 @@ import ProTour from "@/components/ProTour";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
 import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
+import CapabilityClaimFields from "@/components/pro/CapabilityClaimFields";
+import {
+  claimFromRow,
+  claimPayload,
+  emptyCapabilityClaim,
+  validateCapabilityClaim,
+  type CapabilityClaim,
+  type ClaimStatus,
+} from "@/lib/proCapabilities";
 
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
@@ -173,6 +182,9 @@ const ProProfile = () => {
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [specInput, setSpecInput] = useState("");
   const [qualInput, setQualInput] = useState("");
+  // Capability CLAIMS. The professional owns these fields; the matching
+  // `_verified` columns are admin-only and locked by a database trigger.
+  const [claims, setClaims] = useState<CapabilityClaim>(emptyCapabilityClaim());
 
   useEffect(() => {
     if (!profile) return;
@@ -206,13 +218,21 @@ const ProProfile = () => {
     if (savedHours && typeof savedHours === "object") {
       setHours({ ...defaultHours(), ...savedHours });
     }
+    setClaims(claimFromRow(profile as unknown as Record<string, unknown>));
   }, [profile]);
+
+  // Read-only verification state, straight from the row the admin controls.
+  const capRow = (profile ?? {}) as unknown as Record<string, unknown>;
+  const doctorStatus = (capRow.doctor_verification_status as ClaimStatus) ?? "none";
+  const bloodsStatus = (capRow.bloods_verification_status as ClaimStatus) ?? "none";
 
   const avatarUrl = useSignedUrl(form.avatar_path);
 
   const save = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not signed in");
+      const claimError = validateCapabilityClaim(claims);
+      if (claimError) throw new Error(claimError);
       const { error } = await supabase
         .from("pro_profiles")
         .update({
@@ -241,7 +261,10 @@ const ProProfile = () => {
           address_line2: form.address_line2 || null,
           city: form.city || null,
           opening_hours: hours as never,
-        })
+          // CLAIM columns only. Writing a `_verified` column here would be
+          // reverted by the database trigger — verification is admin-only.
+          ...(claimPayload(claims) as Record<string, unknown>),
+        } as never)
         .eq("user_id", user.id);
       if (error) throw error;
     },
@@ -553,6 +576,15 @@ const ProProfile = () => {
           </Button>
         </div>
 
+        <SectionHead>Clinical capabilities</SectionHead>
+        <CapabilityClaimFields
+          value={claims}
+          onChange={setClaims}
+          doctorStatus={doctorStatus}
+          bloodsStatus={bloodsStatus}
+          doctorNote={(capRow.doctor_verification_note as string | null) ?? null}
+          bloodsNote={(capRow.bloods_verification_note as string | null) ?? null}
+        />
 
 
         <SectionHead>Location</SectionHead>

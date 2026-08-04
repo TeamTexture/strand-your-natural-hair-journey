@@ -53,6 +53,17 @@ export interface Professional {
   city?: string;
   /** Opening hours keyed mon..sun. Shape matches ProProfile editor. */
   openingHours?: Record<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun", { closed: boolean; open: string; close: string }>;
+  /** Qualifications entered by the professional (e.g. "NVQ Level 3 Hairdressing"). */
+  qualifications?: string[];
+  /**
+   * VERIFIED capabilities. These mirror the `_verified` columns on
+   * `pro_profiles` — never the professional's own `_claimed` columns. Badges and
+   * directory filters read these fields only, so an unverified claim is
+   * invisible to members by construction.
+   */
+  isDoctorVerified?: boolean;
+  canTakeBloodsVerified?: boolean;
+  bloodsSetting?: "clinic" | "home" | "both" | null;
 }
 
 export const PROFESSIONALS: Professional[] = [

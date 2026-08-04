@@ -10,6 +10,8 @@ import {
   Eye,
   Sparkles,
   Percent,
+  Stethoscope,
+  Droplet,
   Megaphone,
   Store,
   MessageSquare,
@@ -467,6 +469,18 @@ const AdminHub = () => {
               stats ? `${stats.livePros} live · ${stats.activeProSubs} subscribed` : undefined
             }
             onClick={() => nav("/admin/professionals")}
+          />
+          <NavCard
+            icon={Stethoscope}
+            title="Capability verification"
+            description="Approve doctor and blood-draw claims, one at a time"
+            onClick={() => nav("/admin/capabilities")}
+          />
+          <NavCard
+            icon={Droplet}
+            title="Blood test vendors"
+            description="Registry of partner panels shown to members"
+            onClick={() => nav("/admin/blood-vendors")}
           />
           <NavCard
             icon={Percent}
