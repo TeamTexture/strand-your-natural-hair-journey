@@ -701,6 +701,48 @@ const ProProfile = () => {
           )}
         </Field>
 
+        <Field label="STRAND discount code">
+          <Input
+            value={form.discount_code}
+            onChange={(e) => setForm((f) => ({ ...f, discount_code: e.target.value }))}
+            placeholder="STRAND10"
+            className="font-mono uppercase tracking-[0.12em]"
+          />
+          <p className="mt-1.5 text-[11px] font-body leading-snug text-muted-foreground">
+            Shown to clients just before they leave for your booking page.
+          </p>
+        </Field>
+
+        <Field label="What the discount gives them">
+          <Textarea
+            value={form.discount_description}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, discount_description: e.target.value }))
+            }
+            placeholder="10% off your first consultation"
+            rows={3}
+          />
+          <p className="mt-1.5 text-[11px] font-body leading-snug text-muted-foreground">
+            Your words, shown to clients exactly as you write them.
+          </p>
+        </Field>
+
+        <div className="flex items-center justify-between gap-3 rounded-[14px] border border-border bg-card px-4 py-3">
+          <div>
+            <p className="text-[12.5px] font-body font-semibold">Discount live</p>
+            <p className="text-[11px] font-body leading-snug text-muted-foreground">
+              Turn on to show your code in chats and before booking.
+            </p>
+          </div>
+          <Switch
+            checked={form.discount_active}
+            onCheckedChange={(v) => setForm((f) => ({ ...f, discount_active: v }))}
+            aria-label="Discount live"
+          />
+        </div>
+
+
+
         <Field label="Website">
           <Input
             value={form.website_url}
