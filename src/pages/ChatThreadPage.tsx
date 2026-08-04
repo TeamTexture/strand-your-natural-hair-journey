@@ -284,6 +284,23 @@ const ChatThreadPage = () => {
   const { data: bookingFollowUps = [] } = useProBookingFollowUps();
   const needsDiaryLog = isPro && bookingFollowUps.some((f) => f.thread_id === threadId);
 
+  // Peer thread: the "client" side is itself a professional, so there is no
+  // hair passport attached and the pro-side passport actions are hidden.
+  const { data: isPeerThread = false } = useQuery({
+    queryKey: ["chat_thread_peer", t?.consumer_id],
+    enabled: !isSupport && !!t?.consumer_id,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pro_profiles")
+        .select("user_id")
+        .eq("user_id", t!.consumer_id!)
+        .maybeSingle();
+      return !!data;
+    },
+  });
+
+
 
   const { data: other } = useQuery({
     queryKey: ["chat_thread_other", otherId, isSupport, isAdmin, isPro],
