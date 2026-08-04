@@ -163,6 +163,7 @@ const ProProfile = () => {
     photos: [] as string[],
     services: [] as Service[],
     specialisms: [] as string[],
+    qualifications: [] as string[],
     business_phone: "",
     business_email: "",
     address_line1: "",
@@ -171,6 +172,7 @@ const ProProfile = () => {
   });
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [specInput, setSpecInput] = useState("");
+  const [qualInput, setQualInput] = useState("");
 
   useEffect(() => {
     if (!profile) return;
@@ -190,6 +192,10 @@ const ProProfile = () => {
         ? (profile.services as unknown as Service[])
         : [],
       specialisms: (profile.specialisms as string[] | null) ?? [],
+      qualifications:
+        ((profile as { qualifications?: string[] | null }).qualifications as
+          | string[]
+          | null) ?? [],
       business_phone: profile.business_phone ?? "",
       business_email: profile.business_email ?? "",
       address_line1: profile.address_line1 ?? "",
@@ -228,6 +234,7 @@ const ProProfile = () => {
           photos: form.photos,
           services: form.services as never,
           specialisms: form.specialisms,
+          qualifications: form.qualifications,
           business_phone: form.business_phone || null,
           business_email: form.business_email || null,
           address_line1: form.address_line1 || null,
@@ -313,6 +320,24 @@ const ProProfile = () => {
 
   const removeSpecialism = (s: string) =>
     setForm((f) => ({ ...f, specialisms: f.specialisms.filter((x) => x !== s) }));
+
+  const addQualification = () => {
+    const v = qualInput.trim();
+    if (!v) return;
+    if (form.qualifications.includes(v)) { setQualInput(""); return; }
+    if (form.qualifications.length >= 12) {
+      toast("Max 12 qualifications");
+      return;
+    }
+    setForm((f) => ({ ...f, qualifications: [...f.qualifications, v] }));
+    setQualInput("");
+  };
+
+  const removeQualification = (s: string) =>
+    setForm((f) => ({
+      ...f,
+      qualifications: f.qualifications.filter((x) => x !== s),
+    }));
 
   const updateHours = (day: DayKey, patch: Partial<DayHours>) =>
     setHours((h) => ({ ...h, [day]: { ...h[day], ...patch } }));
