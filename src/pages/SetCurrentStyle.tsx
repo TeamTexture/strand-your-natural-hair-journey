@@ -225,6 +225,7 @@ const SetCurrentStyle = () => {
             <ChoiceChips
               className="flex-1"
               columns={3}
+              compact
               options={UNIT_OPTIONS}
               value={howLongUnit}
               onChange={(v) => setHowLongUnit(v as "days" | "weeks" | "months")}

@@ -21,6 +21,7 @@ const ChoiceChips = ({
   multiple = false,
   columns = 2,
   className,
+  compact = false,
 }: {
   options: Choice[];
   /** Selected value(s). */
@@ -29,6 +30,8 @@ const ChoiceChips = ({
   multiple?: boolean;
   columns?: 1 | 2 | 3;
   className?: string;
+  /** Tighter chips for short single-word labels in narrow columns. */
+  compact?: boolean;
 }) => {
   const selected = Array.isArray(value) ? value : value ? [value] : [];
   return (
@@ -51,7 +54,10 @@ const ChoiceChips = ({
             aria-checked={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              "min-h-[44px] rounded-[12px] border px-3 py-2.5 text-left transition flex items-start gap-2",
+              "min-h-[44px] rounded-[12px] border py-2.5 transition flex items-start gap-2",
+              compact
+                ? "px-1.5 text-center justify-center items-center"
+                : "px-3 text-left",
               on
                 ? "bg-primary/15 border-primary text-foreground"
                 : "bg-card border-border text-foreground/85 hover:bg-primary/[0.06]",
@@ -61,7 +67,13 @@ const ChoiceChips = ({
               <Icon className={cn("size-4 shrink-0 mt-[1px]", on ? "text-primary" : "text-muted-foreground")} aria-hidden />
             )}
             <span className="min-w-0">
-              <span className="block font-body text-[12.5px] font-semibold leading-tight break-words">
+              <span
+                className={cn(
+                  "block font-body font-semibold leading-tight",
+                  // Short labels must never split mid-word onto a second row.
+                  compact ? "text-[11px] whitespace-nowrap" : "text-[12.5px] break-words",
+                )}
+              >
                 {o.label}
               </span>
               {o.hint && (
