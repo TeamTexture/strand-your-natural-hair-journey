@@ -241,6 +241,18 @@ const ProProfile = () => {
       if (!user) throw new Error("Not signed in");
       const claimError = validateCapabilityClaim(claims);
       if (claimError) throw new Error(claimError);
+      // A booking link is the member's route off the app — refuse to store a
+      // malformed one rather than saving something that will dead-end them.
+      const rawBooking = form.booking_url.trim();
+      if (rawBooking && !isValidBookingUrl(form.booking_url)) {
+        throw new Error(
+          "Your booking link needs to be a full web address, e.g. https://yoursalon.com/book",
+        );
+      }
+      const code = form.discount_code.trim().toUpperCase();
+      if (form.discount_active && !code) {
+        throw new Error("Add a discount code before switching your discount on");
+      }
       const { error } = await supabase
         .from("pro_profiles")
         .update({
@@ -250,12 +262,10 @@ const ProProfile = () => {
           location: form.location || null,
           postcode: form.postcode || null,
           contact_email: form.contact_email || null,
-          booking_url: isValidBookingUrl(form.booking_url)
-            ? normalizeBookingUrl(form.booking_url)
-            : form.booking_url.trim()
-              ? normalizeBookingUrl(form.booking_url)
-              : null,
-
+          booking_url: rawBooking ? normalizeBookingUrl(form.booking_url) : null,
+          discount_code: code || null,
+          discount_description: form.discount_description.trim() || null,
+          discount_active: form.discount_active && !!code,
           website_url: normalizeWebsiteUrl(form.website_url) || null,
           instagram_handle: normalizeInstagramHandle(form.instagram_handle) || null,
           avatar_path: form.avatar_path,
