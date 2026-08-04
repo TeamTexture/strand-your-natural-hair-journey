@@ -27,7 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import MatchStars from "@/components/MatchStars";
-import { starsFromScore } from "@/lib/matchStars";
+import { matchScoreOf, scoreTone as toneForScore } from "@/lib/matchStars";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { buildAiContext } from "@/lib/aiContext";
 import BrandLink from "@/components/BrandLink";
@@ -272,6 +272,7 @@ const ProductProfile = () => {
             .update({
               ai_summary: summary,
               match_score: score,
+              match_score_computed_at: score != null ? new Date().toISOString() : null,
               score_reasons: reasons as unknown as never,
               key_ingredients: mergedKeyIngredients,
             })
@@ -310,7 +311,10 @@ const ProductProfile = () => {
   }
 
   const ingredients = product.ingredients ?? [];
-  const score = aiMatchScore ?? product.match_score ?? 0;
+  // Single source of truth: the persisted column (or the freshly analysed score
+  // that was just written back to it) resolved through the shared accessor.
+  const displayScore = matchScoreOf({ match_score: aiMatchScore ?? product.match_score });
+  const score = displayScore ?? 0;
 
   const updateRating = async (n: number) => {
     if (!user) return;
@@ -378,7 +382,7 @@ const ProductProfile = () => {
 {(() => {
           const summaryText = aiSummary ?? product.ai_summary ?? "";
           const { phrase, rest } = summaryText ? emphasisSplit(summaryText) : { phrase: "", rest: "" };
-          const scoreTone: "good" | "gold" | "warning" = score >= 70 ? "good" : score >= 40 ? "gold" : "warning";
+          const scoreTone = toneForScore(score);
           return (
             <SurfaceCard tone="gold">
               <div className="mb-1">
@@ -506,7 +510,7 @@ const ProductProfile = () => {
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2 px-1">Strand rating</p>
           <SurfaceCard>
             {(() => {
-              const hasScore = starsFromScore(score > 0 ? score : null) != null;
+              const hasScore = displayScore != null;
               return (
                 <div className="flex items-center gap-2">
                   {hasScore ? (
