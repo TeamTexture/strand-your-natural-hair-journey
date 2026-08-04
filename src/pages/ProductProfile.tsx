@@ -272,6 +272,7 @@ const ProductProfile = () => {
             .update({
               ai_summary: summary,
               match_score: score,
+              match_score_computed_at: score != null ? new Date().toISOString() : null,
               score_reasons: reasons as unknown as never,
               key_ingredients: mergedKeyIngredients,
             })
