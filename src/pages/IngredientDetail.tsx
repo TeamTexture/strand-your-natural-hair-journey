@@ -980,12 +980,11 @@ const IngredientDetail = () => {
             {/* AI Summary — the single verdict callout, bold lead-in only */}
             {(() => {
               const { phrase, rest } = emphasisSplit(analysis.summary);
-              let vTone: "good" | "gold" | "warning" =
-                analysis.match_score >= 70 ? "good" : analysis.match_score >= 40 ? "gold" : "warning";
+              const vTone: "good" | "gold" | "warning" = scoreTone(displayScore ?? 0);
               return (
                 <StatusCallout tone={vTone} label="Verdict">
-                  {analysis.match_score > 0 && (
-                    <AnchorStat value={analysis.match_score} context="hair-profile match" tone={vTone} className="mt-0 mb-2" />
+                  {displayScore != null && displayScore > 0 && (
+                    <AnchorStat value={displayScore} context="hair-profile match" tone={vTone} className="mt-0 mb-2" />
                   )}
                   <p>
                     {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
