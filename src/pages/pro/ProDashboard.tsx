@@ -198,8 +198,8 @@ const ProDashboard = () => {
           />
           <Card
             icon={Megaphone}
-            title="Create a paid advert"
-            sub="Book a paid banner shown to members across the app."
+            title="Create an offer"
+            sub="A paid banner advert shown to members across the app."
             onClick={() => nav("/pro/campaigns")}
             tourId="pro-card-campaigns"
           />
