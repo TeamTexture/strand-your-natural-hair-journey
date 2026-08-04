@@ -13,6 +13,7 @@ import StatusCallout from "@/components/guidance/StatusCallout";
 import ActionList from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import { IngredientProductScope } from "@/components/ingredients/IngredientToken";
 import { emphasisSplit } from "@/lib/tipsRender";
 import { looksSequential, splitNumberedSteps } from "@/lib/guidance";
 import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
@@ -858,6 +859,7 @@ const IngredientDetail = () => {
   }
 
   return (
+    <IngredientProductScope productId={productRow?.id ?? null}>
     <ScreenLayout bottomNav>
       <TitleBar title="Product" onBack={handleBack} />
 
@@ -1552,6 +1554,7 @@ const IngredientDetail = () => {
         </AlertDialogContent>
       </AlertDialog>
     </ScreenLayout>
+    </IngredientProductScope>
   );
 };
 

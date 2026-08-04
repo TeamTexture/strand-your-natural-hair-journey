@@ -36,6 +36,7 @@ import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import { IngredientProductScope } from "@/components/ingredients/IngredientToken";
 import { Sparkles } from "lucide-react";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
@@ -358,6 +359,7 @@ const ProductProfile = () => {
     .join(" ");
 
   return (
+    <IngredientProductScope productId={id ?? null}>
     <ScreenLayout bottomNav={false}>
       <TitleBar title={titleCategory || "Product"} back tips />
       <div className="px-5 pb-8 space-y-4">
@@ -737,6 +739,7 @@ const ProductProfile = () => {
         </AlertDialogContent>
       </AlertDialog>
     </ScreenLayout>
+    </IngredientProductScope>
   );
 };
 
