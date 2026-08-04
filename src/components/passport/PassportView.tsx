@@ -109,9 +109,10 @@ const HumanFields = ({ obj, exclude = [] }: { obj: Record<string, unknown> | nul
   );
 };
 
-const Thumb = ({ bucket, path, alt, className, title, meta }: {
+const Thumb = ({ bucket, path, fallbackUrl, alt, className, title, meta }: {
   bucket: string;
   path: string | null | undefined;
+  fallbackUrl?: string | null;
   alt?: string;
   className?: string;
   title: string;
@@ -120,7 +121,7 @@ const Thumb = ({ bucket, path, alt, className, title, meta }: {
   const openPreview = useContext(ImagePreviewContext);
   const open = async (url: string | null) => {
     if (!openPreview) return;
-    openPreview({ url, title, meta });
+    openPreview({ url: url ?? fallbackUrl ?? null, title, meta });
     if (!url && path) {
       const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
       if (data?.signedUrl) openPreview({ url: data.signedUrl, title, meta });
@@ -130,6 +131,7 @@ const Thumb = ({ bucket, path, alt, className, title, meta }: {
     <SignedImage
       bucket={bucket}
       path={path}
+      fallbackUrl={fallbackUrl}
       alt={alt ?? title}
       className={className}
       onClick={openPreview ? open : undefined}
@@ -1028,7 +1030,7 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
         onClick={() => openProduct?.(p as PassportProduct)}
         className="w-full flex items-start gap-3 text-left hover:opacity-90 active:opacity-75 transition-opacity"
       >
-        <Thumb bucket="product-photos" path={photo ?? null} className={size === "sm" ? "size-11 shrink-0 rounded-lg" : "size-14 shrink-0 rounded-lg"} title={String(p.name ?? "Product image")} />
+        <Thumb bucket="product-photos" path={photo ?? null} fallbackUrl={((p as Record<string, unknown>).image_url as string | null | undefined) ?? null} className={size === "sm" ? "size-11 shrink-0 rounded-lg" : "size-14 shrink-0 rounded-lg"} title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
           <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
           <p className="text-[11px] text-muted-foreground font-body truncate">
@@ -1216,7 +1218,7 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
         onClick={() => openProduct?.(p as PassportProduct)}
         className="w-full flex items-start gap-3 text-left hover:opacity-90 active:opacity-75 transition-opacity"
       >
-        <Thumb bucket="product-photos" path={photo ?? null} className="size-11 shrink-0 rounded-lg" title={String(p.name ?? "Product image")} />
+        <Thumb bucket="product-photos" path={photo ?? null} fallbackUrl={((p as Record<string, unknown>).image_url as string | null | undefined) ?? null} className="size-11 shrink-0 rounded-lg" title={String(p.name ?? "Product image")} />
         <div className="flex-1 min-w-0">
           <p className="text-[13.5px] font-body font-semibold text-foreground break-words leading-snug">{p.name}</p>
           <p className="text-[11px] text-muted-foreground font-body truncate">
@@ -1820,6 +1822,7 @@ const PassportProductDetail = ({ product, data, onBack, mode }: {
             <Thumb
               bucket="product-photos"
               path={photoPath}
+              fallbackUrl={(p.image_url as string | null | undefined) ?? null}
               className="size-24 shrink-0 rounded-xl"
               title={String(p.name ?? "Product image")}
             />
