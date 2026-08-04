@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart, Ticket, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
+import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
