@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import IngredientExplainerSheet from "@/components/ingredients/IngredientExplainerSheet";
+import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 
 interface Ctx {
   /** Opens the explainer sheet for an ingredient name. */
@@ -104,6 +105,24 @@ export function IngredientToken({
       {label ?? name}
     </button>
   );
+}
+
+/**
+ * GlossaryTerm — tokenises a phrase only when it resolves in the shared
+ * glossary, so trait names ("high porosity") stay plain text while real
+ * ingredient names become tappable.
+ */
+export function GlossaryTerm({
+  text,
+  className,
+}: {
+  text: string;
+  className?: string;
+}) {
+  const { lookup } = useIngredientGlossary();
+  const row = lookup(text);
+  if (!row) return <span className={cn("font-semibold text-foreground", className)}>{text}</span>;
+  return <IngredientToken name={row.display_name} label={text} className={className} />;
 }
 
 export default IngredientToken;

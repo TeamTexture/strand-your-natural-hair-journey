@@ -1,6 +1,6 @@
 import { Check, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { IngredientToken } from "@/components/ingredients/IngredientToken";
+import { GlossaryTerm } from "@/components/ingredients/IngredientToken";
 
 export interface ScoreReason {
   direction: "plus" | "minus";
@@ -53,7 +53,7 @@ export default function ScoreReasons({
               <Icon className="size-3" strokeWidth={2.5} />
             </span>
             <p className="text-[13px] leading-snug">
-              <IngredientToken name={r.factor} label={r.factor} className="font-semibold" />
+              <GlossaryTerm text={r.factor} className="font-semibold" />
               <span className="text-foreground/70"> — {r.reason}</span>
             </p>
           </li>
