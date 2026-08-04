@@ -614,7 +614,7 @@ const ProSetup = () => {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, display_name: e.target.value }))
                 }
-                placeholder="Erica Liburd"
+                
               />
             </Field>
 
@@ -740,7 +740,7 @@ const ProSetup = () => {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, address_line1: e.target.value }))
                 }
-                placeholder="12 Harley Street"
+                
               />
             </Field>
             <Field label="Address line 2">
@@ -758,7 +758,7 @@ const ProSetup = () => {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, city: e.target.value }))
                 }
-                placeholder="London"
+                
               />
             </Field>
             <Field label="Postcode" required>
@@ -767,7 +767,7 @@ const ProSetup = () => {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, postcode: e.target.value }))
                 }
-                placeholder="W1G 9PG"
+                
               />
             </Field>
             <Field label="Region / area served" required>
@@ -776,7 +776,7 @@ const ProSetup = () => {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, location: e.target.value }))
                 }
-                placeholder="London & remote"
+                
               />
             </Field>
           </>
