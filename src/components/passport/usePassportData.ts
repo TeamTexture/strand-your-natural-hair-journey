@@ -60,11 +60,19 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
   const [data, setData] = useState<PassportDataset | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessEnded, setAccessEnded] = useState(false);
+  const [nonce, setNonce] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
+
+  const refetch = () => {
+    setRefreshing(true);
+    setNonce((n) => n + 1);
+  };
 
   useEffect(() => {
     if (!userId || !active) return;
     let cancelled = false;
-    setLoading(true);
+    setLoading((prev) => (nonce === 0 ? true : prev));
     setAccessEnded(false);
     (async () => {
       const sb = supabase;
