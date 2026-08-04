@@ -6,6 +6,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
+import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
 declare const Deno: {
@@ -57,7 +58,9 @@ RULES
 - No book/chapter citations, no "Read more" lines.
 - No medical claims, no diagnoses.
 - If the product is a heat cap / deep-conditioning cap, only recommend it — never suggest plastic caps, shower caps or towels as alternatives.
-- Return raw JSON only.`;
+- Return raw JSON only.
+
+${NON_PRESCRIPTIVE_RULES}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
