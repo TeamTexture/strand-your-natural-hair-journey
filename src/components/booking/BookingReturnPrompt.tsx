@@ -44,13 +44,15 @@ const FIELD =
   "w-full text-sm p-2.5 rounded-[10px] border border-border bg-card focus:outline-none focus:border-primary/60";
 
 const BookingReturnPrompt = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const view = useActiveRoleView();
+  const isMemberView = allowsMemberFeatures(view);
   const { data: pending = [] } = usePendingBookingClicks();
   const markPrompted = useMarkBookingClickPrompted();
   const resolve = useResolveBookingClick();
 
   // Strictly one at a time, oldest first. Never stack modals.
-  const click: PendingBookingClick | null = pending[0] ?? null;
+  const click: PendingBookingClick | null = isMemberView ? (pending[0] ?? null) : null;
 
   const [step, setStep] = useState<Step>("ask");
   const [date, setDate] = useState(""); // no pre-filled guess
