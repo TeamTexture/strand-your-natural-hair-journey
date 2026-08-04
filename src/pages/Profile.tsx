@@ -155,6 +155,7 @@ const Profile = () => {
   const { values: bloodValues } = useBloodValues();
 
   const [editPickerOpen, setEditPickerOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingSnapshot, setExportingSnapshot] = useState(false);
 
@@ -922,6 +923,8 @@ const Profile = () => {
           <LogOut className="size-3.5" /> Sign out
         </button>
       </div>
+
+      <ChangePasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
     </ScreenLayout>
   );
 };

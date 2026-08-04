@@ -75,6 +75,7 @@ const Card = ({
 const ProDashboard = () => {
   const nav = useNavigate();
   const { signOut, user } = useAuth();
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const { firstName: proFirstName, fullName: proFullName } = useProGreetingName();
   const { isAdmin } = useRoles();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
@@ -307,6 +308,18 @@ const ProDashboard = () => {
           </>
         )}
 
+        <SectionLabel>Account</SectionLabel>
+        <div className="space-y-1.5">
+          <button
+            onClick={() => setPasswordOpen(true)}
+            className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+          >
+            <KeyRound className="size-4 text-primary/70" />
+            <span className="flex-1">Change password</span>
+            <ChevronRight className="size-3.5 text-muted-foreground" />
+          </button>
+        </div>
+
         <div className="pt-6">
           <button
             onClick={async () => { await signOut(); nav("/", { replace: true }); }}
@@ -316,6 +329,7 @@ const ProDashboard = () => {
           </button>
         </div>
       </div>
+      <ChangePasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
     </ScreenLayout>
   );
 };
