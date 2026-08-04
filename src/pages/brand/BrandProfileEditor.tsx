@@ -269,6 +269,14 @@ const BrandProfileEditor = () => {
           </div>
         </div>
 
+        <BloodPanelsEditor
+          claimed={bloodClaimed}
+          verified={bloodVerified}
+          onClaimChange={setBloodClaimed}
+        />
+
+
+
         <div className="space-y-2">
           <Button
             variant="gold"
