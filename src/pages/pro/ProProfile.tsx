@@ -509,6 +509,52 @@ const ProProfile = () => {
           </Button>
         </div>
 
+        <SectionHead>Add qualifications</SectionHead>
+        <p className="text-[11px] font-body text-muted-foreground leading-snug -mt-1">
+          Credentials shown on your profile (e.g. "NVQ Level 3 Hairdressing").
+          Max 12.
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {form.qualifications.map((q) => (
+            <span
+              key={q}
+              className="inline-flex items-center gap-1 bg-primary/10 text-foreground text-[11px] px-2 py-1 rounded-full"
+            >
+              {q}
+              <button
+                onClick={() => removeQualification(q)}
+                className="text-muted-foreground hover:text-alert-dark"
+                aria-label={`Remove ${q}`}
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+          {form.qualifications.length === 0 && (
+            <span className="text-[11px] text-muted-foreground font-body">
+              None yet.
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={qualInput}
+            onChange={(e) => setQualInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addQualification();
+              }
+            }}
+            placeholder="e.g. NVQ Level 3 Hairdressing"
+          />
+          <Button type="button" variant="outline" onClick={addQualification}>
+            <Plus className="size-4" />
+          </Button>
+        </div>
+
+
+
         <SectionHead>Location</SectionHead>
         <Field label="Address line 1">
           <Input
