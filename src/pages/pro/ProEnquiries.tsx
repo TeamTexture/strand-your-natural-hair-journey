@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { CreditCard, Inbox, Lock, ShieldCheck } from "lucide-react";
+import { CreditCard, Inbox, Lock, ShieldCheck, Users } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
