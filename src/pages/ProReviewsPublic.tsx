@@ -18,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import { useProContactStates, proContactStatusLine } from "@/hooks/useProContactState";
 import ProContactAction from "@/components/directory/ProContactAction";
 import { formatDistanceToNow } from "date-fns";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { allowsMemberFeatures } from "@/lib/viewFeatures";
 
 /**
  * Full public reviews list for one professional — approved reviews only,
