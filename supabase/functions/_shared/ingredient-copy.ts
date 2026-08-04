@@ -5,6 +5,11 @@
 // language rule (Chapter 14), same anti-scaremonger philosophy, and the same
 // hard ban on referencing any OTHER product or routine step in a usage tip.
 // These constants are carried over verbatim so the two paths cannot drift.
+//
+// PARAGRAPH SAFETY: every scrubber below runs per paragraph (`perParagraph`)
+// so a blank line the model inserted at a reasoning bridge survives cleaning.
+
+import { perParagraph } from "./paragraph-rules.ts";
 
 /** INCI lookup key: lowercase, punctuation stripped, whitespace collapsed. */
 export function normaliseInciKey(name: string): string {
@@ -84,9 +89,11 @@ const MOISTURE_REPLACEMENTS: Array<[RegExp, string]> = [
 /** Rewrites banned moisture phrasing into book-aligned phrasing. Applied to
  *  every generated copy field before it is cached or rendered. */
 export function scrubMoistureLanguage(text: string): string {
-  let out = text ?? "";
-  for (const [re, replacement] of MOISTURE_REPLACEMENTS) out = out.replace(re, replacement);
-  return out.replace(/\s{2,}/g, " ").trim();
+  return perParagraph(text ?? "", (paragraph) => {
+    let out = paragraph;
+    for (const [re, replacement] of MOISTURE_REPLACEMENTS) out = out.replace(re, replacement);
+    return out.replace(/[ \t]{2,}/g, " ").trim();
+  });
 }
 
 /** True when the text names or implies another product / routine step. */
@@ -98,9 +105,10 @@ export function referencesOtherProduct(text: string): boolean {
  *  a technique-only line when nothing survives, so the UI never renders a
  *  "pair with a deep conditioner" style tip. */
 export function scrubOtherProductReferences(text: string, fallback: string): string {
-  const sentences = (text ?? "").split(/(?<=[.!?])\s+/);
-  const kept = sentences.filter((s) => !referencesOtherProduct(s));
-  const out = kept.join(" ").trim();
+  const out = perParagraph(text ?? "", (paragraph) => {
+    const sentences = paragraph.split(/(?<=[.!?])\s+/);
+    return sentences.filter((s) => !referencesOtherProduct(s)).join(" ").trim();
+  }).trim();
   return out.length > 0 ? out : fallback;
 }
 
@@ -121,7 +129,23 @@ export function cleanDescriptiveCopy(text: string): string {
 
 /** Hard word cap that never cuts mid-sentence when it can avoid it. */
 export function clampWords(text: string, maxWords: number): string {
-  const clean = (text ?? "").trim();
+  const raw = (text ?? "").trim();
+  // Paragraph breaks are part of the copy contract, so the budget is spent
+  // paragraph by paragraph rather than flattening the block.
+  if (/\n\s*\n/.test(raw)) {
+    const blocks = raw.split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
+    const kept: string[] = [];
+    let budget = maxWords;
+    for (const block of blocks) {
+      if (budget <= 0) break;
+      const shaped = clampWords(block, budget);
+      if (!shaped) break;
+      kept.push(shaped);
+      budget -= shaped.split(/\s+/).filter(Boolean).length;
+    }
+    return kept.join("\n\n");
+  }
+  const clean = raw;
   const words = clean.split(/\s+/);
   if (words.length <= maxWords) return clean;
   const sentences = clean.split(/(?<=[.!?])\s+/);

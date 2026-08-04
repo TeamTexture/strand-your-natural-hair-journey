@@ -1365,6 +1365,57 @@ export type Database = {
         }
         Relationships: []
       }
+      glossary_terms: {
+        Row: {
+          aliases: string[]
+          category: string | null
+          class_category: string | null
+          created_at: string
+          display_name: string
+          id: string
+          inci_key: string
+          is_common: boolean
+          kind: string
+          match_keywords: string[]
+          model_version: string | null
+          phonetic: string | null
+          updated_at: string
+          what_it_is: string | null
+        }
+        Insert: {
+          aliases?: string[]
+          category?: string | null
+          class_category?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          inci_key: string
+          is_common?: boolean
+          kind?: string
+          match_keywords?: string[]
+          model_version?: string | null
+          phonetic?: string | null
+          updated_at?: string
+          what_it_is?: string | null
+        }
+        Update: {
+          aliases?: string[]
+          category?: string | null
+          class_category?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          inci_key?: string
+          is_common?: boolean
+          kind?: string
+          match_keywords?: string[]
+          model_version?: string | null
+          phonetic?: string | null
+          updated_at?: string
+          what_it_is?: string | null
+        }
+        Relationships: []
+      }
       goal_progress_updates: {
         Row: {
           audio_path: string | null
@@ -1504,48 +1555,6 @@ export type Database = {
           reason?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      ingredients: {
-        Row: {
-          aliases: string[]
-          category: string | null
-          created_at: string
-          display_name: string
-          id: string
-          inci_key: string
-          is_common: boolean
-          model_version: string | null
-          phonetic: string | null
-          updated_at: string
-          what_it_is: string | null
-        }
-        Insert: {
-          aliases?: string[]
-          category?: string | null
-          created_at?: string
-          display_name: string
-          id?: string
-          inci_key: string
-          is_common?: boolean
-          model_version?: string | null
-          phonetic?: string | null
-          updated_at?: string
-          what_it_is?: string | null
-        }
-        Update: {
-          aliases?: string[]
-          category?: string | null
-          created_at?: string
-          display_name?: string
-          id?: string
-          inci_key?: string
-          is_common?: boolean
-          model_version?: string | null
-          phonetic?: string | null
-          updated_at?: string
-          what_it_is?: string | null
         }
         Relationships: []
       }
@@ -2365,7 +2374,7 @@ export type Database = {
             foreignKeyName: "product_ingredients_ingredient_id_fkey"
             columns: ["ingredient_id"]
             isOneToOne: false
-            referencedRelation: "ingredients"
+            referencedRelation: "glossary_terms"
             referencedColumns: ["id"]
           },
           {

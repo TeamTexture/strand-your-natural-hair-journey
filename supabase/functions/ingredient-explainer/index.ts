@@ -68,6 +68,10 @@ interface GlossaryRow {
   what_it_is: string | null;
   aliases: string[];
   is_common: boolean;
+  /** molecule = one INCI entry, class = ingredient family, concept = hair-science idea. */
+  kind?: "molecule" | "class" | "concept";
+  class_category?: string | null;
+  match_keywords?: string[] | null;
 }
 
 interface FitPayload {
@@ -175,8 +179,8 @@ async function resolveGlossary(
   if (keys.length === 0) return out;
 
   const { data: existing } = await reader
-    .from("ingredients")
-    .select("id, inci_key, display_name, phonetic, category, what_it_is, aliases, is_common")
+    .from("glossary_terms")
+    .select("id, inci_key, display_name, phonetic, category, what_it_is, aliases, is_common, kind, class_category, match_keywords")
     .in("inci_key", keys);
   for (const row of (existing ?? []) as GlossaryRow[]) out.set(row.inci_key, row);
 
@@ -184,8 +188,8 @@ async function resolveGlossary(
   const stillMissing = keys.filter((k) => !out.has(k));
   if (stillMissing.length > 0) {
     const { data: aliasRows } = await reader
-      .from("ingredients")
-      .select("id, inci_key, display_name, phonetic, category, what_it_is, aliases, is_common")
+      .from("glossary_terms")
+      .select("id, inci_key, display_name, phonetic, category, what_it_is, aliases, is_common, kind, class_category, match_keywords")
       .overlaps("aliases", stillMissing.map((k) => byKey.get(k) ?? k));
     for (const row of (aliasRows ?? []) as GlossaryRow[]) {
       for (const alias of row.aliases ?? []) {
@@ -219,14 +223,101 @@ async function resolveGlossary(
 
   if (rows.length > 0) {
     // Idempotent: unique on inci_key, so a concurrent generation is a no-op.
-    await writer.from("ingredients").upsert(rows, { onConflict: "inci_key", ignoreDuplicates: false });
+    await writer.from("glossary_terms").upsert(rows, { onConflict: "inci_key", ignoreDuplicates: false });
     const { data: fresh } = await reader
-      .from("ingredients")
-      .select("id, inci_key, display_name, phonetic, category, what_it_is, aliases, is_common")
+      .from("glossary_terms")
+      .select("id, inci_key, display_name, phonetic, category, what_it_is, aliases, is_common, kind, class_category, match_keywords")
       .in("inci_key", rows.map((r) => r.inci_key));
     for (const row of (fresh ?? []) as GlossaryRow[]) out.set(row.inci_key, row);
   }
   return out;
+}
+
+// ── LAYER 1b: class + concept definitions ───────────────────────────────
+//
+// Seeded class terms ("humectants", "ceramides") and concept terms
+// ("porosity", "cuticle") arrive with an empty what_it_is. The first time one
+// is tapped we generate its factual definition ONCE and cache it on the row,
+// exactly like a molecule entry.
+
+const TERM_SCHEMA = {
+  type: "object",
+  properties: {
+    what_it_is: { type: "string", description: "2-4 sentences, MAX 70 WORDS, layman's terms, split into paragraphs at the reasoning bridge. Explain the mechanism in plain English. No advice, no usage instructions, no reference to any particular user." },
+    phonetic: { type: "string", description: "UK-English pronunciation guide with the stressed syllable in capitals, e.g. 'puh-ROSS-ih-tee'. Empty string if the term is everyday English." },
+  },
+  required: ["what_it_is", "phonetic"],
+} as Record<string, unknown>;
+
+async function generateTermDefinition(
+  term: GlossaryRow,
+): Promise<{ what_it_is: string; phonetic: string | null }> {
+  const isConcept = term.kind === "concept";
+  const req = await buildClaudeRequest({
+    function_kind: "ingredient-explainer",
+    task_instructions: `You are writing ONE entry for STRAND's shared glossary. It is read by EVERY user, so it is purely factual: NO personalisation, NO advice, NO usage instructions.
+
+Term: ${term.display_name}
+Kind: ${isConcept ? "a hair-science CONCEPT (a property or structure of hair, not a product ingredient)" : "an ingredient CLASS (a family of ingredients that share a mechanism)"}
+
+${MOISTURE_LANGUAGE_RULE}
+
+${ANTI_SCAREMONGER_PHILOSOPHY}
+The glossary carries no tone at all — never describe something as bad, harmful, harsh or something to avoid. Describe what it is and what it does, neutrally.
+
+RULES:
+1. what_it_is: MAX 70 words. ${isConcept
+      ? "Explain what the property or structure IS, and what makes it vary between heads of hair — reasoning from the retrieved manuscript teaching."
+      : "Explain what the family has in common mechanically, and name two or three examples of ingredients that belong to it."}
+2. Plain English a reader with no chemistry knowledge understands. Translate every technical term you use.
+3. phonetic: only where the word is genuinely hard to say; otherwise return an empty string.
+4. ${NO_SOURCE_NAMING_RULE}
+5. ${NO_MEDICAL_RULE}`,
+    user_payload: { term: term.display_name, kind: term.kind, aliases: term.aliases ?? [] },
+    force_topic_ids: ["porosity"],
+    rag_query: `${term.display_name} — what it is and how it behaves in textured hair`,
+    rag_k: 4,
+    tool: {
+      name: "return_term",
+      description: "Return the factual glossary definition for this term.",
+      input_schema: TERM_SCHEMA,
+    },
+    toolChoice: { type: "tool", name: "return_term" },
+    max_tokens: 1024,
+  });
+  const result = await callClaude<{ what_it_is: string; phonetic: string }>(req);
+  console.log(JSON.stringify({
+    function: "ingredient-explainer",
+    layer: "term-definition",
+    term: term.display_name,
+    kind: term.kind,
+    input_tokens: result.usage.input_tokens,
+    output_tokens: result.usage.output_tokens,
+  }));
+  const raw = result.toolInput;
+  return {
+    what_it_is: clampWords(cleanDescriptiveCopy(String(raw?.what_it_is ?? "")), 75),
+    phonetic: raw?.phonetic ? String(raw.phonetic).trim() || null : null,
+  };
+}
+
+/** Fills in the definition for any seeded class/concept row that has none yet,
+ *  caching it on the row so it is generated once ever. */
+async function fillTermDefinition(entry: GlossaryRow): Promise<GlossaryRow> {
+  if (entry.what_it_is && entry.what_it_is.trim().length > 0) return entry;
+  if ((entry.kind ?? "molecule") === "molecule") return entry;
+  const def = await generateTermDefinition(entry);
+  if (!def.what_it_is) return entry;
+  const writer = serviceClient();
+  await writer
+    .from("glossary_terms")
+    .update({
+      what_it_is: def.what_it_is,
+      phonetic: def.phonetic ?? entry.phonetic,
+      model_version: GLOSSARY_MODEL_VERSION,
+    })
+    .eq("id", entry.id);
+  return { ...entry, what_it_is: def.what_it_is, phonetic: def.phonetic ?? entry.phonetic };
 }
 
 // ── LAYER 2: product index + role_in_product ────────────────────────────
@@ -318,9 +409,21 @@ async function generateFit(args: {
   const { ingredient, userPayload } = args;
   const req = await buildClaudeRequest({
     function_kind: "ingredient-explainer",
-    task_instructions: `You are writing the personalised part of an ingredient explainer sheet for ONE ingredient and ONE user. Return via the return_fit tool.
+    task_instructions: `You are writing the personalised part of a glossary explainer sheet for ONE ${
+      ingredient.kind === "concept"
+        ? "hair-science concept"
+        : ingredient.kind === "class"
+        ? "ingredient class"
+        : "ingredient"
+    } and ONE user. Return via the return_fit tool.${
+      ingredient.kind === "concept"
+        ? "\n\nThis is a PROPERTY OF HER HAIR, not something in a bottle: explain what her own measured or logged values mean for how her hair behaves. Never talk about it as if it were an ingredient."
+        : ingredient.kind === "class"
+        ? "\n\nThis is a FAMILY of ingredients: reason about how the family as a whole behaves on her hair, not about one molecule."
+        : ""
+    }
 
-Ingredient: ${ingredient.display_name}${ingredient.category ? ` (${ingredient.category})` : ""}
+Term: ${ingredient.display_name}${ingredient.category ? ` (${ingredient.category})` : ""}
 What it is: ${ingredient.what_it_is ?? ""}
 
 ${MOISTURE_LANGUAGE_RULE}
@@ -495,13 +598,17 @@ Deno.serve(async (req) => {
     const key = normaliseInciKey(rawName);
 
     const glossary = await resolveGlossary(supabase, [rawName]);
-    const entry = glossary.get(key);
+    let entry = glossary.get(key);
     if (!entry) return json(404, { error: "ingredient could not be resolved" });
+    // Seeded class/concept rows carry no definition until first tapped.
+    entry = await fillTermDefinition(entry);
+    const kind = entry.kind ?? "molecule";
 
-    // Layer 2 — role in THIS product (cached on the link row).
+    // Layer 2 — role in THIS product (cached on the link row). Only a molecule
+    // has a role inside a formula: a class or a concept does not.
     let roleInProduct: string | null = null;
     let productCategory: string | null = body.productCategory ?? null;
-    if (body.userProductId) {
+    if (kind === "molecule" && body.userProductId) {
       const { data: product } = await supabase
         .from("user_products")
         .select("id, name, brand, category, ingredients")
@@ -614,6 +721,7 @@ Deno.serve(async (req) => {
 
     const response = {
       glossary: entry,
+      kind,
       role_in_product: roleInProduct,
       product_category: productCategory,
       fit,
