@@ -225,9 +225,11 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         ingredientLists: asArray(ingredientLists),
       });
       setLoading(false);
+      setRefreshing(false);
+      setFetchedAt(new Date());
     })();
     return () => { cancelled = true; };
-  }, [userId, active]);
+  }, [userId, active, nonce]);
 
-  return { data, loading, accessEnded };
+  return { data, loading, accessEnded, refetch, refreshing, fetchedAt };
 };
