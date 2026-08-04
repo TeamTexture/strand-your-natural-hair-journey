@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { CreditCard, Inbox, Lock, ShieldCheck } from "lucide-react";
+import { CreditCard, Inbox, Lock, ShieldCheck, Users } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -122,9 +122,40 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
   return map;
 };
 
+/** Which senders are themselves professionals (peer enquiries, no passport). */
+const usePeerSenders = (enquiries: Enquiry[]) => {
+  const [peers, setPeers] = useState<Record<string, string>>({});
+  const ids = useMemo(
+    () => Array.from(new Set(enquiries.map((e) => e.consumer_id))),
+    [enquiries],
+  );
+  useEffect(() => {
+    if (ids.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("pro_profiles")
+        .select("user_id, display_name, discipline")
+        .in("user_id", ids);
+      if (cancelled) return;
+      const out: Record<string, string> = {};
+      for (const r of data ?? []) {
+        out[r.user_id as string] =
+          (r.display_name as string | null) ?? (r.discipline as string | null) ?? "Professional";
+      }
+      setPeers(out);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ids]);
+  return peers;
+};
+
 const EnquiryCard = ({
   enquiry,
   preview,
+  peerName,
   onAccept,
   onDecline,
   onOpenPassport,
@@ -133,17 +164,20 @@ const EnquiryCard = ({
 }: {
   enquiry: Enquiry;
   preview?: PassportPreview;
+  peerName?: string;
   onAccept: () => void;
   onDecline: () => void;
   onOpenPassport?: () => void;
   onBookAppointment?: () => void;
   onMessage?: () => void;
 }) => {
-  const first = preview?.firstName ?? "Client";
-  const phone = preview?.phone ?? enquiry.contact_phone ?? null;
+  const isPeer = !!peerName;
+  const first = isPeer ? peerName! : (preview?.firstName ?? "Client");
+  const phone = (isPeer ? enquiry.contact_phone : preview?.phone ?? enquiry.contact_phone) ?? null;
   const contactMethod = enquiry.contact_method ?? null;
-  const location = preview?.location ?? enquiry.location_preference ?? null;
-  const shared = !!enquiry.share_passport_consent;
+  const location = (isPeer ? enquiry.location_preference : preview?.location ?? enquiry.location_preference) ?? null;
+  const shared = !isPeer && !!enquiry.share_passport_consent;
+
   return (
     <SurfaceCard>
       <div className="flex items-start justify-between gap-3">
@@ -220,57 +254,68 @@ const EnquiryCard = ({
         </p>
       )}
 
-      <div
-        className={cn(
-          "mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2 border",
-          shared
-            ? "bg-good/10 border-good/40"
-            : "bg-secondary/50 border-border/60",
-        )}
-      >
-        {shared ? (
-          <ShieldCheck className="size-4 text-good shrink-0" />
-        ) : (
-          <Lock className="size-4 text-muted-foreground shrink-0" />
-        )}
-        <p
-          className={cn(
-            "text-[11.5px] font-body leading-snug",
-            shared ? "text-good font-medium" : "text-muted-foreground",
-          )}
-        >
-          {shared
-            ? "Passport shared by client"
-            : "Passport not shared"}
-        </p>
-      </div>
-
-      {preview && (
-        <div className="mt-2 rounded-[10px] bg-secondary/50 p-3 space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            {shared && <ShieldCheck className="size-3.5 text-good shrink-0" />}
+      {isPeer ? (
+        <div className="mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2 border bg-secondary/50 border-border/60">
+          <Users className="size-4 text-primary shrink-0" />
+          <p className="text-[11.5px] font-body leading-snug text-muted-foreground">
+            <span className="text-foreground font-medium">Peer enquiry</span> — from another
+            professional, so no hair passport is attached.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div
+            className={cn(
+              "mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2 border",
+              shared
+                ? "bg-good/10 border-good/40"
+                : "bg-secondary/50 border-border/60",
+            )}
+          >
+            {shared ? (
+              <ShieldCheck className="size-4 text-good shrink-0" />
+            ) : (
+              <Lock className="size-4 text-muted-foreground shrink-0" />
+            )}
             <p
               className={cn(
-                "text-[9px] uppercase tracking-[0.15em] font-medium",
-                shared ? "text-good" : "text-primary",
+                "text-[11.5px] font-body leading-snug",
+                shared ? "text-good font-medium" : "text-muted-foreground",
               )}
             >
-              Passport preview
+              {shared ? "Passport shared by client" : "Passport not shared"}
             </p>
           </div>
-          <p className="text-[12px] font-body leading-snug">{preview.hairSummary}</p>
-          <p className="text-[12px] font-body leading-snug">
-            {preview.flaggedMarkers > 0
-              ? `${preview.flaggedMarkers} flagged blood marker${preview.flaggedMarkers > 1 ? "s" : ""}`
-              : "No flagged blood markers"}
-          </p>
-          {preview.goals.length > 0 && (
-            <p className="text-[12px] font-body leading-snug">
-              Goals: {preview.goals.join(", ")}
-            </p>
+
+          {preview && (
+            <div className="mt-2 rounded-[10px] bg-secondary/50 p-3 space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                {shared && <ShieldCheck className="size-3.5 text-good shrink-0" />}
+                <p
+                  className={cn(
+                    "text-[9px] uppercase tracking-[0.15em] font-medium",
+                    shared ? "text-good" : "text-primary",
+                  )}
+                >
+                  Passport preview
+                </p>
+              </div>
+              <p className="text-[12px] font-body leading-snug">{preview.hairSummary}</p>
+              <p className="text-[12px] font-body leading-snug">
+                {preview.flaggedMarkers > 0
+                  ? `${preview.flaggedMarkers} flagged blood marker${preview.flaggedMarkers > 1 ? "s" : ""}`
+                  : "No flagged blood markers"}
+              </p>
+              {preview.goals.length > 0 && (
+                <p className="text-[12px] font-body leading-snug">
+                  Goals: {preview.goals.join(", ")}
+                </p>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
+
 
       {enquiry.status === "pending" && (
         <div className="mt-3 flex gap-2">
@@ -291,10 +336,10 @@ const EnquiryCard = ({
               onClick={onMessage}
               className="w-full uppercase tracking-[0.08em]"
             >
-              MESSAGE CLIENT
+              {isPeer ? "MESSAGE PROFESSIONAL" : "MESSAGE CLIENT"}
             </Button>
           )}
-          {onOpenPassport && (
+          {onOpenPassport && !isPeer && (
             <Button
               size="sm"
               variant="outline"
@@ -304,6 +349,7 @@ const EnquiryCard = ({
               OPEN CLIENT PASSPORT
             </Button>
           )}
+
           {onBookAppointment && (
             <Button
               size="sm"
@@ -374,6 +420,8 @@ const ProEnquiries = () => {
 
   const enquiries = data ?? [];
   const previews = usePassportPreviews(enquiries);
+  const peerNames = usePeerSenders(enquiries);
+
 
   const filtered = enquiries.filter((e) => e.status === tab);
 
@@ -460,7 +508,9 @@ const ProEnquiries = () => {
             <EnquiryCard
               key={e.id}
               enquiry={e}
-              preview={previews[e.consumer_id]}
+              preview={peerNames[e.consumer_id] ? undefined : previews[e.consumer_id]}
+              peerName={peerNames[e.consumer_id]}
+
               onAccept={async () => {
                 try {
                   await accept.mutateAsync(e.id);

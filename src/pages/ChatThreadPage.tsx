@@ -284,6 +284,23 @@ const ChatThreadPage = () => {
   const { data: bookingFollowUps = [] } = useProBookingFollowUps();
   const needsDiaryLog = isPro && bookingFollowUps.some((f) => f.thread_id === threadId);
 
+  // Peer thread: the "client" side is itself a professional, so there is no
+  // hair passport attached and the pro-side passport actions are hidden.
+  const { data: isPeerThread = false } = useQuery({
+    queryKey: ["chat_thread_peer", t?.consumer_id],
+    enabled: !isSupport && !!t?.consumer_id,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pro_profiles")
+        .select("user_id")
+        .eq("user_id", t!.consumer_id!)
+        .maybeSingle();
+      return !!data;
+    },
+  });
+
+
 
   const { data: other } = useQuery({
     queryKey: ["chat_thread_other", otherId, isSupport, isAdmin, isPro],
@@ -372,7 +389,7 @@ const ChatThreadPage = () => {
   const backTarget = isAdmin ? "/admin/messages" : "/messages";
   const roleTag =
     isSupport ? "STRAND Team"
-    : isPro ? "Member"
+    : isPro ? (isPeerThread ? "Peer professional" : "Member")
     : "Pro";
 
   return (
@@ -382,7 +399,8 @@ const ChatThreadPage = () => {
         onBack={smartBack(nav, backTarget)}
         right={
           <div className="flex items-center gap-2">
-            {!isSupport && isPro && t && (
+            {!isSupport && isPro && !isPeerThread && t && (
+
               <button
                 onClick={() => nav(`/pro/clients/${t.consumer_id}`)}
                 className="text-[10.5px] uppercase tracking-[0.08em] text-primary font-medium"
@@ -493,9 +511,10 @@ const ChatThreadPage = () => {
             className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
           >
             <Calendar className="size-3.5" />
-            Book appointment
+            Book with {other?.name ?? "them"}
             <ExternalLink className="size-3.5" />
           </a>
+
         </div>
       )}
 

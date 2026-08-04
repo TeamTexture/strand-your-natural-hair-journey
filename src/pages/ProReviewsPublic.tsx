@@ -18,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import { useProContactStates, proContactStatusLine } from "@/hooks/useProContactState";
 import ProContactAction from "@/components/directory/ProContactAction";
 import { formatDistanceToNow } from "date-fns";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { allowsMemberFeatures } from "@/lib/viewFeatures";
 
 /**
  * Full public reviews list for one professional — approved reviews only,
@@ -25,6 +27,7 @@ import { formatDistanceToNow } from "date-fns";
  */
 const ProReviewsPublic = () => {
   const { proUserId } = useParams<{ proUserId: string }>();
+  const reviewsRoleView = useActiveRoleView();
   const [page, setPage] = useState(0);
   const [loaded, setLoaded] = useState<PublicReview[]>([]);
   const { pros } = useDirectoryProfessionals();
@@ -84,8 +87,10 @@ const ProReviewsPublic = () => {
               <ProContactAction
                 state={contact}
                 className="w-full"
+                canNavigateToEnquiries={allowsMemberFeatures(reviewsRoleView)}
                 onEnquire={() => navigate(`/directory?pro=${proUserId}`)}
               />
+
             </div>
           )}
         </SurfaceCard>
