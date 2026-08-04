@@ -9,6 +9,8 @@ import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { externalLinkProps } from "@/lib/socialLinks";
 
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import BookingDepartureSheet from "@/components/booking/BookingDepartureSheet";
+import { useLogBookingDeparture } from "@/hooks/useBookingDeparture";
 import TimePicker12h from "@/components/TimePicker12h";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -279,6 +281,8 @@ const ChatThreadPage = () => {
   const bookingUrl = proBooking?.url ? normalizeBookingUrl(proBooking.url) : "";
   const myProName = proBooking?.proName || "Your professional";
   const sendBookingRequest = useSendBookingRequest(threadId);
+  const [departureOpen, setDepartureOpen] = useState(false);
+  const logDeparture = useLogBookingDeparture();
   // Pro-side nudge: a booking request was sent (or the client opened the
   // booking page) and nothing has been logged in the diary since.
   const { data: bookingFollowUps = [] } = useProBookingFollowUps();
@@ -497,26 +501,53 @@ const ChatThreadPage = () => {
       {/* Client side: persistent booking action whenever the pro has a link. */}
       {!isSupport && !isPro && bookingUrl && (
         <div className="px-4 pt-2 pb-2 border-t border-border/60 bg-background">
-          <a
-            href={bookingUrl}
-            onClick={() => {
-              // Let the pro know so they can log it in their Strand diary.
-              if (threadId) {
-                supabase.rpc("note_booking_link_opened", { _thread_id: threadId }).then(({ error }) => {
-                  if (error) console.error("Booking-open note failed:", error);
-                });
-              }
-            }}
-            {...externalLinkProps}
-            className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill bg-primary px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em] text-primary-foreground"
+          <Button
+            onClick={() => setDepartureOpen(true)}
+            className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill px-4 text-[11.5px] font-body font-semibold uppercase tracking-[0.08em]"
           >
             <Calendar className="size-3.5" />
-            Book with {other?.name ?? "them"}
-            <ExternalLink className="size-3.5" />
-          </a>
-
+            Book an appointment
+          </Button>
         </div>
       )}
+
+      <BookingDepartureSheet
+        open={departureOpen}
+        onOpenChange={setDepartureOpen}
+        target={
+          bookingUrl
+            ? {
+                proName: other?.name || myProName,
+                bookingUrl,
+                discountCode: proBooking?.discountCode ?? null,
+                discountDescription: proBooking?.discountDescription ?? null,
+              }
+            : null
+        }
+        onConfirm={async () => {
+          // Record the departure BEFORE navigating: a user who never returns to
+          // the tab must still be counted.
+          if (proUserId) {
+            try {
+              await logDeparture.mutateAsync({
+                professionalId: proUserId,
+                bookingUrl,
+                discountCodeShown: proBooking?.discountCode ?? null,
+              });
+            } catch (e) {
+              console.error("Booking departure log failed:", e);
+            }
+          }
+          if (threadId) {
+            supabase.rpc("note_booking_link_opened", { _thread_id: threadId }).then(({ error }) => {
+              if (error) console.error("Booking-open note failed:", error);
+            });
+          }
+          window.open(bookingUrl, "_blank", "noopener,noreferrer");
+          setDepartureOpen(false);
+        }}
+      />
+
 
       {needsDiaryLog && (
         <div className="px-4 pt-2 border-t border-border/60 bg-background">

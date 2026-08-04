@@ -178,6 +178,9 @@ const ProProfile = () => {
     address_line1: "",
     address_line2: "",
     city: "",
+    discount_code: "",
+    discount_description: "",
+    discount_active: false,
   });
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [specInput, setSpecInput] = useState("");
@@ -213,6 +216,11 @@ const ProProfile = () => {
       address_line1: profile.address_line1 ?? "",
       address_line2: profile.address_line2 ?? "",
       city: profile.city ?? "",
+      discount_code: (profile as { discount_code?: string | null }).discount_code ?? "",
+      discount_description:
+        (profile as { discount_description?: string | null }).discount_description ?? "",
+      discount_active:
+        (profile as { discount_active?: boolean | null }).discount_active === true,
     });
     const savedHours = profile.opening_hours as OpeningHours | null;
     if (savedHours && typeof savedHours === "object") {
@@ -233,6 +241,18 @@ const ProProfile = () => {
       if (!user) throw new Error("Not signed in");
       const claimError = validateCapabilityClaim(claims);
       if (claimError) throw new Error(claimError);
+      // A booking link is the member's route off the app — refuse to store a
+      // malformed one rather than saving something that will dead-end them.
+      const rawBooking = form.booking_url.trim();
+      if (rawBooking && !isValidBookingUrl(form.booking_url)) {
+        throw new Error(
+          "Your booking link needs to be a full web address, e.g. https://yoursalon.com/book",
+        );
+      }
+      const code = form.discount_code.trim().toUpperCase();
+      if (form.discount_active && !code) {
+        throw new Error("Add a discount code before switching your discount on");
+      }
       const { error } = await supabase
         .from("pro_profiles")
         .update({
@@ -242,12 +262,10 @@ const ProProfile = () => {
           location: form.location || null,
           postcode: form.postcode || null,
           contact_email: form.contact_email || null,
-          booking_url: isValidBookingUrl(form.booking_url)
-            ? normalizeBookingUrl(form.booking_url)
-            : form.booking_url.trim()
-              ? normalizeBookingUrl(form.booking_url)
-              : null,
-
+          booking_url: rawBooking ? normalizeBookingUrl(form.booking_url) : null,
+          discount_code: code || null,
+          discount_description: form.discount_description.trim() || null,
+          discount_active: form.discount_active && !!code,
           website_url: normalizeWebsiteUrl(form.website_url) || null,
           instagram_handle: normalizeInstagramHandle(form.instagram_handle) || null,
           avatar_path: form.avatar_path,
@@ -682,6 +700,48 @@ const ProProfile = () => {
             </a>
           )}
         </Field>
+
+        <Field label="STRAND discount code">
+          <Input
+            value={form.discount_code}
+            onChange={(e) => setForm((f) => ({ ...f, discount_code: e.target.value }))}
+            placeholder="STRAND10"
+            className="font-mono uppercase tracking-[0.12em]"
+          />
+          <p className="mt-1.5 text-[11px] font-body leading-snug text-muted-foreground">
+            Shown to clients just before they leave for your booking page.
+          </p>
+        </Field>
+
+        <Field label="What the discount gives them">
+          <Textarea
+            value={form.discount_description}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, discount_description: e.target.value }))
+            }
+            placeholder="10% off your first consultation"
+            rows={3}
+          />
+          <p className="mt-1.5 text-[11px] font-body leading-snug text-muted-foreground">
+            Your words, shown to clients exactly as you write them.
+          </p>
+        </Field>
+
+        <div className="flex items-center justify-between gap-3 rounded-[14px] border border-border bg-card px-4 py-3">
+          <div>
+            <p className="text-[12.5px] font-body font-semibold">Discount live</p>
+            <p className="text-[11px] font-body leading-snug text-muted-foreground">
+              Turn on to show your code in chats and before booking.
+            </p>
+          </div>
+          <Switch
+            checked={form.discount_active}
+            onCheckedChange={(v) => setForm((f) => ({ ...f, discount_active: v }))}
+            aria-label="Discount live"
+          />
+        </div>
+
+
 
         <Field label="Website">
           <Input
