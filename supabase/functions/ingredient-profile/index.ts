@@ -119,7 +119,9 @@ LANGUAGE RULES — NON-NEGOTIABLE
 WHAT_IT_MEANS_FOR_YOU RULES
 - Max 2 sentences. Reference at least ONE concrete data point from the user's context.
 - Consider the surrounding formulation when provided — co-formulants can balance or amplify effects.
-- End with a useful, practical takeaway — never "avoid this".`;
+- End with a useful, practical takeaway — never "avoid this".
+
+${NON_PRESCRIPTIVE_RULES}`;
 }
 
 function buildUserPrompt(body: RequestBody): string {
