@@ -194,6 +194,10 @@ const IngredientDetail = () => {
     () => allProducts.find((p) => p.product_key === productKey) ?? null,
     [allProducts, productKey],
   );
+  // Kept in a ref so the analysis callback can write its score back to the
+  // saved row without re-creating itself (and re-running the AI call).
+  const savedRowRef = useRef(productRow);
+  savedRowRef.current = productRow;
 
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
   const [showAllIngredients, setShowAllIngredients] = useState(false);
