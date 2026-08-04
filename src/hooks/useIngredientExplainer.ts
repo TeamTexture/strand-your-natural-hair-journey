@@ -12,6 +12,7 @@ export interface IngredientExplainer {
     phonetic: string | null;
     category: string | null;
     what_it_is: string | null;
+    kind?: "molecule" | "class" | "concept";
   } | null;
   /** Why it sits in this particular product. */
   role_in_product: string | null;
@@ -66,18 +67,51 @@ export function useIngredientExplainer(
     enabled: Boolean(key && user?.id),
     staleTime: 1000 * 60 * 5,
     queryFn: async (): Promise<ShelfMatch[]> => {
-      const { data: ing } = await supabase
-        .from("ingredients")
-        .select("id")
+      const { data: term } = await supabase
+        .from("glossary_terms")
+        .select("id, kind, class_category, match_keywords")
         .eq("inci_key", key!)
         .maybeSingle();
-      if (!ing?.id) return [];
+      const row = term as unknown as {
+        id: string;
+        kind: string | null;
+        class_category: string | null;
+        match_keywords: string[] | null;
+      } | null;
+      if (!row?.id) return [];
+
+      // A CONCEPT (porosity, cuticle) has no shelf footprint. A CLASS resolves
+      // to every molecule in that family; a MOLECULE resolves to itself.
+      let ingredientIds: string[] = [row.id];
+      if (row.kind === "concept") return [];
+      if (row.kind === "class") {
+        const ids = new Set<string>();
+        if (row.class_category) {
+          const { data } = await supabase
+            .from("glossary_terms")
+            .select("id")
+            .eq("kind", "molecule")
+            .eq("category", row.class_category);
+          for (const r of (data ?? []) as unknown as Array<{ id: string }>) ids.add(r.id);
+        }
+        for (const keyword of (row.match_keywords ?? []).slice(0, 12)) {
+          const { data } = await supabase
+            .from("glossary_terms")
+            .select("id")
+            .eq("kind", "molecule")
+            .ilike("display_name", `%${keyword}%`);
+          for (const r of (data ?? []) as unknown as Array<{ id: string }>) ids.add(r.id);
+        }
+        if (ids.size === 0) return [];
+        ingredientIds = [...ids].slice(0, 300);
+      }
+
       const { data, error } = await supabase
         .from("product_ingredients")
         .select(
           "user_products!inner(id, name, brand, category, match_score, image_url, storage_path, on_shelf)",
         )
-        .eq("ingredient_id", ing.id)
+        .in("ingredient_id", ingredientIds)
         .eq("user_products.user_id", user!.id);
       if (error) throw error;
       const rows = (data ?? [])
@@ -91,6 +125,7 @@ export function useIngredientExplainer(
       });
     },
   });
+
 
   return {
     explainer: explainer.data ?? null,

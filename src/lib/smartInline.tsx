@@ -71,6 +71,17 @@ export function renderInlineWithProducts(
   const hasOverlap = (start: number, end: number) =>
     matches.some((x) => !(end <= x.start || start >= x.end));
 
+  // FIRST OCCURRENCE ONLY — a term repeated inside one block of text is
+  // tokenised/linked once. Repeating the same tappable chip three times in a
+  // paragraph reads like a broken hyperlink farm.
+  const linkedOnce = new Set<string>();
+  const claimTerm = (kind: Match["kind"], text: string) => {
+    const key = `${kind}|${normaliseInciKey(text)}`;
+    if (linkedOnce.has(key)) return false;
+    linkedOnce.add(key);
+    return true;
+  };
+
   const addRegexMatches = (
     re: RegExp,
     factory: (text: string) => Omit<Match, "start" | "end" | "text">,
@@ -83,7 +94,12 @@ export function renderInlineWithProducts(
         if (m[0].length === 0) re.lastIndex += 1;
         continue;
       }
-      matches.push({ start, end, text: m[0], ...factory(m[0]) });
+      const built = factory(m[0]);
+      if (!claimTerm(built.kind, m[0])) {
+        if (m[0].length === 0) re.lastIndex += 1;
+        continue;
+      }
+      matches.push({ start, end, text: m[0], ...built });
       if (m[0].length === 0) re.lastIndex += 1;
     }
   };

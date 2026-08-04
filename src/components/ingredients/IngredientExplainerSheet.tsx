@@ -5,6 +5,7 @@ import ProductThumb from "@/components/ProductThumb";
 import { cn } from "@/lib/utils";
 import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { matchScoreOf } from "@/lib/matchStars";
+import ProseText from "@/components/guidance/ProseText";
 
 const VERDICT = {
   good: { label: "Works with your hair", icon: CheckCircle2, cls: "bg-good/12 border-good/30" },
@@ -50,6 +51,16 @@ export default function IngredientExplainerSheet({
   const verdict = explainer?.fit?.tone ? VERDICT[explainer.fit.tone] : null;
   const VerdictIcon = verdict?.icon ?? Beaker;
   const others = shelf.filter((p) => p.id !== userProductId);
+  // A molecule is labelled by its cosmetic-chemistry category; a class or a
+  // concept is labelled by what kind of term it is.
+  const kind = explainer?.glossary?.kind ?? "molecule";
+  const kindLabel =
+    kind === "concept"
+      ? "Hair science"
+      : kind === "class"
+      ? "Ingredient family"
+      : explainer?.glossary?.category ?? "";
+  const shelfLabel = kind === "class" ? "On your shelf" : "Also on your shelf";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -58,10 +69,10 @@ export default function IngredientExplainerSheet({
           <SheetTitle className="font-display text-[20px] leading-tight">
             {explainer?.glossary?.display_name ?? name ?? "Ingredient"}
           </SheetTitle>
-          {explainer?.glossary?.category && (
+          {(kindLabel || explainer?.glossary?.phonetic) && (
             <p className="text-[11.5px] uppercase tracking-[0.08em] text-foreground/50 font-body">
-              {explainer.glossary.category}
-              {explainer.glossary.phonetic ? ` · ${explainer.glossary.phonetic}` : ""}
+              {kindLabel}
+              {explainer?.glossary?.phonetic ? `${kindLabel ? " · " : ""}${explainer.glossary.phonetic}` : ""}
             </p>
           )}
         </SheetHeader>
@@ -84,12 +95,20 @@ export default function IngredientExplainerSheet({
           <div className="mt-4 space-y-2.5">
             {explainer.glossary?.what_it_is && (
               <Block label="What it is" icon={FlaskConical}>
-                {explainer.glossary.what_it_is}
+                <ProseText
+                  text={explainer.glossary.what_it_is}
+                  keyPrefix="ing-what"
+                  paragraphClassName="text-[13px] leading-relaxed text-foreground/85 font-body"
+                />
               </Block>
             )}
             {explainer.role_in_product && (
               <Block label="What it's doing here" icon={Beaker}>
-                {explainer.role_in_product}
+                <ProseText
+                  text={explainer.role_in_product}
+                  keyPrefix="ing-role"
+                  paragraphClassName="text-[13px] leading-relaxed text-foreground/85 font-body"
+                />
               </Block>
             )}
 
@@ -99,9 +118,12 @@ export default function IngredientExplainerSheet({
                   <VerdictIcon className="size-3.5" aria-hidden />
                   {verdict?.label ?? "What it means for you"}
                 </p>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/85 font-body">
-                  {explainer.fit.for_you}
-                </p>
+                <ProseText
+                  text={explainer.fit.for_you}
+                  className="mt-1.5"
+                  keyPrefix="ing-fit"
+                  paragraphClassName="text-[13px] leading-relaxed text-foreground/85 font-body"
+                />
                 {explainer.fit.usage_tip && (
                   <p className="mt-2 flex gap-1.5 text-[12px] leading-relaxed text-foreground/75 font-body">
                     <Sparkles className="mt-[3px] size-3 shrink-0 opacity-70" aria-hidden />
@@ -114,7 +136,7 @@ export default function IngredientExplainerSheet({
             {others.length > 0 && (
               <div className="rounded-[12px] border border-border bg-card p-3">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/50 font-body">
-                  Also on your shelf
+                  {shelfLabel}
                 </p>
                 <ul className="mt-2 space-y-1.5">
                   {others.slice(0, 8).map((p) => {

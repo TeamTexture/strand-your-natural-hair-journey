@@ -44,6 +44,7 @@ import {
   type PurposeInsight,
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
+import { perParagraph } from "../_shared/paragraph-rules.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -112,11 +113,15 @@ function scrubGuidance(analysis: AnalysisPayload): AnalysisPayload {
   const tips = analysis.personalised_guidance;
   if (!Array.isArray(tips) || tips.length === 0) return analysis;
   const cleaned = tips.map((tip) => {
-    const sentences = (tip?.body ?? "").split(/(?<=[.!?])\s+/);
-    const kept = sentences.filter(
-      (s) => !FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(s)),
-    );
-    let body = kept.join(" ").trim();
+    // Paragraph-safe: filter sentence by sentence WITHIN each paragraph so a
+    // blank line the model placed at a reasoning bridge survives the scrub.
+    let body = perParagraph(tip?.body ?? "", (paragraph) =>
+      paragraph
+        .split(/(?<=[.!?])\s+/)
+        .filter((s) => !FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(s)))
+        .join(" ")
+        .trim(),
+    ).trim();
     let title = (tip?.title ?? "").trim();
     if (FORBIDDEN_GUIDANCE_PATTERNS.some((re) => re.test(title))) {
       title = "Get the most from this product";

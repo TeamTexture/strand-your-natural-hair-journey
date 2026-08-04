@@ -3,32 +3,42 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { normaliseInciKey } from "@/lib/inci";
 
+export type GlossaryKind = "molecule" | "class" | "concept";
+
 export interface GlossaryRow {
   id: string;
   inci_key: string;
   display_name: string;
   aliases: string[] | null;
   is_common: boolean | null;
+  kind: GlossaryKind;
+  class_category: string | null;
+  match_keywords: string[] | null;
 }
 
 /**
- * LAYER 1 — the shared ingredient glossary.
+ * LAYER 1 — the shared glossary.
  *
- * One row per INCI name, generated once ever and reused by every user, so the
- * explainer sheet opens instantly for anything already indexed. Cached for the
- * session: the glossary only grows, it never changes under a user.
+ * One row per term, generated once ever and reused by every user, so the
+ * explainer sheet opens instantly for anything already indexed. Three kinds of
+ * term live here:
+ *   molecule — a single INCI entry ("Amodimethicone")
+ *   class    — an ingredient family ("humectants", "ceramides", "silicones")
+ *   concept  — a hair-science idea ("porosity", "cuticle", "sebum")
+ * All three are tappable in prose. Cached for the session: the glossary only
+ * grows, it never changes under a user.
  */
 export function useIngredientGlossary() {
   const query = useQuery({
-    queryKey: ["ingredient-glossary"],
+    queryKey: ["glossary-terms"],
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 4,
     queryFn: async (): Promise<GlossaryRow[]> => {
       const { data, error } = await supabase
-        .from("ingredients")
-        .select("id, inci_key, display_name, aliases, is_common");
+        .from("glossary_terms")
+        .select("id, inci_key, display_name, aliases, is_common, kind, class_category, match_keywords");
       if (error) throw error;
-      return (data ?? []) as GlossaryRow[];
+      return (data ?? []) as unknown as GlossaryRow[];
     },
   });
 
@@ -66,7 +76,7 @@ export function useIngredientGlossary() {
         out.push(text);
       }
     }
-    return out.sort((a, b) => b.length - a.length).slice(0, 400);
+    return out.sort((a, b) => b.length - a.length).slice(0, 600);
   }, [rows]);
 
   const lookup = (name: string) => byKey.get(normaliseInciKey(name)) ?? null;

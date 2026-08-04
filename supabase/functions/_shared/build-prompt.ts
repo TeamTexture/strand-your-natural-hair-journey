@@ -18,6 +18,7 @@
 //   [3] task instructions         no cache (per-call)
 
 import { STRAND_PERSONA, STRAND_AUDIENCE_PSYCHOLOGY } from "./strand-persona.ts";
+import { PARAGRAPH_RULES } from "./paragraph-rules.ts";
 import { CHAPTER_WHITELIST_PROMPT } from "./book-chapters.ts";
 import {
   renderTopicBlock,
@@ -187,6 +188,11 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   // ── VOICE PRINCIPLES (every Claude-path function) ────────────────
   // Conversational clinician voice. Single source of truth in voice.ts.
   systemBlocks.push({ type: "text", text: VOICE_PRINCIPLES });
+
+  // ── PARAGRAPH SHAPE (every Claude-path function) ─────────────────
+  // Break at the bridge: mechanism → what it means for her → what to do.
+  systemBlocks.push({ type: "text", text: PARAGRAPH_RULES });
+
 
   // ── CORE ROUTINE GUARDRAILS (every Claude-path function) ─────────
   // Hard-coded manuscript routine baseline so routine/product/style advice

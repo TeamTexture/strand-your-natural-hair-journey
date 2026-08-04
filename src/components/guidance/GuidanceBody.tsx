@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { splitParagraphs } from "@/lib/paragraphs";
 import { useSmartInline } from "@/lib/smartInline";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import {
@@ -37,7 +38,7 @@ import KeyFactChips from "@/components/guidance/KeyFactChips";
  *  3 Guided       — lead blocks + a SegmentBlock per labelled sub-paragraph.
  *  4 Hand-holding — MORE blocks, not longer ones: every piece its own row.
  */
-const GuidanceBody = ({
+const GuidanceBlock = ({
   text,
   className,
   keyPrefix = "gb",
@@ -149,6 +150,47 @@ const GuidanceBody = ({
         <SegmentBlock key={`${s.label}-${i}`} segment={s} keyPrefix={`${keyPrefix}-s${i}`} />
       ))}
 
+    </div>
+  );
+};
+
+/**
+ * PARAGRAPH SHAPE — the AI is instructed to break at the reasoning bridge
+ * (mechanism → what it means for you → what to do with it) with a blank line.
+ * Every blank-line block renders as its own spaced paragraph; sentence dedupe
+ * runs across the whole set so nothing repeats between paragraphs.
+ */
+const GuidanceBody = ({
+  text,
+  className,
+  keyPrefix = "gb",
+}: {
+  text: string | null | undefined;
+  className?: string;
+  keyPrefix?: string;
+}) => {
+  const { level } = useTipsLevel();
+
+  const paragraphs = useMemo(() => {
+    const blocks = splitParagraphs(text);
+    if (blocks.length === 0) return [];
+    // Lower levels keep fewer paragraphs — never shorter mid-thought prose.
+    const limited = level === 1 ? blocks.slice(0, 1) : level === 2 ? blocks.slice(0, 2) : blocks;
+    const seen = new Set<string>();
+    return limited
+      .map((block) => dedupeSentences(condenseProse(block, level), seen).trim())
+      .filter(Boolean);
+  }, [text, level]);
+
+  if (paragraphs.length === 0) return null;
+  if (paragraphs.length === 1) {
+    return <GuidanceBlock text={paragraphs[0]} className={className} keyPrefix={keyPrefix} />;
+  }
+  return (
+    <div className={cn("space-y-3", className)}>
+      {paragraphs.map((block, i) => (
+        <GuidanceBlock key={i} text={block} keyPrefix={`${keyPrefix}-p${i}`} />
+      ))}
     </div>
   );
 };

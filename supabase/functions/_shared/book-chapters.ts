@@ -87,7 +87,7 @@ export function sanitiseChapterCitations(text: string | null | undefined): strin
 
   // 4. Tidy up: collapse leftover spaces/punctuation and blank lines.
   cleaned = cleaned
-    .replace(/\s{2,}/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
     .replace(/\s+([,.;:!?])/g, "$1")
     .replace(/\(\s*\)/g, "")
     .replace(/\[\s*\]/g, "")
