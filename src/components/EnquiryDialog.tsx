@@ -138,7 +138,7 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
         contact_phone: phoneNeeded ? phone.trim() : null,
         location_preference: location,
         budget_range: budget.trim() || null,
-        share_passport_consent: sharePassport,
+        share_passport_consent: isPeerEnquiry ? false : sharePassport,
       });
       toast.success(`Enquiry sent to ${proName}`);
       onOpenChange(false);
