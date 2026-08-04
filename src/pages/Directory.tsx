@@ -468,7 +468,7 @@ const Directory = () => {
                   <ProContactAction state={contact} className="w-full mt-3" onEnquire={() => {}} />
                 )}
 
-                {memberActions && !isOwn && (() => {
+                {!isOwn && (() => {
                   const tier = p.listingTier ?? (p.proUserId ? "full" : "external_link");
                   const websiteHref = p.website ? normalizeWebsiteUrl(p.website) : "";
                   const bookUrl = normalizeWebsiteUrl(p.bookingUrl || p.website);
@@ -508,14 +508,14 @@ const Directory = () => {
                       )}
 
                       {/* Tier A — full subscriber: enquiry/chat state machine */}
-                      {tier === "full" && p.proUserId ? (
+                      {tier === "full" && p.proUserId && memberActions ? (
                         <ProContactAction
                           state={contact}
                           onEnquire={() =>
                             setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
                           }
                         />
-                      ) : tier === "listed_enquiry" ? (
+                      ) : tier === "listed_enquiry" && memberActions ? (
                         /* Tier B — listed + in-app enquiry forwarded to their email */
                         <button
                           type="button"
