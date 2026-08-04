@@ -37,6 +37,7 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
 import { IngredientProductScope } from "@/components/ingredients/IngredientToken";
+import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
@@ -91,6 +92,7 @@ const ProductProfile = () => {
   const [aiError, setAiError] = useState<string | null>(null);
 
   const product = useMemo(() => allProducts.find(p => p.id === id) ?? null, [allProducts, id]);
+  useIngredientIndex(product);
 
   // Single unified "flagged" set — appears in 3+ of the user's products.
   const flaggedNames = useMemo(() => new Set(flags.map(i => i.ingredient.toLowerCase())), [flags]);
