@@ -309,6 +309,66 @@ export type Database = {
           },
         ]
       }
+      blood_test_vendors: {
+        Row: {
+          affiliate_url: string | null
+          at_home: boolean
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          markers_covered: string[]
+          name: string
+          panel_name: string | null
+          price_from: number | null
+          regions_served: string[]
+          short_description: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          affiliate_url?: string | null
+          at_home?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          markers_covered?: string[]
+          name: string
+          panel_name?: string | null
+          price_from?: number | null
+          regions_served?: string[]
+          short_description?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          affiliate_url?: string | null
+          at_home?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          markers_covered?: string[]
+          name?: string
+          panel_name?: string | null
+          price_from?: number | null
+          regions_served?: string[]
+          short_description?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       brand_offer_interest: {
         Row: {
           created_at: string
@@ -1911,6 +1971,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_capability_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          capability: string
+          created_at: string
+          id: string
+          new_value: Json | null
+          note: string | null
+          previous_value: Json | null
+          pro_user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          capability: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          note?: string | null
+          previous_value?: Json | null
+          pro_user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          capability?: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          note?: string | null
+          previous_value?: Json | null
+          pro_user_id?: string
+        }
+        Relationships: []
+      }
       pro_client_access: {
         Row: {
           consumer_id: string
@@ -2105,17 +2201,31 @@ export type Database = {
           address_line2: string | null
           avatar_path: string | null
           bio: string | null
+          bloods_claim_status: string
+          bloods_review_note: string | null
+          bloods_setting: string | null
+          bloods_verified_at: string | null
+          bloods_verified_by: string | null
           booking_url: string | null
           business_email: string | null
           business_phone: string | null
+          can_take_bloods_claimed: boolean
+          can_take_bloods_verified: boolean
           city: string | null
           contact_email: string | null
           cover_path: string | null
           created_at: string
           discipline: Database["public"]["Enums"]["pro_discipline"]
           display_name: string
+          doctor_claim_status: string
+          doctor_review_note: string | null
+          doctor_verified_at: string | null
+          doctor_verified_by: string | null
+          gmc_number: string | null
           id: string
           instagram_handle: string | null
+          is_doctor_claimed: boolean
+          is_doctor_verified: boolean
           is_published: boolean
           listing_tier: Database["public"]["Enums"]["pro_listing_tier"]
           location: string | null
@@ -2140,17 +2250,31 @@ export type Database = {
           address_line2?: string | null
           avatar_path?: string | null
           bio?: string | null
+          bloods_claim_status?: string
+          bloods_review_note?: string | null
+          bloods_setting?: string | null
+          bloods_verified_at?: string | null
+          bloods_verified_by?: string | null
           booking_url?: string | null
           business_email?: string | null
           business_phone?: string | null
+          can_take_bloods_claimed?: boolean
+          can_take_bloods_verified?: boolean
           city?: string | null
           contact_email?: string | null
           cover_path?: string | null
           created_at?: string
           discipline: Database["public"]["Enums"]["pro_discipline"]
           display_name: string
+          doctor_claim_status?: string
+          doctor_review_note?: string | null
+          doctor_verified_at?: string | null
+          doctor_verified_by?: string | null
+          gmc_number?: string | null
           id?: string
           instagram_handle?: string | null
+          is_doctor_claimed?: boolean
+          is_doctor_verified?: boolean
           is_published?: boolean
           listing_tier?: Database["public"]["Enums"]["pro_listing_tier"]
           location?: string | null
@@ -2175,17 +2299,31 @@ export type Database = {
           address_line2?: string | null
           avatar_path?: string | null
           bio?: string | null
+          bloods_claim_status?: string
+          bloods_review_note?: string | null
+          bloods_setting?: string | null
+          bloods_verified_at?: string | null
+          bloods_verified_by?: string | null
           booking_url?: string | null
           business_email?: string | null
           business_phone?: string | null
+          can_take_bloods_claimed?: boolean
+          can_take_bloods_verified?: boolean
           city?: string | null
           contact_email?: string | null
           cover_path?: string | null
           created_at?: string
           discipline?: Database["public"]["Enums"]["pro_discipline"]
           display_name?: string
+          doctor_claim_status?: string
+          doctor_review_note?: string | null
+          doctor_verified_at?: string | null
+          doctor_verified_by?: string | null
+          gmc_number?: string | null
           id?: string
           instagram_handle?: string | null
+          is_doctor_claimed?: boolean
+          is_doctor_verified?: boolean
           is_published?: boolean
           listing_tier?: Database["public"]["Enums"]["pro_listing_tier"]
           location?: string | null
@@ -3823,6 +3961,15 @@ export type Database = {
       set_passport_access: {
         Args: { _grant: boolean; _pro_user_id: string }
         Returns: string
+      }
+      set_pro_capability_verification: {
+        Args: {
+          _approve: boolean
+          _capability: string
+          _note?: string
+          _pro: string
+        }
+        Returns: undefined
       }
       start_member_dm: { Args: { _other_user: string }; Returns: string }
       strand_today_london: { Args: never; Returns: string }

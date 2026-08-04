@@ -113,6 +113,7 @@ const AdminBrandOfferReview = lazy(() => import("./pages/admin/AdminBrandOfferRe
 const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
 const AdminLibrary = lazy(() => import("./pages/admin/AdminLibrary"));
 const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
+const AdminBloodVendors = lazy(() => import("./pages/admin/AdminBloodVendors"));
 
 // Brand
 const BrandAuth = lazy(() => import("./pages/brand/BrandAuth"));
@@ -478,6 +479,7 @@ const App = () => (
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />
               <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
               <Route path="/admin/professionals" element={<RoleGate allow={["admin"]}><AdminProfessionals /></RoleGate>} />
+              <Route path="/admin/blood-vendors" element={<RoleGate allow={["admin"]}><AdminBloodVendors /></RoleGate>} />
               <Route path="/admin/pro-reviews" element={<RoleGate allow={["admin"]}><AdminProReviews /></RoleGate>} />
               <Route path="/admin/referrals" element={<RoleGate allow={["admin"]}><AdminReferrals /></RoleGate>} />
               <Route path="/admin/view-as" element={<RoleGate allow={["admin"]}><AdminViewAs /></RoleGate>} />

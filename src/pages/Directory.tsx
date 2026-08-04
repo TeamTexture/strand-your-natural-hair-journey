@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus } from "lucide-react";
+import { ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus, Stethoscope, Droplet } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -27,8 +27,15 @@ import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures, allowsProFeatures } from "@/lib/viewFeatures";
+import CapabilityBadges from "@/components/pro/CapabilityBadges";
 
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
+
+/** Verified-capability filters. Both read `_verified` state only. */
+const CAP_FILTERS = [
+  { key: "doctor" as const, label: "Doctors" },
+  { key: "bloods" as const, label: "Can take bloods" },
+];
 
 const Directory = () => {
   const [params, setParams] = useSearchParams();
@@ -65,10 +72,20 @@ const Directory = () => {
   const [expandedHours, setExpandedHours] = useState<Record<string, boolean>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const results = useMemo(
-    () => searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab),
-    [pros, query, tab, bloodOnly],
-  );
+  // Verified-capability filters. Never sticky in the URL, cleared on tab change.
+  const [caps, setCaps] = useState<{ doctor: boolean; bloods: boolean }>({
+    doctor: false,
+    bloods: false,
+  });
+
+  const results = useMemo(() => {
+    const base = searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab);
+    return base.filter(
+      (p) =>
+        (!caps.doctor || p.isDoctorVerified === true) &&
+        (!caps.bloods || p.canTakeBloodsVerified === true),
+    );
+  }, [pros, query, tab, bloodOnly, caps]);
 
   // Chip counts come from the FULL live directory (`pros` = published,
   // unsuspended pro profiles + active curated rows), never from the filtered
@@ -79,6 +96,24 @@ const Directory = () => {
     for (const p of pros) counts[p.type] = (counts[p.type] ?? 0) + 1;
     return counts;
   }, [pros]);
+
+  // Same zero-count rule as the category chips: a capability filter that would
+  // return nothing is not rendered. Counts are VERIFIED-only.
+  const capCounts = useMemo(
+    () => ({
+      doctor: pros.filter((p) => p.isDoctorVerified === true).length,
+      bloods: pros.filter((p) => p.canTakeBloodsVerified === true).length,
+    }),
+    [pros],
+  );
+
+  // Never leave the user stranded on a filter that has emptied out.
+  useEffect(() => {
+    setCaps((c) => ({
+      doctor: c.doctor && capCounts.doctor > 0,
+      bloods: c.bloods && capCounts.bloods > 0,
+    }));
+  }, [capCounts.doctor, capCounts.bloods]);
 
   const visibleTabs = useMemo(
     () => tabs.filter((t) => t === "All" || (tabCounts[t] ?? 0) > 0),
@@ -271,6 +306,38 @@ const Directory = () => {
         </div>
       )}
 
+      {(capCounts.doctor > 0 || capCounts.bloods > 0) && (
+        <div className="pb-4 strand-hscroll px-5">
+          <div className="flex gap-2 min-w-max">
+            {CAP_FILTERS.filter((f) => capCounts[f.key] > 0).map((f) => {
+              const active = caps[f.key];
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setCaps((c) => ({ ...c, [f.key]: !c[f.key] }))}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-body border transition-colors min-h-[36px]",
+                    active
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border text-foreground",
+                  )}
+                >
+                  {f.key === "doctor" ? (
+                    <Stethoscope className="size-3.5" aria-hidden="true" />
+                  ) : (
+                    <Droplet className="size-3.5" aria-hidden="true" />
+                  )}
+                  {f.label}
+                  <span className="opacity-60">{capCounts[f.key]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="px-5 space-y-4 pb-8">
         {loading && pros.length === 0 ? (
           <LoadingDot label="Loading directory…" fullScreen={false} />
@@ -365,6 +432,14 @@ const Directory = () => {
                       <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
                         {p.verified} ✓
                       </span>
+                      {/* Verified capabilities only — claims never render. */}
+                      <CapabilityBadges
+                        caps={{
+                          isDoctorVerified: p.isDoctorVerified,
+                          canTakeBloodsVerified: p.canTakeBloodsVerified,
+                          bloodsSetting: p.bloodsSetting ?? null,
+                        }}
+                      />
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-0.5">
                       <p className="text-[11px] text-muted-foreground min-w-0 flex-1">

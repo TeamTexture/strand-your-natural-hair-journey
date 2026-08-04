@@ -55,7 +55,7 @@ async function loadDirectory(): Promise<Professional[]> {
       supabase
         .from("pro_profiles")
         .select(
-          "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent",
+          "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting",
         )
         .eq("is_published", true)
         .is("suspended_at", null),
@@ -139,6 +139,11 @@ async function loadDirectory(): Promise<Professional[]> {
       addressLine2: row.address_line2 ?? undefined,
       city: row.city ?? undefined,
       openingHours: (row.opening_hours as Professional["openingHours"]) ?? undefined,
+      qualifications: (row.qualifications as string[] | null) ?? undefined,
+      // VERIFIED state only — a claim never reaches the directory.
+      isDoctorVerified: row.is_doctor_verified === true,
+      canTakeBloodsVerified: row.can_take_bloods_verified === true,
+      bloodsSetting: (row.bloods_setting as Professional["bloodsSetting"]) ?? null,
     };
   });
 
