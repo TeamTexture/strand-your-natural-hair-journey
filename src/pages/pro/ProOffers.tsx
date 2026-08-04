@@ -102,10 +102,12 @@ const ProOffers = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Offers" onBack={smartBack(nav, "/pro")} />
+      <TitleBar title="Listing discount" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-8 space-y-4">
         <p className="text-xs text-foreground/70 font-body">
-          One-off promotions on your public profile. No permanent platform-wide discounts.
+          A discount clients can use when booking their first appointment with you. It shows on
+          your directory listing. Paid adverts are separate — create those under "Create a paid
+          advert".
         </p>
 
         {draft ? (
