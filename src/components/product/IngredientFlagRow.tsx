@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { CheckCircle2, AlertTriangle, XCircle, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TONE_CLASSES, type GuidanceTone } from "@/lib/guidance";
+import { IngredientToken } from "@/components/ingredients/IngredientToken";
 
 export type IngredientFlagTone = "good" | "warn" | "bad";
 
@@ -35,6 +36,7 @@ const IngredientFlagRow = ({
   onClick,
   trailing,
   className,
+  explainable = true,
 }: {
   name: string;
   reason?: string | null;
@@ -43,6 +45,8 @@ const IngredientFlagRow = ({
   onClick?: () => void;
   trailing?: ReactNode;
   className?: string;
+  /** Set false where the whole row already navigates somewhere else. */
+  explainable?: boolean;
 }) => {
   const tone = TONE_MAP[flag];
   const t = TONE_CLASSES[tone];
@@ -64,7 +68,7 @@ const IngredientFlagRow = ({
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold leading-snug text-foreground break-words font-body">
-          {name}
+          {explainable && as !== "button" ? <IngredientToken name={name} label={name} className="font-semibold" /> : name}
         </p>
         {reason && (
           <p className="mt-0.5 text-[11.5px] leading-relaxed text-foreground/70 break-words font-body">

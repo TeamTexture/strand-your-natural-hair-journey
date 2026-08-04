@@ -13,6 +13,9 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
+import { IngredientToken } from "@/components/ingredients/IngredientToken";
+import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
+import { normaliseInciKey } from "@/lib/inci";
 
 export const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
 
@@ -48,6 +51,8 @@ type Match = {
   text: string;
   product?: UserProduct;
   href?: string;
+  /** Ingredient resolves in the shared glossary — open the explainer sheet. */
+  token?: boolean;
 };
 
 const LINK_CLS =
@@ -58,6 +63,7 @@ export function renderInlineWithProducts(
   line: string,
   keyPrefix: string,
   products: UserProduct[],
+  glossaryNames: string[] = [],
 ): React.ReactNode[] {
   const safeLine = normaliseHeatLanguage(line).replace(/\*\*([^*]+)\*\*/g, "$1");
 
@@ -123,7 +129,17 @@ export function renderInlineWithProducts(
     }));
   }
 
-  // 4. Ingredients seen anywhere on shelf/wishlist.
+  // 4a. Ingredients in the shared glossary — tappable explainer tokens.
+  const glossaryKeys = new Set(glossaryNames.map((n) => normaliseInciKey(n)));
+  for (const ingredient of glossaryNames) {
+    const escaped = ingredient.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
+      kind: "ingredient",
+      token: true,
+    }));
+  }
+
+  // 4b. Other ingredients seen on shelf/wishlist — link to research.
   const ingredients = Array.from(
     new Set(
       products
@@ -138,6 +154,7 @@ export function renderInlineWithProducts(
     .sort((a, b) => b.length - a.length)
     .slice(0, 250);
   for (const ingredient of ingredients) {
+    if (glossaryKeys.has(normaliseInciKey(ingredient))) continue;
     const escaped = ingredient.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
       kind: "ingredient",
@@ -188,6 +205,10 @@ export function renderInlineWithProducts(
           {m.text}
         </Link>,
       );
+    } else if (m.kind === "ingredient" && m.token) {
+      nodes.push(
+        <IngredientToken key={`${keyPrefix}-ing-${i}`} name={m.text} />,
+      );
     } else if (m.kind === "brand" || m.kind === "ingredient") {
       nodes.push(
         <Link key={`${keyPrefix}-${m.kind}-${i}`} to={m.href ?? "#"} className={LINK_CLS}>
@@ -224,13 +245,15 @@ export function renderInlineWithProducts(
 /** Hook that yields a `renderInline(text, key)` bound to the current user's shelf. */
 export function useSmartInline() {
   const { products } = useUserProducts("all");
+  const { tokenNames } = useIngredientGlossary();
   return React.useCallback(
     (text: string, keyPrefix = "s") =>
       renderInlineWithProducts(
         safeRewrite(text, stripDefinitionBrackets(text)),
         keyPrefix,
         products,
+        tokenNames,
       ),
-    [products],
+    [products, tokenNames],
   );
 }

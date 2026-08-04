@@ -13,6 +13,8 @@ import StatusCallout from "@/components/guidance/StatusCallout";
 import ActionList from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import { IngredientProductScope } from "@/components/ingredients/IngredientToken";
+import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { emphasisSplit } from "@/lib/tipsRender";
 import { looksSequential, splitNumberedSteps } from "@/lib/guidance";
 import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
@@ -197,6 +199,7 @@ const IngredientDetail = () => {
   // Kept in a ref so the analysis callback can write its score back to the
   // saved row without re-creating itself (and re-running the AI call).
   const savedRowRef = useRef(productRow);
+  useIngredientIndex(productRow);
   savedRowRef.current = productRow;
 
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
@@ -858,6 +861,7 @@ const IngredientDetail = () => {
   }
 
   return (
+    <IngredientProductScope productId={productRow?.id ?? null}>
     <ScreenLayout bottomNav>
       <TitleBar title="Product" onBack={handleBack} />
 
@@ -1552,6 +1556,7 @@ const IngredientDetail = () => {
         </AlertDialogContent>
       </AlertDialog>
     </ScreenLayout>
+    </IngredientProductScope>
   );
 };
 
