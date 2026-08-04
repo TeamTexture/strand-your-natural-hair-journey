@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { upcomingAppointments } from "@/lib/appointmentState";
 
 export interface ProAppointmentRow {
   id: string;

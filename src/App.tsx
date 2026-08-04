@@ -20,6 +20,7 @@ import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import MessageNotifications from "@/components/MessageNotifications";
 import NewEnquiriesAlert from "@/components/pro/NewEnquiriesAlert";
+import BookingReturnPrompt from "@/components/booking/BookingReturnPrompt";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
 import { TipsLevelProvider } from "@/hooks/useTipsLevel";
@@ -246,6 +247,7 @@ const App = () => (
             <GlobalEffects />
             <MessageNotifications />
             <NewEnquiriesAlert />
+            <BookingReturnPrompt />
             <PhoneShell>
               <div className="flex flex-col h-full">
                 <GlobalMenu />
