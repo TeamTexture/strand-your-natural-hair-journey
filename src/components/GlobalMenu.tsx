@@ -261,7 +261,7 @@ const GlobalMenu = () => {
               <span className="size-9 shrink-0" aria-hidden />
             )}
           </div>
-          <div className="flex items-center gap-1 min-w-0 shrink">
+          <div className="flex items-center gap-1 min-w-0 shrink justify-end">
             {!isDirectoryPage && <TipsLevelButton className="shrink-0" />}
             {showViewSwitcher && (
               <DropdownMenu>
