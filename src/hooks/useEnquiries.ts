@@ -59,6 +59,8 @@ export function useMyEnquiries() {
         .from("pro_enquiries")
         .select("*")
         .eq("consumer_id", user!.id)
+        // Never surface ambiguous self-referential rows (same account both sides).
+        .neq("pro_user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Enquiry[];
@@ -77,6 +79,8 @@ export function useProInbox() {
         .from("pro_enquiries")
         .select("*")
         .eq("pro_user_id", user!.id)
+        // Never surface ambiguous self-referential rows (same account both sides).
+        .neq("consumer_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Enquiry[];
