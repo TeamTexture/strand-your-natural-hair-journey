@@ -7,10 +7,9 @@ import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { matchScoreOf } from "@/lib/matchStars";
 
 const VERDICT = {
-  suits: { label: "Suits your hair", icon: CheckCircle2, cls: "bg-good/12 border-good/30 text-good" },
-  watch: { label: "Worth watching", icon: AlertTriangle, cls: "bg-warn/12 border-warn/30 text-warn" },
-  avoid: { label: "Handle with care", icon: XCircle, cls: "bg-destructive/10 border-destructive/25 text-destructive" },
-  neutral: { label: "Neutral for you", icon: Beaker, cls: "bg-muted border-border text-foreground/70" },
+  good: { label: "Works with your hair", icon: CheckCircle2, cls: "bg-good/12 border-good/30" },
+  warn: { label: "Worth watching", icon: AlertTriangle, cls: "bg-warn/12 border-warn/30" },
+  bad: { label: "Handle with care", icon: XCircle, cls: "bg-destructive/10 border-destructive/25" },
 } as const;
 
 const Block = ({
@@ -48,7 +47,7 @@ export default function IngredientExplainerSheet({
   onOpenChange: (v: boolean) => void;
 }) {
   const { explainer, isLoading, error, shelf } = useIngredientExplainer(open ? name : null, userProductId);
-  const verdict = explainer?.fit?.verdict ? VERDICT[explainer.fit.verdict] : null;
+  const verdict = explainer?.fit?.tone ? VERDICT[explainer.fit.tone] : null;
   const VerdictIcon = verdict?.icon ?? Beaker;
   const others = shelf.filter((p) => p.id !== userProductId);
 
@@ -57,11 +56,12 @@ export default function IngredientExplainerSheet({
       <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto rounded-t-[20px] px-4 pb-8">
         <SheetHeader className="text-left">
           <SheetTitle className="font-display text-[20px] leading-tight">
-            {explainer?.display_name ?? name ?? "Ingredient"}
+            {explainer?.glossary?.display_name ?? name ?? "Ingredient"}
           </SheetTitle>
-          {explainer?.glossary?.family && (
+          {explainer?.glossary?.category && (
             <p className="text-[11.5px] uppercase tracking-[0.08em] text-foreground/50 font-body">
-              {explainer.glossary.family}
+              {explainer.glossary.category}
+              {explainer.glossary.phonetic ? ` · ${explainer.glossary.phonetic}` : ""}
             </p>
           )}
         </SheetHeader>
@@ -87,30 +87,26 @@ export default function IngredientExplainerSheet({
                 {explainer.glossary.what_it_is}
               </Block>
             )}
-            {(explainer.role_in_product || explainer.glossary?.what_it_does) && (
-              <Block label={explainer.role_in_product ? "What it's doing here" : "What it does"} icon={Beaker}>
-                {explainer.role_in_product || explainer.glossary?.what_it_does}
+            {explainer.role_in_product && (
+              <Block label="What it's doing here" icon={Beaker}>
+                {explainer.role_in_product}
               </Block>
             )}
 
-            {explainer.fit?.body && (
+            {explainer.fit?.for_you && (
               <div className={cn("rounded-[12px] border p-3", verdict?.cls ?? "bg-muted border-border")}>
-                <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] font-body">
+                <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/60 font-body">
                   <VerdictIcon className="size-3.5" aria-hidden />
                   {verdict?.label ?? "What it means for you"}
                 </p>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/85 font-body">
-                  {explainer.fit.body}
+                  {explainer.fit.for_you}
                 </p>
-                {explainer.fit.signals && explainer.fit.signals.length > 0 && (
-                  <ul className="mt-2 space-y-1">
-                    {explainer.fit.signals.map((s, i) => (
-                      <li key={i} className="flex gap-1.5 text-[12px] leading-relaxed text-foreground/75 font-body">
-                        <Sparkles className="mt-[3px] size-3 shrink-0 opacity-70" aria-hidden />
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
+                {explainer.fit.usage_tip && (
+                  <p className="mt-2 flex gap-1.5 text-[12px] leading-relaxed text-foreground/75 font-body">
+                    <Sparkles className="mt-[3px] size-3 shrink-0 opacity-70" aria-hidden />
+                    <span>{explainer.fit.usage_tip}</span>
+                  </p>
                 )}
               </div>
             )}
