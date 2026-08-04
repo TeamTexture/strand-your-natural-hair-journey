@@ -28,7 +28,7 @@ import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/l
  */
 
 /** Editorial curation for the STATIC SEED ONLY. Live pros are never gated. */
-const SEED_ALLOWED_NAMES = ["yvonneabimbola", "ericaliburd", "samanthastewart", "paigelewin"];
+const SEED_ALLOWED_NAMES = ["yvonneabimbola", "ericaliburd", "paigelewin"];
 const norm = (s: string) => (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const isSeedAllowed = (name: string) =>
   SEED_ALLOWED_NAMES.some((a) => norm(name).includes(a));
