@@ -154,7 +154,9 @@ Focus ONLY on signals that intersect with what the tool DOES (mechanism, heat, t
 
 Hair-health guidance only — never medical advice.
 
-${TOOL_SCORE_REASONS_RULES}`;
+${TOOL_SCORE_REASONS_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -276,7 +278,9 @@ SCHEMA
   "how_to_use": string
 }
 
-${TOOL_SCORE_REASONS_RULES}`;
+${TOOL_SCORE_REASONS_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
