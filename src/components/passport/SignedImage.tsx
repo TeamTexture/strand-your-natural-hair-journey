@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 interface Props {
   bucket: string;
   path: string | null | undefined;
+  /** Remote image URL (e.g. product image_url from a URL scan) used when no storage path exists. */
+  fallbackUrl?: string | null;
   alt?: string;
   className?: string;
   onClick?: (url: string | null) => void;
@@ -12,11 +14,14 @@ interface Props {
 
 const cache = new Map<string, { url: string; exp: number }>();
 
-const SignedImage = ({ bucket, path, alt = "", className, onClick }: Props) => {
-  const [url, setUrl] = useState<string | null>(null);
+const SignedImage = ({ bucket, path, fallbackUrl, alt = "", className, onClick }: Props) => {
+  const [url, setUrl] = useState<string | null>(fallbackUrl ?? null);
 
   useEffect(() => {
-    if (!path) return;
+    if (!path) {
+      setUrl(fallbackUrl ?? null);
+      return;
+    }
     const key = `${bucket}:${path}`;
     const now = Date.now();
     const cached = cache.get(key);
@@ -26,14 +31,18 @@ const SignedImage = ({ bucket, path, alt = "", className, onClick }: Props) => {
     }
     let cancelled = false;
     supabase.storage.from(bucket).createSignedUrl(path, 3600).then(({ data }) => {
-      if (cancelled || !data?.signedUrl) return;
+      if (cancelled) return;
+      if (!data?.signedUrl) {
+        setUrl(fallbackUrl ?? null);
+        return;
+      }
       cache.set(key, { url: data.signedUrl, exp: now + 3500 * 1000 });
       setUrl(data.signedUrl);
     });
     return () => { cancelled = true; };
-  }, [bucket, path]);
+  }, [bucket, path, fallbackUrl]);
 
-  if (!path) return null;
+  if (!path && !fallbackUrl) return null;
   return (
     <div
       className={cn("relative bg-muted rounded-md overflow-hidden", onClick && "cursor-zoom-in", className)}
