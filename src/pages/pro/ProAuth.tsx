@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
+import PasswordField from "@/components/PasswordField";
+import PasswordErrorNotice from "@/components/PasswordErrorNotice";
+import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import {
   Select,
   SelectContent,
@@ -49,6 +52,7 @@ const ProAuth = () => {
   const [businessName, setBusinessName] = useState("");
   const [discipline, setDiscipline] = useState<Discipline>("Trichologist");
   const [busy, setBusy] = useState(false);
+  const [pwError, setPwError] = useState<MappedPasswordError | null>(null);
 
   // If already signed in, jump straight into the pro landing.
   useEffect(() => {
@@ -57,13 +61,19 @@ const ProAuth = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || password.length < 6) {
-      toast.error("Enter a valid email and a 6+ character password.");
+    if (busy) return;
+    if (!email) {
+      toast.error("Enter your email address.");
       return;
     }
     if (mode === "signup") {
+      const problem = passwordProblem(password);
+      if (problem) {
+        setPwError({ kind: "weak_password", message: problem });
+        return;
+      }
       if (password !== confirm) {
-        toast.error("Passwords don't match.");
+        setPwError({ kind: "generic", message: "Passwords don't match." });
         return;
       }
       if (!fullName.trim()) {
@@ -190,26 +200,38 @@ const ProAuth = () => {
               placeholder="you@practice.com"
             />
           </Field>
-          <Field label="Password">
-            <PasswordInput
+          {mode === "signup" ? (
+            <PasswordField
+              label="Password"
               value={password}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              minLength={6}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
+              autoComplete="new-password"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPwError(null);
+              }}
+              placeholder="Choose a password"
             />
-          </Field>
+          ) : (
+            <Field label="Password">
+              <PasswordInput
+                value={password}
+                autoComplete="current-password"
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your password"
+              />
+            </Field>
+          )}
           {mode === "signup" && (
             <Field label="Confirm password">
               <PasswordInput
                 value={confirm}
                 autoComplete="new-password"
-                minLength={6}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Re-enter password"
               />
             </Field>
           )}
+          <PasswordErrorNotice error={pwError} />
 
           {mode === "signin" && (
             <button
@@ -222,7 +244,7 @@ const ProAuth = () => {
           )}
 
 
-          <Button variant="gold" size="pill" type="submit" disabled={busy}>
+          <Button variant="gold" size="pill" type="submit">
             {busy ? "Please wait…" : mode === "signup" ? "Create pro account →" : "Sign In →"}
           </Button>
         </form>

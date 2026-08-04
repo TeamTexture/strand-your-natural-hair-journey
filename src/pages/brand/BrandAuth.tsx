@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
+import PasswordField from "@/components/PasswordField";
+import PasswordErrorNotice from "@/components/PasswordErrorNotice";
+import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 import { BRAND_CATEGORIES, type BrandCategory } from "@/lib/brandCategories";
 
@@ -34,6 +37,7 @@ const BrandAuth = () => {
   const [contactEmail, setContactEmail] = useState("");
   const [category, setCategory] = useState<BrandCategory | "">("");
   const [busy, setBusy] = useState(false);
+  const [pwError, setPwError] = useState<MappedPasswordError | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) nav("/brand", { replace: true });
@@ -41,12 +45,18 @@ const BrandAuth = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || password.length < 6) {
-      toast.error("Enter a valid email and a 6+ character password.");
-      return;
-    }
+    if (busy) return;
+    if (!email) return toast.error("Enter your email address.");
     if (mode === "signup") {
-      if (password !== confirm) return toast.error("Passwords don't match.");
+      const problem = passwordProblem(password);
+      if (problem) {
+        setPwError({ kind: "weak_password", message: problem });
+        return;
+      }
+      if (password !== confirm) {
+        setPwError({ kind: "generic", message: "Passwords don't match." });
+        return;
+      }
       if (!brandName.trim()) return toast.error("Please enter your brand name.");
       if (!category) return toast.error("Please choose a brand category.");
       if (about.trim().length < 30) return toast.error("Please add a short brand description (30+ characters).");
@@ -174,18 +184,32 @@ const BrandAuth = () => {
           <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Email</Label>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
-          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-        </div>
+        {mode === "signup" ? (
+          <PasswordField
+            label="Password"
+            value={password}
+            autoComplete="new-password"
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPwError(null);
+            }}
+            placeholder="Choose a password"
+          />
+        ) : (
+          <div className="space-y-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Password</Label>
+            <PasswordInput value={password} autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+        )}
         {mode === "signup" && (
           <div className="space-y-1.5">
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Confirm password</Label>
-            <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={6} />
+            <PasswordInput value={confirm} autoComplete="new-password" onChange={(e) => setConfirm(e.target.value)} required />
           </div>
         )}
+        <PasswordErrorNotice error={pwError} />
 
-        <Button variant="gold" size="pill" type="submit" disabled={busy} className="mt-2">
+        <Button variant="gold" size="pill" type="submit" className="mt-2">
           {busy ? "Please wait…" : mode === "signup" ? "Create brand account" : "Sign in"}
         </Button>
         {mode === "signin" && (
