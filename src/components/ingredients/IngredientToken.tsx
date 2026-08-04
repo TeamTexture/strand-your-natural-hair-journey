@@ -119,9 +119,71 @@ function InlinePhonetic({ phonetic }: { phonetic: string | null | undefined }) {
 }
 
 /**
+ * GlossaryPhrase — tokenises glossary terms found INSIDE a longer phrase
+ * ("cetearyl alcohol content", "porosity mismatch"), keeping the surrounding
+ * words as plain (bold) text. Only the first occurrence of each term matches.
+ */
+export function GlossaryPhrase({
+  text,
+  className,
+}: {
+  text: string;
+  className?: string;
+}) {
+  const { tokenNames, lookup } = useIngredientGlossary();
+  const parts = useMemo(() => {
+    type Seg = { text: string; name?: string };
+    const spans: { start: number; end: number; name: string }[] = [];
+    const claimed = new Set<string>();
+    for (const term of tokenNames) {
+      const key = term.toLowerCase();
+      if (claimed.has(key)) continue;
+      const idx = text.toLowerCase().indexOf(key);
+      if (idx < 0) continue;
+      const before = text[idx - 1];
+      const after = text[idx + term.length];
+      if ((before && /[\w-]/.test(before)) || (after && /[\w-]/.test(after))) continue;
+      if (spans.some((s) => !(idx + term.length <= s.start || idx >= s.end))) continue;
+      const row = lookup(term);
+      if (!row) continue;
+      claimed.add(key);
+      spans.push({ start: idx, end: idx + term.length, name: row.display_name });
+    }
+    spans.sort((a, b) => a.start - b.start);
+    const segs: Seg[] = [];
+    let cursor = 0;
+    for (const s of spans) {
+      if (s.start > cursor) segs.push({ text: text.slice(cursor, s.start) });
+      segs.push({ text: text.slice(s.start, s.end), name: s.name });
+      cursor = s.end;
+    }
+    if (cursor < text.length) segs.push({ text: text.slice(cursor) });
+    return segs;
+  }, [text, tokenNames, lookup]);
+
+  if (!parts.some((p) => p.name)) {
+    return <span className={cn("font-semibold text-foreground", className)}>{text}</span>;
+  }
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.name ? (
+          <IngredientToken key={`gp-${i}`} name={p.name} label={p.text} className={className} />
+        ) : (
+          <span key={`gp-${i}`} className={cn("font-semibold text-foreground", className)}>
+            {p.text}
+          </span>
+        ),
+      )}
+    </>
+  );
+}
+
+/**
  * GlossaryTerm — tokenises a phrase only when it resolves in the shared
  * glossary, so trait names ("high porosity") stay plain text while real
- * ingredient names become tappable.
+ * ingredient names become tappable. When the whole phrase doesn't resolve, any
+ * glossary term embedded inside it is still tokenised.
  *
  * `showPhonetic` is for LIST items (flag rows, score reasons, INCI chips) where
  * there is room for a bracketed pronunciation. Flowing prose leaves it off and
@@ -138,7 +200,7 @@ export function GlossaryTerm({
 }) {
   const { lookup } = useIngredientGlossary();
   const row = lookup(text);
-  if (!row) return <span className={cn("font-semibold text-foreground", className)}>{text}</span>;
+  if (!row) return <GlossaryPhrase text={text} className={className} />;
   return (
     <>
       <IngredientToken name={row.display_name} label={text} className={className} />
@@ -146,6 +208,7 @@ export function GlossaryTerm({
     </>
   );
 }
+
 
 /**
  * GlossaryLabel — renders a possibly-COMPOUND ingredient label. The label is
@@ -167,19 +230,16 @@ export function GlossaryLabel({
   const parts = useMemo(() => splitCompoundLabel(label), [label]);
   const resolved = parts.map((p) => (p.candidate ? lookup(p.lookup) : null));
   if (!resolved.some(Boolean)) {
-    return <span className={cn("font-semibold text-foreground", className)}>{label}</span>;
+    return <GlossaryPhrase text={label} className={className} />;
   }
   return (
     <>
       {parts.map((part, i) => {
         const row = resolved[i];
         if (!row) {
-          return (
-            <span key={`gl-${i}`} className={cn("font-semibold text-foreground", className)}>
-              {part.text}
-            </span>
-          );
+          return <GlossaryPhrase key={`gl-${i}`} text={part.text} className={className} />;
         }
+
         return (
           <React.Fragment key={`gl-${i}`}>
             <IngredientToken name={row.display_name} label={part.text.trim()} className={className} />
