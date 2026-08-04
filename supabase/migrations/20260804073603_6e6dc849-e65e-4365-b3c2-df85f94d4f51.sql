@@ -1,0 +1,1 @@
+ALTER TABLE public.pro_profiles ADD COLUMN IF NOT EXISTS qualifications text[] NOT NULL DEFAULT '{}'::text[];
