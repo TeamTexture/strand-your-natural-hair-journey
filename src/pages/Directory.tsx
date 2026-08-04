@@ -25,6 +25,8 @@ import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { allowsMemberFeatures } from "@/lib/viewFeatures";
 
 const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
 
@@ -44,6 +46,9 @@ const Directory = () => {
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
   const { stateFor } = useProContactStates();
+  // Hard wall: in the Professional / Brand / Admin views the directory is
+  // read-only. No member enquiry state, no member chat, no member bottom nav.
+  const memberActions = allowsMemberFeatures(useActiveRoleView());
   const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
   const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
@@ -148,7 +153,7 @@ const Directory = () => {
   };
 
   return (
-    <ScreenLayout bottomNav>
+    <ScreenLayout bottomNav={memberActions}>
       <TitleBar title={bloodOnly ? "Book a Doctor" : "Professionals"} />
 
       {bloodOnly && (
@@ -453,13 +458,13 @@ const Directory = () => {
                   </div>
                 )}
 
-                {statusLine && (
+                {memberActions && statusLine && (
                   <p className="text-[11px] text-muted-foreground mt-3">{statusLine}</p>
                 )}
 
                 {/* Owner's own listing: no enquiry actions, but if a client
                     thread exists on this listing it stays reachable. */}
-                {isOwn && contact.threadId && (
+                {memberActions && isOwn && contact.threadId && (
                   <ProContactAction state={contact} className="w-full mt-3" onEnquire={() => {}} />
                 )}
 
@@ -503,14 +508,14 @@ const Directory = () => {
                       )}
 
                       {/* Tier A — full subscriber: enquiry/chat state machine */}
-                      {tier === "full" && p.proUserId ? (
+                      {tier === "full" && p.proUserId && memberActions ? (
                         <ProContactAction
                           state={contact}
                           onEnquire={() =>
                             setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
                           }
                         />
-                      ) : tier === "listed_enquiry" ? (
+                      ) : tier === "listed_enquiry" && memberActions ? (
                         /* Tier B — listed + in-app enquiry forwarded to their email */
                         <button
                           type="button"

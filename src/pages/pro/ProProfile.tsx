@@ -246,7 +246,7 @@ const ProProfile = () => {
         qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] }),
         qc.invalidateQueries({ queryKey: ["pro_directory"] }),
       ]);
-      nav("/directory");
+      nav("/directory?self=1");
     },
     onError: (e: Error) => {
       console.error(e);

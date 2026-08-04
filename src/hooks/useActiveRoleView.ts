@@ -22,10 +22,10 @@ export function routeToView(path: string, search = ""): ActiveRoleView | null {
   // Professional dashboard links can open shared consumer-facing pages for a
   // pro-specific purpose. Keep those journeys labelled as Professional rather
   // than flipping the toggle/menu back to My STRAND.
-  if (path === "/directory") {
-    const params = new URLSearchParams(search);
-    if (params.get("self") === "1") return "pro";
-  }
+  // The directory is a shared surface: members browse it to find a pro, and
+  // pros open it to check their own listing. It must never flip the active
+  // view, so a professional stays in the Professional view throughout.
+  if (path === "/directory" || path.startsWith("/directory/")) return null;
   // Everything else in the app is a consumer-side route (nutrition plan,
   // journal, products, onboarding, profile…), so the toggle must read
   // "My STRAND" even for multi-role accounts.
