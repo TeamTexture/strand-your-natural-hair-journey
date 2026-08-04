@@ -1925,7 +1925,7 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
   );
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
-  const { data, loading, accessEnded } = usePassportData(userId, active);
+  const { data, loading, accessEnded, refetch, refreshing, fetchedAt } = usePassportData(userId, active);
   const tabsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
