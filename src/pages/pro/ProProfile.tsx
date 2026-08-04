@@ -816,15 +816,15 @@ const ProProfile = () => {
 
         <div className="rounded-[12px] border border-border bg-card p-3">
           <p className="text-[11px] font-body text-muted-foreground leading-snug">
-            <span className="font-semibold text-foreground">Offers &amp; discounts</span>
+            <span className="font-semibold text-foreground">Listing discounts</span>
             {" "}are managed on the{" "}
             <button
               onClick={() => nav("/pro/offers")}
               className="underline text-primary underline-offset-2"
             >
-              Offers page
+              Listing discount page
             </button>
-            . The currently-live offer shows on your directory card.
+            . The currently-live discount shows on your directory card.
           </p>
         </div>
 

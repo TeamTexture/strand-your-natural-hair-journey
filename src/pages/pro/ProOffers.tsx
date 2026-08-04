@@ -72,7 +72,7 @@ const ProOffers = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Offer created");
+      toast.success("Discount created");
       setDraft(null);
       qc.invalidateQueries({ queryKey: ["pro_offers", user?.id] });
     },
@@ -93,7 +93,7 @@ const ProOffers = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Offer removed");
+      toast.success("Discount removed");
       qc.invalidateQueries({ queryKey: ["pro_offers", user?.id] });
     },
   });
@@ -102,10 +102,12 @@ const ProOffers = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Offers" onBack={smartBack(nav, "/pro")} />
+      <TitleBar title="Listing discount" onBack={smartBack(nav, "/pro")} />
       <div className="px-5 pb-8 space-y-4">
         <p className="text-xs text-foreground/70 font-body">
-          One-off promotions on your public profile. No permanent platform-wide discounts.
+          A discount clients can use when booking their first appointment with you. It shows on
+          your directory listing. Paid adverts are separate — create those under "Create a paid
+          advert".
         </p>
 
         {draft ? (
@@ -134,7 +136,7 @@ const ProOffers = () => {
               </label>
               <div className="flex gap-2 pt-1">
                 <Button className="flex-1" onClick={() => create.mutate()} disabled={create.isPending}>
-                  {create.isPending ? "Saving…" : "Save offer"}
+                  {create.isPending ? "Saving…" : "Save discount"}
                 </Button>
                 <Button variant="outline" onClick={() => setDraft(null)}>Cancel</Button>
               </div>
@@ -142,11 +144,11 @@ const ProOffers = () => {
           </SurfaceCard>
         ) : (
           <Button variant="outline" className="w-full" onClick={() => setDraft(emptyDraft())}>
-            <Plus className="size-4 mr-1" /> New offer
+            <Plus className="size-4 mr-1" /> New discount
           </Button>
         )}
 
-        {offers.length === 0 && !draft && <EmptyState message="No offers yet" />}
+        {offers.length === 0 && !draft && <EmptyState message="No discounts yet" />}
 
         {offers.map((o) => (
           <SurfaceCard key={o.id}>
@@ -161,7 +163,7 @@ const ProOffers = () => {
                 <button
                   onClick={() => remove.mutate(o.id)}
                   className="p-1 text-muted-foreground hover:text-alert-dark"
-                  aria-label="Remove offer"
+                  aria-label="Remove discount"
                 >
                   <Trash2 className="size-4" />
                 </button>

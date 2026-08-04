@@ -192,14 +192,14 @@ const ProDashboard = () => {
           <Card
             icon={Tag}
             title="Listing discount"
-            sub="One-off promotions shown on your directory listing."
+            sub="A discount clients use when booking their first appointment — shown on your directory listing."
             onClick={() => nav("/pro/offers")}
             tourId="pro-card-offers"
           />
           <Card
             icon={Megaphone}
-            title="Create an offer"
-            sub="Paid banner campaigns across the app."
+            title="Create a paid advert"
+            sub="Book a paid banner shown to members across the app."
             onClick={() => nav("/pro/campaigns")}
             tourId="pro-card-campaigns"
           />

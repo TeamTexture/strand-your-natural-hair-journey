@@ -602,11 +602,11 @@ const Directory = () => {
               <>
                 <div className="flex items-start gap-2">
                   <Tag className="size-4 text-primary shrink-0 mt-0.5" />
-                  <p className="font-display text-base leading-tight">Have an offer to share?</p>
+                  <p className="font-display text-base leading-tight">Add a listing discount?</p>
                 </div>
                 <p className="text-xs font-body text-muted-foreground leading-snug">
                   Members browsing this directory are already deciding who to book. A
-                  time-limited discount on a service, product or consultation puts you in front
+                  time-limited discount clients use on their first appointment puts you in front
                   of them at that exact moment — and gives them a reason to choose you.
                 </p>
                 <button
@@ -614,7 +614,7 @@ const Directory = () => {
                   onClick={() => navigate("/pro/offers")}
                   className="mt-1 inline-flex items-center justify-center w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
                 >
-                  Create an offer
+                  Create a listing discount
                 </button>
               </>
             ) : (
