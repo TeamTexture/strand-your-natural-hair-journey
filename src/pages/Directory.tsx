@@ -471,10 +471,43 @@ const Directory = () => {
                 {!isOwn && (() => {
                   const tier = p.listingTier ?? (p.proUserId ? "full" : "external_link");
                   const websiteHref = p.website ? normalizeWebsiteUrl(p.website) : "";
-                  const bookUrl = normalizeWebsiteUrl(p.bookingUrl || p.website);
+
+                  // ONE front door to booking: every listing offers the same
+                  // in-app "Enquire now" action. The professional's external
+                  // booking link is never a CTA here — it surfaces inside the
+                  // enquiry thread once they accept.
+                  const enquireAction =
+                    tier === "full" && p.proUserId && canEnquire ? (
+                      <ProContactAction
+                        state={contact}
+                        canNavigateToEnquiries={memberActions}
+                        onEnquire={() =>
+                          setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
+                        }
+                      />
+                    ) : canEnquire ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExternalEnquiryTarget({
+                            name: p.name,
+                            directoryId: p.directoryId ?? null,
+                            proUserId: p.proUserId ?? null,
+                          })
+                        }
+                        className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                      >
+                        Enquire now
+                      </button>
+                    ) : null;
 
                   return (
-                    <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div
+                      className={cn(
+                        "grid gap-2 mt-3",
+                        enquireAction ? "grid-cols-2" : "grid-cols-1",
+                      )}
+                    >
                       {websiteHref ? (
                         <a
                           href={
@@ -507,59 +540,11 @@ const Directory = () => {
                         </button>
                       )}
 
-                      {/* Tier A — full subscriber: enquiry/chat state machine */}
-                      {tier === "full" && p.proUserId && memberActions ? (
-                        <ProContactAction
-                          state={contact}
-                          onEnquire={() =>
-                            setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
-                          }
-                        />
-                      ) : tier === "listed_enquiry" && memberActions ? (
-                        /* Tier B — listed + in-app enquiry forwarded to their email */
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExternalEnquiryTarget({
-                              name: p.name,
-                              directoryId: p.directoryId ?? null,
-                              proUserId: p.proUserId ?? null,
-                            })
-                          }
-                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
-                        >
-                          Enquire Now
-                        </button>
-                      ) : bookUrl ? (
-                        /* Tier C — referral partner: tracked outbound link */
-                        <a
-                          href={buildTrackedUrl(bookUrl, p.proUserId ?? p.directoryId ?? p.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => {
-                            if (p.bookCode) toast(`📅 Use code ${p.bookCode} at booking`);
-                            void logReferralClick({
-                              targetUrl: bookUrl,
-                              proUserId: p.proUserId ?? null,
-                              directoryId: p.directoryId ?? null,
-                            });
-                          }}
-                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
-                        >
-                          Book externally
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => toast("Booking unavailable")}
-                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary/60 text-primary-foreground rounded-md font-medium min-h-[44px]"
-                        >
-                          Book externally
-                        </button>
-                      )}
+                      {enquireAction}
                     </div>
                   );
                 })()}
+
 
                 {p.instaUrl && (
                   <a
