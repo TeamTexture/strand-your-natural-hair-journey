@@ -62,6 +62,7 @@ import {
   PURPOSE_INSIGHT_RULES,
   sanitisePurposeInsight,
 } from "../_shared/purpose-insight.ts";
+import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
@@ -239,7 +240,9 @@ Never recommend a chelating shampoo as routine advice. If residue or build-up is
 
 ${SCORE_REASONS_RULES}
 
-${PURPOSE_INSIGHT_RULES}`;
+${PURPOSE_INSIGHT_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 
 }
 
@@ -389,7 +392,9 @@ SCHEMA
 
 ${SCORE_REASONS_RULES}
 
-${PURPOSE_INSIGHT_RULES}`;
+${PURPOSE_INSIGHT_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 
 }
 

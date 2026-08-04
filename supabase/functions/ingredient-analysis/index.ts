@@ -43,6 +43,7 @@ import {
   sanitisePurposeInsight,
   type PurposeInsight,
 } from "../_shared/purpose-insight.ts";
+import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
