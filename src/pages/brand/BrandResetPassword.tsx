@@ -7,6 +7,9 @@ import HairStrandIcon from "@/components/HairStrandIcon";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
+import PasswordField from "@/components/PasswordField";
+import PasswordErrorNotice from "@/components/PasswordErrorNotice";
+import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 import { beginRecoveryLock, clearRecoveryLock } from "@/lib/recoveryLock";
 
@@ -21,7 +24,7 @@ const BrandResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<MappedPasswordError | null>(null);
 
   useEffect(() => {
     let done = false;
@@ -48,13 +51,20 @@ const BrandResetPassword = () => {
     };
   }, []);
 
-  const tooShort = password.length > 0 && password.length < 8;
   const mismatch = confirm.length > 0 && password !== confirm;
-  const canSubmit = !busy && password.length >= 8 && password === confirm;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (busy) return;
+    const problem = passwordProblem(password);
+    if (problem) {
+      setError({ kind: "weak_password", message: problem });
+      return;
+    }
+    if (password !== confirm) {
+      setError({ kind: "generic", message: "Passwords don't match." });
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
@@ -68,7 +78,7 @@ const BrandResetPassword = () => {
       if (/expired|invalid|session/i.test(msg)) {
         setStatus("invalid");
       } else {
-        setError(msg);
+        setError(mapPasswordError(err, password));
       }
     } finally {
       setBusy(false);
@@ -90,7 +100,7 @@ const BrandResetPassword = () => {
           <p className="font-body text-[13px] text-foreground/70 max-w-[280px] mt-2 leading-snug">
             {status === "invalid"
               ? "Reset links can only be used once and expire after 1 hour. Request a fresh link to continue."
-              : "Set a password of at least 8 characters. You'll be signed straight into your brand dashboard."}
+              : "Set a password that meets the requirements below. You'll be signed straight into your brand dashboard."}
           </p>
         </div>
 
@@ -110,21 +120,16 @@ const BrandResetPassword = () => {
 
         {status === "ready" && (
           <form onSubmit={submit} className="space-y-4 selectable">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                New password
-              </Label>
-              <PasswordInput
-                value={password}
-                autoComplete="new-password"
-                minLength={8}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
-              />
-              {tooShort && (
-                <p className="text-[12px] font-body text-destructive">Use at least 8 characters.</p>
-              )}
-            </div>
+            <PasswordField
+              label="New password"
+              value={password}
+              autoComplete="new-password"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(null);
+              }}
+              placeholder="Choose a password"
+            />
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                 Confirm password
@@ -132,7 +137,6 @@ const BrandResetPassword = () => {
               <PasswordInput
                 value={confirm}
                 autoComplete="new-password"
-                minLength={8}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Re-enter password"
               />
@@ -141,11 +145,9 @@ const BrandResetPassword = () => {
               )}
             </div>
 
-            {error && (
-              <p className="text-[12px] font-body text-destructive leading-snug">{error}</p>
-            )}
+            <PasswordErrorNotice error={error} />
 
-            <Button variant="gold" size="pill" type="submit" disabled={!canSubmit}>
+            <Button variant="gold" size="pill" type="submit">
               {busy ? "Saving…" : "Save password →"}
             </Button>
           </form>
