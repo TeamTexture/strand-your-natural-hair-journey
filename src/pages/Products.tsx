@@ -11,6 +11,7 @@ import MyToolsSection from "@/components/MyToolsSection";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
+import { matchScoreOf } from "@/lib/matchStars";
 import { UrlScanProgressButton } from "@/components/UrlScanProgressButton";
 import ProductsHeader, {
   CATEGORY_ORDER,
@@ -293,9 +294,9 @@ const Products = () => {
                             </p>
                           )}
                         </button>
-                        {p.match_score != null && (
+                        {matchScoreOf(p) != null && (
                           <span className="shrink-0 inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.07] px-2.5 py-1 text-[10.5px] font-semibold font-body text-primary">
-                            {p.match_score}% match
+                            {matchScoreOf(p)}% match
                           </span>
                         )}
                       </div>
