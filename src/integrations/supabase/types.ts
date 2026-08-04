@@ -1971,6 +1971,56 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_booking_clicks: {
+        Row: {
+          appointment_id: string | null
+          booking_url_at_click: string
+          clicked_at: string
+          created_at: string
+          discount_code_shown: string | null
+          id: string
+          outcome: string | null
+          professional_id: string
+          prompted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          booking_url_at_click: string
+          clicked_at?: string
+          created_at?: string
+          discount_code_shown?: string | null
+          id?: string
+          outcome?: string | null
+          professional_id: string
+          prompted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          booking_url_at_click?: string
+          clicked_at?: string
+          created_at?: string
+          discount_code_shown?: string | null
+          id?: string
+          outcome?: string | null
+          professional_id?: string
+          prompted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pro_booking_clicks_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pro_capability_audit: {
         Row: {
           action: string
@@ -2216,6 +2266,9 @@ export type Database = {
           cover_path: string | null
           created_at: string
           discipline: Database["public"]["Enums"]["pro_discipline"]
+          discount_active: boolean
+          discount_code: string | null
+          discount_description: string | null
           display_name: string
           doctor_claim_status: string
           doctor_review_note: string | null
@@ -2265,6 +2318,9 @@ export type Database = {
           cover_path?: string | null
           created_at?: string
           discipline: Database["public"]["Enums"]["pro_discipline"]
+          discount_active?: boolean
+          discount_code?: string | null
+          discount_description?: string | null
           display_name: string
           doctor_claim_status?: string
           doctor_review_note?: string | null
@@ -2314,6 +2370,9 @@ export type Database = {
           cover_path?: string | null
           created_at?: string
           discipline?: Database["public"]["Enums"]["pro_discipline"]
+          discount_active?: boolean
+          discount_code?: string | null
+          discount_description?: string | null
           display_name?: string
           doctor_claim_status?: string
           doctor_review_note?: string | null
