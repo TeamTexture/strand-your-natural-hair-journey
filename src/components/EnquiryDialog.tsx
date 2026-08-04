@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCreateEnquiry } from "@/hooks/useEnquiries";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { allowsProFeatures } from "@/lib/viewFeatures";
 
 interface Props {
   open: boolean;
@@ -81,6 +83,9 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const { user } = useAuth();
   const nav = useNavigate();
+  // Pro-to-pro enquiries skip the hair passport entirely — no prompt, no
+  // validation, and nothing empty created on the recipient's side.
+  const isPeerEnquiry = allowsProFeatures(useActiveRoleView());
   const [service, setService] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<string | null>(null);
   const [contactMethod, setContactMethod] = useState<ContactMethod>("In-app");
@@ -90,6 +95,7 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const [note, setNote] = useState("");
   const [sharePassport, setSharePassport] = useState(false);
   const create = useCreateEnquiry();
+
 
   useEffect(() => {
     if (!open) {
@@ -238,21 +244,33 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
             </p>
           </div>
 
-          <label className="flex gap-2.5 items-start rounded-[12px] border border-border bg-card p-3 cursor-pointer">
-            <Checkbox
-              checked={sharePassport}
-              onCheckedChange={(v) => setSharePassport(v === true)}
-              className="mt-0.5"
-            />
-            <span className="text-[11px] font-body leading-snug text-muted-foreground">
-              <span className="block text-foreground font-medium mb-0.5">
-                Share my Strand passport with {proName}
+          {isPeerEnquiry ? (
+            <div className="rounded-[12px] border border-border bg-card p-3">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">
+                Peer enquiry
+              </p>
+              <p className="text-[11px] font-body leading-snug text-muted-foreground mt-1">
+                You're enquiring as a professional, so no hair passport is attached.
+              </p>
+            </div>
+          ) : (
+            <label className="flex gap-2.5 items-start rounded-[12px] border border-border bg-card p-3 cursor-pointer">
+              <Checkbox
+                checked={sharePassport}
+                onCheckedChange={(v) => setSharePassport(v === true)}
+                className="mt-0.5"
+              />
+              <span className="text-[11px] font-body leading-snug text-muted-foreground">
+                <span className="block text-foreground font-medium mb-0.5">
+                  Share my Strand passport with {proName}
+                </span>
+                Optional. Tick this to let {proName} see your hair profile, goals, blood markers
+                and products so they can prepare. Leave it unticked and they'll only see your
+                enquiry. You can grant or revoke access at any time from Profile → Data access.
               </span>
-              Optional. Tick this to let {proName} see your hair profile, goals, blood markers
-              and products so they can prepare. Leave it unticked and they'll only see your
-              enquiry. You can grant or revoke access at any time from Profile → Data access.
-            </span>
-          </label>
+            </label>
+          )}
+
         </div>
 
         <DialogFooter className="gap-2">
