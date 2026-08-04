@@ -2114,6 +2114,7 @@ export type Database = {
           photos: string[]
           postcode: string | null
           profile_review_status: Database["public"]["Enums"]["pro_profile_review_status"]
+          qualifications: string[]
           referral_fee_percent: number | null
           review_note: string | null
           reviewed_at: string | null
@@ -2148,6 +2149,7 @@ export type Database = {
           photos?: string[]
           postcode?: string | null
           profile_review_status?: Database["public"]["Enums"]["pro_profile_review_status"]
+          qualifications?: string[]
           referral_fee_percent?: number | null
           review_note?: string | null
           reviewed_at?: string | null
@@ -2182,6 +2184,7 @@ export type Database = {
           photos?: string[]
           postcode?: string | null
           profile_review_status?: Database["public"]["Enums"]["pro_profile_review_status"]
+          qualifications?: string[]
           referral_fee_percent?: number | null
           review_note?: string | null
           reviewed_at?: string | null

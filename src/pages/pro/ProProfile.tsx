@@ -163,6 +163,7 @@ const ProProfile = () => {
     photos: [] as string[],
     services: [] as Service[],
     specialisms: [] as string[],
+    qualifications: [] as string[],
     business_phone: "",
     business_email: "",
     address_line1: "",
@@ -171,6 +172,7 @@ const ProProfile = () => {
   });
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [specInput, setSpecInput] = useState("");
+  const [qualInput, setQualInput] = useState("");
 
   useEffect(() => {
     if (!profile) return;
@@ -190,6 +192,10 @@ const ProProfile = () => {
         ? (profile.services as unknown as Service[])
         : [],
       specialisms: (profile.specialisms as string[] | null) ?? [],
+      qualifications:
+        ((profile as { qualifications?: string[] | null }).qualifications as
+          | string[]
+          | null) ?? [],
       business_phone: profile.business_phone ?? "",
       business_email: profile.business_email ?? "",
       address_line1: profile.address_line1 ?? "",
@@ -228,6 +234,7 @@ const ProProfile = () => {
           photos: form.photos,
           services: form.services as never,
           specialisms: form.specialisms,
+          qualifications: form.qualifications,
           business_phone: form.business_phone || null,
           business_email: form.business_email || null,
           address_line1: form.address_line1 || null,
@@ -313,6 +320,24 @@ const ProProfile = () => {
 
   const removeSpecialism = (s: string) =>
     setForm((f) => ({ ...f, specialisms: f.specialisms.filter((x) => x !== s) }));
+
+  const addQualification = () => {
+    const v = qualInput.trim();
+    if (!v) return;
+    if (form.qualifications.includes(v)) { setQualInput(""); return; }
+    if (form.qualifications.length >= 12) {
+      toast("Max 12 qualifications");
+      return;
+    }
+    setForm((f) => ({ ...f, qualifications: [...f.qualifications, v] }));
+    setQualInput("");
+  };
+
+  const removeQualification = (s: string) =>
+    setForm((f) => ({
+      ...f,
+      qualifications: f.qualifications.filter((x) => x !== s),
+    }));
 
   const updateHours = (day: DayKey, patch: Partial<DayHours>) =>
     setHours((h) => ({ ...h, [day]: { ...h[day], ...patch } }));
@@ -483,6 +508,52 @@ const ProProfile = () => {
             <Plus className="size-4" />
           </Button>
         </div>
+
+        <SectionHead>Add qualifications</SectionHead>
+        <p className="text-[11px] font-body text-muted-foreground leading-snug -mt-1">
+          Credentials shown on your profile (e.g. "NVQ Level 3 Hairdressing").
+          Max 12.
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {form.qualifications.map((q) => (
+            <span
+              key={q}
+              className="inline-flex items-center gap-1 bg-primary/10 text-foreground text-[11px] px-2 py-1 rounded-full"
+            >
+              {q}
+              <button
+                onClick={() => removeQualification(q)}
+                className="text-muted-foreground hover:text-alert-dark"
+                aria-label={`Remove ${q}`}
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+          {form.qualifications.length === 0 && (
+            <span className="text-[11px] text-muted-foreground font-body">
+              None yet.
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={qualInput}
+            onChange={(e) => setQualInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addQualification();
+              }
+            }}
+            placeholder="e.g. NVQ Level 3 Hairdressing"
+          />
+          <Button type="button" variant="outline" onClick={addQualification}>
+            <Plus className="size-4" />
+          </Button>
+        </div>
+
+
 
         <SectionHead>Location</SectionHead>
         <Field label="Address line 1">
