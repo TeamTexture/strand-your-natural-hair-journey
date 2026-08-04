@@ -471,6 +471,18 @@ const AdminHub = () => {
             onClick={() => nav("/admin/professionals")}
           />
           <NavCard
+            icon={Stethoscope}
+            title="Capability verification"
+            description="Approve doctor and blood-draw claims, one at a time"
+            onClick={() => nav("/admin/capabilities")}
+          />
+          <NavCard
+            icon={Droplet}
+            title="Blood test vendors"
+            description="Registry of partner panels shown to members"
+            onClick={() => nav("/admin/blood-vendors")}
+          />
+          <NavCard
             icon={Percent}
             title="Referrals"
             description="Listing tiers, clicks, attributed bookings and fees owed"
