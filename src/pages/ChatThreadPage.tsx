@@ -389,7 +389,7 @@ const ChatThreadPage = () => {
   const backTarget = isAdmin ? "/admin/messages" : "/messages";
   const roleTag =
     isSupport ? "STRAND Team"
-    : isPro ? "Member"
+    : isPro ? (isPeerThread ? "Peer professional" : "Member")
     : "Pro";
 
   return (
@@ -399,7 +399,8 @@ const ChatThreadPage = () => {
         onBack={smartBack(nav, backTarget)}
         right={
           <div className="flex items-center gap-2">
-            {!isSupport && isPro && t && (
+            {!isSupport && isPro && !isPeerThread && t && (
+
               <button
                 onClick={() => nav(`/pro/clients/${t.consumer_id}`)}
                 className="text-[10.5px] uppercase tracking-[0.08em] text-primary font-medium"
