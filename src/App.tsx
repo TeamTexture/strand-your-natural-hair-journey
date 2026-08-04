@@ -480,7 +480,7 @@ const App = () => (
               <Route path="/admin/members" element={<RoleGate allow={["admin"]}><AdminMembers /></RoleGate>} />
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />
               <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
-              <Route path="/admin/professionals" element={<RoleGate allow={["admin"]}><AdminProfessionals /></RoleGate>} /></RoleGate>} />
+              <Route path="/admin/professionals" element={<RoleGate allow={["admin"]}><AdminProfessionals /></RoleGate>} />
               <Route path="/admin/capabilities" element={<RoleGate allow={["admin"]}><AdminCapabilities /></RoleGate>} />
               <Route path="/admin/pro-reviews" element={<RoleGate allow={["admin"]}><AdminProReviews /></RoleGate>} />
               <Route path="/admin/referrals" element={<RoleGate allow={["admin"]}><AdminReferrals /></RoleGate>} />
