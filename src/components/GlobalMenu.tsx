@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { routeToView } from "@/hooks/useActiveRoleView";
+import { allowsMemberFeatures } from "@/lib/viewFeatures";
 
 import {
   Menu,
@@ -262,7 +263,9 @@ const GlobalMenu = () => {
             )}
           </div>
           <div className="flex items-center gap-1 min-w-0 shrink justify-end">
-            {!isDirectoryPage && <TipsLevelButton className="shrink-0" />}
+            {allowsMemberFeatures(activeView) && !isDirectoryPage && (
+              <TipsLevelButton className="shrink-0" />
+            )}
             {showViewSwitcher && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
