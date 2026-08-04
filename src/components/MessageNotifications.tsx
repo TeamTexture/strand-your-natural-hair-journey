@@ -162,7 +162,7 @@ const MessageNotifications = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, threads]);
 
   // Update the "last seen" watermark whenever the total unread drops to 0.
   useEffect(() => {
