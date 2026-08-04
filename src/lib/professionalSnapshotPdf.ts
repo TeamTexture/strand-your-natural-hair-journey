@@ -1,4 +1,5 @@
 // STRAND — Professional Snapshot PDF
+import { isLowMatch } from "@/lib/matchStars";
 // A 1–2 page clinical-style summary for a trichologist, dermatologist or
 // hairstylist meeting the client for the first time. Distinct from the
 // full-profile PDF: only what a professional needs to assess hair & scalp
@@ -488,7 +489,7 @@ export async function generateProfessionalSnapshotPdf(
 
   // ── 8. Ingredient flags ─────────────────────────────────────────────
   const warnProducts = d.products.filter((p: any) =>
-    (p.match_score != null && p.match_score <= 2) ||
+    isLowMatch(p) ||
     /warn|avoid|caution/i.test(p.ai_summary || "")
   );
   if (d.ingLists.length > 0 || warnProducts.length > 0) {

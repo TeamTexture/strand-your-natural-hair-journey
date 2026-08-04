@@ -1,4 +1,5 @@
 // Comprehensive STRAND profile PDF — exports EVERY data point the app holds for
+import { matchScoreOf } from "@/lib/matchStars";
 // the signed-in user. Renders a multi-section branded A4 PDF that can be
 // downloaded or shared (via Web Share API / email).
 //
@@ -485,7 +486,7 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
       cur.card(`${p.brand ? p.brand + " — " : ""}${p.name}`, [
         { label: "Category", value: p.category || "" },
         { label: "Rating", value: p.rating ? `${p.rating}/5` : "" },
-        { label: "AI match", value: p.match_score ? `${p.match_score}%` : "" },
+        { label: "AI match", value: matchScoreOf(p) != null ? `${matchScoreOf(p)}%` : "" },
         { label: "Times used", value: p.use_count ? String(p.use_count) : "" },
         { label: "Last used", value: fmtDate(p.last_used_at) },
         { label: "Added", value: fmtDate(p.added_to_shelf_at) },

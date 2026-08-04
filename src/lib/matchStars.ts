@@ -76,3 +76,50 @@ export function scoreTone(score: number): "good" | "gold" | "warning" {
   if (score >= 40) return "gold";
   return "warning";
 }
+
+// ── VERDICT LABELS ────────────────────────────────────────────────────────
+// The label and the stars must be two views of the SAME number. Deriving the
+// label from the star value (not from the raw score, and never from a second
+// rounding) is what stops "Excellent match" appearing beside 3 stars.
+
+/** Verdict copy for a star value from `starsFromScore`. */
+export function verdictForStars(stars: number): string {
+  if (stars >= 4.5) return "Excellent match for your hair";
+  if (stars >= 3.5) return "Good fit for your routine";
+  if (stars >= 2.5) return "Use with care";
+  if (stars >= 1.5) return "Not ideal for your profile";
+  return "Best avoided";
+}
+
+/** Verdict copy for a 0–100 score. Null when the item has no score. */
+export function verdictForScore(score: unknown): string | null {
+  const stars = starsFromScore(score);
+  return stars == null ? null : verdictForStars(stars);
+}
+
+/** True when the score is low enough to flag to the user or a professional. */
+export function isLowMatch(item: MatchScored | null | undefined): boolean {
+  const score = matchScoreOf(item);
+  return score != null && score < 40;
+}
+
+// ── STALENESS ─────────────────────────────────────────────────────────────
+// A stored score is only valid for the hair profile it was computed against.
+// When the user edits their hair profile, every score computed before that
+// edit is stale and must be re-analysed, then re-persisted to the column.
+
+export interface ScoreStaleness {
+  match_score?: number | null;
+  match_score_computed_at?: string | null;
+}
+
+export function isScoreStale(
+  item: ScoreStaleness | null | undefined,
+  hairProfileUpdatedAt: string | null | undefined,
+): boolean {
+  if (!item) return false;
+  if (normaliseMatchScore(item.match_score) == null) return true;
+  if (!item.match_score_computed_at) return true;
+  if (!hairProfileUpdatedAt) return false;
+  return new Date(hairProfileUpdatedAt).getTime() > new Date(item.match_score_computed_at).getTime();
+}

@@ -66,7 +66,7 @@ import PurposeInsight, { parsePurposeInsight, type ProductPurposeInsight } from 
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 import MatchStars from "@/components/MatchStars";
-import { starsFromScore, formatStars, normaliseMatchScore } from "@/lib/matchStars";
+import { starsFromScore, formatStars, normaliseMatchScore, matchScoreOf, verdictForStars, isScoreStale, scoreTone } from "@/lib/matchStars";
 
 interface Ingredient {
   tone: "good" | "warn" | "bad";
@@ -221,6 +221,16 @@ const IngredientDetail = () => {
   const [analysis, setAnalysis] = useState<Analysis | null>(
     freshAnalysis ? freshToAnalysis(freshAnalysis) : null,
   );
+  // THE score for this page. Always the stored column via the shared accessor,
+  // so this page can never show a number that differs from the product card,
+  // the passport or any AI context. The analysis payload is only used for a
+  // product that has no saved row yet (a fresh scan awaiting save) — once it is
+  // saved, runAnalysis persists the score and this resolves to the column.
+  const displayScore = useMemo(
+    () => matchScoreOf(productRow) ?? normaliseMatchScore(analysis?.match_score),
+    [productRow, analysis?.match_score],
+  );
+  const displayStars = starsFromScore(displayScore);
   const [savingToShelf, setSavingToShelf] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -445,6 +455,27 @@ const IngredientDetail = () => {
     }
   };
 
+  // When the user's hair profile changed after a score was computed, that
+  // score no longer describes their hair and must be recomputed.
+  const [hairProfileUpdatedAt, setHairProfileUpdatedAt] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) return;
+      const { data } = await supabase
+        .from("user_hair_profile")
+        .select("updated_at")
+        .eq("user_id", uid)
+        .maybeSingle();
+      if (!cancelled) setHairProfileUpdatedAt((data?.updated_at as string | null) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const runAnalysis = useCallback(
     async (force = false) => {
       setLoading(true);
@@ -454,6 +485,12 @@ const IngredientDetail = () => {
         const hairProfile = clinical.hair ?? {};
         const healthProfile = clinical.health ?? {};
         const heritage = clinical.basic?.heritage ?? [];
+
+        const row = savedRowRef.current;
+        // Re-score only when there is no stored score or the stored one predates
+        // the user's latest hair-profile edit. Otherwise this call is for the
+        // ingredient flags and guidance, and the stored score stands.
+        const stale = isScoreStale(row, hairProfileUpdatedAt);
 
         const context = await buildAiContext();
         const { data, error: fnError } = await supabase.functions.invoke(
@@ -467,7 +504,7 @@ const IngredientDetail = () => {
               healthProfile,
               heritage,
               context,
-              force,
+              force: force || stale,
             },
           },
         );
@@ -476,20 +513,18 @@ const IngredientDetail = () => {
         const fresh = data.analysis as Analysis;
         setAnalysis(fresh);
 
-        // ONE SCORE PER PRODUCT. This page and every list row/thumbnail must
-        // resolve to the same number, so whenever this analysis produces a
-        // score for a product that is already saved, we write it straight back
-        // to user_products.match_score (the single source of truth read by
-        // MatchStars, Home, the passport and every AI context payload).
-        // Without this write-back the card kept the scan-time score while this
-        // page showed a second, independently generated one.
+        // ONE SCORE PER PRODUCT. user_products.match_score is the single source
+        // of truth every surface reads (cards, passport, PDFs, aiContext). Any
+        // score this analysis produces is written into that column BEFORE it can
+        // be rendered — this page never displays a number that isn't stored.
         const freshScore = normaliseMatchScore(fresh?.match_score);
-        if (savedRowRef.current && freshScore != null && savedRowRef.current.match_score !== freshScore) {
+        const needsWrite = row && freshScore != null && (stale || force || row.match_score !== freshScore);
+        if (needsWrite) {
           try {
             await supabase
               .from("user_products")
-              .update({ match_score: freshScore })
-              .eq("id", savedRowRef.current.id);
+              .update({ match_score: freshScore, match_score_computed_at: new Date().toISOString() })
+              .eq("id", row.id);
             await reload();
             window.dispatchEvent(new CustomEvent("user-products-updated"));
           } catch (syncErr) {
@@ -504,7 +539,7 @@ const IngredientDetail = () => {
         setLoading(false);
       }
     },
-    [productKey, productName, productBrand, reload],
+    [productKey, productName, productBrand, reload, hairProfileUpdatedAt],
   );
 
   useEffect(() => {
@@ -908,28 +943,14 @@ const IngredientDetail = () => {
                   </p>
                 );
               }
-              // ONE mapping, ONE score. The score comes from the analysis when
-              // it has one, otherwise from the saved row — never from an
-              // ad-hoc ingredient-balance formula, which used to invent a
-              // third number for the same product. No score means no stars.
-              const score =
-                normaliseMatchScore(analysis.match_score) ??
-                normaliseMatchScore(savedRowRef.current?.match_score);
-              const stars = starsFromScore(score);
-              if (stars == null) {
+              if (displayStars == null) {
                 return <p className="text-xs text-muted-foreground italic">Awaiting analysis</p>;
               }
-              const label =
-                stars >= 4.5 ? "Excellent match for your hair"
-                : stars >= 3.5 ? "Good fit for your routine"
-                : stars >= 2.5 ? "Use with care"
-                : stars >= 1.5 ? "Not ideal for your profile"
-                : "Best avoided";
               return (
                 <div className="flex items-center justify-between gap-3">
-                  <MatchStars score={score} size="lg" showValue={false} />
+                  <MatchStars score={displayScore} size="lg" showValue={false} />
                   <p className="text-[11px] text-muted-foreground text-right max-w-[160px] leading-tight">
-                    {label}
+                    {verdictForStars(displayStars)}
                   </p>
                 </div>
               );
@@ -937,6 +958,7 @@ const IngredientDetail = () => {
           </div>
 
         </SurfaceCard>
+
 
         {loading && (
           <SurfaceCard>
@@ -958,12 +980,11 @@ const IngredientDetail = () => {
             {/* AI Summary — the single verdict callout, bold lead-in only */}
             {(() => {
               const { phrase, rest } = emphasisSplit(analysis.summary);
-              let vTone: "good" | "gold" | "warning" =
-                analysis.match_score >= 70 ? "good" : analysis.match_score >= 40 ? "gold" : "warning";
+              const vTone: "good" | "gold" | "warning" = scoreTone(displayScore ?? 0);
               return (
                 <StatusCallout tone={vTone} label="Verdict">
-                  {analysis.match_score > 0 && (
-                    <AnchorStat value={analysis.match_score} context="hair-profile match" tone={vTone} className="mt-0 mb-2" />
+                  {displayScore != null && displayScore > 0 && (
+                    <AnchorStat value={displayScore} context="hair-profile match" tone={vTone} className="mt-0 mb-2" />
                   )}
                   <p>
                     {phrase && <span className="font-semibold text-foreground">{phrase} </span>}

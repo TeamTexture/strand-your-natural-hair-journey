@@ -2903,6 +2903,7 @@ export type Database = {
             | Database["public"]["Enums"]["product_marketed_purpose"]
             | null
           match_score: number | null
+          match_score_computed_at: string | null
           name: string
           off_shelf_reason: string | null
           off_shelf_voice_url: string | null
@@ -2938,6 +2939,7 @@ export type Database = {
             | Database["public"]["Enums"]["product_marketed_purpose"]
             | null
           match_score?: number | null
+          match_score_computed_at?: string | null
           name: string
           off_shelf_reason?: string | null
           off_shelf_voice_url?: string | null
@@ -2973,6 +2975,7 @@ export type Database = {
             | Database["public"]["Enums"]["product_marketed_purpose"]
             | null
           match_score?: number | null
+          match_score_computed_at?: string | null
           name?: string
           off_shelf_reason?: string | null
           off_shelf_voice_url?: string | null

@@ -18,6 +18,7 @@ import { lookupHardWater } from "@/lib/hardWater";
 import { humaniseKey, humaniseValue, valueTone, shouldHideField, cleanTitle, titleCase } from "@/lib/humanise";
 import { formatDate, formatDateTime, formatMonth, formatRelative } from "@/lib/formatPassportDate";
 import { formatTime12h } from "@/lib/formatTime";
+import { matchScoreOf } from "@/lib/matchStars";
 
 
 // ================================================================
@@ -1798,7 +1799,9 @@ const PassportProductDetail = ({ product, data, onBack, mode }: {
   const voicenotes = key ? data.productVoicenotes.filter(v => v.product_key === key) : [];
   const ingredients = Array.isArray(p.ingredients) ? (p.ingredients as unknown[]).map(String) : [];
   const rating = p.rating as number | null | undefined;
-  const matchScore = p.match_score as number | null | undefined;
+  // Same shared accessor the member's own product card uses, so the score a
+  // professional reads is byte-for-byte the score the member sees.
+  const matchScore = matchScoreOf(p as { match_score?: number | null });
   const aiSummary = p.ai_summary as string | null | undefined;
   const category = humaniseValue(p.category);
   const brand = humaniseValue(p.brand);
