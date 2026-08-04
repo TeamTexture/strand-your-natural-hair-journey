@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBrandProfile } from "@/hooks/useBrandOffers";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import BloodPanelsEditor from "@/components/brand/BloodPanelsEditor";
 
 async function resizeToWebp(file: File, maxDim = 512, quality = 0.9): Promise<Blob> {
   const src = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
@@ -69,6 +70,11 @@ const BrandProfileEditor = () => {
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // Claim only. The verified flag is admin-only and never written from here.
+  const [bloodClaimed, setBloodClaimed] = useState(false);
+  const bloodVerified =
+    (profile as { offers_at_home_blood_tests_verified?: boolean } | null | undefined)
+      ?.offers_at_home_blood_tests_verified === true;
 
   useEffect(() => {
     if (!profile) return;
@@ -80,6 +86,9 @@ const BrandProfileEditor = () => {
     setTiktok((profile as { tiktok_handle?: string | null }).tiktok_handle ?? "");
     setContactEmail((profile as { contact_email?: string | null }).contact_email ?? "");
     setLogoPath(profile.logo_path ?? null);
+    setBloodClaimed(
+      (profile as { offers_at_home_blood_tests_claimed?: boolean }).offers_at_home_blood_tests_claimed === true,
+    );
   }, [profile]);
 
   useEffect(() => {
@@ -111,7 +120,8 @@ const BrandProfileEditor = () => {
           tiktok_handle: tiktok.trim().replace(/^@/, "") || null,
           contact_email: contactEmail.trim() || null,
           logo_path: logoPath,
-        })
+          offers_at_home_blood_tests_claimed: bloodClaimed,
+        } as never)
         .eq("user_id", user.id);
       if (error) throw error;
     },
