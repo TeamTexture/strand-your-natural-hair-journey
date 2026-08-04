@@ -16,6 +16,8 @@ import { useStartAdminSupportThread } from "@/hooks/useChat";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
+import { useSetBrandBloodVerification } from "@/hooks/useBloodTestBrands";
+import { Droplet } from "lucide-react";
 
 interface BrandRow {
   id: string;
@@ -34,6 +36,8 @@ interface BrandRow {
   last_offer_at: string | null;
   sub_active: boolean;
   complimentary: boolean;
+  blood_claimed: boolean;
+  blood_verified: boolean;
 }
 
 const AdminBrands = () => {
@@ -90,12 +94,17 @@ const AdminBrands = () => {
           last_offer_at: lastAt,
           sub_active: active,
           complimentary: comps.get(b.user_id) ?? false,
+          blood_claimed:
+            (b as { offers_at_home_blood_tests_claimed?: boolean }).offers_at_home_blood_tests_claimed === true,
+          blood_verified:
+            (b as { offers_at_home_blood_tests_verified?: boolean }).offers_at_home_blood_tests_verified === true,
         };
       });
     },
   });
 
   const start = useStartAdminSupportThread();
+  const setBloodVerified = useSetBrandBloodVerification();
 
   // Category is owned and edited by the brand from their own profile —
   // admins see it read-only. The category filter above stays for browsing.
@@ -207,6 +216,41 @@ const AdminBrands = () => {
                     {r.category ?? <span className="text-muted-foreground italic">Not set by brand yet</span>}
                   </p>
                 </div>
+
+                {(r.blood_claimed || r.blood_verified) && (
+                  <div className="mt-3 pt-3 border-t border-border space-y-2">
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-body">
+                      At-home blood tests
+                    </p>
+                    <p className="text-[11.5px] font-body text-foreground/80 leading-snug">
+                      {r.blood_verified
+                        ? "Verified — this brand's panels can appear in the retest flow."
+                        : "Claimed. Confirm this brand genuinely sells an at-home blood testing kit before verifying."}
+                    </p>
+                    <Button
+                      variant={r.blood_verified ? "outline" : "gold"}
+                      size="sm"
+                      className="h-9 rounded-pill text-[12px]"
+                      disabled={setBloodVerified.isPending}
+                      onClick={() =>
+                        setBloodVerified.mutate(
+                          { brandUserId: r.user_id, verified: !r.blood_verified },
+                          {
+                            onSuccess: () =>
+                              toast.success(
+                                r.blood_verified ? "Verification removed" : "Blood tests verified",
+                              ),
+                            onError: (e) =>
+                              toast.error(e instanceof Error ? e.message : "Could not update"),
+                          },
+                        )
+                      }
+                    >
+                      <Droplet className="size-3.5 mr-1.5" />
+                      {r.blood_verified ? "Remove verification" : "Verify blood tests"}
+                    </Button>
+                  </div>
+                )}
 
                 <div className="mt-3 pt-3 border-t border-border flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1 h-9 rounded-pill text-[12px]" onClick={() => message(r.user_id)}>
