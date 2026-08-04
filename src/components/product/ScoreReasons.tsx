@@ -53,7 +53,7 @@ export default function ScoreReasons({
               <Icon className="size-3" strokeWidth={2.5} />
             </span>
             <p className="text-[13px] leading-snug">
-              <GlossaryTerm text={r.factor} className="font-semibold" />
+              <GlossaryTerm text={r.factor} className="font-semibold" showPhonetic />
               <span className="text-foreground/70"> — {r.reason}</span>
             </p>
           </li>
