@@ -122,9 +122,40 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
   return map;
 };
 
+/** Which senders are themselves professionals (peer enquiries, no passport). */
+const usePeerSenders = (enquiries: Enquiry[]) => {
+  const [peers, setPeers] = useState<Record<string, string>>({});
+  const ids = useMemo(
+    () => Array.from(new Set(enquiries.map((e) => e.consumer_id))),
+    [enquiries],
+  );
+  useEffect(() => {
+    if (ids.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("pro_profiles")
+        .select("user_id, display_name, discipline")
+        .in("user_id", ids);
+      if (cancelled) return;
+      const out: Record<string, string> = {};
+      for (const r of data ?? []) {
+        out[r.user_id as string] =
+          (r.display_name as string | null) ?? (r.discipline as string | null) ?? "Professional";
+      }
+      setPeers(out);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ids]);
+  return peers;
+};
+
 const EnquiryCard = ({
   enquiry,
   preview,
+  peerName,
   onAccept,
   onDecline,
   onOpenPassport,
@@ -133,17 +164,20 @@ const EnquiryCard = ({
 }: {
   enquiry: Enquiry;
   preview?: PassportPreview;
+  peerName?: string;
   onAccept: () => void;
   onDecline: () => void;
   onOpenPassport?: () => void;
   onBookAppointment?: () => void;
   onMessage?: () => void;
 }) => {
-  const first = preview?.firstName ?? "Client";
-  const phone = preview?.phone ?? enquiry.contact_phone ?? null;
+  const isPeer = !!peerName;
+  const first = isPeer ? peerName! : (preview?.firstName ?? "Client");
+  const phone = (isPeer ? enquiry.contact_phone : preview?.phone ?? enquiry.contact_phone) ?? null;
   const contactMethod = enquiry.contact_method ?? null;
-  const location = preview?.location ?? enquiry.location_preference ?? null;
-  const shared = !!enquiry.share_passport_consent;
+  const location = (isPeer ? enquiry.location_preference : preview?.location ?? enquiry.location_preference) ?? null;
+  const shared = !isPeer && !!enquiry.share_passport_consent;
+
   return (
     <SurfaceCard>
       <div className="flex items-start justify-between gap-3">
