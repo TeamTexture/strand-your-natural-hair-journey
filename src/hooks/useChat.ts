@@ -422,15 +422,32 @@ export function useProBookingUrl(proUserId: string | null | undefined) {
     queryKey: ["pro_booking_url", proUserId],
     enabled: !!proUserId,
     staleTime: 60_000,
-    queryFn: async (): Promise<{ url: string | null; proName: string }> => {
+    queryFn: async (): Promise<{
+      url: string | null;
+      proName: string;
+      discountCode: string | null;
+      discountDescription: string | null;
+    }> => {
       const { data, error } = await supabase
         .from("pro_profiles")
-        .select("booking_url, display_name")
+        .select(
+          "booking_url, display_name, discount_code, discount_description, discount_active",
+        )
         .eq("user_id", proUserId!)
         .maybeSingle();
       if (error) throw error;
       const url = (data?.booking_url ?? "").trim();
-      return { url: url || null, proName: data?.display_name ?? "" };
+      // A discount only exists for the member when the pro has switched it on.
+      const active = data?.discount_active === true;
+      const code = active ? (data?.discount_code ?? "").trim() : "";
+      return {
+        url: url || null,
+        proName: data?.display_name ?? "",
+        discountCode: code || null,
+        discountDescription: code
+          ? (data?.discount_description ?? "").trim() || null
+          : null,
+      };
     },
   });
 }
