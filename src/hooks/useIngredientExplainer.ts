@@ -4,21 +4,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { normaliseInciKey } from "@/lib/inci";
 
 export interface IngredientExplainer {
-  ingredient_id: string | null;
-  display_name: string;
-  /** LAYER 1 — shared glossary prose. */
+  /** LAYER 1 — shared glossary row. */
   glossary: {
+    id: string;
+    inci_key: string;
+    display_name: string;
+    phonetic: string | null;
+    category: string | null;
     what_it_is: string | null;
-    what_it_does: string | null;
-    family: string | null;
   } | null;
   /** Why it sits in this particular product. */
   role_in_product: string | null;
+  product_category?: string | null;
   /** LAYER 3 — per-user fit, regenerated only when the hair/health profile moves. */
   fit: {
-    verdict: "suits" | "watch" | "avoid" | "neutral" | null;
-    body: string | null;
-    signals: string[] | null;
+    tone: "good" | "warn" | "bad";
+    for_you: string;
+    usage_tip: string;
   } | null;
 }
 
