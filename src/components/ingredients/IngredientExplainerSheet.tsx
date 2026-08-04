@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import ProductThumb from "@/components/ProductThumb";
 import { cn } from "@/lib/utils";
 import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
+import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { matchScoreOf } from "@/lib/matchStars";
 import ProseText from "@/components/guidance/ProseText";
 
@@ -48,18 +49,30 @@ export default function IngredientExplainerSheet({
   onOpenChange: (v: boolean) => void;
 }) {
   const { explainer, isLoading, error, shelf } = useIngredientExplainer(open ? name : null, userProductId);
+  // The shared glossary row is already cached client-side, so the name,
+  // pronunciation and definition paint immediately — only the personalised
+  // block below waits on generation.
+  const { lookup } = useIngredientGlossary();
+  const cached = name ? lookup(name) : null;
+  const head = {
+    display_name: explainer?.glossary?.display_name ?? cached?.display_name ?? name ?? "Ingredient",
+    phonetic: explainer?.glossary?.phonetic ?? cached?.phonetic ?? null,
+    what_it_is: explainer?.glossary?.what_it_is ?? cached?.what_it_is ?? null,
+    kind: explainer?.glossary?.kind ?? cached?.kind ?? "molecule",
+    category: explainer?.glossary?.category ?? cached?.category ?? null,
+  };
   const verdict = explainer?.fit?.tone ? VERDICT[explainer.fit.tone] : null;
   const VerdictIcon = verdict?.icon ?? Beaker;
   const others = shelf.filter((p) => p.id !== userProductId);
   // A molecule is labelled by its cosmetic-chemistry category; a class or a
   // concept is labelled by what kind of term it is.
-  const kind = explainer?.glossary?.kind ?? "molecule";
+  const kind = head.kind;
   const kindLabel =
     kind === "concept"
       ? "Hair science"
       : kind === "class"
       ? "Ingredient family"
-      : explainer?.glossary?.category ?? "";
+      : head.category ?? "";
   const shelfLabel = kind === "class" ? "On your shelf" : "Also on your shelf";
 
   return (
@@ -67,14 +80,14 @@ export default function IngredientExplainerSheet({
       <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto rounded-t-[20px] px-4 pb-8">
         <SheetHeader className="text-left">
           <SheetTitle className="font-display text-[20px] leading-tight">
-            {explainer?.glossary?.display_name ?? name ?? "Ingredient"}
+            {head.display_name}
           </SheetTitle>
           {/* Pronunciation gets its own line directly beneath the name — it is
               how you say the word, not a category, so it is never concatenated
               with one. The category pill sits below it. */}
-          {explainer?.glossary?.phonetic && (
+          {head.phonetic && (
             <p className="text-[12px] italic leading-snug text-muted-foreground font-body">
-              {explainer.glossary.phonetic}
+              {head.phonetic}
             </p>
           )}
           {kindLabel && (
@@ -86,10 +99,39 @@ export default function IngredientExplainerSheet({
         </SheetHeader>
 
         {isLoading && (
-          <div className="mt-4 space-y-2" aria-busy>
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-[12px] bg-muted" />
-            ))}
+          <div className="mt-4 space-y-2.5" aria-busy>
+            {head.what_it_is && (
+              <Block label="What it is" icon={FlaskConical}>
+                <ProseText
+                  text={head.what_it_is}
+                  keyPrefix="ing-what-cached"
+                  paragraphClassName="text-[13px] leading-relaxed text-foreground/85 font-body"
+                />
+              </Block>
+            )}
+            <div className="rounded-[12px] border border-border bg-muted/40 p-3">
+              <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/50 font-body">
+                <Sparkles className="size-3.5 animate-pulse" aria-hidden />
+                What it means for you
+              </p>
+              <div className="mt-2 space-y-1.5">
+                <div className="h-3 w-full animate-pulse rounded bg-muted" />
+                <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && error && head.what_it_is && (
+          <div className="mt-4">
+            <Block label="What it is" icon={FlaskConical}>
+              <ProseText
+                text={head.what_it_is}
+                keyPrefix="ing-what-fallback"
+                paragraphClassName="text-[13px] leading-relaxed text-foreground/85 font-body"
+              />
+            </Block>
           </div>
         )}
 
@@ -101,10 +143,10 @@ export default function IngredientExplainerSheet({
 
         {!isLoading && !error && explainer && (
           <div className="mt-4 space-y-2.5">
-            {explainer.glossary?.what_it_is && (
+            {head.what_it_is && (
               <Block label="What it is" icon={FlaskConical}>
                 <ProseText
-                  text={explainer.glossary.what_it_is}
+                  text={head.what_it_is}
                   keyPrefix="ing-what"
                   paragraphClassName="text-[13px] leading-relaxed text-foreground/85 font-body"
                 />

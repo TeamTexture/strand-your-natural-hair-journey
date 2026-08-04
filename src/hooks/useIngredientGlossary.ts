@@ -15,6 +15,9 @@ export interface GlossaryRow {
   kind: GlossaryKind;
   class_category: string | null;
   match_keywords: string[] | null;
+  /** Shared definition — present once the term has been generated. */
+  what_it_is: string | null;
+  category: string | null;
 }
 
 
@@ -38,7 +41,9 @@ export function useIngredientGlossary() {
     queryFn: async (): Promise<GlossaryRow[]> => {
       const { data, error } = await supabase
         .from("glossary_terms")
-        .select("id, inci_key, display_name, phonetic, aliases, is_common, kind, class_category, match_keywords");
+        .select(
+          "id, inci_key, display_name, phonetic, aliases, is_common, kind, class_category, match_keywords, what_it_is, category",
+        );
       if (error) throw error;
       return (data ?? []) as unknown as GlossaryRow[];
     },
