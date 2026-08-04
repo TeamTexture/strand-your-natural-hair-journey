@@ -62,6 +62,7 @@ import {
   PURPOSE_INSIGHT_RULES,
   sanitisePurposeInsight,
 } from "../_shared/purpose-insight.ts";
+import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
@@ -235,11 +236,13 @@ When deciding which 1–2 signals to surface in tips/summary, ask: would a clini
 - Treatment for hair loss → diagnosed conditions, ferritin, dermatologist context. THESE labs ARE relevant here.
 
 CLARIFYING GUIDANCE — HARD RULE:
-Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, recommend a gentle clarifying shampoo used sparingly and a deep conditioner immediately after any clarifying step. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)
+Never recommend a chelating shampoo as routine advice. If residue or build-up is relevant to THIS product, point to a gentle clarifying shampoo followed by a deep conditioner after any clarifying step, and let the user judge how often they reach for it from how their hair responds. A true chelating treatment should be discussed with a trichologist first. Do NOT use the words "chelating shampoo" or "chelator" as a recommendation in ai_summary, use_cases, or tips. ("Chelator" can still appear as a neutral cosmetic-chemistry category label in key_ingredients when describing what an ingredient like EDTA is — that's descriptive, not a recommendation.)
 
 ${SCORE_REASONS_RULES}
 
-${PURPOSE_INSIGHT_RULES}`;
+${PURPOSE_INSIGHT_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 
 }
 
@@ -389,7 +392,9 @@ SCHEMA
 
 ${SCORE_REASONS_RULES}
 
-${PURPOSE_INSIGHT_RULES}`;
+${PURPOSE_INSIGHT_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 
 }
 

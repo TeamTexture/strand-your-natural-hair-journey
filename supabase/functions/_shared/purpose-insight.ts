@@ -45,7 +45,7 @@ export const PURPOSE_INSIGHT_SCHEMA_PROPERTY = {
     usage_direction: {
       type: "string",
       description:
-        "≤24 words: the concrete usage adjustment that follows — when, where and how often to use it — tied to one of her stated goals or challenges (e.g. 'use it on the first cleanse only, scalp-focused, then condition with heat to protect length retention').",
+        "≤24 words: how to get the most from it plus the signal to watch for, tied to one of her stated goals or challenges (e.g. 'work it through the scalp, then condition with heat — if lengths feel soft afterwards it suits you'). NEVER a frequency cap, limit or prohibition.",
     },
   },
   required: ["purpose", "ingredient_factor", "implication", "usage_direction"],
@@ -54,11 +54,11 @@ export const PURPOSE_INSIGHT_SCHEMA_PROPERTY = {
 /** Prompt block appended to every product-analysis system/task prompt. */
 export const PURPOSE_INSIGHT_RULES = `PURPOSE INSIGHT — ONE MAJOR PIECE OF ADVICE (replaces all generic explanatory copy):
 Return insight: { purpose, ingredient_factor, implication, usage_direction }. Together they must read as ONE cohesive chain of reasoning:
-  "Because this product is formulated to [purpose], [ingredient(s) from ITS OWN list] sit in higher proportion to achieve that — with your [named characteristic] this means [specific consequence for her], so use it [specific usage adjustment] to protect [her goal]."
+  "Because this product is formulated to [purpose], [ingredient(s) from ITS OWN list] sit in higher proportion to achieve that — with your [named characteristic] this means [specific consequence for her], so [how to get the most from it] and watch for [signal] to judge whether it suits your hair."
 - purpose: inferred ONLY from the product's type, range, claims and ingredient order. Never invent a purpose the product does not claim.
 - ingredient_factor: MUST name ingredient(s) that actually appear in the supplied INCI list. Never invent, never generalise to "surfactants" when you can name the molecule.
-- implication: MUST run through ONE named user characteristic, trait, logged wash-day signal, or flagged marker. Anything that could be said to any user is INVALID — rewrite it.
-- usage_direction: concrete and performable (which cleanse, where on the head, how often, what follows), tied to one of HER stated goals or challenges.
+- implication: MUST run through ONE named user characteristic, trait, logged wash-day signal, or flagged marker. Anything that could be said to any user is INVALID — rewrite it. Never frame normal product behaviour as damage or risk.
+- usage_direction: technique that is concrete and performable (where on the head, how, what follows) PLUS the signal that tells her whether it suits her hair, tied to one of HER stated goals or challenges. NEVER a frequency cap, limit, prohibition or "only use every X washes" — frequency is HER decision, informed by how her hair responds.
 - TRUTHFULNESS OVER COMPLETENESS: if any link in the chain cannot be established from real data, return the strongest TRUTHFUL shorter version — leave a field near-empty rather than inventing an ingredient, purpose, characteristic or goal.
 - TOTAL LENGTH: under 70 words across all four fields. No preamble, no hedging.
 - GROUNDING: reason the mechanism (porosity, cuticle behaviour, moisture retention, scalp) from the retrieved manuscript teaching — never name the book, chapters or pages.

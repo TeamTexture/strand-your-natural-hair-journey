@@ -43,6 +43,7 @@ import {
   sanitisePurposeInsight,
   type PurposeInsight,
 } from "../_shared/purpose-insight.ts";
+import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -261,6 +262,8 @@ RULES — STRICT:
 ${SCORE_REASONS_RULES}
 
 ${PURPOSE_INSIGHT_RULES}
+
+${NON_PRESCRIPTIVE_RULES}
 
 NOTE FOR THIS FUNCTION: the one-sentence overall call lives in the "summary" field (not ai_summary) — the SCORE REASONS rules apply to "summary" in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
 }

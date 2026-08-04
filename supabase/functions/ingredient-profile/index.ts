@@ -18,6 +18,7 @@
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -118,7 +119,9 @@ LANGUAGE RULES — NON-NEGOTIABLE
 WHAT_IT_MEANS_FOR_YOU RULES
 - Max 2 sentences. Reference at least ONE concrete data point from the user's context.
 - Consider the surrounding formulation when provided — co-formulants can balance or amplify effects.
-- End with a useful, practical takeaway — never "avoid this".`;
+- End with a useful, practical takeaway — never "avoid this".
+
+${NON_PRESCRIPTIVE_RULES}`;
 }
 
 function buildUserPrompt(body: RequestBody): string {

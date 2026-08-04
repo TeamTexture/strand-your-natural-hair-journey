@@ -135,7 +135,7 @@ Field rules — strict:
 - warnings: optional, MAX 2. Only include if the tool has a contraindication for THIS user (e.g. high heat tool when user has a heat-damage challenge, dry/porous strands, chemical processing, or a length/retention goal).
 - personalisation_rationale: 2–3 sentences. MUST follow the pattern: "Because your hair is [specific trait — porosity/density/scalp/state from the profile] and you want [specific goal from the user's goals], this tool [names the specific risk from its mechanism]. If you use it, [concrete precaution]." Never generic. If a goal or trait is missing from the profile, drop that clause — do NOT invent one.
 - match_score: integer 0–100 for how well this tool fits THIS user (hair type, current style, goals, challenges). Be honest — poor fits should score 20–40, mixed 40–65, strong fits 70–90. Reserve 90+ for near-ideal matches.
-- how_to_use: 2–4 short sentences, second person, on how THIS user specifically should use it (heat setting tied to their porosity, section size tied to their density, frequency tied to their goal, thermal-protection product step, cool-down / low-manipulation follow-up). Anchor at least one instruction to a value from the user's profile.
+- how_to_use: 2–4 short sentences, second person, on how THIS user specifically should use it (heat setting tied to their porosity, section size tied to their density, the signals that tell them it is suiting their hair, thermal-protection product step, cool-down / low-manipulation follow-up). Anchor at least one instruction to a value from the user's profile.
 - pair_with: up to 4 pairings supporting THIS tool. Sources, in priority order:
    1. source='shelf' — real items from context.shelf / high_rated_products / user's tools. Use their real name + brand.
    2. source='wishlist' — real items from context.wishlist. Use their real name + brand. Flag these so the UI can offer a buy link.
@@ -154,7 +154,9 @@ Focus ONLY on signals that intersect with what the tool DOES (mechanism, heat, t
 
 Hair-health guidance only — never medical advice.
 
-${TOOL_SCORE_REASONS_RULES}`;
+${TOOL_SCORE_REASONS_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -238,6 +240,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 
 const LOVABLE_SYSTEM = `${STRAND_PERSONA}
 
@@ -275,7 +278,9 @@ SCHEMA
   "how_to_use": string
 }
 
-${TOOL_SCORE_REASONS_RULES}`;
+${TOOL_SCORE_REASONS_RULES}
+
+${NON_PRESCRIPTIVE_RULES}`;
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
