@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import TimePicker12h from "@/components/TimePicker12h";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { allowsMemberFeatures } from "@/lib/viewFeatures";
 import {
   useMarkBookingClickPrompted,
   usePendingBookingClicks,
@@ -110,7 +112,8 @@ const BookingReturnPrompt = () => {
     };
   }, [saved, date, time, notes]);
 
-  if (!user || !click) return null;
+  // Wait for auth to resolve before asking anything.
+  if (loading || !user || !click) return null;
 
   const didNotBook = async () => {
     try {
