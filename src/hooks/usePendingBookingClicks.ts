@@ -70,14 +70,11 @@ export const usePendingBookingClicks = () => {
           | {
               display_name: string | null;
               discipline: string | null;
-              clinic_name?: string | null;
               address_line1?: string | null;
               city?: string | null;
             }
           | undefined;
-        const clinic =
-          (p?.clinic_name ?? "").trim() ||
-          [p?.address_line1, p?.city].filter(Boolean).join(", ").trim();
+        const clinic = [p?.address_line1, p?.city].filter(Boolean).join(", ").trim();
         return {
           ...c,
           pro_name: (p?.display_name ?? "").trim() || "your professional",
