@@ -9,6 +9,8 @@ import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { externalLinkProps } from "@/lib/socialLinks";
 
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import BookingDepartureSheet from "@/components/booking/BookingDepartureSheet";
+import { useLogBookingDeparture } from "@/hooks/useBookingDeparture";
 import TimePicker12h from "@/components/TimePicker12h";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
 import ScreenLayout from "@/components/ScreenLayout";
