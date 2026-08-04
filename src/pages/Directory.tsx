@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail } from "lucide-react";
+import { ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -592,7 +592,7 @@ const Directory = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={() => nav("/pro/offers")}
+                  onClick={() => navigate("/pro/offers")}
                   className="mt-1 inline-flex items-center justify-center w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px]"
                 >
                   Create an offer
