@@ -15,6 +15,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import TipsBlock from "@/components/tips/TipsBlock";
 import type { GuidanceTip } from "@/lib/tipsRender";
 import { supabase } from "@/integrations/supabase/client";
+import { isPastAppointment, upcomingAppointments } from "@/lib/appointmentState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
@@ -211,11 +212,10 @@ const Appointments = () => {
   }, [appts, search]);
 
   // Upcoming: soonest first (ascending). Past: most recent first (descending).
-  const upcoming = filteredAppts
-    .filter((a) => a.status !== "completed" && a.appointment_date >= today)
-    .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date));
+  // Both lists go through the SHARED accessor — no local idea of "upcoming".
+  const upcoming = upcomingAppointments(filteredAppts);
   const past = filteredAppts
-    .filter((a) => a.status === "completed" || a.appointment_date < today)
+    .filter(isPastAppointment)
     .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date));
 
   // After the upcoming list renders, mark those IDs as seen so the badge

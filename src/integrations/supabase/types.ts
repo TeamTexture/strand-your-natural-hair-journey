@@ -154,6 +154,7 @@ export type Database = {
           follow_up_time: string | null
           id: string
           linked_pro_user_id: string | null
+          location_format: string | null
           notes: string | null
           outcome_audio_path: string | null
           outcome_notes: string | null
@@ -177,6 +178,7 @@ export type Database = {
           follow_up_time?: string | null
           id?: string
           linked_pro_user_id?: string | null
+          location_format?: string | null
           notes?: string | null
           outcome_audio_path?: string | null
           outcome_notes?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           follow_up_time?: string | null
           id?: string
           linked_pro_user_id?: string | null
+          location_format?: string | null
           notes?: string | null
           outcome_audio_path?: string | null
           outcome_notes?: string | null
@@ -3924,6 +3927,10 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      mark_booking_click_prompted: {
+        Args: { _click_id: string }
+        Returns: undefined
+      }
       match_manuscript_chunks: {
         Args: {
           chapter_filter?: number[]
@@ -4000,6 +4007,10 @@ export type Database = {
       queue_appointment_reminders: { Args: never; Returns: number }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
+        Returns: undefined
+      }
+      resolve_booking_click: {
+        Args: { _appointment_id?: string; _click_id: string; _outcome: string }
         Returns: undefined
       }
       resolve_mention_user_ids: { Args: { _text: string }; Returns: string[] }

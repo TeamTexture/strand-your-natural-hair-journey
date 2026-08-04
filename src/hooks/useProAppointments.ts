@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { upcomingAppointments } from "@/lib/appointmentState";
 
 export interface ProAppointmentRow {
   id: string;
@@ -73,13 +74,12 @@ export const useProAppointments = () => {
   });
 };
 
-/** Count of upcoming (future, non-terminal) appointments linked to the pro. */
+/**
+ * Count of upcoming appointments linked to the pro. Uses the SHARED accessor so
+ * the pro's diary and the member's calendar can never disagree about what
+ * "upcoming" means — same row, same rule.
+ */
 export const useUpcomingProAppointmentsCount = () => {
   const { data = [] } = useProAppointments();
-  const today = new Date().toISOString().slice(0, 10);
-  return data.filter(
-    (a) =>
-      !["completed", "cancelled", "no_show"].includes(a.status) &&
-      a.appointment_date >= today,
-  ).length;
+  return upcomingAppointments(data).length;
 };

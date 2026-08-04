@@ -9,6 +9,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePendingEnquiriesCount } from "@/hooks/usePendingEnquiriesCount";
+import { upcomingAppointments } from "@/lib/appointmentState";
 import { useProAppointments } from "@/hooks/useProAppointments";
 import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { useProClients } from "@/hooks/useProClients";
@@ -86,14 +87,8 @@ const ProDashboard = () => {
   const { data: proAppointments = [] } = useProAppointments();
   const { data: bookingFollowUps = [] } = useProBookingFollowUps();
   const today = new Date().toISOString().slice(0, 10);
-  const upcomingAppointments = proAppointments
-    .filter(
-      (a) =>
-        !["completed", "cancelled", "no_show"].includes(a.status) &&
-        a.appointment_date >= today,
-    )
-    .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date));
-  const nextAppt = upcomingAppointments[0];
+  const upcomingAppts = upcomingAppointments(proAppointments);
+  const nextAppt = upcomingAppts[0];
   const nextApptSub = nextAppt
     ? `${(nextAppt.client_display_name ?? "Client").split(" ")[0]} · ${new Date(nextAppt.appointment_date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}${nextAppt.appointment_time ? ` · ${formatTime12h(nextAppt.appointment_time)}` : ""}`
     : "Bookings your clients link to you.";
@@ -257,7 +252,7 @@ const ProDashboard = () => {
             sub={hasProAccess ? nextApptSub : "Subscribe to see linked appointments."}
             onClick={() => nav("/pro/appointments")}
             tourId="pro-card-appointments"
-            count={upcomingAppointments.length}
+            count={upcomingAppts.length}
           />
           <Card
             icon={Star}
