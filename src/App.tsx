@@ -23,6 +23,7 @@ import NewEnquiriesAlert from "@/components/pro/NewEnquiriesAlert";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
 import { TipsLevelProvider } from "@/hooks/useTipsLevel";
+import { IngredientSheetProvider } from "@/components/ingredients/IngredientToken";
 
 // Eager: entry + 404 (tiny, always likely to hit)
 import Index from "./pages/Index.tsx";
@@ -238,6 +239,7 @@ const App = () => (
         <ViewAsProvider>
         <AuthProvider>
           <TipsLevelProvider>
+          <IngredientSheetProvider>
           <BackButtonProvider>
             <GlobalEffects />
             <MessageNotifications />
@@ -548,6 +550,7 @@ const App = () => (
               </div>
             </PhoneShell>
           </BackButtonProvider>
+          </IngredientSheetProvider>
           </TipsLevelProvider>
         </AuthProvider>
         </ViewAsProvider>
