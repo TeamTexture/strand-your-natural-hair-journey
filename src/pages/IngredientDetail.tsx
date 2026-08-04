@@ -923,7 +923,7 @@ const IngredientDetail = () => {
                 stars >= 4.5 ? "Excellent match for your hair"
                 : stars >= 3.5 ? "Good fit for your routine"
                 : stars >= 2.5 ? "Use with care"
-                : aiStars === 2 ? "Not ideal for your profile"
+                : stars >= 1.5 ? "Not ideal for your profile"
                 : "Best avoided";
               return (
                 <div className="flex items-center justify-between gap-3">
