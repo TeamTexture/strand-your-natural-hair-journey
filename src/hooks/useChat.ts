@@ -390,9 +390,9 @@ export function useUnreadChatCount(scope?: ActiveRoleView | "all") {
       const inView = (rows ?? []).filter((t) =>
         view === "all" ? true : threadMatchesView(t as never, user!.id, view),
       );
-      // Never hide unread counts from a multi-role account just because the
-      // view toggle sits on a different side.
-      const scoped = inView.length > 0 ? inView : (rows ?? []);
+      // Badges follow the same strict role separation as the inbox: a
+      // consumer-side message never pings the professional view.
+      const scoped = inView;
       const ids = scoped.map((t) => t.id);
       if (ids.length === 0) return 0;
 
