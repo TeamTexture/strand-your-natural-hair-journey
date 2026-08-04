@@ -381,7 +381,7 @@ const ProductProfile = () => {
 {(() => {
           const summaryText = aiSummary ?? product.ai_summary ?? "";
           const { phrase, rest } = summaryText ? emphasisSplit(summaryText) : { phrase: "", rest: "" };
-          const scoreTone: "good" | "gold" | "warning" = score >= 70 ? "good" : score >= 40 ? "gold" : "warning";
+          const scoreTone = toneForScore(score);
           return (
             <SurfaceCard tone="gold">
               <div className="mb-1">
