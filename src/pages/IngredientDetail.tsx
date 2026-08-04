@@ -943,28 +943,14 @@ const IngredientDetail = () => {
                   </p>
                 );
               }
-              // ONE mapping, ONE score. The score comes from the analysis when
-              // it has one, otherwise from the saved row — never from an
-              // ad-hoc ingredient-balance formula, which used to invent a
-              // third number for the same product. No score means no stars.
-              const score =
-                normaliseMatchScore(analysis.match_score) ??
-                normaliseMatchScore(savedRowRef.current?.match_score);
-              const stars = starsFromScore(score);
-              if (stars == null) {
+              if (displayStars == null) {
                 return <p className="text-xs text-muted-foreground italic">Awaiting analysis</p>;
               }
-              const label =
-                stars >= 4.5 ? "Excellent match for your hair"
-                : stars >= 3.5 ? "Good fit for your routine"
-                : stars >= 2.5 ? "Use with care"
-                : stars >= 1.5 ? "Not ideal for your profile"
-                : "Best avoided";
               return (
                 <div className="flex items-center justify-between gap-3">
-                  <MatchStars score={score} size="lg" showValue={false} />
+                  <MatchStars score={displayScore} size="lg" showValue={false} />
                   <p className="text-[11px] text-muted-foreground text-right max-w-[160px] leading-tight">
-                    {label}
+                    {verdictForStars(displayStars)}
                   </p>
                 </div>
               );
@@ -972,6 +958,7 @@ const IngredientDetail = () => {
           </div>
 
         </SurfaceCard>
+
 
         {loading && (
           <SurfaceCard>
