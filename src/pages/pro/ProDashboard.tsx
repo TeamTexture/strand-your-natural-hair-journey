@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star, KeyRound } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -19,6 +19,7 @@ import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
 import BrandBanner from "@/components/BrandBanner";
 import ProTour from "@/components/ProTour";
+import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 
 
 const Card = ({
