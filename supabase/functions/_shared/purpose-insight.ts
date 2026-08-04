@@ -67,10 +67,23 @@ Return insight: { purpose, ingredient_factor, implication, usage_direction }. To
 
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean);
 
+/**
+ * Word budgets are enforced by DROPPING whole trailing sentences, never by
+ * cutting mid-sentence. A half-sentence ending in an ellipsis reads as broken
+ * copy, so if the first sentence already exceeds the budget we keep it whole.
+ */
 const clampWords = (s: string, max: number) => {
-  const w = words(s);
-  if (w.length <= max) return s.trim();
-  return `${w.slice(0, max).join(" ").replace(/[,;:—-]+$/, "")}…`;
+  const text = s.trim();
+  if (!text) return "";
+  if (words(text).length <= max) return text;
+  const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text];
+  let kept = "";
+  for (const sentence of sentences) {
+    const candidate = (kept + sentence).trim();
+    if (kept && words(candidate).length > max) break;
+    kept = candidate + " ";
+  }
+  return kept.trim() || text;
 };
 
 const CAPS = {

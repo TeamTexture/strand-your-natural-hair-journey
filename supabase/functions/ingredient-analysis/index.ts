@@ -37,6 +37,12 @@ import {
   firstSentence,
   type ScoreReason,
 } from "../_shared/score-reasons.ts";
+import {
+  PURPOSE_INSIGHT_RULES,
+  PURPOSE_INSIGHT_SCHEMA_PROPERTY,
+  sanitisePurposeInsight,
+  type PurposeInsight,
+} from "../_shared/purpose-insight.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
