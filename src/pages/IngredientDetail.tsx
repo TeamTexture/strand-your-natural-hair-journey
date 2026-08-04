@@ -445,6 +445,27 @@ const IngredientDetail = () => {
     }
   };
 
+  // When the user's hair profile changed after a score was computed, that
+  // score no longer describes their hair and must be recomputed.
+  const [hairProfileUpdatedAt, setHairProfileUpdatedAt] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) return;
+      const { data } = await supabase
+        .from("user_hair_profile")
+        .select("updated_at")
+        .eq("user_id", uid)
+        .maybeSingle();
+      if (!cancelled) setHairProfileUpdatedAt((data?.updated_at as string | null) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const runAnalysis = useCallback(
     async (force = false) => {
       setLoading(true);
@@ -454,6 +475,12 @@ const IngredientDetail = () => {
         const hairProfile = clinical.hair ?? {};
         const healthProfile = clinical.health ?? {};
         const heritage = clinical.basic?.heritage ?? [];
+
+        const row = savedRowRef.current;
+        // Re-score only when there is no stored score or the stored one predates
+        // the user's latest hair-profile edit. Otherwise this call is for the
+        // ingredient flags and guidance, and the stored score stands.
+        const stale = isScoreStale(row, hairProfileUpdatedAt);
 
         const context = await buildAiContext();
         const { data, error: fnError } = await supabase.functions.invoke(
@@ -467,7 +494,7 @@ const IngredientDetail = () => {
               healthProfile,
               heritage,
               context,
-              force,
+              force: force || stale,
             },
           },
         );
@@ -476,20 +503,18 @@ const IngredientDetail = () => {
         const fresh = data.analysis as Analysis;
         setAnalysis(fresh);
 
-        // ONE SCORE PER PRODUCT. This page and every list row/thumbnail must
-        // resolve to the same number, so whenever this analysis produces a
-        // score for a product that is already saved, we write it straight back
-        // to user_products.match_score (the single source of truth read by
-        // MatchStars, Home, the passport and every AI context payload).
-        // Without this write-back the card kept the scan-time score while this
-        // page showed a second, independently generated one.
+        // ONE SCORE PER PRODUCT. user_products.match_score is the single source
+        // of truth every surface reads (cards, passport, PDFs, aiContext). Any
+        // score this analysis produces is written into that column BEFORE it can
+        // be rendered — this page never displays a number that isn't stored.
         const freshScore = normaliseMatchScore(fresh?.match_score);
-        if (savedRowRef.current && freshScore != null && savedRowRef.current.match_score !== freshScore) {
+        const needsWrite = row && freshScore != null && (stale || force || row.match_score !== freshScore);
+        if (needsWrite) {
           try {
             await supabase
               .from("user_products")
-              .update({ match_score: freshScore })
-              .eq("id", savedRowRef.current.id);
+              .update({ match_score: freshScore, match_score_computed_at: new Date().toISOString() })
+              .eq("id", row.id);
             await reload();
             window.dispatchEvent(new CustomEvent("user-products-updated"));
           } catch (syncErr) {
@@ -504,7 +529,7 @@ const IngredientDetail = () => {
         setLoading(false);
       }
     },
-    [productKey, productName, productBrand, reload],
+    [productKey, productName, productBrand, reload, hairProfileUpdatedAt],
   );
 
   useEffect(() => {
