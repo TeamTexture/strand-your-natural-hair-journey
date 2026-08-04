@@ -84,8 +84,10 @@ const ProReviewsPublic = () => {
               <ProContactAction
                 state={contact}
                 className="w-full"
+                canNavigateToEnquiries={allowsMemberFeatures(reviewsRoleView)}
                 onEnquire={() => navigate(`/directory?pro=${proUserId}`)}
               />
+
             </div>
           )}
         </SurfaceCard>
