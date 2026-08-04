@@ -100,6 +100,6 @@ export function useNotifications() {
     qc.invalidateQueries({ queryKey: ["notifications", user.id] });
   };
 
-  return { notifications: q.data ?? [], unreadCount, isLoading: q.isLoading, markAllRead, markRead, markManyRead };
+  return { notifications: scoped, unreadCount, isLoading: q.isLoading, markAllRead, markRead, markManyRead };
 }
 
