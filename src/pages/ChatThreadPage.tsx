@@ -5,7 +5,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
 import { BadgeCheck, Calendar, CalendarPlus, ExternalLink, Send, User2, Minus } from "lucide-react";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
-import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { externalLinkProps } from "@/lib/socialLinks";
 
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
@@ -222,7 +221,6 @@ const ChatThreadPage = () => {
   const book = useBookAppointmentInThread();
   const markRead = useMarkThreadRead(threadId);
   const [draft, setDraft] = useState("");
-  const [bookingOpen, setBookingOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Location autocomplete pool: any locations the current user has already
@@ -283,7 +281,6 @@ const ChatThreadPage = () => {
   const sendBookingRequest = useSendBookingRequest(threadId);
   const [departureOpen, setDepartureOpen] = useState(false);
   const logDeparture = useLogBookingDeparture();
-  // Pro-side nudge: a booking request was sent (or the client opened the
 
   // Peer thread: the "client" side is itself a professional, so there is no
   // hair passport attached and the pro-side passport actions are hidden.
