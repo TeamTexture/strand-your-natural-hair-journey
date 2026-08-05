@@ -38,6 +38,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { isPastAppointment, upcomingAppointments } from "@/lib/appointmentState";
 import { useProAppointments, type ProAppointmentRow } from "@/hooks/useProAppointments";
 import { formatTime12h } from "@/lib/formatTime";
+import { useFindClientThread, useSendBookingLinkToClient } from "@/hooks/useChat";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
