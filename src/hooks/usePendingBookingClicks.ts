@@ -114,7 +114,10 @@ export const usePendingBookingClicks = () => {
       });
     },
   });
+
+  return query;
 };
+
 
 /** Stamp `prompted_at` so a shown prompt is never double-counted. */
 export const useMarkBookingClickPrompted = () => {
