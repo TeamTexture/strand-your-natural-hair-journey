@@ -350,7 +350,7 @@ const ProductProfile = () => {
   const handleDelete = async () => {
     await remove(product.id);
     setConfirmDelete(false);
-    navigate(-1);
+    safeBack(navigate, "/products");
   };
 
   // Title-case the saved category for the page title; fall back to "Product".

@@ -396,7 +396,7 @@ const SetupGuide = () => {
       localStorage.removeItem(`strand_setup_pending:${user.id}`);
     }
     if (fromHelp) {
-      navigate(-1);
+      safeBack(navigate, "/home");
     } else {
       navigate("/onboarding/profile-step-1", { replace: true });
     }
