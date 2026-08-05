@@ -173,10 +173,16 @@ const BookingReturnPrompt = () => {
 
   const finish = () => {
     // The click is already resolved at this point; clearing local state lets the
-    // next pending click (if any) take over.
+    // next pending click (if any) take over. Otherwise we hand the member
+    // straight to the appointment now sitting in their STRAND diary.
+    const id = saved?.id ?? null;
     setSaved(null);
     setStep("ask");
+    if (pending.length <= 1) {
+      navigate(id ? `/appointments?highlight=${id}` : "/appointments");
+    }
   };
+
 
   return (
     <DialogPrimitive.Root open>
