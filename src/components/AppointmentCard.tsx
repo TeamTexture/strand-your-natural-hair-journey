@@ -278,7 +278,12 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
             <p className="font-display text-foreground text-base font-semibold leading-tight truncate">
               {appointment.professional_name}
             </p>
-            <p className="text-muted-foreground text-[12px] truncate font-body">{subtitle}</p>
+            {description && (
+              <p className="text-foreground/85 text-[12px] leading-snug font-body line-clamp-2">{description}</p>
+            )}
+            {venue && <p className="text-muted-foreground text-[11px] truncate font-body">{venue}</p>}
+            {!description && !venue && <p className="text-muted-foreground text-[11px] font-body">—</p>}
+
           </div>
         </ProBlock>
 
