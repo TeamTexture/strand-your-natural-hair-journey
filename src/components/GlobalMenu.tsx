@@ -167,9 +167,11 @@ const GlobalMenu = () => {
 
 
   const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
-  // Professionals (non-admin) never see a view switcher — the pro side is
-  // their whole app.
-  const showViewSwitcher = roleCount > 1 && (isAdmin || activeView !== "pro");
+  // Anyone with more than one account (member + pro, member + brand, admin…)
+  // gets the toggle in every view — including inside the professional side, so
+  // they can always get back to their member account.
+  const showViewSwitcher = roleCount > 1;
+
 
   const viewMeta = {
     consumer: { label: "My STRAND", icon: HomeIcon, to: "/home" },
