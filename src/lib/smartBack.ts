@@ -1,73 +1,100 @@
-// History-aware back navigation. Back ALWAYS returns to the page the user was
-// just on when a real in-app history entry exists; otherwise it falls back to a
-// sensible destination (deep link / fresh open case).
+// History-aware back navigation.
+//
+// We keep our own stack of in-app entries (path + router history index) in
+// sessionStorage. Back always returns to the previous DISTINCT page the user
+// actually saw — never /home by force, and never a loop between two pages.
 import type { NavigateFunction } from "react-router-dom";
 
-const HISTORY_ENTRY_KEY = "strand.hasInAppHistory";
-const BACK_COUNT_KEY = "strand.backCount";
+const STACK_KEY = "strand.navStack";
 const HOME_PATH = "/home";
 
-/** Mark that we've navigated at least once inside the app this session. */
-export const markInAppHistory = () => {
-  sessionStorage.setItem(HISTORY_ENTRY_KEY, "1");
-};
+type Entry = { path: string; idx: number };
 
-/** Kept for compatibility with the history tracker. */
-export const resetBackCount = () => {
-  sessionStorage.removeItem(BACK_COUNT_KEY);
-};
+const routerIdx = (): number =>
+  (window.history.state as { idx?: number } | null)?.idx ?? 0;
 
-// Flag set for one tick when smartBack triggers navigation, so the location
-// tracker doesn't treat that pop as a fresh forward navigation.
-let popInFlight = false;
-export const isBackPopInFlight = () => popInFlight;
-
-/** True when react-router has a real previous entry in this SPA session. */
-const hasRouterHistory = (): boolean => {
-  const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-  return idx > 0 && sessionStorage.getItem(HISTORY_ENTRY_KEY) === "1";
-};
-
-/**
- * Go back one step in history when possible, otherwise navigate to fallback.
- * Never short-circuits to /home — the user returns to where they came from.
- */
-export const smartBack = (
-  navigate: NavigateFunction,
-  fallback: string,
-): (() => void) => {
-  return () => {
-    popInFlight = true;
-    setTimeout(() => {
-      popInFlight = false;
-    }, 0);
-
-    if (hasRouterHistory()) {
-      navigate(-1);
-    } else {
-      // Backwards moves must never push a new entry, otherwise the browser
-      // back button returns to the page we just left (loop).
-      navigate(fallback, { replace: true });
-    }
-  };
-};
-
-
-/**
- * Always-functional back. Pops history only when there is a real previous
- * entry inside this SPA session; otherwise navigates to the fallback so the
- * button is never a dead tap.
- */
-export const safeBack = (
-  navigate: NavigateFunction,
-  fallback: string = HOME_PATH,
-) => {
-  if (hasRouterHistory()) {
-    navigate(-1);
-  } else {
-    // Fallback is a *backwards* move — replace so we don't stack history.
-    navigate(fallback, { replace: true });
+const readStack = (): Entry[] => {
+  try {
+    const raw = sessionStorage.getItem(STACK_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Entry[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 };
 
+const writeStack = (stack: Entry[]) => {
+  try {
+    sessionStorage.setItem(STACK_KEY, JSON.stringify(stack.slice(-40)));
+  } catch {
+    /* ignore */
+  }
+};
 
+/**
+ * Record the current location. Handles all three navigation kinds:
+ * - push  (idx grows)      → append
+ * - replace (idx same)     → overwrite the top entry
+ * - pop   (idx shrinks)    → truncate forward entries
+ * Consecutive duplicates of the same path collapse so back never no-ops.
+ */
+export const recordLocation = (path: string) => {
+  const idx = routerIdx();
+  let stack = readStack().filter((e) => e.idx < idx);
+  const top = stack[stack.length - 1];
+  if (top && top.path === path) {
+    // Same page re-entered (redirect loop) — keep the earlier entry.
+    stack = stack.slice(0, -1);
+  }
+  stack.push({ path, idx });
+  writeStack(stack);
+};
+
+/** Legacy names kept so existing imports keep working. */
+export const markInAppHistory = () => {
+  recordLocation(window.location.pathname + window.location.search);
+};
+export const resetBackCount = () => {};
+export const isBackPopInFlight = () => false;
+
+const previousEntry = (): Entry | null => {
+  const stack = readStack();
+  const currentPath = window.location.pathname + window.location.search;
+  // Walk backwards past any entries matching the current page.
+  for (let i = stack.length - 1; i >= 0; i--) {
+    if (stack[i].path !== currentPath) return stack[i];
+  }
+  return null;
+};
+
+const goBack = (navigate: NavigateFunction, fallback: string) => {
+  const prev = previousEntry();
+  const idx = routerIdx();
+
+  if (prev) {
+    const delta = prev.idx - idx;
+    if (delta < 0) {
+      // Drop the entries we're leaving behind so the next back is correct.
+      writeStack(readStack().filter((e) => e.idx <= prev.idx));
+      navigate(delta);
+      return;
+    }
+    // Same/unknown index (session restored) — go there without stacking.
+    writeStack(readStack().filter((e) => e.idx < idx));
+    navigate(prev.path, { replace: true });
+    return;
+  }
+
+  // No in-app history (deep link / fresh open) — backwards move, so replace.
+  navigate(fallback, { replace: true });
+};
+
+/** Curried variant for `onBack={smartBack(navigate, "/x")}`. */
+export const smartBack = (navigate: NavigateFunction, fallback: string) => () =>
+  goBack(navigate, fallback);
+
+/** Imperative variant. */
+export const safeBack = (
+  navigate: NavigateFunction,
+  fallback: string = HOME_PATH,
+) => goBack(navigate, fallback);
