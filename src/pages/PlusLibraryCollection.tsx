@@ -13,6 +13,7 @@ import VideoPlayerDialog from "@/components/VideoPlayerDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { renderMentions } from "@/lib/renderMentions";
+import { smartBack } from "@/lib/smartBack";
 
 const ITEM_ICON: Record<string, typeof BookOpen> = { video: Play, pdf: BookOpen, text: FileText, url: FileText, article: FileText, audio: Play, post: FileText, image: FileText };
 
@@ -97,7 +98,7 @@ const PlusLibraryCollection = () => {
   return (
     <PlusGate title="Library">
       <ScreenLayout>
-        <TitleBar title={c?.title ?? "Library"} onBack={() => nav("/plus/library", { replace: true })} />
+        <TitleBar title={c?.title ?? "Library"} onBack={smartBack(nav, "/plus/library")} />
         {collectionQ.isLoading || itemsQ.isLoading ? <LoadingDot /> : (
           <div className="px-4 pb-16 space-y-4">
             {c?.cover_path && (

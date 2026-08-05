@@ -31,6 +31,7 @@ import type { LucideIcon } from "lucide-react";
 import { isSafeInternalPath } from "@/lib/consumerOnboarding";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import LoadingDot from "@/components/LoadingDot";
+import { smartBack } from "@/lib/smartBack";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -247,7 +248,7 @@ const Subscribe = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Membership" onBack={hasAccess ? () => nav("/home", { replace: true }) : undefined} />
+      <TitleBar title="Membership" onBack={hasAccess ? smartBack(nav, "/home") : undefined} />
 
       <div className="px-5 pb-12 space-y-6">
         {hasAccess && (
