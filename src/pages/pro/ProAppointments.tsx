@@ -118,7 +118,59 @@ const ProAppointments = () => {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  // Tapping an appointment opens its detail sheet — not the client passport.
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [outcomeDraft, setOutcomeDraft] = useState("");
+  const [savingOutcome, setSavingOutcome] = useState(false);
+  const findThread = useFindClientThread();
+  const sendBookingLink = useSendBookingLinkToClient();
   const focusApptId = useSearchParams()[0].get("appt");
+
+  const detail = useMemo(
+    () => data.find((a) => a.id === detailId) ?? null,
+    [data, detailId],
+  );
+
+  const openDetail = (a: ProAppointmentRow) => {
+    setDetailId(a.id);
+    setOutcomeDraft(a.outcome_notes ?? "");
+  };
+
+  const openChat = async (consumerId: string) => {
+    try {
+      const id = await findThread.mutateAsync(consumerId);
+      nav(id ? `/messages/${id}` : "/messages");
+    } catch {
+      nav("/messages");
+    }
+  };
+
+  const sendLink = async (consumerId: string) => {
+    try {
+      const id = await sendBookingLink.mutateAsync(consumerId);
+      toast.success("Booking link sent");
+      nav(`/messages/${id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send booking link");
+    }
+  };
+
+  const saveOutcome = async (id: string) => {
+    setSavingOutcome(true);
+    const { error } = await supabase
+      .from("appointments")
+      .update({ outcome_notes: outcomeDraft.trim() || null })
+      .eq("id", id);
+    setSavingOutcome(false);
+    if (error) {
+      console.error("Pro appointment outcome save failed:", error);
+      toast.error("Could not save your notes");
+      return;
+    }
+    toast.success("Notes saved");
+    qc.invalidateQueries({ queryKey: ["pro-appointments"] });
+  };
+
 
   // Scroll & pulse the appointment referenced by ?appt=<id>.
   useEffect(() => {
