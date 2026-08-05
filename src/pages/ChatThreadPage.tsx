@@ -214,7 +214,7 @@ const MessageBubble = ({
 const ChatThreadPage = () => {
   const nav = useNavigate();
   const { threadId } = useParams();
-  const { user } = useAuth();
+  const { user, isViewingAs } = useAuth();
   const roleView = useActiveRoleView();
   const { thread, messages } = useChatThread(threadId);
   const send = useSendChatMessage(threadId);
@@ -547,7 +547,11 @@ const ChatThreadPage = () => {
 
       {isPro && !isSupport && (
         <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
-          {bookingUrl ? (
+          {isViewingAs ? (
+            <p className="text-[11.5px] font-body text-muted-foreground">
+              Read-only view — sending is disabled while viewing as another user.
+            </p>
+          ) : bookingUrl ? (
             <Button
               size="sm"
               onClick={async () => {
@@ -593,7 +597,7 @@ const ChatThreadPage = () => {
         </div>
         <button
           onClick={submit}
-          disabled={!draft.trim() || send.isPending}
+          disabled={!draft.trim() || send.isPending || isViewingAs}
           aria-label="Send"
           className="shrink-0 size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
         >
