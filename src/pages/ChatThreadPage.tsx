@@ -549,69 +549,40 @@ const ChatThreadPage = () => {
       />
 
 
-      {needsDiaryLog && (
-        <div className="px-4 pt-2 border-t border-border/60 bg-background">
-          <div className="rounded-[14px] border border-primary/30 bg-primary/10 p-3.5 space-y-2.5">
-            <p className="text-[12px] font-body text-foreground/85 leading-snug">
-              Client booked? Log the appointment in your Strand diary so it appears in both your
-              diaries.
-            </p>
+      {isPro && !isSupport && (
+        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
+          {bookingUrl ? (
             <Button
               size="sm"
-              onClick={() =>
-                nav(
-                  `/pro/appointments/log?client=${t?.consumer_id ?? ""}&thread=${threadId ?? ""}`,
-                )
-              }
+              onClick={async () => {
+                try {
+                  await sendBookingRequest.mutateAsync({
+                    bookingUrl,
+                    proName: myProName || "Your professional",
+                  });
+                  toast.success("Booking link sent");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Could not send link");
+                }
+              }}
+              disabled={sendBookingRequest.isPending}
               className="w-full min-h-[44px] uppercase tracking-[0.08em] text-[11px]"
             >
               <CalendarPlus className="size-3.5 mr-1.5" />
-              Log appointment
+              Send booking link
             </Button>
-          </div>
-        </div>
-      )}
-
-      {isPro && !isSupport && (
-        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setBookingOpen(true)} className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]">
-              <Calendar className="size-3.5 mr-1.5" />
-              Book appointment
-            </Button>
-            {bookingUrl && (
-              <Button
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await sendBookingRequest.mutateAsync({
-                      bookingUrl,
-                      proName: myProName || "Your professional",
-                    });
-                    toast.success("Booking request sent");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Could not send request");
-                  }
-                }}
-                disabled={sendBookingRequest.isPending}
-                className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]"
-              >
-                <CalendarPlus className="size-3.5 mr-1.5" />
-                Send booking request
-              </Button>
-            )}
-          </div>
-          {!bookingUrl && (
+          ) : (
             <button
               type="button"
               onClick={() => nav("/pro/profile")}
               className="w-full text-left text-[11.5px] font-body text-primary underline underline-offset-2"
             >
-              Add your booking link to enable the Book appointment button
+              Add your booking link to send it in chat
             </button>
           )}
         </div>
       )}
+
 
 
       <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background flex items-end gap-2">
