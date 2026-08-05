@@ -10,7 +10,11 @@ import {
   List as ListIcon,
   ChevronLeft,
   Plus,
+  MessageCircle,
+  Link as LinkIcon,
+  Pencil,
 } from "lucide-react";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -34,6 +38,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { isPastAppointment, upcomingAppointments } from "@/lib/appointmentState";
 import { useProAppointments, type ProAppointmentRow } from "@/hooks/useProAppointments";
 import { formatTime12h } from "@/lib/formatTime";
+import { useFindClientThread, useSendBookingLinkToClient } from "@/hooks/useChat";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -111,7 +118,59 @@ const ProAppointments = () => {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  // Tapping an appointment opens its detail sheet — not the client passport.
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [outcomeDraft, setOutcomeDraft] = useState("");
+  const [savingOutcome, setSavingOutcome] = useState(false);
+  const findThread = useFindClientThread();
+  const sendBookingLink = useSendBookingLinkToClient();
   const focusApptId = useSearchParams()[0].get("appt");
+
+  const detail = useMemo(
+    () => data.find((a) => a.id === detailId) ?? null,
+    [data, detailId],
+  );
+
+  const openDetail = (a: ProAppointmentRow) => {
+    setDetailId(a.id);
+    setOutcomeDraft(a.outcome_notes ?? "");
+  };
+
+  const openChat = async (consumerId: string) => {
+    try {
+      const id = await findThread.mutateAsync(consumerId);
+      nav(id ? `/messages/${id}` : "/messages");
+    } catch {
+      nav("/messages");
+    }
+  };
+
+  const sendLink = async (consumerId: string) => {
+    try {
+      const id = await sendBookingLink.mutateAsync(consumerId);
+      toast.success("Booking link sent");
+      nav(`/messages/${id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send booking link");
+    }
+  };
+
+  const saveOutcome = async (id: string) => {
+    setSavingOutcome(true);
+    const { error } = await supabase
+      .from("appointments")
+      .update({ outcome_notes: outcomeDraft.trim() || null })
+      .eq("id", id);
+    setSavingOutcome(false);
+    if (error) {
+      console.error("Pro appointment outcome save failed:", error);
+      toast.error("Could not save your notes");
+      return;
+    }
+    toast.success("Notes saved");
+    qc.invalidateQueries({ queryKey: ["pro-appointments"] });
+  };
+
 
   // Scroll & pulse the appointment referenced by ?appt=<id>.
   useEffect(() => {
@@ -198,7 +257,8 @@ const ProAppointments = () => {
       >
         <button
           type="button"
-          onClick={() => nav(`/pro/clients/${a.user_id}`)}
+          onClick={() => openDetail(a)}
+          aria-label="Open appointment details"
           className="w-full flex items-center gap-3 text-left"
         >
           <ProAvatar name={firstName} photoUrl={a.client_avatar_url ?? undefined} size="size-10" />
@@ -463,7 +523,145 @@ const ProAppointments = () => {
         )}
       </div>
 
+      {/* Appointment detail sheet — everything about one visit in one place. */}
+      <Sheet open={!!detail} onOpenChange={(o) => !o && setDetailId(null)}>
+        <SheetContent side="bottom" className="rounded-t-[20px] max-h-[88vh] overflow-y-auto">
+          {detail && (() => {
+            const meta = statusMeta(detail.status);
+            const name = (detail.client_display_name ?? "").split(/\s+/)[0] || "Client";
+            const isUpcoming = !isPastAppointment(detail);
+            return (
+              <>
+                <SheetHeader className="text-left">
+                  <SheetTitle className="font-display text-lg">Appointment</SheetTitle>
+                </SheetHeader>
+
+                <div className="mt-3 space-y-4 pb-6">
+                  <div className="flex items-center gap-3">
+                    <ProAvatar
+                      name={name}
+                      photoUrl={detail.client_avatar_url ?? undefined}
+                      size="size-11"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display text-base font-semibold leading-tight truncate">
+                        {name}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {formatDate(detail.appointment_date)}
+                        {detail.appointment_time ? ` · ${formatTime12h(detail.appointment_time)}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-[10px] uppercase tracking-[0.14em] font-body px-2 py-1 rounded-full border ${meta.tone}`}
+                    >
+                      {meta.label}
+                    </span>
+                  </div>
+
+                  <div className="rounded-[12px] border border-border bg-card p-3 space-y-1.5 text-[12px] font-body">
+                    <p>
+                      <span className="text-muted-foreground">What it's for: </span>
+                      {detail.reason || "Not specified"}
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Where: </span>
+                      {detail.clinic_name || "Not specified"}
+                    </p>
+                    {detail.notes && (
+                      <p className="whitespace-pre-wrap pt-1 border-t border-border/60">
+                        <span className="text-muted-foreground">Client's note: </span>
+                        {detail.notes}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <SectionLabel>Your notes on this visit</SectionLabel>
+                    <Textarea
+                      value={outcomeDraft}
+                      onChange={(e) => setOutcomeDraft(e.target.value)}
+                      rows={3}
+                      placeholder="What you plan to do, what you observed, follow-up plan…"
+                      className="text-sm font-body"
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={savingOutcome || outcomeDraft === (detail.outcome_notes ?? "")}
+                      onClick={() => saveOutcome(detail.id)}
+                      className="w-full h-10 text-[12px] font-body font-medium uppercase tracking-[0.08em]"
+                    >
+                      <Pencil className="size-3.5 mr-2" /> Save notes
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground font-body leading-snug">
+                      The date, time and reason belong to your client's log — message them to agree
+                      any change and they'll update it.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <SectionLabel>Actions</SectionLabel>
+                    <Button
+                      onClick={() => openChat(detail.user_id)}
+                      className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                    >
+                      <MessageCircle className="size-4 mr-2" /> Message {name}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setDetailId(null);
+                        nav(`/pro/clients/${detail.user_id}`);
+                      }}
+                      className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                    >
+                      Open client passport <ChevronRight className="size-4 ml-1" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={sendBookingLink.isPending}
+                      onClick={() => sendLink(detail.user_id)}
+                      className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                    >
+                      <LinkIcon className="size-4 mr-2" /> Send booking link
+                    </Button>
+                  </div>
+
+                  {isUpcoming && (
+                    <div className="space-y-2">
+                      <SectionLabel>Update status</SectionLabel>
+                      <Button
+                        disabled={busyId === detail.id}
+                        onClick={() => updateStatus(detail.id, "completed")}
+                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                      >
+                        <Check className="size-4 mr-2" /> Mark completed
+                      </Button>
+                      <Button
+                        disabled={busyId === detail.id}
+                        onClick={() => updateStatus(detail.id, "no_show")}
+                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                      >
+                        <AlertTriangle className="size-4 mr-2" /> Mark no-show
+                      </Button>
+                      <Button
+                        disabled={busyId === detail.id}
+                        onClick={() => setConfirmCancelId(detail.id)}
+                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                      >
+                        <XCircle className="size-4 mr-2" /> Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
+
       {/* Day-detail sheet triggered by tapping a marked calendar day. */}
+
       <Sheet open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
         <SheetContent side="bottom" className="rounded-t-[20px] max-h-[80vh] overflow-y-auto">
           <SheetHeader className="text-left">
@@ -487,7 +685,7 @@ const ProAppointments = () => {
                     type="button"
                     onClick={() => {
                       setSelectedDay(null);
-                      nav(`/pro/clients/${a.user_id}`);
+                      openDetail(a);
                     }}
                     className="w-full flex items-center gap-3 rounded-[12px] border border-border bg-card p-3 text-left hover:border-primary/50"
                   >
