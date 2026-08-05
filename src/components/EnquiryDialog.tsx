@@ -106,9 +106,12 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const [sharePassport, setSharePassport] = useState(false);
   const create = useCreateEnquiry();
 
+  // Always open as a member enquiry. The remembered role view must never
+  // decide this for a multi-role account — mislabelling the sender is worse
+  // than one extra tap.
   useEffect(() => {
-    if (open) setSendAsPro(canSendAsPro && proView);
-  }, [open, canSendAsPro, proView]);
+    if (open) setSendAsPro(false);
+  }, [open]);
 
 
 
@@ -154,6 +157,7 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
         location_preference: location,
         budget_range: budget.trim() || null,
         share_passport_consent: isPeerEnquiry ? false : sharePassport,
+        sender_role: isPeerEnquiry ? "pro" : "consumer",
       });
       toast.success(`Enquiry sent to ${proName}`);
       onOpenChange(false);
