@@ -378,10 +378,25 @@ const BookingReturnPrompt = () => {
                   Logged in STRAND
                 </DialogPrimitive.Title>
                 <p className="text-[12.5px] font-body leading-relaxed text-muted-foreground">
-                  It's on your calendar in the app
-                  {click.pro_exists ? " and visible to your professional" : ""}.
+                  It's in your STRAND diary as upcoming
+                  {click.pro_exists ? ", and shows in your professional's diary too" : ""}.
                 </p>
               </div>
+
+              <div className="rounded-[12px] border border-border bg-card p-3">
+                <p className="text-[12.5px] font-body font-semibold leading-snug">
+                  {saved?.title}
+                </p>
+                <p className="mt-0.5 text-[11.5px] font-body text-muted-foreground">
+                  {new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "long",
+                  })}
+                  {time ? ` · ${time}` : ""}
+                </p>
+              </div>
+
 
               <div className="space-y-2">
                 <p className="text-[10px] font-body font-semibold uppercase tracking-[0.14em] text-muted-foreground">
