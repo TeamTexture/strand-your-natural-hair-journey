@@ -15,8 +15,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCreateEnquiry } from "@/hooks/useEnquiries";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { useActiveRoleView } from "@/hooks/useActiveRoleView";
-import { allowsProFeatures } from "@/lib/viewFeatures";
 import { useRoles } from "@/hooks/useRoles";
 
 
@@ -92,7 +90,6 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   // so never silently decide this for a multi-role account: default to a member
   // enquiry and let them switch explicitly.
   const { isProfessional } = useRoles();
-  const proView = allowsProFeatures(useActiveRoleView());
   const [sendAsPro, setSendAsPro] = useState(false);
   const canSendAsPro = isProfessional;
   const isPeerEnquiry = canSendAsPro && sendAsPro;

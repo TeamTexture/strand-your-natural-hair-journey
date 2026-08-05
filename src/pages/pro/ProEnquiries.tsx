@@ -122,11 +122,21 @@ const usePassportPreviews = (enquiries: Enquiry[]) => {
   return map;
 };
 
-/** Which senders are themselves professionals (peer enquiries, no passport). */
+/**
+ * Display names for senders who explicitly sent as a professional. Peer status
+ * comes from the enquiry's recorded sender_role — never from whether the sender
+ * happens to also hold a professional profile, which mislabelled member
+ * enquiries from multi-role accounts.
+ */
 const usePeerSenders = (enquiries: Enquiry[]) => {
   const [peers, setPeers] = useState<Record<string, string>>({});
   const ids = useMemo(
-    () => Array.from(new Set(enquiries.map((e) => e.consumer_id))),
+    () =>
+      Array.from(
+        new Set(
+          enquiries.filter((e) => e.sender_role === "pro").map((e) => e.consumer_id),
+        ),
+      ),
     [enquiries],
   );
   useEffect(() => {
@@ -508,8 +518,8 @@ const ProEnquiries = () => {
             <EnquiryCard
               key={e.id}
               enquiry={e}
-              preview={peerNames[e.consumer_id] ? undefined : previews[e.consumer_id]}
-              peerName={peerNames[e.consumer_id]}
+              preview={e.sender_role === "pro" ? undefined : previews[e.consumer_id]}
+              peerName={e.sender_role === "pro" ? peerNames[e.consumer_id] ?? "Professional" : undefined}
 
               onAccept={async () => {
                 try {
