@@ -15,6 +15,7 @@ export interface AppointmentCardData {
   reason: string | null;
   notes: string | null;
   outcome_notes?: string | null;
+  cancellation_reason?: string | null;
   status: string;
   /** When the appointment is linked to a directory pro, tapping the name/
    *  avatar anchors the user on that pro's directory card. */
@@ -237,7 +238,14 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
   }
 
   // Past appointment — muted grey treatment
-  const statusLabel = appointment.status === "completed" ? "Completed" : "Past";
+  const statusLabel =
+    appointment.status === "completed"
+      ? "Completed"
+      : appointment.status === "cancelled"
+        ? "Cancelled"
+        : appointment.status === "no_show"
+          ? "No-show"
+          : "Past";
 
   return (
     <div className="rounded-[22px] border border-border bg-secondary/70 shadow-sm">
@@ -287,8 +295,14 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
           </div>
         </ProBlock>
 
-        {(appointment.outcome_notes || appointment.notes) && (
+        {(appointment.outcome_notes || appointment.notes || appointment.cancellation_reason) && (
           <div className="border-t border-border pt-3 mb-4 space-y-1">
+            {appointment.cancellation_reason && (
+              <p className="text-[11px] text-foreground/80 leading-relaxed font-body">
+                <span className="font-semibold text-foreground">Cancelled by {appointment.professional_name}:</span>{" "}
+                {appointment.cancellation_reason}
+              </p>
+            )}
             {appointment.outcome_notes && (
               <p className="text-[11px] text-foreground/80 leading-relaxed font-body">
                 <span className="font-semibold text-foreground">How it went:</span> {appointment.outcome_notes}

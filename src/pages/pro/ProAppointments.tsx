@@ -21,6 +21,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProAvatar from "@/components/ProAvatar";
+import ProAppointmentCard from "@/components/pro/ProAppointmentCard";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -118,6 +119,8 @@ const ProAppointments = () => {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   // Tapping an appointment opens its detail sheet — not the client passport.
   const [detailId, setDetailId] = useState<string | null>(null);
   const [outcomeDraft, setOutcomeDraft] = useState("");
@@ -245,82 +248,52 @@ const ProAppointments = () => {
     qc.invalidateQueries({ queryKey: ["pro-appointments"] });
   };
 
-  const renderCard = (a: ProAppointmentRow, variant: "upcoming" | "past") => {
-    const meta = statusMeta(a.status);
-    const firstName = (a.client_display_name ?? "").split(/\s+/)[0] || "Client";
-    const highlight = focusApptId === a.id;
-    return (
-      <div
-        key={a.id}
-        id={`appt-${a.id}`}
-        className={`rounded-[14px] border border-border bg-card p-4 space-y-3 transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
-      >
-        <button
-          type="button"
-          onClick={() => openDetail(a)}
-          aria-label="Open appointment details"
-          className="w-full flex items-center gap-3 text-left"
-        >
-          <ProAvatar name={firstName} photoUrl={a.client_avatar_url ?? undefined} size="size-10" />
-          <div className="flex-1 min-w-0">
-            <p className="font-display text-base font-semibold leading-tight truncate">
-              {firstName}
-            </p>
-            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-              {formatDate(a.appointment_date)}
-              {a.appointment_time ? ` · ${formatTime12h(a.appointment_time)}` : ""}
-            </p>
-          </div>
-          <span
-            className={`text-[10px] uppercase tracking-[0.14em] font-body px-2 py-1 rounded-full border ${meta.tone}`}
-          >
-            {meta.label}
-          </span>
-          <ChevronRight className="size-4 text-primary/70 shrink-0" />
-        </button>
-
-        {(a.clinic_name || a.reason) && (
-          <div className="text-[12px] text-foreground/80 space-y-0.5">
-            {a.clinic_name && <p><span className="text-muted-foreground">Location:</span> {a.clinic_name}</p>}
-            {a.reason && <p><span className="text-muted-foreground">Reason:</span> {a.reason}</p>}
-          </div>
-        )}
-
-        {a.notes && (
-          <p className="text-[12px] text-foreground/75 leading-snug whitespace-pre-wrap border-t border-border/60 pt-2">
-            {a.notes}
-          </p>
-        )}
-
-        {variant === "upcoming" && (
-          <div className="flex flex-col gap-2 pt-1">
-            <Button
-              disabled={busyId === a.id}
-              onClick={() => updateStatus(a.id, "completed")}
-              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
-            >
-              <Check className="size-4 mr-2" /> Mark completed
-            </Button>
-            <Button
-              disabled={busyId === a.id}
-              onClick={() => updateStatus(a.id, "no_show")}
-              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
-            >
-              <AlertTriangle className="size-4 mr-2" /> Mark no-show
-            </Button>
-            <Button
-              disabled={busyId === a.id}
-              onClick={() => setConfirmCancelId(a.id)}
-              className="w-full h-11 text-[14px] font-body font-semibold uppercase tracking-[0.08em]"
-            >
-              <XCircle className="size-4 mr-2" /> Cancel
-            </Button>
-          </div>
-        )}
-
-      </div>
-    );
+  /** A pro can never cancel silently — the reason travels with the
+   *  cancellation notification the client receives. */
+  const cancelWithReason = async (id: string) => {
+    const reason = cancelReason.trim();
+    if (reason.length < 5) {
+      toast.error("Please give your client a reason (at least a few words)");
+      return;
+    }
+    setCancelling(true);
+    const { error } = await supabase.rpc("pro_cancel_appointment", {
+      _appointment_id: id,
+      _reason: reason,
+    });
+    setCancelling(false);
+    if (error) {
+      console.error("Pro appointment cancel failed:", error);
+      toast.error(error.message || "Could not cancel the appointment");
+      return;
+    }
+    setConfirmCancelId(null);
+    setCancelReason("");
+    setDetailId(null);
+    toast.success("Cancelled — your client has been notified with your reason");
+    qc.invalidateQueries({ queryKey: ["pro-appointments"] });
   };
+
+  const openCancel = (id: string) => {
+    setCancelReason("");
+    setConfirmCancelId(id);
+  };
+
+  const renderCard = (a: ProAppointmentRow, variant: "upcoming" | "past") => (
+    <ProAppointmentCard
+      key={a.id}
+      appointment={a}
+      variant={variant}
+      busy={busyId === a.id}
+      highlight={focusApptId === a.id}
+      onOpenDetail={() => openDetail(a)}
+      onMessage={() => openChat(a.user_id)}
+      onSendBookingLink={() => sendLink(a.user_id)}
+      onComplete={() => updateStatus(a.id, "completed")}
+      onNoShow={() => updateStatus(a.id, "no_show")}
+      onCancel={() => openCancel(a.id)}
+    />
+  );
 
   const list = tab === "upcoming" ? upcoming : past;
   const grid = buildMonthGrid(monthCursor.year, monthCursor.month);
@@ -646,7 +619,7 @@ const ProAppointments = () => {
                       </Button>
                       <Button
                         disabled={busyId === detail.id}
-                        onClick={() => setConfirmCancelId(detail.id)}
+                        onClick={() => openCancel(detail.id)}
                         className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
                       >
                         <XCircle className="size-4 mr-2" /> Cancel
@@ -717,33 +690,56 @@ const ProAppointments = () => {
         </SheetContent>
       </Sheet>
 
+      {/* Cancelling requires a reason — it's sent to the client with the
+          cancellation notification. */}
       <AlertDialog
         open={!!confirmCancelId}
-        onOpenChange={(o) => !o && setConfirmCancelId(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmCancelId(null);
+            setCancelReason("");
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
             <AlertDialogDescription>
-              This marks the appointment as cancelled for you and your client. You can't undo this.
+              Your client will be notified straight away, and your reason is included in that
+              notification. You can't undo this.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <SectionLabel>Reason (required)</SectionLabel>
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              maxLength={400}
+              placeholder="e.g. I'm unwell and rescheduling this week's clients — message me to rebook."
+              className="text-sm font-body"
+            />
+            <p className="text-[11px] text-muted-foreground font-body">
+              {cancelReason.trim().length < 5
+                ? "Write a few words so your client knows what happened."
+                : `${cancelReason.trim().length}/400`}
+            </p>
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep appointment</AlertDialogCancel>
+            <AlertDialogCancel disabled={cancelling}>Keep appointment</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (confirmCancelId) {
-                  const id = confirmCancelId;
-                  setConfirmCancelId(null);
-                  updateStatus(id, "cancelled");
-                }
+              disabled={cancelling || cancelReason.trim().length < 5}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmCancelId) cancelWithReason(confirmCancelId);
               }}
             >
-              Cancel appointment
+              {cancelling ? "Cancelling…" : "Cancel & notify client"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </ScreenLayout>
 
   );
