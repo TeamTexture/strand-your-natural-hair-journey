@@ -94,9 +94,11 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
   const formattedTime = appointment.appointment_time ? formatTime12h(appointment.appointment_time) : "";
   const kicker = appointment.professional_type ?? "Appointment";
 
-  const subtitle =
-    [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
-    (isFollowUp ? appointment.clinic_name || "—" : "—");
+  // What the appointment is for — shown on its own line under the pro's name.
+  const description = (isFollowUp ? upcomingReason : appointment.reason?.trim()) || null;
+  // Where / how it's happening (e.g. "In salon", clinic name).
+  const venue = appointment.clinic_name?.trim() || null;
+
 
   const calendarEvent: CalendarEvent = {
     title: `${appointment.professional_type ?? "Appointment"} — ${appointment.professional_name}`,
