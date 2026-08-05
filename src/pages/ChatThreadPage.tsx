@@ -282,21 +282,23 @@ const ChatThreadPage = () => {
   const [departureOpen, setDepartureOpen] = useState(false);
   const logDeparture = useLogBookingDeparture();
 
-  // Peer thread: the "client" side is itself a professional, so there is no
-  // hair passport attached and the pro-side passport actions are hidden.
+  // Peer thread: the enquiry was explicitly SENT as a professional. Having a
+  // pro profile is not enough — multi-role accounts enquire as members too, and
+  // the recorded sender_role is the only source of truth.
   const { data: isPeerThread = false } = useQuery({
-    queryKey: ["chat_thread_peer", t?.consumer_id],
-    enabled: !isSupport && !!t?.consumer_id,
+    queryKey: ["chat_thread_peer", t?.enquiry_id],
+    enabled: !isSupport && !!t?.enquiry_id,
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
-        .from("pro_profiles")
-        .select("user_id")
-        .eq("user_id", t!.consumer_id!)
+        .from("pro_enquiries")
+        .select("sender_role")
+        .eq("id", t!.enquiry_id!)
         .maybeSingle();
-      return !!data;
+      return data?.sender_role === "pro";
     },
   });
+
 
 
 
