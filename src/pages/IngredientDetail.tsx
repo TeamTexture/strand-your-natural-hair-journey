@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { safeBack } from "@/lib/smartBack";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
@@ -698,11 +699,7 @@ const IngredientDetail = () => {
       navigate(returnTo, { replace: true });
       return;
     }
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate("/products", { replace: true });
-    }
+    safeBack(navigate, "/products");
   };
 
   const handleConfirmDelete = async () => {
@@ -817,8 +814,7 @@ const IngredientDetail = () => {
   const handleBack = () => {
     if (shouldGuard) {
       pendingNavRef.current = () => {
-        if (window.history.state && window.history.state.idx > 0) navigate(-1);
-        else navigate("/products", { replace: true });
+        safeBack(navigate, "/products");
       };
       setDiscardOpen(true);
       return;
@@ -826,11 +822,7 @@ const IngredientDetail = () => {
     // If we got here via a redirect (replace: true) or a page reload, the
     // history stack may not have a sensible previous entry — fall back to
     // the products list so the back button always does something visible.
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate("/products", { replace: true });
-    }
+    safeBack(navigate, "/products");
   };
 
   // Explicit not-found state. We never silently bounce — that was the

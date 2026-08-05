@@ -1,3 +1,4 @@
+import { safeBack } from "@/lib/smartBack";
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -396,7 +397,7 @@ const SetupGuide = () => {
       localStorage.removeItem(`strand_setup_pending:${user.id}`);
     }
     if (fromHelp) {
-      navigate(-1);
+      safeBack(navigate, "/home");
     } else {
       navigate("/onboarding/profile-step-1", { replace: true });
     }

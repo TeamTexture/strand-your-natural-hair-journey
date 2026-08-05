@@ -1,3 +1,4 @@
+import { safeBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Trash2, ArrowDownToLine } from "lucide-react";
@@ -350,7 +351,7 @@ const ProductProfile = () => {
   const handleDelete = async () => {
     await remove(product.id);
     setConfirmDelete(false);
-    navigate(-1);
+    safeBack(navigate, "/products");
   };
 
   // Title-case the saved category for the page title; fall back to "Product".
