@@ -39,6 +39,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { isPastAppointment, upcomingAppointments } from "@/lib/appointmentState";
 import { useProAppointments, type ProAppointmentRow } from "@/hooks/useProAppointments";
 import { formatTime12h } from "@/lib/formatTime";
+import { appointmentPurpose, appointmentWhere } from "@/lib/appointmentDisplay";
+
 import { useFindClientThread, useSendBookingLinkToClient } from "@/hooks/useChat";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -535,12 +537,13 @@ const ProAppointments = () => {
                   <div className="rounded-[12px] border border-border bg-card p-3 space-y-1.5 text-[12px] font-body">
                     <p>
                       <span className="text-muted-foreground">What it's for: </span>
-                      {detail.reason || "Not specified"}
+                      {appointmentPurpose(detail) || "Not specified"}
                     </p>
                     <p>
                       <span className="text-muted-foreground">Where: </span>
-                      {detail.clinic_name || "Not specified"}
+                      {appointmentWhere(detail) || "Not specified"}
                     </p>
+
                     {detail.notes && (
                       <p className="whitespace-pre-wrap pt-1 border-t border-border/60">
                         <span className="text-muted-foreground">Client's note: </span>
@@ -602,30 +605,31 @@ const ProAppointments = () => {
 
                   {isUpcoming && (
                     <div className="space-y-2">
-                      <SectionLabel>Update status</SectionLabel>
+                      <SectionLabel>After the visit</SectionLabel>
                       <Button
                         disabled={busyId === detail.id}
                         onClick={() => updateStatus(detail.id, "completed")}
-                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em] bg-primary text-white hover:bg-primary/90"
                       >
                         <Check className="size-4 mr-2" /> Mark completed
                       </Button>
                       <Button
                         disabled={busyId === detail.id}
                         onClick={() => updateStatus(detail.id, "no_show")}
-                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em] bg-primary text-white hover:bg-primary/90"
                       >
                         <AlertTriangle className="size-4 mr-2" /> Mark no-show
                       </Button>
                       <Button
                         disabled={busyId === detail.id}
                         onClick={() => openCancel(detail.id)}
-                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em]"
+                        className="w-full h-11 text-[13px] font-body font-semibold uppercase tracking-[0.08em] bg-destructive text-white hover:bg-destructive/90"
                       >
-                        <XCircle className="size-4 mr-2" /> Cancel
+                        <XCircle className="size-4 mr-2" /> Cancel appointment
                       </Button>
                     </div>
                   )}
+
                 </div>
               </>
             );
@@ -673,7 +677,7 @@ const ProAppointments = () => {
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
                         {a.appointment_time ? `${formatTime12h(a.appointment_time)} · ` : ""}
-                        {a.reason || a.clinic_name || "Appointment"}
+                        {appointmentPurpose(a) || appointmentWhere(a) || "Appointment"}
                       </p>
                     </div>
                     <span
