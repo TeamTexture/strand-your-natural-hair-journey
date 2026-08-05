@@ -12,6 +12,8 @@ export interface ProAppointmentRow {
   appointment_date: string;
   appointment_time: string | null;
   reason: string | null;
+  service: string | null;
+  location_format: string | null;
   notes: string | null;
   outcome_notes: string | null;
   cancellation_reason: string | null;
@@ -43,7 +45,7 @@ export const useProAppointments = () => {
       const { data, error } = await supabase
         .from("appointments")
         .select(
-          "id,user_id,professional_name,professional_type,clinic_name,appointment_date,appointment_time,reason,notes,outcome_notes,cancellation_reason,status,linked_pro_user_id,updated_at",
+          "id,user_id,professional_name,professional_type,clinic_name,appointment_date,appointment_time,reason,service,location_format,notes,outcome_notes,cancellation_reason,status,linked_pro_user_id,updated_at",
         )
         .eq("linked_pro_user_id", user!.id)
         .order("appointment_date", { ascending: true });
