@@ -236,6 +236,12 @@ const BookingReturnPrompt = () => {
               >
                 Your appointment with {click.pro_name}
               </DialogPrimitive.Title>
+              <p className="text-[12px] font-body leading-relaxed text-muted-foreground">
+                This logs it in your STRAND diary and tags {click.pro_name}, so it
+                shows as upcoming for you both. You can add it to Google or Apple
+                Calendar next.
+              </p>
+
 
               <div>
                 <label
