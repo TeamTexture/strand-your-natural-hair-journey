@@ -425,6 +425,7 @@ const ProEnquiries = () => {
   const { data, isLoading } = useProInbox();
   const accept = useAcceptEnquiry();
   const decline = useDeclineEnquiry();
+  const sendBookingLink = useSendBookingLinkToClient();
   const [tab, setTab] = useState<Tab>("pending");
   const [declineId, setDeclineId] = useState<string | null>(null);
 
