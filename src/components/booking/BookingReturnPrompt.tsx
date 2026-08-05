@@ -397,7 +397,6 @@ const BookingReturnPrompt = () => {
                 </p>
               </div>
 
-
               <div className="space-y-2">
                 <p className="text-[10px] font-body font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Optional — also add it to your phone
@@ -406,6 +405,7 @@ const BookingReturnPrompt = () => {
                   href={googleCalendarUrl(calendarEvent)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={finish}
                   className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill border border-border px-4 text-[11px] font-body font-semibold uppercase tracking-[0.08em]"
                 >
                   <CalendarPlus className="size-3.5" aria-hidden="true" />
@@ -414,7 +414,10 @@ const BookingReturnPrompt = () => {
                 </a>
                 <button
                   type="button"
-                  onClick={() => addToCalendar(calendarEvent)}
+                  onClick={() => {
+                    addToCalendar(calendarEvent);
+                    finish();
+                  }}
                   className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill border border-border px-4 text-[11px] font-body font-semibold uppercase tracking-[0.08em]"
                 >
                   <Download className="size-3.5" aria-hidden="true" />
@@ -429,10 +432,12 @@ const BookingReturnPrompt = () => {
 
               <Button
                 onClick={finish}
-                className="w-full min-h-[48px] rounded-pill text-[11.5px] font-semibold uppercase tracking-[0.08em]"
+                variant="outline"
+                className="w-full min-h-[48px] rounded-pill border-border text-[11.5px] font-semibold uppercase tracking-[0.08em]"
               >
-                Done
+                Skip — view in my appointments
               </Button>
+
             </div>
           )}
         </DialogPrimitive.Content>
