@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { CalendarPlus, Check, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ const FIELD =
 
 const BookingReturnPrompt = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const view = useActiveRoleView();
   const isMemberView = allowsMemberFeatures(view);
   const { data: pending = [] } = usePendingBookingClicks();
