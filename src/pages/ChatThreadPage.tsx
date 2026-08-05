@@ -214,7 +214,7 @@ const MessageBubble = ({
 const ChatThreadPage = () => {
   const nav = useNavigate();
   const { threadId } = useParams();
-  const { user } = useAuth();
+  const { user, isViewingAs } = useAuth();
   const roleView = useActiveRoleView();
   const { thread, messages } = useChatThread(threadId);
   const send = useSendChatMessage(threadId);
@@ -282,21 +282,23 @@ const ChatThreadPage = () => {
   const [departureOpen, setDepartureOpen] = useState(false);
   const logDeparture = useLogBookingDeparture();
 
-  // Peer thread: the "client" side is itself a professional, so there is no
-  // hair passport attached and the pro-side passport actions are hidden.
+  // Peer thread: the enquiry was explicitly SENT as a professional. Having a
+  // pro profile is not enough — multi-role accounts enquire as members too, and
+  // the recorded sender_role is the only source of truth.
   const { data: isPeerThread = false } = useQuery({
-    queryKey: ["chat_thread_peer", t?.consumer_id],
-    enabled: !isSupport && !!t?.consumer_id,
+    queryKey: ["chat_thread_peer", t?.enquiry_id],
+    enabled: !isSupport && !!t?.enquiry_id,
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
-        .from("pro_profiles")
-        .select("user_id")
-        .eq("user_id", t!.consumer_id!)
+        .from("pro_enquiries")
+        .select("sender_role")
+        .eq("id", t!.enquiry_id!)
         .maybeSingle();
-      return !!data;
+      return data?.sender_role === "pro";
     },
   });
+
 
 
 
@@ -545,7 +547,11 @@ const ChatThreadPage = () => {
 
       {isPro && !isSupport && (
         <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
-          {bookingUrl ? (
+          {isViewingAs ? (
+            <p className="text-[11.5px] font-body text-muted-foreground">
+              Read-only view — sending is disabled while viewing as another user.
+            </p>
+          ) : bookingUrl ? (
             <Button
               size="sm"
               onClick={async () => {
@@ -591,7 +597,7 @@ const ChatThreadPage = () => {
         </div>
         <button
           onClick={submit}
-          disabled={!draft.trim() || send.isPending}
+          disabled={!draft.trim() || send.isPending || isViewingAs}
           aria-label="Send"
           className="shrink-0 size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
         >
