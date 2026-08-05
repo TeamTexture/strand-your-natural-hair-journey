@@ -288,7 +288,7 @@ const GlobalMenu = () => {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-48">
-                  {isConsumer && (isAdmin || activeView !== "pro") && (
+                  {isConsumer && (
                     <DropdownMenuItem
                       onClick={() => navigate(viewMeta.consumer.to)}
                       className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
@@ -362,6 +362,7 @@ const GlobalMenu = () => {
                 </Tooltip>
               </TooltipProvider>
             )}
+            {!lockedPro && (
             <button
               type="button"
               aria-label="Open menu"
@@ -371,6 +372,7 @@ const GlobalMenu = () => {
             >
               <Menu className="size-5" />
             </button>
+            )}
           </div>
 
         </div>
