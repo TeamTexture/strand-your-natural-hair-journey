@@ -47,6 +47,27 @@ const ProClients = () => {
   const { data = [], isLoading } = useProClients();
   const [tab, setTab] = useState<"active" | "past">("active");
   const [q, setQ] = useState("");
+  const findThread = useFindClientThread();
+  const sendBookingLink = useSendBookingLinkToClient();
+
+  const openChat = async (consumerId: string) => {
+    try {
+      const id = await findThread.mutateAsync(consumerId);
+      nav(id ? `/messages/${id}` : "/messages");
+    } catch {
+      nav("/messages");
+    }
+  };
+
+  const sendLink = async (consumerId: string) => {
+    try {
+      const id = await sendBookingLink.mutateAsync(consumerId);
+      toast.success("Booking link sent");
+      nav(`/messages/${id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send booking link");
+    }
+  };
 
   const active = useMemo(() => data.filter((c) => !c.revoked_at), [data]);
   const past = useMemo(() => data.filter((c) => !!c.revoked_at), [data]);
