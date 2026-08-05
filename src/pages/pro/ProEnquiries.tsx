@@ -22,6 +22,7 @@ import {
   type Enquiry,
   type EnquiryStatus,
 } from "@/hooks/useEnquiries";
+import { useSendBookingLinkToClient } from "@/hooks/useChat";
 
 type Tab = "pending" | "accepted" | "declined";
 
