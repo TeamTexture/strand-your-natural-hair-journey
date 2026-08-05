@@ -167,9 +167,11 @@ const GlobalMenu = () => {
 
 
   const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
-  // Professionals (non-admin) never see a view switcher — the pro side is
-  // their whole app.
-  const showViewSwitcher = roleCount > 1 && (isAdmin || activeView !== "pro");
+  // Anyone with more than one account (member + pro, member + brand, admin…)
+  // gets the toggle in every view — including inside the professional side, so
+  // they can always get back to their member account.
+  const showViewSwitcher = roleCount > 1;
+
 
   const viewMeta = {
     consumer: { label: "My STRAND", icon: HomeIcon, to: "/home" },
@@ -211,10 +213,13 @@ const GlobalMenu = () => {
   // is locked to the landing/welcome screen and we surface nothing.
   const proUnlocked = isAdmin || (isProfessional && proSubActive);
 
-  // Suppress the entire top bar for pros still in application / acceptance —
-  // the landing, apply and welcome screens have their own back affordances,
-  // and the hamburger isn't useful until they're actually inside the app.
-  if (activeView === "pro" && !proUnlocked) return null;
+  // Suppress the top bar for pros still in application / acceptance — the
+  // landing, apply and welcome screens have their own back affordances, and the
+  // hamburger isn't useful until they're actually inside the app. Multi-account
+  // users keep the bar so the view toggle is always reachable.
+  const lockedPro = activeView === "pro" && !proUnlocked;
+  if (lockedPro && !showViewSwitcher) return null;
+
 
   const navItems: NavItem[] =
     activeView === "admin"
@@ -283,7 +288,7 @@ const GlobalMenu = () => {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-48">
-                  {isConsumer && (isAdmin || activeView !== "pro") && (
+                  {isConsumer && (
                     <DropdownMenuItem
                       onClick={() => navigate(viewMeta.consumer.to)}
                       className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
@@ -357,6 +362,7 @@ const GlobalMenu = () => {
                 </Tooltip>
               </TooltipProvider>
             )}
+            {!lockedPro && (
             <button
               type="button"
               aria-label="Open menu"
@@ -366,6 +372,7 @@ const GlobalMenu = () => {
             >
               <Menu className="size-5" />
             </button>
+            )}
           </div>
 
         </div>
