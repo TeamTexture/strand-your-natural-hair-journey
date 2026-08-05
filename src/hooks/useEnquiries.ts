@@ -251,6 +251,8 @@ export function useCreateEnquiry() {
         _location_preference: input.location_preference ?? null,
         _budget_range: input.budget_range ?? null,
         _share_passport_consent: input.share_passport_consent ?? false,
+        _sender_role: input.sender_role ?? "consumer",
+
       });
       if (error) throw error;
       return data as string;
