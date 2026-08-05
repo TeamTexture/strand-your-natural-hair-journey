@@ -94,9 +94,11 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
   const formattedTime = appointment.appointment_time ? formatTime12h(appointment.appointment_time) : "";
   const kicker = appointment.professional_type ?? "Appointment";
 
-  const subtitle =
-    [appointment.clinic_name, isFollowUp ? null : appointment.reason].filter(Boolean).join(" · ") ||
-    (isFollowUp ? appointment.clinic_name || "—" : "—");
+  // What the appointment is for — shown on its own line under the pro's name.
+  const description = (isFollowUp ? upcomingReason : appointment.reason?.trim()) || null;
+  // Where / how it's happening (e.g. "In salon", clinic name).
+  const venue = appointment.clinic_name?.trim() || null;
+
 
   const calendarEvent: CalendarEvent = {
     title: `${appointment.professional_type ?? "Appointment"} — ${appointment.professional_name}`,
@@ -155,8 +157,13 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
               <p className="font-display text-white text-lg font-semibold leading-tight truncate">
                 {appointment.professional_name}
               </p>
-              <p className="text-[#E0D7CC]/80 text-[12px] truncate font-body">{subtitle}</p>
+              {description && (
+                <p className="text-white/90 text-[12px] leading-snug font-body line-clamp-2">{description}</p>
+              )}
+              {venue && <p className="text-[#E0D7CC]/70 text-[11px] truncate font-body">{venue}</p>}
+              {!description && !venue && <p className="text-[#E0D7CC]/70 text-[11px] font-body">—</p>}
             </div>
+
           </ProBlock>
 
           {isFollowUp && (previousReason || upcomingReason) && (
@@ -271,7 +278,12 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
             <p className="font-display text-foreground text-base font-semibold leading-tight truncate">
               {appointment.professional_name}
             </p>
-            <p className="text-muted-foreground text-[12px] truncate font-body">{subtitle}</p>
+            {description && (
+              <p className="text-foreground/85 text-[12px] leading-snug font-body line-clamp-2">{description}</p>
+            )}
+            {venue && <p className="text-muted-foreground text-[11px] truncate font-body">{venue}</p>}
+            {!description && !venue && <p className="text-muted-foreground text-[11px] font-body">—</p>}
+
           </div>
         </ProBlock>
 
