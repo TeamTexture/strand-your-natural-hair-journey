@@ -167,12 +167,16 @@ const GlobalMenu = () => {
 
   const activeView: "consumer" | "pro" | "admin" | "brand" = routeView ?? rememberedView;
 
+  // A consumer role alone is not enough: the user must have actually completed
+  // (or started) a member profile. Otherwise professionals without an end-user
+  // profile see a toggle to an empty/broken consumer view.
+  const hasConsumerProfile = !!myProfile;
+  const viableConsumer = isConsumer && hasConsumerProfile;
 
-  const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
-  // Anyone with more than one account (member + pro, member + brand, admin…)
-  // gets the toggle in every view — including inside the professional side, so
-  // they can always get back to their member account.
-  const showViewSwitcher = roleCount > 1;
+  const viableAccountCount = [viableConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
+  // Anyone with more than one *viable* account (member + pro, member + brand,
+  // admin + pro…) gets the toggle in every view.
+  const showViewSwitcher = viableAccountCount > 1 && !profileLoading;
 
 
   const viewMeta = {
