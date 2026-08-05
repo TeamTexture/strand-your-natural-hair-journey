@@ -677,7 +677,7 @@ const ProAppointments = () => {
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
                         {a.appointment_time ? `${formatTime12h(a.appointment_time)} · ` : ""}
-                        {a.reason || a.clinic_name || "Appointment"}
+                        {appointmentPurpose(a) || appointmentWhere(a) || "Appointment"}
                       </p>
                     </div>
                     <span
