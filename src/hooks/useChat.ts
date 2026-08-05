@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
 import {
   threadMatchesView,
   useActiveRoleView,
