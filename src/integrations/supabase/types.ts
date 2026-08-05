@@ -2142,6 +2142,7 @@ export type Database = {
           preferred_timeframe: string | null
           pro_user_id: string
           responded_at: string | null
+          sender_role: string
           service_interest: string | null
           share_passport_consent: boolean
           status: Database["public"]["Enums"]["pro_enquiry_status"]
@@ -2160,6 +2161,7 @@ export type Database = {
           preferred_timeframe?: string | null
           pro_user_id: string
           responded_at?: string | null
+          sender_role?: string
           service_interest?: string | null
           share_passport_consent?: boolean
           status?: Database["public"]["Enums"]["pro_enquiry_status"]
@@ -2178,6 +2180,7 @@ export type Database = {
           preferred_timeframe?: string | null
           pro_user_id?: string
           responded_at?: string | null
+          sender_role?: string
           service_interest?: string | null
           share_passport_consent?: boolean
           status?: Database["public"]["Enums"]["pro_enquiry_status"]
@@ -4014,20 +4017,36 @@ export type Database = {
         Returns: undefined
       }
       resolve_mention_user_ids: { Args: { _text: string }; Returns: string[] }
-      send_enquiry_with_access: {
-        Args: {
-          _budget_range: string
-          _contact_method: string
-          _contact_phone: string
-          _location_preference: string
-          _note: string
-          _preferred_timeframe: string
-          _pro_user_id: string
-          _service_interest: string
-          _share_passport_consent?: boolean
-        }
-        Returns: string
-      }
+      send_enquiry_with_access:
+        | {
+            Args: {
+              _budget_range: string
+              _contact_method: string
+              _contact_phone: string
+              _location_preference: string
+              _note: string
+              _preferred_timeframe: string
+              _pro_user_id: string
+              _service_interest: string
+              _share_passport_consent?: boolean
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _budget_range: string
+              _contact_method: string
+              _contact_phone: string
+              _location_preference: string
+              _note: string
+              _preferred_timeframe: string
+              _pro_user_id: string
+              _sender_role?: string
+              _service_interest: string
+              _share_passport_consent?: boolean
+            }
+            Returns: string
+          }
       set_brand_blood_verification: {
         Args: { _brand_user_id: string; _verified: boolean }
         Returns: undefined
