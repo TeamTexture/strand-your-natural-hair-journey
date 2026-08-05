@@ -117,6 +117,7 @@ const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup"];
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
   const { isConsumer, isProfessional, isAdmin, isBrand } = useRoles();
+  const { data: myProfile, isLoading: profileLoading } = useMyProfile();
   const { isActive: proSubActive } = useProSubscription();
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const { isRestricted } = useAccessRestricted();
