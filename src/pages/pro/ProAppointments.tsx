@@ -257,7 +257,8 @@ const ProAppointments = () => {
       >
         <button
           type="button"
-          onClick={() => nav(`/pro/clients/${a.user_id}`)}
+          onClick={() => openDetail(a)}
+          aria-label="Open appointment details"
           className="w-full flex items-center gap-3 text-left"
         >
           <ProAvatar name={firstName} photoUrl={a.client_avatar_url ?? undefined} size="size-10" />
@@ -546,7 +547,7 @@ const ProAppointments = () => {
                     type="button"
                     onClick={() => {
                       setSelectedDay(null);
-                      nav(`/pro/clients/${a.user_id}`);
+                      openDetail(a);
                     }}
                     className="w-full flex items-center gap-3 rounded-[12px] border border-border bg-card p-3 text-left hover:border-primary/50"
                   >
