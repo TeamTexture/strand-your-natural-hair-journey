@@ -34,11 +34,35 @@ export interface PendingBookingClick {
  */
 export const usePendingBookingClicks = () => {
   const { user } = useAuth();
+  const qc = useQueryClient();
 
-  return useQuery({
+  // The member has just come back from the professional's booking page in
+  // another tab / Safari view. Re-check the instant the app is visible again so
+  // the prompt appears immediately rather than after the stale window.
+  useEffect(() => {
+    if (!user?.id) return;
+    const recheck = () => {
+      if (document.visibilityState !== "visible") return;
+      qc.invalidateQueries({ queryKey: ["pending-booking-clicks"] });
+    };
+    document.addEventListener("visibilitychange", recheck);
+    window.addEventListener("focus", recheck);
+    window.addEventListener("pageshow", recheck);
+    return () => {
+      document.removeEventListener("visibilitychange", recheck);
+      window.removeEventListener("focus", recheck);
+      window.removeEventListener("pageshow", recheck);
+    };
+  }, [user?.id, qc]);
+
+  const query = useQuery({
     queryKey: ["pending-booking-clicks", user?.id],
     enabled: !!user,
-    staleTime: 30_000,
+    // No stale window: a pending click must surface the moment we look.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+
     queryFn: async (): Promise<PendingBookingClick[]> => {
       const { data, error } = await supabase
         .from("pro_booking_clicks")
