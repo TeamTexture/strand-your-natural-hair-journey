@@ -367,7 +367,7 @@ const EnquiryCard = ({
               onClick={onBookAppointment}
               className="w-full uppercase tracking-[0.08em]"
             >
-              BOOK APPOINTMENT
+              SEND BOOKING LINK
             </Button>
           )}
         </div>
