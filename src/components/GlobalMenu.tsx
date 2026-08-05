@@ -444,7 +444,7 @@ const GlobalMenu = () => {
               <p className="px-3 pb-1 text-[10px] uppercase tracking-wider font-body font-semibold text-muted-foreground">
                 Switch view
               </p>
-              {isConsumer && activeView !== "consumer" && (isAdmin || activeView !== "pro") && (
+              {viableConsumer && activeView !== "consumer" && (isAdmin || activeView !== "pro") && (
                 <button
                   onClick={() => go(viewMeta.consumer.to)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
