@@ -690,33 +690,56 @@ const ProAppointments = () => {
         </SheetContent>
       </Sheet>
 
+      {/* Cancelling requires a reason — it's sent to the client with the
+          cancellation notification. */}
       <AlertDialog
         open={!!confirmCancelId}
-        onOpenChange={(o) => !o && setConfirmCancelId(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmCancelId(null);
+            setCancelReason("");
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
             <AlertDialogDescription>
-              This marks the appointment as cancelled for you and your client. You can't undo this.
+              Your client will be notified straight away, and your reason is included in that
+              notification. You can't undo this.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <SectionLabel>Reason (required)</SectionLabel>
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              maxLength={400}
+              placeholder="e.g. I'm unwell and rescheduling this week's clients — message me to rebook."
+              className="text-sm font-body"
+            />
+            <p className="text-[11px] text-muted-foreground font-body">
+              {cancelReason.trim().length < 5
+                ? "Write a few words so your client knows what happened."
+                : `${cancelReason.trim().length}/400`}
+            </p>
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep appointment</AlertDialogCancel>
+            <AlertDialogCancel disabled={cancelling}>Keep appointment</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (confirmCancelId) {
-                  const id = confirmCancelId;
-                  setConfirmCancelId(null);
-                  updateStatus(id, "cancelled");
-                }
+              disabled={cancelling || cancelReason.trim().length < 5}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmCancelId) cancelWithReason(confirmCancelId);
               }}
             >
-              Cancel appointment
+              {cancelling ? "Cancelling…" : "Cancel & notify client"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </ScreenLayout>
 
   );
