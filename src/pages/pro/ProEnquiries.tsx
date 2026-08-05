@@ -539,7 +539,17 @@ const ProEnquiries = () => {
               }
               onBookAppointment={
                 e.status === "accepted"
-                  ? () => nav(`/pro/appointments?client=${e.consumer_id}`)
+                  ? async () => {
+                      try {
+                        const id = await sendBookingLink.mutateAsync(e.consumer_id);
+                        toast.success("Booking link sent");
+                        nav(`/messages/${id}`);
+                      } catch (err) {
+                        toast.error(
+                          err instanceof Error ? err.message : "Could not send booking link",
+                        );
+                      }
+                    }
                   : undefined
               }
               onMessage={
