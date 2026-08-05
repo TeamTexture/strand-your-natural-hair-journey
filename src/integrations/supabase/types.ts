@@ -146,6 +146,9 @@ export type Database = {
         Row: {
           appointment_date: string
           appointment_time: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           clinic_name: string | null
           created_at: string
           created_by: string | null
@@ -170,6 +173,9 @@ export type Database = {
         Insert: {
           appointment_date: string
           appointment_time?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           clinic_name?: string | null
           created_at?: string
           created_by?: string | null
@@ -194,6 +200,9 @@ export type Database = {
         Update: {
           appointment_date?: string
           appointment_time?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           clinic_name?: string | null
           created_at?: string
           created_by?: string | null
@@ -3973,6 +3982,10 @@ export type Database = {
           _type: string
           _url: string
         }
+        Returns: undefined
+      }
+      pro_cancel_appointment: {
+        Args: { _appointment_id: string; _reason: string }
         Returns: undefined
       }
       pro_log_appointment: {
