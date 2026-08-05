@@ -17,6 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsProFeatures } from "@/lib/viewFeatures";
+import { useRoles } from "@/hooks/useRoles";
+
 
 interface Props {
   open: boolean;
