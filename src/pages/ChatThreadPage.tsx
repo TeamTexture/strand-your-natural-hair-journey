@@ -8,6 +8,8 @@ import { normalizeBookingUrl } from "@/lib/bookingUrl";
 import { externalLinkProps } from "@/lib/socialLinks";
 
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import ChatAppointmentPreview from "@/components/chat/ChatAppointmentPreview";
+import { useThreadAppointment } from "@/hooks/useThreadAppointment";
 import BookingDepartureSheet from "@/components/booking/BookingDepartureSheet";
 import { useLogBookingDeparture } from "@/hooks/useBookingDeparture";
 import TimePicker12h from "@/components/TimePicker12h";
@@ -279,6 +281,12 @@ const ChatThreadPage = () => {
   const bookingUrl = proBooking?.url ? normalizeBookingUrl(proBooking.url) : "";
   const myProName = proBooking?.proName || "Your professional";
   const sendBookingRequest = useSendBookingRequest(threadId);
+  // Next booked appointment shared by these two people — pinned above the
+  // composer so either side can jump to their own dashboard for the detail.
+  const { data: threadAppointment } = useThreadAppointment(
+    !isSupport ? t?.consumer_id : null,
+    proUserId,
+  );
   const [departureOpen, setDepartureOpen] = useState(false);
   const logDeparture = useLogBookingDeparture();
 
@@ -493,6 +501,14 @@ const ChatThreadPage = () => {
           })
         )}
       </div>
+
+      {threadAppointment && !isSupport && (
+        <ChatAppointmentPreview
+          appointment={threadAppointment}
+          isPro={isPro}
+          clientName={isPro ? other?.name : null}
+        />
+      )}
 
       {/* Client side: persistent booking action whenever the pro has a link. */}
       {!isSupport && !isPro && bookingUrl && (
