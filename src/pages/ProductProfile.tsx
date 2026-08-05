@@ -1,3 +1,4 @@
+import { safeBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Trash2, ArrowDownToLine } from "lucide-react";

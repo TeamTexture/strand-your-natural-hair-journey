@@ -1,3 +1,4 @@
+import { safeBack } from "@/lib/smartBack";
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
