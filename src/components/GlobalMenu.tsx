@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { useMyProfile } from "@/hooks/useMyProfile";
 import { useAccessRestricted } from "@/hooks/useAccessRestricted";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
@@ -116,6 +117,7 @@ const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup"];
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
   const { isConsumer, isProfessional, isAdmin, isBrand } = useRoles();
+  const { data: myProfile, isLoading: profileLoading } = useMyProfile();
   const { isActive: proSubActive } = useProSubscription();
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const { isRestricted } = useAccessRestricted();
@@ -165,12 +167,16 @@ const GlobalMenu = () => {
 
   const activeView: "consumer" | "pro" | "admin" | "brand" = routeView ?? rememberedView;
 
+  // A consumer role alone is not enough: the user must have actually completed
+  // (or started) a member profile. Otherwise professionals without an end-user
+  // profile see a toggle to an empty/broken consumer view.
+  const hasConsumerProfile = !!myProfile;
+  const viableConsumer = isConsumer && hasConsumerProfile;
 
-  const roleCount = [isConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
-  // Anyone with more than one account (member + pro, member + brand, admin…)
-  // gets the toggle in every view — including inside the professional side, so
-  // they can always get back to their member account.
-  const showViewSwitcher = roleCount > 1;
+  const viableAccountCount = [viableConsumer, isProfessional, isAdmin, isBrand].filter(Boolean).length;
+  // Anyone with more than one *viable* account (member + pro, member + brand,
+  // admin + pro…) gets the toggle in every view.
+  const showViewSwitcher = viableAccountCount > 1 && !profileLoading;
 
 
   const viewMeta = {
@@ -288,7 +294,7 @@ const GlobalMenu = () => {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-48">
-                  {isConsumer && (
+                  {viableConsumer && (
                     <DropdownMenuItem
                       onClick={() => navigate(viewMeta.consumer.to)}
                       className={activeView === "consumer" ? "bg-primary/10 text-primary" : ""}
@@ -438,7 +444,7 @@ const GlobalMenu = () => {
               <p className="px-3 pb-1 text-[10px] uppercase tracking-wider font-body font-semibold text-muted-foreground">
                 Switch view
               </p>
-              {isConsumer && activeView !== "consumer" && (isAdmin || activeView !== "pro") && (
+              {viableConsumer && activeView !== "consumer" && (isAdmin || activeView !== "pro") && (
                 <button
                   onClick={() => go(viewMeta.consumer.to)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body hover:bg-muted/50 transition-colors"
