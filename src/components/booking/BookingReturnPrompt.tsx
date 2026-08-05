@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { CalendarPlus, Check, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ const FIELD =
 
 const BookingReturnPrompt = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const view = useActiveRoleView();
   const isMemberView = allowsMemberFeatures(view);
   const { data: pending = [] } = usePendingBookingClicks();
@@ -173,10 +175,16 @@ const BookingReturnPrompt = () => {
 
   const finish = () => {
     // The click is already resolved at this point; clearing local state lets the
-    // next pending click (if any) take over.
+    // next pending click (if any) take over. Otherwise we hand the member
+    // straight to the appointment now sitting in their STRAND diary.
+    const id = saved?.id ?? null;
     setSaved(null);
     setStep("ask");
+    if (pending.length <= 1) {
+      navigate(id ? `/appointments?highlight=${id}` : "/appointments");
+    }
   };
+
 
   return (
     <DialogPrimitive.Root open>
@@ -397,7 +405,6 @@ const BookingReturnPrompt = () => {
                 </p>
               </div>
 
-
               <div className="space-y-2">
                 <p className="text-[10px] font-body font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Optional — also add it to your phone
@@ -406,6 +413,7 @@ const BookingReturnPrompt = () => {
                   href={googleCalendarUrl(calendarEvent)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={finish}
                   className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill border border-border px-4 text-[11px] font-body font-semibold uppercase tracking-[0.08em]"
                 >
                   <CalendarPlus className="size-3.5" aria-hidden="true" />
@@ -414,7 +422,10 @@ const BookingReturnPrompt = () => {
                 </a>
                 <button
                   type="button"
-                  onClick={() => addToCalendar(calendarEvent)}
+                  onClick={() => {
+                    addToCalendar(calendarEvent);
+                    finish();
+                  }}
                   className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-pill border border-border px-4 text-[11px] font-body font-semibold uppercase tracking-[0.08em]"
                 >
                   <Download className="size-3.5" aria-hidden="true" />
@@ -429,10 +440,12 @@ const BookingReturnPrompt = () => {
 
               <Button
                 onClick={finish}
-                className="w-full min-h-[48px] rounded-pill text-[11.5px] font-semibold uppercase tracking-[0.08em]"
+                variant="outline"
+                className="w-full min-h-[48px] rounded-pill border-border text-[11.5px] font-semibold uppercase tracking-[0.08em]"
               >
-                Done
+                Skip — view in my appointments
               </Button>
+
             </div>
           )}
         </DialogPrimitive.Content>
