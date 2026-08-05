@@ -17,6 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsProFeatures } from "@/lib/viewFeatures";
+import { useRoles } from "@/hooks/useRoles";
+
 
 interface Props {
   open: boolean;
@@ -85,7 +87,15 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const nav = useNavigate();
   // Pro-to-pro enquiries skip the hair passport entirely — no prompt, no
   // validation, and nothing empty created on the recipient's side.
-  const isPeerEnquiry = allowsProFeatures(useActiveRoleView());
+  //
+  // The remembered role view can be stale (the directory is a shared surface),
+  // so never silently decide this for a multi-role account: default to a member
+  // enquiry and let them switch explicitly.
+  const { isProfessional } = useRoles();
+  const proView = allowsProFeatures(useActiveRoleView());
+  const [sendAsPro, setSendAsPro] = useState(false);
+  const canSendAsPro = isProfessional;
+  const isPeerEnquiry = canSendAsPro && sendAsPro;
   const [service, setService] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<string | null>(null);
   const [contactMethod, setContactMethod] = useState<ContactMethod>("In-app");
@@ -95,6 +105,11 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const [note, setNote] = useState("");
   const [sharePassport, setSharePassport] = useState(false);
   const create = useCreateEnquiry();
+
+  useEffect(() => {
+    if (open) setSendAsPro(canSendAsPro && proView);
+  }, [open, canSendAsPro, proView]);
+
 
 
   useEffect(() => {
@@ -160,6 +175,20 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
         </DialogHeader>
 
         <div className="space-y-4">
+          {canSendAsPro && (
+            <div>
+              <Label>Sending as</Label>
+              <div className="flex flex-wrap gap-1.5">
+                <Chip active={!sendAsPro} onClick={() => setSendAsPro(false)}>
+                  Myself (member)
+                </Chip>
+                <Chip active={sendAsPro} onClick={() => setSendAsPro(true)}>
+                  A professional
+                </Chip>
+              </div>
+            </div>
+          )}
+
           <div>
             <Label>What are you looking for?</Label>
             <div className="flex flex-wrap gap-1.5">
