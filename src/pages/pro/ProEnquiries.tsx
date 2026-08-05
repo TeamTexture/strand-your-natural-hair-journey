@@ -22,6 +22,7 @@ import {
   type Enquiry,
   type EnquiryStatus,
 } from "@/hooks/useEnquiries";
+import { useSendBookingLinkToClient } from "@/hooks/useChat";
 
 type Tab = "pending" | "accepted" | "declined";
 
@@ -367,7 +368,7 @@ const EnquiryCard = ({
               onClick={onBookAppointment}
               className="w-full uppercase tracking-[0.08em]"
             >
-              BOOK APPOINTMENT
+              SEND BOOKING LINK
             </Button>
           )}
         </div>
@@ -425,6 +426,7 @@ const ProEnquiries = () => {
   const { data, isLoading } = useProInbox();
   const accept = useAcceptEnquiry();
   const decline = useDeclineEnquiry();
+  const sendBookingLink = useSendBookingLinkToClient();
   const [tab, setTab] = useState<Tab>("pending");
   const [declineId, setDeclineId] = useState<string | null>(null);
 
@@ -537,7 +539,17 @@ const ProEnquiries = () => {
               }
               onBookAppointment={
                 e.status === "accepted"
-                  ? () => nav(`/pro/appointments?client=${e.consumer_id}`)
+                  ? async () => {
+                      try {
+                        const id = await sendBookingLink.mutateAsync(e.consumer_id);
+                        toast.success("Booking link sent");
+                        nav(`/messages/${id}`);
+                      } catch (err) {
+                        toast.error(
+                          err instanceof Error ? err.message : "Could not send booking link",
+                        );
+                      }
+                    }
                   : undefined
               }
               onMessage={

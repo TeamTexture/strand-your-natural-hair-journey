@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
 import {
   threadMatchesView,
   useActiveRoleView,
@@ -475,6 +476,80 @@ export function useSendBookingRequest(threadId: string | null | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+    },
+  });
+}
+
+/**
+ * Find the pro↔client thread for one of my clients (professional side).
+ * Used by the Clients book so "Message client" lands in the same thread the
+ * accepted enquiry opened.
+ */
+export function useFindClientThread() {
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (consumerId: string): Promise<string | null> => {
+      if (!user?.id) throw new Error("Not ready");
+      const { data } = await supabase
+        .from("chat_threads")
+        .select("id")
+        .eq("thread_type", "client_pro")
+        .eq("pro_user_id", user.id)
+        .eq("consumer_id", consumerId)
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.id ?? null;
+    },
+  });
+}
+
+/**
+ * Professional-side: post my saved booking page link into the thread I share
+ * with a client, straight from the client book. The client is the one who
+ * books and logs the appointment, so the pro only ever sends the link.
+ */
+export function useSendBookingLinkToClient() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const view = useActiveRoleView();
+  return useMutation({
+    mutationFn: async (consumerId: string): Promise<string> => {
+      if (!user?.id) throw new Error("Not ready");
+      const { data: profile } = await supabase
+        .from("pro_profiles")
+        .select("booking_url, display_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const url = normalizeBookingUrl(profile?.booking_url ?? "");
+      if (!isValidBookingUrl(url)) {
+        throw new Error("Add your booking page link in your profile first");
+      }
+      const { data: thread } = await supabase
+        .from("chat_threads")
+        .select("id")
+        .eq("thread_type", "client_pro")
+        .eq("pro_user_id", user.id)
+        .eq("consumer_id", consumerId)
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (!thread?.id) throw new Error("No chat open with this client yet");
+      const proName = (profile?.display_name ?? "").trim() || "Your professional";
+      const { error } = await supabase.from("chat_messages").insert({
+        thread_id: thread.id,
+        sender_id: user.id,
+        sender_role: view,
+        kind: "booking_request",
+        body: `${proName} invites you to book`,
+        meta: { booking_url: url, pro_name: proName, note: null },
+      });
+      if (error) throw error;
+      return thread.id;
+    },
+    onSuccess: (threadId) => {
       qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
       qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
     },

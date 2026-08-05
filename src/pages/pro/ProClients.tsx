@@ -1,7 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronRight, Calendar, StickyNote, ShieldOff } from "lucide-react";
+import { Search, ChevronRight, Calendar, StickyNote, ShieldOff, MessageCircle, Link as LinkIcon } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -11,6 +11,8 @@ import ProAvatar from "@/components/ProAvatar";
 import { Input } from "@/components/ui/input";
 import { useProClients, type ProClientRow } from "@/hooks/useProClients";
 import { formatRelative } from "@/lib/formatPassportDate";
+import { useFindClientThread, useSendBookingLinkToClient } from "@/hooks/useChat";
+import { toast } from "sonner";
 
 const shortDate = (iso: string | null): string => {
   if (!iso) return "";
@@ -47,6 +49,27 @@ const ProClients = () => {
   const { data = [], isLoading } = useProClients();
   const [tab, setTab] = useState<"active" | "past">("active");
   const [q, setQ] = useState("");
+  const findThread = useFindClientThread();
+  const sendBookingLink = useSendBookingLinkToClient();
+
+  const openChat = async (consumerId: string) => {
+    try {
+      const id = await findThread.mutateAsync(consumerId);
+      nav(id ? `/messages/${id}` : "/messages");
+    } catch {
+      nav("/messages");
+    }
+  };
+
+  const sendLink = async (consumerId: string) => {
+    try {
+      const id = await sendBookingLink.mutateAsync(consumerId);
+      toast.success("Booking link sent");
+      nav(`/messages/${id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send booking link");
+    }
+  };
 
   const active = useMemo(() => data.filter((c) => !c.revoked_at), [data]);
   const past = useMemo(() => data.filter((c) => !!c.revoked_at), [data]);
@@ -123,34 +146,49 @@ const ProClients = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex flex-col gap-0.5 text-[11px] font-body text-foreground/75 min-w-0">
-            {c.next_appointment_date ? (
-              <span className="inline-flex items-center gap-1 text-primary">
-                <Calendar className="size-3" /> Next {shortDate(c.next_appointment_date)}
-              </span>
-            ) : c.last_appointment_date ? (
-              <span className="inline-flex items-center gap-1 text-muted-foreground">
-                <Calendar className="size-3" /> Last {shortDate(c.last_appointment_date)}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">No appointments yet</span>
-            )}
-            {c.note_count > 0 && (
-              <span className="inline-flex items-center gap-1 text-primary/85">
-                <StickyNote className="size-3" /> {c.note_count} private note{c.note_count === 1 ? "" : "s"}
-              </span>
-            )}
-          </div>
+        <div className="flex flex-col gap-0.5 text-[11px] font-body text-foreground/75 min-w-0">
+          {c.next_appointment_date ? (
+            <span className="inline-flex items-center gap-1 text-primary">
+              <Calendar className="size-3" /> Next {shortDate(c.next_appointment_date)}
+            </span>
+          ) : c.last_appointment_date ? (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <Calendar className="size-3" /> Last {shortDate(c.last_appointment_date)}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">No appointments yet</span>
+          )}
+          {c.note_count > 0 && (
+            <span className="inline-flex items-center gap-1 text-primary/85">
+              <StickyNote className="size-3" /> {c.note_count} private note{c.note_count === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+
+        {/* Same actions an accepted enquiry offers: chat, passport, booking link.
+            The client books and logs the appointment, so the pro only sends the link. */}
+        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              open();
-            }}
-            className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground px-4 h-9 text-[12px] font-body font-medium hover:opacity-90 transition-opacity"
+            onClick={() => openChat(c.consumer_id)}
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-full bg-primary text-primary-foreground h-9 text-[12px] font-body font-medium uppercase tracking-[0.08em] hover:opacity-90 transition-opacity"
           >
-            Review <ChevronRight className="size-3.5" />
+            <MessageCircle className="size-3.5" /> Message client
+          </button>
+          <button
+            type="button"
+            onClick={open}
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-card h-9 text-[12px] font-body font-medium uppercase tracking-[0.08em] hover:border-primary/50 transition-colors"
+          >
+            Open client passport <ChevronRight className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            disabled={sendBookingLink.isPending}
+            onClick={() => sendLink(c.consumer_id)}
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-card h-9 text-[12px] font-body font-medium uppercase tracking-[0.08em] hover:border-primary/50 transition-colors disabled:opacity-60"
+          >
+            <LinkIcon className="size-3.5" /> Send booking link
           </button>
         </div>
       </div>
