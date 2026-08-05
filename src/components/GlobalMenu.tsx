@@ -213,10 +213,13 @@ const GlobalMenu = () => {
   // is locked to the landing/welcome screen and we surface nothing.
   const proUnlocked = isAdmin || (isProfessional && proSubActive);
 
-  // Suppress the entire top bar for pros still in application / acceptance —
-  // the landing, apply and welcome screens have their own back affordances,
-  // and the hamburger isn't useful until they're actually inside the app.
-  if (activeView === "pro" && !proUnlocked) return null;
+  // Suppress the top bar for pros still in application / acceptance — the
+  // landing, apply and welcome screens have their own back affordances, and the
+  // hamburger isn't useful until they're actually inside the app. Multi-account
+  // users keep the bar so the view toggle is always reachable.
+  const lockedPro = activeView === "pro" && !proUnlocked;
+  if (lockedPro && !showViewSwitcher) return null;
+
 
   const navItems: NavItem[] =
     activeView === "admin"
