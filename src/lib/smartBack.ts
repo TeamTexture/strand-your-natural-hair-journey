@@ -55,20 +55,19 @@ export const smartBack = (
 
 /**
  * Always-functional back. Pops history only when there is a real previous
- * entry inside this SPA session (react-router tracks that on history.state.idx);
- * otherwise navigates to the fallback so the button is never a dead tap.
+ * entry inside this SPA session; otherwise navigates to the fallback so the
+ * button is never a dead tap.
  */
 export const safeBack = (
   navigate: NavigateFunction,
   fallback: string = HOME_PATH,
 ) => {
-  const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-  const hasInApp = sessionStorage.getItem(HISTORY_ENTRY_KEY) === "1";
-  if (idx > 0 && hasInApp) {
+  if (hasRouterHistory()) {
     navigate(-1);
   } else {
     // Fallback is a *backwards* move — replace so we don't stack history.
     navigate(fallback, { replace: true });
   }
 };
+
 
