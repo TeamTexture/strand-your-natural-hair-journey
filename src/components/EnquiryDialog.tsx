@@ -15,8 +15,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCreateEnquiry } from "@/hooks/useEnquiries";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { useActiveRoleView } from "@/hooks/useActiveRoleView";
-import { allowsProFeatures } from "@/lib/viewFeatures";
 import { useRoles } from "@/hooks/useRoles";
 
 
@@ -92,7 +90,6 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   // so never silently decide this for a multi-role account: default to a member
   // enquiry and let them switch explicitly.
   const { isProfessional } = useRoles();
-  const proView = allowsProFeatures(useActiveRoleView());
   const [sendAsPro, setSendAsPro] = useState(false);
   const canSendAsPro = isProfessional;
   const isPeerEnquiry = canSendAsPro && sendAsPro;
@@ -106,9 +103,12 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
   const [sharePassport, setSharePassport] = useState(false);
   const create = useCreateEnquiry();
 
+  // Always open as a member enquiry. The remembered role view must never
+  // decide this for a multi-role account — mislabelling the sender is worse
+  // than one extra tap.
   useEffect(() => {
-    if (open) setSendAsPro(canSendAsPro && proView);
-  }, [open, canSendAsPro, proView]);
+    if (open) setSendAsPro(false);
+  }, [open]);
 
 
 
@@ -154,6 +154,7 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
         location_preference: location,
         budget_range: budget.trim() || null,
         share_passport_consent: isPeerEnquiry ? false : sharePassport,
+        sender_role: isPeerEnquiry ? "pro" : "consumer",
       });
       toast.success(`Enquiry sent to ${proName}`);
       onOpenChange(false);

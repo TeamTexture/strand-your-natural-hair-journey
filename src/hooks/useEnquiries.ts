@@ -21,6 +21,13 @@ export interface Enquiry {
   contact_phone: string | null;
   location_preference: string | null;
   budget_range: string | null;
+  /**
+   * Which identity the sender chose at the time of sending: "consumer" (a
+   * STRAND member enquiring about their own hair) or "pro" (a professional
+   * enquiring peer-to-peer). Recorded on the row so a multi-role account is
+   * never mislabelled from its roles or its remembered role view.
+   */
+  sender_role: "consumer" | "pro";
 }
 
 export interface CreateEnquiryInput {
@@ -33,7 +40,9 @@ export interface CreateEnquiryInput {
   location_preference?: string | null;
   budget_range?: string | null;
   share_passport_consent?: boolean;
+  sender_role?: "consumer" | "pro";
 }
+
 
 export interface ClientAccess {
   id: string;
@@ -242,6 +251,8 @@ export function useCreateEnquiry() {
         _location_preference: input.location_preference ?? null,
         _budget_range: input.budget_range ?? null,
         _share_passport_consent: input.share_passport_consent ?? false,
+        _sender_role: input.sender_role ?? "consumer",
+
       });
       if (error) throw error;
       return data as string;
