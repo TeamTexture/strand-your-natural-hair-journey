@@ -284,9 +284,6 @@ const ChatThreadPage = () => {
   const [departureOpen, setDepartureOpen] = useState(false);
   const logDeparture = useLogBookingDeparture();
   // Pro-side nudge: a booking request was sent (or the client opened the
-  // booking page) and nothing has been logged in the diary since.
-  const { data: bookingFollowUps = [] } = useProBookingFollowUps();
-  const needsDiaryLog = isPro && bookingFollowUps.some((f) => f.thread_id === threadId);
 
   // Peer thread: the "client" side is itself a professional, so there is no
   // hair passport attached and the pro-side passport actions are hidden.
@@ -605,38 +602,6 @@ const ChatThreadPage = () => {
         </button>
       </div>
 
-      <BookAppointmentDialog
-        open={bookingOpen}
-        submitting={book.isPending}
-        locationSuggestions={locationSuggestions}
-        onCancel={() => setBookingOpen(false)}
-        onConfirm={async ({ date, time, location, notes }) => {
-          if (!threadId) return;
-          try {
-            await book.mutateAsync({
-              thread_id: threadId,
-              appointment_date: date,
-              appointment_time: time || undefined,
-              location: location || undefined,
-              notes: notes || undefined,
-            });
-            setBookingOpen(false);
-            // Pros get a confirmation with a shortcut to their appointments hub.
-            if (isPro) {
-              toast.success("Appointment booked", {
-                action: {
-                  label: "View in appointments",
-                  onClick: () => nav("/pro/appointments"),
-                },
-              });
-            } else {
-              toast.success("Appointment booked");
-            }
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Could not book");
-          }
-        }}
-      />
     </ScreenLayout>
   );
 };
