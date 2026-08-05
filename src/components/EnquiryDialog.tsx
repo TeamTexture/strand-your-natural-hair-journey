@@ -175,6 +175,20 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
         </DialogHeader>
 
         <div className="space-y-4">
+          {canSendAsPro && (
+            <div>
+              <Label>Sending as</Label>
+              <div className="flex flex-wrap gap-1.5">
+                <Chip active={!sendAsPro} onClick={() => setSendAsPro(false)}>
+                  Myself (member)
+                </Chip>
+                <Chip active={sendAsPro} onClick={() => setSendAsPro(true)}>
+                  A professional
+                </Chip>
+              </div>
+            </div>
+          )}
+
           <div>
             <Label>What are you looking for?</Label>
             <div className="flex flex-wrap gap-1.5">
