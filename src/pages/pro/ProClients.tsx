@@ -1,7 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronRight, Calendar, StickyNote, ShieldOff } from "lucide-react";
+import { Search, ChevronRight, Calendar, StickyNote, ShieldOff, MessageCircle, Link as LinkIcon } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
