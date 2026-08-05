@@ -157,8 +157,13 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
               <p className="font-display text-white text-lg font-semibold leading-tight truncate">
                 {appointment.professional_name}
               </p>
-              <p className="text-[#E0D7CC]/80 text-[12px] truncate font-body">{subtitle}</p>
+              {description && (
+                <p className="text-white/90 text-[12px] leading-snug font-body line-clamp-2">{description}</p>
+              )}
+              {venue && <p className="text-[#E0D7CC]/70 text-[11px] truncate font-body">{venue}</p>}
+              {!description && !venue && <p className="text-[#E0D7CC]/70 text-[11px] font-body">—</p>}
             </div>
+
           </ProBlock>
 
           {isFollowUp && (previousReason || upcomingReason) && (
