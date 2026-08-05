@@ -5,6 +5,8 @@ import AddToCalendarButton from "@/components/AddToCalendarButton";
 import type { CalendarEvent } from "@/lib/addToCalendar";
 import { formatTime12h } from "@/lib/formatTime";
 import type { ProAppointmentRow } from "@/hooks/useProAppointments";
+import { appointmentPurpose, appointmentWhere } from "@/lib/appointmentDisplay";
+
 
 interface Props {
   appointment: ProAppointmentRow;
@@ -70,8 +72,9 @@ const ProAppointmentCard = ({
   const countdown = isUpcoming ? countdownLabel(a.appointment_date) : null;
   const formattedDate = formatDate(a.appointment_date);
   const formattedTime = a.appointment_time ? formatTime12h(a.appointment_time) : "";
-  const description = a.reason?.trim() || null;
-  const venue = a.clinic_name?.trim() || null;
+  const description = appointmentPurpose(a);
+  const venue = appointmentWhere(a);
+
 
   const calendarEvent: CalendarEvent = {
     title: `${firstName} — ${a.professional_type ?? "Appointment"}`,
@@ -216,35 +219,36 @@ const ProAppointmentCard = ({
             <p className="text-[#C5A059]/70 text-[10px] uppercase tracking-[0.18em] font-semibold font-body mb-2">
               After the visit
             </p>
-            <div className="flex items-center gap-2">
+            <div className="space-y-2">
               <button
                 type="button"
                 disabled={busy}
                 onClick={onComplete}
-                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-[#C5A059] text-[#2C2416] text-[10px] font-bold uppercase tracking-[0.12em] font-body hover:bg-[#D6AF6A] transition-colors min-h-[40px] disabled:opacity-60"
+                className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] rounded-full bg-[#C5A059] text-white text-[12px] font-bold uppercase tracking-[0.12em] font-body hover:bg-[#D6AF6A] transition-colors disabled:opacity-60"
               >
-                <Check className="size-3.5" />
-                Completed
+                <Check className="size-4" />
+                Mark completed
               </button>
               <button
                 type="button"
                 disabled={busy}
                 onClick={onNoShow}
-                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-white/10 text-[#F3ECE3] text-[10px] font-bold uppercase tracking-[0.12em] font-body hover:bg-white/15 transition-colors min-h-[40px] disabled:opacity-60"
+                className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] rounded-full bg-[#C5A059] text-white text-[12px] font-bold uppercase tracking-[0.12em] font-body hover:bg-[#D6AF6A] transition-colors disabled:opacity-60"
               >
-                <AlertTriangle className="size-3.5" />
-                No-show
+                <AlertTriangle className="size-4" />
+                Mark no-show
               </button>
               <button
                 type="button"
                 disabled={busy}
                 onClick={onCancel}
-                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-destructive/90 text-white text-[10px] font-bold uppercase tracking-[0.12em] font-body hover:bg-destructive transition-colors min-h-[40px] disabled:opacity-60"
+                className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] rounded-full bg-destructive text-white text-[12px] font-bold uppercase tracking-[0.12em] font-body hover:bg-destructive/90 transition-colors disabled:opacity-60"
               >
-                <XCircle className="size-3.5" />
-                Cancel
+                <XCircle className="size-4" />
+                Cancel appointment
               </button>
             </div>
+
           </div>
         </div>
       </div>
