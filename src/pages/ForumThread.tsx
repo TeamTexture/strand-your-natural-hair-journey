@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import ForumAvatar from "@/components/ForumAvatar";
 import MentionTextarea from "@/components/MentionTextarea";
 import { renderMentions } from "@/lib/renderMentions";
+import { smartBack } from "@/lib/smartBack";
 
 const ForumThread = () => {
   const { id } = useParams<{ id: string }>();
@@ -144,7 +145,7 @@ const ForumThread = () => {
   return (
     <PlusGate title="Thread">
       <ScreenLayout>
-        <TitleBar title="Thread" onBack={() => nav("/forum", { replace: true })} />
+        <TitleBar title="Thread" onBack={smartBack(nav, "/forum")} />
         <div className="px-4 pb-32 space-y-3">
           <article className="rounded-[14px] border border-border bg-card p-4">
             <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(t.author_id)} />

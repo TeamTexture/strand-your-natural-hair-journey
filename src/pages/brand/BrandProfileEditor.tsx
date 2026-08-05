@@ -47,6 +47,7 @@ async function resizeToWebp(file: File, maxDim = 512, quality = 0.9): Promise<Bl
   }
 }
 import { toast } from "sonner";
+import { smartBack } from "@/lib/smartBack";
 
 /**
  * Brand-owned profile editor. Populates the public brand page (logo, about,
@@ -158,7 +159,7 @@ const BrandProfileEditor = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand profile" onBack={() => nav("/brand", { replace: true })} />
+      <TitleBar title="Brand profile" onBack={smartBack(nav, "/brand")} />
       <div className="px-5 pb-10 space-y-5">
         <p className="text-[12px] font-body text-foreground/70 leading-snug">
           This is what members see on your public brand page. Blank fields simply won't show.

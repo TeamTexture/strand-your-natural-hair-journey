@@ -12,6 +12,7 @@ import EventCoverImage from "@/components/EventCoverImage";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { smartBack } from "@/lib/smartBack";
 
 const PlusEventDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,7 +63,7 @@ const PlusEventDetail = () => {
   return (
     <PlusGate title="Event">
       <ScreenLayout>
-        <TitleBar title="Event" onBack={() => nav("/plus/events", { replace: true })} />
+        <TitleBar title="Event" onBack={smartBack(nav, "/plus/events")} />
         {eventQ.isLoading ? <LoadingDot /> : !e ? (
           <div className="p-8 text-center text-sm">Not found</div>
         ) : (

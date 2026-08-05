@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import AiProse from "@/components/tips/AiProse";
 import { condenseProse, limitSupporting, wantsDetail, wantsWhy } from "@/lib/tipsRender";
 import type { TipsLevel } from "@/lib/tipsLevel";
+import { smartBack } from "@/lib/smartBack";
 
 
 type Diet = "omnivore" | "vegetarian" | "vegan" | "unknown";
@@ -691,7 +692,7 @@ const NutritionPlan = () => {
 
   return (
     <ScreenLayout bottomNav={!isOnboarding}>
-      <TitleBar title="Nutrition Plan" tips onBack={() => isOnboarding ? navigate("/onboarding/blood-ai-summary", { replace: true }) : navigate(-1)} />
+      <TitleBar title="Nutrition Plan" tips onBack={smartBack(navigate, isOnboarding ? "/onboarding/blood-ai-summary" : "/home")} />
       <div className="px-5 pt-1 pb-8">
         <div className="text-center mb-5">
           <h1 className="font-display text-[26px] leading-tight">Your Nutrition Plan</h1>

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import LoadingDot from "@/components/LoadingDot";
+import { smartBack } from "@/lib/smartBack";
 
 const PILLARS = [
   { icon: Users, title: "Community forum", body: "Ask, share and learn with members like you." },
@@ -69,7 +70,7 @@ const PlusUpgrade = () => {
   if (hasPlus || isLoading) {
     return (
       <ScreenLayout>
-        <TitleBar title="STRAND+" onBack={() => nav("/home", { replace: true })} />
+        <TitleBar title="STRAND+" onBack={smartBack(nav, "/home")} />
         <div className="px-5 pt-8 text-center space-y-4">
           <div className="mx-auto size-16 rounded-full bg-primary/12 text-primary flex items-center justify-center">
             {isLoading ? <Loader2 className="size-8 animate-spin" /> : <Sparkles className="size-8" />}
