@@ -5,7 +5,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
 import { BadgeCheck, Calendar, CalendarPlus, ExternalLink, Send, User2, Minus } from "lucide-react";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
-import { useProBookingFollowUps } from "@/hooks/useProLogAppointment";
 import { externalLinkProps } from "@/lib/socialLinks";
 
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
@@ -222,7 +221,6 @@ const ChatThreadPage = () => {
   const book = useBookAppointmentInThread();
   const markRead = useMarkThreadRead(threadId);
   const [draft, setDraft] = useState("");
-  const [bookingOpen, setBookingOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Location autocomplete pool: any locations the current user has already
@@ -283,10 +281,6 @@ const ChatThreadPage = () => {
   const sendBookingRequest = useSendBookingRequest(threadId);
   const [departureOpen, setDepartureOpen] = useState(false);
   const logDeparture = useLogBookingDeparture();
-  // Pro-side nudge: a booking request was sent (or the client opened the
-  // booking page) and nothing has been logged in the diary since.
-  const { data: bookingFollowUps = [] } = useProBookingFollowUps();
-  const needsDiaryLog = isPro && bookingFollowUps.some((f) => f.thread_id === threadId);
 
   // Peer thread: the "client" side is itself a professional, so there is no
   // hair passport attached and the pro-side passport actions are hidden.
@@ -549,69 +543,40 @@ const ChatThreadPage = () => {
       />
 
 
-      {needsDiaryLog && (
-        <div className="px-4 pt-2 border-t border-border/60 bg-background">
-          <div className="rounded-[14px] border border-primary/30 bg-primary/10 p-3.5 space-y-2.5">
-            <p className="text-[12px] font-body text-foreground/85 leading-snug">
-              Client booked? Log the appointment in your Strand diary so it appears in both your
-              diaries.
-            </p>
+      {isPro && !isSupport && (
+        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
+          {bookingUrl ? (
             <Button
               size="sm"
-              onClick={() =>
-                nav(
-                  `/pro/appointments/log?client=${t?.consumer_id ?? ""}&thread=${threadId ?? ""}`,
-                )
-              }
+              onClick={async () => {
+                try {
+                  await sendBookingRequest.mutateAsync({
+                    bookingUrl,
+                    proName: myProName || "Your professional",
+                  });
+                  toast.success("Booking link sent");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Could not send link");
+                }
+              }}
+              disabled={sendBookingRequest.isPending}
               className="w-full min-h-[44px] uppercase tracking-[0.08em] text-[11px]"
             >
               <CalendarPlus className="size-3.5 mr-1.5" />
-              Log appointment
+              Send booking link
             </Button>
-          </div>
-        </div>
-      )}
-
-      {isPro && !isSupport && (
-        <div className="px-4 pt-1 pb-2 border-t border-border/60 bg-background space-y-2">
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setBookingOpen(true)} className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]">
-              <Calendar className="size-3.5 mr-1.5" />
-              Book appointment
-            </Button>
-            {bookingUrl && (
-              <Button
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await sendBookingRequest.mutateAsync({
-                      bookingUrl,
-                      proName: myProName || "Your professional",
-                    });
-                    toast.success("Booking request sent");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Could not send request");
-                  }
-                }}
-                disabled={sendBookingRequest.isPending}
-                className="flex-1 min-h-[44px] uppercase tracking-[0.08em] text-[11px]"
-              >
-                <CalendarPlus className="size-3.5 mr-1.5" />
-                Send booking request
-              </Button>
-            )}
-          </div>
-          {!bookingUrl && (
+          ) : (
             <button
               type="button"
               onClick={() => nav("/pro/profile")}
               className="w-full text-left text-[11.5px] font-body text-primary underline underline-offset-2"
             >
-              Add your booking link to enable the Book appointment button
+              Add your booking link to send it in chat
             </button>
           )}
         </div>
       )}
+
 
 
       <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background flex items-end gap-2">
@@ -634,38 +599,6 @@ const ChatThreadPage = () => {
         </button>
       </div>
 
-      <BookAppointmentDialog
-        open={bookingOpen}
-        submitting={book.isPending}
-        locationSuggestions={locationSuggestions}
-        onCancel={() => setBookingOpen(false)}
-        onConfirm={async ({ date, time, location, notes }) => {
-          if (!threadId) return;
-          try {
-            await book.mutateAsync({
-              thread_id: threadId,
-              appointment_date: date,
-              appointment_time: time || undefined,
-              location: location || undefined,
-              notes: notes || undefined,
-            });
-            setBookingOpen(false);
-            // Pros get a confirmation with a shortcut to their appointments hub.
-            if (isPro) {
-              toast.success("Appointment booked", {
-                action: {
-                  label: "View in appointments",
-                  onClick: () => nav("/pro/appointments"),
-                },
-              });
-            } else {
-              toast.success("Appointment booked");
-            }
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Could not book");
-          }
-        }}
-      />
     </ScreenLayout>
   );
 };
