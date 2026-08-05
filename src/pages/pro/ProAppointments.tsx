@@ -10,7 +10,11 @@ import {
   List as ListIcon,
   ChevronLeft,
   Plus,
+  MessageCircle,
+  Link as LinkIcon,
+  Pencil,
 } from "lucide-react";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
