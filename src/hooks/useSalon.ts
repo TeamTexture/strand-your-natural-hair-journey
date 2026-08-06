@@ -2,10 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
-import {
-  sendStylistListedNotification_STUB,
-  type StylistListedPayload,
-} from "@/lib/notifyStylistListed";
+import { sendAppEmail } from "@/lib/sendAppEmail";
 
 export type Discipline = Database["public"]["Enums"]["pro_discipline"];
 export type Salon = Database["public"]["Tables"]["salons"]["Row"];
@@ -143,17 +140,27 @@ export const useAddSalonStylist = () => {
         .single();
       if (error) throw error;
 
-      const payload: StylistListedPayload = {
-        proProfileId: (data as { id: string }).id,
-        stylistName: draft.display_name.trim(),
-        recipientEmail: stylistEnquiryEmail(
-          { contact_email: draft.contact_email.trim() || null },
-          salon,
-        ),
-        salonName: salon.name,
-        listingUrl: `${window.location.origin}/directory`,
-      };
-      await sendStylistListedNotification_STUB(payload);
+      // Routed through the single send path. Logged as suppressed until the
+      // global email flag is switched on.
+      const recipientEmail = stylistEnquiryEmail(
+        { contact_email: draft.contact_email.trim() || null },
+        salon,
+      );
+      if (recipientEmail) {
+        await sendAppEmail({
+          templateKey: "salon-stylist-listed",
+          to: recipientEmail,
+          triggerEvent: "salon_stylist_listed",
+          relatedTable: "pro_profiles",
+          relatedId: (data as { id: string }).id,
+          idempotencyKey: `salon-stylist-listed-${(data as { id: string }).id}`,
+          data: {
+            name: draft.display_name.trim(),
+            salon_name: salon.name,
+            contact_email: draft.contact_email.trim() || null,
+          },
+        });
+      }
       return data;
     },
     onSuccess: () => {

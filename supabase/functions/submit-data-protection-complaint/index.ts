@@ -63,6 +63,25 @@ Deno.serve(async (req) => {
 
     if (error) return json({ error: error.message }, 400);
 
+    // Confirmation email goes through the single send path (send-app-email).
+    // While the global send flag is off it is logged as suppressed, not sent.
+    try {
+      await admin.functions.invoke("send-app-email", {
+        body: {
+          templateKey: "complaint-received",
+          to: contactEmail,
+          recipientUserId: userId,
+          triggerEvent: "data_protection_complaint_submitted",
+          relatedTable: "data_protection_complaints",
+          relatedId: data.id,
+          idempotencyKey: `complaint-received-${data.id}`,
+          data: { reference: String(data.id).slice(0, 8).toUpperCase() },
+        },
+      });
+    } catch (_e) {
+      // Never fail the complaint intake because of email delivery.
+    }
+
     return json({
       ok: true,
       id: data.id,

@@ -687,6 +687,7 @@ const Profile = () => {
         <ListRow icon={MessageCircle} name="Messages" to="/messages" />
         <ListRow icon={Mail} name="My enquiries" to="/profile/enquiries" />
         <ListRow icon={KeyRound} name="Data access" to="/profile/data-access" />
+        <ListRow icon={Mail} name="Email preferences" to="/email-preferences" />
       </div>
 
       <SectionHeader icon={Gift} className="px-5 pt-2 pb-2">Perks</SectionHeader>
