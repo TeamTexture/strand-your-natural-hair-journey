@@ -16,8 +16,9 @@ import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/l
  *   0. STATIC SEED — the editorial cheat-sheet in src/data/professionals.ts.
  *
  * A live pro is NEVER filtered, renamed away, or shadowed by a seed row:
- *  • identity is keyed on `user_id` (not their display name), so renaming a
- *    profile can't split it into two cards or drop it from the listing;
+ *  • identity is keyed on `pro_profiles.id` (not their display name and not
+ *    the login, which a salon stylist does not have), so renaming a profile
+ *    can't split it into two cards or drop it from the listing;
  *  • the editorial allowlist applies ONLY to the static seed — it must never
  *    gate real professionals who have paid for and published a listing;
  *  • seed / curated rows for the same person (matched on normalised name) are
