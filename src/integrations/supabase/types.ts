@@ -1257,6 +1257,54 @@ export type Database = {
         }
         Relationships: []
       }
+      data_protection_complaints: {
+        Row: {
+          acknowledged_at: string | null
+          admin_notes: string | null
+          contact_email: string
+          created_at: string
+          details: string
+          id: string
+          resolution_summary: string | null
+          resolved_at: string | null
+          status: string
+          subject: string
+          submitted_at: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          admin_notes?: string | null
+          contact_email: string
+          created_at?: string
+          details: string
+          id?: string
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          admin_notes?: string | null
+          contact_email?: string
+          created_at?: string
+          details?: string
+          id?: string
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_rsvps: {
         Row: {
           cancelled_at: string | null
