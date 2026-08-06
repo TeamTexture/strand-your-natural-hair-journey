@@ -3805,6 +3805,7 @@ export type Database = {
           id: string
           image_url: string | null
           ingredients: string[]
+          ingredients_source: string | null
           key_ingredients: Json
           last_used_at: string | null
           linked_brand_offer_id: string | null
@@ -3841,6 +3842,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredients?: string[]
+          ingredients_source?: string | null
           key_ingredients?: Json
           last_used_at?: string | null
           linked_brand_offer_id?: string | null
@@ -3877,6 +3879,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredients?: string[]
+          ingredients_source?: string | null
           key_ingredients?: Json
           last_used_at?: string | null
           linked_brand_offer_id?: string | null
