@@ -438,6 +438,7 @@ const BrandCreateOffer = () => {
     // Editing an already-paid/live offer: submit a pending revision for admin
     // review. No Stripe. No placement changes. Original creative stays live.
     if (isRevisionMode && existingId) {
+      if (!headline.trim()) return toast.error("A headline is required.");
       if (!heroPath) return toast.error("A banner image is required.");
       setSubmitting(true);
       try {
