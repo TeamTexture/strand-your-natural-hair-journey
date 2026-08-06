@@ -95,6 +95,8 @@ const MyEnquiries = lazyRetry(() => import("./pages/MyEnquiries"));
 const Messages = lazyRetry(() => import("./pages/Messages"));
 const ChatThreadPage = lazyRetry(() => import("./pages/ChatThreadPage"));
 const DataAccess = lazyRetry(() => import("./pages/DataAccess"));
+const DataProtectionComplaint = lazyRetry(() => import("./pages/DataProtectionComplaint"));
+const AdminDataProtection = lazyRetry(() => import("./pages/admin/AdminDataProtection"));
 
 // Admin
 const AdminApplications = lazyRetry(() => import("./pages/admin/AdminApplications"));
