@@ -10,6 +10,7 @@ import {
   Eye,
   Sparkles,
   Percent,
+  Building2,
   Stethoscope,
   Droplet,
   Megaphone,
