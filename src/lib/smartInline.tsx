@@ -16,6 +16,7 @@ import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
 import { IngredientToken } from "@/components/ingredients/IngredientToken";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { normaliseInciKey } from "@/lib/inci";
+import { findProductMentions, productHref } from "@/lib/productMatch";
 
 export const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
 
@@ -221,7 +222,12 @@ export function renderInlineWithProducts(
       );
     } else if (m.kind === "product" && m.product) {
       nodes.push(
-        <Link key={`${keyPrefix}-p-${i}`} to={`/products/profile/${m.product.id}`} className={LINK_CLS}>
+        <Link
+          key={`${keyPrefix}-p-${i}`}
+          to={productHref(m.product)}
+          state={{ fromAdvice: true }}
+          className={LINK_CLS}
+        >
           {m.text}
         </Link>,
       );
