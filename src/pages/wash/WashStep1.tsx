@@ -255,16 +255,32 @@ const StepCard = ({
   );
 };
 
-// Heat-treatment selection inside the Condition step.
-//   - "yes": user used a TT Heat Hat over conditioner
+// Heat-treatment selection, captured independently per step (Condition and
+// Treatment / Mask):
+//   - "yes": user used a TT Heat Hat on that step
 //   - "no":  user explicitly didn't — triggers a personalised AI explainer
 //   - null:  not yet answered
-type HeatChoice = "yes" | "no" | null;
+// `HeatChoice` / `HeatRationale` now live with the shared HeatStepEditor.
 
-interface HeatRationale {
-  headline: string;
-  reasons: string[];
-}
+/** Summary chips for one step's heat answer, shown on the collapsed card. */
+const heatChips = (
+  choice: HeatChoice,
+  minutes: number | null,
+  toolIds: string[],
+  tools: Array<{ id: string; name: string; brand?: string | null }>,
+): string[] => {
+  if (choice === "no") return ["No heat"];
+  if (choice !== "yes") return [];
+  return [
+    minutes ? `Heat · ${minutes} min` : "Heat treatment",
+    ...toolIds
+      .map((id) => tools.find((t) => t.id === id))
+      .filter((t): t is NonNullable<typeof t> => !!t)
+      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name)),
+  ];
+};
+
+
 
 const WashStep1 = () => {
   const navigate = useNavigate();
