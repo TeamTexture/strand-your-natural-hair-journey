@@ -9,6 +9,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import TargetingPicker from "@/components/brand/TargetingPicker";
+import { useOfferTargeting, saveOfferTargeting, useReachEstimate } from "@/hooks/useAdTargeting";
+import { cleanRules, rulesAreEmpty, type TargetingRules } from "@/lib/adTargeting";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,6 +132,14 @@ const BrandCreateOffer = () => {
   // placements/dates are locked, no Stripe interaction, admin re-approves before
   // consumers see the new creative.
   const isRevisionMode = existing?.status === "paid_scheduled" || existing?.status === "live";
+
+  // Audience targeting (optional). Empty = broad campaign shown to everyone.
+  const [targeting, setTargeting] = useState<TargetingRules>({});
+  const [targetingLoaded, setTargetingLoaded] = useState(false);
+  const { data: savedTargeting } = useOfferTargeting(existingId);
+  const cleanTargeting = cleanRules(targeting);
+  const targetingEmpty = rulesAreEmpty(cleanTargeting);
+  const { data: reachEstimate } = useReachEstimate(cleanTargeting);
 
   const [headline, setHeadline] = useState(existing?.headline ?? "");
   const [bodyCopy, setBodyCopy] = useState(existing?.body_copy ?? "");
@@ -428,6 +439,13 @@ const BrandCreateOffer = () => {
 
   const { isActive: brandSubActive } = useBrandSubscription();
 
+  useEffect(() => {
+    if (savedTargeting && !targetingLoaded) {
+      setTargeting(savedTargeting);
+      setTargetingLoaded(true);
+    }
+  }, [savedTargeting, targetingLoaded]);
+
   const firstProduct = products[0];
   const firstProductImage = firstProduct?.image_urls?.[0] ?? null;
 
@@ -483,6 +501,12 @@ const BrandCreateOffer = () => {
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
 
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
+    // A targeted campaign may only be submitted if it clears the audience floor.
+    if (!asDraft && !targetingEmpty && reachEstimate && !reachEstimate.meets_floor) {
+      return toast.error(
+        `Fewer than ${reachEstimate.audience_floor} members match this audience. Widen your targeting to submit.`,
+      );
+    }
     if (!asDraft && ownerMode === "brand" && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);
@@ -503,7 +527,9 @@ const BrandCreateOffer = () => {
         discount_code: discountCode.trim() || null,
         external_url: externalUrl.trim() || null,
         hero_image_path: heroPath,
-        status: (asDraft ? "draft" : "under_review") as "draft" | "under_review",
+        // Saved as a draft first so the targeting rows exist before the status
+        // flip — the database guard re-checks the audience floor on that flip.
+        status: "draft" as "draft" | "under_review",
         submitted_at: asDraft ? null : new Date().toISOString(),
         total_price_pence: total,
         starts_on: null as string | null,
@@ -570,8 +596,20 @@ const BrandCreateOffer = () => {
         }
       }
 
+      await saveOfferTargeting(offerId!, targeting);
+
+      if (!asDraft) {
+        // Server-side floor enforcement happens on this status change.
+        const { error } = await supabase
+          .from("brand_offers")
+          .update({ status: "under_review" } as unknown as never)
+          .eq("id", offerId!);
+        if (error) throw error;
+      }
+
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
       qc.invalidateQueries({ queryKey: ["brand-offer", offerId] });
+      qc.invalidateQueries({ queryKey: ["offer-targeting", offerId] });
       toast.success(asDraft ? "Saved as draft" : "Submitted for review");
       nav(ownerHomeRoute(ownerMode));
     } catch (e) {
@@ -943,6 +981,9 @@ const BrandCreateOffer = () => {
           </div>
         ) : (
           <>
+            <SectionLabel className="!px-0">Audience</SectionLabel>
+            <TargetingPicker value={targeting} onChange={setTargeting} disabled={isRevisionMode} />
+
             <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
             <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">
               Pick one or more banner slots, then choose the dates in the calendar below.
