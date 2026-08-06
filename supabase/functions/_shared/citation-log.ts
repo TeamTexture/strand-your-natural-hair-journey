@@ -11,6 +11,11 @@
 // user must never see raw citations because logging broke.
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
+import {
+  enforceBloodSafety,
+  enforceStyleVerbatimDeep,
+  recordedStyles,
+} from "./blood-guardrail.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
