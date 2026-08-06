@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { stripStaleDates } from "@/lib/stripStaleDates";
 import type { WashDay } from "@/hooks/useWashDays";
 import { washStepLabel } from "@/lib/washSteps";
+import { useSmartInline } from "@/lib/smartInline";
 
 interface Props {
   washDay: WashDay;
@@ -77,6 +78,7 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
     return washDay.hair_feel_note || null;
   })();
   const insight = insightRaw ? stripStaleDates(stripMd(insightRaw)) : null;
+  const renderInline = useSmartInline();
 
 
   // ---------- Health chips ----------
