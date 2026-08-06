@@ -70,10 +70,15 @@ export const useWashDaySchedules = () => {
       time?: string | null;
       status?: WashDayScheduleStatus;
     }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: {
+        scheduled_date?: string;
+        scheduled_time?: string | null;
+        status?: WashDayScheduleStatus;
+      } = {};
       if (input.date) patch.scheduled_date = input.date;
       if (input.time !== undefined) patch.scheduled_time = input.time?.trim() ? input.time : null;
       if (input.status) patch.status = input.status;
+
       const { error } = await supabase
         .from("wash_day_schedules")
         .update(patch)
