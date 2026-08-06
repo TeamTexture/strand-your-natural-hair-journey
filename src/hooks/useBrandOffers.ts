@@ -172,6 +172,19 @@ export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
   });
 }
 
+/** One row of aggregated ad figures for an offer (per slot, per day). */
+export type OfferStatRow = {
+  offer_id: string | null;
+  slot: string | null;
+  stat_date: string | null;
+  impressions: number | null;
+  raw_views: number | null;
+  expands: number | null;
+  link_clicks: number | null;
+  code_copies: number | null;
+  wishlist_adds: number | null;
+};
+
 export function useBrandOffer(id: string | undefined) {
   return useQuery({
     queryKey: ["brand-offer", id],
@@ -179,12 +192,24 @@ export function useBrandOffer(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("*, brand_offer_placements(*), brand_products(*), brand_offer_stats(*)")
+        .select("*, brand_offer_placements(*), brand_products(*)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      // brand_offer_stats is a view (raw log + permanent rollup), so it carries
+      // no FK for PostgREST to embed — read its rows by offer id instead.
+      const { data: statRows } = await supabase
+        .from("brand_offer_stats")
+        .select("*")
+        .eq("offer_id", id!);
+      return {
+        ...data,
+        brand_offer_stats: (statRows ?? []) as OfferStatRow[],
+      };
     },
+
+
   });
 }
 

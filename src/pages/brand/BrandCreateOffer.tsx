@@ -438,6 +438,7 @@ const BrandCreateOffer = () => {
     // Editing an already-paid/live offer: submit a pending revision for admin
     // review. No Stripe. No placement changes. Original creative stays live.
     if (isRevisionMode && existingId) {
+      if (!headline.trim()) return toast.error("A headline is required.");
       if (!heroPath) return toast.error("A banner image is required.");
       setSubmitting(true);
       try {
@@ -476,8 +477,11 @@ const BrandCreateOffer = () => {
       return;
     }
 
-    // Headline is optional — no validation required.
+    // A banner with no headline renders as an untitled campaign everywhere it
+    // appears, so it is required to submit (drafts may still be half-finished).
+    if (!asDraft && !headline.trim()) return toast.error("Add a headline before submitting.");
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
+
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
     if (!asDraft && ownerMode === "brand" && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");

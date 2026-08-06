@@ -95,6 +95,8 @@ const MyEnquiries = lazyRetry(() => import("./pages/MyEnquiries"));
 const Messages = lazyRetry(() => import("./pages/Messages"));
 const ChatThreadPage = lazyRetry(() => import("./pages/ChatThreadPage"));
 const DataAccess = lazyRetry(() => import("./pages/DataAccess"));
+const DataProtectionComplaint = lazyRetry(() => import("./pages/DataProtectionComplaint"));
+const AdminDataProtection = lazyRetry(() => import("./pages/admin/AdminDataProtection"));
 
 // Admin
 const AdminApplications = lazyRetry(() => import("./pages/admin/AdminApplications"));
@@ -335,6 +337,8 @@ const App = () => (
               <Route path="/nutrition-plan" element={<Paid><NutritionPlan /></Paid>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
+              {/* Public on purpose — non-members have the same statutory right to complain. */}
+              <Route path="/data-protection-complaint" element={<DataProtectionComplaint />} />
 
               {/* Professional portal (Phase A/B — application + admin vetting) */}
               <Route path="/pro/auth" element={<ProAuth />} />
@@ -524,6 +528,7 @@ const App = () => (
               <Route path="/admin/brand-offers/:id" element={<RoleGate allow={["admin"]}><AdminBrandOfferReview /></RoleGate>} />
               <Route path="/admin/brand-calendar" element={<RoleGate allow={["admin"]}><AdminBrandCalendar /></RoleGate>} />
               <Route path="/admin/moderation" element={<RoleGate allow={["admin"]}><AdminModeration /></RoleGate>} />
+              <Route path="/admin/data-protection" element={<RoleGate allow={["admin"]}><AdminDataProtection /></RoleGate>} />
               <Route path="/admin/library" element={<RoleGate allow={["admin"]}><AdminLibrary /></RoleGate>} />
               <Route path="/admin/events" element={<RoleGate allow={["admin"]}><AdminEvents /></RoleGate>} />
 

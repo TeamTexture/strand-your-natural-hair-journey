@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   CalendarDays,
   BadgeCheck,
+  Scale,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -31,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { usePendingProProfileReviewCount } from "@/hooks/useProProfileReview";
 import { useAllPendingRevisions, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
+import { useOpenComplaintsCount } from "@/hooks/useDataProtectionComplaints";
 import { cn } from "@/lib/utils";
 
 interface CampaignCounts {
@@ -311,6 +313,7 @@ const AdminHub = () => {
   const { data: dropoff } = useAdminDropOffCounts();
   const { data: pendingProfileReviews = 0 } = usePendingProProfileReviewCount();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
+  const { data: openComplaints = 0 } = useOpenComplaintsCount();
   const revisionCount = pendingRevisions.length;
 
   return (
@@ -565,6 +568,15 @@ const AdminHub = () => {
             description="Hide, delete, lock or reply as STRAND Team"
             onClick={() => nav("/admin/moderation")}
           />
+          <NavCard
+            icon={Scale}
+            title="Data protection"
+            description="Complaints about personal data — acknowledge within 30 days"
+            badge={openComplaints || undefined}
+            badgeTone={openComplaints > 0 ? "urgent" : "default"}
+            onClick={() => nav("/admin/data-protection")}
+          />
+
           <NavCard
             icon={Eye}
             title="View as user"
