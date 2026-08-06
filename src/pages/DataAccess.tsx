@@ -138,6 +138,32 @@ const DataAccess = () => {
         )}
       </div>
 
+      {/* Statutory route to complain about how we handle personal data. */}
+      <div className="px-5 pb-8">
+        <button
+          type="button"
+          onClick={() => nav("/data-protection-complaint")}
+          className="w-full text-left"
+        >
+          <SurfaceCard className="py-3.5 flex items-center gap-3">
+            <div className="size-9 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <ShieldAlert className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-body text-[13px] font-semibold leading-tight">
+                Raise a data protection complaint
+              </p>
+              <p className="text-[11px] text-muted-foreground font-body leading-snug mt-0.5">
+                Acknowledged within 30 days
+              </p>
+            </div>
+            <span className="text-[11px] text-primary font-body shrink-0">Open →</span>
+          </SurfaceCard>
+        </button>
+      </div>
+
+
+
       <AlertDialog open={!!confirmProId} onOpenChange={(o) => !o && setConfirmProId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
