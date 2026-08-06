@@ -749,7 +749,7 @@ const Directory = () => {
                 renderStylist={renderProCard}
               />
             ),
-          })
+          )
         )}
 
         {/* Role-aware footer CTA — keyed off the ACTIVE view (the same source of
