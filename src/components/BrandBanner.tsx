@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, Info, ThumbsDown } from "lucide-react";
 import { useActiveBrandOffer, useLogAdEvent, useAdViewTracker, PlacementSlot } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { getSignedUrl } from "@/lib/signedUrlCache";
+import { useTargetingOptions, useDismissAdOffer } from "@/hooks/useAdTargeting";
+import { explainMatch } from "@/lib/adTargeting";
+import { toast } from "sonner";
 
 
 interface Props {
@@ -31,9 +34,18 @@ const BrandBanner = ({ slot }: Props) => {
   const [expanded, setExpanded] = useState(false);
   const logEvent = useLogAdEvent();
   const nav = useNavigate();
+  const [showWhy, setShowWhy] = useState(false);
+  const { data: targetingOptions } = useTargetingOptions();
+  const dismissOffer = useDismissAdOffer();
+  const wasMatched = !!data?.was_matched;
+  const matchReason = data?.match_reason ?? null;
+  const whyText = explainMatch(matchReason, targetingOptions);
   // `view` fires only after the banner has been ≥50% visible for a continuous
   // 1s — never on mount/render. Scrolling straight past records nothing.
-  const viewRef = useAdViewTracker(data?.brand_offers?.id ?? null, slot);
+  const viewRef = useAdViewTracker(data?.brand_offers?.id ?? null, slot, {
+    was_matched: wasMatched ? true : null,
+    match_reason: matchReason ? { codes: matchReason } : null,
+  });
 
   const offer = data?.brand_offers as (typeof data extends { brand_offers: infer T } ? T : never) & {
     brand_products?: BrandProductRow[];
@@ -59,7 +71,7 @@ const BrandBanner = ({ slot }: Props) => {
 
   const visit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
+    logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click", was_matched: wasMatched ? true : null, match_reason: matchReason ? { codes: matchReason } : null });
     if (offer.external_url) {
       window.open(offer.external_url, "_blank", "noopener,noreferrer");
     } else {
@@ -163,6 +175,43 @@ const BrandBanner = ({ slot }: Props) => {
                       variant="chip"
                       onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
                     />
+                  </div>
+                )}
+                {wasMatched && (
+                  <div className="mt-2 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      tabIndex={expanded ? 0 : -1}
+                      onClick={() => setShowWhy((v) => !v)}
+                      className="inline-flex items-center gap-1 text-[10.5px] font-body text-muted-foreground underline underline-offset-2"
+                    >
+                      <Info className="size-3" /> Why am I seeing this?
+                    </button>
+                    {showWhy && whyText && (
+                      <p className="text-[10.5px] font-body text-muted-foreground leading-snug">
+                        {whyText}{" "}
+                        <button
+                          type="button"
+                          onClick={() => nav("/profile/personalised-offers")}
+                          className="underline underline-offset-2"
+                        >
+                          Manage personalised offers
+                        </button>
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      tabIndex={expanded ? 0 : -1}
+                      onClick={() => {
+                        dismissOffer.mutate(offer.id, {
+                          onSuccess: () => toast.success("We won't show you that one again."),
+                          onError: () => toast.error("Could not save that — try again."),
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 text-[10.5px] font-body text-muted-foreground underline underline-offset-2"
+                    >
+                      <ThumbsDown className="size-3" /> Not relevant to my hair
+                    </button>
                   </div>
                 )}
                 <button

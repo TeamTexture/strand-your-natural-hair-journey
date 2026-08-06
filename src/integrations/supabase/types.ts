@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_consent_log: {
+        Row: {
+          changed_at: string
+          consent_given: boolean
+          id: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          consent_given: boolean
+          id?: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          consent_given?: boolean
+          id?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ad_events: {
         Row: {
           created_at: string
@@ -54,6 +78,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ad_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_offer_audience: {
+        Row: {
+          match_reason: string[]
+          offer_id: string
+          resolved_at: string
+          user_id: string
+        }
+        Insert: {
+          match_reason?: string[]
+          offer_id: string
+          resolved_at?: string
+          user_id: string
+        }
+        Update: {
+          match_reason?: string[]
+          offer_id?: string
+          resolved_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_offer_audience_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_offer_dismissals: {
+        Row: {
+          dismissed_at: string
+          id: string
+          offer_id: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          id?: string
+          offer_id: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          id?: string
+          offer_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_offer_dismissals_offer_id_fkey"
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "brand_offers"
@@ -113,6 +195,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ad_targeting_attributes: {
+        Row: {
+          attribute_key: string
+          attribute_label: string
+          created_at: string
+          label: string
+          sort_order: number
+          value_code: string
+        }
+        Insert: {
+          attribute_key: string
+          attribute_label: string
+          created_at?: string
+          label: string
+          sort_order?: number
+          value_code: string
+        }
+        Update: {
+          attribute_key?: string
+          attribute_label?: string
+          created_at?: string
+          label?: string
+          sort_order?: number
+          value_code?: string
+        }
+        Relationships: []
       }
       admin_notifications: {
         Row: {
@@ -767,6 +876,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "brand_offer_stats_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_offer_targeting: {
+        Row: {
+          attribute_key: string
+          created_at: string
+          id: string
+          offer_id: string
+          value_code: string
+        }
+        Insert: {
+          attribute_key: string
+          created_at?: string
+          id?: string
+          offer_id: string
+          value_code: string
+        }
+        Update: {
+          attribute_key?: string
+          created_at?: string
+          id?: string
+          offer_id?: string
+          value_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_targeting_attribute_key_value_code_fkey"
+            columns: ["attribute_key", "value_code"]
+            isOneToOne: false
+            referencedRelation: "ad_targeting_attributes"
+            referencedColumns: ["attribute_key", "value_code"]
+          },
+          {
+            foreignKeyName: "brand_offer_targeting_offer_id_fkey"
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "brand_offers"
@@ -3237,12 +3385,14 @@ export type Database = {
           complimentary_access: boolean
           complimentary_access_expires_at: string | null
           complimentary_expiry_warned_at: string | null
+          consent_updated_at: string | null
           country: string
           created_at: string
           display_name: string | null
           heritage: string[]
           id: string
           onboarding_completed_at: string | null
+          personalised_offers_consent: boolean
           phone_number: string | null
           postcode: string | null
           tips_level: number
@@ -3257,12 +3407,14 @@ export type Database = {
           complimentary_access?: boolean
           complimentary_access_expires_at?: string | null
           complimentary_expiry_warned_at?: string | null
+          consent_updated_at?: string | null
           country?: string
           created_at?: string
           display_name?: string | null
           heritage?: string[]
           id?: string
           onboarding_completed_at?: string | null
+          personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
           tips_level?: number
@@ -3277,12 +3429,14 @@ export type Database = {
           complimentary_access?: boolean
           complimentary_access_expires_at?: string | null
           complimentary_expiry_warned_at?: string | null
+          consent_updated_at?: string | null
           country?: string
           created_at?: string
           display_name?: string | null
           heritage?: string[]
           id?: string
           onboarding_completed_at?: string | null
+          personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
           tips_level?: number
@@ -4407,6 +4561,50 @@ export type Database = {
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
       account_type_of: { Args: { _user_id: string }; Returns: string }
+      ad_audience_floor: { Args: never; Returns: number }
+      ad_delivery_for_slot: {
+        Args: { _slot: string }
+        Returns: {
+          match_reason: string[]
+          offer_id: string
+          was_matched: boolean
+        }[]
+      }
+      ad_dismiss_offer: { Args: { _offer_id: string }; Returns: undefined }
+      ad_estimate_reach: {
+        Args: { _rules: Json }
+        Returns: {
+          audience_floor: number
+          meets_floor: boolean
+          reach: number
+        }[]
+      }
+      ad_goal_focus_code: { Args: { _kind: string }; Returns: string }
+      ad_match_users: {
+        Args: { _rules: Json }
+        Returns: {
+          match_reason: string[]
+          user_id: string
+        }[]
+      }
+      ad_member_attribute_codes: {
+        Args: { _user_id: string }
+        Returns: {
+          attribute_key: string
+          value_code: string
+        }[]
+      }
+      ad_offer_reach: {
+        Args: { _offer_id: string }
+        Returns: {
+          audience_floor: number
+          is_targeted: boolean
+          meets_floor: boolean
+          reach: number
+        }[]
+      }
+      ad_offer_rules: { Args: { _offer_id: string }; Returns: Json }
+      ad_style_code: { Args: { _style: string }; Returns: string }
       admin_event_rsvps: {
         Args: { _event_id: string }
         Returns: {
@@ -4786,9 +4984,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      refresh_ad_audiences: { Args: never; Returns: number }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined
+      }
+      resolve_ad_offer_audience: {
+        Args: { _offer_id: string }
+        Returns: number
       }
       resolve_booking_click: {
         Args: { _appointment_id?: string; _click_id: string; _outcome: string }
@@ -4848,6 +5051,10 @@ export type Database = {
       set_passport_access: {
         Args: { _grant: boolean; _pro_user_id: string }
         Returns: string
+      }
+      set_personalised_offers_consent: {
+        Args: { _on: boolean; _source?: string }
+        Returns: boolean
       }
       set_pro_capability_verification: {
         Args: {

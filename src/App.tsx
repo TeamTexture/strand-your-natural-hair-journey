@@ -98,6 +98,7 @@ const MyEnquiries = lazyRetry(() => import("./pages/MyEnquiries"));
 const Messages = lazyRetry(() => import("./pages/Messages"));
 const ChatThreadPage = lazyRetry(() => import("./pages/ChatThreadPage"));
 const DataAccess = lazyRetry(() => import("./pages/DataAccess"));
+const PersonalisedOffers = lazyRetry(() => import("./pages/PersonalisedOffers"));
 const EmailPreferences = lazyRetry(() => import("./pages/EmailPreferences"));
 const DataProtectionComplaint = lazyRetry(() => import("./pages/DataProtectionComplaint"));
 const AdminDataProtection = lazyRetry(() => import("./pages/admin/AdminDataProtection"));
@@ -474,6 +475,7 @@ const App = () => (
               <Route path="/messages" element={<Protected><Messages /></Protected>} />
               <Route path="/messages/:threadId" element={<Protected><ChatThreadPage /></Protected>} />
               <Route path="/profile/data-access" element={<Protected><DataAccess /></Protected>} />
+              <Route path="/profile/personalised-offers" element={<Protected><PersonalisedOffers /></Protected>} />
               <Route path="/email-preferences" element={<Protected><EmailPreferences /></Protected>} />
 
               <Route

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, type LucideIcon } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, type LucideIcon , Megaphone } from "lucide-react";
 import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -688,6 +688,7 @@ const Profile = () => {
         <ListRow icon={Mail} name="My enquiries" to="/profile/enquiries" />
         <ListRow icon={KeyRound} name="Data access" to="/profile/data-access" />
         <ListRow icon={Mail} name="Email preferences" to="/email-preferences" />
+        <ListRow icon={Megaphone} name="Personalised offers" to="/profile/personalised-offers" />
       </div>
 
       <SectionHeader icon={Gift} className="px-5 pt-2 pb-2">Perks</SectionHeader>
