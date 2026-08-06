@@ -98,7 +98,7 @@ const RETURN_SUMMARY_SCHEMA = {
           hair_impact: {
             type: "string",
             description:
-              "Mechanism-first sentence: explain in plain English what this marker does at the follicle/blood/scalp level, then bridge with 'which is why' / 'so' / 'this means' to what it means for the user. Talk to 'you', not 'your hair'. Translate any clinical term on first use.",
+              "Factual statement ONLY. Give the marker name, the member's value with its unit, its reference range, and whether it sits inside or outside that range. When it sits outside, add that they should discuss it with their GP. Do NOT state or imply any effect on hair. Do NOT describe any mechanism (nothing about follicles, cells, the hair shaft or growth cycles). Do NOT join the value to any hair action with 'so', 'which is why', 'means', 'affecting' or similar.",
           },
           urgency: { type: "string", enum: ["low", "medium", "high"] },
         },
@@ -107,7 +107,7 @@ const RETURN_SUMMARY_SCHEMA = {
     overall_summary: {
       type: "string",
       description:
-        "One short paragraph in Paige's voice that names the joined-up pattern across flagged markers. Coach explaining the picture, not a list.",
+        "One short paragraph that reports WHICH markers sit outside their reference range, with values and ranges, and recommends discussing them with a GP. No hair claims, no mechanisms, no causal links.",
     },
     priority_actions: {
       type: "array",
@@ -141,31 +141,27 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're writing a hair-health interpretation of THIS user's blood results. Return JSON only via the return_summary tool.
+  return `You're reporting THIS member's blood results factually. Return JSON only via the return_summary tool.
 
-Voice for this task: follow the VOICE PRINCIPLES from the system block. Every hair_impact sentence should read like a professional hair-health interpretation — start with the MECHANISM in plain English ("Ferritin is your iron storage tank, the reservoir your follicles draw from for new growth"), then bridge with a connective ("which is why", "so", "this means") into what it means for THIS user's hair right now. Talk to "you", not "your hair". Translate any clinical term the FIRST time it appears in any field — "ferritin (your iron stores)", "TIBC (how much iron your blood can carry)", "TSH (the signal your thyroid takes orders from)", etc. No welcome pleasantries, praise, flattery, hype, or false intimacy.
+Follow the BLOOD MARKER RULES in the system block to the letter. They are enforced in code after you reply: any sentence that links a marker to hair, or that describes a physiological mechanism, is deleted before the member sees it.
 
 OUTPUT RULES
 
-1. EXPLANATION-FIRST. Never lead with a verdict like "This is low — eat more X." Lead with the mechanism, then the user's value lands as the obvious conclusion.
+1. FACTS ONLY. Each "deficiencies" entry states the marker, the member's value with its unit, its reference range, and that it sits above or below that range. Nothing else. No hair claims. No mechanisms. No causal connectors.
 
-2. CRITICAL COVERAGE RULE. The "deficiencies" array MUST include EVERY marker whose status is "low", "high", or "borderline" — no exceptions. That includes secondary iron-panel markers (TIBC, transferrin, transferrin saturation, MCV, MCH), thyroid markers (TSH, free T3, free T4), hormones, and any minerals/vitamins flagged. Never silently skip a marker because it's "less common" or "downstream of another." Each flagged marker gets its own entry with its own mechanism-first hair_impact sentence.
+2. CRITICAL COVERAGE RULE. The "deficiencies" array MUST include EVERY marker whose status is "low", "high", or "borderline" — no exceptions, including secondary iron-panel markers (TIBC, transferrin, transferrin saturation, MCV, MCH), thyroid markers, hormones, and any minerals or vitamins flagged.
 
-3. SCOPE. Hair-health guidance only. The markers that genuinely move hair are: ferritin, iron panel, vitamin D, B12, folate, zinc, biotin, omega-3 ratio, thyroid (TSH, T3, T4), and HbA1c only when relevant to androgenic patterns (e.g. PCOS-driven thinning). Anything beyond those — note the value and that it's flagged, but say plainly that the hair impact isn't direct and the user should raise it with a clinician.
+3. NEVER DIAGNOSE and never interpret. No diagnosis, no treatment, no medication advice, no explanation of what a marker "does". For anything outside the reference range, the recommendation is to discuss it with their GP.
 
-4. NEVER DIAGNOSE. No medical diagnosis, no treatment recommendation, no medication advice. Refer back to a clinician for anything beyond hair impact and food/lifestyle levers.
+4. OVERALL_SUMMARY. A short factual paragraph naming which markers sit outside range, with the numbers, and a plain recommendation to take the results to a GP. No pattern narrative, no hair implications.
 
-5. OVERALL_SUMMARY. One short paragraph (3-4 sentences) that names the JOINED-UP pattern, not a list. e.g. "Low ferritin alongside low vitamin D and high TSH is the iron-and-thyroid loop showing up at once — ferritin feeds new growth, vitamin D regulates the follicle cycle, and a sluggish thyroid slows the whole system down. That combination is why you're likely seeing diffuse shedding rather than patchy loss." Speak in your own voice — never name a chapter, manuscript, or page.
+5. PRIORITY_ACTIONS. Exactly 3. They may cover taking results to a GP, retesting timing, and general food or lifestyle habits — but must not claim any hair outcome from a blood value.
 
-6. PRIORITY_ACTIONS. Exactly 3 actions. Each one short, concrete, and addressing the COMBINED picture (not a single marker in isolation). Reference the user's heritage / diet / medication / current style only when mechanism-relevant.
+6. TREND. When context.bloodPanels holds more than one panel (newest first), you may state the direction and the numbers of a change between panels. You may NOT state what that trend means for hair. Never invent a trend for markers absent from both panels.
 
-7. PERSONALISATION. Anchor in the user's CURRENT hair situation: current style, active goals, stated challenges, recent wash signals if shedding/breakage was reported. Don't reach back to past styles or past goals. If a field is missing, don't reference it — never invent data.
+7. Plain English. Translate a clinical term on first use with a neutral definition only — never with what it does for hair.
 
-8. NO chapter citations. NO "Read more — How To Love Your Afro" links.
-
-9. Plain English, no jargon without immediate translation. Treat the user as a capable adult who knows her body.
-
-10. TREND ANALYSIS. When context.bloodPanels contains more than one panel (newest first), the overall_summary MUST reference notable movements between the current panel and the previous one. Each prior panel includes a "deltas" array listing per-marker change vs the panel before it — cite direction (rising/falling), the actual numbers, and the hair implication over the next 8-12 weeks. If a previously-flagged marker has normalised, say so and shift priority_actions toward maintenance. Never invent a trend for markers that don't appear in both panels.`;
+8. Never name a book, chapter or page.`;
 }
 
 async function runClaude(args: {
@@ -315,20 +311,20 @@ TASK
 Analyse these blood test results and return JSON only via the provided tool. Use STRAND's professional advisory voice.
 Hair-health guidance only. Recommend the user also seek GP support for any medical concern — never refuse to advise.
 
-Voice for this task: follow the VOICE PRINCIPLES above. In each hair_impact sentence, lead with the mechanism (what this marker does at the follicle / blood / scalp level, in plain English), then bridge with a connective ("which is why", "so", "this means") into what it means for the user. Talk to "you", not "your hair". Translate any clinical term on first use. The overall_summary reads like a professional interpretation of the joined-up picture, not a list of values. No welcome pleasantries, praise, flattery, hype, or false intimacy.
+Follow the BLOOD MARKER RULES in the system block exactly. Each hair_impact field is a FACTUAL statement only: the marker, the value with its unit, its reference range, and whether it sits inside or outside that range — plus, when outside, that the member should discuss it with their GP. No hair claims, no mechanisms, no causal connectors. The overall_summary reports which markers sit outside range with their numbers and recommends a GP conversation. No pleasantries, praise or hype.
 
 CRITICAL COVERAGE RULE:
 - The "deficiencies" array MUST include EVERY blood marker whose status is "low", "high", or "borderline" — no exceptions.
 - Includes secondary iron-panel markers (TIBC, transferrin, transferrin saturation, MCV, MCH), thyroid markers (TSH, T3, T4), hormones, and any minerals/vitamins flagged.
-- Never silently skip a flagged marker because it's "less common" or "related to another one already mentioned". Each flagged marker gets its own entry with its own hair_impact sentence.
-- The "overall_summary" must explicitly acknowledge the FULL pattern (e.g. "low ferritin AND low TIBC together suggest…"), not just the headline marker.
-- Speak the overall_summary directly in your own science-backed voice. Never name any source manuscript, author, chapter or page.
-- "priority_actions" must address the combined picture, not a single deficiency in isolation.
+- Never silently skip a flagged marker because it's "less common" or "related to another one already mentioned". Each flagged marker gets its own factual entry.
+- The "overall_summary" lists every marker outside range with its value and range, then recommends discussing the results with a GP. No pattern interpretation, no hair implications.
+- Never name any source manuscript, author, chapter or page.
+- "priority_actions" must not claim a hair outcome from any blood value.
 
 TREND ANALYSIS (when context.bloodPanels contains more than one panel):
 - context.bloodPanels is ordered newest-first. The first entry is the CURRENT test. Any subsequent entries are previous tests, each with a "deltas" array listing per-marker change vs the panel BEFORE it.
-- When a previous panel exists, the "overall_summary" MUST explicitly reference the notable movements (e.g. "ferritin has climbed from 18 to 42 since your last test — the iron store is refilling, so the shedding driver is fading"). Name the direction (rising / falling), the numbers, and what that trajectory means for hair over the next 8-12 weeks.
-- If a previously-flagged marker has normalised, say so plainly and adjust the priority_actions to maintenance rather than repair. If a marker has worsened, flag it clearly.
+- When a previous panel exists, the "overall_summary" may state the direction (rising / falling) and the numbers. It may NOT state what that trajectory means for hair.
+- If a previously-flagged marker has normalised, say so plainly. If a marker has worsened, say so plainly. No hair implication either way.
 - Never invent a trend — only comment on markers that appear in both the current and prior panel.`;
 
   const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
