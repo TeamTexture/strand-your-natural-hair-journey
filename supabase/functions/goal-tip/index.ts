@@ -242,12 +242,44 @@ const DEFAULT_PILLARS = [
   "trims and end care",
 ];
 
-function pillarsForGoal(goalText: string): string[] {
-  for (const { re, pillars } of GOAL_PILLARS) {
-    if (re.test(goalText ?? "")) return pillars;
+/**
+ * Style-aware pillars. The member's CURRENT install and PLANNED next style
+ * change what is actually actionable today, so protective-install pillars are
+ * merged in front of the goal's own pillars whenever she is in (or heading
+ * into) an install. Length retention while in cornrows is a tension/scalp/
+ * take-down conversation, not a "style your curls wet" one.
+ */
+const PROTECTIVE_RE =
+  /cornrow|braid|plait|twist|passion|rope|senegal|knotless|box braid|locs?\b|weave|wig|sew.?in|crochet|extension/i;
+
+function stylePillars(current: string, planned: string): string[] {
+  const out: string[] = [];
+  if (PROTECTIVE_RE.test(current)) {
+    out.push(
+      `caring for the hair and scalp underneath her current style (${current})`,
+      `reading tension in her current style (${current}) before it costs her hairline`,
+      `how long to keep her current style in, and taking it down without damage`,
+    );
   }
-  return DEFAULT_PILLARS;
+  if (planned && PROTECTIVE_RE.test(planned)) {
+    out.push(
+      `preparing her hair for her planned next style (${planned}) — condition, strength and rest before install`,
+    );
+  }
+  return out;
 }
+
+function pillarsForGoal(goalText: string, current = "", planned = ""): string[] {
+  let base = DEFAULT_PILLARS;
+  for (const { re, pillars } of GOAL_PILLARS) {
+    if (re.test(goalText ?? "")) { base = pillars; break; }
+  }
+  const style = stylePillars(current, planned);
+  // Style pillars lead so an install-relevant angle comes up often, but the
+  // goal's own territory is never dropped.
+  return [...style, ...base];
+}
+
 
 /** Small stable hash so the rotation seed is deterministic per day+goal+profile. */
 function stableHash(input: string): number {
