@@ -55,6 +55,11 @@ interface ShelfItem {
   category?: string;
 }
 
+interface RecentEvent {
+  id?: string;
+  date?: string;
+}
+
 interface Body {
   fingerprint: string;
   hairProfile?: Record<string, unknown> | null;
@@ -63,8 +68,13 @@ interface Body {
   bloodFlags?: Array<{ marker: string; status?: string; value?: number | null }>;
   shelf?: ShelfItem[];
   tools?: ShelfItem[];
+  challenges?: string[];
+  areasOfConcern?: string[];
+  recentWashDay?: RecentEvent | null;
+  recentAppointment?: RecentEvent | null;
   tipsLevel?: number | null;
 }
+
 
 const asArray = (v: unknown): string[] =>
   Array.isArray(v) ? v.map(String) : v ? [String(v)] : [];
