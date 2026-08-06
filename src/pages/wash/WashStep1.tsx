@@ -651,7 +651,7 @@ const WashStep1 = () => {
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
             ...conditionSelected.map(formatProduct),
-            ...heatChips(heatChoice, heatMinutes, heatToolIds),
+            ...heatChips(heatChoice, heatMinutes, heatToolIds, allTools),
           ]}
           editor={
             <HeatStepEditor
@@ -689,7 +689,7 @@ const WashStep1 = () => {
           summaryChips={[
             ...treatmentType,
             ...treatmentSelected.map(formatProduct),
-            ...heatChips(treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds),
+            ...heatChips(treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds, allTools),
           ]}
           editor={
             <div className="space-y-2.5">
