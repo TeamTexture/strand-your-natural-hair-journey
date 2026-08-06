@@ -101,47 +101,33 @@ Deno.serve(async (req) => {
     if (!proEmail) {
       return json(200, { ok: true, delivered: false, reason: "no_email_on_file" });
     }
-    if (!RESEND_API_KEY) {
-      console.log("directory-enquiry: RESEND_API_KEY not set, skipping send");
-      return json(200, { ok: true, delivered: false, reason: "email_not_configured" });
-    }
 
-    const html = `
-      <div style="font-family:Helvetica,Arial,sans-serif;color:#2b2118;line-height:1.5">
-        <h2 style="font-family:Georgia,serif;color:#8a6a2f;margin:0 0 12px">New STRAND enquiry</h2>
-        <p>Hi ${esc(proName)},</p>
-        <p><strong>${esc(senderName)}</strong> found you in the STRAND professional directory and would like to get in touch.</p>
-        <div style="border-left:3px solid #c9a227;padding:8px 14px;margin:16px 0;background:#faf7f1">
-          ${esc(message).replace(/\n/g, "<br/>")}
-        </div>
-        <p style="margin:0"><strong>Reply to:</strong> ${esc(senderEmail)}</p>
-        ${phone ? `<p style="margin:4px 0 0"><strong>Phone:</strong> ${esc(phone)}</p>` : ""}
-        <p style="font-size:12px;color:#7a6b58;margin-top:24px">
-          Sent via STRAND. Reply directly to this email to reach the member.
-        </p>
-      </div>`;
-
-    const resp = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
+    // Composition and transmission go through the single send path so the
+    // forward is logged in email_log like every other STRAND email.
+    const result = await dispatchEmail(
+      {
+        templateKey: "directory-enquiry-forwarded",
+        to: proEmail,
+        replyTo: senderEmail || null,
+        triggerEvent: "directory_enquiry.tier_b_forward",
+        relatedTable: directoryId ? "professionals_directory" : "pro_profiles",
+        relatedId: directoryId ?? proUserId,
+        data: { proName, senderName, senderEmail, message, phone },
       },
-      body: JSON.stringify({
-        from: "STRAND <info@teamtexture.co.uk>",
-        to: [proEmail],
-        reply_to: senderEmail || undefined,
-        subject: `New STRAND enquiry from ${senderName}`,
-        html,
-      }),
-    });
+      admin,
+    );
 
-    if (!resp.ok) {
-      console.warn("directory-enquiry: resend failed", resp.status, await resp.text());
-      return json(200, { ok: true, delivered: false, reason: "send_failed" });
+    if (!result.sent) {
+      console.warn("directory-enquiry: not delivered", JSON.stringify(result));
+      return json(200, {
+        ok: true,
+        delivered: false,
+        reason: result.reason ?? "send_failed",
+      });
     }
 
     return json(200, { ok: true, delivered: true });
+
   } catch (err) {
     console.error("directory-enquiry error", err);
     return json(500, { error: err instanceof Error ? err.message : "Unexpected error" });
