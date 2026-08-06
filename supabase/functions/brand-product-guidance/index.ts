@@ -6,6 +6,8 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "../_shared/blood-guardrail.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
@@ -39,6 +41,10 @@ interface GuidancePayload {
 }
 
 const SYSTEM = `${STRAND_PERSONA}
+
+${BLOOD_CLAIM_RULES}
+
+${VERBATIM_VALUE_RULE}
 
 TASK
 The user is looking at a sponsored brand product/tool inside the STRAND app. Explain — in Paige's voice — how THIS specific user can get the most out of THIS specific product, grounded in the STRAND manuscript framework and their real profile data (hair characteristics, current style, goals, wash-day history, health/blood flags, existing products/tools).
@@ -160,7 +166,8 @@ Deno.serve(async (req) => {
         : [],
     };
 
-    return new Response(JSON.stringify({ guidance: clean }), {
+    const safe = await sanitiseAndLog(clean, "brand-product-guidance", { context: body.context });
+    return new Response(JSON.stringify({ guidance: safe }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -108,6 +108,7 @@ When the user reports dryness, high porosity, summer humidity issues, or dry-fee
 // Every edge function should import this (not the bare STRAND_PERSONA) so the
 // no-book-references rule and the "wash-rhythm voice" are always on.
 import { VOICE_PRINCIPLES } from "./voice.ts";
+import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "./blood-guardrail.ts";
 
 export const STRAND_PERSONA_WITH_RULES = `${STRAND_PERSONA}
 
@@ -115,5 +116,9 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}
 
 ${CITATION_BAN_PROMPT}
 
-${VOICE_PRINCIPLES}`;
+${VOICE_PRINCIPLES}
+
+${BLOOD_CLAIM_RULES}
+
+${VERBATIM_VALUE_RULE}`;
 

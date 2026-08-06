@@ -350,6 +350,51 @@ export type Database = {
         }
         Relationships: []
       }
+      blood_marker_reference: {
+        Row: {
+          created_at: string
+          display_name: string
+          hair_link_status: string
+          hair_link_summary: string | null
+          id: string
+          marker: string
+          plain_meaning: string | null
+          ref_range_high: number | null
+          ref_range_low: number | null
+          source_note: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          hair_link_status?: string
+          hair_link_summary?: string | null
+          id?: string
+          marker: string
+          plain_meaning?: string | null
+          ref_range_high?: number | null
+          ref_range_low?: number | null
+          source_note?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          hair_link_status?: string
+          hair_link_summary?: string | null
+          id?: string
+          marker?: string
+          plain_meaning?: string | null
+          ref_range_high?: number | null
+          ref_range_low?: number | null
+          source_note?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blood_panels: {
         Row: {
           created_at: string

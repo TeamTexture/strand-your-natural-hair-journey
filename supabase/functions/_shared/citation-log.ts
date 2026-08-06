@@ -11,6 +11,11 @@
 // user must never see raw citations because logging broke.
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
+import {
+  enforceBloodSafety,
+  enforceStyleVerbatimDeep,
+  recordedStyles,
+} from "./blood-guardrail.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
@@ -79,7 +84,11 @@ async function logViolation(
  *
  *  Await this if you can — the log write is fire-and-forget compatible but
  *  awaiting keeps stack traces readable when the DB is down. */
-export async function sanitiseAndLog<T>(value: T, functionName: string): Promise<T> {
+export async function sanitiseAndLog<T>(
+  value: T,
+  functionName: string,
+  opts?: { context?: unknown },
+): Promise<T> {
   const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
   collectStripped(value, cleaned, stripped);
@@ -87,7 +96,22 @@ export async function sanitiseAndLog<T>(value: T, functionName: string): Promise
     await logViolation(functionName, stripped);
   }
   // Copy fix runs after the audit diff so it is never logged as a violation.
-  return fixHeatHatPhrasing(cleaned);
+  let out = fixHeatHatPhrasing(cleaned);
+
+  // Recorded-value repair: the model must never substitute a similar-sounding
+  // style name for the member's stored one ("passion twists" -> "rope twists").
+  if (opts?.context !== undefined) {
+    const recorded = recordedStyles(opts.context);
+    const fixes: string[] = [];
+    out = enforceStyleVerbatimDeep(out, recorded, fixes);
+    if (fixes.length > 0) {
+      console.warn(`[style-verbatim] ${functionName}: repaired ${fixes.join("; ")}`);
+    }
+  }
+
+  // Blood guardrail — LAST, so nothing downstream can reintroduce a
+  // fabricated blood/hair causal link. See _shared/blood-guardrail.ts.
+  return await enforceBloodSafety(out, functionName);
 }
 
 /** Collapse the duplicated "TT" the model sometimes emits immediately before

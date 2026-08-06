@@ -700,7 +700,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         tip: {
-          ...(await sanitiseAndLog(tip, "goal-tip")),
+          ...(await sanitiseAndLog(tip, "goal-tip", { context: body.context ?? body })),
           _manuscript_grounded: grounded,
           _rag_passages: ragPassageCount,
         },
