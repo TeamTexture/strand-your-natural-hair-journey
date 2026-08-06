@@ -17,17 +17,25 @@ import { BLOOD_RANGES } from "@/data/bloodRanges";
 /** A single purchasable panel, joined to its brand for display. */
 export interface BrandBloodPanel {
   id: string;
-  brand_user_id: string;
-  panel_name: string;
+  /** NULL for curated third-party vendors that have no brand account. */
+  brand_user_id: string | null;
+  panel_name: string | null;
   markers_covered: string[];
   price_from: number | null;
   currency: string;
-  purchase_url: string;
+  purchase_url: string | null;
   affiliate_url: string | null;
   regions_served: string[];
   is_active: boolean;
   sort_order: number;
-  /** Joined brand fields. */
+  /** Curated vendor fields — used when there is no brand account. */
+  vendor_name?: string | null;
+  vendor_website?: string | null;
+  vendor_logo_path?: string | null;
+  is_at_home_kit?: boolean;
+  discount_code?: string | null;
+  discount_details?: string | null;
+  /** Joined brand fields (or the curated vendor name/logo). */
   brand_name: string;
   logo_path: string | null;
 }
