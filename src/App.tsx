@@ -232,8 +232,10 @@ const RouteFallback = () => (
 const GlobalEffects = () => {
   useKeyboardAwareInputs();
   useTrackInAppHistory();
+  useResponsiveTipRefresh();
   return null;
 };
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
