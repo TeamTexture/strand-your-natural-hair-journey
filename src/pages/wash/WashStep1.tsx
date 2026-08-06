@@ -26,6 +26,8 @@ import WashDaySteps from "@/components/WashDaySteps";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import HeatToolPicker from "@/components/HeatToolPicker";
+import HeatStepEditor, { type HeatChoice, type HeatRationale } from "@/components/wash/HeatStepEditor";
+import { washStepLabel, rollUpStepHeat, type StepHeat } from "@/lib/washSteps";
 import { useUserTools } from "@/hooks/useUserTools";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
@@ -253,16 +255,32 @@ const StepCard = ({
   );
 };
 
-// Heat-treatment selection inside the Condition step.
-//   - "yes": user used a TT Heat Hat over conditioner
+// Heat-treatment selection, captured independently per step (Condition and
+// Treatment / Mask):
+//   - "yes": user used a TT Heat Hat on that step
 //   - "no":  user explicitly didn't — triggers a personalised AI explainer
 //   - null:  not yet answered
-type HeatChoice = "yes" | "no" | null;
+// `HeatChoice` / `HeatRationale` now live with the shared HeatStepEditor.
 
-interface HeatRationale {
-  headline: string;
-  reasons: string[];
-}
+/** Summary chips for one step's heat answer, shown on the collapsed card. */
+const heatChips = (
+  choice: HeatChoice,
+  minutes: number | null,
+  toolIds: string[],
+  tools: Array<{ id: string; name: string; brand?: string | null }>,
+): string[] => {
+  if (choice === "no") return ["No heat"];
+  if (choice !== "yes") return [];
+  return [
+    minutes ? `Heat · ${minutes} min` : "Heat treatment",
+    ...toolIds
+      .map((id) => tools.find((t) => t.id === id))
+      .filter((t): t is NonNullable<typeof t> => !!t)
+      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name)),
+  ];
+};
+
+
 
 const WashStep1 = () => {
   const navigate = useNavigate();
@@ -297,7 +315,9 @@ const WashStep1 = () => {
   const [treatmentIds, setTreatmentIds] = useState<string[]>([]);
 
   // Heat-treatment state lives at the page level so we can persist it and so
-  // the "why" dialog can read/write the choice.
+  // the "why" dialog can read/write the choice. Condition and Treatment / Mask
+  // each carry their own answer — using heat under a mask is a different
+  // decision from using it under a conditioner.
   const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
   const [heatDialogOpen, setHeatDialogOpen] = useState(false);
   const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
@@ -306,7 +326,17 @@ const WashStep1 = () => {
   const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
   // TT Heat Hat tools attached to today's conditioning step.
   const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
+  // Independent heat answer for the Treatment / Mask step.
+  const [treatmentHeatChoice, setTreatmentHeatChoice] = useState<HeatChoice>(null);
+  const [treatmentHeatMinutes, setTreatmentHeatMinutes] = useState<number | null>(null);
+  const [treatmentHeatToolIds, setTreatmentHeatToolIds] = useState<string[]>([]);
   const { tools: allTools } = useUserTools();
+  const toolNames = (ids: string[]) =>
+    ids
+      .map((id) => allTools.find((t) => t.id === id))
+      .filter((t): t is NonNullable<typeof t> => !!t)
+      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name));
+
 
   // Products used on the user's most recent wash day. We only pre-populate
   // steps from this list — never a broader category match — so today's log
@@ -359,6 +389,12 @@ const WashStep1 = () => {
     if (typeof draft.heatChoice === "string") setHeatChoice(draft.heatChoice as HeatChoice);
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
     if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
+    if (typeof draft.treatmentHeatChoice === "string")
+      setTreatmentHeatChoice(draft.treatmentHeatChoice as HeatChoice);
+    if (typeof draft.treatmentHeatMinutes === "number")
+      setTreatmentHeatMinutes(draft.treatmentHeatMinutes);
+    if (Array.isArray(draft.treatmentHeatToolIds))
+      setTreatmentHeatToolIds(draft.treatmentHeatToolIds as string[]);
     setHydrated(true);
   }, [shelfProducts, shelfLoading, hydrated, lastWashProductIds]);
 
@@ -387,11 +423,13 @@ const WashStep1 = () => {
         prePoo, cleanse, coWash, condition, treatment,
         treatmentType,
         heatChoice, heatMinutes, heatToolIds,
+        treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds,
       }),
     );
   }, [hydrated, prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
       prePoo, cleanse, coWash, condition, treatment, treatmentType,
-      heatChoice, heatMinutes, heatToolIds]);
+      heatChoice, heatMinutes, heatToolIds,
+      treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds]);
 
   // Resolve IDs → full product objects for display.
   const resolve = (ids: string[]) =>
@@ -479,11 +517,10 @@ const WashStep1 = () => {
 
   // Fetch a personalised "why heat could help YOU" explanation grounded in the
   // user's hair profile, goals, challenges and recent wash history. Cached for
-  // the lifetime of the component so re-opening the dialog is instant.
-  const handleHeatNo = async () => {
-    setHeatChoice("no");
-    setHeatDialogOpen(true);
-    if (heatRationale) return;
+  // the lifetime of the component and shared by both heat steps, so the
+  // rationale is only ever fetched once per visit.
+  const fetchHeatRationale = async () => {
+    if (heatRationale || heatLoading) return;
     setHeatLoading(true);
     try {
       const context = await buildAiContext();
@@ -508,6 +545,14 @@ const WashStep1 = () => {
       setHeatLoading(false);
     }
   };
+
+  /** "No" on any heat step: record it, then explain what they're passing up. */
+  const handleHeatNo = (setChoice: (c: HeatChoice) => void) => {
+    setChoice("no");
+    setHeatDialogOpen(true);
+    void fetchHeatRationale();
+  };
+
 
   // Track which step editors the user has actively touched, so the
   // "pre-filled from your last wash day" hint disappears once they act on it.
@@ -606,179 +651,33 @@ const WashStep1 = () => {
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
             ...conditionSelected.map(formatProduct),
-            ...(heatChoice === "yes"
-              ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
-              : []),
-            ...(heatChoice === "yes"
-              ? heatToolIds
-                  .map((id) => allTools.find((t) => t.id === id))
-                  .filter((t): t is NonNullable<typeof t> => !!t)
-                  .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
-              : []),
-            ...(heatChoice === "no" ? ["No heat"] : []),
+            ...heatChips(heatChoice, heatMinutes, heatToolIds, allTools),
           ]}
           editor={
-            <div className="px-3 py-2.5 bg-primary/5 border border-primary/30 rounded-[10px] space-y-2">
-              <div className="flex items-center gap-2">
-                <Flame className="size-4 text-primary" />
-                <span className="text-xs font-medium flex-1">Did you use a heat treatment?</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setHeatChoice("yes")}
-                  aria-pressed={heatChoice === "yes"}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
-                    heatChoice === "yes"
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card text-muted-foreground border-border",
-                  )}
-                >
-                  Yes ✓
-                </button>
-                <button
-                  type="button"
-                  onClick={handleHeatNo}
-                  aria-pressed={heatChoice === "no"}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
-                    heatChoice === "no"
-                      ? "bg-muted text-foreground border-border"
-                      : "bg-card text-muted-foreground border-border",
-                  )}
-                >
-                  No
-                </button>
-              </div>
-              {heatChoice === "yes" && (
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] font-medium text-foreground">How long for?</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[15, 20, 30, 45, 60].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setHeatMinutes(m)}
-                        aria-pressed={heatMinutes === m}
-                        className={cn(
-                          "px-3 py-1 rounded-full text-[11px] font-medium border transition-colors min-h-[32px]",
-                          heatMinutes === m
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card text-muted-foreground border-border",
-                        )}
-                      >
-                        {m} min
-                      </button>
-                    ))}
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={240}
-                      placeholder="Custom"
-                      value={heatMinutes && ![15, 20, 30, 45, 60].includes(heatMinutes) ? heatMinutes : ""}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        setHeatMinutes(Number.isFinite(v) && v > 0 ? v : null);
-                      }}
-                      className="w-20 px-2.5 py-1 rounded-full text-[11px] bg-card border border-border min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-center"
-                    />
-                  </div>
-                  {heatMinutes && (
-                    <p className="text-[11px] text-muted-foreground">
-                      ✓ Logged: {heatMinutes} minutes. Tap <strong>Done</strong> on the Condition step to save.
-                    </p>
-                  )}
-                  <HeatToolPicker
-                    selectedIds={heatToolIds}
-                    onToggle={(id) =>
-                      setHeatToolIds((prev) =>
-                        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-                      )
-                    }
-                  />
-                </div>
-              )}
-              {heatChoice === "no" && !heatDialogOpen && (
-                <button
-                  type="button"
-                  onClick={() => setHeatDialogOpen(true)}
-                  className="text-[11px] text-primary underline underline-offset-2"
-                >
-                  Why heat could help your hair →
-                </button>
-              )}
-
-              {/* Quick education before deciding — compact disclosure at levels
-                  1-2 (StatusCallout), full anatomy always-visible at 3-4 (no
-                  accordion once the depth of level 3-4 calls for it). */}
-              <div className="border-t border-primary/20 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !heatWhyOpen;
-                    setHeatWhyOpen(next);
-                    if (next && !heatRationale && !heatLoading) void handleHeatNo();
-                  }}
-                  className="py-1 text-[11px] font-medium text-primary"
-                >
-                  {heatWhyOpen ? "Hide why heat could help" : "Why do a heat treatment?"}
-                </button>
-                {heatWhyOpen && (
-                  heatLoading && !heatRationale ? (
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground py-2">
-                      <Loader2 className="size-3 animate-spin" /> Personalising…
-                    </div>
-                  ) : heatRationale ? (
-                    level <= 2 ? (
-                      <StatusCallout
-                        tone="gold"
-                        icon={Flame}
-                        label="Heat treatment"
-                        chips={<KeyFactChips text={heatRationale.reasons.join(" ")} max={1} />}
-                        className="mt-2"
-                      >
-                        {heatRationale.headline}
-                      </StatusCallout>
-                    ) : (
-                      <GuidanceCard
-                        eyebrow="Heat treatment"
-                        icon={Flame}
-                        headline={heatRationale.headline}
-                        compact
-                        className="mt-2"
-                      >
-                        {heatRationale.reasons[0] && (() => {
-                          const { phrase, rest } = emphasisSplit(heatRationale.reasons[0]);
-                          return (
-                            <p className="text-[12.5px] leading-relaxed">
-                              <span className="font-semibold text-foreground">{phrase}</span>{" "}
-                              <span className="text-foreground/75">{rest}</span>
-                            </p>
-                          );
-                        })()}
-                        {heatRationale.reasons.length > 1 && (
-                          <ActionList
-                            actions={heatRationale.reasons.slice(1).map((r) => ({ action: r }))}
-                            showWhy={false}
-                            idPrefix="heat-reason"
-                          />
-                        )}
-                      </GuidanceCard>
-                    )
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground py-2">
-                      Gentle heat lifts the cuticle so deep conditioner absorbs further — useful for length retention, dryness, or coarser strands.
-                    </p>
-                  )
-                )}
-              </div>
-            </div>
+            <HeatStepEditor
+              stepLabel={washStepLabel("Condition")}
+              choice={heatChoice}
+              onYes={() => setHeatChoice("yes")}
+              onNo={() => handleHeatNo(setHeatChoice)}
+              minutes={heatMinutes}
+              onMinutes={setHeatMinutes}
+              toolIds={heatToolIds}
+              onToggleTool={(id) =>
+                setHeatToolIds((prev) =>
+                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                )
+              }
+              rationale={heatRationale}
+              rationaleLoading={heatLoading}
+              onRequestRationale={() => void fetchHeatRationale()}
+              onOpenWhyDialog={() => setHeatDialogOpen(true)}
+              whyDialogOpen={heatDialogOpen}
+              level={level}
+            />
           }
         />
         <StepCard
-          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed" }}
+          step={{ id: "4", emoji: "🧬", name: washStepLabel("Treatment"), sub: "Optional — only when needed" }}
           state={treatment}
           setState={setTreatment}
           selectedProducts={treatmentSelected}
@@ -786,24 +685,52 @@ const WashStep1 = () => {
           showLastWashHint={hintFor("treatment", treatmentSelected.length)}
           onOpenPicker={() => openPicker("treatment")}
           // Show the treatment type tags the user picked, plus the products they selected
-          // so the collapsed card reflects what they actually captured.
-          summaryChips={[...treatmentType, ...treatmentSelected.map(formatProduct)]}
+          // and the treatment-step heat answer — independent of the conditioner's.
+          summaryChips={[
+            ...treatmentType,
+            ...treatmentSelected.map(formatProduct),
+            ...heatChips(treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds, allTools),
+          ]}
           editor={
-            <div className="flex flex-wrap gap-2">
-              {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
-                <Tag
-                  key={t}
-                  selected={treatmentType.includes(t)}
-                  onClick={() =>
-                    setTreatmentType(treatmentType.includes(t) ? treatmentType.filter((x) => x !== t) : [...treatmentType, t])
-                  }
-                >
-                  {t}
-                </Tag>
-              ))}
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap gap-2">
+                {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
+                  <Tag
+                    key={t}
+                    selected={treatmentType.includes(t)}
+                    onClick={() =>
+                      setTreatmentType(treatmentType.includes(t) ? treatmentType.filter((x) => x !== t) : [...treatmentType, t])
+                    }
+                  >
+                    {t}
+                  </Tag>
+                ))}
+              </div>
+              {/* Same heat flow as the Condition step, fully independent answer. */}
+              <HeatStepEditor
+                stepLabel={washStepLabel("Treatment")}
+                choice={treatmentHeatChoice}
+                onYes={() => setTreatmentHeatChoice("yes")}
+                onNo={() => handleHeatNo(setTreatmentHeatChoice)}
+                minutes={treatmentHeatMinutes}
+                onMinutes={setTreatmentHeatMinutes}
+                toolIds={treatmentHeatToolIds}
+                onToggleTool={(id) =>
+                  setTreatmentHeatToolIds((prev) =>
+                    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                  )
+                }
+                rationale={heatRationale}
+                rationaleLoading={heatLoading}
+                onRequestRationale={() => void fetchHeatRationale()}
+                onOpenWhyDialog={() => setHeatDialogOpen(true)}
+                whyDialogOpen={heatDialogOpen}
+                level={level}
+              />
             </div>
           }
         />
+
 
 
         <Button
@@ -834,6 +761,30 @@ const WashStep1 = () => {
             if (coWash === "done") collect(coWashIds);
             if (condition === "done") collect(conditionIds);
             if (treatment === "done") collect(treatmentIds);
+            // Heat is captured per step. Build one entry per step that was
+            // answered, then roll them up into the single log-level shape the
+            // AI insight generation and existing readers expect.
+            const stepHeat = (
+              choice: HeatChoice,
+              minutes: number | null,
+              ids: string[],
+            ): StepHeat | null => {
+              if (!choice) return null;
+              if (choice === "no") return { used: false };
+              return {
+                used: true,
+                ...(minutes ? { duration_min: minutes } : {}),
+                ...(ids.length ? { tool_ids: ids, tools: toolNames(ids) } : {}),
+              };
+            };
+            const heatByStep: Record<string, StepHeat | null> = {
+              Condition: condition === "done" ? stepHeat(heatChoice, heatMinutes, heatToolIds) : null,
+              Treatment:
+                treatment === "done"
+                  ? stepHeat(treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds)
+                  : null,
+            };
+            const rolledHeat = rollUpStepHeat(Object.values(heatByStep).map((heat) => ({ heat })));
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
@@ -843,15 +794,14 @@ const WashStep1 = () => {
                 treatmentType,
                 products: productLabels,
                 productIds,
-                heatTreatment: heatChoice,
-                heatMinutes: heatChoice === "yes" ? heatMinutes : null,
-                heatToolIds: heatChoice === "yes" ? heatToolIds : [],
-                heatToolNames: heatChoice === "yes"
-                  ? heatToolIds
-                      .map((id) => allTools.find((t) => t.id === id))
-                      .filter((t): t is NonNullable<typeof t> => !!t)
-                      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
-                  : [],
+                // Per-step heat, plus the log-level roll-up kept in the legacy
+                // keys so nothing downstream regresses.
+                heatByStep,
+                heatTreatment: rolledHeat ? (rolledHeat.used ? "yes" : "no") : null,
+                heatMinutes: rolledHeat?.duration_min ?? null,
+                heatToolIds: rolledHeat?.tool_ids ?? [],
+                heatToolNames: rolledHeat?.tools ?? [],
+
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",

@@ -27,6 +27,7 @@ import { matchScoreOf } from "@/lib/matchStars";
 
 import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
+import { washStepLabel } from "@/lib/washSteps";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { formatTime12h } from "@/lib/formatTime";
 
@@ -538,7 +539,19 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
   else {
     for (const w of d.washes) {
       const steps = Array.isArray(w.steps) ? (w.steps as any[]) : [];
-      const stepText = steps.map((s: any) => s?.name || s?.title || s?.product || JSON.stringify(s)).filter(Boolean).join(" → ");
+      // Per-step heat prints against its own step; keep the log-level column too
+      // for older rows that only carry the roll-up.
+      const stepText = steps
+        .map((s: any) => {
+          const name = s?.name ? washStepLabel(s.name) : s?.title || s?.product || "";
+          if (!name) return "";
+          const h = s?.heat;
+          if (!h?.used) return name;
+          const bits = [h.duration_min ? `${h.duration_min} min` : "", ...(h.tools ?? [])].filter(Boolean);
+          return `${name} + heat${bits.length ? ` (${bits.join(", ")})` : ""}`;
+        })
+        .filter(Boolean)
+        .join(" → ");
       cur.card(fmtDate(w.wash_date), [
         { label: "Duration", value: w.duration_min ? `${w.duration_min} min` : "" },
         { label: "Scalp feel", value: w.scalp_feel || "" },

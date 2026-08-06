@@ -18,6 +18,13 @@ import {
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import {
+  washStepLabel,
+  anyStepUsedHeat,
+  HEAT_COOLDOWN_TIP,
+  type StepHeat,
+} from "@/lib/washSteps";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -362,7 +369,7 @@ const WashDayDetail = () => {
               title: "Wash Day",
               date: wd.wash_date,
               description: wd.steps?.length
-                ? `Steps: ${wd.steps.map((s) => s.name).join(" · ")}`
+                ? `Steps: ${wd.steps.map((s) => washStepLabel(s.name)).join(" · ")}`
                 : undefined,
               uid: `washday-${wd.id}@strand.app`,
             }}
@@ -419,26 +426,44 @@ const WashDayDetail = () => {
             <div className="p-3.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
               <ListOrdered className="size-3.5 text-primary" /> Steps taken
             </div>
-            {wd.steps.map((s, i) => (
-              <div key={i} className="p-3 flex items-start gap-3">
-                <span className="size-6 rounded-full bg-primary/15 text-primary text-[11px] font-bold flex items-center justify-center shrink-0">
-                  {i + 1}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium leading-tight">{s.name}</p>
-                  {s.product_name && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Product: {s.product_name}
-                    </p>
-                  )}
+            {wd.steps.map((s, i) => {
+              const heat = (s as { heat?: StepHeat | null }).heat;
+              return (
+                <div key={i} className="p-3 flex items-start gap-3">
+                  <span className="size-6 rounded-full bg-primary/15 text-primary text-[11px] font-bold flex items-center justify-center shrink-0">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium leading-tight">{washStepLabel(s.name)}</p>
+                    {s.product_name && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Product: {s.product_name}
+                      </p>
+                    )}
+                    {/* Heat reads against the step it was used on. */}
+                    {heat?.used && (
+                      <p className="text-[11px] text-primary mt-0.5 flex items-center gap-1">
+                        <Flame className="size-3" />
+                        Heat
+                        {heat.duration_min ? ` · ${heat.duration_min} min` : ""}
+                        {heat.tools?.length ? ` · ${heat.tools.join(", ")}` : ""}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </SurfaceCard>
         )}
 
-        {/* ── Heat treatment ─────────────────── */}
-        {!editing && wd.heat_treatment && (wd.heat_treatment as HeatTreatment).used !== false && (() => {
+        {/* ── Heat treatment ───────────────────
+            Only for logs without per-step heat (logged before per-step heat
+            existed) — otherwise the heat already shows on its own step. */}
+        {!editing &&
+          wd.heat_treatment &&
+          (wd.heat_treatment as HeatTreatment).used !== false &&
+          !(wd.steps ?? []).some((s) => (s as { heat?: StepHeat | null }).heat) &&
+          (() => {
           const h = wd.heat_treatment as HeatTreatment;
           const tools = h.tools?.filter(Boolean) ?? [];
           const label = tools.length ? tools.join(", ") : h.product ?? "TT Heat Hat";
@@ -461,6 +486,16 @@ const WashDayDetail = () => {
             </SurfaceCard>
           );
         })()}
+
+        {/* Cool-down guidance, shown once whenever heat was used on this log. */}
+        {!editing &&
+          (anyStepUsedHeat((wd.steps ?? []) as Array<{ heat?: StepHeat | null }>) ||
+            (wd.heat_treatment as HeatTreatment | null)?.used === true) && (
+            <StatusCallout tone="gold" icon={Flame} label="Cool-down">
+              {HEAT_COOLDOWN_TIP}
+            </StatusCallout>
+          )}
+
 
         {/* ── Products used ──────────────────── */}
         {!editing && products.length > 0 && (

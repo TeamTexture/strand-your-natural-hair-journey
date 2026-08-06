@@ -8,7 +8,7 @@ import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
 import StatusCallout from "@/components/guidance/StatusCallout";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Flame } from "lucide-react";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  washStepLabel,
+  rollUpStepHeat,
+  anyStepUsedHeat,
+  HEAT_COOLDOWN_TIP,
+  type StepHeat,
+} from "@/lib/washSteps";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>
@@ -41,6 +48,10 @@ interface Step1Saved {
   treatmentType?: string[];
   products?: string[];
   productIds?: string[];
+  /** Per-step heat, keyed by the stored step name ("Condition", "Treatment"). */
+  heatByStep?: Record<string, StepHeat | null>;
+  // Log-level roll-up of the above, kept for older drafts written before
+  // per-step heat existed.
   heatTreatment?: "yes" | "no" | null;
   heatMinutes?: number | null;
   heatToolIds?: string[];
@@ -82,21 +93,32 @@ const WashStep4 = () => {
 
   const stepsSummary = useMemo(() => {
     const parts: string[] = [];
-    const labels: Record<string, string> = {
+    const storedNames: Record<string, string> = {
       prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
     };
     (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const).forEach((key) => {
       const state = step1[key];
-      if (state === "done") parts.push(`${labels[key]} ✓`);
-      else if (state === "skipped") parts.push(`${labels[key]} skipped`);
+      const name = storedNames[key];
+      const label = washStepLabel(name);
+      if (state === "done") {
+        // Heat reads against the step it was used on, not as a separate line.
+        const heat = step1.heatByStep?.[name];
+        const heatBit = heat?.used
+          ? ` + heat${heat.duration_min ? ` ${heat.duration_min} min` : ""}${
+              heat.tools?.length ? ` (${heat.tools.join(", ")})` : ""
+            }`
+          : "";
+        parts.push(`${label} ✓${heatBit}`);
+      } else if (state === "skipped") parts.push(`${label} skipped`);
     });
-    if (step1.heatTreatment === "yes") {
-      parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
-      if (step1.heatToolNames?.length) {
-        parts.push(`Heat tool: ${step1.heatToolNames.join(", ")}`);
+    // Older drafts only stored a log-level answer.
+    if (!step1.heatByStep) {
+      if (step1.heatTreatment === "yes") {
+        parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
+        if (step1.heatToolNames?.length) parts.push(`Heat tool: ${step1.heatToolNames.join(", ")}`);
       }
+      if (step1.heatTreatment === "no") parts.push("No heat");
     }
-    if (step1.heatTreatment === "no") parts.push("No heat");
     if (step1.products?.length) {
       parts.push(`Products: ${step1.products.join(", ")}`);
     }
@@ -105,6 +127,14 @@ const WashStep4 = () => {
     }
     return parts.length > 0 ? parts.join(" · ") : "No steps logged yet — tap to add.";
   }, [step1]);
+
+  // Cool-down guidance shows once whenever heat was used anywhere in the log.
+  const usedHeat = useMemo(
+    () => anyStepUsedHeat(Object.values(step1.heatByStep ?? {}).map((heat) => ({ heat }))) ||
+      (!step1.heatByStep && step1.heatTreatment === "yes"),
+    [step1],
+  );
+
 
   const resultsSummary = useMemo(() => {
     const bits: string[] = [];
@@ -180,21 +210,31 @@ const WashStep4 = () => {
     }
     setSaving(true);
     try {
-      const stepLabels: Record<string, string> = {
+      const stepKeys: Record<string, string> = {
         prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
       };
+      // Each saved step carries its own heat answer (when one was given), so
+      // "heat under the mask" and "heat under the conditioner" stay distinct.
       const steps = (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const)
         .filter((k) => step1[k] === "done")
-        .map((k) => ({ name: stepLabels[k] }));
+        .map((k) => {
+          const name = stepKeys[k];
+          const heat = step1.heatByStep?.[name] ?? null;
+          return heat ? { name, heat } : { name };
+        });
 
-      const heatTreatment = step1.heatTreatment
-        ? {
-            used: step1.heatTreatment === "yes",
-            ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
-            ...(step1.heatTreatment === "yes" && step1.heatToolIds?.length ? { tool_ids: step1.heatToolIds } : {}),
-            ...(step1.heatTreatment === "yes" && step1.heatToolNames?.length ? { tools: step1.heatToolNames } : {}),
-          }
-        : null;
+      // `heat_treatment` stays the log-level roll-up the AI generation reads.
+      const heatTreatment =
+        rollUpStepHeat(steps) ??
+        (step1.heatTreatment
+          ? {
+              used: step1.heatTreatment === "yes",
+              ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
+              ...(step1.heatTreatment === "yes" && step1.heatToolIds?.length ? { tool_ids: step1.heatToolIds } : {}),
+              ...(step1.heatTreatment === "yes" && step1.heatToolNames?.length ? { tools: step1.heatToolNames } : {}),
+            }
+          : null);
+
 
       const chosenDate = localStorage.getItem("strand_wash_date");
       const todayLocal = (() => {
@@ -306,6 +346,14 @@ const WashStep4 = () => {
           body={<p className="text-xs text-foreground/80 leading-relaxed">{stepsSummary}</p>}
           to="/wash/step-1" navigate={navigate}
         />
+        {/* Heat was used somewhere in this log — remind them to cool down and
+            smooth the cuticle before rinsing. Shown once, not per step. */}
+        {usedHeat && (
+          <StatusCallout tone="gold" icon={Flame} label="Before you rinse">
+            {HEAT_COOLDOWN_TIP}
+          </StatusCallout>
+        )}
+
         <Card
           title="Results"
           body={<p className="text-xs text-foreground/80 leading-relaxed">{resultsSummary}</p>}
