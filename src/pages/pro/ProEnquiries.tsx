@@ -443,6 +443,9 @@ const ProEnquiries = () => {
   const enquiries = data ?? [];
   const previews = usePassportPreviews(enquiries);
   const peerNames = usePeerSenders(enquiries);
+  const { data: stylistLabels } = useStylistLabels(
+    enquiries.map((e) => e.pro_profile_id).filter((id): id is string => !!id),
+  );
 
 
   const filtered = enquiries.filter((e) => e.status === tab);
