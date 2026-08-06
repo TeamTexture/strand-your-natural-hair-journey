@@ -513,6 +513,57 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].filter(Boolean),
     (d) => ({ label: "Open admin", path: s(d.path, "/admin") }),
   ),
+  // Already live in production — bypasses the global flag.
+  "admin-application-received": t(
+    "admin-application-received",
+    "transactional",
+    true,
+    (d) => `New STRAND professional application — ${s(d.fullName, "applicant")}`,
+    () => ["A new applicant is waiting for review."],
+    () => ({ label: "Review application", path: "/admin/applications" }),
+    undefined,
+    {
+      eyebrow: "Admin",
+      legacy: true,
+      footerNote: "You are receiving this because you are an admin on STRAND.",
+      rows: (d) => [
+        { label: "Name", value: s(d.fullName) },
+        { label: "Discipline", value: s(d.discipline) },
+        { label: "Business", value: s(d.businessName) },
+        { label: "Email", value: s(d.email) },
+        { label: "Submitted", value: s(d.submitted) },
+      ],
+    },
+  ),
+
+  // ---------------- Password reset (essential, already live) ----------------
+  "password-reset": t(
+    "password-reset",
+    "transactional",
+    true,
+    (d) =>
+      d.audience === "pro"
+        ? "Reset your STRAND Pro password"
+        : d.audience === "brand"
+          ? "Reset your STRAND brand password"
+          : "Reset your STRAND password",
+    (d) => [
+      `We received a request to reset the password for your STRAND${
+        d.audience === "pro" ? " Pro" : d.audience === "brand" ? " brand" : ""
+      } account.`,
+      "Tap the button below to choose a new password. The link can be used once and expires in one hour.",
+      "If you did not ask for this, you can safely ignore this email.",
+    ],
+    (d) => (s(d.link) ? { label: "Choose a new password", path: s(d.link) } : null),
+    undefined,
+    {
+      sender: "noreply",
+      legacy: true,
+      eyebrow: undefined,
+    },
+  ),
+
+
 
   // ---------------- Marketing (consent required, unsubscribe rendered) ----
   "marketing-brand-offer": t(
