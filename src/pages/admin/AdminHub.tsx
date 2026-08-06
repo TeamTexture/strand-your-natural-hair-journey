@@ -566,6 +566,15 @@ const AdminHub = () => {
             onClick={() => nav("/admin/moderation")}
           />
           <NavCard
+            icon={Scale}
+            title="Data protection"
+            description="Complaints about personal data — acknowledge within 30 days"
+            badge={openComplaints || undefined}
+            badgeTone={openComplaints > 0 ? "urgent" : "default"}
+            onClick={() => nav("/admin/data-protection")}
+          />
+
+          <NavCard
             icon={Eye}
             title="View as user"
             description="Shadow any account to see their app view"
