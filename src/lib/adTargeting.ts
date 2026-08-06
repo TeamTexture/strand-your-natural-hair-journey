@@ -1,0 +1,90 @@
+// Personalised ad targeting — v1 vocabulary helpers.
+//
+// TARGETING IS CONSENT-GATED AND NON-HEALTH ONLY. The attribute allowlist is
+// enforced in the database (public.ad_targeting_attributes + a foreign key from
+// the campaign targeting table), so nothing can be targeted that isn't listed
+// there. This module only humanises those codes for the UI.
+//
+// PERMANENTLY BANNED as targeting inputs — do not add, do not "derive":
+//   blood markers or panels, medications, diagnosed conditions, scalp
+//   conditions, medical history, hair loss / thinning areas, style tension,
+//   pregnancy, age, ethnicity/heritage, postcode, journal or voicenote content,
+//   professional relationships, chat content.
+
+/** Order attributes are presented in the campaign designer. */
+export const ATTRIBUTE_ORDER = [
+  "porosity",
+  "density",
+  "diameter",
+  "texture",
+  "length",
+  "wash_freq",
+  "product_category",
+  "current_style",
+  "planned_style",
+  "goal_focus",
+] as const;
+
+export type TargetingAttributeKey = (typeof ATTRIBUTE_ORDER)[number];
+
+export interface TargetingOption {
+  attribute_key: string;
+  value_code: string;
+  label: string;
+  attribute_label: string;
+  sort_order: number;
+}
+
+/** Selected rules: { attribute_key: [value_code, ...] }. Within an attribute the
+ *  values are OR'd; across attributes they are AND'd. */
+export type TargetingRules = Record<string, string[]>;
+
+export const rulesAreEmpty = (rules: TargetingRules): boolean =>
+  Object.values(rules).every((v) => !v || v.length === 0);
+
+export const cleanRules = (rules: TargetingRules): TargetingRules => {
+  const out: TargetingRules = {};
+  for (const [k, v] of Object.entries(rules)) {
+    const vals = (v ?? []).filter(Boolean);
+    if (vals.length > 0) out[k] = [...new Set(vals)].sort();
+  }
+  return out;
+};
+
+/** Short member-facing phrasing for each attribute, used in the
+ *  "Why am I seeing this?" line. Never clinical, never health. */
+const REASON_PREFIX: Record<string, string> = {
+  porosity: "your porosity",
+  density: "your density",
+  diameter: "your strand thickness",
+  texture: "your hair's surface texture",
+  length: "your hair length",
+  wash_freq: "how often you wash",
+  product_category: "the kinds of products on your shelf",
+  current_style: "your current style",
+  planned_style: "your planned next style",
+  goal_focus: "your hair goal",
+};
+
+/** Turn stored reason codes ("porosity_high") into a member-facing sentence,
+ *  using the vocabulary rows so labels always match what brands picked. */
+export function explainMatch(
+  reasons: string[] | null | undefined,
+  options: TargetingOption[] | undefined,
+): string | null {
+  if (!reasons || reasons.length === 0) return null;
+  const parts: string[] = [];
+  for (const code of reasons) {
+    const hit = (options ?? []).find((o) => `${o.attribute_key}_${o.value_code}` === code);
+    if (!hit) continue;
+    const prefix = REASON_PREFIX[hit.attribute_key];
+    if (!prefix) continue;
+    parts.push(`${prefix} (${hit.label.replace(/^(Goal|Uses|Washes)\s*:?\s*/i, "").trim() || hit.label})`);
+  }
+  if (parts.length === 0) return null;
+  const list =
+    parts.length === 1
+      ? parts[0]
+      : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return `This brand asked to reach members based on ${list}. Nothing about your health, blood work or medications is ever used.`;
+}
