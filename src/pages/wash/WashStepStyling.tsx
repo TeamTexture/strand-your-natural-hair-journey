@@ -98,7 +98,14 @@ interface StylingSaved {
   /** Typed or transcribed description when the style is "Other". */
   otherNote?: string;
   otherAudioPath?: string | null;
+  /**
+   * THERMAL STYLING heat (blow dry / flat iron). Deliberately separate from
+   * conditioning heat (`heat_treatment` / `steps[].heat`) — snake_case keys,
+   * stored as `styling.heat` on the wash day row.
+   */
+  heat?: StylingHeat;
 }
+
 
 const safeParse = <T,>(key: string, fallback: T): T => {
   try {
