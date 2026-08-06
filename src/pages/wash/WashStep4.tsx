@@ -346,6 +346,14 @@ const WashStep4 = () => {
           body={<p className="text-xs text-foreground/80 leading-relaxed">{stepsSummary}</p>}
           to="/wash/step-1" navigate={navigate}
         />
+        {/* Heat was used somewhere in this log — remind them to cool down and
+            smooth the cuticle before rinsing. Shown once, not per step. */}
+        {usedHeat && (
+          <StatusCallout tone="gold" icon={Flame} label="Before you rinse">
+            {HEAT_COOLDOWN_TIP}
+          </StatusCallout>
+        )}
+
         <Card
           title="Results"
           body={<p className="text-xs text-foreground/80 leading-relaxed">{resultsSummary}</p>}
