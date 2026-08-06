@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useBloodMarkerReference } from "@/hooks/useBloodMarkerReference";
+import { useBloodMarkerAdminRows } from "@/hooks/useBloodMarkerReference";
 import type { HairLinkStatus } from "@/lib/bloodGuardrail";
 
 /**
@@ -45,7 +45,7 @@ const STATUSES: { value: HairLinkStatus; label: string; hint: string }[] = [
 ];
 
 const AdminBloodMarkers = () => {
-  const { rows: refRows, loading } = useBloodMarkerReference();
+  const { rows: refRows, loading } = useBloodMarkerAdminRows();
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -76,6 +76,7 @@ const AdminBloodMarkers = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["blood-marker-reference"] });
+      qc.invalidateQueries({ queryKey: ["blood-marker-reference", "admin"] });
       setOpenId(null);
       toast.success("Marker saved");
     },

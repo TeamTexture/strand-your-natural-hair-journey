@@ -34,3 +34,20 @@ export function useBloodMarkerLexicon(): MarkerLexicon {
     [rows],
   );
 }
+
+/** Full curated rows for the admin curation screen (all editable columns). */
+export function useBloodMarkerAdminRows() {
+  const query = useQuery({
+    queryKey: ["blood-marker-reference", "admin"],
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("blood_marker_reference")
+        .select("*")
+        .order("display_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  return { rows: query.data ?? [], loading: query.isLoading };
+}
