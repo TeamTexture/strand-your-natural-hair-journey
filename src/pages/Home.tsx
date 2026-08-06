@@ -5,6 +5,7 @@ import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
 import { HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
+import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
 import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
@@ -493,6 +494,7 @@ const Home = () => {
                   </button>
                   <button
                     onClick={() => navigate("/home/style")}
+                    {...anchorProps("home-style-edit")}
                     className="text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
                   >
                     Edit
@@ -503,6 +505,7 @@ const Home = () => {
               {/* Hero photo */}
               <button
                 onClick={() => navigate("/onboarding/strand-summary")}
+                {...anchorProps("home-style-photo")}
                 aria-label="See My Strand Summary"
                 className="relative block w-full mb-5"
               >
@@ -838,17 +841,19 @@ const Home = () => {
         </SurfaceCard>
 
         {/* My Blood Work */}
+        <div {...anchorProps("home-blood-work")}>
         <HomeBloodSummary
           summary={bloodSummary}
           tipsLevel={tipsLevel}
           onOpen={() => navigate("/blood-history")}
         />
+        </div>
 
 
 
 
 
-        <SurfaceCard data-tour="alerts" tone="dark" padded={false}>
+        <SurfaceCard data-tour="alerts" id="section-alerts" data-scroll-section tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
               🔔 Alerts {displayedAlerts.length > 0 && `(${displayedAlerts.length})`}
@@ -882,6 +887,7 @@ const Home = () => {
                 return (
                 <div
                   key={a.id}
+                  {...anchorProps(`alert-${a.id}`)}
                   className={
                     isDanger
                       ? "relative w-full p-3 pr-9 rounded-[10px] border-2 border-red-600/70 bg-red-600/20 hover:border-red-600 transition-colors"

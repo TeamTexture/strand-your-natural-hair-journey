@@ -556,6 +556,7 @@ const WashDayHub = () => {
             return (
               <WashDayCard
                 key={wd.id}
+                anchorId={wd.id}
                 washDay={wd}
                 sequenceNumber={sequenceNumber}
                 previousWashDate={previous?.wash_date ?? null}

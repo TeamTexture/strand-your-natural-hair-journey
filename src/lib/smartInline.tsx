@@ -11,6 +11,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
+import { anchorProps } from "@/lib/scrollMemory";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
 import { IngredientToken } from "@/components/ingredients/IngredientToken";
@@ -227,6 +228,7 @@ export function renderInlineWithProducts(
           to={productHref(m.product)}
           state={{ fromAdvice: true }}
           className={LINK_CLS}
+          {...anchorProps(`inline-${keyPrefix}-p-${i}`)}
         >
           {m.text}
         </Link>,

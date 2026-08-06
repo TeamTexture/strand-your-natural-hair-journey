@@ -1,5 +1,6 @@
 import { Package, Clock, Mic, ListChecks, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { anchorProps } from "@/lib/scrollMemory";
 import { stripStaleDates } from "@/lib/stripStaleDates";
 import type { WashDay } from "@/hooks/useWashDays";
 import { washStepLabel } from "@/lib/washSteps";
@@ -10,6 +11,8 @@ interface Props {
   sequenceNumber: number;
   previousWashDate: string | null;
   onClick: () => void;
+  /** Stable record id used for scroll restoration anchoring. */
+  anchorId?: string;
 }
 
 /**
@@ -17,7 +20,7 @@ interface Props {
  * date, style, products used, steps taken, duration, health chips, and a
  * one-line key insight distilled from the AI observation / next-wash tip.
  */
-export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
+export const WashDayCard = ({ washDay, sequenceNumber, onClick, anchorId }: Props) => {
   // ---------- Relative time ----------
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -112,6 +115,7 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
   return (
     <button
       onClick={onClick}
+      {...anchorProps(anchorId)}
       className={cn(
         "w-full text-left rounded-[24px] border border-foreground/[0.07] bg-card p-5",
         "shadow-[0_4px_20px_-8px_rgba(74,55,40,0.10)]",

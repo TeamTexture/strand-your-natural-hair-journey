@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { anchorProps } from "@/lib/scrollMemory";
 import { TONE_CLASSES, type GuidanceTone } from "@/lib/guidance";
 
 /**
@@ -25,6 +26,7 @@ const ListRow = ({
   onClick,
   tone = "card",
   className,
+  anchorId,
 }: {
   icon?: LucideIcon;
   /** Image or custom visual used instead of an icon. */
@@ -42,6 +44,8 @@ const ListRow = ({
   onClick?: () => void;
   tone?: "card" | "gold";
   className?: string;
+  /** Stable record id — enables scroll restoration back to this row. */
+  anchorId?: string | number;
 }) => {
   const navigate = useNavigate();
   const interactive = Boolean(to || onClick);
@@ -97,7 +101,7 @@ const ListRow = ({
 
   if (!interactive) return <div className={shell}>{inner}</div>;
   return (
-    <button type="button" onClick={() => (onClick ? onClick() : navigate(to!))} className={shell}>
+    <button type="button" {...anchorProps(anchorId)} onClick={() => (onClick ? onClick() : navigate(to!))} className={shell}>
       {inner}
     </button>
   );
