@@ -389,6 +389,28 @@ const WashDayDetail = () => {
           </div>
         )}
 
+        {/* Style attributes — only render what was actually captured. */}
+        {!editing && (wd.style_extensions != null || wd.style_tension || wd.style_other_note) && (
+          <SurfaceCard>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
+              Style detail
+            </p>
+            <div className="space-y-1 text-[13px]">
+              {wd.style_other_note && <p className="leading-snug">{wd.style_other_note}</p>}
+              {wd.style_extensions != null && (
+                <p className="text-muted-foreground">
+                  {wd.style_extensions ? "With extensions" : "Without extensions"}
+                </p>
+              )}
+              {wd.style_tension && (
+                <p className="text-muted-foreground">
+                  {wd.style_tension.charAt(0).toUpperCase() + wd.style_tension.slice(1)} tension
+                </p>
+              )}
+            </div>
+          </SurfaceCard>
+        )}
+
         {/* ── Health signals ─────────────────── */}
         {!editing && (wd.scalp_feel || wd.breakage || wd.stress_level != null) && (
           <SurfaceCard>

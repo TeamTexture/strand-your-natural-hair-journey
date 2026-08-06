@@ -14,6 +14,10 @@ export interface WashDay {
   hair_feel_note: string | null;
   hair_feel_voice_url: string | null;
   style_after: string | null;
+  style_extensions?: boolean | null;
+  style_tension?: string | null;
+  style_other_note?: string | null;
+  style_other_voice_url?: string | null;
   duration_min: number | null;
   stress_level: number | null;
   ai_insight: string | null;
