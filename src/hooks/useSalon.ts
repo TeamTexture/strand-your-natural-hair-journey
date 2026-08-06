@@ -2,10 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
-import {
-  sendStylistListedNotification_STUB,
-  type StylistListedPayload,
-} from "@/lib/notifyStylistListed";
+import { sendAppEmail } from "@/lib/sendAppEmail";
 
 export type Discipline = Database["public"]["Enums"]["pro_discipline"];
 export type Salon = Database["public"]["Tables"]["salons"]["Row"];
