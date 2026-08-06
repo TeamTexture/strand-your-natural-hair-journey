@@ -14,7 +14,6 @@ import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useAuth } from "@/hooks/useAuth";
 import { AlertTriangle } from "lucide-react";
-import { NextWashTipCard } from "@/components/NextWashTipCard";
 import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 import BrandBanner from "@/components/BrandBanner";
@@ -346,17 +345,10 @@ const WashDayHub = () => {
   const goNext = () =>
     setView((v) => v.month === 11 ? { year: v.year + 1, month: 0 } : { ...v, month: v.month + 1 });
 
-  const latestTipRaw = washDays.find((w) => w.next_wash_tip)?.next_wash_tip ?? null;
-  const latestTip = useMemo(() => {
-    if (!latestTipRaw) return null;
-    try {
-      const parsed = JSON.parse(latestTipRaw);
-      if (parsed && typeof parsed === "object" && (parsed.action || parsed.why)) {
-        return { action: parsed.action ?? "", why: parsed.why ?? "" };
-      }
-    } catch { /* legacy plain-text tip */ }
-    return { action: latestTipRaw, why: "" };
-  }, [latestTipRaw]);
+  // The per-log "next wash day tip" card (backed by the deprecated
+  // wash_days.next_wash_tip column) has been removed. The generated
+  // `wash_day_tip` card below is now the only AI tip on this screen.
+
 
   const overdue = useMemo(() => {
     if (!washDays.length) return null;
@@ -401,7 +393,7 @@ const WashDayHub = () => {
   // Page-level sentence dedupe: the overdue alert, the AI tip card and the
   // wash-rhythm "why" all draw on the same cadence reasoning. Any sentence
   // already rendered higher up the page is dropped from later blocks.
-  const pageSeen = useMemo(() => new Set<string>(), [overdue, latestTip, educational]);
+  const pageSeen = useMemo(() => new Set<string>(), [overdue, educational]);
 
   // CONSEQUENCE only — one short, complete, never-truncated sentence: bold
   // 4–6 word lead-in + em-dash + one light clause of ≤ 12 words.
@@ -423,7 +415,7 @@ const WashDayHub = () => {
   // Cadence reasoning appears at most once per page. Priority:
   // overdue alert > AI tip card > wash rhythm "why".
   const [dynamicTipShown, setDynamicTipShown] = useState(false);
-  const cadenceReasoningTaken = Boolean(overdue) || Boolean(latestTip) || dynamicTipShown;
+  const cadenceReasoningTaken = Boolean(overdue) || dynamicTipShown;
 
   // Suggested next wash date — used to prefill the STRAND scheduling box.
   const nextIso = educational.nextDateIso;
@@ -497,14 +489,8 @@ const WashDayHub = () => {
         )}
 
 
-        {/* ONE AI tip card only. The log-specific next-wash tip is fresher, so it
-            wins; the generated wash-day tip is the fallback for accounts with no
-            logged tip yet (and is not even fetched when the former exists). */}
-        {latestTip ? (
-          <NextWashTipCard action={latestTip.action} why={dedupeSentences(latestTip.why, pageSeen)} />
-        ) : (
-          <DynamicWashTipCard onShown={setDynamicTipShown} />
-        )}
+        {/* ONE AI tip card only — the generated wash day tip. */}
+        <DynamicWashTipCard onShown={setDynamicTipShown} />
 
 
         <div id="wash-calendar">
@@ -658,6 +644,16 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
       {tip.technique && (
         <LevelGate min={2}>
           <AiProse text={`Technique: ${tip.technique}`} />
+        </LevelGate>
+      )}
+      {/* Optional — one thing to try on the NEXT wash day, given where her hair
+          is now and the style she is moving into. Same panel treatment as the
+          "why" and "Technique" blocks (a labelled GuidanceBody segment), so it
+          reads as part of this card. Omitted entirely when the model has
+          nothing worth suggesting. */}
+      {tip.next_time && tip.next_time.trim() && (
+        <LevelGate min={2}>
+          <AiProse text={`Do this next wash: ${tip.next_time.trim()}`} />
         </LevelGate>
       )}
       {/* No BeginnerSteps here — level-4 depth comes from the server-side

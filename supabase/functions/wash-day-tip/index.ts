@@ -35,12 +35,14 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v5-responsive-signature";
+const MODEL_VERSION = "wash-tip@v6-full-history";
 
 interface TipPayload {
   headline: string;
   why: string;
   technique: string;
+  /** Optional "try this next wash day" section. Empty string = omitted. */
+  next_time?: string;
   fingerprint: string;
   _model_version: string;
   /** Support level the tip was written for — a mismatch is a cache miss. */
@@ -61,6 +63,16 @@ interface Body {
   areasOfConcern?: string[];
   recentWashDay?: { id?: string; date?: string } | null;
   recentAppointment?: { id?: string; date?: string } | null;
+  /**
+   * Aggregate of EVERY logged wash day (cadence, heat frequency, breakage
+   * pattern, product rotation, step mix) — computed client-side in
+   * src/lib/washHistoryAggregate.ts.
+   */
+  washHistory?: Record<string, unknown> | null;
+  /** How her hair has felt, newest first (voice notes are transcribed into these). */
+  hairFeelNotes?: Array<{ date?: string; note?: string }>;
+  /** Products on her shelf — suggestions must come from these. */
+  shelfProducts?: Array<{ name?: string; brand?: string | null; category?: string | null }>;
   tipsLevel?: number | null;
   /**
    * Which surface the tip is for. "style" powers the Current Hairstyle screen —
@@ -73,17 +85,21 @@ interface Body {
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
-TASK — Produce ONE personalised wash-day tip for this specific user, grounded in the STRAND manuscript teachings and the user's live data (hair profile, health signals, blood flags, goals, current style). This is the tip that will show on their Wash Day screen until their data changes.
+TASK — Produce ONE personalised wash-day tip for this specific user, grounded in the STRAND manuscript teachings and the user's live data. Read the WHOLE picture, not a snapshot: the aggregate of every wash day they have logged (cadence, heat frequency, breakage pattern, product rotation, step mix), their hair profile, how their hair has felt in their own words, their current style (tension, extensions), their planned next style, their goals and their challenges. This is the tip that will show on their Wash Day screen until their data changes.
 
 OUTPUT — JSON object only, no prose outside it:
 {
   "headline": string,   // 3-7 words, Title Case, no trailing punctuation. Names the WHOLE tip.
-  "why": string,        // 2-3 sentences. Ties the tip to THIS user's data (name a specific trait, marker, or goal). No filler.
-  "technique": string   // 1-2 sentences. The concrete "how" — sequence, product type, tool, timing.
+  "why": string,        // 2-3 sentences. Ties the tip to THIS user's data (name a specific trait, pattern across their logs, marker, or goal). No filler.
+  "technique": string,  // 1-2 sentences. The concrete "how" — sequence, product type, tool, timing.
+  "next_time": string   // OPTIONAL. 1-2 sentences framed as ONE option to try on their NEXT wash day, given where their hair is now and the style they are moving into. Return "" when there is nothing genuinely worth suggesting — never pad it.
 }
 
 RULES:
 - Do NOT invent user data. If a slice is missing, ground the tip in what IS present.
+- Reason from PATTERNS across all their logs (recurring breakage, how often heat appears, how their cadence is drifting, which products they rotate) rather than from the most recent wash alone.
+- Where their own words about how their hair feels are present, reflect them back accurately. Never overwrite what they said with an assumption.
+- PRODUCTS: only ever name a product that appears in shelfProducts. Prefer what they already own. If nothing on the shelf fits, describe the product TYPE (e.g. "a creamy leave-in") and name no brand at all. Never invent a product, never name a product they do not own.
 - If bloodFlags include ferritin/iron/vitD-low, connect wash-day scalp care to the regrowth environment.
 - If hair porosity is high, lead with sealing/moisture-lock; if low, lead with clarifying/heat-assisted penetration.
 - Never prescribe pre-poo as a scheduled ritual. Never say "use protein weekly". Never recommend shower caps, plastic caps, warm towels, or steamers — the only heat tool referenced is the TT Heat Hat (teamtexture.co.uk).
@@ -173,6 +189,10 @@ Deno.serve(async (req) => {
     goals: (body.goals ?? []).slice(0, 5),
     bloodFlags: (body.bloodFlags ?? []).slice(0, 8),
     hasWashHistory: body.hasWashHistory ?? false,
+    // Aggregate across ALL logged wash days, not just the latest one.
+    washHistoryAcrossAllLogs: body.washHistory ?? null,
+    hairFeelInHerWords: (body.hairFeelNotes ?? []).slice(0, 6),
+    shelfProducts: (body.shelfProducts ?? []).slice(0, 40),
   };
 
   // ── Manuscript grounding: knowledge topics + retrieved passages ────
@@ -273,7 +293,7 @@ Deno.serve(async (req) => {
 
   const j = await aiResp.json();
   const raw = j?.choices?.[0]?.message?.content ?? "{}";
-  let parsed: { headline?: string; why?: string; technique?: string };
+  let parsed: { headline?: string; why?: string; technique?: string; next_time?: string };
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -283,10 +303,15 @@ Deno.serve(async (req) => {
     return json(502, { error: "invalid model output" });
   }
 
+  // The next-wash suggestion is optional by design — an empty/absent value
+  // means the section is omitted from the card rather than padded.
+  const nextTime = isStyle ? "" : String(parsed.next_time ?? "").trim();
+
   const payload: TipPayload = {
     headline: String(parsed.headline).trim(),
     why: String(parsed.why).trim(),
     technique: String(parsed.technique ?? "").trim(),
+    next_time: nextTime,
     fingerprint: body.fingerprint,
     _model_version: MODEL_VERSION,
     tipsLevel: requestedLevel,
@@ -301,7 +326,7 @@ Deno.serve(async (req) => {
       { onConflict: "user_id,kind" },
     );
 
-  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.technique]);
+  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.technique, payload.next_time ?? ""]);
 
   return json(200, { tip: payload, cached: false });
 });

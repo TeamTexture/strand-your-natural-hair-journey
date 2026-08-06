@@ -21,6 +21,7 @@ export interface WashDay {
   duration_min: number | null;
   stress_level: number | null;
   ai_insight: string | null;
+  /** DEPRECATED — never written or rendered. Retained for historic rows only. */
   next_wash_tip: string | null;
   product_ids: string[];
   created_at: string;

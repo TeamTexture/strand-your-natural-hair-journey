@@ -129,7 +129,7 @@ const ProductProfile = () => {
           scalpFeel: wd.scalp_feel,
           breakage: wd.breakage,
           styleAfter: wd.style_after,
-          insight: wd.next_wash_tip ?? wd.ai_insight ?? wd.hair_feel_note,
+          insight: wd.ai_insight ?? wd.hair_feel_note,
           thumbPath: styling?.photoPaths?.[0] ?? null,
         };
       });

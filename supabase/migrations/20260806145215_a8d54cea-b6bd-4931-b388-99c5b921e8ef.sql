@@ -1,0 +1,1 @@
+COMMENT ON COLUMN public.wash_days.next_wash_tip IS 'DEPRECATED (retained for historic rows only): the per-log "next wash day tip". Never written or read by the app; the generated wash_day_tip replaces it. Do not drop.';
