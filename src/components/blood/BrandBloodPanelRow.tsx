@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Home, Info } from "lucide-react";
+import { ExternalLink, Home, Info, Tag } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { matchedMarkers, priceLabel, type BrandBloodPanel } from "@/lib/bloodTestBrands";
 
 /**
- * THE shared brand blood panel row. Every surface that offers an at-home blood
- * test renders this component.
+ * THE shared blood panel row. Every surface that offers an at-home blood test
+ * renders this component, for registered brands and curated vendors alike.
  *
  * COMPLIANCE: when `affiliate_url` is populated the commission disclosure
  * renders automatically, driven off the presence of that field alone. It is not
- * a prop and cannot be switched off, so a brand added later can never end up on
- * screen without its disclosure.
+ * a prop and cannot be switched off, so a vendor added later can never end up
+ * on screen without its disclosure.
  */
 
 export const AFFILIATE_DISCLOSURE =
@@ -46,9 +46,10 @@ const BrandBloodPanelRow = ({
   }, [panel.logo_path]);
 
   const isAffiliate = !!panel.affiliate_url?.trim();
-  const href = (panel.affiliate_url || panel.purchase_url || "").trim();
+  const href = (panel.affiliate_url || panel.purchase_url || panel.vendor_website || "").trim();
   const price = priceLabel(panel.price_from, panel.currency);
   const matches = matchedMarkers(panel, neededMarkers);
+  const discount = panel.discount_code?.trim() || "";
 
   return (
     <SurfaceCard className={cn("space-y-2", className)}>
@@ -71,9 +72,11 @@ const BrandBloodPanelRow = ({
           <p className="font-display text-[15px] font-semibold leading-tight truncate">
             {panel.brand_name}
           </p>
-          <p className="text-[11.5px] font-body text-foreground/75 leading-snug">
-            {panel.panel_name}
-          </p>
+          {panel.panel_name?.trim() && (
+            <p className="text-[11.5px] font-body text-foreground/75 leading-snug">
+              {panel.panel_name}
+            </p>
+          )}
         </div>
         {price && (
           <span className="shrink-0 text-[11px] font-body font-semibold text-foreground/85">
@@ -94,6 +97,11 @@ const BrandBloodPanelRow = ({
             Covers {m}
           </span>
         ))}
+        {panel.markers_covered.length > 0 && matches.length === 0 && (
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-body text-foreground/80">
+            {panel.markers_covered.length} markers
+          </span>
+        )}
         {panel.regions_served.map((r) => (
           <span
             key={r}
@@ -104,15 +112,30 @@ const BrandBloodPanelRow = ({
         ))}
       </div>
 
+      {(discount || panel.discount_details?.trim()) && (
+        <p className="flex items-start gap-1.5 text-[11px] font-body text-foreground/85 leading-snug">
+          <Tag className="size-3 mt-0.5 shrink-0" aria-hidden="true" />
+          <span>
+            {discount && (
+              <span className="font-semibold">
+                Code {discount}
+                {panel.discount_details?.trim() ? " — " : ""}
+              </span>
+            )}
+            {panel.discount_details?.trim()}
+          </span>
+        </p>
+      )}
+
       {href && (
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          aria-label={`Buy the ${panel.panel_name} from ${panel.brand_name} — opens in a new tab`}
+          aria-label={`Order from ${panel.brand_name} — opens in a new tab`}
           className="inline-flex items-center gap-1.5 rounded-pill bg-primary px-4 py-2 text-[12px] font-body font-semibold text-primary-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          Buy from {panel.brand_name}
+          Order from {panel.brand_name}
           <ExternalLink className="size-3.5" aria-hidden="true" />
         </a>
       )}
