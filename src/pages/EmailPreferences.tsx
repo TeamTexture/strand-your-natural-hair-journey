@@ -28,7 +28,7 @@ interface Prefs {
   wash_day_reminders: boolean;
   blood_test_due: boolean;
   forum_replies: boolean;
-  enquiry_updates: boolean
+  enquiry_updates: boolean;
   appointment_reminders: boolean;
   brand_offers: boolean;
 }
@@ -107,7 +107,7 @@ const EmailPreferences = () => {
       }
       const { error } = await supabase
         .from("email_preferences")
-        .update(row)
+        .update(row as never)
         .eq("user_id", user!.id);
       if (error) throw error;
     },
