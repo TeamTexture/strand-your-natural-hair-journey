@@ -1,6 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useMemo } from "react";
 import { Search, MessageSquarePlus } from "lucide-react";
@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
 import { useSetBrandBloodVerification } from "@/hooks/useBloodTestBrands";
-import { Droplet } from "lucide-react";
+import { Droplet, Pill } from "lucide-react";
 
 interface BrandRow {
   id: string;
@@ -38,6 +38,8 @@ interface BrandRow {
   complimentary: boolean;
   blood_claimed: boolean;
   blood_verified: boolean;
+  supplements_claimed: boolean;
+  supplements_verified: boolean;
 }
 
 const AdminBrands = () => {
@@ -98,6 +100,10 @@ const AdminBrands = () => {
             (b as { offers_at_home_blood_tests_claimed?: boolean }).offers_at_home_blood_tests_claimed === true,
           blood_verified:
             (b as { offers_at_home_blood_tests_verified?: boolean }).offers_at_home_blood_tests_verified === true,
+          supplements_claimed:
+            (b as { sells_supplements_claimed?: boolean }).sells_supplements_claimed === true,
+          supplements_verified:
+            (b as { sells_supplements_verified?: boolean }).sells_supplements_verified === true,
         };
       });
     },
@@ -105,6 +111,25 @@ const AdminBrands = () => {
 
   const start = useStartAdminSupportThread();
   const setBloodVerified = useSetBrandBloodVerification();
+  const qc = useQueryClient();
+  const setSupplementsVerified = useMutation({
+    mutationFn: async ({ brandUserId, verified }: { brandUserId: string; verified: boolean }) => {
+      const { data: me } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("brand_profiles")
+        .update({
+          sells_supplements_verified: verified,
+          supplements_verified_at: verified ? new Date().toISOString() : null,
+          supplements_verified_by: verified ? me.user?.id ?? null : null,
+        } as never)
+        .eq("user_id", brandUserId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "brands"] });
+      qc.invalidateQueries({ queryKey: ["brand-profile"] });
+    },
+  });
 
   // Category is owned and edited by the brand from their own profile —
   // admins see it read-only. The category filter above stays for browsing.
@@ -248,6 +273,41 @@ const AdminBrands = () => {
                     >
                       <Droplet className="size-3.5 mr-1.5" />
                       {r.blood_verified ? "Remove verification" : "Verify blood tests"}
+                    </Button>
+                  </div>
+                )}
+
+                {(r.supplements_claimed || r.supplements_verified) && (
+                  <div className="mt-3 pt-3 border-t border-border space-y-2">
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-body">
+                      Supplements
+                    </p>
+                    <p className="text-[11.5px] font-body text-foreground/80 leading-snug">
+                      {r.supplements_verified
+                        ? "Verified — this brand is confirmed as selling supplements."
+                        : "Claimed. Confirm this brand genuinely sells supplements before verifying."}
+                    </p>
+                    <Button
+                      variant={r.supplements_verified ? "outline" : "gold"}
+                      size="sm"
+                      className="h-9 rounded-pill text-[12px]"
+                      disabled={setSupplementsVerified.isPending}
+                      onClick={() =>
+                        setSupplementsVerified.mutate(
+                          { brandUserId: r.user_id, verified: !r.supplements_verified },
+                          {
+                            onSuccess: () =>
+                              toast.success(
+                                r.supplements_verified ? "Verification removed" : "Supplements verified",
+                              ),
+                            onError: (e) =>
+                              toast.error(e instanceof Error ? e.message : "Could not update"),
+                          },
+                        )
+                      }
+                    >
+                      <Pill className="size-3.5 mr-1.5" />
+                      {r.supplements_verified ? "Remove verification" : "Verify supplements"}
                     </Button>
                   </div>
                 )}
