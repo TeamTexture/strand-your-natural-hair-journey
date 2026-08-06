@@ -55,6 +55,9 @@ export const proposeChallengesFromTranscript = (transcript: string): string[] =>
     .split(/(?:[.;!?\n]+|,\s*(?:and\s+)?|\s+and also\s+|\s+plus\s+|\s+as well as\s+)/i)
     .map((p) =>
       p
+        // Trim FIRST — the split leaves leading whitespace, which would stop
+        // the filler-word anchor below from ever matching.
+        .trim()
         .replace(/^(?:and|also|then|um+|erm+|so|well)\b[\s,]*/i, "")
         .replace(/[\s,]+$/, "")
         .trim(),
