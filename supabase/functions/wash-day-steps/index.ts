@@ -225,7 +225,6 @@ Deno.serve(async (req) => {
 
   const contextBlock = {
     currentStyle: body.currentStyle ?? null,
-    plannedNextStyle: (body.currentStyle ?? {})["planned_next_style" as keyof object] ?? null,
     challenges: (body.challenges ?? []).slice(0, 6),
     areasOfConcern: (body.areasOfConcern ?? []).slice(0, 8),
     mostRecentWashDay: body.recentWashDay ?? null,
@@ -257,7 +256,7 @@ Deno.serve(async (req) => {
           },
           {
             role: "user",
-            content: `Her data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn her wash day steps JSON now.`,
+            content: `${styleHeader}\n\nHer data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn her wash day steps JSON now.`,
           },
         ],
         response_format: { type: "json_object" },
