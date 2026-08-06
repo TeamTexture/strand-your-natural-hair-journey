@@ -596,7 +596,7 @@ const ProductProfile = () => {
                             {isClickable ? (
                               name
                             ) : (
-                              <GlossaryLabel label={name} className="font-medium" showPhonetic />
+                              <GlossaryLabel label={name} className="font-medium" />
                             )}
                           </p>
                         )}

@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import { cn } from "@/lib/utils";
 import IngredientExplainerSheet from "@/components/ingredients/IngredientExplainerSheet";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
-import { bracketPhonetic, splitCompoundLabel } from "@/lib/ingredientLabel";
+import { splitCompoundLabel } from "@/lib/ingredientLabel";
 
 
 interface Ctx {
@@ -109,14 +109,6 @@ export function IngredientToken({
   );
 }
 
-/** The bracketed pronunciation shown beside a name in LIST items only. */
-function InlinePhonetic({ phonetic }: { phonetic: string | null | undefined }) {
-  const text = bracketPhonetic(phonetic);
-  if (!text) return null;
-  return (
-    <span className="ml-1 text-[11px] font-normal text-foreground/50 font-body">{text}</span>
-  );
-}
 
 /**
  * GlossaryPhrase — tokenises glossary terms found INSIDE a longer phrase
@@ -185,28 +177,20 @@ export function GlossaryPhrase({
  * ingredient names become tappable. When the whole phrase doesn't resolve, any
  * glossary term embedded inside it is still tokenised.
  *
- * `showPhonetic` is for LIST items (flag rows, score reasons, INCI chips) where
- * there is room for a bracketed pronunciation. Flowing prose leaves it off and
- * reveals the phonetic on tap instead.
+ * Phonetics are deliberately shown only in the ingredient explainer sheet, not
+ * inline, so list surfaces stay scannable.
  */
 export function GlossaryTerm({
   text,
   className,
-  showPhonetic = false,
 }: {
   text: string;
   className?: string;
-  showPhonetic?: boolean;
 }) {
   const { lookup } = useIngredientGlossary();
   const row = lookup(text);
   if (!row) return <GlossaryPhrase text={text} className={className} />;
-  return (
-    <>
-      <IngredientToken name={row.display_name} label={text} className={className} />
-      {showPhonetic && <InlinePhonetic phonetic={row.phonetic} />}
-    </>
-  );
+  return <IngredientToken name={row.display_name} label={text} className={className} />;
 }
 
 
@@ -216,15 +200,16 @@ export function GlossaryTerm({
  * glossary independently, and only the parts that resolve become tappable. The
  * connecting words and any unresolved part stay plain text, so a descriptive
  * phrase ("mild surfactant concentration") never renders as a dead token.
+ *
+ * Phonetics are deliberately shown only in the ingredient explainer sheet, not
+ * inline, so list surfaces stay scannable.
  */
 export function GlossaryLabel({
   label,
   className,
-  showPhonetic = false,
 }: {
   label: string;
   className?: string;
-  showPhonetic?: boolean;
 }) {
   const { lookup } = useIngredientGlossary();
   const parts = useMemo(() => splitCompoundLabel(label), [label]);
@@ -241,10 +226,7 @@ export function GlossaryLabel({
         }
 
         return (
-          <React.Fragment key={`gl-${i}`}>
-            <IngredientToken name={row.display_name} label={part.text.trim()} className={className} />
-            {showPhonetic && <InlinePhonetic phonetic={row.phonetic} />}
-          </React.Fragment>
+          <IngredientToken key={`gl-${i}`} name={row.display_name} label={part.text.trim()} className={className} />
         );
       })}
     </>
