@@ -477,12 +477,21 @@ const Home = () => {
                     {daysInStyle != null ? `Day ${daysInStyle} in rotation` : "Just set"}
                   </p>
                 </div>
-                <button
-                  onClick={() => navigate("/home/style")}
-                  className="shrink-0 text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
-                >
-                  Edit
-                </button>
+                <div className="shrink-0 flex items-center gap-2">
+                  <button
+                    onClick={() => setPhotoPickerOpen(true)}
+                    aria-label="Change your main photo"
+                    className="size-7 rounded-full border border-[#C5A059]/30 flex items-center justify-center text-[#C5A059] hover:bg-white/5 transition-colors"
+                  >
+                    <ImagePlus className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={() => navigate("/home/style")}
+                    className="text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
 
               {/* Hero photo */}
