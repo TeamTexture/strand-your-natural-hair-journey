@@ -172,14 +172,51 @@ const MilestoneGallery = () => {
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            void handlePick(f ?? null);
+            const picked = Array.from(e.target.files ?? []);
+            void handlePick(picked);
             if (fileRef.current) fileRef.current.value = "";
           }}
         />
+
+        <MainPhotoPicker
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          title="Which of these would you like as your main photo?"
+          description="Your Current style card will show the one you pick. Choosing “Use my most recent photo” keeps it following your newest photo."
+        />
+
+        <AlertDialog open={!!switchTo} onOpenChange={(o) => { if (!o) setSwitchTo(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-display">Use your new photo on Home?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You've pinned a main photo before, so we won't change it without asking.
+                Switch your Current style card to the photo you just added?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setSwitchTo(null)}>Keep the current one</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const id = switchTo;
+                  setSwitchTo(null);
+                  if (id) {
+                    setMainPhoto.mutate(id, {
+                      onSuccess: () => toast.success("Main photo updated"),
+                      onError: () => toast.error("Could not update your main photo"),
+                    });
+                  }
+                }}
+              >
+                Use the new one
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
 
         {loading ? (
           <LoadingDot label="Loading photos…" fullScreen={false} />
