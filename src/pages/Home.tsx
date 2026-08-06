@@ -204,9 +204,8 @@ const Home = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Most recently added/updated progress photo (Strand Summary uploads) for the
-  // current style card thumbnail. Re-runs on Home navigation and when a photo
-  // or style change is announced in-tab.
+  // Fallback thumbnail (newest progress photo) plus a nudge to the unified
+  // photo query whenever a photo or style change is announced in-tab.
   useEffect(() => {
     if (!user) { setBeforePhotoUrl(null); return; }
     let cancelled = false;
@@ -225,9 +224,10 @@ const Home = () => {
       if (!cancelled && signed?.signedUrl) setBeforePhotoUrl(signed.signedUrl);
     };
     void load();
-    const onEvt = () => void load();
+    const onEvt = () => { void load(); void refreshStyleCardPhoto(); };
     window.addEventListener("strand:style-updated", onEvt);
     window.addEventListener("focus", onEvt);
+
     return () => {
       cancelled = true;
       window.removeEventListener("strand:style-updated", onEvt);
