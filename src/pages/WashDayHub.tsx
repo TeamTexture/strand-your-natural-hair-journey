@@ -31,6 +31,9 @@ import { dedupeSentences, emphasisSplit, splitSentences } from "@/lib/tipsRender
 import { restatesAction } from "@/lib/guidance";
 import { blowDryCountLast7Days } from "@/lib/stylingHeat";
 import { CircleSlash, Repeat, Ruler } from "lucide-react";
+import { useWashDaySchedules } from "@/hooks/useWashDaySchedules";
+import NextWashDayBox, { washDayCalendarEvent } from "@/components/wash/NextWashDayBox";
+import { googleCalendarUrl } from "@/lib/addToCalendar";
 
 
 const monthNames = [
@@ -270,22 +273,8 @@ const encouragement = (count: number) => {
   return "Excellent — your scalp and hair will thank you for this routine.";
 };
 
-// Build a Google Calendar "Add event" URL for an all-day wash-day reminder.
-const buildGoogleCalendarUrl = (iso: string) => {
-  const compact = iso.replace(/-/g, "");
-  const start = new Date(iso);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  const endCompact = `${end.getFullYear()}${pad(end.getMonth() + 1)}${pad(end.getDate())}`;
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: "Wash day — STRAND",
-    dates: `${compact}/${endCompact}`,
-    details:
-      "Your STRAND weekly wash day. Double-cleanse the scalp, then hydrate the lengths. Open the app to log it when done.",
-  });
-  return `https://www.google.com/calendar/render?${params.toString()}`;
-};
+
+
 
 const fmtCardDate = (iso: string) => {
   const d = new Date(iso);
@@ -301,44 +290,39 @@ const WashDayHub = () => {
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
 
-  // Scheduled future wash days — stored per user in localStorage as a simple
-  // planning aid (no server-side row until they log the wash for real).
-  const storageKey = user ? `strand.scheduledWashDays.${user.id}` : null;
-  const [scheduled, setScheduled] = useState<string[]>([]);
-  useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      const arr = raw ? (JSON.parse(raw) as string[]) : [];
-      const todayIso = isoFor(today.getFullYear(), today.getMonth(), today.getDate());
-      // Prune past scheduled dates automatically.
-      const pruned = arr.filter((d) => d >= todayIso);
-      setScheduled(pruned);
-      if (pruned.length !== arr.length) localStorage.setItem(storageKey, JSON.stringify(pruned));
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
-  const persistScheduled = (next: string[]) => {
-    setScheduled(next);
-    if (storageKey) {
-      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* ignore */ }
-    }
-  };
-  const scheduledSet = useMemo(() => new Set(scheduled), [scheduled]);
+  // Scheduled future wash days — persisted per user in wash_day_schedules.
+  const {
+    schedules,
+    create: createSchedule,
+    remove: removeScheduleRow,
+  } = useWashDaySchedules();
+  const activeSchedules = useMemo(
+    () => schedules.filter((s) => s.status === "scheduled"),
+    [schedules],
+  );
+  const scheduledSet = useMemo(
+    () => new Set(activeSchedules.map((s) => s.scheduled_date)),
+    [activeSchedules],
+  );
+  const scheduleByDate = useMemo(() => {
+    const map: Record<string, (typeof activeSchedules)[number]> = {};
+    for (const s of activeSchedules) map[s.scheduled_date] = s;
+    return map;
+  }, [activeSchedules]);
 
   const [scheduleDialogIso, setScheduleDialogIso] = useState<string | null>(null);
   const openScheduleDialog = (iso: string) => setScheduleDialogIso(iso);
   const confirmSchedule = () => {
     if (scheduleDialogIso && !scheduledSet.has(scheduleDialogIso)) {
-      persistScheduled([...scheduled, scheduleDialogIso].sort());
+      createSchedule.mutate({ date: scheduleDialogIso });
     }
   };
   const removeSchedule = () => {
-    if (scheduleDialogIso) {
-      persistScheduled(scheduled.filter((d) => d !== scheduleDialogIso));
-      setScheduleDialogIso(null);
-    }
+    const row = scheduleDialogIso ? scheduleByDate[scheduleDialogIso] : null;
+    if (row) removeScheduleRow.mutate(row.id);
+    setScheduleDialogIso(null);
   };
+
 
 
   const { washDates, washDayIdsByDate, currentMonthCount } = useMemo(() => {
@@ -439,58 +423,9 @@ const WashDayHub = () => {
   const [dynamicTipShown, setDynamicTipShown] = useState(false);
   const cadenceReasoningTaken = Boolean(overdue) || Boolean(latestTip) || dynamicTipShown;
 
-  // Scheduling controls — rendered inside the overdue card as a subordinate
-  // secondary row, or on their own in the Next wash day card when not overdue.
+  // Suggested next wash date — used to prefill the STRAND scheduling box.
   const nextIso = educational.nextDateIso;
-  const schedulingRow = (secondary: boolean) => {
-    if (!nextIso) return null;
-    const pill = secondary
-      ? "min-h-[36px] text-[11.5px] px-3 py-1.5"
-      : "text-[12.5px] px-4 py-2.5";
-    return (
-      <div className={cn("flex flex-col gap-2", secondary && "sm:flex-row")}>
-        {scheduledSet.has(nextIso) ? (
-          <p className={cn("flex-1 text-center font-body text-primary/90 bg-primary/10 rounded-pill inline-flex items-center justify-center gap-1.5", pill)}>
-            ✓ Scheduled — tap the highlighted date to manage
-          </p>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              const [y, m] = nextIso.split("-").map(Number);
-              setView({ year: y, month: m - 1 });
-              openScheduleDialog(nextIso);
-              setTimeout(() => {
-                document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 50);
-            }}
-            className={cn(
-              "flex-1 inline-flex items-center justify-center gap-2 rounded-pill font-semibold font-body transition",
-              pill,
-              secondary
-                ? "text-primary bg-primary/10 hover:bg-primary/15"
-                : "bg-primary text-primary-foreground shadow-sm hover:opacity-95",
-            )}
-          >
-            <CalendarClock className="size-4" />
-            Schedule this wash day
-          </button>
-        )}
-        <a
-          href={buildGoogleCalendarUrl(nextIso)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            "flex-1 inline-flex items-center justify-center gap-2 rounded-pill border border-primary/30 bg-background font-semibold text-primary font-body hover:bg-primary/5 transition",
-            pill,
-          )}
-        >
-          <CalendarPlus className="size-4" />
-          Add to Google Calendar
-        </a>
-      </div>
-    );
-  };
+
 
   return (
 
@@ -514,7 +449,7 @@ const WashDayHub = () => {
                   >
                     {OVERDUE_CTA} →
                   </button>
-                  {schedulingRow(true)}
+                  
                 </div>
               }
             >
@@ -582,27 +517,10 @@ const WashDayHub = () => {
           />
         </div>
 
-        {/* Scheduling only — no rhythm-reasoning prose, and hidden entirely when
-            the overdue alert is on screen (it carries the same data and the same
-            two controls). */}
-        {!overdue && nextIso && (
-          <SurfaceCard tone="gold">
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-                <Droplets className="size-4 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
-                  Next wash day
-                </p>
-                <p className="font-body text-[15px] font-semibold leading-snug text-foreground mt-1 break-words">
-                  {fmtCardDate(nextIso)}
-                </p>
-                <div className="mt-3">{schedulingRow(false)}</div>
-              </div>
-            </div>
-          </SurfaceCard>
-        )}
+        {/* Next wash day box — mandatory STRAND scheduling plus the optional
+            Google Calendar hand-off. Inline, never modal-blocking. */}
+        <NextWashDayBox suggestedDate={nextIso} />
+
 
 
       </div>
@@ -676,18 +594,18 @@ const WashDayHub = () => {
                 Add to STRAND calendar
               </Button>
             )}
-            {scheduleDialogIso && (
+            {scheduleDialogIso && scheduleByDate[scheduleDialogIso] && (
               <a
-                href={buildGoogleCalendarUrl(scheduleDialogIso)}
+                href={googleCalendarUrl(washDayCalendarEvent(scheduleByDate[scheduleDialogIso]))}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => { confirmSchedule(); }}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
               >
                 <CalendarPlus className="size-4" />
                 Add to Google Calendar
               </a>
             )}
+
             {scheduleDialogIso && scheduledSet.has(scheduleDialogIso) && (
               <button
                 type="button"
