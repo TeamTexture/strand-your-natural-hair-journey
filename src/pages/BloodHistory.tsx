@@ -263,13 +263,8 @@ const BloodHistory = () => {
   }, [latest]);
   const overdue = daysSinceLatest !== null && daysSinceLatest >= 90;
 
-  const startNew = () => {
-    clearBloodDraft();
-    navigate("/onboarding/blood-iron-vitamins");
-  };
-
   const logScheduled = (p: PanelRow) => {
-    // Attach the onboarding flow to this existing scheduled panel by seeding
+    // Attach the upload flow to this existing scheduled panel by seeding
     // the draft-panel pointer and marking it as logged first.
     clearBloodDraft();
     localStorage.setItem("strand_blood_draft_panel_id", p.id);
@@ -288,7 +283,7 @@ const BloodHistory = () => {
       } as never)
       .eq("id", p.id)
       .then(() => qc.invalidateQueries({ queryKey: ["blood-history"] }));
-    navigate("/onboarding/blood-timing");
+    navigate("/blood-upload");
   };
 
   const deletePanel = useMutation({
@@ -364,9 +359,14 @@ const BloodHistory = () => {
         })()}
 
         <div className="flex flex-col gap-2 px-1">
-          <Button variant="gold" size="pill" onClick={startNew} className="w-full">
-            <Plus className="size-4" />
-            Add Test Manually
+          <Button
+            variant="gold"
+            size="pill"
+            onClick={() => navigate("/blood-upload")}
+            className="w-full"
+          >
+            <Upload className="size-4" />
+            Upload PDF or Photo
           </Button>
           <Button
             variant="outline"
@@ -376,15 +376,6 @@ const BloodHistory = () => {
           >
             <CalendarPlus className="size-4" />
             Schedule
-          </Button>
-          <Button
-            variant="outline"
-            size="pill"
-            onClick={() => navigate("/blood-upload")}
-            className="w-full"
-          >
-            <Upload className="size-4" />
-            Upload PDF or Photo
           </Button>
         </div>
 
@@ -517,11 +508,16 @@ const BloodHistory = () => {
           <EmptyState
             icon="🩸"
             message="No blood tests logged yet"
-            hint="Add your first test to start tracking markers over time."
+            hint="Upload your first lab report to start tracking markers over time."
             action={
-              <Button variant="gold" size="pill" onClick={startNew} className="w-full">
-                <Plus className="size-4" />
-                Add Test Manually
+              <Button
+                variant="gold"
+                size="pill"
+                onClick={() => navigate("/blood-upload")}
+                className="w-full"
+              >
+                <Upload className="size-4" />
+                Upload PDF or Photo
               </Button>
             }
           />
