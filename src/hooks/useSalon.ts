@@ -207,3 +207,32 @@ export const useSetStylistPublished = () => {
     },
   });
 };
+
+/**
+ * Display names for stylist LISTINGS referenced by enquiries.
+ *
+ * A salon with three stylists shares one login, so every enquiry lands in the
+ * same inbox. Without this label the owner cannot tell who each enquiry is for.
+ * Only listings with no login of their own (`user_id` NULL — i.e. salon-managed
+ * stylists) are labelled; a solo pro's own enquiries need no "for X" tag.
+ */
+export const useStylistLabels = (profileIds: string[]) => {
+  const key = Array.from(new Set(profileIds.filter(Boolean))).sort();
+  return useQuery({
+    queryKey: ["stylist-labels", key.join(",")],
+    enabled: key.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pro_profiles")
+        .select("id, display_name, user_id")
+        .in("id", key);
+      if (error) throw error;
+      const map = new Map<string, string>();
+      for (const row of data ?? []) {
+        if (row.user_id === null) map.set(row.id, row.display_name ?? "Stylist");
+      }
+      return map;
+    },
+  });
+};
