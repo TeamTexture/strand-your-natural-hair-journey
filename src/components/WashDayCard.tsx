@@ -2,6 +2,7 @@ import { Package, Clock, Mic, ListChecks, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { stripStaleDates } from "@/lib/stripStaleDates";
 import type { WashDay } from "@/hooks/useWashDays";
+import { washStepLabel } from "@/lib/washSteps";
 
 interface Props {
   washDay: WashDay;
@@ -57,7 +58,7 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
   const style =
     washDay.style_after && washDay.style_after.trim().length > 0
       ? washDay.style_after
-      : (washDay.steps ?? []).map((s) => s.name).filter(Boolean).join(" · ") || "Wash & condition";
+      : (washDay.steps ?? []).map((s) => washStepLabel(s.name)).filter(Boolean).join(" · ") || "Wash & condition";
 
   // ---------- Key insight (full text, markdown stripped) ----------
   const stripMd = (s: string) =>

@@ -369,7 +369,7 @@ const WashDayDetail = () => {
               title: "Wash Day",
               date: wd.wash_date,
               description: wd.steps?.length
-                ? `Steps: ${wd.steps.map((s) => s.name).join(" · ")}`
+                ? `Steps: ${wd.steps.map((s) => washStepLabel(s.name)).join(" · ")}`
                 : undefined,
               uid: `washday-${wd.id}@strand.app`,
             }}
