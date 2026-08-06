@@ -475,6 +475,12 @@ const AdminHub = () => {
             onClick={() => nav("/admin/professionals")}
           />
           <NavCard
+            icon={Building2}
+            title="Salons"
+            description="Create salons, manage rosters and owner logins"
+            onClick={() => nav("/admin/salons")}
+          />
+          <NavCard
             icon={Stethoscope}
             title="Capability verification"
             description="Approve doctor and blood-draw claims, one at a time"
