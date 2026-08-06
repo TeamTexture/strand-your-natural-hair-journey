@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  STYLIST_CONSENT_LABEL,
+  STYLIST_EMAIL_HELP,
+  STYLIST_EMAIL_LABEL,
+} from "@/lib/salonCopy";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
@@ -99,6 +105,28 @@ const schema = z.object({
 
 type FormShape = z.infer<typeof schema>;
 
+/**
+ * A stylist declared on the application. These people don't exist as profiles
+ * until the application is approved, so they're captured separately.
+ * `contact_email` is OPTIONAL — if blank, enquiries fall back to the salon's
+ * business email. A stylist declining to give an email must never block the
+ * salon going live.
+ */
+type StylistRow = {
+  id?: string;
+  full_name: string;
+  contact_email: string;
+  discipline: Discipline;
+  specialisms: string;
+};
+
+const emptyStylist = (): StylistRow => ({
+  full_name: "",
+  contact_email: "",
+  discipline: "Stylist",
+  specialisms: "",
+});
+
 const initialForm: FormShape = {
   full_name: "",
   business_name: "",
@@ -128,6 +156,9 @@ const ProApply = () => {
   const [form, setForm] = useState<FormShape>(initialForm);
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [errors, setErrors] = useState<Partial<Record<keyof FormShape, string>>>({});
+  const [isSalon, setIsSalon] = useState(false);
+  const [stylists, setStylists] = useState<StylistRow[]>([emptyStylist()]);
+  const [stylistConsent, setStylistConsent] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -170,6 +201,27 @@ const ProApply = () => {
           instagram_handle: data.instagram_handle || "",
           why_strand: data.why_strand || "",
         });
+        setIsSalon((data as { is_salon?: boolean }).is_salon === true);
+        setStylistConsent(
+          !!(data as { stylist_consent_confirmed_at?: string | null })
+            .stylist_consent_confirmed_at,
+        );
+        const { data: savedStylists } = await supabase
+          .from("pro_application_stylists")
+          .select("*")
+          .eq("application_id", data.id)
+          .order("created_at");
+        if (savedStylists?.length) {
+          setStylists(
+            savedStylists.map((s) => ({
+              id: s.id,
+              full_name: s.full_name ?? "",
+              contact_email: s.contact_email ?? "",
+              discipline: (s.discipline as Discipline) ?? "Stylist",
+              specialisms: (s.specialisms ?? []).join(", "),
+            })),
+          );
+        }
         const savedHours = (data as unknown as { opening_hours?: OpeningHours | null }).opening_hours;
         if (savedHours && typeof savedHours === "object") {
           setHours({ ...defaultHours(), ...savedHours });
@@ -203,6 +255,27 @@ const ProApply = () => {
         return;
       }
       setErrors({});
+
+      if (isSalon) {
+        const named = stylists.filter((s) => s.full_name.trim().length >= 2);
+        if (named.length === 0) {
+          toast.error("Add at least one stylist, or choose solo professional.");
+          return;
+        }
+        const badEmail = named.find(
+          (s) =>
+            s.contact_email.trim() &&
+            !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.contact_email.trim()),
+        );
+        if (badEmail) {
+          toast.error(`Check the enquiry email for ${badEmail.full_name.trim()}.`);
+          return;
+        }
+        if (!stylistConsent) {
+          toast.error("Please confirm each stylist has agreed to be listed.");
+          return;
+        }
+      }
     }
 
     setSaving(true);
@@ -228,6 +301,9 @@ const ProApply = () => {
       why_strand: form.why_strand || "",
       opening_hours: hours,
       status: "pending" as const,
+      is_salon: isSalon,
+      stylist_consent_confirmed_at:
+        isSalon && stylistConsent ? new Date().toISOString() : null,
     };
     if (opts.submit) {
       payload.payment_confirmed_at = new Date().toISOString();
@@ -250,6 +326,34 @@ const ProApply = () => {
       error = res.error;
       newId = (res.data as { id?: string } | null)?.id ?? null;
       if (newId) setAppId(newId);
+    }
+    if (!error && newId) {
+      // Replace the declared roster wholesale — simplest correct behaviour for
+      // a form that can be saved as a draft repeatedly.
+      await supabase
+        .from("pro_application_stylists")
+        .delete()
+        .eq("application_id", newId);
+      const rows = isSalon
+        ? stylists
+            .filter((s) => s.full_name.trim().length >= 2)
+            .map((s) => ({
+              application_id: newId!,
+              full_name: s.full_name.trim(),
+              contact_email: s.contact_email.trim() || null,
+              discipline: s.discipline,
+              specialisms: s.specialisms
+                .split(",")
+                .map((x) => x.trim())
+                .filter(Boolean),
+            }))
+        : [];
+      if (rows.length) {
+        const res = await supabase
+          .from("pro_application_stylists")
+          .insert(rows as never);
+        if (res.error) error = res.error;
+      }
     }
     setSaving(false);
     if (error) {
