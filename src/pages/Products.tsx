@@ -33,6 +33,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { anchorProps } from "@/lib/scrollMemory";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
@@ -189,7 +190,7 @@ const Products = () => {
           />
         ) : (
           groups.map((group) => (
-            <div key={group.key} className="space-y-2">
+            <div key={group.key} id={`section-products-${group.key}`} data-scroll-section className="space-y-2">
               <SectionHeader className="pt-1">
                 {group.label} ({group.items.length})
               </SectionHeader>
@@ -201,6 +202,7 @@ const Products = () => {
                 return (
                   <div
                     key={p.id}
+                    {...anchorProps(p.id)}
                     className={cn(
                       "bg-card border border-border rounded-[14px] overflow-hidden transition-colors",
                       batch.selectMode && isSelected && "ring-2 ring-primary",

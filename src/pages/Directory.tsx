@@ -13,6 +13,7 @@ import ExternalEnquiryDialog from "@/components/ExternalEnquiryDialog";
 import { buildTrackedUrl, logReferralClick } from "@/lib/referrals";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { anchorProps } from "@/lib/scrollMemory";
 import { searchProfessionalsIn, type ProType, type Professional } from "@/data/professionals";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { useProContactStates, proContactStatusLine } from "@/hooks/useProContactState";
@@ -381,6 +382,7 @@ const Directory = () => {
             return (
             <SurfaceCard
               key={p.id}
+              {...anchorProps(p.id)}
               padded={false}
               ref={(el) => { cardRefs.current[p.id] = el; }}
               className={cn(
