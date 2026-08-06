@@ -3788,6 +3788,56 @@ export type Database = {
           },
         ]
       }
+      wash_day_schedules: {
+        Row: {
+          completed_wash_day_id: string | null
+          created_at: string
+          google_calendar_answered_at: string | null
+          google_calendar_asked_at: string | null
+          google_calendar_state: string
+          id: string
+          scheduled_date: string
+          scheduled_time: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_wash_day_id?: string | null
+          created_at?: string
+          google_calendar_answered_at?: string | null
+          google_calendar_asked_at?: string | null
+          google_calendar_state?: string
+          id?: string
+          scheduled_date: string
+          scheduled_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_wash_day_id?: string | null
+          created_at?: string
+          google_calendar_answered_at?: string | null
+          google_calendar_asked_at?: string | null
+          google_calendar_state?: string
+          id?: string
+          scheduled_date?: string
+          scheduled_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wash_day_schedules_completed_wash_day_id_fkey"
+            columns: ["completed_wash_day_id"]
+            isOneToOne: false
+            referencedRelation: "wash_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wash_days: {
         Row: {
           ai_insight: string | null
