@@ -602,7 +602,7 @@ export default function BloodUpload() {
             <p className="text-sm font-body leading-snug">
               <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
               <LevelGate min={2}>
-                Drag &amp; drop your lab report below and we'll pre-fill your panel — or enter results manually.
+                Drag &amp; drop your lab report below and we'll pre-fill your panel — no manual typing needed.
               </LevelGate>
             </p>
           </SurfaceCard>
@@ -675,23 +675,7 @@ export default function BloodUpload() {
         )}
 
 
-        {isOnboarding && !savedInOnboarding && files.length === 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-[11px] tracking-[0.2em] uppercase text-foreground/50 font-body">or</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <Button
-              variant="goldOutline"
-              size="pill"
-              className="w-full"
-              onClick={() => navigate("/onboarding/blood-iron-vitamins")}
-            >
-              Add Test Manually
-            </Button>
-          </div>
-        )}
+
 
 
 

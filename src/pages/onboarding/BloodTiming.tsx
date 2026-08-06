@@ -139,9 +139,9 @@ const BloodTiming = () => {
             <Button
               variant="goldGhost"
               size="pill"
-              onClick={() => navigate("/onboarding/blood-iron-vitamins")}
+              onClick={() => navigate("/blood-upload?onboarding=1")}
             >
-              Skip for now — input what I have
+              Skip for now — upload what I have
             </Button>
           </>
         ) : (
@@ -154,14 +154,6 @@ const BloodTiming = () => {
             >
               <Upload className="size-4 mr-1.5" />
               Upload my tests
-            </Button>
-            <Button
-              variant="goldOutline"
-              size="pill"
-              className="w-full"
-              onClick={() => navigate("/onboarding/blood-iron-vitamins")}
-            >
-              Input Manually →
             </Button>
           </div>
         )}
