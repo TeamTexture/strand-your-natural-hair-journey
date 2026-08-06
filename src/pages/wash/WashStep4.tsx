@@ -1,4 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
+import { setPendingStylePrompt } from "@/lib/styleProfilePrompt";
+
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
