@@ -528,27 +528,10 @@ const WashDayHub = () => {
           />
         </div>
 
-        {/* Scheduling only — no rhythm-reasoning prose, and hidden entirely when
-            the overdue alert is on screen (it carries the same data and the same
-            two controls). */}
-        {!overdue && nextIso && (
-          <SurfaceCard tone="gold">
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 size-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-                <Droplets className="size-4 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold font-body">
-                  Next wash day
-                </p>
-                <p className="font-body text-[15px] font-semibold leading-snug text-foreground mt-1 break-words">
-                  {fmtCardDate(nextIso)}
-                </p>
-                <div className="mt-3">{schedulingRow(false)}</div>
-              </div>
-            </div>
-          </SurfaceCard>
-        )}
+        {/* Next wash day box — mandatory STRAND scheduling plus the optional
+            Google Calendar hand-off. Inline, never modal-blocking. */}
+        <NextWashDayBox suggestedDate={nextIso} />
+
 
 
       </div>
