@@ -341,6 +341,7 @@ const BrandProductPage = () => {
             icon={Sparkles}
             tone="gold"
             headline={guidance?.headline || undefined}
+            className="px-5 py-[22px]"
           >
             {guidanceLoading && !guidance && (
               <div className="flex items-center gap-2 text-[12px] text-muted-foreground font-body">
@@ -348,50 +349,28 @@ const BrandProductPage = () => {
               </div>
             )}
             {guidance && (
-              <div className="space-y-3">
-                {guidance.fit_summary && (() => {
-                  const { phrase, rest } = emphasisSplit(guidance.fit_summary);
-                  return (
-                    <p className="text-[13px] leading-relaxed font-body">
-                      <span className="font-semibold text-foreground">{phrase}</span>
-                      {rest && <span className="text-foreground/75"> {rest}</span>}
-                    </p>
-                  );
-                })()}
-                {guidance.benefits_for_you.length > 0 && (
-                  <KeyFactChips
-                    facts={guidance.benefits_for_you.slice(0, 4).map((b) => ({
-                      label: b,
-                      tone: "good" as const,
-                    }))}
-                  />
+              <div className="space-y-4">
+                {guidance.intro && (
+                  <p className="text-[13.5px] leading-relaxed font-body text-foreground/85">
+                    {guidance.intro}
+                  </p>
                 )}
-                {guidance.how_to_use.length > 0 && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-body mb-1.5">
-                      How to use it for your hair
+                {guidance.benefits.length > 0 && (
+                  <BenefitRows benefits={guidance.benefits} idPrefix="brand-benefit" />
+                )}
+                {guidance.steps.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold font-body text-primary mb-2.5">
+                      How to use it
                     </p>
-                    <ActionList
-                      actions={guidance.how_to_use.map((s) => ({ action: s }))}
-                      idPrefix="brand-playbook"
-                    />
+                    <NumberedSteps steps={guidance.steps} idPrefix="brand-step" />
                   </div>
-                )}
-                {guidance.cautions.length > 0 && (
-                  <StatusCallout tone="warning" icon={AlertTriangle} label="Watch out for">
-                    <div className="space-y-1">
-                      {guidance.cautions.map((c, i) => (
-                        <p key={i} className="text-[12px] leading-snug font-body">
-                          {c}
-                        </p>
-                      ))}
-                    </div>
-                  </StatusCallout>
                 )}
               </div>
             )}
           </GuidanceCard>
         )}
+
 
 
 
