@@ -14,7 +14,7 @@ import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
 import BrandProfilePrompt from "@/components/brand/BrandProfilePrompt";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus, STATS_METHOD_NOTE } from "@/hooks/useBrandOffers";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
@@ -294,6 +294,11 @@ const BrandDashboard = () => {
           <SectionLabel className={`!px-0 ${drafts.length + underReview.length + awaitingPayment.length > 0 ? "" : "!mt-0"}`}>
             Live
           </SectionLabel>
+          {liveNow.length > 0 && (
+            <p className="mb-2 text-[10px] font-body text-muted-foreground leading-snug">
+              {STATS_METHOD_NOTE}
+            </p>
+          )}
           {liveNow.length === 0 ? (
             <EmptyState icon="✦" message="Nothing running right now." tone="card" />
           ) : (
