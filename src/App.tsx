@@ -119,6 +119,7 @@ const AdminBrandOfferReview = lazyRetry(() => import("./pages/admin/AdminBrandOf
 const AdminModeration = lazyRetry(() => import("./pages/admin/AdminModeration"));
 const AdminLibrary = lazyRetry(() => import("./pages/admin/AdminLibrary"));
 const AdminEvents = lazyRetry(() => import("./pages/admin/AdminEvents"));
+const AdminBloodVendors = lazyRetry(() => import("./pages/admin/AdminBloodVendors"));
 const AdminCapabilities = lazyRetry(() => import("./pages/admin/AdminCapabilities"));
 
 // Brand
@@ -535,6 +536,7 @@ const App = () => (
               <Route path="/admin/data-protection" element={<RoleGate allow={["admin"]}><AdminDataProtection /></RoleGate>} />
               <Route path="/admin/library" element={<RoleGate allow={["admin"]}><AdminLibrary /></RoleGate>} />
               <Route path="/admin/events" element={<RoleGate allow={["admin"]}><AdminEvents /></RoleGate>} />
+              <Route path="/admin/blood-vendors" element={<RoleGate allow={["admin"]}><AdminBloodVendors /></RoleGate>} />
 
               {/* STRAND+ */}
               <Route path="/plus/upgrade" element={<Protected><PlusUpgrade /></Protected>} />

@@ -557,6 +557,12 @@ const AdminHub = () => {
             onClick={() => nav("/admin/library")}
           />
           <NavCard
+            icon={FlaskConical}
+            title="Blood test vendors"
+            description="Curate at-home kit providers shown on the blood test routes"
+            onClick={() => nav("/admin/blood-vendors")}
+          />
+          <NavCard
             icon={CalendarDays}
             title="STRAND+ Events"
             description="Create and manage digital and in-person events"
