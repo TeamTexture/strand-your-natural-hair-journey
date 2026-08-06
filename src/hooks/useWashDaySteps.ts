@@ -86,30 +86,29 @@ export function useWashDaySteps() {
     retry: 1,
     queryFn: async (): Promise<WashDayStep[]> => {
       if (!user?.id) return [];
-      const ctx = await loadInputs(user.id);
+      const [ctx, signals] = await Promise.all([
+        loadInputs(user.id),
+        loadResponsiveSignals(user.id),
+      ]);
       const h = ctx.hair as Record<string, string | null> | null;
       const s = ctx.style as Record<string, string | number | boolean | null> | null;
 
       // Fingerprint — anything here changing regenerates the sequence.
       const fingerprint = hashString(
         [
-          `v2-style-attrs`,
+          `v3-responsive`,
           h?.hair_type ?? "",
           h?.surface_texture ?? "",
           h?.porosity ?? "",
           h?.density ?? "",
           h?.length ?? h?.hair_length ?? "",
           h?.scalp_condition ?? "",
-          s?.current_hairstyle ?? "",
-          s?.planned_next_style ?? "",
-          String(s?.current_style_tension ?? ""),
-          s?.current_style_extensions === null || s?.current_style_extensions === undefined
-            ? ""
-            : String(s.current_style_extensions),
+          ...styleSignatureParts(s as Record<string, unknown> | null),
           ctx.goals.map((g) => `${g.kind ?? ""}:${g.title ?? ""}`).sort().join("|"),
           ctx.shelf.map((p) => p.id).sort().join(","),
           ctx.tools.map((t) => t.id).sort().join(","),
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
+          ...responsiveSignatureParts(signals),
           `tl${level}`,
         ].join("::"),
       );
@@ -125,10 +124,17 @@ export function useWashDaySteps() {
                 planned_next_style: s.planned_next_style,
                 current_style_tension: s.current_style_tension ?? null,
                 current_style_extensions: s.current_style_extensions ?? null,
+                planned_style_tension: s.planned_style_tension ?? null,
+                planned_style_extensions: s.planned_style_extensions ?? null,
               }
             : null,
           goals: ctx.goals.map((g) => ({ title: g.title, category: g.kind ?? undefined })),
           bloodFlags: ctx.bloodFlags,
+          challenges: signals.challenges,
+          areasOfConcern: signals.areasOfConcern,
+          recentWashDay: signals.recentWashDay,
+          recentAppointment: signals.recentAppointment,
+
           shelf: ctx.shelf.map((p) => ({
             id: p.id,
             name: p.name,
