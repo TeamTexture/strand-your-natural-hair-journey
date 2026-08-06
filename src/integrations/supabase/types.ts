@@ -424,48 +424,66 @@ export type Database = {
       brand_blood_panels: {
         Row: {
           affiliate_url: string | null
-          brand_user_id: string
+          brand_user_id: string | null
           created_at: string
           currency: string
+          discount_code: string | null
+          discount_details: string | null
           id: string
           is_active: boolean
+          is_at_home_kit: boolean
           markers_covered: string[]
-          panel_name: string
+          panel_name: string | null
           price_from: number | null
-          purchase_url: string
+          purchase_url: string | null
           regions_served: string[]
           sort_order: number
           updated_at: string
+          vendor_logo_path: string | null
+          vendor_name: string | null
+          vendor_website: string | null
         }
         Insert: {
           affiliate_url?: string | null
-          brand_user_id: string
+          brand_user_id?: string | null
           created_at?: string
           currency?: string
+          discount_code?: string | null
+          discount_details?: string | null
           id?: string
           is_active?: boolean
+          is_at_home_kit?: boolean
           markers_covered?: string[]
-          panel_name: string
+          panel_name?: string | null
           price_from?: number | null
-          purchase_url: string
+          purchase_url?: string | null
           regions_served?: string[]
           sort_order?: number
           updated_at?: string
+          vendor_logo_path?: string | null
+          vendor_name?: string | null
+          vendor_website?: string | null
         }
         Update: {
           affiliate_url?: string | null
-          brand_user_id?: string
+          brand_user_id?: string | null
           created_at?: string
           currency?: string
+          discount_code?: string | null
+          discount_details?: string | null
           id?: string
           is_active?: boolean
+          is_at_home_kit?: boolean
           markers_covered?: string[]
-          panel_name?: string
+          panel_name?: string | null
           price_from?: number | null
-          purchase_url?: string
+          purchase_url?: string | null
           regions_served?: string[]
           sort_order?: number
           updated_at?: string
+          vendor_logo_path?: string | null
+          vendor_name?: string | null
+          vendor_website?: string | null
         }
         Relationships: []
       }

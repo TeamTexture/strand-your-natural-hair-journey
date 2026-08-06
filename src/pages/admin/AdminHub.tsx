@@ -20,6 +20,7 @@ import {
   CalendarDays,
   BadgeCheck,
   Scale,
+  FlaskConical,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -555,6 +556,12 @@ const AdminHub = () => {
             title="STRAND+ Library"
             description="Upload courses, ebooks, videos and articles"
             onClick={() => nav("/admin/library")}
+          />
+          <NavCard
+            icon={FlaskConical}
+            title="Blood test vendors"
+            description="Curate at-home kit providers shown on the blood test routes"
+            onClick={() => nav("/admin/blood-vendors")}
           />
           <NavCard
             icon={CalendarDays}
