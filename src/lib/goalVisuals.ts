@@ -28,7 +28,9 @@ export const goalTitle = (goal: {
   title?: string | null;
   challenges?: string[] | null;
   challenge?: string | null;
-}): string => (challengeSummary(goal) || goal.title?.trim() || "Your hair goal");
+}): string => (goal.title?.trim() && goal.title.trim() !== "Hair goal"
+  ? goal.title.trim()
+  : challengeSummary(goal) || "Your hair goal");
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 

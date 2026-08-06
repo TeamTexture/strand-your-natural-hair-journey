@@ -187,12 +187,13 @@ async function buildAiContextUncached(): Promise<AiContext> {
   let lowRated: Array<Record<string, unknown>> = [];
   let highRated: Array<Record<string, unknown>> = [];
   let goals: AiContext["goals"] = [];
+  let standaloneChallenges: string[] = [];
   let tools: Array<Record<string, unknown>> = [];
   let wishlist: Array<Record<string, unknown>> = [];
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows] = await Promise.all([
         supabase
           .from("blood_panels" as never)
           .select("id, panel_date, label")
@@ -232,6 +233,11 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .from("user_tools")
           .select("name, brand, category, rating, match_score, on_favourite, use_count")
           .eq("user_id", userId),
+        supabase
+          .from("user_challenges")
+          .select("label")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true }),
       ]);
 
 
@@ -351,6 +357,9 @@ async function buildAiContextUncached(): Promise<AiContext> {
       })) as AiContext["goals"];
       tools = (toolRows.data ?? []) as Array<Record<string, unknown>>;
       wishlist = (wishRows.data ?? []) as Array<Record<string, unknown>>;
+      standaloneChallenges = ((challengeRows.data ?? []) as Array<{ label: string | null }>)
+        .map((r) => String(r.label ?? "").trim())
+        .filter(Boolean);
     }
   } catch (e) {
     console.warn("buildAiContext: backend fetch failed", e);
@@ -457,7 +466,20 @@ async function buildAiContextUncached(): Promise<AiContext> {
       high_rated_products: highRated,
     },
     goals,
-    challenges: allChallenges(goals),
+    // Challenges are their own record now (`user_challenges`), edited
+    // separately from goals. Legacy per-goal challenges are merged so older
+    // accounts keep their context until they re-save.
+    challenges: (() => {
+      const seen = new Set<string>();
+      const out: string[] = [];
+      for (const c of [...standaloneChallenges, ...allChallenges(goals)]) {
+        const key = c.toLowerCase();
+        if (!c || seen.has(key)) continue;
+        seen.add(key);
+        out.push(c);
+      }
+      return out;
+    })(),
     tipsLevel,
     shelf,
     tools,
