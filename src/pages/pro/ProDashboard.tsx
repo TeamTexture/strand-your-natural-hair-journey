@@ -184,6 +184,14 @@ const ProDashboard = () => {
             onClick={() => nav("/directory?self=1")}
             tourId="pro-card-directory"
           />
+          {salon && (
+            <Card
+              icon={Scissors}
+              title="Salon stylists"
+              sub={`Add, edit or remove the stylists listed under ${salon.salon.name}.`}
+              onClick={() => nav("/pro/salon")}
+            />
+          )}
           <Card
             icon={Tag}
             title="Listing discount"
