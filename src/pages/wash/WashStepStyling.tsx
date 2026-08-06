@@ -27,13 +27,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import {
+  CANONICAL_STYLE_OPTIONS,
+  OTHER_STYLE,
+  OTHER_STYLE_HELPER,
+  TENSION_CHOICES,
+  TENSION_HELPER,
+  EXTENSION_CHOICES,
+  styleCanTakeExtensions,
+} from "@/lib/hairstyles";
 
 const PHOTO_BUCKET = "journal-photos";
 
-const STYLE_OPTIONS = [
-  "Wash and go", "Twist-out", "Braid-out", "Finger comb coils",
-  "Loose afro", "Back into braids", "Silk press", "Wig / unit", "Protective style",
-];
+// Canonical style list — shared with onboarding / the hair profile pickers so
+// the two lists can never drift apart (see src/lib/hairstyles.ts).
+const STYLE_OPTIONS = CANONICAL_STYLE_OPTIONS;
 const DURATION_OPTIONS = ["Under 30 min", "30-60 min", "1-2 hours", "2-4 hours", "4+ hours"];
 const STRESS_OPTIONS = ["Low", "Moderate", "High"];
 
@@ -83,6 +91,13 @@ interface StylingSaved {
   audioPath?: string | null;
   photoPaths?: string[];
   saveAsJournal?: boolean;
+  /** With / without extensions — only asked for styles that can take them. */
+  extensions?: boolean | null;
+  /** "low" | "medium" | "high" — optional, asked for every style. */
+  tension?: string | null;
+  /** Typed or transcribed description when the style is "Other". */
+  otherNote?: string;
+  otherAudioPath?: string | null;
 }
 
 const safeParse = <T,>(key: string, fallback: T): T => {
@@ -103,6 +118,10 @@ const WashStepStyling = () => {
   const [duration, setDuration] = useState<string[]>(saved.duration ?? []);
   const [stress, setStress] = useState<string[]>(saved.stress ?? []);
   const [note, setNote] = useState<string>(saved.note ?? "");
+  const [extensions, setExtensions] = useState<boolean | null>(saved.extensions ?? null);
+  const [tension, setTension] = useState<string | null>(saved.tension ?? null);
+  const [otherNote, setOtherNote] = useState<string>(saved.otherNote ?? "");
+  const [otherAudioPath, setOtherAudioPath] = useState<string | null>(saved.otherAudioPath ?? null);
   const [audioPath, setAudioPath] = useState<string | null>(saved.audioPath ?? null);
   const [photoPaths, setPhotoPaths] = useState<string[]>(saved.photoPaths ?? []);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
@@ -164,6 +183,10 @@ const WashStepStyling = () => {
     await supabase.storage.from(PHOTO_BUCKET).remove([path]).catch(() => undefined);
   };
 
+  const chosenStyle = style[0] ?? null;
+  const isOther = style.includes(OTHER_STYLE);
+  const asksExtensions = style.some((s) => styleCanTakeExtensions(s));
+
   const errors = {
     style: style.length === 0,
     duration: duration.length === 0,
@@ -183,6 +206,10 @@ const WashStepStyling = () => {
     const payload: StylingSaved = {
       style, productIds, productNames, duration, stress,
       note, audioPath, photoPaths, saveAsJournal,
+      extensions: asksExtensions ? extensions : null,
+      tension,
+      otherNote: isOther ? otherNote.trim() : "",
+      otherAudioPath: isOther ? otherAudioPath : null,
     };
     localStorage.setItem("strand_wash_styling", JSON.stringify(payload));
     navigate("/wash/step-4");
@@ -200,6 +227,47 @@ const WashStepStyling = () => {
 
       <div className="px-5 pb-10 space-y-5">
         <TG label="Style You Chose" options={STYLE_OPTIONS} value={style} onChange={setStyle} error={submitted && errors.style} />
+
+        {isOther && (
+          <div className="space-y-2">
+            <p className="text-[11px] text-muted-foreground leading-snug">{OTHER_STYLE_HELPER}</p>
+            <VoiceNoteField
+              label="Describe your style (optional)"
+              placeholder="Say it or type it — what style did you go for?"
+              value={otherNote}
+              onChange={setOtherNote}
+              audioPath={otherAudioPath}
+              onAudioPathChange={setOtherAudioPath}
+              folder="wash-day-style-other"
+              rows={3}
+            />
+          </div>
+        )}
+
+        {asksExtensions && (
+          <div>
+            <Eyebrow className="mb-2">Extensions (optional)</Eyebrow>
+            <ChoiceChips
+              options={EXTENSION_CHOICES}
+              value={extensions === null || extensions === undefined ? null : extensions ? "yes" : "no"}
+              columns={2}
+              onChange={(v) => setExtensions(extensions === (v === "yes") ? null : v === "yes")}
+            />
+          </div>
+        )}
+
+        {style.length > 0 && (
+          <div>
+            <Eyebrow className="mb-2">Tension (optional)</Eyebrow>
+            <ChoiceChips
+              options={TENSION_CHOICES}
+              value={tension}
+              columns={3}
+              onChange={(v) => setTension(tension === v ? null : v)}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1.5">{TENSION_HELPER}</p>
+          </div>
+        )}
 
         <div>
           <Eyebrow icon={ICONS.products} className="mb-2">Products Used</Eyebrow>
