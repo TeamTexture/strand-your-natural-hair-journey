@@ -205,14 +205,38 @@ Deno.serve(async (req) => {
 
   const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
 
+  const styleNow = (body.currentStyle ?? {}) as Record<string, unknown>;
+  const styleHeader = [
+    `CURRENT STYLE: ${styleNow.current_hairstyle ?? "not recorded"}`,
+    styleNow.current_style_tension ? `tension ${styleNow.current_style_tension}` : "",
+    styleNow.current_style_extensions === true
+      ? "with extensions"
+      : styleNow.current_style_extensions === false
+        ? "without extensions"
+        : "",
+    `PLANNED NEXT STYLE: ${styleNow.planned_next_style ?? "not recorded"}`,
+    styleNow.planned_style_tension ? `planned tension ${styleNow.planned_style_tension}` : "",
+    styleNow.planned_style_extensions === true
+      ? "planned with extensions"
+      : styleNow.planned_style_extensions === false
+        ? "planned without extensions"
+        : "",
+  ].filter(Boolean).join(" — ");
+
   const contextBlock = {
-    hairProfile: body.hairProfile ?? null,
     currentStyle: body.currentStyle ?? null,
+    plannedNextStyle: (body.currentStyle ?? {})["planned_next_style" as keyof object] ?? null,
+    challenges: (body.challenges ?? []).slice(0, 6),
+    areasOfConcern: (body.areasOfConcern ?? []).slice(0, 8),
+    mostRecentWashDay: body.recentWashDay ?? null,
+    mostRecentAppointment: body.recentAppointment ?? null,
+    hairProfile: body.hairProfile ?? null,
     goals: (body.goals ?? []).slice(0, 5),
     bloodFlags: (body.bloodFlags ?? []).slice(0, 8),
     shelf: shelf.map((p) => ({ name: p.name, brand: p.brand, category: p.category })),
     tools: tools.map((t) => ({ name: t.name, brand: t.brand, category: t.category })),
   };
+
 
   const budgetBlock = `STEP COUNT — support level ${level}: return ${budget.min}-${budget.max} steps. ${budget.note} If the passages do not support enough material to reach ${budget.min} steps, return fewer rather than inventing any.`;
 
