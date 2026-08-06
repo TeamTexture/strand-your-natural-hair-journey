@@ -240,6 +240,10 @@ export async function dispatchEmail(
 
   const result = await transmit({
     from: input.from || defaultFrom(template),
+    ...(input.replyTo && validEmail(input.replyTo)
+      ? { reply_to: input.replyTo.toLowerCase() }
+      : {}),
+
     to: recipients,
     subject,
     html,
