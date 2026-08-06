@@ -608,18 +608,18 @@ const WashDayHub = () => {
                 Add to STRAND calendar
               </Button>
             )}
-            {scheduleDialogIso && (
+            {scheduleDialogIso && scheduleByDate[scheduleDialogIso] && (
               <a
-                href={buildGoogleCalendarUrl(scheduleDialogIso)}
+                href={googleCalendarUrl(washDayCalendarEvent(scheduleByDate[scheduleDialogIso]))}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => { confirmSchedule(); }}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 bg-background text-[12.5px] font-semibold text-primary font-body px-4 py-2.5 hover:bg-primary/5 transition"
               >
                 <CalendarPlus className="size-4" />
                 Add to Google Calendar
               </a>
             )}
+
             {scheduleDialogIso && scheduledSet.has(scheduleDialogIso) && (
               <button
                 type="button"
