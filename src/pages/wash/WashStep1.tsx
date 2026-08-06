@@ -517,11 +517,10 @@ const WashStep1 = () => {
 
   // Fetch a personalised "why heat could help YOU" explanation grounded in the
   // user's hair profile, goals, challenges and recent wash history. Cached for
-  // the lifetime of the component so re-opening the dialog is instant.
-  const handleHeatNo = async () => {
-    setHeatChoice("no");
-    setHeatDialogOpen(true);
-    if (heatRationale) return;
+  // the lifetime of the component and shared by both heat steps, so the
+  // rationale is only ever fetched once per visit.
+  const fetchHeatRationale = async () => {
+    if (heatRationale || heatLoading) return;
     setHeatLoading(true);
     try {
       const context = await buildAiContext();
@@ -546,6 +545,14 @@ const WashStep1 = () => {
       setHeatLoading(false);
     }
   };
+
+  /** "No" on any heat step: record it, then explain what they're passing up. */
+  const handleHeatNo = (setChoice: (c: HeatChoice) => void) => {
+    setChoice("no");
+    setHeatDialogOpen(true);
+    void fetchHeatRationale();
+  };
+
 
   // Track which step editors the user has actively touched, so the
   // "pre-filled from your last wash day" hint disappears once they act on it.
