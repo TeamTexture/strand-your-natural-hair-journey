@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
-import { useActiveBrandOffer, useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
+import { useActiveBrandOffer, useLogAdEvent, useAdViewTracker, PlacementSlot } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { getSignedUrl } from "@/lib/signedUrlCache";
@@ -29,8 +29,11 @@ const BrandBanner = ({ slot }: Props) => {
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const logStat = useLogBrandStat();
+  const logEvent = useLogAdEvent();
   const nav = useNavigate();
+  // `view` fires only after the banner has been ≥50% visible for a continuous
+  // 1s — never on mount/render. Scrolling straight past records nothing.
+  const viewRef = useAdViewTracker(data?.brand_offers?.id ?? null, slot);
 
   const offer = data?.brand_offers as (typeof data extends { brand_offers: infer T } ? T : never) & {
     brand_products?: BrandProductRow[];
@@ -40,7 +43,6 @@ const BrandBanner = ({ slot }: Props) => {
 
   useEffect(() => {
     if (!offer) return;
-    logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
     if (offer.hero_image_path) {
       void getSignedUrl("brand-assets", offer.hero_image_path).then(setHeroUrl);
     }
@@ -57,7 +59,7 @@ const BrandBanner = ({ slot }: Props) => {
 
   const visit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    logStat.mutate({ offer_id: offer.id, slot, kind: "link_clicks" });
+    logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
     if (offer.external_url) {
       window.open(offer.external_url, "_blank", "noopener,noreferrer");
     } else {
@@ -67,7 +69,7 @@ const BrandBanner = ({ slot }: Props) => {
 
   const openProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
-    logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+    logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
     if (product) {
       nav(`/offers/${offer.id}/product/${product.id}?slot=${slot}`);
     } else {
@@ -79,7 +81,7 @@ const BrandBanner = ({ slot }: Props) => {
   const toggleExpand = () => {
     setExpanded((v) => {
       const next = !v;
-      if (next) logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+      if (next) logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
       return next;
     });
   };
@@ -92,7 +94,7 @@ const BrandBanner = ({ slot }: Props) => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={viewRef}>
       {/* Collapsed strip — a div role=button (not a <button>) so the dismiss (×)
        *  and other interactive children never nest inside a button. onClick
        *  preventDefault stops any accidental default behaviour. */}
@@ -159,7 +161,7 @@ const BrandBanner = ({ slot }: Props) => {
                     <DiscountCodeChip
                       code={offer.discount_code}
                       variant="chip"
-                      onCopy={() => logStat.mutate({ offer_id: offer.id, slot, kind: "code_copies" })}
+                      onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
                     />
                   </div>
                 )}
