@@ -433,7 +433,8 @@ const WashDayHub = () => {
       <TitleBar title="Wash Day" back={false} tips />
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="wash_day" />
-        {overdue && (
+        <StyleProfilePrompt />
+
           <div role="alert">
             {/* GUIDANCE CARD ANATOMY — status row → anchor stat → one
                 consequence block → fact chips → one CTA. */}
