@@ -96,9 +96,10 @@ const Home = () => {
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
   // Current style card image: explicitly pinned photo → newest progress photo
-  // from the Strand Summary → newest milestone photo → placeholder.
-  const { url: styleCardUrl, isAuto } = useStyleCardPhoto();
-  const heroPhotoUrl = (isAuto ? beforePhotoUrl ?? styleCardUrl : styleCardUrl ?? beforePhotoUrl) ?? null;
+  // (Strand Summary or milestone gallery) → placeholder.
+  const { url: styleCardUrl, refresh: refreshStyleCardPhoto } = useStyleCardPhoto();
+  const heroPhotoUrl = styleCardUrl ?? beforePhotoUrl;
+
 
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [bloodSummary, setBloodSummary] = useState<{
@@ -203,9 +204,8 @@ const Home = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Most recently added/updated progress photo (Strand Summary uploads) for the
-  // current style card thumbnail. Re-runs on Home navigation and when a photo
-  // or style change is announced in-tab.
+  // Fallback thumbnail (newest progress photo) plus a nudge to the unified
+  // photo query whenever a photo or style change is announced in-tab.
   useEffect(() => {
     if (!user) { setBeforePhotoUrl(null); return; }
     let cancelled = false;
@@ -224,9 +224,10 @@ const Home = () => {
       if (!cancelled && signed?.signedUrl) setBeforePhotoUrl(signed.signedUrl);
     };
     void load();
-    const onEvt = () => void load();
+    const onEvt = () => { void load(); void refreshStyleCardPhoto(); };
     window.addEventListener("strand:style-updated", onEvt);
     window.addEventListener("focus", onEvt);
+
     return () => {
       cancelled = true;
       window.removeEventListener("strand:style-updated", onEvt);

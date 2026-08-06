@@ -1,18 +1,23 @@
 // Resolves the image shown on the Home "Current style" card.
 //
+// Progress photos come from TWO places, and both count:
+//   • user_before_photos      — the Strand Summary "Progress photos" grid
+//   • user_milestone_photos   — the 6-week milestone gallery
+//
 // Resolution order (see user_style_profile.main_photo_id comment):
 //   1. main_photo_id, when it is set AND the photo still exists
-//   2. otherwise the newest progress photo — taken_on desc nulls last,
-//      then created_at desc
-//   3. otherwise null, and the caller falls back to whatever it used before
-//      (the baseline "before" photo / placeholder)
+//   2. otherwise the newest progress photo across both sets —
+//      taken_on desc nulls last, then created_at desc
+//   3. otherwise null, and the caller falls back to a placeholder
 //
-// main_photo_id NULL is AUTO MODE: the newest progress photo wins with no
-// writes required. Pinning is purely an override.
+// main_photo_id NULL is AUTO MODE: the newest photo wins with no writes
+// required. Pinning is purely an override.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+
+export type PhotoSource = "before" | "milestone";
 
 export interface MilestonePhoto {
   id: string;
@@ -21,7 +26,13 @@ export interface MilestonePhoto {
   taken_on: string | null;
   created_at: string | null;
   url: string | null;
+  source: PhotoSource;
 }
+
+const BUCKET: Record<PhotoSource, string> = {
+  before: "before-photos",
+  milestone: "milestone-photos",
+};
 
 export const styleCardPhotoKey = (userId?: string) => ["style-card-photo", userId ?? "anon"];
 
@@ -59,11 +70,11 @@ export function useStyleCardPhoto() {
   const query = useQuery({
     queryKey: styleCardPhotoKey(user?.id),
     enabled: !!user,
-    staleTime: 60_000,
+    staleTime: 30_000,
     queryFn: async () => {
       if (!user) return { mainPhotoId: null as string | null, photos: [] as MilestonePhoto[] };
 
-      const [{ data: styleRow }, { data: photoRows }] = await Promise.all([
+      const [{ data: styleRow }, { data: milestoneRows }, { data: beforeRows }] = await Promise.all([
         supabase
           .from("user_style_profile")
           .select("main_photo_id")
@@ -73,13 +84,38 @@ export function useStyleCardPhoto() {
           .from("user_milestone_photos")
           .select("id, storage_path, caption, taken_on, created_at")
           .eq("user_id", user.id),
+        supabase
+          .from("user_before_photos")
+          .select("id, storage_path, caption, created_at")
+          .eq("user_id", user.id),
       ]);
 
-      const base = sortProgressPhotos((photoRows ?? []) as Omit<MilestonePhoto, "url">[]);
+      const combined: Omit<MilestonePhoto, "url">[] = [
+        ...((milestoneRows ?? []) as Array<{
+          id: string;
+          storage_path: string;
+          caption: string | null;
+          taken_on: string | null;
+          created_at: string | null;
+        }>).map((r) => ({ ...r, source: "milestone" as const })),
+        // Progress photos have no separate "taken on" — the upload date is it.
+        ...((beforeRows ?? []) as Array<{
+          id: string;
+          storage_path: string;
+          caption: string | null;
+          created_at: string | null;
+        }>).map((r) => ({
+          ...r,
+          taken_on: r.created_at ? r.created_at.slice(0, 10) : null,
+          source: "before" as const,
+        })),
+      ];
+
+      const base = sortProgressPhotos(combined);
       const signed = await Promise.all(
         base.map(async (r) => {
           const { data } = await supabase.storage
-            .from("milestone-photos")
+            .from(BUCKET[r.source])
             .createSignedUrl(r.storage_path, 3600);
           return { ...r, url: data?.signedUrl ?? null } as MilestonePhoto;
         }),
