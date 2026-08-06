@@ -2611,6 +2611,7 @@ export type Database = {
           location_preference: string | null
           note: string | null
           preferred_timeframe: string | null
+          pro_profile_id: string | null
           pro_user_id: string
           responded_at: string | null
           sender_role: string
@@ -2630,6 +2631,7 @@ export type Database = {
           location_preference?: string | null
           note?: string | null
           preferred_timeframe?: string | null
+          pro_profile_id?: string | null
           pro_user_id: string
           responded_at?: string | null
           sender_role?: string
@@ -2649,6 +2651,7 @@ export type Database = {
           location_preference?: string | null
           note?: string | null
           preferred_timeframe?: string | null
+          pro_profile_id?: string | null
           pro_user_id?: string
           responded_at?: string | null
           sender_role?: string
@@ -2657,7 +2660,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["pro_enquiry_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pro_enquiries_pro_profile_id_fkey"
+            columns: ["pro_profile_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pro_offers: {
         Row: {
@@ -4785,6 +4796,21 @@ export type Database = {
       }
       resolve_mention_user_ids: { Args: { _text: string }; Returns: string[] }
       rollup_ad_stats: { Args: { p_from?: string }; Returns: number }
+      send_enquiry_to_profile: {
+        Args: {
+          _budget_range: string
+          _contact_method: string
+          _contact_phone: string
+          _location_preference: string
+          _note: string
+          _preferred_timeframe: string
+          _pro_profile_id: string
+          _sender_role?: string
+          _service_interest: string
+          _share_passport_consent?: boolean
+        }
+        Returns: string
+      }
       send_enquiry_with_access:
         | {
             Args: {
