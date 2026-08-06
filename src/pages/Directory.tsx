@@ -180,6 +180,11 @@ const Directory = () => {
       return;
     }
     anchoredFor.current = targetProUserId;
+    // A stylist inside a collapsed salon group isn't in the DOM yet — open her
+    // salon before we try to scroll to her card.
+    if (targetListing.salonId) {
+      setExpandedSalons((cur) => ({ ...cur, [targetListing.salonId!]: true }));
+    }
     // If a filter/search is hiding the target, clear both so the card
     // becomes visible before we try to scroll.
     if (!results.some((r) => r.id === targetListing.id)) {
