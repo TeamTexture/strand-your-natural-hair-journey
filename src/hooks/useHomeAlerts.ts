@@ -481,8 +481,8 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           id: ALERT_KEYS.BLOOD_MARKERS_FLAGGED,
           emoji: "🩸",
           title: `${flaggedMarkers.length} flagged marker${flaggedMarkers.length === 1 ? "" : "s"} on file`,
-          body: `${sample}${more} — see your nutrition plan.`,
-          to: "/nutrition-plan",
+          body: `${sample}${more} — open your blood work to see the detail.`,
+          to: "/blood-history",
           tone: "warning",
           signature: alertSignature(ALERT_KEYS.BLOOD_MARKERS_FLAGGED, [
             flaggedMarkers.map((f) => `${f.marker}:${f.status}`).sort().join(","),
