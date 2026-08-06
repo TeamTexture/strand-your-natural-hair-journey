@@ -219,6 +219,381 @@ const Directory = () => {
     main?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /**
+   * GROUPING. Solo professionals (salon_id null) are untouched — same single
+   * card as before. A salon with two or more published stylists collapses into
+   * one group card; a ONE-stylist salon deliberately renders as a normal single
+   * card, because an expander over a single name is noise.
+   */
+  const filterActive =
+    query.trim().length > 0 ||
+    (!bloodOnly && tab !== "All") ||
+    caps.doctor ||
+    caps.bloods;
+
+  const rows = useMemo(() => {
+    const rosterBySalon = new Map<string, Professional[]>();
+    for (const p of pros) {
+      if (!p.salonId) continue;
+      const list = rosterBySalon.get(p.salonId) ?? [];
+      list.push(p);
+      rosterBySalon.set(p.salonId, list);
+    }
+    const out: DirectoryRow[] = [];
+    const seenSalons = new Set<string>();
+    for (const p of results) {
+      if (!p.salonId) {
+        out.push({ kind: "solo", pro: p });
+        continue;
+      }
+      if (seenSalons.has(p.salonId)) continue;
+      seenSalons.add(p.salonId);
+      const roster = rosterBySalon.get(p.salonId) ?? [p];
+      if (roster.length <= 1) {
+        out.push({ kind: "solo", pro: roster[0] ?? p });
+        continue;
+      }
+      out.push({
+        kind: "salon",
+        salonId: p.salonId,
+        salonName: p.salonName ?? p.clinic,
+        city: p.salonCity ?? null,
+        roster,
+        matched: results.filter((r) => r.salonId === p.salonId),
+      });
+    }
+    return out;
+  }, [pros, results]);
+
+  /**
+   * ONE card renderer for every listing — solo pro, curated row, or a stylist
+   * inside an expanded salon group. There is deliberately no second card
+   * component: a salon stylist must read exactly like any other professional.
+   */
+  const renderProCard = (p: Professional) => {
+    const contact = stateForListing(p);
+    const hasContact = contact.kind !== "none" || !!contact.threadId;
+    const statusLine = proContactStatusLine(contact, (iso) =>
+      formatDistanceToNow(new Date(iso), { addSuffix: true }),
+    );
+
+    const enqLabel =
+      contact.kind === "accepted" ? "Accepted"
+      : contact.kind === "pending" ? "Enquiry sent"
+      : contact.kind === "declined" ? "Declined"
+      : "Withdrawn";
+    const enqCls =
+      contact.kind === "accepted" ? "bg-good/15 text-good"
+      : contact.kind === "pending" ? "bg-warn/15 text-warn"
+      : "bg-muted text-muted-foreground";
+
+    const isOwn = !!user && !!p.proUserId && p.proUserId === user.id;
+    const ratingSummary = p.proUserId ? reviewSummaries?.get(p.proUserId) : undefined;
+    const openingSummary = summariseOpeningHours(p.openingHours);
+    const hoursOpen = expandedHours[p.id] === true;
+    const fullHours = hoursOpen ? listOpeningHours(p.openingHours) : [];
+    const addressParts = [p.addressLine1, p.addressLine2, p.city, p.location]
+      .map((s) => (typeof s === "string" ? s.trim() : ""))
+      .filter((s) => s.length > 0);
+    // Dedupe address vs the standing "location" line so we don't
+    // repeat the same postcode twice on very compact profiles.
+    const streetLine = addressParts.slice(0, addressParts.length - 1).join(", ");
+    const cityLine = addressParts[addressParts.length - 1];
+
+    return (
+    <SurfaceCard
+      key={p.id}
+      {...anchorProps(p.id)}
+      padded={false}
+      ref={(el) => { cardRefs.current[p.id] = el; }}
+      className={cn(
+        "overflow-hidden scroll-mt-24 transition-shadow duration-500",
+        // Owner-view distinct treatment: deeper sand tone using the
+        // existing secondary/primary token family. Everyone else sees
+        // the standard white card.
+        isOwn && "bg-secondary/70 border-primary/40 ring-1 ring-primary/25",
+        // Brief highlight pulse when the user has been deep-linked
+        // to this card so the eye finds the row after the scroll.
+        highlightId === p.id && "ring-2 ring-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.18)] animate-pulse",
+      )}
+    >
+
+      <div className="p-4">
+        <div className="flex gap-3">
+          <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                {isOwn && (
+                  <Star
+                    className="size-3.5 text-primary shrink-0"
+                    fill="currentColor"
+                    aria-label="Your listing"
+                  />
+                )}
+                <p className="font-display text-base font-semibold leading-tight truncate">
+                  {p.name}
+                </p>
+              </div>
+              {isOwn ? (
+                <button
+                  type="button"
+                  onClick={() => navigate("/pro/profile")}
+                  className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-1 rounded-full bg-primary text-primary-foreground"
+                >
+                  <Pencil className="size-3" />
+                  Edit
+                </button>
+              ) : hasContact ? (
+                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
+                  {enqLabel}
+                </span>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span className="text-[11px] text-muted-foreground">{p.title}</span>
+              <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
+                {p.verified} ✓
+              </span>
+              {/* Verified capabilities only — claims never render. */}
+              <CapabilityBadges
+                caps={{
+                  isDoctorVerified: p.isDoctorVerified,
+                  canTakeBloodsVerified: p.canTakeBloodsVerified,
+                  bloodsSetting: p.bloodsSetting ?? null,
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <p className="text-[11px] text-muted-foreground min-w-0 flex-1">
+                {p.clinic}{p.location ? ` · ${p.location}` : ""}
+              </p>
+              {ratingSummary && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/directory/${p.proUserId}/reviews`)}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5"
+                  aria-label={`${ratingSummary.avg_rating} out of 5 from ${ratingSummary.review_count} reviews`}
+                >
+                  <StarRating value={ratingSummary.avg_rating} size="size-3" />
+                  <span className="text-[10px] font-body font-semibold">
+                    {ratingSummary.avg_rating.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] font-body text-muted-foreground">
+                    ({ratingSummary.review_count})
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {p.specs.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {p.specs.map((s) => (
+              <span
+                key={s}
+                className="bg-primary/10 text-foreground text-[10px] px-2 py-1 rounded-full"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {p.bio && (
+          <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
+        )}
+
+        {p.proUserId && ratingSummary && (
+          <DirectoryReviewPreview proUserId={p.proUserId} />
+        )}
+
+        {/* Progressive disclosure: opening hours + address + contact.
+            Summarised inline; full week expands on tap. */}
+        {(openingSummary || streetLine || cityLine || p.businessPhone || p.businessEmail) && (
+          <div className="mt-3 rounded-[10px] border border-border/70 bg-background/60 divide-y divide-border/60">
+            {openingSummary && (
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedHours((cur) => ({ ...cur, [p.id]: !cur[p.id] }))
+                }
+                className="w-full flex items-center gap-2 px-3 py-2 text-left"
+                aria-expanded={hoursOpen}
+              >
+                <Clock className="size-3.5 text-primary shrink-0" />
+                <span className="text-[11px] font-body text-foreground/85 flex-1">
+                  {openingSummary}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "size-3.5 text-muted-foreground transition-transform",
+                    hoursOpen && "rotate-180",
+                  )}
+                />
+              </button>
+            )}
+            {hoursOpen && fullHours.length > 0 && (
+              <ul className="px-3 pb-2 pt-1 space-y-0.5">
+                {fullHours.map((row) => (
+                  <li
+                    key={row.label}
+                    className={cn(
+                      "flex items-center justify-between text-[11px] font-body",
+                      row.isToday ? "text-foreground font-medium" : "text-foreground/75",
+                    )}
+                  >
+                    <span>{row.label}</span>
+                    <span>{row.value}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {(streetLine || cityLine) && (
+              <div className="flex items-start gap-2 px-3 py-2">
+                <MapPin className="size-3.5 text-primary shrink-0 mt-0.5" />
+                <div className="text-[11px] font-body text-foreground/85 leading-snug">
+                  {streetLine && <div>{streetLine}</div>}
+                  {cityLine && cityLine !== streetLine && <div>{cityLine}</div>}
+                </div>
+              </div>
+            )}
+            {p.businessPhone && (
+              <a
+                href={`tel:${p.businessPhone.replace(/\s+/g, "")}`}
+                className="flex items-center gap-2 px-3 py-2 text-[11px] font-body text-foreground/85"
+              >
+                <Phone className="size-3.5 text-primary shrink-0" />
+                <span className="truncate">{p.businessPhone}</span>
+              </a>
+            )}
+            {p.businessEmail && (
+              <a
+                href={`mailto:${p.businessEmail}`}
+                className="flex items-center gap-2 px-3 py-2 text-[11px] font-body text-foreground/85"
+              >
+                <Mail className="size-3.5 text-primary shrink-0" />
+                <span className="truncate">{p.businessEmail}</span>
+              </a>
+            )}
+          </div>
+        )}
+
+        {memberActions && statusLine && (
+          <p className="text-[11px] text-muted-foreground mt-3">{statusLine}</p>
+        )}
+
+        {/* Owner's own listing: no enquiry actions, but if a client
+            thread exists on this listing it stays reachable. */}
+        {memberActions && isOwn && contact.threadId && (
+          <ProContactAction state={contact} className="w-full mt-3" onEnquire={() => {}} />
+        )}
+
+        {!isOwn && (() => {
+          const tier = p.listingTier ?? (p.proUserId ? "full" : "external_link");
+          const websiteHref = p.website ? normalizeWebsiteUrl(p.website) : "";
+
+          // ONE front door to booking: every listing offers the same
+          // in-app "Enquire now" action. The professional's external
+          // booking link is never a CTA here — it surfaces inside the
+          // enquiry thread once they accept.
+          const enquireAction =
+            tier === "full" && (p.proUserId || p.proProfileId) && canEnquire ? (
+              <ProContactAction
+                state={contact}
+                canNavigateToEnquiries={memberActions}
+                onEnquire={() =>
+                  setEnquiryTarget({
+                    proUserId: p.proUserId ?? null,
+                    proProfileId: p.proProfileId ?? null,
+                    name: p.name,
+                  })
+                }
+              />
+            ) : canEnquire ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setExternalEnquiryTarget({
+                    name: p.name,
+                    directoryId: p.directoryId ?? null,
+                    proUserId: p.proUserId ?? null,
+                  })
+                }
+                className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+              >
+                Enquire now
+              </button>
+            ) : null;
+
+          return (
+            <div
+              className={cn(
+                "grid gap-2 mt-3",
+                enquireAction ? "grid-cols-2" : "grid-cols-1",
+              )}
+            >
+              {websiteHref ? (
+                <a
+                  href={
+                    tier === "external_link"
+                      ? buildTrackedUrl(websiteHref, p.proUserId ?? p.directoryId ?? p.id)
+                      : websiteHref
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    if (tier === "external_link") {
+                      void logReferralClick({
+                        targetUrl: websiteHref,
+                        proUserId: p.proUserId ?? null,
+                        directoryId: p.directoryId ?? null,
+                      });
+                    }
+                  }}
+                  className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
+                >
+                  Website
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toast("Website unavailable")}
+                  className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
+                >
+                  Website
+                </button>
+              )}
+
+              {enquireAction}
+            </div>
+          );
+        })()}
+
+
+        {p.instaUrl && (
+          <a
+            href={p.instaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 block text-center py-2 text-[11px] uppercase tracking-[0.1em] bg-card border border-border text-foreground rounded-md min-h-[36px]"
+          >
+            Instagram {p.insta}
+          </a>
+        )}
+      </div>
+      {p.discount && p.discount.trim().length > 0 && (
+        <div className="bg-primary/15 px-4 py-2.5 text-xs">
+          <span className="font-semibold tracking-[0.1em] uppercase text-primary">
+            {p.discount}
+          </span>
+        </div>
+      )}
+    </SurfaceCard>
+    );
+  };
+
   return (
     <ScreenLayout bottomNav={memberActions}>
       <TitleBar title={bloodOnly ? "Book a Doctor" : "Professionals"} />
@@ -354,328 +729,26 @@ const Directory = () => {
             hint="Try a postcode, name, or specialism."
           />
         ) : (
-          results.map((p) => {
-            const contact = stateForListing(p);
-            const hasContact = contact.kind !== "none" || !!contact.threadId;
-            const statusLine = proContactStatusLine(contact, (iso) =>
-              formatDistanceToNow(new Date(iso), { addSuffix: true }),
-            );
-
-            const enqLabel =
-              contact.kind === "accepted" ? "Accepted"
-              : contact.kind === "pending" ? "Enquiry sent"
-              : contact.kind === "declined" ? "Declined"
-              : "Withdrawn";
-            const enqCls =
-              contact.kind === "accepted" ? "bg-good/15 text-good"
-              : contact.kind === "pending" ? "bg-warn/15 text-warn"
-              : "bg-muted text-muted-foreground";
-
-            const isOwn = !!user && !!p.proUserId && p.proUserId === user.id;
-            const ratingSummary = p.proUserId ? reviewSummaries?.get(p.proUserId) : undefined;
-            const openingSummary = summariseOpeningHours(p.openingHours);
-            const hoursOpen = expandedHours[p.id] === true;
-            const fullHours = hoursOpen ? listOpeningHours(p.openingHours) : [];
-            const addressParts = [p.addressLine1, p.addressLine2, p.city, p.location]
-              .map((s) => (typeof s === "string" ? s.trim() : ""))
-              .filter((s) => s.length > 0);
-            // Dedupe address vs the standing "location" line so we don't
-            // repeat the same postcode twice on very compact profiles.
-            const streetLine = addressParts.slice(0, addressParts.length - 1).join(", ");
-            const cityLine = addressParts[addressParts.length - 1];
-
-            return (
-            <SurfaceCard
-              key={p.id}
-              {...anchorProps(p.id)}
-              padded={false}
-              ref={(el) => { cardRefs.current[p.id] = el; }}
-              className={cn(
-                "overflow-hidden scroll-mt-24 transition-shadow duration-500",
-                // Owner-view distinct treatment: deeper sand tone using the
-                // existing secondary/primary token family. Everyone else sees
-                // the standard white card.
-                isOwn && "bg-secondary/70 border-primary/40 ring-1 ring-primary/25",
-                // Brief highlight pulse when the user has been deep-linked
-                // to this card so the eye finds the row after the scroll.
-                highlightId === p.id && "ring-2 ring-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.18)] animate-pulse",
-              )}
-            >
-
-              <div className="p-4">
-                <div className="flex gap-3">
-                  <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {isOwn && (
-                          <Star
-                            className="size-3.5 text-primary shrink-0"
-                            fill="currentColor"
-                            aria-label="Your listing"
-                          />
-                        )}
-                        <p className="font-display text-base font-semibold leading-tight truncate">
-                          {p.name}
-                        </p>
-                      </div>
-                      {isOwn ? (
-                        <button
-                          type="button"
-                          onClick={() => navigate("/pro/profile")}
-                          className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-1 rounded-full bg-primary text-primary-foreground"
-                        >
-                          <Pencil className="size-3" />
-                          Edit
-                        </button>
-                      ) : hasContact ? (
-                        <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
-                          {enqLabel}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <span className="text-[11px] text-muted-foreground">{p.title}</span>
-                      <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
-                        {p.verified} ✓
-                      </span>
-                      {/* Verified capabilities only — claims never render. */}
-                      <CapabilityBadges
-                        caps={{
-                          isDoctorVerified: p.isDoctorVerified,
-                          canTakeBloodsVerified: p.canTakeBloodsVerified,
-                          bloodsSetting: p.bloodsSetting ?? null,
-                        }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className="text-[11px] text-muted-foreground min-w-0 flex-1">
-                        {p.clinic}{p.location ? ` · ${p.location}` : ""}
-                      </p>
-                      {ratingSummary && (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/directory/${p.proUserId}/reviews`)}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5"
-                          aria-label={`${ratingSummary.avg_rating} out of 5 from ${ratingSummary.review_count} reviews`}
-                        >
-                          <StarRating value={ratingSummary.avg_rating} size="size-3" />
-                          <span className="text-[10px] font-body font-semibold">
-                            {ratingSummary.avg_rating.toFixed(1)}
-                          </span>
-                          <span className="text-[10px] font-body text-muted-foreground">
-                            ({ratingSummary.review_count})
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {p.specs.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {p.specs.map((s) => (
-                      <span
-                        key={s}
-                        className="bg-primary/10 text-foreground text-[10px] px-2 py-1 rounded-full"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {p.bio && (
-                  <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
-                )}
-
-                {p.proUserId && ratingSummary && (
-                  <DirectoryReviewPreview proUserId={p.proUserId} />
-                )}
-
-                {/* Progressive disclosure: opening hours + address + contact.
-                    Summarised inline; full week expands on tap. */}
-                {(openingSummary || streetLine || cityLine || p.businessPhone || p.businessEmail) && (
-                  <div className="mt-3 rounded-[10px] border border-border/70 bg-background/60 divide-y divide-border/60">
-                    {openingSummary && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedHours((cur) => ({ ...cur, [p.id]: !cur[p.id] }))
-                        }
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left"
-                        aria-expanded={hoursOpen}
-                      >
-                        <Clock className="size-3.5 text-primary shrink-0" />
-                        <span className="text-[11px] font-body text-foreground/85 flex-1">
-                          {openingSummary}
-                        </span>
-                        <ChevronDown
-                          className={cn(
-                            "size-3.5 text-muted-foreground transition-transform",
-                            hoursOpen && "rotate-180",
-                          )}
-                        />
-                      </button>
-                    )}
-                    {hoursOpen && fullHours.length > 0 && (
-                      <ul className="px-3 pb-2 pt-1 space-y-0.5">
-                        {fullHours.map((row) => (
-                          <li
-                            key={row.label}
-                            className={cn(
-                              "flex items-center justify-between text-[11px] font-body",
-                              row.isToday ? "text-foreground font-medium" : "text-foreground/75",
-                            )}
-                          >
-                            <span>{row.label}</span>
-                            <span>{row.value}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {(streetLine || cityLine) && (
-                      <div className="flex items-start gap-2 px-3 py-2">
-                        <MapPin className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <div className="text-[11px] font-body text-foreground/85 leading-snug">
-                          {streetLine && <div>{streetLine}</div>}
-                          {cityLine && cityLine !== streetLine && <div>{cityLine}</div>}
-                        </div>
-                      </div>
-                    )}
-                    {p.businessPhone && (
-                      <a
-                        href={`tel:${p.businessPhone.replace(/\s+/g, "")}`}
-                        className="flex items-center gap-2 px-3 py-2 text-[11px] font-body text-foreground/85"
-                      >
-                        <Phone className="size-3.5 text-primary shrink-0" />
-                        <span className="truncate">{p.businessPhone}</span>
-                      </a>
-                    )}
-                    {p.businessEmail && (
-                      <a
-                        href={`mailto:${p.businessEmail}`}
-                        className="flex items-center gap-2 px-3 py-2 text-[11px] font-body text-foreground/85"
-                      >
-                        <Mail className="size-3.5 text-primary shrink-0" />
-                        <span className="truncate">{p.businessEmail}</span>
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {memberActions && statusLine && (
-                  <p className="text-[11px] text-muted-foreground mt-3">{statusLine}</p>
-                )}
-
-                {/* Owner's own listing: no enquiry actions, but if a client
-                    thread exists on this listing it stays reachable. */}
-                {memberActions && isOwn && contact.threadId && (
-                  <ProContactAction state={contact} className="w-full mt-3" onEnquire={() => {}} />
-                )}
-
-                {!isOwn && (() => {
-                  const tier = p.listingTier ?? (p.proUserId ? "full" : "external_link");
-                  const websiteHref = p.website ? normalizeWebsiteUrl(p.website) : "";
-
-                  // ONE front door to booking: every listing offers the same
-                  // in-app "Enquire now" action. The professional's external
-                  // booking link is never a CTA here — it surfaces inside the
-                  // enquiry thread once they accept.
-                  const enquireAction =
-                    tier === "full" && (p.proUserId || p.proProfileId) && canEnquire ? (
-                      <ProContactAction
-                        state={contact}
-                        canNavigateToEnquiries={memberActions}
-                        onEnquire={() =>
-                          setEnquiryTarget({
-                            proUserId: p.proUserId ?? null,
-                            proProfileId: p.proProfileId ?? null,
-                            name: p.name,
-                          })
-                        }
-                      />
-                    ) : canEnquire ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExternalEnquiryTarget({
-                            name: p.name,
-                            directoryId: p.directoryId ?? null,
-                            proUserId: p.proUserId ?? null,
-                          })
-                        }
-                        className="py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
-                      >
-                        Enquire now
-                      </button>
-                    ) : null;
-
-                  return (
-                    <div
-                      className={cn(
-                        "grid gap-2 mt-3",
-                        enquireAction ? "grid-cols-2" : "grid-cols-1",
-                      )}
-                    >
-                      {websiteHref ? (
-                        <a
-                          href={
-                            tier === "external_link"
-                              ? buildTrackedUrl(websiteHref, p.proUserId ?? p.directoryId ?? p.id)
-                              : websiteHref
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => {
-                            if (tier === "external_link") {
-                              void logReferralClick({
-                                targetUrl: websiteHref,
-                                proUserId: p.proUserId ?? null,
-                                directoryId: p.directoryId ?? null,
-                              });
-                            }
-                          }}
-                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary text-foreground rounded-md min-h-[44px] flex items-center justify-center text-center"
-                        >
-                          Website
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => toast("Website unavailable")}
-                          className="py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
-                        >
-                          Website
-                        </button>
-                      )}
-
-                      {enquireAction}
-                    </div>
-                  );
-                })()}
-
-
-                {p.instaUrl && (
-                  <a
-                    href={p.instaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 block text-center py-2 text-[11px] uppercase tracking-[0.1em] bg-card border border-border text-foreground rounded-md min-h-[36px]"
-                  >
-                    Instagram {p.insta}
-                  </a>
-                )}
-              </div>
-              {p.discount && p.discount.trim().length > 0 && (
-                <div className="bg-primary/15 px-4 py-2.5 text-xs">
-                  <span className="font-semibold tracking-[0.1em] uppercase text-primary">
-                    {p.discount}
-                  </span>
-                </div>
-              )}
-            </SurfaceCard>
-            );
+          rows.map((row) =>
+            row.kind === "solo" ? (
+              renderProCard(row.pro)
+            ) : (
+              <SalonGroupCard
+                key={`salon-${row.salonId}`}
+                salonId={row.salonId}
+                salonName={row.salonName}
+                city={row.city}
+                roster={row.roster}
+                matched={row.matched}
+                filterActive={filterActive}
+                ratingFor={(pro) => (pro.proUserId ? reviewSummaries?.get(pro.proUserId) ?? null : null)}
+                open={expandedSalons[row.salonId] === true}
+                onToggle={() =>
+                  setExpandedSalons((cur) => ({ ...cur, [row.salonId]: !cur[row.salonId] }))
+                }
+                renderStylist={renderProCard}
+              />
+            ),
           })
         )}
 
