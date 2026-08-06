@@ -4522,6 +4522,16 @@ export type Database = {
           wishlist_adds: number
         }[]
       }
+      brand_product_match_index: {
+        Args: never
+        Returns: {
+          brand_name: string
+          brand_user_id: string
+          id: string
+          kind: string
+          name: string
+        }[]
+      }
       brand_product_member_counts: {
         Args: { _brand_user_id?: string }
         Returns: {
