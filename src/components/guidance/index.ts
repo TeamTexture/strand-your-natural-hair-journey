@@ -6,3 +6,5 @@ export { default as StepSequence, type GuidanceStep } from "@/components/guidanc
 export { default as StatusCallout } from "@/components/guidance/StatusCallout";
 export { default as GuidanceBody } from "@/components/guidance/GuidanceBody";
 export { default as AnchorStat } from "@/components/guidance/AnchorStat";
+export { default as BenefitRows, type BenefitRow } from "@/components/guidance/BenefitRows";
+export { default as NumberedSteps } from "@/components/guidance/NumberedSteps";

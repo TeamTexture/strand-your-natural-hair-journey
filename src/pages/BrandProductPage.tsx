@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ExternalLink, Heart, Check, Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import { ExternalLink, Heart, Check, Loader2, Sparkles } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
-import KeyFactChips from "@/components/guidance/KeyFactChips";
-import StatusCallout from "@/components/guidance/StatusCallout";
-import ActionList from "@/components/guidance/ActionList";
-import { emphasisSplit } from "@/lib/tipsRender";
+import BenefitRows, { type BenefitRow } from "@/components/guidance/BenefitRows";
+import NumberedSteps from "@/components/guidance/NumberedSteps";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -25,15 +23,16 @@ import { buildAiContext } from "@/lib/aiContext";
 
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
+// v2 — the guidance payload shape changed (intro/benefits/steps). Old cached
+// rows under the v1 kind are simply never read again.
 const guidanceCacheKind = (brandProductId: string) =>
-  `brand_product_guidance:${brandProductId}`;
+  `brand_product_guidance_v2:${brandProductId}`;
 
 type GuidancePayload = {
   headline: string;
-  fit_summary: string;
-  how_to_use: string[];
-  benefits_for_you: string[];
-  cautions: string[];
+  intro: string;
+  benefits: BenefitRow[];
+  steps: string[];
 };
 
 const formatDate = (iso: string | null | undefined) => {
@@ -150,11 +149,13 @@ const BrandProductPage = () => {
           .eq("kind", cacheKind)
           .maybeSingle();
         if (cancelled) return;
-        if (cached?.payload) {
-          setGuidance(cached.payload as GuidancePayload);
+        const cachedPayload = cached?.payload as unknown as GuidancePayload | null;
+        if (cachedPayload && Array.isArray(cachedPayload.benefits)) {
+          setGuidance(cachedPayload);
           setGuidanceLoading(false);
           return;
         }
+
 
         const context = await buildAiContext();
         const { data: res, error } = await supabase.functions.invoke(
@@ -342,6 +343,7 @@ const BrandProductPage = () => {
             icon={Sparkles}
             tone="gold"
             headline={guidance?.headline || undefined}
+            className="px-5 py-[22px]"
           >
             {guidanceLoading && !guidance && (
               <div className="flex items-center gap-2 text-[12px] text-muted-foreground font-body">
@@ -349,50 +351,28 @@ const BrandProductPage = () => {
               </div>
             )}
             {guidance && (
-              <div className="space-y-3">
-                {guidance.fit_summary && (() => {
-                  const { phrase, rest } = emphasisSplit(guidance.fit_summary);
-                  return (
-                    <p className="text-[13px] leading-relaxed font-body">
-                      <span className="font-semibold text-foreground">{phrase}</span>
-                      {rest && <span className="text-foreground/75"> {rest}</span>}
-                    </p>
-                  );
-                })()}
-                {guidance.benefits_for_you.length > 0 && (
-                  <KeyFactChips
-                    facts={guidance.benefits_for_you.slice(0, 4).map((b) => ({
-                      label: b,
-                      tone: "good" as const,
-                    }))}
-                  />
+              <div className="space-y-4">
+                {guidance.intro && (
+                  <p className="text-[13.5px] leading-relaxed font-body text-foreground/85">
+                    {guidance.intro}
+                  </p>
                 )}
-                {guidance.how_to_use.length > 0 && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground font-body mb-1.5">
-                      How to use it for your hair
+                {guidance.benefits.length > 0 && (
+                  <BenefitRows benefits={guidance.benefits} idPrefix="brand-benefit" />
+                )}
+                {guidance.steps.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold font-body text-primary mb-2.5">
+                      How to use it
                     </p>
-                    <ActionList
-                      actions={guidance.how_to_use.map((s) => ({ action: s }))}
-                      idPrefix="brand-playbook"
-                    />
+                    <NumberedSteps steps={guidance.steps} idPrefix="brand-step" />
                   </div>
-                )}
-                {guidance.cautions.length > 0 && (
-                  <StatusCallout tone="warning" icon={AlertTriangle} label="Watch out for">
-                    <div className="space-y-1">
-                      {guidance.cautions.map((c, i) => (
-                        <p key={i} className="text-[12px] leading-snug font-body">
-                          {c}
-                        </p>
-                      ))}
-                    </div>
-                  </StatusCallout>
                 )}
               </div>
             )}
           </GuidanceCard>
         )}
+
 
 
 
