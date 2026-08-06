@@ -93,21 +93,32 @@ const WashStep4 = () => {
 
   const stepsSummary = useMemo(() => {
     const parts: string[] = [];
-    const labels: Record<string, string> = {
+    const storedNames: Record<string, string> = {
       prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
     };
     (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const).forEach((key) => {
       const state = step1[key];
-      if (state === "done") parts.push(`${labels[key]} ✓`);
-      else if (state === "skipped") parts.push(`${labels[key]} skipped`);
+      const name = storedNames[key];
+      const label = washStepLabel(name);
+      if (state === "done") {
+        // Heat reads against the step it was used on, not as a separate line.
+        const heat = step1.heatByStep?.[name];
+        const heatBit = heat?.used
+          ? ` + heat${heat.duration_min ? ` ${heat.duration_min} min` : ""}${
+              heat.tools?.length ? ` (${heat.tools.join(", ")})` : ""
+            }`
+          : "";
+        parts.push(`${label} ✓${heatBit}`);
+      } else if (state === "skipped") parts.push(`${label} skipped`);
     });
-    if (step1.heatTreatment === "yes") {
-      parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
-      if (step1.heatToolNames?.length) {
-        parts.push(`Heat tool: ${step1.heatToolNames.join(", ")}`);
+    // Older drafts only stored a log-level answer.
+    if (!step1.heatByStep) {
+      if (step1.heatTreatment === "yes") {
+        parts.push(step1.heatMinutes ? `Heat treatment ✓ (${step1.heatMinutes} min)` : "Heat treatment ✓");
+        if (step1.heatToolNames?.length) parts.push(`Heat tool: ${step1.heatToolNames.join(", ")}`);
       }
+      if (step1.heatTreatment === "no") parts.push("No heat");
     }
-    if (step1.heatTreatment === "no") parts.push("No heat");
     if (step1.products?.length) {
       parts.push(`Products: ${step1.products.join(", ")}`);
     }
@@ -116,6 +127,14 @@ const WashStep4 = () => {
     }
     return parts.length > 0 ? parts.join(" · ") : "No steps logged yet — tap to add.";
   }, [step1]);
+
+  // Cool-down guidance shows once whenever heat was used anywhere in the log.
+  const usedHeat = useMemo(
+    () => anyStepUsedHeat(Object.values(step1.heatByStep ?? {}).map((heat) => ({ heat }))) ||
+      (!step1.heatByStep && step1.heatTreatment === "yes"),
+    [step1],
+  );
+
 
   const resultsSummary = useMemo(() => {
     const bits: string[] = [];
