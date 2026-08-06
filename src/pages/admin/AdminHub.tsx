@@ -20,6 +20,7 @@ import {
   CalendarDays,
   BadgeCheck,
   Scale,
+  FlaskConical,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
