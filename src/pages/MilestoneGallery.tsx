@@ -42,6 +42,13 @@ const MilestoneGallery = () => {
   const { lengthGoal } = useGoals();
   const { level } = useTipsLevel();
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const {
+    mainPhotoId,
+    setMainPhoto,
+    refresh: refreshCardPhoto,
+  } = useStyleCardPhoto();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [switchTo, setSwitchTo] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
