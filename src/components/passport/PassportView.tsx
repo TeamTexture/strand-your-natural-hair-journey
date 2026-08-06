@@ -16,6 +16,7 @@ import { usePassportData, type PassportDataset } from "./usePassportData";
 import SignedImage from "./SignedImage";
 import { lookupHardWater } from "@/lib/hardWater";
 import { humaniseKey, humaniseValue, valueTone, shouldHideField, cleanTitle, titleCase } from "@/lib/humanise";
+import { washStepLabel } from "@/lib/washSteps";
 import { formatDate, formatDateTime, formatMonth, formatRelative } from "@/lib/formatPassportDate";
 import { formatTime12h } from "@/lib/formatTime";
 import { matchScoreOf } from "@/lib/matchStars";
