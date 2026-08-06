@@ -3804,6 +3804,10 @@ export type Database = {
           steps: Json
           stress_level: number | null
           style_after: string | null
+          style_extensions: boolean | null
+          style_other_note: string | null
+          style_other_voice_url: string | null
+          style_tension: string | null
           styling: Json | null
           updated_at: string
           user_id: string
@@ -3824,6 +3828,10 @@ export type Database = {
           steps?: Json
           stress_level?: number | null
           style_after?: string | null
+          style_extensions?: boolean | null
+          style_other_note?: string | null
+          style_other_voice_url?: string | null
+          style_tension?: string | null
           styling?: Json | null
           updated_at?: string
           user_id: string
@@ -3844,6 +3852,10 @@ export type Database = {
           steps?: Json
           stress_level?: number | null
           style_after?: string | null
+          style_extensions?: boolean | null
+          style_other_note?: string | null
+          style_other_voice_url?: string | null
+          style_tension?: string | null
           styling?: Json | null
           updated_at?: string
           user_id?: string
