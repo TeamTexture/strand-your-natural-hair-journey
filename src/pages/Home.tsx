@@ -96,9 +96,10 @@ const Home = () => {
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
   // Current style card image: explicitly pinned photo → newest progress photo
-  // from the Strand Summary → newest milestone photo → placeholder.
-  const { url: styleCardUrl, isAuto } = useStyleCardPhoto();
-  const heroPhotoUrl = (isAuto ? beforePhotoUrl ?? styleCardUrl : styleCardUrl ?? beforePhotoUrl) ?? null;
+  // (Strand Summary or milestone gallery) → placeholder.
+  const { url: styleCardUrl, refresh: refreshStyleCardPhoto } = useStyleCardPhoto();
+  const heroPhotoUrl = styleCardUrl ?? beforePhotoUrl;
+
 
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [bloodSummary, setBloodSummary] = useState<{
