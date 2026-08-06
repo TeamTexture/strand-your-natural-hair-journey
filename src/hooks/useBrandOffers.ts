@@ -335,27 +335,44 @@ export function londonToday(): string {
 }
 
 /** Paid+in-window offer holding a given slot today (for consumer banner).
- *  Read-time date logic: an offer is "live" from starts_on..ends_on inclusive
- *  regardless of whether the stored status has been flipped to `live` yet. */
+ *
+ *  Delivery is decided server-side by `ad_delivery_for_slot`: a deterministic
+ *  query over the pre-resolved audience cache. It prefers a targeted campaign
+ *  the member matches (consent required), otherwise falls back to a broad,
+ *  untargeted campaign holding the slot. Permanently dismissed campaigns are
+ *  excluded. No LLM, no per-request resolution, no health attributes. */
 export function useActiveBrandOffer(slot: PlacementSlot) {
   useBrandOfferLiveSync();
   return useQuery({
     queryKey: ["active-brand-offer", slot, londonToday()],
     staleTime: 15_000,
     queryFn: async () => {
-      const today = londonToday();
+      const { data: delivery, error: deliveryError } = await (
+        supabase as unknown as {
+          rpc: (n: string, a: Record<string, unknown>) => Promise<{
+            data: { offer_id: string; was_matched: boolean | null; match_reason: string[] | null }[] | null;
+            error: { message: string } | null;
+          }>;
+        }
+      ).rpc("ad_delivery_for_slot", { _slot: slot });
+      if (deliveryError) throw new Error(deliveryError.message);
+      const chosen = delivery?.[0];
+      if (!chosen) return null;
+
       const { data, error } = await supabase
-        .from("brand_offer_placements")
-        .select("offer_id, slot, brand_offers!inner(id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_products(id, name, image_urls, external_url))")
-        .eq("slot", slot)
-        .eq("placement_date", today)
-        .in("brand_offers.status", ["paid_scheduled", "live"])
-        .lte("brand_offers.starts_on", today)
-        .gte("brand_offers.ends_on", today)
-        .limit(1)
+        .from("brand_offers")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_products(id, name, image_urls, external_url)")
+        .eq("id", chosen.offer_id)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      return {
+        offer_id: chosen.offer_id,
+        slot,
+        was_matched: chosen.was_matched ?? false,
+        match_reason: chosen.match_reason ?? null,
+        brand_offers: data,
+      };
     },
   });
 }
