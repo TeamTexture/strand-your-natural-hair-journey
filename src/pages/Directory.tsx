@@ -18,6 +18,7 @@ import { searchProfessionalsIn, type ProType, type Professional } from "@/data/p
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { useProContactStates, proContactStatusLine } from "@/hooks/useProContactState";
 import ProContactAction from "@/components/directory/ProContactAction";
+import SalonGroupCard, { type DirectoryRow } from "@/components/directory/SalonGroupCard";
 import StarRating from "@/components/StarRating";
 import { useReviewSummaries } from "@/hooks/useReviews";
 import DirectoryReviewPreview from "@/components/DirectoryReviewPreview";
