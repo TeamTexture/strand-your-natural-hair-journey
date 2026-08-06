@@ -267,7 +267,12 @@ const AdminBrandOfferReview = () => {
 
   /** Admin-only free relaunch: reuse the offer's original slot mix (or `home`
    *  as a fallback) and insert new zero-cost placements starting on the chosen
-   *  date. No payment, no revision — status flips straight back to scheduled/live. */
+   *  date. No payment, no revision — status flips straight back to scheduled/live.
+   *
+   *  Idempotent by design: dates this offer already holds are skipped (the
+   *  no-overlap trigger would otherwise reject the whole batch and nothing
+   *  would go live), and dates held by a DIFFERENT live/scheduled offer are
+   *  reported instead of aborting the relaunch. */
   const adminRelaunch = async () => {
     if (!offer) return;
     const days = Math.max(1, Math.min(60, Number(relaunchDays) || 0));
@@ -280,20 +285,58 @@ const AdminBrandOfferReview = () => {
       const originalSlots = Array.from(new Set((offer.brand_offer_placements ?? []).map((p) => p.slot)));
       const slots = originalSlots.length ? originalSlots : ["home"];
       const [y, m, d] = relaunchStart.split("-").map(Number);
-      const rows: Array<{ offer_id: string; slot: string; placement_date: string; daily_rate_pence: number }> = [];
+      const dates: string[] = [];
       for (let i = 0; i < days; i++) {
-        const dt = new Date(Date.UTC(y, (m ?? 1) - 1, (d ?? 1) + i));
-        const date = dt.toISOString().slice(0, 10);
+        dates.push(new Date(Date.UTC(y, (m ?? 1) - 1, (d ?? 1) + i)).toISOString().slice(0, 10));
+      }
+      const endDate = dates[dates.length - 1];
+
+      // Dates this offer already covers — skip, never re-insert.
+      const { data: mine } = await supabase
+        .from("brand_offer_placements")
+        .select("slot, placement_date")
+        .eq("offer_id", offer.id)
+        .gte("placement_date", relaunchStart)
+        .lte("placement_date", endDate);
+      const mineKeys = new Set((mine ?? []).map((r) => `${r.slot}|${r.placement_date}`));
+
+      // Dates other active offers already hold — report, don't abort.
+      const { data: others } = await supabase
+        .from("brand_offer_placements")
+        .select("slot, placement_date, offer_id, brand_offers!inner(status)")
+        .in("slot", slots as never)
+        .gte("placement_date", relaunchStart)
+        .lte("placement_date", endDate)
+        .in("brand_offers.status", ["under_review", "approved_unpaid", "paid_scheduled", "live"]);
+      const blocked = new Set(
+        (others ?? [])
+          .filter((r) => (r as { offer_id: string }).offer_id !== offer.id)
+          .map((r) => `${r.slot}|${r.placement_date}`),
+      );
+
+      const rows: Array<{ offer_id: string; slot: string; placement_date: string; daily_rate_pence: number }> = [];
+      for (const date of dates) {
         for (const slot of slots) {
+          const key = `${slot}|${date}`;
+          if (mineKeys.has(key) || blocked.has(key)) continue;
           rows.push({ offer_id: offer.id, slot, placement_date: date, daily_rate_pence: 0 });
         }
       }
-      const { error: pErr } = await supabase
-        .from("brand_offer_placements")
-        .insert(rows as unknown as never);
-      if (pErr) throw pErr;
 
-      const endDate = rows[rows.length - 1].placement_date;
+      if (rows.length) {
+        const { error: pErr } = await supabase
+          .from("brand_offer_placements")
+          .insert(rows as unknown as never);
+        if (pErr) throw pErr;
+      }
+
+      // Nothing bookable at all in the window — stop before flipping status so
+      // the offer never reads "Live" without a placement to render from.
+      if (!rows.length && mineKeys.size === 0) {
+        toast.error("Every day in that window is already booked by another advert");
+        return;
+      }
+
       // If the relaunch starts today (or earlier), flip straight to `live` so
       // dashboards + status pills reflect it immediately. Future starts stay
       // `paid_scheduled` until the day arrives.
@@ -314,7 +357,26 @@ const AdminBrandOfferReview = () => {
         .eq("id", offer.id);
       if (oErr) throw oErr;
 
-      toast.success(`Relaunched free for ${days} day${days === 1 ? "" : "s"}`);
+      // Verify it really is servable today — a live status with no placement on
+      // today's date renders nothing to consumers.
+      let warning: string | null = null;
+      if (nextStatus === "live") {
+        const { count } = await supabase
+          .from("brand_offer_placements")
+          .select("id", { count: "exact", head: true })
+          .eq("offer_id", offer.id)
+          .eq("placement_date", londonToday);
+        if (!count) warning = "Relaunched, but no placement exists for today — it will start on the first free day";
+      }
+
+      const skipped = blocked.size;
+      if (warning) {
+        toast.warning(warning);
+      } else {
+        toast.success(
+          `Relaunched free for ${days} day${days === 1 ? "" : "s"}${skipped ? ` — ${skipped} day${skipped === 1 ? "" : "s"} skipped (already booked)` : ""}`,
+        );
+      }
       qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
       qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
       qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
