@@ -12,6 +12,18 @@ import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
+import MainPhotoPicker from "@/components/style/MainPhotoPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
@@ -42,6 +54,13 @@ const MilestoneGallery = () => {
   const { lengthGoal } = useGoals();
   const { level } = useTipsLevel();
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const {
+    mainPhotoId,
+    setMainPhoto,
+    refresh: refreshCardPhoto,
+  } = useStyleCardPhoto();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [switchTo, setSwitchTo] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,21 +83,40 @@ const MilestoneGallery = () => {
 
   useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
 
-  const handlePick = async (file: File | null) => {
-    if (!file || !user) return;
-    const path = await upload(file);
-    if (!path) { toast.error("Upload failed"); return; }
+  // Upload one or more photos, then keep the Home "Current style" card honest:
+  //  - single upload, auto mode  → nothing to ask, just refresh the card
+  //  - batch upload              → ask which one should be the main photo
+  //  - a pin already exists      → ask before overriding an explicit choice
+  const handlePick = async (files: File[]) => {
+    if (files.length === 0 || !user) return;
     const today = new Date().toISOString().slice(0, 10);
-    const { error } = await supabase
-      .from("user_milestone_photos")
-      .insert({ user_id: user.id, storage_path: path, taken_on: today });
-    if (error) {
-      console.error(error);
-      toast.error("Could not save");
-      return;
+    const insertedIds: string[] = [];
+    for (const file of files) {
+      const path = await upload(file);
+      if (!path) { toast.error("Upload failed"); continue; }
+      const { data, error } = await supabase
+        .from("user_milestone_photos")
+        .insert({ user_id: user.id, storage_path: path, taken_on: today })
+        .select("id")
+        .maybeSingle();
+      if (error) {
+        console.error(error);
+        toast.error("Could not save");
+        continue;
+      }
+      if (data?.id) insertedIds.push(data.id as string);
     }
-    toast.success("Milestone photo added");
+    if (insertedIds.length === 0) return;
+    toast.success(insertedIds.length > 1 ? "Milestone photos added" : "Milestone photo added");
     await load();
+    // Home reads through react-query — invalidate so the card changes now,
+    // with no reload.
+    await refreshCardPhoto();
+    if (insertedIds.length > 1) {
+      setPickerOpen(true);
+    } else if (mainPhotoId) {
+      setSwitchTo(insertedIds[0]);
+    }
   };
 
   const removeRow = async (r: Row) => {
@@ -86,7 +124,11 @@ const MilestoneGallery = () => {
     await supabase.from("user_milestone_photos").delete().eq("id", r.id);
     await supabase.storage.from("milestone-photos").remove([r.storage_path]);
     setRows((prev) => prev.filter((x) => x.id !== r.id));
+    // Deleting the pinned photo clears main_photo_id (ON DELETE SET NULL),
+    // so the card drops back to auto mode — refresh to pick that up.
+    await refreshCardPhoto();
   };
+
 
   const daysSinceLast = rows[0]
     ? Math.floor((Date.now() - new Date(rows[0].taken_on).getTime()) / 86_400_000)
@@ -142,14 +184,51 @@ const MilestoneGallery = () => {
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            void handlePick(f ?? null);
+            const picked = Array.from(e.target.files ?? []);
+            void handlePick(picked);
             if (fileRef.current) fileRef.current.value = "";
           }}
         />
+
+        <MainPhotoPicker
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          title="Which of these would you like as your main photo?"
+          description="Your Current style card will show the one you pick. Choosing “Use my most recent photo” keeps it following your newest photo."
+        />
+
+        <AlertDialog open={!!switchTo} onOpenChange={(o) => { if (!o) setSwitchTo(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-display">Use your new photo on Home?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You've pinned a main photo before, so we won't change it without asking.
+                Switch your Current style card to the photo you just added?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setSwitchTo(null)}>Keep the current one</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const id = switchTo;
+                  setSwitchTo(null);
+                  if (id) {
+                    setMainPhoto.mutate(id, {
+                      onSuccess: () => toast.success("Main photo updated"),
+                      onError: () => toast.error("Could not update your main photo"),
+                    });
+                  }
+                }}
+              >
+                Use the new one
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
 
         {loading ? (
           <LoadingDot label="Loading photos…" fullScreen={false} />

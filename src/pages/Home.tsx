@@ -3,7 +3,9 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle, Heart, RefreshCw, Tag } from "lucide-react";
+import { HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
+import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
+import MainPhotoPicker from "@/components/style/MainPhotoPicker";
 import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
 import ListRow from "@/components/nav/ListRow";
@@ -92,6 +94,10 @@ const Home = () => {
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
+  // Current style card image: pinned progress photo → newest progress photo →
+  // baseline "before" photo → placeholder.
+  const { url: styleCardUrl } = useStyleCardPhoto();
+  const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [bloodSummary, setBloodSummary] = useState<{
     panelDate: string | null;
     label: string | null;
@@ -477,12 +483,21 @@ const Home = () => {
                     {daysInStyle != null ? `Day ${daysInStyle} in rotation` : "Just set"}
                   </p>
                 </div>
-                <button
-                  onClick={() => navigate("/home/style")}
-                  className="shrink-0 text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
-                >
-                  Edit
-                </button>
+                <div className="shrink-0 flex items-center gap-2">
+                  <button
+                    onClick={() => setPhotoPickerOpen(true)}
+                    aria-label="Change your main photo"
+                    className="size-7 rounded-full border border-[#C5A059]/30 flex items-center justify-center text-[#C5A059] hover:bg-white/5 transition-colors"
+                  >
+                    <ImagePlus className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={() => navigate("/home/style")}
+                    className="text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
 
               {/* Hero photo */}
@@ -493,9 +508,9 @@ const Home = () => {
               >
                 <div className="absolute -inset-1.5 border border-[#C5A059]/40 rounded-[26px] rotate-1" />
                 <div className="relative w-full aspect-square rounded-3xl overflow-hidden bg-[#3A2B1F] flex items-center justify-center text-[#C5A059]/40 border border-white/5 shadow-2xl">
-                  {beforePhotoUrl ? (
+                  {styleCardUrl ?? beforePhotoUrl ? (
                     <img
-                      src={beforePhotoUrl}
+                      src={styleCardUrl ?? beforePhotoUrl ?? undefined}
                       alt="Your hair"
                       loading="eager"
                       decoding="async"
@@ -543,6 +558,7 @@ const Home = () => {
                 </svg>
               </button>
             </div>
+            <MainPhotoPicker open={photoPickerOpen} onOpenChange={setPhotoPickerOpen} />
           </div>
         ) : (
           <SurfaceCard data-tour="current-style">
