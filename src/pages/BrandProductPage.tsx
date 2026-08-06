@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ExternalLink, Heart, Check, Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import { ExternalLink, Heart, Check, Loader2, Sparkles } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
-import KeyFactChips from "@/components/guidance/KeyFactChips";
-import StatusCallout from "@/components/guidance/StatusCallout";
-import ActionList from "@/components/guidance/ActionList";
-import { emphasisSplit } from "@/lib/tipsRender";
+import BenefitRows, { type BenefitRow } from "@/components/guidance/BenefitRows";
+import NumberedSteps from "@/components/guidance/NumberedSteps";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -25,15 +23,16 @@ import { buildAiContext } from "@/lib/aiContext";
 
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
+// v2 — the guidance payload shape changed (intro/benefits/steps). Old cached
+// rows under the v1 kind are simply never read again.
 const guidanceCacheKind = (brandProductId: string) =>
-  `brand_product_guidance:${brandProductId}`;
+  `brand_product_guidance_v2:${brandProductId}`;
 
 type GuidancePayload = {
   headline: string;
-  fit_summary: string;
-  how_to_use: string[];
-  benefits_for_you: string[];
-  cautions: string[];
+  intro: string;
+  benefits: BenefitRow[];
+  steps: string[];
 };
 
 const formatDate = (iso: string | null | undefined) => {
