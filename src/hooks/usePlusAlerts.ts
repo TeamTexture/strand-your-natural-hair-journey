@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
+import { ALERT_KEYS, alertSignature, type AlertKey } from "@/lib/alertKeys";
+import { useAlertDismissals } from "@/hooks/useAlertDismissals";
 
 export type PlusAlertKind = "thread" | "event" | "message" | "library";
 export type PlusSurface = "forum" | "events" | "messages" | "library";
@@ -19,6 +21,10 @@ export interface PlusAlert {
   body: string;
   to: string;
   createdAt: string;
+  /** Stable alert type key (see ALERT_KEYS). */
+  alertKey: AlertKey;
+  /** Event-based signature — the source record id. */
+  signature: string;
 }
 
 export interface PlusAlertCounts {
@@ -59,6 +65,7 @@ export const markPlusSurfaceSeen = (surface: keyof SeenMap) => {
 export function usePlusAlerts() {
   const { user } = useAuth();
   const { hasPlus } = usePlusAccess();
+  const { isDismissed, dismiss: persistDismiss, loaded: dismissalsLoaded } = useAlertDismissals();
   const [alerts, setAlerts] = useState<PlusAlert[]>([]);
   const [counts, setCounts] = useState<PlusAlertCounts>({ forum: 0, events: 0, messages: 0, library: 0 });
   const [loading, setLoading] = useState(true);
@@ -136,50 +143,52 @@ export function usePlusAlerts() {
 
     const out: PlusAlert[] = [];
     threads.forEach((t: any) => out.push({
-      id: `thread:${t.id}`, kind: "thread",
+      id: `thread:${t.id}`, alertKey: ALERT_KEYS.PLUS_FORUM_THREAD, signature: alertSignature(ALERT_KEYS.PLUS_FORUM_THREAD, [t.id]), kind: "thread",
       title: "New forum thread", body: t.title,
       to: `/forum/${t.id}`, createdAt: t.created_at,
     }));
     replies.forEach((r: any) => out.push({
-      id: `reply:${r.id}`, kind: "thread",
+      id: `reply:${r.id}`, alertKey: ALERT_KEYS.PLUS_FORUM_REPLY, signature: alertSignature(ALERT_KEYS.PLUS_FORUM_REPLY, [r.id]), kind: "thread",
       title: "New forum reply", body: (r.body ?? "").slice(0, 80) || "Tap to open thread",
       to: `/forum/${r.thread_id}`, createdAt: r.created_at,
     }));
     events.forEach((e: any) => out.push({
-      id: `event:${e.id}`, kind: "event",
+      id: `event:${e.id}`, alertKey: ALERT_KEYS.PLUS_EVENT, signature: alertSignature(ALERT_KEYS.PLUS_EVENT, [e.id]), kind: "event",
       title: e.kind === "in_person" ? "New in-person event" : "New digital event",
       body: e.title, to: `/plus/events/${e.id}`, createdAt: e.created_at,
     }));
     messages.forEach((m: any) => out.push({
-      id: `msg:${m.id}`, kind: "message",
+      id: `msg:${m.id}`, alertKey: ALERT_KEYS.PLUS_MESSAGE, signature: alertSignature(ALERT_KEYS.PLUS_MESSAGE, [m.id]), kind: "message",
       title: "New STRAND+ message",
       body: (m.body ?? "").slice(0, 60) || "Tap to open chat",
       to: `/messages/${m.thread_id}`, createdAt: m.created_at,
     }));
 
     libItems.forEach((it: any) => out.push({
-      id: `lib:${it.id}`, kind: "library",
+      id: `lib:${it.id}`, alertKey: ALERT_KEYS.PLUS_LIBRARY_ITEM, signature: alertSignature(ALERT_KEYS.PLUS_LIBRARY_ITEM, [it.id]), kind: "library",
       title: "New in the Library", body: it.title,
       to: `/plus/library/${it.collection_id}`, createdAt: it.created_at,
     }));
     libCols.forEach((c: any) => out.push({
-      id: `libcol:${c.id}`, kind: "library",
+      id: `libcol:${c.id}`, alertKey: ALERT_KEYS.PLUS_LIBRARY_COLLECTION, signature: alertSignature(ALERT_KEYS.PLUS_LIBRARY_COLLECTION, [c.id]), kind: "library",
       title: "New library collection", body: c.title,
       to: `/plus/library/${c.id}`, createdAt: c.created_at,
     }));
 
-    out.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-    setAlerts(out.slice(0, 20));
+    const live = out.filter((a) => !isDismissed(a.alertKey, a.signature));
+    live.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    setAlerts(live.slice(0, 20));
+    const countBy = (kind: PlusAlertKind) => live.filter((a) => a.kind === kind).length;
     setCounts({
-      forum: threads.length + replies.length,
-      events: events.length,
-      messages: messages.length,
-      library: libItems.length + libCols.length,
+      forum: countBy("thread"),
+      events: countBy("event"),
+      messages: countBy("message"),
+      library: countBy("library"),
     });
     setLoading(false);
-  }, [user?.id, hasPlus]);
+  }, [user?.id, hasPlus, isDismissed]);
 
-  useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+  useEffect(() => { if (dismissalsLoaded) fetchAlerts(); }, [fetchAlerts, dismissalsLoaded]);
 
   useEffect(() => {
     const h = () => fetchAlerts();
@@ -211,15 +220,21 @@ export function usePlusAlerts() {
   }, [user?.id, hasPlus, fetchAlerts]);
 
   const dismiss = useCallback((id: string) => {
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+    let target: PlusAlert | undefined;
+    setAlerts((prev) => {
+      target = prev.find((a) => a.id === id);
+      return prev.filter((a) => a.id !== id);
+    });
+    if (target) void persistDismiss([{ key: target.alertKey, signature: target.signature }]);
+  }, [persistDismiss]);
 
   const dismissAll = useCallback(() => {
     const now = new Date().toISOString();
+    void persistDismiss(alerts.map((a) => ({ key: a.alertKey, signature: a.signature })));
     writeSeen({ threads: now, forum: now, events: now, messages: now, library: now });
     setAlerts([]);
     setCounts({ forum: 0, events: 0, messages: 0, library: 0 });
-  }, []);
+  }, [alerts, persistDismiss]);
 
   return { alerts, counts, loading, dismiss, dismissAll, refetch: fetchAlerts };
 }

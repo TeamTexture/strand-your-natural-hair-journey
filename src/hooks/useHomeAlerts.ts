@@ -38,6 +38,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { ALERT_KEYS, alertSignature, timeBucket } from "@/lib/alertKeys";
+import { useAlertDismissals } from "@/hooks/useAlertDismissals";
 
 export interface HomeAlert {
   id: string;
@@ -54,29 +56,6 @@ export interface HomeAlert {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DISMISS_KEY = "strand_dismissed_alerts_v1";
-
-type DismissMap = Record<string, string>; // alertId -> signature dismissed
-
-const readDismissals = (): DismissMap => {
-  try {
-    const raw = localStorage.getItem(DISMISS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-};
-
-const writeDismissals = (m: DismissMap) => {
-  try {
-    localStorage.setItem(DISMISS_KEY, JSON.stringify(m));
-  } catch {
-    /* ignore */
-  }
-};
-
 const TAKEDOWN_STYLES = [
   "box braids",
   "braids",
@@ -138,7 +117,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<HomeAlert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dismissals, setDismissals] = useState<DismissMap>(() => readDismissals());
+  const { isDismissed, dismiss: persistDismiss, loaded: dismissalsLoaded } = useAlertDismissals();
   const [refreshTick, setRefreshTick] = useState(0);
 
   // Re-run alerts computation whenever data that drives them changes, so
@@ -359,13 +338,16 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
                 ? "Two weeks since your last wash. Time to reset the scalp."
                 : "Product build-up begins now. Log a cleanse.";
         next.push({
-          id: "wash-overdue",
+          id: ALERT_KEYS.WASH_OVERDUE,
           emoji: "💧",
           title: `Wash day overdue — ${dayLabel}`,
           body,
           to: "/wash-day",
           tone: "warning",
-          signature: `wash:${lastWashDate}:${Math.min(daysSinceWash, 60)}`,
+          signature: alertSignature(ALERT_KEYS.WASH_OVERDUE, [
+            lastWashDate,
+            timeBucket(ALERT_KEYS.WASH_OVERDUE, daysSinceWash),
+          ]),
         });
       } else if (
         Number.isFinite(daysSinceWash) &&
@@ -384,13 +366,16 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
             ? "Tap to schedule your next cleanse and keep your 7-day rhythm."
             : "Stay on your 7-day rhythm — tap to schedule your next wash.";
         next.push({
-          id: "wash-countdown",
+          id: ALERT_KEYS.WASH_COUNTDOWN,
           emoji: "🗓️",
           title,
           body,
           to: "/wash-day",
           tone: "good",
-          signature: `wash-countdown:${lastWashDate}:${daysUntil}`,
+          signature: alertSignature(ALERT_KEYS.WASH_COUNTDOWN, [
+            lastWashDate,
+            timeBucket(ALERT_KEYS.WASH_COUNTDOWN, daysSinceWash),
+          ]),
         });
       }
 
@@ -404,14 +389,18 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         currentStyles.length > 0
       ) {
         next.push({
-          id: "takedown-due",
+          id: ALERT_KEYS.TAKEDOWN_DUE,
           emoji: "✂️",
           title: "Time to take down",
           body: `${daysInStyle} days in ${currentStyles[0].toLowerCase()} — scalp needs a reset.`,
           to: "/home/style",
 
           tone: "warning",
-          signature: `style:${styleStartDate ?? "none"}`,
+          signature: alertSignature(ALERT_KEYS.TAKEDOWN_DUE, [
+            styleStartDate,
+            currentStyles[0],
+            timeBucket(ALERT_KEYS.TAKEDOWN_DUE, daysInStyle),
+          ]),
         });
       }
 
@@ -425,13 +414,17 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
               ? "is today"
               : `is in ${plannedDays} day${plannedDays === 1 ? "" : "s"}`;
         next.push({
-          id: "planned-style-due",
+          id: ALERT_KEYS.PLANNED_STYLE_DUE,
           emoji: "🗓️",
           title: `${plannedNext} change ${when}`,
           body: "Update your current style so guidance keeps matching your hair.",
           to: "/home/style",
           tone: "warning",
-          signature: `planned:${plannedChangeDate}`,
+          signature: alertSignature(ALERT_KEYS.PLANNED_STYLE_DUE, [
+            plannedChangeDate,
+            plannedNext,
+            timeBucket(ALERT_KEYS.PLANNED_STYLE_DUE, Math.max(0, -plannedDays)),
+          ]),
         });
       }
 
@@ -485,13 +478,16 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         const sample = flaggedMarkers.slice(0, 2).map(label).join(", ");
         const more = flaggedMarkers.length > 2 ? ` +${flaggedMarkers.length - 2} more` : "";
         next.push({
-          id: "blood-low-markers",
+          id: ALERT_KEYS.BLOOD_MARKERS_FLAGGED,
           emoji: "🩸",
           title: `${flaggedMarkers.length} flagged marker${flaggedMarkers.length === 1 ? "" : "s"} on file`,
           body: `${sample}${more} — see your nutrition plan.`,
           to: "/nutrition-plan",
           tone: "warning",
-          signature: `flaggedMarkers:${flaggedMarkers.map((f) => `${f.marker}:${f.status}`).sort().join(",")}`,
+          signature: alertSignature(ALERT_KEYS.BLOOD_MARKERS_FLAGGED, [
+            flaggedMarkers.map((f) => `${f.marker}:${f.status}`).sort().join(","),
+            timeBucket(ALERT_KEYS.BLOOD_MARKERS_FLAGGED, daysSinceBlood),
+          ]),
         });
       }
 
@@ -500,25 +496,28 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
       // (the upload/save date), otherwise an old report uploaded today never appears due on Home.
       if (scheduledBloodDate) {
         next.push({
-          id: "blood-scheduled",
+          id: ALERT_KEYS.BLOOD_TEST_SCHEDULED,
           emoji: "🧪",
           title: "Blood test scheduled",
           body: `Your next blood test is booked for ${new Date(`${scheduledBloodDate}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.`,
           to: "/blood-history",
           tone: "warning",
-          signature: `bloodScheduled:${scheduledBloodDate}`,
+          signature: alertSignature(ALERT_KEYS.BLOOD_TEST_SCHEDULED, [scheduledBloodDate]),
         });
       } else if (lastBloodPanelDate && Number.isFinite(daysSinceBlood) && daysSinceBlood >= 85) {
         const months = Math.max(3, Math.round(daysSinceBlood / 30));
         next.push({
-          id: "blood-retest",
+          id: ALERT_KEYS.BLOOD_TEST_OVERDUE,
           emoji: "🧪",
           title: "Time to book a blood test",
           body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair, nutrition and supplement guidance stays accurate.`,
           to: "/directory?bloodOnly=1",
 
           tone: "danger",
-          signature: `blood:${lastBloodPanelDate}`,
+          signature: alertSignature(ALERT_KEYS.BLOOD_TEST_OVERDUE, [
+            lastBloodPanelDate,
+            timeBucket(ALERT_KEYS.BLOOD_TEST_OVERDUE, daysSinceBlood),
+          ]),
         });
       } else if (!lastBloodPanelDate) {
         // Never uploaded a blood test — nudge after a 14-day grace window
@@ -526,14 +525,16 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         const daysSinceSignup = daysSince(accountCreatedIso);
         if (!Number.isFinite(daysSinceSignup) || daysSinceSignup >= 14) {
           next.push({
-            id: "blood-first-test",
+            id: ALERT_KEYS.BLOOD_TEST_MISSING,
             emoji: "🧪",
             title: "Book your first blood test",
             body: "Add a recent blood test so STRAND can personalise your hair, nutrition and supplement guidance to your body.",
             to: "/directory?bloodOnly=1",
 
             tone: "danger",
-            signature: "blood:none",
+            signature: alertSignature(ALERT_KEYS.BLOOD_TEST_MISSING, [
+              timeBucket(ALERT_KEYS.BLOOD_TEST_MISSING, daysSinceSignup),
+            ]),
           });
         }
       }
@@ -545,7 +546,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
       const daysSinceAppt = daysSince(lastApptDate);
       if (lastApptDate && daysSinceAppt >= 170) {
         next.push({
-          id: "rebook-pro",
+          id: ALERT_KEYS.REBOOK_PRO,
           emoji: "📅",
           title: "Time to rebook your professional",
           body: lastProName
@@ -553,7 +554,10 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
             : `${daysSinceAppt} days since your last appointment.`,
           to: "/appointments",
           tone: "warning",
-          signature: `appt:${lastApptDate}`,
+          signature: alertSignature(ALERT_KEYS.REBOOK_PRO, [
+            lastApptDate,
+            timeBucket(ALERT_KEYS.REBOOK_PRO, daysSinceAppt),
+          ]),
         });
       }
 
@@ -569,7 +573,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
                 ? "tomorrow"
                 : `in ${dUntil} days`;
           next.push({
-            id: "appt-upcoming",
+            id: ALERT_KEYS.APPOINTMENT_UPCOMING,
             emoji: "📍",
             title: `Appointment ${when}`,
             body: upcomingAppt.professional_name
@@ -577,7 +581,10 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
               : "Tap to review the details.",
             to: "/appointments",
             tone: "warning",
-            signature: `apptUp:${upcomingAppt.appointment_date}`,
+            signature: alertSignature(ALERT_KEYS.APPOINTMENT_UPCOMING, [
+              upcomingAppt.appointment_date,
+              upcomingAppt.professional_name,
+            ]),
           });
         }
       }
@@ -606,13 +613,13 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         lastBreakageRow?.wash_date
       ) {
         next.push({
-          id: "breakage-flag",
+          id: ALERT_KEYS.BREAKAGE_LOGGED,
           emoji: "⚠️",
           title: "Breakage logged on your last wash",
           body: `Review your routine and check protein / moisture balance.`,
           to: `/wash-day`,
           tone: "warning",
-          signature: `breakage:${lastBreakageRow.wash_date}`,
+          signature: alertSignature(ALERT_KEYS.BREAKAGE_LOGGED, [lastBreakageRow.wash_date]),
         });
       }
 
@@ -638,16 +645,15 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         const more =
           lowRatedShelf.length > 1 ? ` +${lowRatedShelf.length - 1} more` : "";
         next.push({
-          id: "low-rated-shelf",
+          id: ALERT_KEYS.LOW_RATED_ON_SHELF,
           emoji: "👎",
           title: "Low-rated product still on shelf",
           body: `${first.brand ? `${first.brand} ` : ""}${first.name}${more}. Move it off?`,
           to: "/products",
           tone: "warning",
-          signature: `lowShelf:${lowRatedShelf
-            .map((p) => `${p.brand}|${p.name}`)
-            .sort()
-            .join("/")}`,
+          signature: alertSignature(ALERT_KEYS.LOW_RATED_ON_SHELF, [
+            lowRatedShelf.map((p) => `${p.brand}~${p.name}`).sort().join("/"),
+          ]),
         });
       }
 
@@ -667,13 +673,16 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
       );
       if (overdueGoal?.target_date) {
         next.push({
-          id: `goal-overdue-${overdueGoal.id}`,
+          id: ALERT_KEYS.GOAL_TARGET_PASSED,
           emoji: "🎯",
           title: "Goal target date has passed",
           body: `${overdueGoal.title} — review or extend it.`,
           to: "/journal",
           tone: "warning",
-          signature: `goalOverdue:${overdueGoal.id}:${overdueGoal.target_date}`,
+          signature: alertSignature(ALERT_KEYS.GOAL_TARGET_PASSED, [
+            overdueGoal.id,
+            overdueGoal.target_date,
+          ]),
         });
       }
 
@@ -685,13 +694,16 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         const dSince = daysSince(`${lastMilestone.taken_on}T00:00:00`);
         if (dSince >= 42) {
           next.push({
-            id: "milestone-due",
+            id: ALERT_KEYS.MILESTONE_PHOTO_DUE,
             emoji: "📸",
             title: "Time for your 6-week progress photo",
             body: `Last milestone was ${dSince} days ago — capture the next one.`,
             to: "/profile/milestones",
             tone: "warning",
-            signature: `milestone:${lastMilestone.taken_on}`,
+            signature: alertSignature(ALERT_KEYS.MILESTONE_PHOTO_DUE, [
+              lastMilestone.taken_on,
+              timeBucket(ALERT_KEYS.MILESTONE_PHOTO_DUE, dSince),
+            ]),
           });
         }
       }
@@ -709,26 +721,26 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
               ? "yesterday"
               : `${daysSinceWash} days ago`;
         next.push({
-          id: "wash-recent",
+          id: ALERT_KEYS.WASH_RECENT,
           emoji: "✨",
           title: `Wash day logged ${when}`,
           body: "Consistency compounds — keep going.",
           to: "/wash-day",
           tone: "good",
-          signature: `washGood:${lastWashDate}`,
+          signature: alertSignature(ALERT_KEYS.WASH_RECENT, [lastWashDate]),
         });
       }
 
       // P2. 3+ wash days in the last 30 days → consistency win
       if (washCount30d >= 3) {
         next.push({
-          id: "wash-streak",
+          id: ALERT_KEYS.WASH_STREAK,
           emoji: "🔥",
           title: `${washCount30d} wash days in 30 days`,
           body: "Your routine is locked in.",
           to: "/wash-day",
           tone: "good",
-          signature: `streak:${washCount30d}:${lastWashDate ?? "n/a"}`,
+          signature: alertSignature(ALERT_KEYS.WASH_STREAK, [washCount30d, lastWashDate]),
         });
       }
 
@@ -738,13 +750,13 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         const dJ = daysSince(`${lastJournal.entry_date}T00:00:00`);
         if (dJ <= 3) {
           next.push({
-            id: "journal-recent",
+            id: ALERT_KEYS.JOURNAL_RECENT,
             emoji: "📓",
             title: "Journal entry added",
             body: "Reflection makes patterns visible. Add another anytime.",
             to: "/journal",
             tone: "good",
-            signature: `journal:${lastJournal.entry_date}`,
+            signature: alertSignature(ALERT_KEYS.JOURNAL_RECENT, [lastJournal.entry_date]),
           });
         }
       }
@@ -763,13 +775,13 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           topRated.product_name ?? "a product"
         }`;
         next.push({
-          id: "fav-product",
+          id: ALERT_KEYS.FAVOURITE_PRODUCT,
           emoji: "💛",
           title: `${topRated.rating}★ favourite saved`,
           body: `${label} is performing well — keep it close.`,
           to: "/products",
           tone: "good",
-          signature: `fav:${label}:${topRated.updated_at}`,
+          signature: alertSignature(ALERT_KEYS.FAVOURITE_PRODUCT, [label, topRated.updated_at]),
         });
       }
 
@@ -777,13 +789,16 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
       const completedGoal = goals.find((g) => g.status === "complete");
       if (completedGoal) {
         next.push({
-          id: `goal-complete-${completedGoal.id}`,
+          id: ALERT_KEYS.GOAL_COMPLETE,
           emoji: "🏆",
           title: "Goal complete",
           body: `${completedGoal.title} — set the next one.`,
           to: "/journal",
           tone: "good",
-          signature: `goalDone:${completedGoal.id}:${completedGoal.updated_at}`,
+          signature: alertSignature(ALERT_KEYS.GOAL_COMPLETE, [
+            completedGoal.id,
+            completedGoal.updated_at,
+          ]),
         });
       }
 
@@ -806,48 +821,30 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
     };
   }, [user, refreshTick]);
 
-  // Prune dismissals whose alert no longer exists (or whose signature changed).
-  useEffect(() => {
-    if (alerts.length === 0 && Object.keys(dismissals).length === 0) return;
-    const sigById = new Map(alerts.map((a) => [a.id, a.signature]));
-    let changed = false;
-    const pruned: DismissMap = {};
-    for (const [id, sig] of Object.entries(dismissals)) {
-      const current = sigById.get(id);
-      if (current && current === sig) {
-        pruned[id] = sig;
-      } else {
-        changed = true;
-      }
-    }
-    if (changed) {
-      setDismissals(pruned);
-      writeDismissals(pruned);
-    }
-  }, [alerts, dismissals]);
-
   const visibleAlerts = useMemo(
-    () => alerts.filter((a) => dismissals[a.id] !== a.signature),
-    [alerts, dismissals],
+    () => alerts.filter((a) => !isDismissed(a.id, a.signature)),
+    [alerts, isDismissed],
   );
 
   const dismiss = useCallback(
     (id: string) => {
       const a = alerts.find((x) => x.id === id);
       if (!a) return;
-      const next = { ...dismissals, [id]: a.signature };
-      setDismissals(next);
-      writeDismissals(next);
+      void persistDismiss([{ key: a.id, signature: a.signature }]);
     },
-    [alerts, dismissals],
+    [alerts, persistDismiss],
   );
 
   const dismissAll = useCallback(() => {
-    const next: DismissMap = { ...dismissals };
-    for (const a of alerts) next[a.id] = a.signature;
-    setDismissals(next);
-    writeDismissals(next);
-  }, [alerts, dismissals]);
+    if (alerts.length === 0) return;
+    void persistDismiss(alerts.map((a) => ({ key: a.id, signature: a.signature })));
+  }, [alerts, persistDismiss]);
 
-  return { alerts, visibleAlerts, loading, dismiss, dismissAll };
+  return {
+    alerts,
+    visibleAlerts,
+    loading: loading || !dismissalsLoaded,
+    dismiss,
+    dismissAll,
+  };
 }
