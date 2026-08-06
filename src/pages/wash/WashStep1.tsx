@@ -423,11 +423,13 @@ const WashStep1 = () => {
         prePoo, cleanse, coWash, condition, treatment,
         treatmentType,
         heatChoice, heatMinutes, heatToolIds,
+        treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds,
       }),
     );
   }, [hydrated, prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
       prePoo, cleanse, coWash, condition, treatment, treatmentType,
-      heatChoice, heatMinutes, heatToolIds]);
+      heatChoice, heatMinutes, heatToolIds,
+      treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds]);
 
   // Resolve IDs → full product objects for display.
   const resolve = (ids: string[]) =>
