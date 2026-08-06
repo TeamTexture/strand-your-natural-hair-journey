@@ -67,19 +67,8 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick, anchorId }: Prop
   // ---------- Key insight (full text, markdown stripped) ----------
   const stripMd = (s: string) =>
     s.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[#>_`]/g, "").trim();
-  const insightRaw = (() => {
-    if (washDay.ai_insight) return washDay.ai_insight;
-    if (washDay.next_wash_tip) {
-      try {
-        const parsed = JSON.parse(washDay.next_wash_tip);
-        if (parsed && typeof parsed === "object") {
-          return [parsed.action, parsed.why].filter(Boolean).join(" ") || null;
-        }
-      } catch { /* plain text */ }
-      return washDay.next_wash_tip;
-    }
-    return washDay.hair_feel_note || null;
-  })();
+  // `next_wash_tip` is deprecated and no longer read — its card was removed.
+  const insightRaw = washDay.ai_insight || washDay.hair_feel_note || null;
   const insight = insightRaw ? stripStaleDates(stripMd(insightRaw)) : null;
   const renderInline = useSmartInline();
 

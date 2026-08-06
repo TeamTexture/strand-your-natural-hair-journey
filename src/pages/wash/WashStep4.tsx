@@ -8,7 +8,6 @@ import TitleBar from "@/components/TitleBar";
 import StepProgress from "@/components/nav/StepProgress";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
-import { NextWashTipCard } from "@/components/NextWashTipCard";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import { Sparkles, Flame } from "lucide-react";
 import AiProse from "@/components/tips/AiProse";
@@ -81,15 +80,11 @@ interface StylingSaved {
   heat?: StylingHeat;
 }
 
-interface NextWashTip { action: string; why: string }
 
 
 const WashStep4 = () => {
   const navigate = useNavigate();
   const [observation, setObservation] = useState<string | null>(null);
-  const [nextTip, setNextTip] = useState<NextWashTip | null>(null);
-  const [saveNextTip, setSaveNextTip] = useState(true);
-  const [showNextTip, setShowNextTip] = useState(true);
   const [obsLoading, setObsLoading] = useState(true);
   const [obsError, setObsError] = useState<string | null>(null);
 
@@ -197,14 +192,8 @@ const WashStep4 = () => {
         if (data?.error) throw new Error(data.error);
         if (!cancelled) {
           setObservation(data?.observation ?? "");
-          const raw = data?.next_wash_tip;
-          if (raw && typeof raw === "object" && (raw.action || raw.why)) {
-            setNextTip({ action: raw.action ?? "", why: raw.why ?? "" });
-          } else if (typeof raw === "string" && raw.trim()) {
-            setNextTip({ action: raw.trim(), why: "" });
-          } else {
-            setNextTip(null);
-          }
+          // The per-log "next wash day tip" is retired — its card is gone from
+          // the UI and wash_days.next_wash_tip is deprecated (never written).
         }
       } catch (e: unknown) {
         if (!cancelled) {
@@ -303,7 +292,8 @@ const WashStep4 = () => {
         hair_feel_note: step3.note?.trim() ? step3.note.trim() : null,
         hair_feel_voice_url: step3.audioPath ?? null,
         ai_insight: observation,
-        next_wash_tip: saveNextTip && nextTip ? JSON.stringify(nextTip) : null,
+        // DEPRECATED: wash_days.next_wash_tip is never written. Its card was
+        // removed; the wash day tip on the Wash Day screen replaces it.
         styling: Object.keys(styling).length ? styling : null,
       };
 
@@ -417,41 +407,15 @@ const WashStep4 = () => {
           to="/wash/step-styling" navigate={navigate}
         />
 
-        {obsLoading ? (
-          <StatusCallout tone="gold" icon={Sparkles} label="Next wash-day tip">
-            Creating your next wash-day tip…
+        {/* The per-log "next wash day tip" card has been removed. Wash day
+            guidance now lives in the single wash day tip on the Wash Day
+            screen, generated from the whole history. */}
+        {obsLoading && (
+          <StatusCallout tone="gold" icon={Sparkles} label="Reading your wash day">
+            Reading your wash day…
           </StatusCallout>
-        ) : obsError || !nextTip ? (
-          <StatusCallout tone="muted" icon={Sparkles} label="Next wash-day tip">
-            Couldn't create a tip right now — your wash day is still saved.
-          </StatusCallout>
-        ) : (
-          <NextWashTipCard
-            action={nextTip.action}
-            why={nextTip.why}
-            collapsed={!showNextTip}
-            headerRight={
-              <button
-                type="button"
-                onClick={() => setShowNextTip((s) => !s)}
-                className="shrink-0 text-[#C5A059] text-[10px] font-bold tracking-[0.2em] uppercase border border-[#C5A059]/30 px-3 py-1 rounded-full hover:bg-white/5 transition-colors font-body"
-              >
-                {showNextTip ? "Hide" : "Show"}
-              </button>
-            }
-            footer={
-              <label className="flex items-center gap-2 text-[12px] text-[#E0D7CC]/90 cursor-pointer font-body">
-                <input
-                  type="checkbox"
-                  checked={saveNextTip}
-                  onChange={(e) => setSaveNextTip(e.target.checked)}
-                  className="size-4 accent-[#C5A059]"
-                />
-                Save this tip to my wash day
-              </label>
-            }
-          />
         )}
+
 
 
         <Button variant="gold" size="pill" className="mt-4" onClick={save} disabled={saving}>

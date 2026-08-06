@@ -1,10 +1,11 @@
 // useDynamicWashTip — generates & caches a personalised wash-day tip per user.
 //
 // Builds a stable fingerprint from the user's live data (hair profile, health,
-// blood flags, goals, current style, wash history presence). The edge function
-// caches the tip against that fingerprint so identical inputs return instantly
-// and don't burn tokens. The tip only regenerates when the user's data
-// actually changes — consistent with STRAND's static-page behaviour.
+// blood flags, goals, challenges, current + planned style, how her hair has
+// felt, and an aggregate of EVERY logged wash day). The edge function caches
+// the tip against that fingerprint so identical inputs return instantly and
+// don't burn tokens. The tip only regenerates when the user's data actually
+// changes — consistent with STRAND's static-page behaviour.
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,12 +16,22 @@ import {
   responsiveSignatureParts,
   styleSignatureParts,
 } from "@/lib/tipSignature";
+import {
+  aggregateWashHistory,
+  washHistorySignatureParts,
+  type AggregatableWashDay,
+} from "@/lib/washHistoryAggregate";
 
 
 export interface DynamicWashTip {
   headline: string;
   why: string;
   technique: string;
+  /**
+   * Optional "something to try next wash day" section, rendered inside the
+   * same card. Omitted by the model when there is nothing worth suggesting.
+   */
+  next_time?: string | null;
 }
 
 const hashString = (input: string): string => {
@@ -70,20 +81,57 @@ async function loadContext(userId: string) {
   return { hair, health, style, goals, bloodFlags, hasWashHistory };
 }
 
+/**
+ * ALL logged wash days plus the member's shelf. Patterns across the whole
+ * history are the point of this tip, so nothing is limited to the latest log.
+ * Products are shelf-only: suggestions are made from what she already owns,
+ * and the deterministic resolver (src/lib/productMatch.ts, rendered through
+ * smartInline) links any shelf product named in the copy.
+ */
+async function loadWashHistory(userId: string) {
+  const [washRes, shelfRes] = await Promise.all([
+    supabase
+      .from("wash_days")
+      .select(
+        "id, wash_date, steps, heat_treatment, styling, scalp_feel, breakage, hair_feel_note, hair_feel_voice_url, style_after, style_extensions, style_tension, product_ids",
+      )
+      .eq("user_id", userId)
+      .order("wash_date", { ascending: false }),
+    supabase
+      .from("user_products")
+      .select("name, brand, category")
+      .eq("user_id", userId)
+      .eq("on_shelf", true)
+      .limit(40),
+  ]);
+
+  const aggregate = aggregateWashHistory(
+    ((washRes.data ?? []) as unknown as AggregatableWashDay[]),
+  );
+  const shelfProducts = ((shelfRes.data ?? []) as Array<{
+    name: string;
+    brand: string | null;
+    category: string | null;
+  }>).map((p) => ({ name: p.name, brand: p.brand, category: p.category }));
+
+  return { aggregate, shelfProducts };
+}
+
 export function useDynamicWashTip() {
   const { user } = useAuth();
   const { level } = useTipsLevel();
 
   return useQuery({
-    queryKey: ["wash_day_tip_v1", user?.id, level],
+    queryKey: ["wash_day_tip_v2", user?.id, level],
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,
     queryFn: async (): Promise<DynamicWashTip | null> => {
       if (!user?.id) return null;
-      const [ctx, signals] = await Promise.all([
+      const [ctx, signals, history] = await Promise.all([
         loadContext(user.id),
         loadResponsiveSignals(user.id),
+        loadWashHistory(user.id),
       ]);
       const h = ctx.hair as { hair_type?: string; porosity?: string; density?: string; scalp_condition?: string } | null;
       const he = ctx.health as { overall_health?: string } | null;
@@ -96,7 +144,7 @@ export function useDynamicWashTip() {
       } | null;
       const fingerprint = hashString(
         [
-          "wash-tip-v2",
+          "wash-tip-v3",
           h?.hair_type ?? "",
           h?.porosity ?? "",
           h?.density ?? "",
@@ -107,6 +155,10 @@ export function useDynamicWashTip() {
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
           ctx.goals.map((g) => `${g.kind ?? ""}:${g.title ?? ""}`).sort().join("|"),
           ...responsiveSignatureParts(signals),
+          // Aggregate of every log — a new wash day, a cadence shift, recurring
+          // breakage or a product rotation change all invalidate the tip.
+          ...washHistorySignatureParts(history.aggregate),
+          `shelf:${history.shelfProducts.map((p) => `${p.brand ?? ""} ${p.name}`).sort().join("|")}`,
         ].join("::"),
       );
 
@@ -135,6 +187,9 @@ export function useDynamicWashTip() {
           areasOfConcern: signals.areasOfConcern,
           recentWashDay: signals.recentWashDay,
           recentAppointment: signals.recentAppointment,
+          washHistory: history.aggregate,
+          hairFeelNotes: history.aggregate.hairFeelNotes,
+          shelfProducts: history.shelfProducts,
           tipsLevel: level,
         },
       });
