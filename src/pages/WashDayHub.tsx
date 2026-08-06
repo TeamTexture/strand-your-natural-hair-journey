@@ -434,58 +434,9 @@ const WashDayHub = () => {
   const [dynamicTipShown, setDynamicTipShown] = useState(false);
   const cadenceReasoningTaken = Boolean(overdue) || Boolean(latestTip) || dynamicTipShown;
 
-  // Scheduling controls — rendered inside the overdue card as a subordinate
-  // secondary row, or on their own in the Next wash day card when not overdue.
+  // Suggested next wash date — used to prefill the STRAND scheduling box.
   const nextIso = educational.nextDateIso;
-  const schedulingRow = (secondary: boolean) => {
-    if (!nextIso) return null;
-    const pill = secondary
-      ? "min-h-[36px] text-[11.5px] px-3 py-1.5"
-      : "text-[12.5px] px-4 py-2.5";
-    return (
-      <div className={cn("flex flex-col gap-2", secondary && "sm:flex-row")}>
-        {scheduledSet.has(nextIso) ? (
-          <p className={cn("flex-1 text-center font-body text-primary/90 bg-primary/10 rounded-pill inline-flex items-center justify-center gap-1.5", pill)}>
-            ✓ Scheduled — tap the highlighted date to manage
-          </p>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              const [y, m] = nextIso.split("-").map(Number);
-              setView({ year: y, month: m - 1 });
-              openScheduleDialog(nextIso);
-              setTimeout(() => {
-                document.getElementById("wash-calendar")?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 50);
-            }}
-            className={cn(
-              "flex-1 inline-flex items-center justify-center gap-2 rounded-pill font-semibold font-body transition",
-              pill,
-              secondary
-                ? "text-primary bg-primary/10 hover:bg-primary/15"
-                : "bg-primary text-primary-foreground shadow-sm hover:opacity-95",
-            )}
-          >
-            <CalendarClock className="size-4" />
-            Schedule this wash day
-          </button>
-        )}
-        <a
-          href={buildGoogleCalendarUrl(nextIso)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            "flex-1 inline-flex items-center justify-center gap-2 rounded-pill border border-primary/30 bg-background font-semibold text-primary font-body hover:bg-primary/5 transition",
-            pill,
-          )}
-        >
-          <CalendarPlus className="size-4" />
-          Add to Google Calendar
-        </a>
-      </div>
-    );
-  };
+
 
   return (
 
