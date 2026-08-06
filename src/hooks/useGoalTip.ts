@@ -35,59 +35,89 @@ export interface GoalTip {
 
 
 /**
- * Stable fingerprint of the hair characteristics + goal that the tip reasons
- * from. Combined with the calling day it keeps the Strand Tip of the Day fixed
- * for the whole day and rotates it tomorrow, while a profile or goal edit
- * regenerates immediately.
+ * Live personalisation signature — the Strand Tip of the Day must move the
+ * moment the reasoning behind it moves. It folds in the calendar day, the
+ * goal (id + wording + target), every challenge, current + planned style
+ * (with extensions/tension), areas of concern and the latest wash day /
+ * appointment. Any change here produces a new cache key, so the tip is
+ * regenerated against the new picture instead of waiting for midnight.
  */
-const profileFingerprint = (
-  context: Record<string, unknown>,
-  goalId?: string,
-): string => {
-  const hair = (context.hair ?? {}) as Record<string, unknown>;
-  const style = (context.currentStyle ?? {}) as Record<string, unknown>;
-  const parts = [
-    goalId ?? "",
-    JSON.stringify(hair),
-    String(style.current_hairstyle ?? ""),
-    String(style.planned_next_style ?? ""),
-  ].join("|");
-  let h = 2166136261;
-  for (let i = 0; i < parts.length; i++) {
-    h ^= parts.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0).toString(36);
+const useTipSignature = (goal: UserGoal | null, level: number) => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [
+      "goal-tip-signature",
+      user?.id,
+      goal?.id,
+      goal?.target_text,
+      goal?.target_date,
+      goal?.title,
+      goal?.updated_at,
+      level,
+    ],
+    enabled: !!user?.id && !!goal,
+    staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 60,
+    queryFn: async (): Promise<string> => {
+      if (!user?.id) return "anon";
+      const [signals, styleRes] = await Promise.all([
+        loadResponsiveSignals(user.id),
+        supabase
+          .from("user_style_profile")
+          .select(
+            "current_hairstyle, planned_next_style, current_style_extensions, current_style_tension, planned_style_extensions, planned_style_tension",
+          )
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+      return hashString(
+        [
+          "goal-tip-sig-v1",
+          `goal:${goal?.id ?? ""}`,
+          `target:${goal?.target_text ?? ""}`,
+          `date:${goal?.target_date ?? ""}`,
+          `title:${goal?.title ?? ""}`,
+          `goalChallenges:${challengesOf(goal as UserGoal).sort().join("|")}`,
+          ...styleSignatureParts(
+            (styleRes.data as Record<string, unknown> | null) ?? null,
+          ),
+          ...responsiveSignatureParts(signals),
+          `tl${level}`,
+        ].join("::"),
+      );
+    },
+  });
 };
 
 /**
- * Fetches a personalised AI tip for a single goal. Cached per goal id +
- * updated_at so editing the goal triggers a refresh, but normal page
- * navigation reuses the cached tip instantly.
+ * Fetches a personalised AI tip for a single goal. Cached per goal +
+ * personalisation signature so a style, goal or challenge edit refreshes the
+ * tip immediately, while normal page navigation reuses the cached tip.
  */
-const CACHE_VERSION = "v8-journal-overview-caution";
+const CACHE_VERSION = "v9-live-signature";
 
-const cacheKey = (day: string, goalId?: string, level?: number, variantKey = "n3") =>
-  `strand:goal-tip:${CACHE_VERSION}:${day}:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
+const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3") =>
+  `strand:goal-tip:${CACHE_VERSION}:${sig}:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
 
-/** Read today's cached tip so a page reload paints instantly instead of
- *  waiting ~4s for the AI round-trip. */
-const readCachedTip = (day: string, goalId?: string, level?: number, variantKey?: string): GoalTip | undefined => {
-  if (!goalId) return undefined;
+/** Read the cached tip for this exact signature so a reload paints instantly
+ *  instead of waiting ~4s for the AI round-trip. */
+const readCachedTip = (sig: string, goalId?: string, level?: number, variantKey?: string): GoalTip | undefined => {
+  if (!goalId || !sig) return undefined;
   try {
-    const raw = localStorage.getItem(cacheKey(day, goalId, level, variantKey));
+    const raw = localStorage.getItem(cacheKey(sig, goalId, level, variantKey));
     return raw ? (JSON.parse(raw) as GoalTip) : undefined;
   } catch {
     return undefined;
   }
 };
 
-const writeCachedTip = (day: string, goalId: string | undefined, tip: GoalTip | null, level?: number, variantKey?: string) => {
-  if (!goalId || !tip) return;
+const writeCachedTip = (sig: string, goalId: string | undefined, tip: GoalTip | null, level?: number, variantKey?: string) => {
+  if (!goalId || !tip || !sig) return;
   try {
-    localStorage.setItem(cacheKey(day, goalId, level, variantKey), JSON.stringify(tip));
+    localStorage.setItem(cacheKey(sig, goalId, level, variantKey), JSON.stringify(tip));
   } catch { /* private mode / quota */ }
 };
+
 
 export const useGoalTip = (
   goal: UserGoal | null,
