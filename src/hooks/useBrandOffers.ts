@@ -172,6 +172,19 @@ export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
   });
 }
 
+/** One row of aggregated ad figures for an offer (per slot, per day). */
+export type OfferStatRow = {
+  offer_id: string | null;
+  slot: string | null;
+  stat_date: string | null;
+  impressions: number | null;
+  raw_views: number | null;
+  expands: number | null;
+  link_clicks: number | null;
+  code_copies: number | null;
+  wishlist_adds: number | null;
+};
+
 export function useBrandOffer(id: string | undefined) {
   return useQuery({
     queryKey: ["brand-offer", id],
