@@ -35,7 +35,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v4-style-surface-attrs";
+const MODEL_VERSION = "wash-tip@v5-responsive-signature";
 
 interface TipPayload {
   headline: string;
@@ -57,6 +57,10 @@ interface Body {
   currentStyle?: Record<string, unknown> | null;
   bloodFlags?: Array<{ marker: string; status?: string; value?: number | null }>;
   hasWashHistory?: boolean;
+  challenges?: string[];
+  areasOfConcern?: string[];
+  recentWashDay?: { id?: string; date?: string } | null;
+  recentAppointment?: { id?: string; date?: string } | null;
   tipsLevel?: number | null;
   /**
    * Which surface the tip is for. "style" powers the Current Hairstyle screen —
@@ -156,11 +160,16 @@ Deno.serve(async (req) => {
     return json(200, { tip: cachedPayload, cached: true });
   }
 
-  // Build a compact context blob for the model.
+  // Build a compact context blob for the model. Style first — the tip must
+  // speak to what she is wearing NOW and what she is moving to next.
   const contextBlock = {
+    currentStyle: body.currentStyle ?? null,
+    challenges: (body.challenges ?? []).slice(0, 6),
+    areasOfConcern: (body.areasOfConcern ?? []).slice(0, 8),
+    mostRecentWashDay: body.recentWashDay ?? null,
+    mostRecentAppointment: body.recentAppointment ?? null,
     hairProfile: body.hairProfile ?? null,
     healthProfile: body.healthProfile ?? null,
-    currentStyle: body.currentStyle ?? null,
     goals: (body.goals ?? []).slice(0, 5),
     bloodFlags: (body.bloodFlags ?? []).slice(0, 8),
     hasWashHistory: body.hasWashHistory ?? false,
@@ -199,6 +208,23 @@ Deno.serve(async (req) => {
     flaggedMarkerPhrase(body.bloodFlags),
   ].filter(Boolean).join(" — ");
 
+  const styleHeader = [
+    `CURRENT STYLE: ${style.current_hairstyle ?? "not recorded"}`,
+    style.current_style_tension ? `tension ${style.current_style_tension}` : "",
+    style.current_style_extensions === true
+      ? "with extensions"
+      : style.current_style_extensions === false
+        ? "without extensions"
+        : "",
+    `PLANNED NEXT STYLE: ${style.planned_next_style ?? "not recorded"}`,
+    style.planned_style_tension ? `planned tension ${style.planned_style_tension}` : "",
+    style.planned_style_extensions === true
+      ? "planned with extensions"
+      : style.planned_style_extensions === false
+        ? "planned without extensions"
+        : "",
+  ].filter(Boolean).join(" — ");
+
   const ledger = await fetchAdviceLedger(user.id);
   const ledgerBlock = buildAdviceLedgerBlock(ledger);
 
@@ -227,7 +253,7 @@ Deno.serve(async (req) => {
           { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
           {
             role: "user",
-            content: `User data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
+            content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
           },
         ],
         response_format: { type: "json_object" },
