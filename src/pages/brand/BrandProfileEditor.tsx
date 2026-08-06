@@ -17,6 +17,7 @@ import { useBrandProfile } from "@/hooks/useBrandOffers";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import BloodPanelsEditor from "@/components/brand/BloodPanelsEditor";
+import SupplementsClaimEditor from "@/components/brand/SupplementsClaimEditor";
 
 async function resizeToWebp(file: File, maxDim = 512, quality = 0.9): Promise<Blob> {
   const src = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
@@ -73,9 +74,13 @@ const BrandProfileEditor = () => {
   const [uploading, setUploading] = useState(false);
   // Claim only. The verified flag is admin-only and never written from here.
   const [bloodClaimed, setBloodClaimed] = useState(false);
+  const [supplementsClaimed, setSupplementsClaimed] = useState(false);
   const bloodVerified =
     (profile as { offers_at_home_blood_tests_verified?: boolean } | null | undefined)
       ?.offers_at_home_blood_tests_verified === true;
+  const supplementsVerified =
+    (profile as { sells_supplements_verified?: boolean } | null | undefined)
+      ?.sells_supplements_verified === true;
 
   useEffect(() => {
     if (!profile) return;
@@ -89,6 +94,9 @@ const BrandProfileEditor = () => {
     setLogoPath(profile.logo_path ?? null);
     setBloodClaimed(
       (profile as { offers_at_home_blood_tests_claimed?: boolean }).offers_at_home_blood_tests_claimed === true,
+    );
+    setSupplementsClaimed(
+      (profile as { sells_supplements_claimed?: boolean }).sells_supplements_claimed === true,
     );
   }, [profile]);
 
@@ -122,6 +130,7 @@ const BrandProfileEditor = () => {
           contact_email: contactEmail.trim() || null,
           logo_path: logoPath,
           offers_at_home_blood_tests_claimed: bloodClaimed,
+          sells_supplements_claimed: supplementsClaimed,
         } as never)
         .eq("user_id", user.id);
       if (error) throw error;
@@ -274,6 +283,12 @@ const BrandProfileEditor = () => {
           claimed={bloodClaimed}
           verified={bloodVerified}
           onClaimChange={setBloodClaimed}
+        />
+
+        <SupplementsClaimEditor
+          claimed={supplementsClaimed}
+          verified={supplementsVerified}
+          onClaimChange={setSupplementsClaimed}
         />
 
 
