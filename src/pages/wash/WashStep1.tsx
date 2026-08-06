@@ -26,6 +26,8 @@ import WashDaySteps from "@/components/WashDaySteps";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import HeatToolPicker from "@/components/HeatToolPicker";
+import HeatStepEditor, { type HeatChoice, type HeatRationale } from "@/components/wash/HeatStepEditor";
+import { washStepLabel } from "@/lib/washSteps";
 import { useUserTools } from "@/hooks/useUserTools";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
