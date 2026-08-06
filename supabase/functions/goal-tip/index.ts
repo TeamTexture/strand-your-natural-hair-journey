@@ -301,9 +301,17 @@ function buildRotationBlock(body: RequestBody, goalText: string): {
   block: string;
   pillar: string;
 } {
-  const pillars = pillarsForGoal(goalText);
-  const seed = stableHash(`${goalText}|${body.profileFingerprint ?? ""}`);
+  const cs = (body.context?.currentStyle ?? null) as Record<string, unknown> | null;
+  const current = String(cs?.current_hairstyle ?? "");
+  const planned = String(cs?.planned_next_style ?? "");
+  const pillars = pillarsForGoal(goalText, current, planned);
+  const seed = stableHash(`${goalText}|${current}|${planned}|${body.profileFingerprint ?? ""}`);
   const pillar = pillars[(dayIndexOf(body.day) + seed) % pillars.length];
+  const styleLine = [
+    current ? `She is currently in: ${current}.` : "",
+    planned ? `Her planned next style is: ${planned}.` : "",
+    goalText ? `Her stated goal, in her words: "${goalText}".` : "",
+  ].filter(Boolean).join(" ");
   return {
     pillar,
     block: `TODAY'S PILLAR — ROTATION (do not ignore):
@@ -311,11 +319,14 @@ This goal's territory is made of these pillars:
 ${pillars.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 
 TODAY you must build the single tip on this pillar: "${pillar}".
-- Stay inside the goal's territory. Never wander to an unrelated topic.
+${styleLine ? `HER SITUATION RIGHT NOW: ${styleLine}\n` : ""}- Stay inside the goal's territory. Never wander to an unrelated topic.
+- The tip MUST be doable in the style she is in TODAY. If she is in an install, never tell her to do something that assumes loose hair (wet styling, full detangle, length checks) unless the pillar is take-down or preparation.
+- The body MUST name at least one of: her current style, her planned next style, or her goal in her own words — alongside a real hair characteristic. Generic advice about heat or deep conditioning with no link to her current style and goal is invalid.
 - The RECENT ADVICE ledger below shows what she has already been told. Take a different angle on today's pillar from anything listed there — a different action, a different moment in her routine, or a progression on a habit she already has ("your deep condition habit is set — now seal your ends after each wash").
 - Never repeat a headline or action that appears in the ledger.`,
   };
 }
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
