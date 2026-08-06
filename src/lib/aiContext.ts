@@ -197,7 +197,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .eq("user_id", userId),
         supabase
           .from("wash_days")
-          .select("wash_date, steps, scalp_feel, breakage, hair_feel_note, style_after")
+          .select("wash_date, steps, scalp_feel, breakage, hair_feel_note, style_after, style_extensions, style_tension, style_other_note")
           .eq("user_id", userId)
           .order("wash_date", { ascending: false })
           .limit(3),

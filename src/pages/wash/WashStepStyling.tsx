@@ -183,7 +183,6 @@ const WashStepStyling = () => {
     await supabase.storage.from(PHOTO_BUCKET).remove([path]).catch(() => undefined);
   };
 
-  const chosenStyle = style[0] ?? null;
   const isOther = style.includes(OTHER_STYLE);
   const asksExtensions = style.some((s) => styleCanTakeExtensions(s));
 

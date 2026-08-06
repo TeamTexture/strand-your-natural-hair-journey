@@ -409,7 +409,7 @@ Deno.serve(async (req: Request) => {
       // significantly better at structured-array pattern spotting).
       const { data: recentRaw } = await supabase
         .from("wash_days")
-        .select("wash_date, steps, heat_treatment, scalp_feel, breakage, style_after, hair_feel_note, ai_insight")
+        .select("wash_date, steps, heat_treatment, scalp_feel, breakage, style_after, style_extensions, style_tension, style_other_note, hair_feel_note, ai_insight")
         .eq("user_id", user.id)
         .order("wash_date", { ascending: false })
         .limit(10);

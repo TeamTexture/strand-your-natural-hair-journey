@@ -70,6 +70,10 @@ interface StylingSaved {
   audioPath?: string | null;
   photoPaths?: string[];
   saveAsJournal?: boolean;
+  extensions?: boolean | null;
+  tension?: string | null;
+  otherNote?: string;
+  otherAudioPath?: string | null;
 }
 
 interface NextWashTip { action: string; why: string }
@@ -146,6 +150,10 @@ const WashStep4 = () => {
   const stylingSummary = useMemo(() => {
     const bits: string[] = [];
     if (styling.style?.length) bits.push(`Style: ${styling.style.join(", ")}`);
+    if (styling.otherNote?.trim()) bits.push(`Style described: ${styling.otherNote.trim()}`);
+    if (styling.extensions === true) bits.push("With extensions");
+    if (styling.extensions === false) bits.push("Without extensions");
+    if (styling.tension) bits.push(`Tension: ${styling.tension}`);
     if (styling.productNames?.length) bits.push(`Products: ${styling.productNames.join(", ")}`);
     if (styling.duration?.length) bits.push(`Duration: ${styling.duration.join(", ")}`);
     if (styling.stress?.length) bits.push(`Stress: ${styling.stress.join(", ")}`);
@@ -263,6 +271,10 @@ const WashStep4 = () => {
         scalp_feel: step2.scalp?.[0] ?? null,
         breakage: step2.breakage?.[0] ?? null,
         style_after: styling.style?.[0] ?? null,
+        style_extensions: styling.extensions ?? null,
+        style_tension: styling.tension ?? null,
+        style_other_note: styling.otherNote?.trim() ? styling.otherNote.trim() : null,
+        style_other_voice_url: styling.otherAudioPath ?? null,
         duration_min: (() => {
           const bucket = styling.duration?.[0];
           if (!bucket) return null;
@@ -293,6 +305,7 @@ const WashStep4 = () => {
       if (styling.saveAsJournal && (styling.photoPaths?.length || styling.note?.trim() || styling.style?.length)) {
         const noteParts: string[] = [];
         if (styling.style?.length) noteParts.push(`Style: ${styling.style.join(", ")}`);
+        if (styling.otherNote?.trim()) noteParts.push(`Style described: ${styling.otherNote.trim()}`);
         if (styling.productNames?.length) noteParts.push(`Products: ${styling.productNames.join(", ")}`);
         if (styling.duration?.length) noteParts.push(`Styling duration: ${styling.duration.join(", ")}`);
         if (styling.stress?.length) noteParts.push(`Stress this week: ${styling.stress.join(", ")}`);
