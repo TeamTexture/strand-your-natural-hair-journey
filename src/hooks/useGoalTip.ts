@@ -133,23 +133,25 @@ export const useGoalTip = (
     ? 1
     : Math.min(5, Math.max(3, Math.round(opts?.maxTips ?? 3)));
   const variantKey = journal ? "journal" : `n${maxTips}`;
-  // Daily rotation — key rolls over at local midnight so the AI re-analyses
-  // once per day using whatever the user has since logged (products, wash
-  // days, appointments, blood work, hair/health profile changes). Support
-  // level is part of the key/cache so regenerating the tip after switching
-  // levels produces copy at the right density instead of reusing yesterday's.
+  // The tip rolls over daily AND regenerates the moment the personalisation
+  // signature moves (style, goal wording, challenges, concerns, latest wash
+  // day/appointment, support level) — whichever happens first.
   const today = new Date().toISOString().slice(0, 10);
   const { level } = useTipsLevel();
+  const { data: signature } = useTipSignature(goal, level);
   return useQuery({
-    queryKey: ["goal-tip", CACHE_VERSION, today, goal?.id, level, variantKey],
-    enabled: !!goal && (challengesOf(goal).length > 0 || !!goal.target_text || !!goal.title),
+    queryKey: ["goal-tip", CACHE_VERSION, signature, goal?.id, level, variantKey],
+    enabled:
+      !!signature &&
+      !!goal &&
+      (challengesOf(goal).length > 0 || !!goal.target_text || !!goal.title),
     staleTime: Infinity,
     gcTime: 1000 * 60 * 60 * 36,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 1,
-    initialData: () => readCachedTip(today, goal?.id, level, variantKey),
+    initialData: () => readCachedTip(signature ?? "", goal?.id, level, variantKey),
     queryFn: async (): Promise<GoalTip | null> => {
       if (!goal) return null;
       const context = await buildAiContext();
@@ -158,10 +160,9 @@ export const useGoalTip = (
           single,
           ...(journal ? { variant: "journal" as const } : {}),
           day: today,
-          profileFingerprint: profileFingerprint(
-            context as unknown as Record<string, unknown>,
-            goal.id,
-          ),
+          // The signature IS the fingerprint — the edge function seeds its
+          // pillar rotation from it, so new data means a new angle.
+          profileFingerprint: signature ?? "",
           goal: {
             // goal-tip reads challenges via the shared accessor; send both
             // the list and a joined line so older prompt paths still resolve.
@@ -178,7 +179,10 @@ export const useGoalTip = (
       });
       if (error) throw error;
       const tip = (data?.tip as GoalTip) ?? null;
-      writeCachedTip(today, goal.id, tip, level, variantKey);
+      writeCachedTip(signature ?? "", goal.id, tip, level, variantKey);
+      return tip;
+    },
+
       return tip;
     },
   });
