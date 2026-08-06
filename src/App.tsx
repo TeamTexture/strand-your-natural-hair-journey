@@ -337,6 +337,8 @@ const App = () => (
               <Route path="/nutrition-plan" element={<Paid><NutritionPlan /></Paid>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
               <Route path="/contact" element={<Protected><Contact /></Protected>} />
+              {/* Public on purpose — non-members have the same statutory right to complain. */}
+              <Route path="/data-protection-complaint" element={<DataProtectionComplaint />} />
 
               {/* Professional portal (Phase A/B — application + admin vetting) */}
               <Route path="/pro/auth" element={<ProAuth />} />
