@@ -456,7 +456,7 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log("[wash-debug] all done", { total_ms: Date.now() - t0 });
-    return json(200, await sanitiseAndLog(result, "wash-day-observation"));
+    return json(200, await sanitiseAndLog(result, "wash-day-observation", { context: body.context }));
   } catch (e) {
     console.log("[wash-debug] failed", { total_ms: Date.now() - t0 });
     return aiErrorResponse(e, "wash-day-observation");

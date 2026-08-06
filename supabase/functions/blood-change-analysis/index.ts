@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        analysis: await sanitiseAndLog(analysis, "blood-change-analysis"),
+        analysis: await sanitiseAndLog(analysis, "blood-change-analysis", { context: body.context }),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

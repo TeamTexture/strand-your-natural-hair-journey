@@ -464,7 +464,7 @@ Deno.serve(async (req: Request) => {
         console.log("[blood-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
           cached: true,
-          summary: await sanitiseAndLog(existingPayload, "blood-ai-summary"),
+          summary: await sanitiseAndLog(existingPayload, "blood-ai-summary", { context: body.context }),
         });
       }
     }
@@ -671,7 +671,7 @@ Deno.serve(async (req: Request) => {
 
     return json(200, {
       cached: false,
-      summary: await sanitiseAndLog(stamped, "blood-ai-summary"),
+      summary: await sanitiseAndLog(stamped, "blood-ai-summary", { context: body.context }),
     });
   } catch (e) {
     console.log("[blood-debug] failed", { total_ms: Date.now() - t0 });

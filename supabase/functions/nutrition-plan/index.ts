@@ -579,7 +579,7 @@ Deno.serve(async (req: Request) => {
         console.log("[nutrition-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
           cached: true,
-          plan: await sanitiseAndLog(existing.payload, "nutrition-plan"),
+          plan: await sanitiseAndLog(existing.payload, "nutrition-plan", { context: body.context }),
         });
       }
     }
@@ -653,7 +653,7 @@ Deno.serve(async (req: Request) => {
     });
     return json(200, {
       cached: false,
-      plan: await sanitiseAndLog(stamped, "nutrition-plan"),
+      plan: await sanitiseAndLog(stamped, "nutrition-plan", { context: body.context }),
     });
   } catch (e) {
     console.log("[nutrition-debug] failed", { total_ms: Date.now() - t0 });
