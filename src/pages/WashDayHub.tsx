@@ -34,6 +34,8 @@ import { CircleSlash, Repeat, Ruler } from "lucide-react";
 import { useWashDaySchedules } from "@/hooks/useWashDaySchedules";
 import NextWashDayBox, { washDayCalendarEvent } from "@/components/wash/NextWashDayBox";
 import { googleCalendarUrl } from "@/lib/addToCalendar";
+import StyleProfilePrompt from "@/components/style/StyleProfilePrompt";
+
 
 
 const monthNames = [
