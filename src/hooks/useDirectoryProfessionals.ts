@@ -16,8 +16,9 @@ import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/l
  *   0. STATIC SEED — the editorial cheat-sheet in src/data/professionals.ts.
  *
  * A live pro is NEVER filtered, renamed away, or shadowed by a seed row:
- *  • identity is keyed on `user_id` (not their display name), so renaming a
- *    profile can't split it into two cards or drop it from the listing;
+ *  • identity is keyed on `pro_profiles.id` (not their display name and not
+ *    the login, which a salon stylist does not have), so renaming a profile
+ *    can't split it into two cards or drop it from the listing;
  *  • the editorial allowlist applies ONLY to the static seed — it must never
  *    gate real professionals who have paid for and published a listing;
  *  • seed / curated rows for the same person (matched on normalised name) are
@@ -43,6 +44,19 @@ const typeFor = (discipline: string | null | undefined): ProType =>
 const emojiFor = (type: ProType) =>
   type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";
 
+type SalonRow = {
+  id: string;
+  name: string;
+  city: string | null;
+  postcode: string | null;
+  business_phone: string | null;
+  business_email: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  opening_hours: unknown;
+  is_published: boolean;
+};
+
 async function loadDirectory(): Promise<Professional[]> {
   const [{ data: curated, error: dbErr }, { data: proProfiles, error: ppErr }] =
     await Promise.all([
@@ -55,7 +69,7 @@ async function loadDirectory(): Promise<Professional[]> {
       supabase
         .from("pro_profiles")
         .select(
-          "id,user_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting",
+          "id,user_id,salon_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting,discount_code,discount_description,discount_active",
         )
         .eq("is_published", true)
         .is("suspended_at", null),
@@ -67,18 +81,47 @@ async function loadDirectory(): Promise<Professional[]> {
   if (dbErr) console.warn("professionals_directory load failed:", dbErr);
   if (ppErr) console.warn("pro_profiles load failed:", ppErr);
 
-  const liveRows = (proProfiles ?? []).filter((r) => !!r.user_id);
-  const proIds = liveRows.map((r) => r.user_id as string);
+  // A listing is reachable if it has its own login OR belongs to a salon (in
+  // which case the salon owner's login answers for it). Rows with neither are
+  // orphans and must never be listed — nobody could answer an enquiry.
+  const candidateRows = (proProfiles ?? []).filter((r) => !!r.user_id || !!r.salon_id);
 
-  // Avatars + currently-open offers — both best-effort, degrade silently.
+  const salonIds = Array.from(
+    new Set(candidateRows.map((r) => r.salon_id).filter((id): id is string => !!id)),
+  );
+  const { data: salonRows } = salonIds.length
+    ? await supabase
+        .from("salons")
+        .select(
+          "id,name,city,postcode,business_phone,business_email,address_line1,address_line2,opening_hours,is_published",
+        )
+        .in("id", salonIds)
+    : { data: [] as SalonRow[] };
+
+  const salonMap = new Map<string, SalonRow>(
+    ((salonRows ?? []) as SalonRow[]).filter((s) => s.is_published).map((s) => [s.id, s]),
+  );
+
+  // A stylist with no login only exists through her salon: if the salon isn't
+  // published, she isn't listed.
+  const liveRows = candidateRows.filter(
+    (r) => !!r.user_id || (r.salon_id && salonMap.has(r.salon_id)),
+  );
+
+  // Avatars keyed on the LISTING id, not the login — one login can own several
+  // stylist listings inside a salon.
   const avatarSigning = Promise.all(
     liveRows.map(async (row) => {
-      if (!row.avatar_path) return [row.user_id as string, null] as const;
+      if (!row.avatar_path) return [row.id as string, null] as const;
       const { data: signed } = await supabase.storage
         .from("pro-photos")
         .createSignedUrl(row.avatar_path, 3600);
-      return [row.user_id as string, signed?.signedUrl ?? null] as const;
+      return [row.id as string, signed?.signedUrl ?? null] as const;
     }),
+  );
+
+  const proIds = Array.from(
+    new Set(liveRows.map((r) => r.user_id).filter((id): id is string => !!id)),
   );
 
   const offersQuery =
@@ -109,7 +152,26 @@ async function loadDirectory(): Promise<Professional[]> {
     const type = typeFor(row.discipline as string);
     const handle = normalizeInstagramHandle(row.instagram_handle);
     const instaUrl = instagramUrl(handle);
-    const offer = offerMap.get(row.user_id as string);
+    const salon = row.salon_id ? salonMap.get(row.salon_id) ?? null : null;
+    const isSalonStylist = !row.user_id;
+    // Salon-managed stylists carry their own discount on the profile row; solo
+    // pros keep using their pro_offers campaigns.
+    const ownDiscount =
+      row.discount_active && row.discount_code
+        ? {
+            title: row.discount_description ?? "Discount available",
+            code: row.discount_code as string,
+          }
+        : null;
+    const offer = row.user_id ? offerMap.get(row.user_id) ?? ownDiscount : ownDiscount;
+    // Address and hours live at salon level so two stylists in one building can
+    // never drift apart.
+    const addressLine1 = salon?.address_line1 ?? row.address_line1;
+    const addressLine2 = salon?.address_line2 ?? row.address_line2;
+    const city = salon?.city ?? row.city;
+    const openingHours = (salon?.opening_hours ?? row.opening_hours) as
+      | Professional["openingHours"]
+      | null;
     return {
       id: row.id,
       emoji: emojiFor(type),
@@ -117,8 +179,8 @@ async function loadDirectory(): Promise<Professional[]> {
       title: (row.discipline as string) ?? type,
       type,
       verified: "Specialist",
-      clinic: row.display_name,
-      location: row.postcode ?? row.location ?? "",
+      clinic: salon?.name ?? row.display_name,
+      location: salon?.postcode ?? row.postcode ?? row.location ?? "",
       specs: (row.specialisms as string[] | null) ?? [],
       bio: row.bio ?? "",
       insta: handle ? `@${handle}` : "",
@@ -128,17 +190,22 @@ async function loadDirectory(): Promise<Professional[]> {
       discount: offer ? (offer.code ? `${offer.code} — ${offer.title}` : offer.title) : "",
       bookingUrl: row.booking_url ?? row.website_url ?? undefined,
       featured: true,
-      photoUrl: avatarMap.get(row.user_id as string) ?? undefined,
-      proUserId: row.user_id as string,
+      photoUrl: avatarMap.get(row.id as string) ?? undefined,
+      proUserId: (row.user_id as string | null) ?? undefined,
+      proProfileId: row.id as string,
+      salonId: row.salon_id ?? null,
+      salonName: salon?.name ?? null,
+      salonCity: salon?.city ?? null,
+      isSalonStylist,
       listingTier: (row.listing_tier as Professional["listingTier"]) ?? "full",
       referralFeePercent:
         row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
-      businessPhone: row.business_phone ?? undefined,
-      businessEmail: row.business_email ?? undefined,
-      addressLine1: row.address_line1 ?? undefined,
-      addressLine2: row.address_line2 ?? undefined,
-      city: row.city ?? undefined,
-      openingHours: (row.opening_hours as Professional["openingHours"]) ?? undefined,
+      businessPhone: salon?.business_phone ?? row.business_phone ?? undefined,
+      businessEmail: salon?.business_email ?? row.business_email ?? undefined,
+      addressLine1: addressLine1 ?? undefined,
+      addressLine2: addressLine2 ?? undefined,
+      city: city ?? undefined,
+      openingHours: openingHours ?? undefined,
       qualifications: (row.qualifications as string[] | null) ?? undefined,
       // VERIFIED state only — a claim never reaches the directory.
       isDoctorVerified: row.is_doctor_verified === true,
@@ -203,8 +270,10 @@ async function loadDirectory(): Promise<Professional[]> {
   ];
 
   for (const [p, rank] of ranked) {
-    // Live rows key on user_id so a display-name change never splits a card.
-    const key = p.proUserId ? `user:${p.proUserId}` : `name:${norm(p.name)}`;
+    // Live rows key on the LISTING id (`pro_profiles.id`) so a display-name
+    // change never splits a card, and two stylists sharing one salon login
+    // never collapse into a single entry.
+    const key = p.proProfileId ? `profile:${p.proProfileId}` : `name:${norm(p.name)}`;
     const existing = byKey.get(key);
     if (
       !existing ||

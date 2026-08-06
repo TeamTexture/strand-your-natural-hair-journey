@@ -7,7 +7,14 @@ export type EnquiryStatus = "pending" | "accepted" | "declined" | "withdrawn";
 export interface Enquiry {
   id: string;
   consumer_id: string;
+  /** Login that ANSWERS the enquiry. For a salon stylist this is the salon owner. */
   pro_user_id: string;
+  /**
+   * The stylist LISTING the enquiry is for (`pro_profiles.id`). Always set for
+   * enquiries sent from the directory — this is what lets a salon with three
+   * stylists on one login see which stylist each enquiry belongs to.
+   */
+  pro_profile_id: string | null;
   note: string | null;
   share_passport_consent: boolean;
   status: EnquiryStatus;
@@ -31,7 +38,10 @@ export interface Enquiry {
 }
 
 export interface CreateEnquiryInput {
-  pro_user_id: string;
+  /** Optional when `pro_profile_id` is given — the RPC resolves the responder. */
+  pro_user_id?: string | null;
+  /** Preferred: the stylist listing being enquired with. */
+  pro_profile_id?: string | null;
   note?: string | null;
   service_interest?: string | null;
   preferred_timeframe?: string | null;
@@ -241,6 +251,26 @@ export function useCreateEnquiry() {
   return useMutation({
     mutationFn: async (input: CreateEnquiryInput) => {
       if (!user?.id) throw new Error("Sign in required");
+      // Listing-keyed path: works for solo pros AND salon stylists who have no
+      // login of their own. The RPC resolves who answers and stamps the
+      // stylist's `pro_profile_id` on the row.
+      if (input.pro_profile_id) {
+        const { data, error } = await supabase.rpc("send_enquiry_to_profile", {
+          _pro_profile_id: input.pro_profile_id,
+          _note: input.note ?? null,
+          _service_interest: input.service_interest ?? null,
+          _preferred_timeframe: input.preferred_timeframe ?? null,
+          _contact_method: input.contact_method ?? null,
+          _contact_phone: input.contact_phone ?? null,
+          _location_preference: input.location_preference ?? null,
+          _budget_range: input.budget_range ?? null,
+          _share_passport_consent: input.share_passport_consent ?? false,
+          _sender_role: input.sender_role ?? "consumer",
+        });
+        if (error) throw error;
+        return data as string;
+      }
+      if (!input.pro_user_id) throw new Error("Missing professional");
       const { data, error } = await supabase.rpc("send_enquiry_with_access", {
         _pro_user_id: input.pro_user_id,
         _note: input.note ?? null,

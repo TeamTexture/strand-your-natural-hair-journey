@@ -10,6 +10,7 @@ import {
   Eye,
   Sparkles,
   Percent,
+  Building2,
   Stethoscope,
   Droplet,
   Megaphone,
@@ -473,6 +474,12 @@ const AdminHub = () => {
               stats ? `${stats.livePros} live · ${stats.activeProSubs} subscribed` : undefined
             }
             onClick={() => nav("/admin/professionals")}
+          />
+          <NavCard
+            icon={Building2}
+            title="Salons"
+            description="Create salons, manage rosters and owner logins"
+            onClick={() => nav("/admin/salons")}
           />
           <NavCard
             icon={Stethoscope}

@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { CreditCard, Inbox, Lock, ShieldCheck, Users } from "lucide-react";
+import { CreditCard, Inbox, Lock, Scissors, ShieldCheck, Users } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -23,6 +23,7 @@ import {
   type EnquiryStatus,
 } from "@/hooks/useEnquiries";
 import { useSendBookingLinkToClient } from "@/hooks/useChat";
+import { useStylistLabels } from "@/hooks/useSalon";
 
 type Tab = "pending" | "accepted" | "declined";
 
@@ -167,6 +168,7 @@ const EnquiryCard = ({
   enquiry,
   preview,
   peerName,
+  forStylist,
   onAccept,
   onDecline,
   onOpenPassport,
@@ -176,6 +178,8 @@ const EnquiryCard = ({
   enquiry: Enquiry;
   preview?: PassportPreview;
   peerName?: string;
+  /** Salon-managed stylist this enquiry is FOR, when it isn't for the owner. */
+  forStylist?: string;
   onAccept: () => void;
   onDecline: () => void;
   onOpenPassport?: () => void;
@@ -194,6 +198,12 @@ const EnquiryCard = ({
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="font-display text-base font-semibold leading-tight">{first}</p>
+          {forStylist && (
+            <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-body font-semibold uppercase tracking-[0.12em] text-primary">
+              <Scissors className="size-3" aria-hidden="true" />
+              For {forStylist}
+            </p>
+          )}
           {(phone || contactMethod) && (
             <p className="text-[11.5px] font-body text-foreground/85 mt-0.5 leading-snug truncate">
               {phone ? phone : contactMethod}
@@ -433,6 +443,9 @@ const ProEnquiries = () => {
   const enquiries = data ?? [];
   const previews = usePassportPreviews(enquiries);
   const peerNames = usePeerSenders(enquiries);
+  const { data: stylistLabels } = useStylistLabels(
+    enquiries.map((e) => e.pro_profile_id).filter((id): id is string => !!id),
+  );
 
 
   const filtered = enquiries.filter((e) => e.status === tab);
@@ -522,6 +535,9 @@ const ProEnquiries = () => {
               enquiry={e}
               preview={e.sender_role === "pro" ? undefined : previews[e.consumer_id]}
               peerName={e.sender_role === "pro" ? peerNames[e.consumer_id] ?? "Professional" : undefined}
+              forStylist={
+                e.pro_profile_id ? stylistLabels?.get(e.pro_profile_id) : undefined
+              }
 
               onAccept={async () => {
                 try {
