@@ -35,6 +35,9 @@ export interface DispatchInput {
   data?: Record<string, unknown>;
   /** Overrides the template's default sender identity. */
   from?: string | null;
+  /** Reply-To address, e.g. forwarding an enquiry back to the member. */
+  replyTo?: string | null;
+
 }
 
 export interface DispatchResult {
