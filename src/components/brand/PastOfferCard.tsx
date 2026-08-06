@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Eye, MousePointerClick, Heart, Ticket, ExternalLink, ChevronRight, Users } from "lucide-react";
+import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
 
 interface Totals {
   impressions: number;
-  taps: number;
+  expands: number;
   code_copies: number;
   link_clicks: number;
   wishlist_adds: number;
@@ -61,7 +61,7 @@ const PastOfferCard = ({
   }, [heroImagePath]);
 
   const impressions = totals?.impressions ?? 0;
-  const taps = totals?.taps ?? 0;
+  const expands = totals?.expands ?? 0;
   const codeCopies = totals?.code_copies ?? 0;
   const linkClicks = totals?.link_clicks ?? 0;
   const wishlist = totals?.wishlist_adds ?? 0;
@@ -123,7 +123,7 @@ const PastOfferCard = ({
         </div>
         <div className="grid grid-cols-5 gap-1.5">
           <Tile icon={<Eye className="size-3.5" />} value={fmtNum(impressions)} label="Views" />
-          <Tile icon={<MousePointerClick className="size-3.5" />} value={fmtNum(taps)} label="Taps" />
+          <Tile icon={<Maximize2 className="size-3.5" />} value={fmtNum(expands)} label="Expands" />
           <Tile icon={<Ticket className="size-3.5" />} value={fmtNum(codeCopies)} label="Codes" />
           <Tile icon={<ExternalLink className="size-3.5" />} value={fmtNum(linkClicks)} label="Clicks" />
           <Tile icon={<Heart className="size-3.5" />} value={fmtNum(wishlist)} label="Saves" />

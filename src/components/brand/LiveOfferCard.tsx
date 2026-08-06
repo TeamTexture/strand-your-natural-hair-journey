@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Eye, MousePointerClick, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
+import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
 
 interface Totals {
   impressions: number;
-  taps: number;
+  expands: number;
   code_copies: number;
   link_clicks: number;
   wishlist_adds: number;
@@ -28,7 +28,7 @@ interface Props {
 const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
 
 /** Rich "live" advert thumbnail — hero image at top with pulsing LIVE chip,
- *  then five insight tiles (impressions, taps, code copies, link clicks,
+ *  then five insight tiles (impressions, expands, code copies, link clicks,
  *  wishlist), a computed engagement rate, and an explicit Review button. */
 const LiveOfferCard = ({
   headline,
@@ -61,11 +61,11 @@ const LiveOfferCard = ({
   }, [heroImagePath]);
 
   const impressions = totals?.impressions ?? 0;
-  const taps = totals?.taps ?? 0;
+  const expands = totals?.expands ?? 0;
   const codeCopies = totals?.code_copies ?? 0;
   const linkClicks = totals?.link_clicks ?? 0;
   const wishlist = totals?.wishlist_adds ?? 0;
-  const engagement = impressions > 0 ? Math.round(((taps + codeCopies + linkClicks + wishlist) / impressions) * 1000) / 10 : 0;
+  const engagement = impressions > 0 ? Math.round(((expands + codeCopies + linkClicks + wishlist) / impressions) * 1000) / 10 : 0;
 
   const slotSet = Array.from(new Set(slots));
 
@@ -121,7 +121,7 @@ const LiveOfferCard = ({
         </div>
         <div className="grid grid-cols-5 gap-1.5">
           <InsightTile icon={<Eye className="size-3.5" />} value={fmtNum(impressions)} label="Views" />
-          <InsightTile icon={<MousePointerClick className="size-3.5" />} value={fmtNum(taps)} label="Taps" />
+          <InsightTile icon={<Maximize2 className="size-3.5" />} value={fmtNum(expands)} label="Expands" />
           <InsightTile icon={<Ticket className="size-3.5" />} value={fmtNum(codeCopies)} label="Codes" />
           <InsightTile icon={<ExternalLink className="size-3.5" />} value={fmtNum(linkClicks)} label="Clicks" />
           <InsightTile icon={<Heart className="size-3.5" />} value={fmtNum(wishlist)} label="Saves" />
