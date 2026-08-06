@@ -95,9 +95,11 @@ const Home = () => {
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
-  // Current style card image: pinned progress photo → newest progress photo →
-  // baseline "before" photo → placeholder.
-  const { url: styleCardUrl } = useStyleCardPhoto();
+  // Current style card image: explicitly pinned photo → newest progress photo
+  // from the Strand Summary → newest milestone photo → placeholder.
+  const { url: styleCardUrl, isAuto } = useStyleCardPhoto();
+  const heroPhotoUrl = (isAuto ? beforePhotoUrl ?? styleCardUrl : styleCardUrl ?? beforePhotoUrl) ?? null;
+
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [bloodSummary, setBloodSummary] = useState<{
     panelDate: string | null;
@@ -201,26 +203,37 @@ const Home = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // First "before" photo for the current style card thumbnail.
+  // Most recently added/updated progress photo (Strand Summary uploads) for the
+  // current style card thumbnail. Re-runs on Home navigation and when a photo
+  // or style change is announced in-tab.
   useEffect(() => {
     if (!user) { setBeforePhotoUrl(null); return; }
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       const { data } = await supabase
         .from("user_before_photos")
         .select("storage_path")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(1);
       const path = (data?.[0] as { storage_path?: string } | undefined)?.storage_path;
-      if (!path) return;
+      if (!path) { if (!cancelled) setBeforePhotoUrl(null); return; }
       const { data: signed } = await supabase.storage
         .from("before-photos")
         .createSignedUrl(path, 3600);
       if (!cancelled && signed?.signedUrl) setBeforePhotoUrl(signed.signedUrl);
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
+    };
+    void load();
+    const onEvt = () => void load();
+    window.addEventListener("strand:style-updated", onEvt);
+    window.addEventListener("focus", onEvt);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("strand:style-updated", onEvt);
+      window.removeEventListener("focus", onEvt);
+    };
+  }, [user, location.key]);
+
 
   // Latest blood panel summary for the "My Blood Work" home section.
   useEffect(() => {
@@ -511,9 +524,10 @@ const Home = () => {
               >
                 <div className="absolute -inset-1.5 border border-[#C5A059]/40 rounded-[26px] rotate-1" />
                 <div className="relative w-full aspect-square rounded-3xl overflow-hidden bg-[#3A2B1F] flex items-center justify-center text-[#C5A059]/40 border border-white/5 shadow-2xl">
-                  {styleCardUrl ?? beforePhotoUrl ? (
+                  {heroPhotoUrl ? (
                     <img
-                      src={styleCardUrl ?? beforePhotoUrl ?? undefined}
+                      src={heroPhotoUrl}
+
                       alt="Your hair"
                       loading="eager"
                       decoding="async"

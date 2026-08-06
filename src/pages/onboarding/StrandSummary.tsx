@@ -159,6 +159,8 @@ const StrandSummary = () => {
         ...p,
       ]);
     }
+    // Home's hero image reads the newest progress photo — tell it to re-fetch.
+    window.dispatchEvent(new Event("strand:style-updated"));
   };
 
   const removePhoto = async (photo: PhotoItem) => {
@@ -166,7 +168,9 @@ const StrandSummary = () => {
     await supabase.from("user_before_photos").delete().eq("id", photo.id).eq("user_id", user.id);
     await supabase.storage.from("before-photos").remove([photo.path]);
     setPhotos((p) => p.filter((i) => i.id !== photo.id));
+    window.dispatchEvent(new Event("strand:style-updated"));
   };
+
 
   // Progress driver — climbs to 95 while we wait; snaps to 100 on completion.
   useEffect(() => {
