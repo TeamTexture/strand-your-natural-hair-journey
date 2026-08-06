@@ -315,7 +315,9 @@ const WashStep1 = () => {
   const [treatmentIds, setTreatmentIds] = useState<string[]>([]);
 
   // Heat-treatment state lives at the page level so we can persist it and so
-  // the "why" dialog can read/write the choice.
+  // the "why" dialog can read/write the choice. Condition and Treatment / Mask
+  // each carry their own answer — using heat under a mask is a different
+  // decision from using it under a conditioner.
   const [heatChoice, setHeatChoice] = useState<HeatChoice>(null);
   const [heatDialogOpen, setHeatDialogOpen] = useState(false);
   const [heatRationale, setHeatRationale] = useState<HeatRationale | null>(null);
@@ -324,7 +326,17 @@ const WashStep1 = () => {
   const [heatMinutes, setHeatMinutes] = useState<number | null>(null);
   // TT Heat Hat tools attached to today's conditioning step.
   const [heatToolIds, setHeatToolIds] = useState<string[]>([]);
+  // Independent heat answer for the Treatment / Mask step.
+  const [treatmentHeatChoice, setTreatmentHeatChoice] = useState<HeatChoice>(null);
+  const [treatmentHeatMinutes, setTreatmentHeatMinutes] = useState<number | null>(null);
+  const [treatmentHeatToolIds, setTreatmentHeatToolIds] = useState<string[]>([]);
   const { tools: allTools } = useUserTools();
+  const toolNames = (ids: string[]) =>
+    ids
+      .map((id) => allTools.find((t) => t.id === id))
+      .filter((t): t is NonNullable<typeof t> => !!t)
+      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name));
+
 
   // Products used on the user's most recent wash day. We only pre-populate
   // steps from this list — never a broader category match — so today's log
