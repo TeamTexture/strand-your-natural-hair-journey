@@ -536,8 +536,32 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     },
   ),
 
-  // ---------------- Password reset (essential, already live) ----------------
+  // Already live in production — bypasses the global flag.
+  "directory-enquiry-forwarded": t(
+    "directory-enquiry-forwarded",
+    "transactional",
+    true,
+    (d) => `New STRAND enquiry from ${s(d.senderName, "a member")}`,
+    (d) => [
+      `Hi ${s(d.proName, "there")},`,
+      `${s(d.senderName, "A STRAND member")} found you in the STRAND professional directory and would like to get in touch.`,
+      s(d.message),
+      "Reply directly to this email to reach the member.",
+    ].filter(Boolean),
+    undefined,
+    undefined,
+    {
+      legacy: true,
+      eyebrow: "Directory enquiry",
+      rows: (d) => [
+        { label: "Reply to", value: s(d.senderEmail) },
+        { label: "Phone", value: s(d.phone) },
+      ],
+    },
+  ),
+
   "password-reset": t(
+
     "password-reset",
     "transactional",
     true,
