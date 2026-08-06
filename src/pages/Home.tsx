@@ -201,26 +201,37 @@ const Home = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // First "before" photo for the current style card thumbnail.
+  // Most recently added/updated progress photo (Strand Summary uploads) for the
+  // current style card thumbnail. Re-runs on Home navigation and when a photo
+  // or style change is announced in-tab.
   useEffect(() => {
     if (!user) { setBeforePhotoUrl(null); return; }
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       const { data } = await supabase
         .from("user_before_photos")
         .select("storage_path")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(1);
       const path = (data?.[0] as { storage_path?: string } | undefined)?.storage_path;
-      if (!path) return;
+      if (!path) { if (!cancelled) setBeforePhotoUrl(null); return; }
       const { data: signed } = await supabase.storage
         .from("before-photos")
         .createSignedUrl(path, 3600);
       if (!cancelled && signed?.signedUrl) setBeforePhotoUrl(signed.signedUrl);
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
+    };
+    void load();
+    const onEvt = () => void load();
+    window.addEventListener("strand:style-updated", onEvt);
+    window.addEventListener("focus", onEvt);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("strand:style-updated", onEvt);
+      window.removeEventListener("focus", onEvt);
+    };
+  }, [user, location.key]);
+
 
   // Latest blood panel summary for the "My Blood Work" home section.
   useEffect(() => {
