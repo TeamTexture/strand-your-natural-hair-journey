@@ -13,7 +13,10 @@ import { cleanRules, rulesAreEmpty, type TargetingOption, type TargetingRules } 
 
 type Rpc = (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = (supabase as unknown as { rpc: Rpc }).rpc.bind(supabase);
-const table = (name: string) => (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }).from(name);
+// Untyped table accessor: several of these tables are new and the generated
+// Supabase types have not caught up yet.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const table = (name: string) => (supabase as unknown as { from: (t: string) => any }).from(name);
 
 /** The full controlled vocabulary brands may pick from. */
 export function useTargetingOptions() {
