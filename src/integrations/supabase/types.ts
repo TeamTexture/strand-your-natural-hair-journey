@@ -3759,15 +3759,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_style_profile_main_photo_id_fkey"
-            columns: ["main_photo_id"]
-            isOneToOne: false
-            referencedRelation: "user_milestone_photos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_tools: {
         Row: {
