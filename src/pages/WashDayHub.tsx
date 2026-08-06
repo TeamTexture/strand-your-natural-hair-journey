@@ -301,44 +301,39 @@ const WashDayHub = () => {
   const today = new Date();
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
 
-  // Scheduled future wash days — stored per user in localStorage as a simple
-  // planning aid (no server-side row until they log the wash for real).
-  const storageKey = user ? `strand.scheduledWashDays.${user.id}` : null;
-  const [scheduled, setScheduled] = useState<string[]>([]);
-  useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      const arr = raw ? (JSON.parse(raw) as string[]) : [];
-      const todayIso = isoFor(today.getFullYear(), today.getMonth(), today.getDate());
-      // Prune past scheduled dates automatically.
-      const pruned = arr.filter((d) => d >= todayIso);
-      setScheduled(pruned);
-      if (pruned.length !== arr.length) localStorage.setItem(storageKey, JSON.stringify(pruned));
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
-  const persistScheduled = (next: string[]) => {
-    setScheduled(next);
-    if (storageKey) {
-      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* ignore */ }
-    }
-  };
-  const scheduledSet = useMemo(() => new Set(scheduled), [scheduled]);
+  // Scheduled future wash days — persisted per user in wash_day_schedules.
+  const {
+    schedules,
+    create: createSchedule,
+    remove: removeScheduleRow,
+  } = useWashDaySchedules();
+  const activeSchedules = useMemo(
+    () => schedules.filter((s) => s.status === "scheduled"),
+    [schedules],
+  );
+  const scheduledSet = useMemo(
+    () => new Set(activeSchedules.map((s) => s.scheduled_date)),
+    [activeSchedules],
+  );
+  const scheduleByDate = useMemo(() => {
+    const map: Record<string, (typeof activeSchedules)[number]> = {};
+    for (const s of activeSchedules) map[s.scheduled_date] = s;
+    return map;
+  }, [activeSchedules]);
 
   const [scheduleDialogIso, setScheduleDialogIso] = useState<string | null>(null);
   const openScheduleDialog = (iso: string) => setScheduleDialogIso(iso);
   const confirmSchedule = () => {
     if (scheduleDialogIso && !scheduledSet.has(scheduleDialogIso)) {
-      persistScheduled([...scheduled, scheduleDialogIso].sort());
+      createSchedule.mutate({ date: scheduleDialogIso });
     }
   };
   const removeSchedule = () => {
-    if (scheduleDialogIso) {
-      persistScheduled(scheduled.filter((d) => d !== scheduleDialogIso));
-      setScheduleDialogIso(null);
-    }
+    const row = scheduleDialogIso ? scheduleByDate[scheduleDialogIso] : null;
+    if (row) removeScheduleRow.mutate(row.id);
+    setScheduleDialogIso(null);
   };
+
 
 
   const { washDates, washDayIdsByDate, currentMonthCount } = useMemo(() => {
