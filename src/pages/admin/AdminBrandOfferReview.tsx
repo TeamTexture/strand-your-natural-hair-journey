@@ -23,6 +23,7 @@ import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
   useBrandOfferTotals,
+  STATS_METHOD_NOTE,
   BrandOfferRevision,
 } from "@/hooks/useBrandOffers";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
@@ -332,28 +333,28 @@ const AdminBrandOfferReview = () => {
   // Cross-member totals (SECURITY DEFINER RPC — admins see every offer), with a
   // fallback to the offer's own stat rows if the RPC returns nothing yet.
   const rowStats = (offer.brand_offer_stats ?? []) as Array<{
-    slot: string | null; impressions: number | null; taps: number | null;
+    slot: string | null; impressions: number | null; expands: number | null;
     wishlist_adds: number | null; code_copies: number | null; link_clicks: number | null;
   }>;
   const rowTotals = rowStats.reduce(
     (acc, s) => ({
       impressions: acc.impressions + (s.impressions ?? 0),
-      taps: acc.taps + (s.taps ?? 0),
+      expands: acc.expands + (s.expands ?? 0),
       wishlist_adds: acc.wishlist_adds + (s.wishlist_adds ?? 0),
       code_copies: acc.code_copies + (s.code_copies ?? 0),
       link_clicks: acc.link_clicks + (s.link_clicks ?? 0),
     }),
-    { impressions: 0, taps: 0, wishlist_adds: 0, code_copies: 0, link_clicks: 0 },
+    { impressions: 0, expands: 0, wishlist_adds: 0, code_copies: 0, link_clicks: 0 },
   );
   const stats = (id ? totalsMap[id] : undefined) ?? rowTotals;
   const interestTotal = (id ? interestMap[id]?.total : 0) ?? 0;
 
   const slotStats = Object.values(
-    rowStats.reduce<Record<string, { slot: string; impressions: number; taps: number; link_clicks: number }>>((acc, s) => {
+    rowStats.reduce<Record<string, { slot: string; impressions: number; expands: number; link_clicks: number }>>((acc, s) => {
       const key = s.slot ?? "other";
-      const entry = (acc[key] = acc[key] ?? { slot: key, impressions: 0, taps: 0, link_clicks: 0 });
+      const entry = (acc[key] = acc[key] ?? { slot: key, impressions: 0, expands: 0, link_clicks: 0 });
       entry.impressions += s.impressions ?? 0;
-      entry.taps += s.taps ?? 0;
+      entry.expands += s.expands ?? 0;
       entry.link_clicks += s.link_clicks ?? 0;
       return acc;
     }, {}),
@@ -440,15 +441,17 @@ const AdminBrandOfferReview = () => {
             <SectionLabel className="!px-0">Performance</SectionLabel>
             <div className="grid grid-cols-3 gap-2">
               <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
-              <StatBox icon={MousePointerClick} label="Taps" value={stats.taps} />
+              <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
               <StatBox icon={Ticket} label="Code copies" value={stats.code_copies} />
               <StatBox icon={ExternalLink} label="Link clicks" value={stats.link_clicks} />
               <StatBox icon={Heart} label="Wishlist" value={stats.wishlist_adds} />
               <StatBox icon={Users} label="Interest" value={interestTotal} />
             </div>
             <p className="text-[10.5px] text-muted-foreground font-body leading-snug">
-              Taps = advert opened. Code copies = discount code copied. Link clicks = tapped through to the
+              Impressions = distinct members who saw the advert (at least half of it, for a full second).
+              Expands = advert opened. Code copies = discount code copied. Link clicks = tapped through to the
               advertiser's site. Interest = members who registered interest after the campaign ended.
+              {STATS_METHOD_NOTE}
             </p>
 
             {slotStats.length > 0 && (
@@ -460,7 +463,7 @@ const AdminBrandOfferReview = () => {
                       {SLOT_LABEL[s.slot as PlacementSlot] ?? "Other"}
                     </p>
                     <p className="text-[11px] font-body text-muted-foreground shrink-0">
-                      {s.impressions} views · {s.taps} taps · {s.link_clicks} clicks
+                      {s.impressions} views · {s.expands} expands · {s.link_clicks} clicks
                     </p>
                   </div>
                 ))}

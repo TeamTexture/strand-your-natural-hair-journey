@@ -1,7 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, MousePointerClick, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
+import { CreditCard, Edit, Eye, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
-  usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision,
+  usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision, STATS_METHOD_NOTE,
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
@@ -70,12 +70,12 @@ const BrandOfferDetail = () => {
   const stats = (offer.brand_offer_stats ?? []).reduce(
     (acc, s) => ({
       impressions: acc.impressions + (s.impressions ?? 0),
-      taps: acc.taps + (s.taps ?? 0),
+      expands: acc.expands + (s.expands ?? 0),
       wishlist: acc.wishlist + (s.wishlist_adds ?? 0),
       codeCopies: acc.codeCopies + ((s as { code_copies?: number }).code_copies ?? 0),
       linkClicks: acc.linkClicks + ((s as { link_clicks?: number }).link_clicks ?? 0),
     }),
-    { impressions: 0, taps: 0, wishlist: 0, codeCopies: 0, linkClicks: 0 },
+    { impressions: 0, expands: 0, wishlist: 0, codeCopies: 0, linkClicks: 0 },
   );
 
   const placements = offer.brand_offer_placements ?? [];
@@ -298,13 +298,15 @@ const BrandOfferDetail = () => {
         <SectionLabel className="!px-0">Performance</SectionLabel>
         <div className="grid grid-cols-3 gap-2">
           <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
-          <StatBox icon={MousePointerClick} label="Taps" value={stats.taps} />
+          <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
           <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
           <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
           <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
         </div>
         <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
-          Taps = banner opened. Code copies = discount code copied. Link clicks = tapped through to your site.
+          Impressions = distinct members who saw the advert (at least half of it, for a full second).
+          Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
+          site. {STATS_METHOD_NOTE}
         </p>
 
         {derived === "ended" && (interest?.total ?? 0) > 0 && (
