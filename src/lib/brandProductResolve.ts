@@ -38,14 +38,24 @@ export interface BrandProductLink {
 
 const MIN_FORM_LENGTH = 6;
 
+/**
+ * Canonical form for exact comparison: the shared normaliser (lowercase,
+ * de-accent, de-trademark) plus punctuation flattened to single spaces, so
+ * "Deep-Conditioner" and "deep conditioner" are the same string.
+ */
+const canonical = (raw: string) =>
+  normaliseProductText(stripParentheticals(raw))
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
 /** All normalised forms a name/brand pair can legitimately be written as. */
 export const brandMatchForms = (
   name: string | null | undefined,
   brand: string | null | undefined,
 ): string[] => {
   const forms = new Set<string>();
-  const n = normaliseProductText(stripParentheticals(name ?? ""));
-  const b = normaliseProductText(stripParentheticals(brand ?? ""));
+  const n = canonical(name ?? "");
+  const b = canonical(brand ?? "");
   if (n) {
     forms.add(n);
     if (b) forms.add(`${b} ${n}`);
