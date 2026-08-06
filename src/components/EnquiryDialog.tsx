@@ -21,7 +21,10 @@ import { useRoles } from "@/hooks/useRoles";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  proUserId: string;
+  /** Responder login. Absent for a salon stylist who has no login. */
+  proUserId?: string | null;
+  /** The stylist listing (`pro_profiles.id`). Preferred routing key. */
+  proProfileId?: string | null;
   proName: string;
 }
 
@@ -80,7 +83,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
   </p>
 );
 
-const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
+const EnquiryDialog = ({ open, onOpenChange, proUserId, proProfileId, proName }: Props) => {
   const { user } = useAuth();
   const nav = useNavigate();
   // Pro-to-pro enquiries skip the hair passport entirely — no prompt, no
@@ -145,7 +148,8 @@ const EnquiryDialog = ({ open, onOpenChange, proUserId, proName }: Props) => {
     }
     try {
       await create.mutateAsync({
-        pro_user_id: proUserId,
+        pro_user_id: proUserId ?? null,
+        pro_profile_id: proProfileId ?? null,
         note: note.trim(),
         service_interest: service,
         preferred_timeframe: timeframe,
