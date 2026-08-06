@@ -16,6 +16,7 @@
 //   });
 
 import { supabase } from "@/integrations/supabase/client";
+import { allChallenges, challengesOf } from "@/lib/goalChallenges";
 import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
@@ -65,10 +66,17 @@ export interface AiContext {
     low_rated_products: Array<Record<string, unknown>>;
     high_rated_products: Array<Record<string, unknown>>;
   };
+  /**
+   * Flattened, de-duplicated challenges across all of the member's goals —
+   * what she is struggling with (breakage, dryness, retaining length, time).
+   * Distinct from hairProfile.areas_of_concern, which records physical
+   * locations on the head. Both feed the model; neither replaces the other.
+   */
+  challenges: string[];
   goals: Array<{
     kind: string;
     title: string;
-    challenge: string | null;
+    challenges: string[];
     target_text: string | null;
     target_value: number | null;
     target_date: string | null;
@@ -218,7 +226,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .eq("user_id", userId),
         supabase
           .from("user_goals")
-          .select("kind, title, challenge, target_text, target_value, target_date, unit, status")
+          .select("kind, title, challenges, challenge, target_text, target_value, target_date, unit, status")
           .eq("user_id", userId),
         supabase
           .from("user_tools")
@@ -331,7 +339,16 @@ async function buildAiContextUncached(): Promise<AiContext> {
       const allRatings = (ratings.data ?? []) as Array<Record<string, unknown>>;
       lowRated = allRatings.filter((r) => Number(r.rating) <= 2);
       highRated = allRatings.filter((r) => Number(r.rating) >= 4);
-      goals = (goalRows.data ?? []) as AiContext["goals"];
+      goals = ((goalRows.data ?? []) as Array<Record<string, unknown>>).map((g) => ({
+        kind: String(g.kind ?? ""),
+        title: String(g.title ?? ""),
+        challenges: challengesOf(g as { challenges?: string[] | null; challenge?: string | null }),
+        target_text: (g.target_text as string | null) ?? null,
+        target_value: (g.target_value as number | null) ?? null,
+        target_date: (g.target_date as string | null) ?? null,
+        unit: String(g.unit ?? ""),
+        status: String(g.status ?? ""),
+      })) as AiContext["goals"];
       tools = (toolRows.data ?? []) as Array<Record<string, unknown>>;
       wishlist = (wishRows.data ?? []) as Array<Record<string, unknown>>;
     }
@@ -440,6 +457,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
       high_rated_products: highRated,
     },
     goals,
+    challenges: allChallenges(goals),
     tipsLevel,
     shelf,
     tools,
@@ -451,7 +469,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
   console.log("[ai-context] built", {
     currentStyle: result.currentStyle,
     currentGoals: result.goals?.map((g) => g.title) ?? [],
-    currentChallenges: result.goals?.map((g) => g.challenge).filter(Boolean) ?? [],
+    currentChallenges: result.challenges,
     builtAt: new Date().toISOString(),
   });
 

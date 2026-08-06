@@ -1,3 +1,4 @@
+import { challengesOf, type ChallengeBearingGoal } from "@/lib/goalChallenges";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, RefreshCw, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp, StickyNote } from "lucide-react";
 import ProClientNotes from "@/components/pro/ProClientNotes";
@@ -589,7 +590,7 @@ const GoalsSection = ({ d }: { d: PassportDataset }) => {
       <div className="px-5 space-y-2">
         {d.goals.length === 0 ? <EmptyLine msg="No goals set yet." /> : d.goals.map(g => {
           const updates = updatesByGoal.get(g.id) ?? [];
-          const title = humaniseValue(g.title) ?? humaniseValue(g.challenge) ?? "Goal";
+          const title = humaniseValue(g.title) ?? challengesOf(g as ChallengeBearingGoal)[0] ?? "Goal";
           const target = humaniseValue(g.target_text) ?? humaniseValue(g.target);
           const status = humaniseValue(g.status) ?? "Active";
           return (
@@ -607,7 +608,19 @@ const GoalsSection = ({ d }: { d: PassportDataset }) => {
                 )}
               </div>
             }>
-              <HumanFields obj={g as Record<string, unknown>} exclude={["title", "challenge", "target_text", "target", "status", "challenge_voice_url", "target_voice_url"]} />
+              <HumanFields obj={g as Record<string, unknown>} exclude={["title", "challenge", "challenges", "target_text", "target", "status", "challenge_voice_url", "target_voice_url"]} />
+              {challengesOf(g as ChallengeBearingGoal).length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-1.5">
+                    {challengesOf(g as ChallengeBearingGoal).length === 1 ? "Challenge" : "Challenges"}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {challengesOf(g as ChallengeBearingGoal).map((c) => (
+                      <Chip key={c} tone="gold">{c}</Chip>
+                    ))}
+                  </div>
+                </div>
+              )}
               <AudioPlayer bucket="voicenotes" path={(g.challenge_voice_url as string | null) ?? null} label="Challenge voice note" />
               <AudioPlayer bucket="voicenotes" path={(g.target_voice_url as string | null) ?? null} label="Target voice note" />
               {updates.length > 0 && (

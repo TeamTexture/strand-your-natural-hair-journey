@@ -24,6 +24,7 @@ import { useWashDays } from "@/hooks/useWashDays";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
 import { useGoals } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
+import { allChallenges, challengesOf } from "@/lib/goalChallenges";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -208,9 +209,7 @@ const ProductProfile = () => {
           try { return JSON.parse(localStorage.getItem("strand_current_style") || "null"); }
           catch { return null; }
         })();
-        const challenges = goals
-          .map((g) => g.challenge)
-          .filter((c): c is string => Boolean(c && c.trim()));
+        const challenges = allChallenges(goals);
         const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
           body: {
             productKey: product.product_key,
@@ -228,7 +227,7 @@ const ProductProfile = () => {
               unit: g.unit,
               current_value: g.current_value,
               target_date: g.target_date,
-              challenge: g.challenge,
+              challenges: challengesOf(g),
               status: g.status,
             })),
             currentStyle: styleLocal,

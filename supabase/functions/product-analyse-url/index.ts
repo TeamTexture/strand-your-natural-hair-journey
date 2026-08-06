@@ -316,6 +316,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
 // ─── Provider: Lovable+Gemini (legacy, Firecrawl scrape) ───────────────
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
+import { allChallenges, challengeText, challengesOf } from "../_shared/challenges.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -707,7 +708,7 @@ Deno.serve(async (req: Request) => {
       console.log("[ai-context-server] received", {
         currentStyle: ac.currentStyle ?? null,
         currentGoals: goalsArr.map((g) => g.title).filter(Boolean),
-        currentChallenges: goalsArr.map((g) => g.challenge).filter(Boolean),
+        currentChallenges: allChallenges(goalsArr),
       });
     }
 

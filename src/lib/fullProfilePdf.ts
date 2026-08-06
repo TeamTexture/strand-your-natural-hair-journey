@@ -1,4 +1,5 @@
 // Comprehensive STRAND profile PDF — exports EVERY data point the app holds for
+import { challengesOf } from "@/lib/goalChallenges";
 import { matchScoreOf } from "@/lib/matchStars";
 // the signed-in user. Renders a multi-section branded A4 PDF that can be
 // downloaded or shared (via Web Share API / email).
@@ -434,7 +435,7 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
       const updates = d.goalUpdates.filter((u: any) => u.goal_id === g.id);
       cur.card(g.title || g.kind, [
         { label: "Status", value: g.status, tone: g.status === "achieved" ? COLORS.good : g.status === "future" ? COLORS.muted : COLORS.charcoal },
-        { label: "Challenge", value: g.challenge || "" },
+        { label: challengesOf(g).length > 1 ? "Challenges" : "Challenge", value: challengesOf(g).join("; ") },
         { label: "Target", value: g.target_text || (g.target_value ? `${g.target_value} ${g.unit ?? ""}` : "") },
         { label: "Target date", value: fmtDate(g.target_date) },
         { label: "Progress", value: `${g.current_value} ${g.unit ?? ""} (from ${g.start_value})` },

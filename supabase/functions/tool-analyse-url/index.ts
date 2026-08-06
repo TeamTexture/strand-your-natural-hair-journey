@@ -241,6 +241,7 @@ import {
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
+import { allChallenges, challengeText, challengesOf } from "../_shared/challenges.ts";
 
 const LOVABLE_SYSTEM = `${STRAND_PERSONA}
 
@@ -501,7 +502,7 @@ Deno.serve(async (req: Request) => {
         fn: "tool-analyse-url",
         currentStyle: ac.currentStyle ?? null,
         currentGoals: goalsArr.map((g) => g.title).filter(Boolean),
-        currentChallenges: goalsArr.map((g) => g.challenge).filter(Boolean),
+        currentChallenges: allChallenges(goalsArr),
       });
     }
 

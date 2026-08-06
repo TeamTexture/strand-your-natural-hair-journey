@@ -889,7 +889,7 @@ Deno.serve(async (req) => {
     if (!fit) {
       const [goalRes, avoidRes] = await Promise.all([
         supabase.from("user_goals")
-          .select("kind, title, target_text, challenge, status")
+          .select("kind, title, target_text, challenges, challenge, status")
           .eq("user_id", user.id).neq("status", "complete"),
         supabase.from("user_products")
           .select("name, brand, rating, ingredients")

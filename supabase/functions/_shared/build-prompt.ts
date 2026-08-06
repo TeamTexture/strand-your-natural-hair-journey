@@ -32,6 +32,7 @@ import { VOICE_PRINCIPLES } from "./voice.ts";
 import { buildStylePlaybookBlock } from "./style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "./routine-guidance.ts";
 import { buildTipsLevelBlock } from "./tips-level.ts";
+import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
 import type {
   ClaudeCallInput,
   ClaudeModel,
@@ -256,10 +257,8 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
       ? (ctx.goals as Array<Record<string, unknown>>)
       : [];
     const goalsStr = goalsArr.map((g) => g.title).filter(Boolean).join(", ") || "not specified";
-    const challengesStr = goalsArr
-      .map((g) => g.challenge)
-      .filter((c) => typeof c === "string" && c.trim().length > 0)
-      .join(", ") || "not specified";
+    // Every challenge across every goal — a member may list many.
+    const challengesStr = allChallenges(goalsArr).join(", ") || "not specified";
     systemBlocks.push({
       type: "text",
       text:

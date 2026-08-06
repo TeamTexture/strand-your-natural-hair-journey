@@ -368,6 +368,7 @@ async function runClaude(args: {
   return result.toolInput;
 }
 
+import { allChallenges } from "../_shared/challenges.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -491,7 +492,7 @@ Deno.serve(async (req) => {
       supabase.from("blood_results").select("marker, value, unit, status, category").eq("user_id", user.id),
       supabase.from("user_medications").select("name, category").eq("user_id", user.id),
       supabase.from("user_goals")
-        .select("kind, title, target_text, target_value, unit, current_value, target_date, challenge, notes, status")
+        .select("kind, title, target_text, target_value, unit, current_value, target_date, challenges, challenge, notes, status")
         .eq("user_id", user.id).neq("status", "complete"),
     ]);
     const bloodRows = bloodRowsRes.data ?? [];
@@ -508,7 +509,11 @@ Deno.serve(async (req) => {
       medications: medRows,
       goals: goals && goals.length ? goals : dbGoals,
       currentStyle: currentStyle ?? null,
-      challenges: challenges ?? [],
+      // Never empty when the member has any: fall back to flattening the
+      // goals we just read so challenges always reach the prompt.
+      challenges: (challenges && challenges.length)
+        ? challenges
+        : allChallenges((goals && goals.length ? goals : dbGoals) as Array<Record<string, unknown>>),
       context: body.context ?? null,
     };
 

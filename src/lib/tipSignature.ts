@@ -6,6 +6,7 @@
 // "tip of the day" cadence) OR the signature changes — whichever comes first.
 
 import { supabase } from "@/integrations/supabase/client";
+import { allChallenges } from "@/lib/goalChallenges";
 
 /**
  * A wash day or appointment older than this is history, not a current event,
@@ -34,7 +35,7 @@ export interface RecentEvent {
 }
 
 export interface ResponsiveSignals {
-  /** Free-text challenges the member wrote on their goals (user_goals.challenge). */
+  /** Every challenge across the member's goals (user_goals.challenges). */
   challenges: string[];
   /** user_hair_profile.areas_of_concern */
   areasOfConcern: string[];
@@ -58,7 +59,7 @@ export async function loadResponsiveSignals(userId: string): Promise<ResponsiveS
   const [goalsRes, hairRes, washRes, apptRes] = await Promise.all([
     supabase
       .from("user_goals")
-      .select("challenge, status")
+      .select("challenges, challenge, status")
       .eq("user_id", userId)
       .eq("status", "active")
       .limit(10),
@@ -89,9 +90,11 @@ export async function loadResponsiveSignals(userId: string): Promise<ResponsiveS
     | undefined;
 
   return {
-    challenges: ((goalsRes.data ?? []) as Array<{ challenge: string | null }>)
-      .map((g) => (g.challenge ?? "").trim())
-      .filter(Boolean),
+    // Every challenge across the member's active goals. Adding one changes the
+    // signature, so guidance refreshes on the next fetch.
+    challenges: allChallenges(
+      (goalsRes.data ?? []) as Array<{ challenges?: string[] | null; challenge?: string | null }>,
+    ),
     areasOfConcern:
       ((hairRes.data as { areas_of_concern?: string[] } | null)?.areas_of_concern ?? [])
         .map(String)

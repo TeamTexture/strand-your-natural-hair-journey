@@ -21,6 +21,7 @@ import {
 } from "./knowledge/index.ts";
 import type { FunctionKind, TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
+import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
 
 /** The single wording used everywhere a passages block is injected. */
 export const GROUNDING_INSTRUCTION =
@@ -206,7 +207,7 @@ export function ragQueryFromAiContext(
     one(hp.scalp ?? hp.scalp_condition),
     one(hp.hair_type),
     style.current_hairstyle ? `wearing ${one(style.current_hairstyle)}` : "",
-    goals.map((g) => `${one(g.title)} ${one(g.challenge)}`).join(" ").trim(),
+    goals.map((g) => `${one(g.title)} ${challengesOf(g).join(" ")}`).join(" ").trim(),
     flaggedMarkerPhrase(c.bloodResults),
   ].filter(Boolean).join(" — ");
 }

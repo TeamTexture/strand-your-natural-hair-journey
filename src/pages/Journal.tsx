@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { challengesOf } from "@/lib/goalChallenges";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { useMoodboards } from "@/hooks/useMoodboards";
 import GoalEditorSheet from "@/components/GoalEditorSheet";
@@ -564,7 +565,8 @@ interface GoalCardProps {
 const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
   // New simple shape: Challenge + Target. Fall back to legacy length-retention
   // numeric progress only when the user hasn't migrated yet.
-  const hasNewShape = !!(goal.challenge || goal.target_text);
+  const goalChallenges = challengesOf(goal);
+  const hasNewShape = goalChallenges.length > 0 || !!goal.target_text;
   const isComplete = goal.status === "complete";
   const isFuture = goal.status === "future";
   const statusLabel = isComplete ? "Complete" : isFuture ? "Future" : "In progress";
@@ -645,10 +647,21 @@ const GoalCard = ({ goal, onEdit, onView }: GoalCardProps) => {
             <Pencil className="size-3.5" />
           </button>
         </div>
-        {goal.challenge && (
+        {goalChallenges.length > 0 && (
           <div className="mb-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-0.5">Challenge</p>
-            <p className="text-sm leading-snug whitespace-pre-line">{goal.challenge}</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
+              {goalChallenges.length === 1 ? "Challenge" : "Challenges"}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {goalChallenges.map((c) => (
+                <span
+                  key={c}
+                  className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground leading-snug"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
           </div>
         )}
         {goal.target_text && (

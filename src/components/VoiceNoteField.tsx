@@ -31,7 +31,16 @@ interface Props {
   rows?: number;
   required?: boolean;
   errorMessage?: string;
+  /**
+   * Intercept the transcript instead of appending it to the text value.
+   * Used where a transcript needs member confirmation before it is committed
+   * (e.g. splitting spoken speech into discrete challenge chips).
+   */
+  onTranscript?: (text: string) => void;
+  /** Hide the textarea when the field is voice-only alongside another input. */
+  hideTextarea?: boolean;
 }
+
 
 const fmt = (sec: number) => {
   const m = Math.floor(sec / 60);
@@ -62,6 +71,8 @@ const VoiceNoteField = ({
   rows = 4,
   required = false,
   errorMessage,
+  onTranscript,
+  hideTextarea = false,
 }: Props) => {
   const { user } = useAuth();
   const [recording, setRecording] = useState(false);
@@ -216,9 +227,13 @@ const VoiceNoteField = ({
         toast("No speech detected");
         return;
       }
-      const next = value.trim() ? `${value.trim()}\n\n${text}` : text;
-      onChange(next);
-      toast.success("Transcribed to text");
+      if (onTranscript) {
+        onTranscript(text);
+      } else {
+        const next = value.trim() ? `${value.trim()}\n\n${text}` : text;
+        onChange(next);
+        toast.success("Transcribed to text");
+      }
     } catch (e) {
       console.error("transcribe failed", e);
       toast.error("Could not transcribe");
@@ -237,7 +252,7 @@ const VoiceNoteField = ({
       </span>
 
       <div className="flex gap-2 items-start">
-        <textarea
+        {!hideTextarea && <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -246,7 +261,7 @@ const VoiceNoteField = ({
             "flex-1 px-3.5 py-3 bg-card rounded-[10px] border text-sm focus:outline-none transition-colors resize-none",
             showError ? "border-warn" : "border-border focus:border-primary/60",
           )}
-        />
+        />}
         <button
           type="button"
           onClick={recording ? stopRecording : startRecording}
