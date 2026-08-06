@@ -16,6 +16,7 @@ import { safeRewrite, stripDefinitionBrackets } from "@/lib/coherence";
 import { IngredientToken } from "@/components/ingredients/IngredientToken";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { normaliseInciKey } from "@/lib/inci";
+import { findProductMentions, productHref } from "@/lib/productMatch";
 
 export const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
 
@@ -117,17 +118,21 @@ export function renderInlineWithProducts(
     });
   }
 
-  // 2. Product names — longest first for greedy matches.
-  const sorted = [...products]
-    .filter((p) => p.name && p.name.trim().length >= 4)
-    .sort((a, b) => b.name.length - a.name.length);
-  for (const p of sorted) {
-    const escaped = p.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    addRegexMatches(new RegExp(`\\b${escaped}\\b`, "gi"), () => ({
+  // 2. Product names — resolved deterministically against the user's shelf
+  // (diacritics, ™, and "(Sulfate-Free)" suffixes normalised away). The model
+  // is never trusted to tag its own mentions; see src/lib/productMatch.ts.
+  for (const mention of findProductMentions(safeLine, products)) {
+    if (hasOverlap(mention.start, mention.end)) continue;
+    if (!claimTerm("product", mention.text)) continue;
+    matches.push({
+      start: mention.start,
+      end: mention.end,
       kind: "product",
-      product: p,
-    }));
+      text: mention.text,
+      product: mention.product as UserProduct,
+    });
   }
+
 
   // 3. Brands seen on shelf/wishlist.
   const brands = Array.from(
@@ -217,7 +222,12 @@ export function renderInlineWithProducts(
       );
     } else if (m.kind === "product" && m.product) {
       nodes.push(
-        <Link key={`${keyPrefix}-p-${i}`} to={`/products/profile/${m.product.id}`} className={LINK_CLS}>
+        <Link
+          key={`${keyPrefix}-p-${i}`}
+          to={productHref(m.product)}
+          state={{ fromAdvice: true }}
+          className={LINK_CLS}
+        >
           {m.text}
         </Link>,
       );
