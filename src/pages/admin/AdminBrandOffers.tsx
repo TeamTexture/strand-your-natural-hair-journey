@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, Check, X, CreditCard, Eye, MousePointerClick, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, Check, X, CreditCard, Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
