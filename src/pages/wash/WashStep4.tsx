@@ -180,21 +180,31 @@ const WashStep4 = () => {
     }
     setSaving(true);
     try {
-      const stepLabels: Record<string, string> = {
+      const stepKeys: Record<string, string> = {
         prePoo: "Pre-poo", cleanse: "Cleanse", coWash: "Co-wash", condition: "Condition", treatment: "Treatment",
       };
+      // Each saved step carries its own heat answer (when one was given), so
+      // "heat under the mask" and "heat under the conditioner" stay distinct.
       const steps = (["prePoo", "cleanse", "coWash", "condition", "treatment"] as const)
         .filter((k) => step1[k] === "done")
-        .map((k) => ({ name: stepLabels[k] }));
+        .map((k) => {
+          const name = stepKeys[k];
+          const heat = step1.heatByStep?.[name] ?? null;
+          return heat ? { name, heat } : { name };
+        });
 
-      const heatTreatment = step1.heatTreatment
-        ? {
-            used: step1.heatTreatment === "yes",
-            ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
-            ...(step1.heatTreatment === "yes" && step1.heatToolIds?.length ? { tool_ids: step1.heatToolIds } : {}),
-            ...(step1.heatTreatment === "yes" && step1.heatToolNames?.length ? { tools: step1.heatToolNames } : {}),
-          }
-        : null;
+      // `heat_treatment` stays the log-level roll-up the AI generation reads.
+      const heatTreatment =
+        rollUpStepHeat(steps) ??
+        (step1.heatTreatment
+          ? {
+              used: step1.heatTreatment === "yes",
+              ...(step1.heatTreatment === "yes" && step1.heatMinutes ? { duration_min: step1.heatMinutes } : {}),
+              ...(step1.heatTreatment === "yes" && step1.heatToolIds?.length ? { tool_ids: step1.heatToolIds } : {}),
+              ...(step1.heatTreatment === "yes" && step1.heatToolNames?.length ? { tools: step1.heatToolNames } : {}),
+            }
+          : null);
+
 
       const chosenDate = localStorage.getItem("strand_wash_date");
       const todayLocal = (() => {
