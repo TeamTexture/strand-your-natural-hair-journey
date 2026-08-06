@@ -372,55 +372,6 @@ const GoalEditorSheet = ({
         </DialogContent>
       </Dialog>
 
-      {/* Transcript confirmation — the member edits the proposed split before
-          it becomes part of her challenge list. Nothing is saved from here. */}
-      <Dialog open={proposed !== null} onOpenChange={(o) => !o && setProposed(null)}>
-        <DialogContent className="max-w-[340px] rounded-[20px]">
-          <DialogHeader>
-            <DialogTitle className="font-display text-left">
-              Is this what you meant?
-            </DialogTitle>
-            <DialogDescription className="text-left">
-              Edit or remove anything, then add them to your challenges.
-            </DialogDescription>
-          </DialogHeader>
-
-          <ChipListInput
-            value={proposed ?? []}
-            onChange={setProposed}
-            placeholder="Add another"
-            emptyLabel="Nothing left — add one or cancel."
-            inputAriaLabel="Edit proposed challenge"
-          />
-
-          <DialogFooter className="gap-2">
-            <Button variant="outline" size="pill" onClick={() => setProposed(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="gold"
-              size="pill"
-              disabled={!proposed?.length}
-              onClick={() => {
-                const incoming = proposed ?? [];
-                setChallenges((prev) => {
-                  const merged = [...prev];
-                  for (const c of incoming) {
-                    if (!merged.some((x) => x.toLowerCase() === c.toLowerCase())) {
-                      merged.push(c);
-                    }
-                  }
-                  return merged;
-                });
-                setProposed(null);
-                toast.success("Added to your challenges");
-              }}
-            >
-              Add
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
 
   );
