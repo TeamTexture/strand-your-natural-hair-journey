@@ -45,7 +45,12 @@ const BloodTestRoutesSheet = ({
   const { pros, loading: prosLoading } = useDirectoryProfessionals();
 
   const orderedPanels = useMemo(
-    () => orderPanelsByRelevance(panels, neededMarkers),
+    () =>
+      orderPanelsByRelevance(
+        // Curated third-party vendors must be ticked as at-home kit providers.
+        panels.filter((p) => (p.brand_user_id ? true : p.is_at_home_kit === true)),
+        neededMarkers,
+      ),
     [panels, neededMarkers],
   );
 
