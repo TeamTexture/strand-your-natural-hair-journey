@@ -179,7 +179,7 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick }: Props) => {
             </span>
           </div>
           <p className="text-[12.5px] leading-snug text-foreground/85 font-body break-words whitespace-pre-line">
-            {insight}
+            {renderInline(insight, `wd-insight-${washDay.id}`)}
           </p>
 
         </div>
