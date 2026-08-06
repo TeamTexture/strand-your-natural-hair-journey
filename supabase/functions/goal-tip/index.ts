@@ -242,12 +242,44 @@ const DEFAULT_PILLARS = [
   "trims and end care",
 ];
 
-function pillarsForGoal(goalText: string): string[] {
-  for (const { re, pillars } of GOAL_PILLARS) {
-    if (re.test(goalText ?? "")) return pillars;
+/**
+ * Style-aware pillars. The member's CURRENT install and PLANNED next style
+ * change what is actually actionable today, so protective-install pillars are
+ * merged in front of the goal's own pillars whenever she is in (or heading
+ * into) an install. Length retention while in cornrows is a tension/scalp/
+ * take-down conversation, not a "style your curls wet" one.
+ */
+const PROTECTIVE_RE =
+  /cornrow|braid|plait|twist|passion|rope|senegal|knotless|box braid|locs?\b|weave|wig|sew.?in|crochet|extension/i;
+
+function stylePillars(current: string, planned: string): string[] {
+  const out: string[] = [];
+  if (PROTECTIVE_RE.test(current)) {
+    out.push(
+      `caring for the hair and scalp underneath her current style (${current})`,
+      `reading tension in her current style (${current}) before it costs her hairline`,
+      `how long to keep her current style in, and taking it down without damage`,
+    );
   }
-  return DEFAULT_PILLARS;
+  if (planned && PROTECTIVE_RE.test(planned)) {
+    out.push(
+      `preparing her hair for her planned next style (${planned}) — condition, strength and rest before install`,
+    );
+  }
+  return out;
 }
+
+function pillarsForGoal(goalText: string, current = "", planned = ""): string[] {
+  let base = DEFAULT_PILLARS;
+  for (const { re, pillars } of GOAL_PILLARS) {
+    if (re.test(goalText ?? "")) { base = pillars; break; }
+  }
+  const style = stylePillars(current, planned);
+  // Style pillars lead so an install-relevant angle comes up often, but the
+  // goal's own territory is never dropped.
+  return [...style, ...base];
+}
+
 
 /** Small stable hash so the rotation seed is deterministic per day+goal+profile. */
 function stableHash(input: string): number {
@@ -269,9 +301,17 @@ function buildRotationBlock(body: RequestBody, goalText: string): {
   block: string;
   pillar: string;
 } {
-  const pillars = pillarsForGoal(goalText);
-  const seed = stableHash(`${goalText}|${body.profileFingerprint ?? ""}`);
+  const cs = (body.context?.currentStyle ?? null) as Record<string, unknown> | null;
+  const current = String(cs?.current_hairstyle ?? "");
+  const planned = String(cs?.planned_next_style ?? "");
+  const pillars = pillarsForGoal(goalText, current, planned);
+  const seed = stableHash(`${goalText}|${current}|${planned}|${body.profileFingerprint ?? ""}`);
   const pillar = pillars[(dayIndexOf(body.day) + seed) % pillars.length];
+  const styleLine = [
+    current ? `She is currently in: ${current}.` : "",
+    planned ? `Her planned next style is: ${planned}.` : "",
+    goalText ? `Her stated goal, in her words: "${goalText}".` : "",
+  ].filter(Boolean).join(" ");
   return {
     pillar,
     block: `TODAY'S PILLAR — ROTATION (do not ignore):
@@ -279,11 +319,14 @@ This goal's territory is made of these pillars:
 ${pillars.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 
 TODAY you must build the single tip on this pillar: "${pillar}".
-- Stay inside the goal's territory. Never wander to an unrelated topic.
+${styleLine ? `HER SITUATION RIGHT NOW: ${styleLine}\n` : ""}- Stay inside the goal's territory. Never wander to an unrelated topic.
+- The tip MUST be doable in the style she is in TODAY. If she is in an install, never tell her to do something that assumes loose hair (wet styling, full detangle, length checks) unless the pillar is take-down or preparation.
+- The body MUST name at least one of: her current style, her planned next style, or her goal in her own words — alongside a real hair characteristic. Generic advice about heat or deep conditioning with no link to her current style and goal is invalid.
 - The RECENT ADVICE ledger below shows what she has already been told. Take a different angle on today's pillar from anything listed there — a different action, a different moment in her routine, or a progression on a habit she already has ("your deep condition habit is set — now seal your ends after each wash").
 - Never repeat a headline or action that appears in the ledger.`,
   };
 }
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
