@@ -31,6 +31,9 @@ import { dedupeSentences, emphasisSplit, splitSentences } from "@/lib/tipsRender
 import { restatesAction } from "@/lib/guidance";
 import { blowDryCountLast7Days } from "@/lib/stylingHeat";
 import { CircleSlash, Repeat, Ruler } from "lucide-react";
+import { useWashDaySchedules } from "@/hooks/useWashDaySchedules";
+import NextWashDayBox, { washDayCalendarEvent } from "@/components/wash/NextWashDayBox";
+import { googleCalendarUrl } from "@/lib/addToCalendar";
 
 
 const monthNames = [
