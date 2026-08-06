@@ -1140,22 +1140,37 @@ const RoutineSection = ({ d }: { d: PassportDataset }) => {
                   <div className="mt-3 pt-3 border-t border-border">
                     <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Wash steps</p>
                     <ol className="space-y-1.5">
-                      {steps.map((s, i) => (
-                        <li key={i} className="text-[12.5px] font-body leading-snug pl-6 relative">
-                          <span className="absolute left-0 top-0 size-4 rounded-full bg-primary/12 text-primary text-[10px] flex items-center justify-center font-semibold">{i + 1}</span>
-                          {humaniseValue(s.name) ?? humaniseValue(s.step) ?? `Step ${i + 1}`}
-                          {s.product_name && <span className="text-muted-foreground"> — {humaniseValue(s.product_name)}</span>}
-                        </li>
-                      ))}
+                      {steps.map((s, i) => {
+                        const heat = s.heat as { used?: boolean; duration_min?: number; tools?: string[] } | null | undefined;
+                        return (
+                          <li key={i} className="text-[12.5px] font-body leading-snug pl-6 relative">
+                            <span className="absolute left-0 top-0 size-4 rounded-full bg-primary/12 text-primary text-[10px] flex items-center justify-center font-semibold">{i + 1}</span>
+                            {(typeof s.name === "string" ? washStepLabel(s.name) : null) ?? humaniseValue(s.step) ?? `Step ${i + 1}`}
+                            {s.product_name && <span className="text-muted-foreground"> — {humaniseValue(s.product_name)}</span>}
+                            {/* Heat is clinically relevant per step, so it reads inline. */}
+                            {heat?.used && (
+                              <span className="text-primary">
+                                {" + heat"}
+                                {heat.duration_min ? ` ${heat.duration_min} min` : ""}
+                                {heat.tools?.length ? ` (${heat.tools.join(", ")})` : ""}
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ol>
                   </div>
                 )}
-                {heatTreatment && Object.entries(heatTreatment).some(([k, v]) => k !== "tool_ids" && v != null && v !== "") && (
+                {/* Log-level heat only when no step carries its own answer. */}
+                {heatTreatment
+                  && !steps.some((s) => (s.heat as { used?: boolean } | null | undefined)?.used)
+                  && Object.entries(heatTreatment).some(([k, v]) => k !== "tool_ids" && v != null && v !== "") && (
                   <div className="mt-3 pt-3 border-t border-border">
                     <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Heat treatment</p>
                     <HumanFields obj={heatTreatment} exclude={["tool_ids"]} />
                   </div>
                 )}
+
                 {styling && (
                   <div className="mt-3 pt-3 border-t border-border space-y-3">
                     <div>
