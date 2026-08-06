@@ -84,6 +84,7 @@ const ProSetup = lazyRetry(() => import("./pages/pro/ProSetup"));
 const ProUnderReview = lazyRetry(() => import("./pages/pro/ProUnderReview"));
 const ProProfile = lazyRetry(() => import("./pages/pro/ProProfile"));
 const ProOffers = lazyRetry(() => import("./pages/pro/ProOffers"));
+const ProSalonStylists = lazyRetry(() => import("./pages/pro/ProSalonStylists"));
 const ProBilling = lazyRetry(() => import("./pages/pro/ProBilling"));
 const ProEnquiries = lazyRetry(() => import("./pages/pro/ProEnquiries"));
 const ProAppointments = lazyRetry(() => import("./pages/pro/ProAppointments"));
