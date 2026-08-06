@@ -11,6 +11,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock, coerceTipsLevel } from "../_shared/tips-level.ts";
 import { buildGroundingBlock, flaggedMarkerPhrase } from "../_shared/grounding.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
@@ -161,7 +162,8 @@ Deno.serve(async (req) => {
     Array.isArray(cachedPayload.steps) &&
     cachedPayload.steps.length > 0
   ) {
-    return json(200, { steps: cachedPayload.steps, payload: cachedPayload, cached: true });
+    const safeCached = await sanitiseAndLog(cachedPayload, "wash-day-steps", { context: body });
+    return json(200, { steps: safeCached.steps, payload: safeCached, cached: true });
   }
 
   const hp = (body.hairProfile ?? {}) as Record<string, unknown>;
@@ -305,5 +307,6 @@ Deno.serve(async (req) => {
     steps.map((s) => `${s.headline}. ${s.body}`),
   );
 
-  return json(200, { steps, payload, cached: false });
+  const safePayload = await sanitiseAndLog(payload, "wash-day-steps", { context: body });
+  return json(200, { steps: safePayload.steps, payload: safePayload, cached: false });
 });

@@ -6,6 +6,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
   buildGroundingBlock,
@@ -173,7 +174,7 @@ Deno.serve(async (req) => {
     cachedPayload._model_version === MODEL_VERSION &&
     (cachedPayload.tipsLevel ?? null) === requestedLevel
   ) {
-    return json(200, { tip: cachedPayload, cached: true });
+    return json(200, { tip: await sanitiseAndLog(cachedPayload, "wash-day-tip", { context: body }), cached: true });
   }
 
   // Build a compact context blob for the model. Style first — the tip must
@@ -328,5 +329,5 @@ Deno.serve(async (req) => {
 
   await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.technique, payload.next_time ?? ""]);
 
-  return json(200, { tip: payload, cached: false });
+  return json(200, { tip: await sanitiseAndLog(payload, "wash-day-tip", { context: body }), cached: false });
 });
