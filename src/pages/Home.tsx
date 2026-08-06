@@ -493,9 +493,9 @@ const Home = () => {
               >
                 <div className="absolute -inset-1.5 border border-[#C5A059]/40 rounded-[26px] rotate-1" />
                 <div className="relative w-full aspect-square rounded-3xl overflow-hidden bg-[#3A2B1F] flex items-center justify-center text-[#C5A059]/40 border border-white/5 shadow-2xl">
-                  {beforePhotoUrl ? (
+                  {styleCardUrl ?? beforePhotoUrl ? (
                     <img
-                      src={beforePhotoUrl}
+                      src={styleCardUrl ?? beforePhotoUrl ?? undefined}
                       alt="Your hair"
                       loading="eager"
                       decoding="async"
