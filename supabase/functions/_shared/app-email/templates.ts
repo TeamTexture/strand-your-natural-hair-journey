@@ -34,8 +34,22 @@ export interface EmailTemplate {
   subject: (d: Record<string, unknown>) => string;
   /** Ordered blocks of body copy. */
   body: (d: Record<string, unknown>) => string[];
-  /** Optional in-app destination, rendered as a button. */
+  /** Optional destination, rendered as a button. In-app path or absolute URL. */
   cta?: (d: Record<string, unknown>) => { label: string; path: string } | null;
+  /** Optional label/value detail table under the copy. */
+  rows?: (d: Record<string, unknown>) => { label: string; value: string }[];
+  /** Small uppercase eyebrow above the heading. */
+  eyebrow?: string;
+  /** Sender identity. Defaults to notifications@. */
+  sender?: "notifications" | "noreply";
+  /** Extra footer line above the standard footer. */
+  footerNote?: string;
+  /**
+   * Emails that already send in production today. These bypass the global
+   * `email_sending_enabled` flag so switching the platform on/off never
+   * regresses live behaviour (admin application alerts, password resets).
+   */
+  legacy?: boolean;
 }
 
 const s = (v: unknown, fallback = "") =>
@@ -49,7 +63,9 @@ const t = (
   body: EmailTemplate["body"],
   cta?: EmailTemplate["cta"],
   preference?: PreferenceKey,
-): EmailTemplate => ({ key, category, essential, subject, body, cta, preference });
+  extra?: Partial<EmailTemplate>,
+): EmailTemplate => ({ key, category, essential, subject, body, cta, preference, ...extra });
+
 
 export const TEMPLATES: Record<string, EmailTemplate> = {
   // ---------------- Account (essential, transactional) ----------------
