@@ -64,6 +64,18 @@ export interface Professional {
   isDoctorVerified?: boolean;
   canTakeBloodsVerified?: boolean;
   bloodsSetting?: "clinic" | "home" | "both" | null;
+  /**
+   * `pro_profiles.id` — the LISTING identity. This is the key the directory and
+   * enquiries run on, because a salon stylist has no login of her own
+   * (`user_id` NULL) and so cannot be keyed on `proUserId`.
+   */
+  proProfileId?: string;
+  /** Salon this listing belongs to, when it is part of a salon roster. */
+  salonId?: string | null;
+  salonName?: string | null;
+  salonCity?: string | null;
+  /** True when this listing has no login of its own (salon-managed stylist). */
+  isSalonStylist?: boolean;
 }
 
 export const PROFESSIONALS: Professional[] = [
