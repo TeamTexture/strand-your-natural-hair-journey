@@ -23,6 +23,7 @@ import {
   HEAT_COOLDOWN_TIP,
   type StepHeat,
 } from "@/lib/washSteps";
+import { describeStylingHeat, type StylingHeat } from "@/lib/stylingHeat";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>

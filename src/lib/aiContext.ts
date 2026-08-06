@@ -16,6 +16,7 @@
 //   });
 
 import { supabase } from "@/integrations/supabase/client";
+import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { DEFAULT_TIPS_LEVEL, coerceTipsLevel, TIPS_LEVEL_STORAGE_KEY, type TipsLevel } from "@/lib/tipsLevel";
@@ -305,7 +306,27 @@ async function buildAiContextUncached(): Promise<AiContext> {
       flaggedIngredients = lists
         .filter((r) => r.list_kind === "flag")
         .map((r) => r.ingredient);
-      recentWashes = (washes.data ?? []) as Array<Record<string, unknown>>;
+      // Wash-day rows carry TWO unrelated kinds of heat. Conditioning heat
+      // (heat cap / hood under a conditioner or treatment) lives on
+      // `heat_treatment` / `steps[].heat`. Thermal styling heat (blow dry /
+      // flat iron) lives on `styling.heat` and is surfaced here under the
+      // explicit `thermal_styling_heat` key so the two can never be conflated.
+      recentWashes = ((washes.data ?? []) as Array<Record<string, unknown>>).map((row) => {
+        const { styling, ...rest } = row;
+        const heat = stylingHeatOf(styling);
+        return {
+          ...rest,
+          thermal_styling_heat: heat?.used == null
+            ? null
+            : {
+                used: heat.used,
+                methods: heat.methods ?? [],
+                level: heat.level ?? null,
+                protectant_used: heat.protectant_used ?? null,
+                summary: describeStylingHeat(heat),
+              },
+        };
+      });
       shelf = (shelfRows.data ?? []) as Array<Record<string, unknown>>;
       const allRatings = (ratings.data ?? []) as Array<Record<string, unknown>>;
       lowRated = allRatings.filter((r) => Number(r.rating) <= 2);
