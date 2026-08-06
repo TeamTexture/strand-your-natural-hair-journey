@@ -1,11 +1,17 @@
 // Picker for the Home "Current style" card image.
-// Lists the member's progress photos newest first, marks the one in use, and
-// always offers a route back to AUTO mode ("Use my most recent photo").
+// Lists the member's progress photos (Strand Summary uploads + milestone
+// gallery) newest first, marks the one in use, always offers a route back to
+// AUTO mode ("Use my most recent photo"), and lets the member add a new photo
+// right here — drag-and-drop on desktop, camera roll / camera on mobile.
 
-import { Check, ImageOff, Sparkles } from "lucide-react";
+import { useRef, useState } from "react";
+import { Check, ImageOff, Loader2, Sparkles, Upload } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
+import { usePhotoUploader } from "@/hooks/usePhotoUploader";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const fmt = (iso: string | null) => {
@@ -26,7 +32,11 @@ interface Props {
 }
 
 const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
-  const { photos, mainPhotoId, photo, isAuto, setMainPhoto } = useStyleCardPhoto();
+  const { photos, mainPhotoId, photo, isAuto, setMainPhoto, refresh } = useStyleCardPhoto();
+  const { user } = useAuth();
+  const { upload, uploading } = usePhotoUploader("before-photos");
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const choose = async (id: string | null) => {
     try {
@@ -38,6 +48,41 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
     }
   };
 
+  // New photos land in the Strand Summary progress set, then become the main
+  // photo straight away so what the member just picked is what they see.
+  const addFiles = async (files: File[]) => {
+    if (!user || files.length === 0) return;
+    const images = files.filter((f) => f.type.startsWith("image/") || /\.hei[cf]$/i.test(f.name));
+    if (images.length === 0) {
+      toast.error("Please choose an image");
+      return;
+    }
+    let lastId: string | null = null;
+    for (const file of images) {
+      const path = await upload(file);
+      if (!path) { toast.error("Upload failed"); continue; }
+      const { data, error } = await supabase
+        .from("user_before_photos")
+        .insert({ user_id: user.id, storage_path: path })
+        .select("id")
+        .maybeSingle();
+      if (error) {
+        console.error(error);
+        toast.error("Could not save photo");
+        continue;
+      }
+      if (data?.id) lastId = data.id as string;
+    }
+    if (!lastId) return;
+    await refresh();
+    try {
+      await setMainPhoto.mutateAsync(lastId);
+      toast.success("Photo added and set as your main photo");
+    } catch {
+      toast.success("Photo added");
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
@@ -45,7 +90,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
           <SheetTitle className="font-display">{title ?? "Change your main photo"}</SheetTitle>
           <SheetDescription>
             {description ??
-              "Pick the progress photo you want on your Current style card, or let it follow your most recent one."}
+              "Pick the progress photo you want on your Current style card, add a new one, or let it follow your most recent."}
           </SheetDescription>
         </SheetHeader>
 
@@ -65,6 +110,51 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
             </span>
             {isAuto && <Check className="size-4 text-primary shrink-0" aria-label="In use" />}
           </button>
+
+          {/* Add a photo — tap to open camera roll / camera, or drop a file in. */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              void addFiles(Array.from(e.dataTransfer.files ?? []));
+            }}
+            className={`rounded-2xl border border-dashed px-4 py-4 text-center transition-colors ${
+              dragOver ? "border-primary bg-primary/5" : "border-border bg-card"
+            }`}
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,.heic,.heif"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void addFiles(Array.from(e.target.files ?? []));
+                e.target.value = "";
+              }}
+            />
+            <Button
+              variant="outline"
+              size="pill"
+              disabled={uploading}
+              onClick={() => fileRef.current?.click()}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" /> Uploading…
+                </>
+              ) : (
+                <>
+                  <Upload className="size-4" /> Upload a photo
+                </>
+              )}
+            </Button>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Take a photo, choose from your camera roll, or drag and drop an image here.
+            </p>
+          </div>
 
           {photos.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
