@@ -3,8 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { challengeSummary, challengesOf } from "@/lib/goalChallenges";
 import { buildAiContext } from "@/lib/aiContext";
 import type { UserGoal } from "@/hooks/useGoals";
+import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_AI_DIRECTIVE } from "@/lib/tipsLevel";
+import {
+  hashString,
+  loadResponsiveSignals,
+  responsiveSignatureParts,
+  styleSignatureParts,
+} from "@/lib/tipSignature";
+
 
 export interface GoalTipAction {
   action: string;
