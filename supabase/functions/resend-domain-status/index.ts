@@ -12,13 +12,14 @@ Deno.serve(async (req) => {
   const res = await fetch("https://api.resend.com/domains", {
     headers: { Authorization: `Bearer ${key}` },
   });
-  const body = await res.json().catch(() => ({}));
+  const raw = await res.text();
+  const body = (() => { try { return JSON.parse(raw); } catch { return {}; } })();
   const domains = (body?.data ?? []).map((d: Record<string, unknown>) => ({
     name: d.name,
     status: d.status,
     region: d.region,
   }));
-  return new Response(JSON.stringify({ status: res.status, domains }), {
+  return new Response(JSON.stringify({ status: res.status, domains, raw: raw.slice(0, 400) }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
