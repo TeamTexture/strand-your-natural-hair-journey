@@ -61,6 +61,59 @@ export type Database = {
           },
         ]
       }
+      ad_stats_daily: {
+        Row: {
+          code_copies: number
+          expands: number
+          impressions: number
+          link_clicks: number
+          matched_impressions: number
+          matched_link_clicks: number
+          offer_id: string
+          raw_views: number
+          rolled_up_at: string
+          slot: string
+          stat_date: string
+          wishlist_adds: number
+        }
+        Insert: {
+          code_copies?: number
+          expands?: number
+          impressions?: number
+          link_clicks?: number
+          matched_impressions?: number
+          matched_link_clicks?: number
+          offer_id: string
+          raw_views?: number
+          rolled_up_at?: string
+          slot: string
+          stat_date: string
+          wishlist_adds?: number
+        }
+        Update: {
+          code_copies?: number
+          expands?: number
+          impressions?: number
+          link_clicks?: number
+          matched_impressions?: number
+          matched_link_clicks?: number
+          offer_id?: string
+          raw_views?: number
+          rolled_up_at?: string
+          slot?: string
+          stat_date?: string
+          wishlist_adds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_stats_daily_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notifications: {
         Row: {
           body: string | null
@@ -3752,6 +3805,22 @@ export type Database = {
       }
     }
     Views: {
+      ad_stats_unified: {
+        Row: {
+          code_copies: number | null
+          expands: number | null
+          impressions: number | null
+          link_clicks: number | null
+          matched_impressions: number | null
+          matched_link_clicks: number | null
+          offer_id: string | null
+          raw_views: number | null
+          slot: string | null
+          stat_date: string | null
+          wishlist_adds: number | null
+        }
+        Relationships: []
+      }
       brand_offer_stats: {
         Row: {
           code_copies: number | null
@@ -3766,15 +3835,7 @@ export type Database = {
           stat_date: string | null
           wishlist_adds: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "ad_events_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "brand_offers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
@@ -4095,6 +4156,7 @@ export type Database = {
           review_count: number
         }[]
       }
+      purge_ad_events: { Args: never; Returns: number }
       queue_appointment_reminders: { Args: never; Returns: number }
       record_ad_event: {
         Args: {
@@ -4115,6 +4177,7 @@ export type Database = {
         Returns: undefined
       }
       resolve_mention_user_ids: { Args: { _text: string }; Returns: string[] }
+      rollup_ad_stats: { Args: { p_from?: string }; Returns: number }
       send_enquiry_with_access:
         | {
             Args: {
