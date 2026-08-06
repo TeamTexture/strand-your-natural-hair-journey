@@ -12,7 +12,7 @@
 //
 // Same response shape: { deficiencies[], overall_summary, priority_actions[] }
 // so the existing BloodAiSummary.tsx renderer is unchanged.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,

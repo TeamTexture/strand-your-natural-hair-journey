@@ -1,0 +1,272 @@
+/**
+ * THE SINGLE SEND PATH. Every email in STRAND is transmitted from here.
+ *
+ * Other edge functions import `dispatchEmail` directly; browser code calls the
+ * `send-app-email` function, which is a thin HTTP wrapper over this file.
+ * Nothing else may talk to Resend.
+ *
+ * Guarantees:
+ *  - Every attempt is written to public.email_log (queued -> sent | failed |
+ *    suppressed). No fire-and-forget, no silent failures.
+ *  - Idempotency keys stop retries duplicating a send.
+ *  - Marketing needs explicit consent; optional transactional emails respect
+ *    the recipient's preference switches; essential emails always send.
+ *  - The global flag gates NEW emails only. Templates marked `legacy: true`
+ *    (the emails already sending in production today) bypass it so nothing
+ *    that works now breaks.
+ */
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { getTemplate, type EmailTemplate } from "./templates.ts";
+import { renderEmail } from "./render.ts";
+import { APP_BASE_URL, FROM_NOREPLY, FROM_NOTIFICATIONS } from "./config.ts";
+
+const MAX_ATTEMPTS = 3;
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
+
+export interface DispatchInput {
+  templateKey: string;
+  /** One recipient, or several for internal admin fan-out. */
+  to: string | string[];
+  recipientUserId?: string | null;
+  triggerEvent?: string | null;
+  relatedTable?: string | null;
+  relatedId?: string | null;
+  idempotencyKey?: string | null;
+  data?: Record<string, unknown>;
+  /** Overrides the template's default sender identity. */
+  from?: string | null;
+  /** Reply-To address, e.g. forwarding an enquiry back to the member. */
+  replyTo?: string | null;
+
+}
+
+export interface DispatchResult {
+  ok: boolean;
+  sent: boolean;
+  suppressed?: boolean;
+  reason?: string;
+  deduped?: boolean;
+  logId?: string | null;
+  error?: string;
+  status?: number;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const validEmail = (v: string) =>
+  /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) && v.length <= 254;
+
+export function serviceClient(): SupabaseClient {
+  return createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } },
+  );
+}
+
+async function globalSendingEnabled(admin: SupabaseClient): Promise<boolean> {
+  const { data } = await admin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "email_sending_enabled")
+    .maybeSingle();
+  return data?.value === true;
+}
+
+async function transmit(
+  payload: Record<string, unknown>,
+): Promise<{ id: string | null; error: string; permanent: boolean; status: number }> {
+  const key = Deno.env.get("RESEND_API_KEY");
+  if (!key) {
+    return { id: null, error: "RESEND_API_KEY is not configured", permanent: true, status: 0 };
+  }
+  let attempt = 0;
+  let error = "";
+  let status = 0;
+  while (attempt < MAX_ATTEMPTS) {
+    attempt += 1;
+    try {
+      const res = await fetch(RESEND_ENDPOINT, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      status = res.status;
+      if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return {
+          id: String((body as { id?: string })?.id ?? "accepted"),
+          error: "",
+          permanent: false,
+          status,
+        };
+      }
+      error = `${res.status} ${(await res.text()).slice(0, 500)}`;
+      // Anything 4xx except 429 is a permanent rejection — do not burn retries.
+      if (res.status !== 429 && res.status < 500) {
+        return { id: null, error, permanent: true, status };
+      }
+      await sleep(attempt * 700);
+    } catch (e) {
+      error = String(e).slice(0, 500);
+      await sleep(attempt * 700);
+    }
+  }
+  return { id: null, error: error || "Unknown send failure", permanent: false, status };
+}
+
+function defaultFrom(template: EmailTemplate): string {
+  return template.sender === "noreply" ? FROM_NOREPLY : FROM_NOTIFICATIONS;
+}
+
+export async function dispatchEmail(
+  input: DispatchInput,
+  client?: SupabaseClient,
+): Promise<DispatchResult> {
+  const admin = client ?? serviceClient();
+
+  const recipients = (Array.isArray(input.to) ? input.to : [input.to])
+    .map((r) => String(r ?? "").trim().toLowerCase())
+    .filter((r) => validEmail(r));
+  if (recipients.length === 0) {
+    return { ok: false, sent: false, error: "No valid recipient email." };
+  }
+
+  const template = getTemplate(input.templateKey);
+  if (!template) {
+    return { ok: false, sent: false, error: `Unknown template: ${input.templateKey}` };
+  }
+
+  const data = (input.data && typeof input.data === "object" ? input.data : {}) as Record<
+    string,
+    unknown
+  >;
+  const recipientUserId = input.recipientUserId || null;
+  const idempotencyKey = input.idempotencyKey?.trim()?.slice(0, 200) || null;
+  const triggerEvent = (input.triggerEvent || template.key).slice(0, 120);
+
+  // --- Idempotency.
+  if (idempotencyKey) {
+    const { data: existing } = await admin
+      .from("email_log")
+      .select("id,status")
+      .eq("idempotency_key", idempotencyKey)
+      .maybeSingle();
+    if (existing) {
+      return { ok: true, sent: false, deduped: true, logId: existing.id as string };
+    }
+  }
+
+  const subject = template.subject(data).slice(0, 200);
+
+  // --- Consent / preference gate.
+  let prefs: Record<string, unknown> | null = null;
+  if (recipientUserId) {
+    const { data: p } = await admin
+      .from("email_preferences")
+      .select("*")
+      .eq("user_id", recipientUserId)
+      .maybeSingle();
+    prefs = (p as Record<string, unknown> | null) ?? null;
+  }
+
+  let suppressedReason: string | null = null;
+  if (template.category === "marketing") {
+    if (!prefs || prefs.marketing_consent !== true) suppressedReason = "no_marketing_consent";
+  } else if (!template.essential && template.preference && prefs) {
+    if (prefs[template.preference] === false) {
+      suppressedReason = `preference_off:${template.preference}`;
+    }
+  }
+
+  // --- Global flag. Legacy (already-live) templates are exempt.
+  if (!suppressedReason && !template.legacy) {
+    if (!(await globalSendingEnabled(admin))) suppressedReason = "global_flag_off";
+  }
+
+  const unsubscribeUrl =
+    template.category === "marketing" && prefs?.unsubscribe_token
+      ? `${APP_BASE_URL}/email-preferences?unsubscribe=${prefs.unsubscribe_token}`
+      : null;
+
+  const { html, text } = renderEmail({
+    subject,
+    eyebrow: template.eyebrow ?? null,
+    blocks: template.body(data),
+    rows: template.rows ? template.rows(data) : null,
+    cta: template.cta ? template.cta(data) : null,
+    isMarketing: template.category === "marketing",
+    unsubscribeUrl,
+    footerNote: template.footerNote ?? null,
+  });
+
+  const baseRow = {
+    recipient_email: recipients.join(", ").slice(0, 500),
+    recipient_user_id: recipientUserId,
+    template_key: template.key,
+    category: template.category,
+    trigger_event: triggerEvent,
+    related_table: input.relatedTable ? String(input.relatedTable).slice(0, 80) : null,
+    related_id: input.relatedId || null,
+    subject,
+    idempotency_key: idempotencyKey,
+  };
+
+  if (suppressedReason) {
+    const { data: row } = await admin
+      .from("email_log")
+      .insert({ ...baseRow, status: "suppressed", suppressed_reason: suppressedReason })
+      .select("id")
+      .maybeSingle();
+    return {
+      ok: true,
+      sent: false,
+      suppressed: true,
+      reason: suppressedReason,
+      logId: (row?.id as string) ?? null,
+    };
+  }
+
+  const { data: queued, error: logErr } = await admin
+    .from("email_log")
+    .insert({ ...baseRow, status: "queued" })
+    .select("id")
+    .maybeSingle();
+  if (logErr) {
+    // Logging is not optional — an unprovable send is worse than a late one.
+    return { ok: false, sent: false, error: `email_log insert failed: ${logErr.message}` };
+  }
+  const logId = (queued?.id as string) ?? null;
+
+  const result = await transmit({
+    from: input.from || defaultFrom(template),
+    ...(input.replyTo && validEmail(input.replyTo)
+      ? { reply_to: input.replyTo.toLowerCase() }
+      : {}),
+
+    to: recipients,
+    subject,
+    html,
+    text,
+  });
+
+  if (logId) {
+    await admin
+      .from("email_log")
+      .update(
+        result.id
+          ? {
+              status: "sent",
+              provider_message_id: result.id,
+              sent_at: new Date().toISOString(),
+              error: null,
+            }
+          : { status: "failed", error: result.error },
+      )
+      .eq("id", logId);
+  }
+
+  return result.id
+    ? { ok: true, sent: true, logId }
+    : { ok: false, sent: false, logId, error: result.error, status: result.status };
+}

@@ -6,7 +6,7 @@
 // gated by STRAND_AI_PROVIDER_NUTRITION. Defaults to "lovable".
 // Same response shape: { summary, diet[], avoid[] } so the existing
 // NutritionPlan.tsx renderer is unchanged.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { json, preflight } from "../_shared/cors.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";

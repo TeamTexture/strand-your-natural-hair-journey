@@ -34,8 +34,22 @@ export interface EmailTemplate {
   subject: (d: Record<string, unknown>) => string;
   /** Ordered blocks of body copy. */
   body: (d: Record<string, unknown>) => string[];
-  /** Optional in-app destination, rendered as a button. */
+  /** Optional destination, rendered as a button. In-app path or absolute URL. */
   cta?: (d: Record<string, unknown>) => { label: string; path: string } | null;
+  /** Optional label/value detail table under the copy. */
+  rows?: (d: Record<string, unknown>) => { label: string; value: string }[];
+  /** Small uppercase eyebrow above the heading. */
+  eyebrow?: string;
+  /** Sender identity. Defaults to notifications@. */
+  sender?: "notifications" | "noreply";
+  /** Extra footer line above the standard footer. */
+  footerNote?: string;
+  /**
+   * Emails that already send in production today. These bypass the global
+   * `email_sending_enabled` flag so switching the platform on/off never
+   * regresses live behaviour (admin application alerts, password resets).
+   */
+  legacy?: boolean;
 }
 
 const s = (v: unknown, fallback = "") =>
@@ -49,7 +63,9 @@ const t = (
   body: EmailTemplate["body"],
   cta?: EmailTemplate["cta"],
   preference?: PreferenceKey,
-): EmailTemplate => ({ key, category, essential, subject, body, cta, preference });
+  extra?: Partial<EmailTemplate>,
+): EmailTemplate => ({ key, category, essential, subject, body, cta, preference, ...extra });
+
 
 export const TEMPLATES: Record<string, EmailTemplate> = {
   // ---------------- Account (essential, transactional) ----------------
@@ -497,6 +513,81 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].filter(Boolean),
     (d) => ({ label: "Open admin", path: s(d.path, "/admin") }),
   ),
+  // Already live in production — bypasses the global flag.
+  "admin-application-received": t(
+    "admin-application-received",
+    "transactional",
+    true,
+    (d) => `New STRAND professional application — ${s(d.fullName, "applicant")}`,
+    () => ["A new applicant is waiting for review."],
+    () => ({ label: "Review application", path: "/admin/applications" }),
+    undefined,
+    {
+      eyebrow: "Admin",
+      legacy: true,
+      footerNote: "You are receiving this because you are an admin on STRAND.",
+      rows: (d) => [
+        { label: "Name", value: s(d.fullName) },
+        { label: "Discipline", value: s(d.discipline) },
+        { label: "Business", value: s(d.businessName) },
+        { label: "Email", value: s(d.email) },
+        { label: "Submitted", value: s(d.submitted) },
+      ],
+    },
+  ),
+
+  // Already live in production — bypasses the global flag.
+  "directory-enquiry-forwarded": t(
+    "directory-enquiry-forwarded",
+    "transactional",
+    true,
+    (d) => `New STRAND enquiry from ${s(d.senderName, "a member")}`,
+    (d) => [
+      `Hi ${s(d.proName, "there")},`,
+      `${s(d.senderName, "A STRAND member")} found you in the STRAND professional directory and would like to get in touch.`,
+      s(d.message),
+      "Reply directly to this email to reach the member.",
+    ].filter(Boolean),
+    undefined,
+    undefined,
+    {
+      legacy: true,
+      eyebrow: "Directory enquiry",
+      rows: (d) => [
+        { label: "Reply to", value: s(d.senderEmail) },
+        { label: "Phone", value: s(d.phone) },
+      ],
+    },
+  ),
+
+  "password-reset": t(
+
+    "password-reset",
+    "transactional",
+    true,
+    (d) =>
+      d.audience === "pro"
+        ? "Reset your STRAND Pro password"
+        : d.audience === "brand"
+          ? "Reset your STRAND brand password"
+          : "Reset your STRAND password",
+    (d) => [
+      `We received a request to reset the password for your STRAND${
+        d.audience === "pro" ? " Pro" : d.audience === "brand" ? " brand" : ""
+      } account.`,
+      "Tap the button below to choose a new password. The link can be used once and expires in one hour.",
+      "If you did not ask for this, you can safely ignore this email.",
+    ],
+    (d) => (s(d.link) ? { label: "Choose a new password", path: s(d.link) } : null),
+    undefined,
+    {
+      sender: "noreply",
+      legacy: true,
+      eyebrow: undefined,
+    },
+  ),
+
+
 
   // ---------------- Marketing (consent required, unsubscribe rendered) ----
   "marketing-brand-offer": t(
