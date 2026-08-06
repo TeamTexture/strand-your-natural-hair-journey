@@ -8,7 +8,7 @@ import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import { NextWashTipCard } from "@/components/NextWashTipCard";
 import StatusCallout from "@/components/guidance/StatusCallout";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Flame } from "lucide-react";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
