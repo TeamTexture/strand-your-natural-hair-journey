@@ -95,9 +95,11 @@ const Home = () => {
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
-  // Current style card image: pinned progress photo → newest progress photo →
-  // baseline "before" photo → placeholder.
-  const { url: styleCardUrl } = useStyleCardPhoto();
+  // Current style card image: explicitly pinned photo → newest progress photo
+  // from the Strand Summary → newest milestone photo → placeholder.
+  const { url: styleCardUrl, isAuto } = useStyleCardPhoto();
+  const heroPhotoUrl = (isAuto ? beforePhotoUrl ?? styleCardUrl : styleCardUrl ?? beforePhotoUrl) ?? null;
+
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [bloodSummary, setBloodSummary] = useState<{
     panelDate: string | null;
