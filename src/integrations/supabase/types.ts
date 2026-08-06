@@ -1392,6 +1392,114 @@ export type Database = {
         }
         Relationships: []
       }
+      email_log: {
+        Row: {
+          attempts: number
+          category: string
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string | null
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_user_id: string | null
+          related_id: string | null
+          related_table: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          suppressed_reason: string | null
+          template_key: string
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          category?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string | null
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_user_id?: string | null
+          related_id?: string | null
+          related_table?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          suppressed_reason?: string | null
+          template_key: string
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          category?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_user_id?: string | null
+          related_id?: string | null
+          related_table?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          suppressed_reason?: string | null
+          template_key?: string
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_preferences: {
+        Row: {
+          appointment_reminders: boolean
+          blood_test_due: boolean
+          brand_offers: boolean
+          created_at: string
+          enquiry_updates: boolean
+          forum_replies: boolean
+          marketing_consent: boolean
+          marketing_consent_at: string | null
+          unsubscribe_token: string
+          updated_at: string
+          user_id: string
+          wash_day_reminders: boolean
+        }
+        Insert: {
+          appointment_reminders?: boolean
+          blood_test_due?: boolean
+          brand_offers?: boolean
+          created_at?: string
+          enquiry_updates?: boolean
+          forum_replies?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          unsubscribe_token?: string
+          updated_at?: string
+          user_id: string
+          wash_day_reminders?: boolean
+        }
+        Update: {
+          appointment_reminders?: boolean
+          blood_test_due?: boolean
+          brand_offers?: boolean
+          created_at?: string
+          enquiry_updates?: boolean
+          forum_replies?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          unsubscribe_token?: string
+          updated_at?: string
+          user_id?: string
+          wash_day_reminders?: boolean
+        }
+        Relationships: []
+      }
       event_rsvps: {
         Row: {
           cancelled_at: string | null
@@ -3056,6 +3164,8 @@ export type Database = {
           avatar_url: string | null
           birth_year: number | null
           complimentary_access: boolean
+          complimentary_access_expires_at: string | null
+          complimentary_expiry_warned_at: string | null
           country: string
           created_at: string
           display_name: string | null
@@ -3074,6 +3184,8 @@ export type Database = {
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean
+          complimentary_access_expires_at?: string | null
+          complimentary_expiry_warned_at?: string | null
           country?: string
           created_at?: string
           display_name?: string | null
@@ -3092,6 +3204,8 @@ export type Database = {
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean
+          complimentary_access_expires_at?: string | null
+          complimentary_expiry_warned_at?: string | null
           country?: string
           created_at?: string
           display_name?: string | null
