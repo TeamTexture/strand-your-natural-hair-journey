@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
+import { useLogAdEvent, PlacementSlot } from "@/hooks/useBrandOffers";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
 import { useGoals } from "@/hooks/useGoals";
@@ -48,7 +48,7 @@ const BrandProductPage = () => {
   const slot = (params.get("slot") as PlacementSlot | null) ?? null;
   const nav = useNavigate();
   const { user } = useAuth();
-  const logStat = useLogBrandStat();
+  const logEvent = useLogAdEvent();
   const { allProducts, upsert } = useUserProducts();
   const { tools: userTools, reload: reloadTools } = useUserTools();
   const { goals } = useGoals();
@@ -93,10 +93,10 @@ const BrandProductPage = () => {
     (offer as { brand_profiles?: { brand_name?: string } } | null)?.brand_profiles?.brand_name ?? null;
   const isTool = product?.kind === "tool";
 
-  // Record tap when reaching page
+  // Reaching this page is a deliberate expand of the advert — not a view.
   useEffect(() => {
     if (!offer?.id) return;
-    logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
+    logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer?.id]);
 
@@ -246,7 +246,7 @@ const BrandProductPage = () => {
         const row = await upsert(payload);
         if (!row) throw new Error("Could not save to wishlist");
       }
-      logStat.mutate({ offer_id: offer.id, slot, kind: "wishlist_adds" });
+      logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
       toast.success("Added to your wishlist");
       nav("/products/wishlist");
     } catch (e) {
@@ -259,7 +259,7 @@ const BrandProductPage = () => {
 
   const openExternal = () => {
     if (!offer || !product?.external_url) return;
-    logStat.mutate({ offer_id: offer.id, slot, kind: "link_clicks" });
+    logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
     window.open(product.external_url, "_blank", "noopener,noreferrer");
   };
 
@@ -321,7 +321,7 @@ const BrandProductPage = () => {
               <DiscountCodeChip
                 code={offer.discount_code}
                 variant="block"
-                onCopy={() => logStat.mutate({ offer_id: offer.id, slot, kind: "code_copies" })}
+                onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
               />
             )}
             {validUntil && (

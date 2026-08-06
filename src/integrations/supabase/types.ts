@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          match_reason: Json | null
+          occurred_at: string
+          offer_id: string
+          session_id: string | null
+          slot: string
+          user_id: string | null
+          was_matched: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          match_reason?: Json | null
+          occurred_at?: string
+          offer_id: string
+          session_id?: string | null
+          slot?: string
+          user_id?: string | null
+          was_matched?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          match_reason?: Json | null
+          occurred_at?: string
+          offer_id?: string
+          session_id?: string | null
+          slot?: string
+          user_id?: string | null
+          was_matched?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notifications: {
         Row: {
           body: string | null
@@ -498,7 +545,7 @@ export type Database = {
           },
         ]
       }
-      brand_offer_stats: {
+      brand_offer_stats_legacy: {
         Row: {
           code_copies: number
           created_at: string
@@ -3693,7 +3740,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      brand_offer_stats: {
+        Row: {
+          code_copies: number | null
+          expands: number | null
+          impressions: number | null
+          link_clicks: number | null
+          matched_impressions: number | null
+          matched_link_clicks: number | null
+          offer_id: string | null
+          raw_views: number | null
+          slot: string | null
+          stat_date: string | null
+          wishlist_adds: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
@@ -3818,10 +3888,11 @@ export type Database = {
         Args: { _offer_ids: string[] }
         Returns: {
           code_copies: number
+          expands: number
           impressions: number
           link_clicks: number
           offer_id: string
-          taps: number
+          raw_views: number
           wishlist_adds: number
         }[]
       }
@@ -3926,14 +3997,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      increment_brand_offer_stat: {
-        Args: {
-          _kind: string
-          _offer_id: string
-          _slot: Database["public"]["Enums"]["brand_placement_slot"]
-        }
-        Returns: undefined
-      }
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
       is_chat_participant: {
         Args: { _thread_id: string; _user_id: string }
@@ -4021,6 +4084,16 @@ export type Database = {
         }[]
       }
       queue_appointment_reminders: { Args: never; Returns: number }
+      record_ad_event: {
+        Args: {
+          p_event_type: string
+          p_match_reason?: Json
+          p_offer_id: string
+          p_slot?: string
+          p_was_matched?: boolean
+        }
+        Returns: undefined
+      }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined

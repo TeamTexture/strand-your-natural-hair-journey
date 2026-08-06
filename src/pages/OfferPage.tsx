@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useLogBrandStat, PlacementSlot } from "@/hooks/useBrandOffers";
+import { useLogAdEvent, PlacementSlot } from "@/hooks/useBrandOffers";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
 import { useQuery } from "@tanstack/react-query";
@@ -41,7 +41,7 @@ const OfferPage = () => {
   const slot = (params.get("slot") as PlacementSlot | null) ?? null;
   const nav = useNavigate();
   const { user } = useAuth();
-  const logStat = useLogBrandStat();
+  const logEvent = useLogAdEvent();
   const { allProducts, upsert } = useUserProducts();
   const { tools: userTools, reload: reloadTools } = useUserTools();
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
@@ -72,19 +72,19 @@ const OfferPage = () => {
     }
   }, [offer?.hero_image_path]);
 
-  // Record an impression the first time this offer page renders for the user
-  // this session (dedupe handled inside the hook). Also counts as a tap since
-  // reaching this page means the banner was engaged.
+  // Opening this page IS the deliberate expand action — it is the only event
+  // recorded on arrival. Views are recorded by the viewability observer on the
+  // banner itself, never on render of a page.
   useEffect(() => {
     if (!offer?.id) return;
-    logStat.mutate({ offer_id: offer.id, slot, kind: "impressions" });
+    logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer?.id]);
 
   if (isLoading || !offer) return <LoadingDot />;
 
   const goOffer = (url: string) => {
-    logStat.mutate({ offer_id: offer.id, slot, kind: "link_clicks" });
+    logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -187,7 +187,7 @@ const OfferPage = () => {
         ? await upsertBrandTool(bp, { wishlist: true })
         : await upsertBrandProduct(bp, { wishlist: true });
       if (row) {
-        logStat.mutate({ offer_id: offer.id, slot, kind: "wishlist_adds" });
+        logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
         toast.success("Added to your wishlist");
       }
     } finally {
@@ -245,7 +245,7 @@ const OfferPage = () => {
                 <DiscountCodeChip
                   code={offer.discount_code}
                   variant="block"
-                  onCopy={() => logStat.mutate({ offer_id: offer.id, slot, kind: "code_copies" })}
+                  onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
                 />
               </div>
             )}
@@ -265,7 +265,6 @@ const OfferPage = () => {
               const tool = isTool(p);
               const thumb = p.image_urls?.[0] ?? null;
               const goProduct = () => {
-                logStat.mutate({ offer_id: offer.id, slot, kind: "taps" });
                 nav(`/offers/${offer.id}/product/${p.id}${slot ? `?slot=${slot}` : ""}`);
               };
               return (

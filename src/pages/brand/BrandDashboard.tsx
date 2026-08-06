@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CreditCard, AlertCircle, Eye, MousePointerClick, Heart, Ticket, ExternalLink } from "lucide-react";
+import { Plus, CreditCard, AlertCircle, Eye, Maximize2, Heart, Ticket, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import TitleBar from "@/components/TitleBar";
@@ -14,7 +14,7 @@ import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
 import BrandProfilePrompt from "@/components/brand/BrandProfilePrompt";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus, STATS_METHOD_NOTE } from "@/hooks/useBrandOffers";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
@@ -153,7 +153,7 @@ const BrandDashboard = () => {
           {showStats && (
             <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/80">
               <span className="inline-flex items-center gap-1" title="Impressions"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
-              <span className="inline-flex items-center gap-1" title="Taps (banner opens)"><MousePointerClick className="size-3 text-muted-foreground" /> {t.taps}</span>
+              <span className="inline-flex items-center gap-1" title="Expands (banner opened)"><Maximize2 className="size-3 text-muted-foreground" /> {t.expands}</span>
               <span className="inline-flex items-center gap-1" title="Code copies"><Ticket className="size-3 text-muted-foreground" /> {t.code_copies}</span>
               <span className="inline-flex items-center gap-1" title="Link clicks (visit offer)"><ExternalLink className="size-3 text-muted-foreground" /> {t.link_clicks}</span>
               <span className="inline-flex items-center gap-1" title="Wishlist adds"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
@@ -294,6 +294,11 @@ const BrandDashboard = () => {
           <SectionLabel className={`!px-0 ${drafts.length + underReview.length + awaitingPayment.length > 0 ? "" : "!mt-0"}`}>
             Live
           </SectionLabel>
+          {liveNow.length > 0 && (
+            <p className="mb-2 text-[10px] font-body text-muted-foreground leading-snug">
+              {STATS_METHOD_NOTE}
+            </p>
+          )}
           {liveNow.length === 0 ? (
             <EmptyState icon="✦" message="Nothing running right now." tone="card" />
           ) : (

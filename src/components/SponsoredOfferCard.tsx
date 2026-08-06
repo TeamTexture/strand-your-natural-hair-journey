@@ -5,6 +5,7 @@ import { ExternalLink, Sparkles, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdViewTracker, useLogAdEvent } from "@/hooks/useBrandOffers";
 
 export interface SponsoredOffer {
   id: string;
@@ -32,6 +33,9 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
   const navigate = useNavigate();
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const logEvent = useLogAdEvent();
+  // Viewability-gated view event: ≥50% visible for a continuous 1s.
+  const viewRef = useAdViewTracker(offer.id, null);
 
   const { data: brand } = useQuery({
     queryKey: ["brand-profile-lite", offer.brand_user_id],
@@ -76,12 +80,14 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
   }, [offer.hero_image_path, brand?.logo_path]);
 
   const left = daysLeft(offer.ends_on);
-  const openOffer = () =>
+  const openOffer = () => {
+    logEvent.mutate({ offer_id: offer.id, slot: null, event_type: "expand" });
     navigate(firstProduct?.id ? `/offers/${offer.id}/product/${firstProduct.id}` : `/offers/${offer.id}`);
+  };
 
 
   return (
-    <div className="relative rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden">
+    <div ref={viewRef} className="relative rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden">
       <span className="absolute top-2 right-2 z-10 text-[8px] uppercase tracking-wider bg-background/85 backdrop-blur px-1.5 py-0.5 rounded text-muted-foreground font-body">
         Sponsored
       </span>
@@ -118,7 +124,13 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
           <p className="text-[12.5px] leading-snug font-body text-foreground/85">{offer.body_copy}</p>
         )}
 
-        {offer.discount_code ? <DiscountCodeChip code={offer.discount_code} variant="block" /> : null}
+        {offer.discount_code ? (
+          <DiscountCodeChip
+            code={offer.discount_code}
+            variant="block"
+            onCopy={() => logEvent.mutate({ offer_id: offer.id, slot: null, event_type: "code_copy" })}
+          />
+        ) : null}
 
         {left !== null && (
           <p className="flex items-center gap-1.5 text-[11px] font-body text-muted-foreground">

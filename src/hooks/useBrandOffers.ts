@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -560,43 +560,120 @@ export function useRejectBrandOfferRevision() {
 }
 
 
-/** Session-scoped impression dedupe: one impression per (offer, slot) per browser session. */
-const impressionSeenKey = (offerId: string, slot: PlacementSlot | null) =>
-  `strand:brand-stat:impression:${offerId}:${slot ?? "none"}`;
+/** Ad delivery event taxonomy — mirrors public.ad_events.event_type.
+ *  There is deliberately no "tap": it conflated render, expand and click and
+ *  has been retired, not renamed. */
+export type AdEventType = "view" | "expand" | "link_click" | "code_copy" | "wishlist";
 
-export function useLogBrandStat() {
+/** Writes one row to the append-only public.ad_events log via the
+ *  record_ad_event RPC. Nothing here increments a counter and nothing fires on
+ *  render — callers must wire each event to real user intent (see
+ *  useAdViewTracker for the viewability-gated `view` event). */
+export function useLogAdEvent() {
   return useMutation({
     mutationFn: async ({
       offer_id,
       slot,
-      kind,
+      event_type,
+      was_matched,
+      match_reason,
     }: {
       offer_id: string;
       slot: PlacementSlot | null;
-      kind: "impressions" | "taps" | "wishlist_adds" | "code_copies" | "link_clicks";
+      event_type: AdEventType;
+      was_matched?: boolean | null;
+      match_reason?: Record<string, unknown> | null;
     }) => {
-      // Dedupe impressions per (offer, slot) per session so re-renders / route
-      // revisits don't inflate counts.
-      if (kind === "impressions") {
-        try {
-          const k = impressionSeenKey(offer_id, slot);
-          if (sessionStorage.getItem(k)) return;
-          sessionStorage.setItem(k, "1");
-        } catch { /* sessionStorage disabled — still log */ }
-      }
-      // Fire-and-forget atomic increment via SECURITY DEFINER RPC. Never blocks UI.
-      const { error } = await supabase.rpc("increment_brand_offer_stat" as never, {
-        _offer_id: offer_id,
-        _slot: slot,
-        _kind: kind,
+      // Fire-and-forget. Server-side dedupe caps billable views at one per
+      // (user, offer, slot) per hour, so the client never has to guess.
+      const { error } = await supabase.rpc("record_ad_event" as never, {
+        p_offer_id: offer_id,
+        p_event_type: event_type,
+        p_slot: slot ?? "unknown",
+        p_was_matched: was_matched ?? null,
+        p_match_reason: match_reason ?? null,
       } as never);
-      if (error) console.warn("brand stat log failed", error);
+      if (error) console.warn("ad event log failed", error);
     },
   });
 }
 
-/** Aggregate totals across ALL users for the given offers. Backed by a SECURITY
- *  DEFINER function that only returns rows for offers owned by the caller (or admin). */
+/** Viewability gate for the `view` event: the element must be at least
+ *  VIEW_THRESHOLD in the viewport for VIEW_DWELL_MS of continuous time before a
+ *  view is recorded. Scrolling straight past records nothing. */
+export const VIEW_THRESHOLD = 0.5;
+export const VIEW_DWELL_MS = 1000;
+
+/** Returns a ref to attach to the ad's root element. Records exactly one
+ *  `view` event per mount once the 50%-for-1s condition is met. */
+export function useAdViewTracker(
+  offerId: string | null | undefined,
+  slot: PlacementSlot | null,
+  opts?: { was_matched?: boolean | null; match_reason?: Record<string, unknown> | null },
+) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const log = useLogAdEvent();
+  const firedRef = useRef(false);
+  const matched = opts?.was_matched ?? null;
+  const reason = opts?.match_reason ?? null;
+
+  useEffect(() => {
+    firedRef.current = false;
+    const el = ref.current;
+    if (!el || !offerId) return;
+    if (typeof IntersectionObserver === "undefined") return;
+
+    let timer: number | null = null;
+    const clear = () => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= VIEW_THRESHOLD) {
+          if (firedRef.current || timer !== null) return;
+          timer = window.setTimeout(() => {
+            timer = null;
+            if (firedRef.current) return;
+            firedRef.current = true;
+            log.mutate({ offer_id: offerId, slot, event_type: "view", was_matched: matched, match_reason: reason });
+            observer.disconnect();
+          }, VIEW_DWELL_MS);
+        } else {
+          // Left the viewport before the dwell completed — no view.
+          clear();
+        }
+      },
+      { threshold: [0, VIEW_THRESHOLD, 1] },
+    );
+    observer.observe(el);
+    return () => {
+      clear();
+      observer.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerId, slot]);
+
+  return ref;
+}
+
+export interface AdTotals {
+  impressions: number;
+  raw_views: number;
+  expands: number;
+  link_clicks: number;
+  code_copies: number;
+  wishlist_adds: number;
+}
+
+/** Aggregate totals across ALL users for the given offers, derived from the
+ *  ad_events log. Backed by a SECURITY DEFINER function that only returns rows
+ *  for offers owned by the caller (or admin). */
 export function useBrandOfferTotals(offerIds: string[]) {
   const key = [...offerIds].sort().join(",");
   return useQuery({
@@ -606,20 +683,27 @@ export function useBrandOfferTotals(offerIds: string[]) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("brand_offer_totals" as never, { _offer_ids: offerIds } as never);
       if (error) throw error;
-      const map: Record<string, { impressions: number; taps: number; wishlist_adds: number; code_copies: number; link_clicks: number }> = {};
-      for (const row of (data ?? []) as Array<{ offer_id: string; impressions: number; taps: number; wishlist_adds: number; code_copies: number; link_clicks: number }>) {
-        map[row.offer_id] = {
+      const map: Record<string, AdTotals> = {};
+      for (const row of (data ?? []) as Array<Record<string, number | string>>) {
+        map[String(row.offer_id)] = {
           impressions: Number(row.impressions ?? 0),
-          taps: Number(row.taps ?? 0),
-          wishlist_adds: Number(row.wishlist_adds ?? 0),
-          code_copies: Number(row.code_copies ?? 0),
+          raw_views: Number(row.raw_views ?? 0),
+          expands: Number(row.expands ?? 0),
           link_clicks: Number(row.link_clicks ?? 0),
+          code_copies: Number(row.code_copies ?? 0),
+          wishlist_adds: Number(row.wishlist_adds ?? 0),
         };
       }
       return map;
     },
   });
 }
+
+/** Copy shown wherever campaign performance is displayed — the measurement
+ *  change on 6 Aug 2026 means earlier figures aren't comparable. */
+export const STATS_METHOD_NOTE =
+  "Data before 6 August 2026 was measured differently and is directional only.";
+
 
 export function useDeleteBrandOffer() {
   const qc = useQueryClient();
