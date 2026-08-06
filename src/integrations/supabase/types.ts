@@ -3636,6 +3636,7 @@ export type Database = {
           current_style_tension: string | null
           default_styles: string[]
           id: string
+          main_photo_id: string | null
           planned_change_date: string | null
           planned_next_style: string | null
           planned_style_extensions: boolean | null
@@ -3659,6 +3660,7 @@ export type Database = {
           current_style_tension?: string | null
           default_styles?: string[]
           id?: string
+          main_photo_id?: string | null
           planned_change_date?: string | null
           planned_next_style?: string | null
           planned_style_extensions?: boolean | null
@@ -3682,6 +3684,7 @@ export type Database = {
           current_style_tension?: string | null
           default_styles?: string[]
           id?: string
+          main_photo_id?: string | null
           planned_change_date?: string | null
           planned_next_style?: string | null
           planned_style_extensions?: boolean | null
@@ -3690,7 +3693,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_style_profile_main_photo_id_fkey"
+            columns: ["main_photo_id"]
+            isOneToOne: false
+            referencedRelation: "user_milestone_photos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_tools: {
         Row: {
