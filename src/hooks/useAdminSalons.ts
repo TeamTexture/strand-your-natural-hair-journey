@@ -104,7 +104,10 @@ export const useUpdateSalon = () => {
         }
       }
       if (is_published !== undefined) row.is_published = is_published;
-      const { error } = await supabase.from("salons").update(row).eq("id", id);
+      const { error } = await supabase
+        .from("salons")
+        .update(row as never)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
