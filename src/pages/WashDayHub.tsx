@@ -460,7 +460,7 @@ const WashDayHub = () => {
                   >
                     {OVERDUE_CTA} →
                   </button>
-                  {schedulingRow(true)}
+                  
                 </div>
               }
             >
