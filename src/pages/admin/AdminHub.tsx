@@ -312,6 +312,7 @@ const AdminHub = () => {
   const { data: dropoff } = useAdminDropOffCounts();
   const { data: pendingProfileReviews = 0 } = usePendingProProfileReviewCount();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
+  const { data: openComplaints = 0 } = useOpenComplaintsCount();
   const revisionCount = pendingRevisions.length;
 
   return (
