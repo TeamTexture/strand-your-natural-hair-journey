@@ -64,21 +64,40 @@ const MilestoneGallery = () => {
 
   useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
 
-  const handlePick = async (file: File | null) => {
-    if (!file || !user) return;
-    const path = await upload(file);
-    if (!path) { toast.error("Upload failed"); return; }
+  // Upload one or more photos, then keep the Home "Current style" card honest:
+  //  - single upload, auto mode  → nothing to ask, just refresh the card
+  //  - batch upload              → ask which one should be the main photo
+  //  - a pin already exists      → ask before overriding an explicit choice
+  const handlePick = async (files: File[]) => {
+    if (files.length === 0 || !user) return;
     const today = new Date().toISOString().slice(0, 10);
-    const { error } = await supabase
-      .from("user_milestone_photos")
-      .insert({ user_id: user.id, storage_path: path, taken_on: today });
-    if (error) {
-      console.error(error);
-      toast.error("Could not save");
-      return;
+    const insertedIds: string[] = [];
+    for (const file of files) {
+      const path = await upload(file);
+      if (!path) { toast.error("Upload failed"); continue; }
+      const { data, error } = await supabase
+        .from("user_milestone_photos")
+        .insert({ user_id: user.id, storage_path: path, taken_on: today })
+        .select("id")
+        .maybeSingle();
+      if (error) {
+        console.error(error);
+        toast.error("Could not save");
+        continue;
+      }
+      if (data?.id) insertedIds.push(data.id as string);
     }
-    toast.success("Milestone photo added");
+    if (insertedIds.length === 0) return;
+    toast.success(insertedIds.length > 1 ? "Milestone photos added" : "Milestone photo added");
     await load();
+    // Home reads through react-query — invalidate so the card changes now,
+    // with no reload.
+    await refreshCardPhoto();
+    if (insertedIds.length > 1) {
+      setPickerOpen(true);
+    } else if (mainPhotoId) {
+      setSwitchTo(insertedIds[0]);
+    }
   };
 
   const removeRow = async (r: Row) => {
@@ -86,7 +105,11 @@ const MilestoneGallery = () => {
     await supabase.from("user_milestone_photos").delete().eq("id", r.id);
     await supabase.storage.from("milestone-photos").remove([r.storage_path]);
     setRows((prev) => prev.filter((x) => x.id !== r.id));
+    // Deleting the pinned photo clears main_photo_id (ON DELETE SET NULL),
+    // so the card drops back to auto mode — refresh to pick that up.
+    await refreshCardPhoto();
   };
+
 
   const daysSinceLast = rows[0]
     ? Math.floor((Date.now() - new Date(rows[0].taken_on).getTime()) / 86_400_000)
