@@ -773,6 +773,10 @@ export type Database = {
           logo_path: string | null
           offers_at_home_blood_tests_claimed: boolean
           offers_at_home_blood_tests_verified: boolean
+          sells_supplements_claimed: boolean
+          sells_supplements_verified: boolean
+          supplements_verified_at: string | null
+          supplements_verified_by: string | null
           tiktok_handle: string | null
           updated_at: string
           user_id: string
@@ -792,6 +796,10 @@ export type Database = {
           logo_path?: string | null
           offers_at_home_blood_tests_claimed?: boolean
           offers_at_home_blood_tests_verified?: boolean
+          sells_supplements_claimed?: boolean
+          sells_supplements_verified?: boolean
+          supplements_verified_at?: string | null
+          supplements_verified_by?: string | null
           tiktok_handle?: string | null
           updated_at?: string
           user_id: string
@@ -811,6 +819,10 @@ export type Database = {
           logo_path?: string | null
           offers_at_home_blood_tests_claimed?: boolean
           offers_at_home_blood_tests_verified?: boolean
+          sells_supplements_claimed?: boolean
+          sells_supplements_verified?: boolean
+          supplements_verified_at?: string | null
+          supplements_verified_by?: string | null
           tiktok_handle?: string | null
           updated_at?: string
           user_id?: string
