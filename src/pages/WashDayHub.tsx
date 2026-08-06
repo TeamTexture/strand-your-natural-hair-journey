@@ -29,6 +29,7 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { dedupeSentences, emphasisSplit, splitSentences } from "@/lib/tipsRender";
 import { restatesAction } from "@/lib/guidance";
+import { blowDryCountLast7Days } from "@/lib/stylingHeat";
 import { CircleSlash, Repeat, Ruler } from "lucide-react";
 
 
@@ -418,6 +419,10 @@ const WashDayHub = () => {
 
   // CONSEQUENCE only — one short, complete, never-truncated sentence: bold
   // 4–6 word lead-in + em-dash + one light clause of ≤ 12 words.
+  // Derived from logs only — a rolling count of wash days in the trailing
+  // 7 days whose styling heat included a blow dry (see src/lib/stylingHeat.ts).
+  const blowDries = useMemo(() => blowDryCountLast7Days(washDays as Array<{ wash_date?: string | null; styling?: unknown }>), [washDays]);
+
   const OVERDUE_CTA = "Log a wash day now";
   const OVERDUE_LEAD = "Buildup is settling on your scalp";
   const OVERDUE_CLAUSE = "it can restrict follicles and slow growth.";
@@ -602,6 +607,14 @@ const WashDayHub = () => {
 
       </div>
 
+
+      {blowDries > 0 && (
+        <div className="px-5 pb-1">
+          <p className="text-[11px] text-muted-foreground font-body">
+            Blow dried on {blowDries} of your wash days in the last 7 days.
+          </p>
+        </div>
+      )}
 
       <SectionLabel>Previous wash days</SectionLabel>
       <div className="px-5 space-y-3 pb-4">

@@ -36,6 +36,14 @@ import {
   EXTENSION_CHOICES,
   styleCanTakeExtensions,
 } from "@/lib/hairstyles";
+import {
+  type StylingHeat,
+  type StylingHeatLevel,
+  type StylingHeatMethod,
+  STYLING_HEAT_METHOD_CHOICES,
+  STYLING_HEAT_LEVEL_CHOICES,
+  STYLING_HEAT_YES_NO,
+} from "@/lib/stylingHeat";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -98,7 +106,14 @@ interface StylingSaved {
   /** Typed or transcribed description when the style is "Other". */
   otherNote?: string;
   otherAudioPath?: string | null;
+  /**
+   * THERMAL STYLING heat (blow dry / flat iron). Deliberately separate from
+   * conditioning heat (`heat_treatment` / `steps[].heat`) — snake_case keys,
+   * stored as `styling.heat` on the wash day row.
+   */
+  heat?: StylingHeat;
 }
+
 
 const safeParse = <T,>(key: string, fallback: T): T => {
   try {
@@ -122,6 +137,10 @@ const WashStepStyling = () => {
   const [tension, setTension] = useState<string | null>(saved.tension ?? null);
   const [otherNote, setOtherNote] = useState<string>(saved.otherNote ?? "");
   const [otherAudioPath, setOtherAudioPath] = useState<string | null>(saved.otherAudioPath ?? null);
+  const [heatUsed, setHeatUsed] = useState<boolean | null>(saved.heat?.used ?? null);
+  const [heatMethods, setHeatMethods] = useState<StylingHeatMethod[]>(saved.heat?.methods ?? []);
+  const [heatLevel, setHeatLevel] = useState<StylingHeatLevel | null>(saved.heat?.level ?? null);
+  const [heatProtectant, setHeatProtectant] = useState<boolean | null>(saved.heat?.protectant_used ?? null);
   const [audioPath, setAudioPath] = useState<string | null>(saved.audioPath ?? null);
   const [photoPaths, setPhotoPaths] = useState<string[]>(saved.photoPaths ?? []);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
@@ -202,13 +221,23 @@ const WashStepStyling = () => {
     const productNames = productIds
       .map((id) => shelfProducts.find((p) => p.id === id)?.name)
       .filter((n): n is string => !!n);
+    // Merge over anything already on the draft so unknown/future keys survive.
     const payload: StylingSaved = {
+      ...saved,
       style, productIds, productNames, duration, stress,
       note, audioPath, photoPaths, saveAsJournal,
       extensions: asksExtensions ? extensions : null,
       tension,
       otherNote: isOther ? otherNote.trim() : "",
       otherAudioPath: isOther ? otherAudioPath : null,
+      // Thermal styling heat — never written into heat_treatment / steps[].heat.
+      heat: {
+        ...(saved.heat ?? {}),
+        used: heatUsed,
+        methods: heatUsed ? heatMethods : [],
+        level: heatUsed ? heatLevel : null,
+        protectant_used: heatUsed ? heatProtectant : null,
+      },
     };
     localStorage.setItem("strand_wash_styling", JSON.stringify(payload));
     navigate("/wash/step-4");
@@ -267,6 +296,62 @@ const WashStepStyling = () => {
             <p className="text-[11px] text-muted-foreground mt-1.5">{TENSION_HELPER}</p>
           </div>
         )}
+
+        {/* THERMAL STYLING HEAT — blow dry / flat iron. Separate from the
+            conditioning heat captured on the cleanse/condition/treatment steps.
+            All optional; nothing here blocks submission. */}
+        <div className="space-y-3">
+          <div>
+            <Eyebrow className="mb-2">Did you use heat to style? (optional)</Eyebrow>
+            <ChoiceChips
+              options={STYLING_HEAT_YES_NO}
+              value={heatUsed === null || heatUsed === undefined ? null : heatUsed ? "yes" : "no"}
+              columns={2}
+              onChange={(v) => {
+                const next = v === "yes";
+                if (heatUsed === next) { setHeatUsed(null); setHeatMethods([]); setHeatLevel(null); setHeatProtectant(null); return; }
+                setHeatUsed(next);
+                if (!next) { setHeatMethods([]); setHeatLevel(null); setHeatProtectant(null); }
+              }}
+            />
+          </div>
+
+          {heatUsed === true && (
+            <>
+              <div>
+                <Eyebrow className="mb-2">Which?</Eyebrow>
+                <ChoiceChips
+                  options={STYLING_HEAT_METHOD_CHOICES}
+                  value={heatMethods}
+                  multiple
+                  columns={2}
+                  onChange={(v) => {
+                    const m = v as StylingHeatMethod;
+                    setHeatMethods(heatMethods.includes(m) ? heatMethods.filter((x) => x !== m) : [...heatMethods, m]);
+                  }}
+                />
+              </div>
+              <div>
+                <Eyebrow className="mb-2">Heat level</Eyebrow>
+                <ChoiceChips
+                  options={STYLING_HEAT_LEVEL_CHOICES}
+                  value={heatLevel}
+                  columns={2}
+                  onChange={(v) => setHeatLevel(heatLevel === v ? null : (v as StylingHeatLevel))}
+                />
+              </div>
+              <div>
+                <Eyebrow className="mb-2">Did you use a heat protectant?</Eyebrow>
+                <ChoiceChips
+                  options={STYLING_HEAT_YES_NO}
+                  value={heatProtectant === null || heatProtectant === undefined ? null : heatProtectant ? "yes" : "no"}
+                  columns={2}
+                  onChange={(v) => setHeatProtectant(heatProtectant === (v === "yes") ? null : v === "yes")}
+                />
+              </div>
+            </>
+          )}
+        </div>
 
         <div>
           <Eyebrow icon={ICONS.products} className="mb-2">Products Used</Eyebrow>

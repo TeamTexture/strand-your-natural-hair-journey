@@ -23,6 +23,7 @@ import {
   HEAT_COOLDOWN_TIP,
   type StepHeat,
 } from "@/lib/washSteps";
+import { describeStylingHeat, type StylingHeat } from "@/lib/stylingHeat";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>
@@ -74,6 +75,8 @@ interface StylingSaved {
   tension?: string | null;
   otherNote?: string;
   otherAudioPath?: string | null;
+  /** Thermal styling heat — kept apart from conditioning heat entirely. */
+  heat?: StylingHeat;
 }
 
 interface NextWashTip { action: string; why: string }
@@ -154,6 +157,10 @@ const WashStep4 = () => {
     if (styling.extensions === true) bits.push("With extensions");
     if (styling.extensions === false) bits.push("Without extensions");
     if (styling.tension) bits.push(`Tension: ${styling.tension}`);
+    {
+      const heatBit = describeStylingHeat(styling.heat ?? null);
+      if (heatBit) bits.push(`Heat styling: ${heatBit}`);
+    }
     if (styling.productNames?.length) bits.push(`Products: ${styling.productNames.join(", ")}`);
     if (styling.duration?.length) bits.push(`Duration: ${styling.duration.join(", ")}`);
     if (styling.stress?.length) bits.push(`Stress: ${styling.stress.join(", ")}`);
