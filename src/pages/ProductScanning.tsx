@@ -5,6 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
+import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash } from "@/lib/profileSnapshot";
 import { toast } from "sonner";
@@ -171,10 +172,19 @@ const ProductScanning = () => {
         const product_key = `scan-${Date.now()}`;
         const intent = state.intent ?? "shelf";
         const saveFields = buildProductSaveFields(data ?? {});
+        // Deterministic link to an approved brand catalogue product, if one
+        // matches exactly. Never a guess — see src/lib/brandProductResolve.ts.
+        const brandLink = await resolveBrandProductLink({
+          name: saveFields.name,
+          brand: saveFields.brand ?? null,
+          kind: "product",
+        });
         const payload = {
           user_id: user.id,
           product_key,
           ...saveFields,
+          ingredients_source: brandLink ? "brand" : "scan",
+          linked_brand_product_id: brandLink?.brand_product_id ?? null,
           storage_path: state.storage_path,
           analysis_profile_snapshot_hash: currentHash,
           analysis_generated_at: new Date().toISOString(),
