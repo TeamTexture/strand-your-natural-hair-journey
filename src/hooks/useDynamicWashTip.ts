@@ -10,6 +10,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
+import {
+  loadResponsiveSignals,
+  responsiveSignatureParts,
+  styleSignatureParts,
+} from "@/lib/tipSignature";
+
 
 export interface DynamicWashTip {
   headline: string;
