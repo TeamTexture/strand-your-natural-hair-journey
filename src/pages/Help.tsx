@@ -138,6 +138,15 @@ const Help = () => {
       cta: "Read policy",
     },
     {
+      key: "dp-complaint",
+      icon: <Shield className="size-5" />,
+      title: "Data protection complaint",
+      body: "Unhappy with how we handle your personal data? We acknowledge every complaint within 30 days.",
+      action: () => navigate("/data-protection-complaint"),
+      cta: "Raise a complaint",
+
+    },
+    {
       key: "terms",
       icon: <FileText className="size-5" />,
       title: "Terms of use",
