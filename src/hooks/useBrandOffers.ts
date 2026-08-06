@@ -179,12 +179,20 @@ export function useBrandOffer(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("*, brand_offer_placements(*), brand_products(*), brand_offer_stats(*)")
+        .select("*, brand_offer_placements(*), brand_products(*)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return data;
+      // brand_offer_stats is a view (raw log + permanent rollup), so it carries
+      // no FK for PostgREST to embed — read its rows by offer id instead.
+      const { data: statRows } = await supabase
+        .from("brand_offer_stats")
+        .select("*")
+        .eq("offer_id", id!);
+      return { ...data, brand_offer_stats: statRows ?? [] };
     },
+
   });
 }
 
