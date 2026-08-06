@@ -24,6 +24,8 @@ import NewEnquiriesAlert from "@/components/pro/NewEnquiriesAlert";
 import BookingReturnPrompt from "@/components/booking/BookingReturnPrompt";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
+import { useResponsiveTipRefresh } from "@/hooks/useResponsiveTipRefresh";
+
 import { TipsLevelProvider } from "@/hooks/useTipsLevel";
 import { IngredientSheetProvider } from "@/components/ingredients/IngredientToken";
 
@@ -232,8 +234,10 @@ const RouteFallback = () => (
 const GlobalEffects = () => {
   useKeyboardAwareInputs();
   useTrackInAppHistory();
+  useResponsiveTipRefresh();
   return null;
 };
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

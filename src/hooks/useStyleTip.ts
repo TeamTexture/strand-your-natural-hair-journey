@@ -10,12 +10,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { loadStyleTipContext } from "@/hooks/useDynamicWashTip";
 import type { GuidanceTip } from "@/lib/tipsRender";
-
-const hashString = (input: string): string => {
-  let h = 0;
-  for (let i = 0; i < input.length; i++) h = ((h << 5) - h + input.charCodeAt(i)) | 0;
-  return Math.abs(h).toString(36);
-};
+import {
+  hashString,
+  loadResponsiveSignals,
+  responsiveSignatureParts,
+  styleSignatureParts,
+} from "@/lib/tipSignature";
 
 interface StyleTipPayload {
   headline: string;
@@ -34,26 +34,25 @@ export function useStyleTip() {
     gcTime: Infinity,
     queryFn: async (): Promise<GuidanceTip[]> => {
       if (!user?.id) return [];
-      const ctx = await loadStyleTipContext(user.id);
+      const [ctx, signals] = await Promise.all([
+        loadStyleTipContext(user.id),
+        loadResponsiveSignals(user.id),
+      ]);
       const h = ctx.hair as Record<string, unknown> | null;
       const he = ctx.health as Record<string, unknown> | null;
       const s = ctx.style as Record<string, unknown> | null;
 
       const fingerprint = hashString(
         [
-          "style-tip-v1",
+          "style-tip-v2",
           String(h?.hair_type ?? ""),
           String(h?.porosity ?? ""),
           String(h?.density ?? ""),
           String(h?.scalp_condition ?? ""),
-          String(s?.current_hairstyle ?? ""),
-          String(s?.planned_next_style ?? ""),
-          String(s?.current_style_tension ?? ""),
-          s?.current_style_extensions === null || s?.current_style_extensions === undefined
-            ? ""
-            : String(s.current_style_extensions),
+          ...styleSignatureParts(s),
           ctx.goals.map((g) => `${g.kind ?? ""}:${g.title ?? ""}`).sort().join("|"),
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
+          ...responsiveSignatureParts(signals),
           `tl${level}`,
         ].join("::"),
       );
@@ -77,9 +76,14 @@ export function useStyleTip() {
           goals: ctx.goals.map((g) => ({ title: g.title, category: g.kind ?? undefined })),
           bloodFlags: ctx.bloodFlags,
           hasWashHistory: ctx.hasWashHistory,
+          challenges: signals.challenges,
+          areasOfConcern: signals.areasOfConcern,
+          recentWashDay: signals.recentWashDay,
+          recentAppointment: signals.recentAppointment,
           tipsLevel: level,
         },
       });
+
       if (error) {
         console.warn("[useStyleTip] invoke failed", error.message);
         return [];

@@ -10,6 +10,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
+import {
+  loadResponsiveSignals,
+  responsiveSignatureParts,
+  styleSignatureParts,
+} from "@/lib/tipSignature";
+
 
 export interface DynamicWashTip {
   headline: string;
@@ -75,7 +81,10 @@ export function useDynamicWashTip() {
     gcTime: Infinity,
     queryFn: async (): Promise<DynamicWashTip | null> => {
       if (!user?.id) return null;
-      const ctx = await loadContext(user.id);
+      const [ctx, signals] = await Promise.all([
+        loadContext(user.id),
+        loadResponsiveSignals(user.id),
+      ]);
       const h = ctx.hair as { hair_type?: string; porosity?: string; density?: string; scalp_condition?: string } | null;
       const he = ctx.health as { overall_health?: string } | null;
       const s = ctx.style as {
@@ -87,19 +96,17 @@ export function useDynamicWashTip() {
       } | null;
       const fingerprint = hashString(
         [
+          "wash-tip-v2",
           h?.hair_type ?? "",
           h?.porosity ?? "",
           h?.density ?? "",
           h?.scalp_condition ?? "",
           he?.overall_health ?? "",
-          s?.current_hairstyle ?? "",
-          s?.current_style_tension ?? "",
-          s?.current_style_extensions === null || s?.current_style_extensions === undefined
-            ? ""
-            : String(s.current_style_extensions),
+          ...styleSignatureParts(ctx.style as Record<string, unknown> | null),
           ctx.hasWashHistory ? "wash" : "no-wash",
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
           ctx.goals.map((g) => `${g.kind ?? ""}:${g.title ?? ""}`).sort().join("|"),
+          ...responsiveSignatureParts(signals),
         ].join("::"),
       );
 
@@ -115,14 +122,23 @@ export function useDynamicWashTip() {
                 planned_next_style: s.planned_next_style,
                 current_style_tension: s.current_style_tension ?? null,
                 current_style_extensions: s.current_style_extensions ?? null,
+                planned_style_tension:
+                  (ctx.style as Record<string, unknown> | null)?.planned_style_tension ?? null,
+                planned_style_extensions:
+                  (ctx.style as Record<string, unknown> | null)?.planned_style_extensions ?? null,
               }
             : null,
           goals: ctx.goals.map((g) => ({ title: g.title, category: g.kind ?? undefined })),
           bloodFlags: ctx.bloodFlags,
           hasWashHistory: ctx.hasWashHistory,
+          challenges: signals.challenges,
+          areasOfConcern: signals.areasOfConcern,
+          recentWashDay: signals.recentWashDay,
+          recentAppointment: signals.recentAppointment,
           tipsLevel: level,
         },
       });
+
       if (error) {
         console.warn("[useDynamicWashTip] invoke failed", error.message);
         return null;
