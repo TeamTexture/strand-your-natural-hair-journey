@@ -606,179 +606,33 @@ const WashStep1 = () => {
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
             ...conditionSelected.map(formatProduct),
-            ...(heatChoice === "yes"
-              ? [heatMinutes ? `Heat · ${heatMinutes} min` : "Heat treatment"]
-              : []),
-            ...(heatChoice === "yes"
-              ? heatToolIds
-                  .map((id) => allTools.find((t) => t.id === id))
-                  .filter((t): t is NonNullable<typeof t> => !!t)
-                  .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
-              : []),
-            ...(heatChoice === "no" ? ["No heat"] : []),
+            ...heatChips(heatChoice, heatMinutes, heatToolIds),
           ]}
           editor={
-            <div className="px-3 py-2.5 bg-primary/5 border border-primary/30 rounded-[10px] space-y-2">
-              <div className="flex items-center gap-2">
-                <Flame className="size-4 text-primary" />
-                <span className="text-xs font-medium flex-1">Did you use a heat treatment?</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setHeatChoice("yes")}
-                  aria-pressed={heatChoice === "yes"}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
-                    heatChoice === "yes"
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card text-muted-foreground border-border",
-                  )}
-                >
-                  Yes ✓
-                </button>
-                <button
-                  type="button"
-                  onClick={handleHeatNo}
-                  aria-pressed={heatChoice === "no"}
-                  className={cn(
-                    "flex-1 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
-                    heatChoice === "no"
-                      ? "bg-muted text-foreground border-border"
-                      : "bg-card text-muted-foreground border-border",
-                  )}
-                >
-                  No
-                </button>
-              </div>
-              {heatChoice === "yes" && (
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] font-medium text-foreground">How long for?</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[15, 20, 30, 45, 60].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setHeatMinutes(m)}
-                        aria-pressed={heatMinutes === m}
-                        className={cn(
-                          "px-3 py-1 rounded-full text-[11px] font-medium border transition-colors min-h-[32px]",
-                          heatMinutes === m
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card text-muted-foreground border-border",
-                        )}
-                      >
-                        {m} min
-                      </button>
-                    ))}
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={240}
-                      placeholder="Custom"
-                      value={heatMinutes && ![15, 20, 30, 45, 60].includes(heatMinutes) ? heatMinutes : ""}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        setHeatMinutes(Number.isFinite(v) && v > 0 ? v : null);
-                      }}
-                      className="w-20 px-2.5 py-1 rounded-full text-[11px] bg-card border border-border min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-center"
-                    />
-                  </div>
-                  {heatMinutes && (
-                    <p className="text-[11px] text-muted-foreground">
-                      ✓ Logged: {heatMinutes} minutes. Tap <strong>Done</strong> on the Condition step to save.
-                    </p>
-                  )}
-                  <HeatToolPicker
-                    selectedIds={heatToolIds}
-                    onToggle={(id) =>
-                      setHeatToolIds((prev) =>
-                        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-                      )
-                    }
-                  />
-                </div>
-              )}
-              {heatChoice === "no" && !heatDialogOpen && (
-                <button
-                  type="button"
-                  onClick={() => setHeatDialogOpen(true)}
-                  className="text-[11px] text-primary underline underline-offset-2"
-                >
-                  Why heat could help your hair →
-                </button>
-              )}
-
-              {/* Quick education before deciding — compact disclosure at levels
-                  1-2 (StatusCallout), full anatomy always-visible at 3-4 (no
-                  accordion once the depth of level 3-4 calls for it). */}
-              <div className="border-t border-primary/20 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !heatWhyOpen;
-                    setHeatWhyOpen(next);
-                    if (next && !heatRationale && !heatLoading) void handleHeatNo();
-                  }}
-                  className="py-1 text-[11px] font-medium text-primary"
-                >
-                  {heatWhyOpen ? "Hide why heat could help" : "Why do a heat treatment?"}
-                </button>
-                {heatWhyOpen && (
-                  heatLoading && !heatRationale ? (
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground py-2">
-                      <Loader2 className="size-3 animate-spin" /> Personalising…
-                    </div>
-                  ) : heatRationale ? (
-                    level <= 2 ? (
-                      <StatusCallout
-                        tone="gold"
-                        icon={Flame}
-                        label="Heat treatment"
-                        chips={<KeyFactChips text={heatRationale.reasons.join(" ")} max={1} />}
-                        className="mt-2"
-                      >
-                        {heatRationale.headline}
-                      </StatusCallout>
-                    ) : (
-                      <GuidanceCard
-                        eyebrow="Heat treatment"
-                        icon={Flame}
-                        headline={heatRationale.headline}
-                        compact
-                        className="mt-2"
-                      >
-                        {heatRationale.reasons[0] && (() => {
-                          const { phrase, rest } = emphasisSplit(heatRationale.reasons[0]);
-                          return (
-                            <p className="text-[12.5px] leading-relaxed">
-                              <span className="font-semibold text-foreground">{phrase}</span>{" "}
-                              <span className="text-foreground/75">{rest}</span>
-                            </p>
-                          );
-                        })()}
-                        {heatRationale.reasons.length > 1 && (
-                          <ActionList
-                            actions={heatRationale.reasons.slice(1).map((r) => ({ action: r }))}
-                            showWhy={false}
-                            idPrefix="heat-reason"
-                          />
-                        )}
-                      </GuidanceCard>
-                    )
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground py-2">
-                      Gentle heat lifts the cuticle so deep conditioner absorbs further — useful for length retention, dryness, or coarser strands.
-                    </p>
-                  )
-                )}
-              </div>
-            </div>
+            <HeatStepEditor
+              stepLabel={washStepLabel("Condition")}
+              choice={heatChoice}
+              onYes={() => setHeatChoice("yes")}
+              onNo={() => handleHeatNo(setHeatChoice)}
+              minutes={heatMinutes}
+              onMinutes={setHeatMinutes}
+              toolIds={heatToolIds}
+              onToggleTool={(id) =>
+                setHeatToolIds((prev) =>
+                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                )
+              }
+              rationale={heatRationale}
+              rationaleLoading={heatLoading}
+              onRequestRationale={() => void fetchHeatRationale()}
+              onOpenWhyDialog={() => setHeatDialogOpen(true)}
+              whyDialogOpen={heatDialogOpen}
+              level={level}
+            />
           }
         />
         <StepCard
-          step={{ id: "4", emoji: "🧬", name: "Treatment", sub: "Optional — only when needed" }}
+          step={{ id: "4", emoji: "🧬", name: washStepLabel("Treatment"), sub: "Optional — only when needed" }}
           state={treatment}
           setState={setTreatment}
           selectedProducts={treatmentSelected}
@@ -786,24 +640,52 @@ const WashStep1 = () => {
           showLastWashHint={hintFor("treatment", treatmentSelected.length)}
           onOpenPicker={() => openPicker("treatment")}
           // Show the treatment type tags the user picked, plus the products they selected
-          // so the collapsed card reflects what they actually captured.
-          summaryChips={[...treatmentType, ...treatmentSelected.map(formatProduct)]}
+          // and the treatment-step heat answer — independent of the conditioner's.
+          summaryChips={[
+            ...treatmentType,
+            ...treatmentSelected.map(formatProduct),
+            ...heatChips(treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds),
+          ]}
           editor={
-            <div className="flex flex-wrap gap-2">
-              {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
-                <Tag
-                  key={t}
-                  selected={treatmentType.includes(t)}
-                  onClick={() =>
-                    setTreatmentType(treatmentType.includes(t) ? treatmentType.filter((x) => x !== t) : [...treatmentType, t])
-                  }
-                >
-                  {t}
-                </Tag>
-              ))}
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap gap-2">
+                {["Bond repair", "Protein", "Scalp treatment", "Colour treatment", "Other"].map((t) => (
+                  <Tag
+                    key={t}
+                    selected={treatmentType.includes(t)}
+                    onClick={() =>
+                      setTreatmentType(treatmentType.includes(t) ? treatmentType.filter((x) => x !== t) : [...treatmentType, t])
+                    }
+                  >
+                    {t}
+                  </Tag>
+                ))}
+              </div>
+              {/* Same heat flow as the Condition step, fully independent answer. */}
+              <HeatStepEditor
+                stepLabel={washStepLabel("Treatment")}
+                choice={treatmentHeatChoice}
+                onYes={() => setTreatmentHeatChoice("yes")}
+                onNo={() => handleHeatNo(setTreatmentHeatChoice)}
+                minutes={treatmentHeatMinutes}
+                onMinutes={setTreatmentHeatMinutes}
+                toolIds={treatmentHeatToolIds}
+                onToggleTool={(id) =>
+                  setTreatmentHeatToolIds((prev) =>
+                    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                  )
+                }
+                rationale={heatRationale}
+                rationaleLoading={heatLoading}
+                onRequestRationale={() => void fetchHeatRationale()}
+                onOpenWhyDialog={() => setHeatDialogOpen(true)}
+                whyDialogOpen={heatDialogOpen}
+                level={level}
+              />
             </div>
           }
         />
+
 
 
         <Button
