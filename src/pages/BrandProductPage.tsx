@@ -149,11 +149,13 @@ const BrandProductPage = () => {
           .eq("kind", cacheKind)
           .maybeSingle();
         if (cancelled) return;
-        if (cached?.payload) {
-          setGuidance(cached.payload as GuidancePayload);
+        const cachedPayload = cached?.payload as unknown as GuidancePayload | null;
+        if (cachedPayload && Array.isArray(cachedPayload.benefits)) {
+          setGuidance(cachedPayload);
           setGuidanceLoading(false);
           return;
         }
+
 
         const context = await buildAiContext();
         const { data: res, error } = await supabase.functions.invoke(
