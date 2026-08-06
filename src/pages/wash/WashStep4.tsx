@@ -41,6 +41,10 @@ interface Step1Saved {
   treatmentType?: string[];
   products?: string[];
   productIds?: string[];
+  /** Per-step heat, keyed by the stored step name ("Condition", "Treatment"). */
+  heatByStep?: Record<string, StepHeat | null>;
+  // Log-level roll-up of the above, kept for older drafts written before
+  // per-step heat existed.
   heatTreatment?: "yes" | "no" | null;
   heatMinutes?: number | null;
   heatToolIds?: string[];
