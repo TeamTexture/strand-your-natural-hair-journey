@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          match_reason: Json | null
+          occurred_at: string
+          offer_id: string
+          session_id: string | null
+          slot: string
+          user_id: string | null
+          was_matched: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          match_reason?: Json | null
+          occurred_at?: string
+          offer_id: string
+          session_id?: string | null
+          slot?: string
+          user_id?: string | null
+          was_matched?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          match_reason?: Json | null
+          occurred_at?: string
+          offer_id?: string
+          session_id?: string | null
+          slot?: string
+          user_id?: string | null
+          was_matched?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notifications: {
         Row: {
           body: string | null
@@ -4021,6 +4068,16 @@ export type Database = {
         }[]
       }
       queue_appointment_reminders: { Args: never; Returns: number }
+      record_ad_event: {
+        Args: {
+          p_event_type: string
+          p_match_reason?: Json
+          p_offer_id: string
+          p_slot?: string
+          p_was_matched?: boolean
+        }
+        Returns: undefined
+      }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined
