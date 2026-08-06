@@ -84,6 +84,7 @@ const ProSetup = lazyRetry(() => import("./pages/pro/ProSetup"));
 const ProUnderReview = lazyRetry(() => import("./pages/pro/ProUnderReview"));
 const ProProfile = lazyRetry(() => import("./pages/pro/ProProfile"));
 const ProOffers = lazyRetry(() => import("./pages/pro/ProOffers"));
+const ProSalonStylists = lazyRetry(() => import("./pages/pro/ProSalonStylists"));
 const ProBilling = lazyRetry(() => import("./pages/pro/ProBilling"));
 const ProEnquiries = lazyRetry(() => import("./pages/pro/ProEnquiries"));
 const ProAppointments = lazyRetry(() => import("./pages/pro/ProAppointments"));
@@ -387,6 +388,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/pro/salon"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProSalonStylists /></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
                 path="/pro/offers"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
@@ -394,6 +403,7 @@ const App = () => (
                   </RoleGate>
                 }
               />
+
               <Route
                 path="/pro/billing"
                 element={

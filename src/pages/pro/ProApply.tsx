@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  STYLIST_CONSENT_LABEL,
+  STYLIST_EMAIL_HELP,
+  STYLIST_EMAIL_LABEL,
+} from "@/lib/salonCopy";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
@@ -99,6 +105,28 @@ const schema = z.object({
 
 type FormShape = z.infer<typeof schema>;
 
+/**
+ * A stylist declared on the application. These people don't exist as profiles
+ * until the application is approved, so they're captured separately.
+ * `contact_email` is OPTIONAL — if blank, enquiries fall back to the salon's
+ * business email. A stylist declining to give an email must never block the
+ * salon going live.
+ */
+type StylistRow = {
+  id?: string;
+  full_name: string;
+  contact_email: string;
+  discipline: Discipline;
+  specialisms: string;
+};
+
+const emptyStylist = (): StylistRow => ({
+  full_name: "",
+  contact_email: "",
+  discipline: "Stylist",
+  specialisms: "",
+});
+
 const initialForm: FormShape = {
   full_name: "",
   business_name: "",
@@ -128,6 +156,9 @@ const ProApply = () => {
   const [form, setForm] = useState<FormShape>(initialForm);
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [errors, setErrors] = useState<Partial<Record<keyof FormShape, string>>>({});
+  const [isSalon, setIsSalon] = useState(false);
+  const [stylists, setStylists] = useState<StylistRow[]>([emptyStylist()]);
+  const [stylistConsent, setStylistConsent] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -170,6 +201,27 @@ const ProApply = () => {
           instagram_handle: data.instagram_handle || "",
           why_strand: data.why_strand || "",
         });
+        setIsSalon((data as { is_salon?: boolean }).is_salon === true);
+        setStylistConsent(
+          !!(data as { stylist_consent_confirmed_at?: string | null })
+            .stylist_consent_confirmed_at,
+        );
+        const { data: savedStylists } = await supabase
+          .from("pro_application_stylists")
+          .select("*")
+          .eq("application_id", data.id)
+          .order("created_at");
+        if (savedStylists?.length) {
+          setStylists(
+            savedStylists.map((s) => ({
+              id: s.id,
+              full_name: s.full_name ?? "",
+              contact_email: s.contact_email ?? "",
+              discipline: (s.discipline as Discipline) ?? "Stylist",
+              specialisms: (s.specialisms ?? []).join(", "),
+            })),
+          );
+        }
         const savedHours = (data as unknown as { opening_hours?: OpeningHours | null }).opening_hours;
         if (savedHours && typeof savedHours === "object") {
           setHours({ ...defaultHours(), ...savedHours });
@@ -203,6 +255,27 @@ const ProApply = () => {
         return;
       }
       setErrors({});
+
+      if (isSalon) {
+        const named = stylists.filter((s) => s.full_name.trim().length >= 2);
+        if (named.length === 0) {
+          toast.error("Add at least one stylist, or choose solo professional.");
+          return;
+        }
+        const badEmail = named.find(
+          (s) =>
+            s.contact_email.trim() &&
+            !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.contact_email.trim()),
+        );
+        if (badEmail) {
+          toast.error(`Check the enquiry email for ${badEmail.full_name.trim()}.`);
+          return;
+        }
+        if (!stylistConsent) {
+          toast.error("Please confirm each stylist has agreed to be listed.");
+          return;
+        }
+      }
     }
 
     setSaving(true);
@@ -228,6 +301,9 @@ const ProApply = () => {
       why_strand: form.why_strand || "",
       opening_hours: hours,
       status: "pending" as const,
+      is_salon: isSalon,
+      stylist_consent_confirmed_at:
+        isSalon && stylistConsent ? new Date().toISOString() : null,
     };
     if (opts.submit) {
       payload.payment_confirmed_at = new Date().toISOString();
@@ -250,6 +326,34 @@ const ProApply = () => {
       error = res.error;
       newId = (res.data as { id?: string } | null)?.id ?? null;
       if (newId) setAppId(newId);
+    }
+    if (!error && newId) {
+      // Replace the declared roster wholesale — simplest correct behaviour for
+      // a form that can be saved as a draft repeatedly.
+      await supabase
+        .from("pro_application_stylists")
+        .delete()
+        .eq("application_id", newId);
+      const rows = isSalon
+        ? stylists
+            .filter((s) => s.full_name.trim().length >= 2)
+            .map((s) => ({
+              application_id: newId!,
+              full_name: s.full_name.trim(),
+              contact_email: s.contact_email.trim() || null,
+              discipline: s.discipline,
+              specialisms: s.specialisms
+                .split(",")
+                .map((x) => x.trim())
+                .filter(Boolean),
+            }))
+        : [];
+      if (rows.length) {
+        const res = await supabase
+          .from("pro_application_stylists")
+          .insert(rows as never);
+        if (res.error) error = res.error;
+      }
     }
     setSaving(false);
     if (error) {
@@ -337,6 +441,170 @@ const ProApply = () => {
             />
           </Field>
         </section>
+
+        {/* Solo or salon */}
+        <section className="space-y-3">
+          <p className={sectionHeader}>Solo or salon</p>
+          <p className="text-[11px] font-body text-muted-foreground leading-relaxed">
+            Are you a solo professional, or a salon listing more than one stylist?
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setIsSalon(false)}
+              className={
+                "rounded-[12px] border p-3 text-left transition-colors " +
+                (!isSalon
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-card")
+              }
+            >
+              <p className="font-display text-sm font-semibold">Solo professional</p>
+              <p className="text-[11px] font-body text-foreground/70 mt-0.5">
+                One listing, one login.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSalon(true)}
+              className={
+                "rounded-[12px] border p-3 text-left transition-colors " +
+                (isSalon
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-card")
+              }
+            >
+              <p className="font-display text-sm font-semibold">Salon</p>
+              <p className="text-[11px] font-body text-foreground/70 mt-0.5">
+                Several stylists under one salon.
+              </p>
+            </button>
+          </div>
+
+          {isSalon && (
+            <div className="space-y-3 pt-1">
+              <p className="text-[11px] font-body text-muted-foreground leading-relaxed">
+                List each stylist members should be able to enquire with by name. Your
+                salon address and opening hours are held once, below — you don't repeat
+                them per stylist.
+              </p>
+
+              {stylists.map((st, i) => (
+                <div
+                  key={i}
+                  className="rounded-[14px] border border-border bg-card p-3 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-body font-bold uppercase tracking-[0.18em] text-primary">
+                      Stylist {i + 1}
+                    </p>
+                    {stylists.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStylists((l) => l.filter((_, x) => x !== i))
+                        }
+                        className="text-[11px] font-body text-muted-foreground underline underline-offset-2"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <Field label="Full name *">
+                    <Input
+                      value={st.full_name}
+                      onChange={(e) =>
+                        setStylists((l) =>
+                          l.map((s, x) =>
+                            x === i ? { ...s, full_name: e.target.value } : s,
+                          ),
+                        )
+                      }
+                      placeholder="Amara Okonkwo"
+                    />
+                  </Field>
+                  <Field label="Discipline *">
+                    <Select
+                      value={st.discipline}
+                      onValueChange={(v) =>
+                        setStylists((l) =>
+                          l.map((s, x) =>
+                            x === i ? { ...s, discipline: v as Discipline } : s,
+                          ),
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {disciplines.map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label={STYLIST_EMAIL_LABEL}>
+                    <Input
+                      type="email"
+                      value={st.contact_email}
+                      onChange={(e) =>
+                        setStylists((l) =>
+                          l.map((s, x) =>
+                            x === i ? { ...s, contact_email: e.target.value } : s,
+                          ),
+                        )
+                      }
+                      placeholder="amara@yoursalon.co.uk"
+                    />
+                    <p className="mt-1 text-[11px] font-body text-muted-foreground leading-relaxed">
+                      {STYLIST_EMAIL_HELP}
+                    </p>
+                  </Field>
+                  <Field label="Specialisms">
+                    <Input
+                      value={st.specialisms}
+                      onChange={(e) =>
+                        setStylists((l) =>
+                          l.map((s, x) =>
+                            x === i ? { ...s, specialisms: e.target.value } : s,
+                          ),
+                        )
+                      }
+                      placeholder="Cornrows, silk press, locs"
+                    />
+                    <p className="mt-1 text-[11px] font-body text-muted-foreground">
+                      Separate with commas.
+                    </p>
+                  </Field>
+                </div>
+              ))}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStylists((l) => [...l, emptyStylist()])}
+              >
+                Add another stylist
+              </Button>
+
+              <label className="flex items-start gap-2.5 rounded-[12px] border border-border bg-card p-3">
+                <Checkbox
+                  checked={stylistConsent}
+                  onCheckedChange={(v) => setStylistConsent(v === true)}
+                  className="mt-0.5"
+                />
+                <span className="text-[12px] font-body leading-snug text-foreground/85">
+                  {STYLIST_CONSENT_LABEL}
+                </span>
+              </label>
+            </div>
+          )}
+        </section>
+
+
 
         {/* Insurance */}
         <section className="space-y-3">
