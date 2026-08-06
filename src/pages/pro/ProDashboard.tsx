@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star, KeyRound } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star, KeyRound, Scissors } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -18,6 +18,7 @@ import { useProReviews } from "@/hooks/useReviews";
 
 import { formatTime12h } from "@/lib/formatTime";
 import { useProGreetingName } from "@/hooks/useProGreetingName";
+import { useMySalon } from "@/hooks/useSalon";
 import BrandBanner from "@/components/BrandBanner";
 import ProTour from "@/components/ProTour";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
@@ -80,6 +81,7 @@ const ProDashboard = () => {
   const [passwordOpen, setPasswordOpen] = useState(false);
   const { firstName: proFirstName, fullName: proFullName } = useProGreetingName();
   const { isAdmin } = useRoles();
+  const { data: salon } = useMySalon();
   const { isActive: subActive, isLoading: subLoading } = useProSubscription();
   const { data: pendingCount = 0 } = usePendingApplicationsCount();
   const { data: pendingEnquiries = 0 } = usePendingEnquiriesCount();
