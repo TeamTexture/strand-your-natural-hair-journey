@@ -545,7 +545,7 @@ export type Database = {
           },
         ]
       }
-      brand_offer_stats: {
+      brand_offer_stats_legacy: {
         Row: {
           code_copies: number
           created_at: string
@@ -3740,7 +3740,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      brand_offer_stats: {
+        Row: {
+          code_copies: number | null
+          expands: number | null
+          impressions: number | null
+          link_clicks: number | null
+          matched_impressions: number | null
+          matched_link_clicks: number | null
+          offer_id: string | null
+          raw_views: number | null
+          slot: string | null
+          stat_date: string | null
+          wishlist_adds: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
@@ -3865,10 +3888,11 @@ export type Database = {
         Args: { _offer_ids: string[] }
         Returns: {
           code_copies: number
+          expands: number
           impressions: number
           link_clicks: number
           offer_id: string
-          taps: number
+          raw_views: number
           wishlist_adds: number
         }[]
       }
@@ -3972,14 +3996,6 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
-      }
-      increment_brand_offer_stat: {
-        Args: {
-          _kind: string
-          _offer_id: string
-          _slot: Database["public"]["Enums"]["brand_placement_slot"]
-        }
-        Returns: undefined
       }
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
       is_chat_participant: {
