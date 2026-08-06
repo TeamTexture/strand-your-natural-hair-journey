@@ -7,6 +7,7 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserGoal } from "@/hooks/useGoals";
+import { challengesOf } from "@/lib/goalChallenges";
 import { useGoalTip } from "@/hooks/useGoalTip";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import AnchorStat from "@/components/guidance/AnchorStat";
@@ -51,6 +52,7 @@ const formatDate = (iso: string): string => {
  * AI flow used elsewhere).
  */
 const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
+  const detailChallenges = challengesOf(goal);
   const { user } = useAuth();
   const [updates, setUpdates] = useState<GoalUpdate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -189,12 +191,21 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
         </SheetHeader>
 
         <div className="space-y-4 mt-4 pb-6">
-          {goal.challenge && (
+          {detailChallenges.length > 0 && (
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                Challenge
+                {detailChallenges.length === 1 ? "Challenge" : "Challenges"}
               </p>
-              <p className="text-sm leading-snug whitespace-pre-line">{goal.challenge}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {detailChallenges.map((c) => (
+                  <span
+                    key={c}
+                    className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground leading-snug"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
           {goal.target_text && (
@@ -205,7 +216,7 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
               <p className="text-sm leading-snug whitespace-pre-line">{goal.target_text}</p>
             </div>
           )}
-          {!goal.challenge && !goal.target_text && goal.title && (
+          {detailChallenges.length === 0 && !goal.target_text && goal.title && (
             <div>
               <p className="text-sm leading-snug">{goal.title}</p>
             </div>

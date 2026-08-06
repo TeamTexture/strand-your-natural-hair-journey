@@ -22,6 +22,18 @@ function djb2Hex(s: string): string {
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 
+// Challenges live in `user_goals.challenges` (text[]). The singular
+// `challenge` column is deprecated and read only as a fallback for a
+// pre-migration cached row. Kept inline (not imported) so this file stays
+// dependency-free and byte-identical on client and server.
+function goalChallenges(g: Record<string, unknown>): string[] {
+  const raw = g.challenges;
+  const list = Array.isArray(raw) ? raw.map((c) => String(c ?? "").trim()).filter(Boolean) : [];
+  if (list.length > 0) return list.slice().sort();
+  const legacy = String(g.challenge ?? "").trim();
+  return legacy ? [legacy] : [];
+}
+
 export function currentProfileHash(ctx: Record<string, unknown> | null | undefined): string {
   const c = (ctx ?? {}) as Record<string, unknown>;
   const hp = (c.hairProfile ?? {}) as Record<string, unknown>;
@@ -42,7 +54,7 @@ export function currentProfileHash(ctx: Record<string, unknown> | null | undefin
       .map((g) => ({
         kind: g.kind ?? null,
         title: g.title ?? null,
-        challenge: g.challenge ?? null,
+        challenges: goalChallenges(g),
         target_text: g.target_text ?? null,
         status: g.status ?? null,
       }))

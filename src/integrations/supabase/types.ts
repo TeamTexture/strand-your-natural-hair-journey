@@ -3100,6 +3100,7 @@ export type Database = {
         Row: {
           challenge: string | null
           challenge_voice_url: string | null
+          challenges: string[]
           created_at: string
           current_value: number
           ended_at: string | null
@@ -3121,6 +3122,7 @@ export type Database = {
         Insert: {
           challenge?: string | null
           challenge_voice_url?: string | null
+          challenges?: string[]
           created_at?: string
           current_value?: number
           ended_at?: string | null
@@ -3142,6 +3144,7 @@ export type Database = {
         Update: {
           challenge?: string | null
           challenge_voice_url?: string | null
+          challenges?: string[]
           created_at?: string
           current_value?: number
           ended_at?: string | null

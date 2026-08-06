@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
+import { challengeSummary } from "@/lib/goalChallenges";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { usePlusAlerts } from "@/hooks/usePlusAlerts";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
@@ -686,7 +687,7 @@ const Home = () => {
               // like to them. Fall back to a numeric summary only if neither
               // exists.
               const userText =
-                lengthGoal.challenge?.trim() ||
+                challengeSummary(lengthGoal) ||
                 lengthGoal.target_text?.trim() ||
                 lengthGoal.title?.trim() ||
                 null;

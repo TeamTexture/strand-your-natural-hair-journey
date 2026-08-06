@@ -15,7 +15,10 @@ export interface UserGoal {
   target_date: string | null;
   status: string;
   notes: string | null;
+  /** @deprecated superseded by `challenges`. Retained for rollback only. */
   challenge: string | null;
+  /** What the member is struggling with. No minimum, no maximum. */
+  challenges: string[];
   target_text: string | null;
   challenge_voice_url: string | null;
   target_voice_url: string | null;
@@ -58,7 +61,10 @@ export const useGoals = () => {
       if (!user) return null;
       const safeDraft = {
         ...draft,
-        title: draft.title?.trim() || draft.challenge?.slice(0, 60) || "Hair goal",
+        title:
+          draft.title?.trim() ||
+          draft.challenges?.[0]?.slice(0, 60) ||
+          "Hair goal",
       };
       if (id) {
         const { data, error } = await supabase

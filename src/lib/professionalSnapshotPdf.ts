@@ -7,6 +7,7 @@ import { isLowMatch } from "@/lib/matchStars";
 
 import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
+import { challengeSummary } from "@/lib/goalChallenges";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { BLOOD_RANGES, evaluate, statusLabel } from "@/data/bloodRanges";
 
@@ -360,7 +361,7 @@ export async function generateProfessionalSnapshotPdf(
     for (const g of activeGoals) {
       const target = g.target_text || (g.target_value ? `${g.target_value} ${g.unit ?? ""}` : "");
       const dateStr = g.target_date ? ` (by ${fmtDate(g.target_date)})` : "";
-      const detail = [g.challenge, target && `Target: ${target}`].filter(Boolean).join(" · ");
+      const detail = [challengeSummary(g), target && `Target: ${target}`].filter(Boolean).join(" · ");
       cur.row(String(g.kind || "Goal"), `${g.title || ""}${detail ? " — " + detail : ""}${dateStr}`);
     }
     if (areas.length > 0) cur.row("Areas of concern", areas.join(", "), COLORS.warn);

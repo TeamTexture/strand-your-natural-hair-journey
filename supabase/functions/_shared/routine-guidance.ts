@@ -1,3 +1,4 @@
+import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
 // Deterministic STRAND routine guardrails.
 //
 // Prompts tell the model what to do; this file makes the most important
@@ -39,7 +40,9 @@ const plannedStyleLabel = (context: UnknownRecord): string => {
 
 const hasGoalMatch = (context: UnknownRecord, re: RegExp): boolean => {
   const goals = Array.isArray(context.goals) ? (context.goals as UnknownRecord[]) : [];
-  return goals.some((g) => re.test(`${textOf(g.title)} ${textOf(g.challenge)} ${textOf(g.target_text)}`));
+  return goals.some((g) =>
+    re.test(`${textOf(g.title)} ${challengesOf(g).join(" ")} ${textOf(g.target_text)}`)
+  );
 };
 
 const hasHairSignal = (context: UnknownRecord, re: RegExp): boolean => {

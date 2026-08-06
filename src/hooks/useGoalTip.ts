@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { challengeSummary, challengesOf } from "@/lib/goalChallenges";
 import { buildAiContext } from "@/lib/aiContext";
 import type { UserGoal } from "@/hooks/useGoals";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
@@ -103,7 +104,7 @@ export const useGoalTip = (
   const { level } = useTipsLevel();
   return useQuery({
     queryKey: ["goal-tip", CACHE_VERSION, today, goal?.id, level, variantKey],
-    enabled: !!goal && !!(goal.challenge || goal.target_text || goal.title),
+    enabled: !!goal && (challengesOf(goal).length > 0 || !!goal.target_text || !!goal.title),
     staleTime: Infinity,
     gcTime: 1000 * 60 * 60 * 36,
     refetchOnMount: false,
@@ -124,7 +125,10 @@ export const useGoalTip = (
             goal.id,
           ),
           goal: {
-            challenge: goal.challenge ?? goal.title ?? null,
+            // goal-tip reads challenges via the shared accessor; send both
+            // the list and a joined line so older prompt paths still resolve.
+            challenges: challengesOf(goal),
+            challenge: challengeSummary(goal) || goal.title || null,
             target_text: goal.target_text ?? null,
             target_date: goal.target_date ?? null,
             status: goal.status ?? null,

@@ -1,15 +1,17 @@
 import { Ruler, Droplets, Shield, Sparkles, Target, Scissors, type LucideIcon } from "lucide-react";
+import { challengeSummary, challengesOf } from "@/lib/goalChallenges";
 
 /** Map a goal to its medallion icon using kind first, then its own words. */
 export const goalIcon = (goal: {
   kind?: string | null;
   title?: string | null;
+  challenges?: string[] | null;
   challenge?: string | null;
   target_text?: string | null;
 }): LucideIcon => {
   const kind = (goal.kind ?? "").toLowerCase();
   if (kind.includes("length")) return Ruler;
-  const text = [goal.title, goal.challenge, goal.target_text]
+  const text = [goal.title, ...challengesOf(goal), goal.target_text]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -24,8 +26,9 @@ export const goalIcon = (goal: {
 /** Human label for the goal's headline line. */
 export const goalTitle = (goal: {
   title?: string | null;
+  challenges?: string[] | null;
   challenge?: string | null;
-}): string => (goal.challenge?.trim() || goal.title?.trim() || "Your hair goal");
+}): string => (challengeSummary(goal) || goal.title?.trim() || "Your hair goal");
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 

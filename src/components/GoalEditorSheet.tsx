@@ -11,6 +11,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ChipListInput from "@/components/ui/ChipListInput";
+import {
+  challengesOf,
+  proposeChallengesFromTranscript,
+} from "@/lib/goalChallenges";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,7 +76,12 @@ const GoalEditorSheet = ({
 }: Props) => {
   const { upsertGoal, deleteGoal } = useGoals();
   const { user } = useAuth();
-  const [challenge, setChallenge] = useState("");
+  // Challenges are a list — no minimum, no maximum. `challenge` (singular)
+  // is deprecated in the DB and no longer written from here.
+  const [challenges, setChallenges] = useState<string[]>([]);
+  // Transcript proposal awaiting the member's confirmation. Nothing is added
+  // to the list until she accepts it, because splitting speech is guesswork.
+  const [proposed, setProposed] = useState<string[] | null>(null);
   const [target, setTarget] = useState("");
   const [timelineAmount, setTimelineAmount] = useState("");
   const [timelineUnit, setTimelineUnit] = useState<"days" | "weeks" | "months">("weeks");
@@ -96,7 +106,8 @@ const GoalEditorSheet = ({
 
   useEffect(() => {
     if (!open) return;
-    setChallenge(goal?.challenge ?? "");
+    setChallenges(challengesOf(goal));
+    setProposed(null);
     setTarget(goal?.target_text ?? "");
     setChallengeVoice(goal?.challenge_voice_url ?? null);
     setTargetVoice(goal?.target_voice_url ?? null);
@@ -133,7 +144,7 @@ const GoalEditorSheet = ({
   };
 
   const fetchTip = async (savedGoal: {
-    challenge: string | null;
+    challenges: string[];
     target_text: string | null;
     target_date: string | null;
     status: string;
@@ -162,7 +173,7 @@ const GoalEditorSheet = ({
   };
 
   const handleSave = async () => {
-    if (!challenge.trim() && !target.trim() && !challengeVoice && !targetVoice) {
+    if (challenges.length === 0 && !target.trim() && !challengeVoice && !targetVoice) {
       toast.error("Add a challenge or a target to save");
       return;
     }
@@ -170,8 +181,8 @@ const GoalEditorSheet = ({
     try {
       const savedGoal = {
         kind: goal?.kind ?? defaultKind,
-        title: challenge.trim().slice(0, 80) || "Hair goal",
-        challenge: challenge.trim() || null,
+        title: challenges[0]?.slice(0, 80) || "Hair goal",
+        challenges,
         target_text: target.trim() || null,
         target_date: computeTargetDate(),
         challenge_voice_url: challengeVoice,
@@ -188,7 +199,7 @@ const GoalEditorSheet = ({
       onOpenChange(false);
       // Fire the AI tip popup with the fresh goal + full user context.
       void fetchTip({
-        challenge: savedGoal.challenge,
+        challenges: savedGoal.challenges,
         target_text: savedGoal.target_text,
         target_date: savedGoal.target_date,
         status: savedGoal.status,
@@ -228,16 +239,39 @@ const GoalEditorSheet = ({
           </SheetHeader>
 
           <div className="space-y-5 mt-4 pb-6">
-            <VoiceNoteField
-              label="Challenge"
-              placeholder="What do you want to tackle?"
-              value={challenge}
-              onChange={setChallenge}
-              audioPath={challengeVoice}
-              onAudioPathChange={setChallengeVoice}
-              folder="goal-challenge"
-              rows={3}
-            />
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Challenges</p>
+              <p className="text-xs text-muted-foreground">
+                Add as many as you like — each one shapes the guidance you get.
+              </p>
+              <ChipListInput
+                value={challenges}
+                onChange={setChallenges}
+                placeholder="e.g. Breakage at my nape"
+                emptyLabel="No challenges added yet."
+                inputAriaLabel="Add a challenge"
+              />
+              {/* Voice stays as an input method: record, transcribe, then
+                  confirm the proposed chips before anything is saved. */}
+              <VoiceNoteField
+                label="Or record it"
+                placeholder=""
+                value=""
+                onChange={() => {}}
+                audioPath={challengeVoice}
+                onAudioPathChange={setChallengeVoice}
+                folder="goal-challenge"
+                hideTextarea
+                onTranscript={(text) => {
+                  const next = proposeChallengesFromTranscript(text);
+                  if (next.length === 0) {
+                    toast("Nothing we could pick out — try adding it as text");
+                    return;
+                  }
+                  setProposed(next);
+                }}
+              />
+            </div>
 
             <VoiceNoteField
               label="Target"
@@ -358,7 +392,58 @@ const GoalEditorSheet = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Transcript confirmation — the member edits the proposed split before
+          it becomes part of her challenge list. Nothing is saved from here. */}
+      <Dialog open={proposed !== null} onOpenChange={(o) => !o && setProposed(null)}>
+        <DialogContent className="max-w-[340px] rounded-[20px]">
+          <DialogHeader>
+            <DialogTitle className="font-display text-left">
+              Is this what you meant?
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              Edit or remove anything, then add them to your challenges.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ChipListInput
+            value={proposed ?? []}
+            onChange={setProposed}
+            placeholder="Add another"
+            emptyLabel="Nothing left — add one or cancel."
+            inputAriaLabel="Edit proposed challenge"
+          />
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="pill" onClick={() => setProposed(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="gold"
+              size="pill"
+              disabled={!proposed?.length}
+              onClick={() => {
+                const incoming = proposed ?? [];
+                setChallenges((prev) => {
+                  const merged = [...prev];
+                  for (const c of incoming) {
+                    if (!merged.some((x) => x.toLowerCase() === c.toLowerCase())) {
+                      merged.push(c);
+                    }
+                  }
+                  return merged;
+                });
+                setProposed(null);
+                toast.success("Added to your challenges");
+              }}
+            >
+              Add
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 };
 

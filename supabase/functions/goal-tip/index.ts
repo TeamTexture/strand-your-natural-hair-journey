@@ -17,6 +17,7 @@ import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import { allChallenges, challengeText, challengesOf } from "../_shared/challenges.ts";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
@@ -91,7 +92,7 @@ function selectGoalChapters(goalText: string): number[] {
 
 function selectGoalTopics(body: RequestBody): string[] {
   const picks = new Set<TopicId>();
-  const goalText = [body.goal.challenge, body.goal.target_text]
+  const goalText = [challengeText(body.goal), body.goal.target_text]
     .filter(Boolean).join(" ");
   for (const { re, topics } of GOAL_KEYWORD_TOPICS) {
     if (re.test(goalText)) topics.forEach((t) => picks.add(t));
@@ -125,7 +126,7 @@ function selectGoalTopics(body: RequestBody): string[] {
  * retrieves different passages than length + low porosity + coarse.
  */
 function buildRagQuery(body: RequestBody): string {
-  const goalText = [body.goal.challenge, body.goal.target_text].filter(Boolean).join(" ");
+  const goalText = [challengeText(body.goal), body.goal.target_text].filter(Boolean).join(" ");
   const ctx = body.context as {
     hair?: {
       curl_pattern?: string; porosity?: string[]; density?: string[];
@@ -359,6 +360,9 @@ Everything else in this prompt still applies: the persona and voice, the core te
 
 interface RequestBody {
   goal: {
+    /** Source of truth — a member may list many challenges per goal. */
+    challenges?: string[] | null;
+    /** @deprecated joined fallback for older clients. */
     challenge: string | null;
     target_text: string | null;
     target_date: string | null;
@@ -414,7 +418,7 @@ Deno.serve(async (req) => {
     // Scope retrieval to the chapters most relevant to this goal so the
     // tips are drawn from the right part of the book (e.g. length → growth,
     // moisture retention, high-manipulation styling, wash frequency).
-    const goalText = [body.goal.challenge, body.goal.target_text].filter(Boolean).join(" ");
+    const goalText = [challengeText(body.goal), body.goal.target_text].filter(Boolean).join(" ");
     const chapterFilter = selectGoalChapters(goalText);
     const ragQuery = buildRagQuery(body);
     // Retry once, then fall back to the full corpus. Never block the user:
