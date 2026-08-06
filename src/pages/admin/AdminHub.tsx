@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   CalendarDays,
   BadgeCheck,
+  Scale,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
