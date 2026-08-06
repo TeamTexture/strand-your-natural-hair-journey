@@ -457,7 +457,20 @@ async function buildAiContextUncached(): Promise<AiContext> {
       high_rated_products: highRated,
     },
     goals,
-    challenges: allChallenges(goals),
+    // Challenges are their own record now (`user_challenges`), edited
+    // separately from goals. Legacy per-goal challenges are merged so older
+    // accounts keep their context until they re-save.
+    challenges: (() => {
+      const seen = new Set<string>();
+      const out: string[] = [];
+      for (const c of [...standaloneChallenges, ...allChallenges(goals)]) {
+        const key = c.toLowerCase();
+        if (!c || seen.has(key)) continue;
+        seen.add(key);
+        out.push(c);
+      }
+      return out;
+    })(),
     tipsLevel,
     shelf,
     tools,
