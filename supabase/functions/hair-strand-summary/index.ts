@@ -230,7 +230,7 @@ Deno.serve(async (req: Request) => {
       overview: (parsed.overview ?? "").toString().trim(),
       action_plan: [], // deprecated — always empty going forward
       routine_tips: guardedTips,
-    }, "hair-strand-summary");
+    }, "hair-strand-summary", { context });
 
 
 
