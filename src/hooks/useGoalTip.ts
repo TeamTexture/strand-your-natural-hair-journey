@@ -183,8 +183,6 @@ export const useGoalTip = (
       return tip;
     },
 
-      return tip;
-    },
   });
 };
 
