@@ -761,6 +761,30 @@ const WashStep1 = () => {
             if (coWash === "done") collect(coWashIds);
             if (condition === "done") collect(conditionIds);
             if (treatment === "done") collect(treatmentIds);
+            // Heat is captured per step. Build one entry per step that was
+            // answered, then roll them up into the single log-level shape the
+            // AI insight generation and existing readers expect.
+            const stepHeat = (
+              choice: HeatChoice,
+              minutes: number | null,
+              ids: string[],
+            ): StepHeat | null => {
+              if (!choice) return null;
+              if (choice === "no") return { used: false };
+              return {
+                used: true,
+                ...(minutes ? { duration_min: minutes } : {}),
+                ...(ids.length ? { tool_ids: ids, tools: toolNames(ids) } : {}),
+              };
+            };
+            const heatByStep: Record<string, StepHeat | null> = {
+              Condition: condition === "done" ? stepHeat(heatChoice, heatMinutes, heatToolIds) : null,
+              Treatment:
+                treatment === "done"
+                  ? stepHeat(treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds)
+                  : null,
+            };
+            const rolledHeat = rollUpStepHeat(Object.values(heatByStep).map((heat) => ({ heat })));
             localStorage.setItem(
               "strand_wash_step1",
               JSON.stringify({
@@ -770,15 +794,14 @@ const WashStep1 = () => {
                 treatmentType,
                 products: productLabels,
                 productIds,
-                heatTreatment: heatChoice,
-                heatMinutes: heatChoice === "yes" ? heatMinutes : null,
-                heatToolIds: heatChoice === "yes" ? heatToolIds : [],
-                heatToolNames: heatChoice === "yes"
-                  ? heatToolIds
-                      .map((id) => allTools.find((t) => t.id === id))
-                      .filter((t): t is NonNullable<typeof t> => !!t)
-                      .map((t) => (t.brand ? `${t.name} — ${t.brand}` : t.name))
-                  : [],
+                // Per-step heat, plus the log-level roll-up kept in the legacy
+                // keys so nothing downstream regresses.
+                heatByStep,
+                heatTreatment: rolledHeat ? (rolledHeat.used ? "yes" : "no") : null,
+                heatMinutes: rolledHeat?.duration_min ?? null,
+                heatToolIds: rolledHeat?.tool_ids ?? [],
+                heatToolNames: rolledHeat?.tools ?? [],
+
                 skipped: {
                   prePoo: prePoo === "skipped",
                   cleanse: cleanse === "skipped",
