@@ -53,7 +53,7 @@ const Directory = () => {
   const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading } = useDirectoryProfessionals();
-  const { stateFor } = useProContactStates();
+  const { stateForListing } = useProContactStates();
   // Hard wall: in the Professional / Brand / Admin views the directory is
   // read-only. No member enquiry state, no member chat, no member bottom nav.
   const roleView = useActiveRoleView();
@@ -64,13 +64,18 @@ const Directory = () => {
 
   const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
-  const [enquiryTarget, setEnquiryTarget] = useState<{ proUserId: string; name: string } | null>(null);
+  const [enquiryTarget, setEnquiryTarget] = useState<{
+    proUserId: string | null;
+    proProfileId: string | null;
+    name: string;
+  } | null>(null);
   const [externalEnquiryTarget, setExternalEnquiryTarget] = useState<{
     name: string;
     directoryId: string | null;
     proUserId: string | null;
   } | null>(null);
   const [expandedHours, setExpandedHours] = useState<Record<string, boolean>>({});
+  const [expandedSalons, setExpandedSalons] = useState<Record<string, boolean>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Verified-capability filters. Never sticky in the URL, cleared on tab change.
@@ -350,7 +355,7 @@ const Directory = () => {
           />
         ) : (
           results.map((p) => {
-            const contact = stateFor(p.proUserId);
+            const contact = stateForListing(p);
             const hasContact = contact.kind !== "none" || !!contact.threadId;
             const statusLine = proContactStatusLine(contact, (iso) =>
               formatDistanceToNow(new Date(iso), { addSuffix: true }),
@@ -578,12 +583,16 @@ const Directory = () => {
                   // booking link is never a CTA here — it surfaces inside the
                   // enquiry thread once they accept.
                   const enquireAction =
-                    tier === "full" && p.proUserId && canEnquire ? (
+                    tier === "full" && (p.proUserId || p.proProfileId) && canEnquire ? (
                       <ProContactAction
                         state={contact}
                         canNavigateToEnquiries={memberActions}
                         onEnquire={() =>
-                          setEnquiryTarget({ proUserId: p.proUserId!, name: p.name })
+                          setEnquiryTarget({
+                            proUserId: p.proUserId ?? null,
+                            proProfileId: p.proProfileId ?? null,
+                            name: p.name,
+                          })
                         }
                       />
                     ) : canEnquire ? (
@@ -733,6 +742,7 @@ const Directory = () => {
           open={!!enquiryTarget}
           onOpenChange={(o) => !o && setEnquiryTarget(null)}
           proUserId={enquiryTarget.proUserId}
+          proProfileId={enquiryTarget.proProfileId}
           proName={enquiryTarget.name}
         />
       )}
