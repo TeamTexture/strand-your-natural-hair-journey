@@ -388,6 +388,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/pro/salon"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProSalonStylists /></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
                 path="/pro/offers"
                 element={
                   <RoleGate allow={["professional", "admin"]}>
@@ -395,6 +403,7 @@ const App = () => (
                   </RoleGate>
                 }
               />
+
               <Route
                 path="/pro/billing"
                 element={
