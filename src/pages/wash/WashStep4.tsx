@@ -305,8 +305,25 @@ const WashStep4 = () => {
         styling: Object.keys(styling).length ? styling : null,
       };
 
-      const { error } = await supabase.from("wash_days").insert(payload as never);
+      const { data: inserted, error } = await supabase
+        .from("wash_days")
+        .insert(payload as never)
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
+
+      // Queue the OPTIONAL post-wash style profile prompt on the wash day page.
+      // Nothing is written to user_style_profile here — the member decides.
+      const insertedId = (inserted as { id?: string } | null)?.id;
+      if (insertedId) {
+        setPendingStylePrompt({
+          washDayId: insertedId,
+          styleAfter: payload.style_after,
+          styleExtensions: payload.style_extensions,
+          styleTension: payload.style_tension,
+        });
+      }
+
 
       // Optionally create a Style Journal entry to document this style.
       if (styling.saveAsJournal && (styling.photoPaths?.length || styling.note?.trim() || styling.style?.length)) {
