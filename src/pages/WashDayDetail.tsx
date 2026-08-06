@@ -15,6 +15,7 @@ import {
   Mic,
   CalendarDays,
 } from "lucide-react";
+import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -390,7 +391,8 @@ const WashDayDetail = () => {
         )}
 
         {/* Style attributes — only render what was actually captured. */}
-        {!editing && (wd.style_extensions != null || wd.style_tension || wd.style_other_note) && (
+        {!editing && (wd.style_extensions != null || wd.style_tension || wd.style_other_note ||
+          stylingHeatOf((wd as unknown as { styling?: unknown }).styling)?.used != null) && (
           <SurfaceCard>
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
               Style detail
@@ -405,6 +407,11 @@ const WashDayDetail = () => {
               {wd.style_tension && (
                 <p className="text-muted-foreground">
                   {wd.style_tension.charAt(0).toUpperCase() + wd.style_tension.slice(1)} tension
+                </p>
+              )}
+              {describeStylingHeat(stylingHeatOf((wd as unknown as { styling?: unknown }).styling)) && (
+                <p className="text-muted-foreground">
+                  Heat styling: {describeStylingHeat(stylingHeatOf((wd as unknown as { styling?: unknown }).styling))}
                 </p>
               )}
             </div>
