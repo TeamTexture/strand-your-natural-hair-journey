@@ -196,6 +196,11 @@ export function useUserProducts(filter: Filter = "all", opts?: { static?: boolea
     if (!user) { toast.error("Please sign in"); return null; }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: any = { ...p, user_id: user.id };
+    // Provenance of the detail on this row. A row linked to an approved brand
+    // catalogue product always inherits the brand's own ingredient list;
+    // anything typed in by hand is 'manual'. Scan/link paths set their own.
+    if (payload.linked_brand_product_id) payload.ingredients_source = "brand";
+    else if (!payload.ingredients_source) payload.ingredients_source = "manual";
     const { data, error } = await supabase
       .from("user_products")
       .upsert(payload, { onConflict: "user_id,product_key" })

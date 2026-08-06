@@ -13,6 +13,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyOfferInterest, useRegisterOfferInterest } from "@/hooks/useBrandOfferInterest";
+import BrandShelfSection from "@/components/brand/BrandShelfSection";
 
 interface PastOffer {
   id: string;
@@ -326,6 +327,8 @@ const BrandDetailPage = () => {
             </div>
           )}
         </div>
+
+        <BrandShelfSection brandUserId={brandUserId!} brandName={brand.brand_name ?? null} />
 
         {catalogue.length > 0 && (
           <div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
+import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash } from "@/lib/profileSnapshot";
 import { toast } from "sonner";
@@ -113,6 +114,7 @@ export function useProductUrlScan() {
           ...saveFields,
           image_url: safeImage,
           source_url: normalised,
+          ingredients_source: row.linked_brand_product_id ? "brand" : "link",
           analysis_profile_snapshot_hash: currentHash,
           analysis_generated_at: new Date().toISOString(),
         };
@@ -146,10 +148,19 @@ export function useProductUrlScan() {
 
       // fresh_scan — neutral state
       const product_key = `link-${Date.now()}`;
+      // Deterministic link to an approved brand catalogue product, if one
+      // matches exactly. Never a guess — see src/lib/brandProductResolve.ts.
+      const brandLink = await resolveBrandProductLink({
+        name: saveFields.name,
+        brand: saveFields.brand ?? null,
+        kind: "product",
+      });
       const payload = {
         user_id: user.id,
         product_key,
         ...saveFields,
+        ingredients_source: brandLink ? "brand" : "link",
+        linked_brand_product_id: brandLink?.brand_product_id ?? null,
         image_url: safeImage,
         source_url: normalised,
         analysis_profile_snapshot_hash: currentHash,

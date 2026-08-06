@@ -620,6 +620,45 @@ export type Database = {
           },
         ]
       }
+      brand_offer_products: {
+        Row: {
+          brand_product_id: string
+          created_at: string
+          id: string
+          offer_id: string
+          position: number
+        }
+        Insert: {
+          brand_product_id: string
+          created_at?: string
+          id?: string
+          offer_id: string
+          position?: number
+        }
+        Update: {
+          brand_product_id?: string
+          created_at?: string
+          id?: string
+          offer_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_products_brand_product_id_fkey"
+            columns: ["brand_product_id"]
+            isOneToOne: false
+            referencedRelation: "brand_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_offer_products_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_offer_revisions: {
         Row: {
           body_copy: string | null
@@ -832,57 +871,78 @@ export type Database = {
       }
       brand_products: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          brand_user_id: string | null
           created_at: string
           description: string | null
           external_url: string | null
           id: string
           image_urls: string[] | null
           ingredients: string[] | null
+          ingredients_source: string | null
+          is_published: boolean
           key_features: string[]
           kind: string
           linked_product_id: string | null
           materials: string[]
           name: string
-          offer_id: string
+          offer_id: string | null
           position: number
+          rejection_reason: string | null
           source_type: string
           source_url: string | null
           tool_kind: string | null
           updated_at: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          brand_user_id?: string | null
           created_at?: string
           description?: string | null
           external_url?: string | null
           id?: string
           image_urls?: string[] | null
           ingredients?: string[] | null
+          ingredients_source?: string | null
+          is_published?: boolean
           key_features?: string[]
           kind?: string
           linked_product_id?: string | null
           materials?: string[]
           name: string
-          offer_id: string
+          offer_id?: string | null
           position?: number
+          rejection_reason?: string | null
           source_type: string
           source_url?: string | null
           tool_kind?: string | null
           updated_at?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          brand_user_id?: string | null
           created_at?: string
           description?: string | null
           external_url?: string | null
           id?: string
           image_urls?: string[] | null
           ingredients?: string[] | null
+          ingredients_source?: string | null
+          is_published?: boolean
           key_features?: string[]
           kind?: string
           linked_product_id?: string | null
           materials?: string[]
           name?: string
-          offer_id?: string
+          offer_id?: string | null
           position?: number
+          rejection_reason?: string | null
           source_type?: string
           source_url?: string | null
           tool_kind?: string | null
@@ -3745,6 +3805,7 @@ export type Database = {
           id: string
           image_url: string | null
           ingredients: string[]
+          ingredients_source: string | null
           key_ingredients: Json
           last_used_at: string | null
           linked_brand_offer_id: string | null
@@ -3781,6 +3842,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredients?: string[]
+          ingredients_source?: string | null
           key_ingredients?: Json
           last_used_at?: string | null
           linked_brand_offer_id?: string | null
@@ -3817,6 +3879,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredients?: string[]
+          ingredients_source?: string | null
           key_ingredients?: Json
           last_used_at?: string | null
           linked_brand_offer_id?: string | null
@@ -4449,6 +4512,7 @@ export type Database = {
           user_count: number
         }[]
       }
+      brand_count_min_threshold: { Args: never; Returns: number }
       brand_offer_totals: {
         Args: { _offer_ids: string[] }
         Returns: {
@@ -4459,6 +4523,28 @@ export type Database = {
           offer_id: string
           raw_views: number
           wishlist_adds: number
+        }[]
+      }
+      brand_product_match_index: {
+        Args: never
+        Returns: {
+          brand_name: string
+          brand_user_id: string
+          id: string
+          kind: string
+          name: string
+        }[]
+      }
+      brand_product_member_counts: {
+        Args: { _brand_user_id?: string }
+        Returns: {
+          brand_product_id: string
+          favourite_count: number
+          min_threshold: number
+          name: string
+          shelf_count: number
+          suppressed: boolean
+          wishlist_count: number
         }[]
       }
       brand_public_catalogue: {
@@ -4479,6 +4565,23 @@ export type Database = {
           viewer_on_shelf: boolean
           viewer_on_wishlist: boolean
           viewer_previously_on_shelf: boolean
+        }[]
+      }
+      brand_shelf_products: {
+        Args: { _brand_user_id: string }
+        Returns: {
+          description: string
+          external_url: string
+          id: string
+          image_urls: string[]
+          ingredients: string[]
+          ingredients_source: string
+          key_features: string[]
+          kind: string
+          materials: string[]
+          name: string
+          sort_position: number
+          tool_kind: string
         }[]
       }
       brand_taken_placements: {
