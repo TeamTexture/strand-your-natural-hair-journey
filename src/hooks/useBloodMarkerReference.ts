@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -28,6 +29,8 @@ export function useBloodMarkerReference() {
  *  suppress mode (drop every blood/hair sentence) until the table loads. */
 export function useBloodMarkerLexicon(): MarkerLexicon {
   const { rows } = useBloodMarkerReference();
-  if (!rows.length) return SUPPRESS_LEXICON;
-  return buildLexicon(rows);
+  return useMemo(
+    () => (rows.length ? buildLexicon(rows) : SUPPRESS_LEXICON),
+    [rows],
+  );
 }

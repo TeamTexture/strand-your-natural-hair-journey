@@ -18,6 +18,8 @@ import { IngredientToken } from "@/components/ingredients/IngredientToken";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { normaliseInciKey } from "@/lib/inci";
 import { findProductMentions, productHref } from "@/lib/productMatch";
+import { scrubBloodClaims } from "@/lib/bloodGuardrail";
+import { useBloodMarkerLexicon } from "@/hooks/useBloodMarkerReference";
 
 export const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
 
@@ -274,14 +276,18 @@ export function renderInlineWithProducts(
 export function useSmartInline() {
   const { products } = useUserProducts("all");
   const { tokenNames } = useIngredientGlossary();
+  // Render-time blood guardrail: drops any sentence that links a blood marker
+  // to a hair outcome unless that marker is curated as `established`.
+  // Catches cached payloads written before the server-side guardrail shipped.
+  const bloodLex = useBloodMarkerLexicon();
   return React.useCallback(
     (text: string, keyPrefix = "s") =>
       renderInlineWithProducts(
-        safeRewrite(text, stripDefinitionBrackets(text)),
+        scrubBloodClaims(safeRewrite(text, stripDefinitionBrackets(text)), bloodLex),
         keyPrefix,
         products,
         tokenNames,
       ),
-    [products, tokenNames],
+    [products, tokenNames, bloodLex],
   );
 }
