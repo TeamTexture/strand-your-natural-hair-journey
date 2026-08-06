@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { usePendingProProfileReviewCount } from "@/hooks/useProProfileReview";
 import { useAllPendingRevisions, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
+import { useOpenComplaintsCount } from "@/hooks/useDataProtectionComplaints";
 import { cn } from "@/lib/utils";
 
 interface CampaignCounts {
