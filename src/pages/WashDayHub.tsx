@@ -434,6 +434,8 @@ const WashDayHub = () => {
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="wash_day" />
         <StyleProfilePrompt />
+        {overdue && (
+
 
           <div role="alert">
             {/* GUIDANCE CARD ANATOMY — status row → anchor stat → one
