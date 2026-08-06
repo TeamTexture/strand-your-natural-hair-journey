@@ -11,11 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import ChipListInput from "@/components/ui/ChipListInput";
-import {
-  challengesOf,
-  proposeChallengesFromTranscript,
-} from "@/lib/goalChallenges";
+import { challengesOf } from "@/lib/goalChallenges";
+import { useChallenges } from "@/hooks/useChallenges";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import { useGoals, type UserGoal } from "@/hooks/useGoals";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,16 +73,15 @@ const GoalEditorSheet = ({
 }: Props) => {
   const { upsertGoal, deleteGoal } = useGoals();
   const { user } = useAuth();
-  // Challenges are a list — no minimum, no maximum. `challenge` (singular)
-  // is deprecated in the DB and no longer written from here.
-  const [challenges, setChallenges] = useState<string[]>([]);
-  // Transcript proposal awaiting the member's confirmation. Nothing is added
-  // to the list until she accepts it, because splitting speech is guesswork.
-  const [proposed, setProposed] = useState<string[] | null>(null);
+  // A goal is ONE thing the member is working toward. Challenges live in
+  // their own card/table (`user_challenges`) and are edited separately —
+  // they're read here only so the AI tip has both sides of the picture.
+  const { challenges } = useChallenges();
+  const [goalText, setGoalText] = useState("");
   const [target, setTarget] = useState("");
   const [timelineAmount, setTimelineAmount] = useState("");
   const [timelineUnit, setTimelineUnit] = useState<"days" | "weeks" | "months">("weeks");
-  const [challengeVoice, setChallengeVoice] = useState<string | null>(null);
+  const [goalVoice, setGoalVoice] = useState<string | null>(null);
   const [targetVoice, setTargetVoice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const keyboardOffset = useKeyboardOffset();
@@ -106,10 +102,9 @@ const GoalEditorSheet = ({
 
   useEffect(() => {
     if (!open) return;
-    setChallenges(challengesOf(goal));
-    setProposed(null);
+    setGoalText(goal?.title?.trim() && goal.title !== "Hair goal" ? goal.title : challengesOf(goal)[0] ?? "");
     setTarget(goal?.target_text ?? "");
-    setChallengeVoice(goal?.challenge_voice_url ?? null);
+    setGoalVoice(goal?.challenge_voice_url ?? null);
     setTargetVoice(goal?.target_voice_url ?? null);
     // Reverse-derive amount + unit from the stored target_date so the
     // editor opens showing what the user originally picked.
@@ -173,19 +168,18 @@ const GoalEditorSheet = ({
   };
 
   const handleSave = async () => {
-    if (challenges.length === 0 && !target.trim() && !challengeVoice && !targetVoice) {
-      toast.error("Add a challenge or a target to save");
+    if (!goalText.trim() && !target.trim() && !goalVoice && !targetVoice) {
+      toast.error("Add your goal or a target to save");
       return;
     }
     setSaving(true);
     try {
       const savedGoal = {
         kind: goal?.kind ?? defaultKind,
-        title: challenges[0]?.slice(0, 80) || "Hair goal",
-        challenges,
+        title: goalText.trim().slice(0, 120) || "Hair goal",
         target_text: target.trim() || null,
         target_date: computeTargetDate(),
-        challenge_voice_url: challengeVoice,
+        challenge_voice_url: goalVoice,
         target_voice_url: targetVoice,
         status: goal?.status ?? defaultStatus,
       };
@@ -199,7 +193,7 @@ const GoalEditorSheet = ({
       onOpenChange(false);
       // Fire the AI tip popup with the fresh goal + full user context.
       void fetchTip({
-        challenges: savedGoal.challenges,
+        challenges,
         target_text: savedGoal.target_text,
         target_date: savedGoal.target_date,
         status: savedGoal.status,
@@ -240,36 +234,21 @@ const GoalEditorSheet = ({
 
           <div className="space-y-5 mt-4 pb-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Challenges</p>
+              <p className="text-sm font-medium">Your goal</p>
               <p className="text-xs text-muted-foreground">
-                Add as many as you like — each one shapes the guidance you get.
+                One goal only — put your single biggest goal here (e.g. "Retain
+                4 inches of length"). What's getting in the way goes in your
+                Challenges card instead.
               </p>
-              <ChipListInput
-                value={challenges}
-                onChange={setChallenges}
-                placeholder="e.g. Breakage at my nape"
-                emptyLabel="No challenges added yet."
-                inputAriaLabel="Add a challenge"
-              />
-              {/* Voice stays as an input method: record, transcribe, then
-                  confirm the proposed chips before anything is saved. */}
               <VoiceNoteField
-                label="Or record it"
-                placeholder=""
-                value=""
-                onChange={() => {}}
-                audioPath={challengeVoice}
-                onAudioPathChange={setChallengeVoice}
+                label=""
+                placeholder="e.g. Retain length without trimming back"
+                value={goalText}
+                onChange={setGoalText}
+                audioPath={goalVoice}
+                onAudioPathChange={setGoalVoice}
                 folder="goal-challenge"
-                hideTextarea
-                onTranscript={(text) => {
-                  const next = proposeChallengesFromTranscript(text);
-                  if (next.length === 0) {
-                    toast("Nothing we could pick out — try adding it as text");
-                    return;
-                  }
-                  setProposed(next);
-                }}
+                rows={2}
               />
             </div>
 
