@@ -18,6 +18,13 @@ import {
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
+import StatusCallout from "@/components/guidance/StatusCallout";
+import {
+  washStepLabel,
+  anyStepUsedHeat,
+  HEAT_COOLDOWN_TIP,
+  type StepHeat,
+} from "@/lib/washSteps";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
