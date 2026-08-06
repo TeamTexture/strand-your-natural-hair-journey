@@ -207,6 +207,30 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_dismissals: {
+        Row: {
+          alert_key: string
+          dismissed_at: string
+          id: string
+          trigger_signature: string
+          user_id: string
+        }
+        Insert: {
+          alert_key: string
+          dismissed_at?: string
+          id?: string
+          trigger_signature: string
+          user_id: string
+        }
+        Update: {
+          alert_key?: string
+          dismissed_at?: string
+          id?: string
+          trigger_signature?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       appointment_photos: {
         Row: {
           appointment_id: string
