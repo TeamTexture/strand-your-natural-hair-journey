@@ -389,6 +389,12 @@ const WashStep1 = () => {
     if (typeof draft.heatChoice === "string") setHeatChoice(draft.heatChoice as HeatChoice);
     if (typeof draft.heatMinutes === "number") setHeatMinutes(draft.heatMinutes);
     if (Array.isArray(draft.heatToolIds)) setHeatToolIds(draft.heatToolIds as string[]);
+    if (typeof draft.treatmentHeatChoice === "string")
+      setTreatmentHeatChoice(draft.treatmentHeatChoice as HeatChoice);
+    if (typeof draft.treatmentHeatMinutes === "number")
+      setTreatmentHeatMinutes(draft.treatmentHeatMinutes);
+    if (Array.isArray(draft.treatmentHeatToolIds))
+      setTreatmentHeatToolIds(draft.treatmentHeatToolIds as string[]);
     setHydrated(true);
   }, [shelfProducts, shelfLoading, hydrated, lastWashProductIds]);
 
