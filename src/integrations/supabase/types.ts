@@ -2089,6 +2089,47 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_application_stylists: {
+        Row: {
+          application_id: string
+          contact_email: string | null
+          created_at: string
+          discipline: Database["public"]["Enums"]["pro_discipline"] | null
+          full_name: string
+          id: string
+          notes: string | null
+          specialisms: string[]
+        }
+        Insert: {
+          application_id: string
+          contact_email?: string | null
+          created_at?: string
+          discipline?: Database["public"]["Enums"]["pro_discipline"] | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          specialisms?: string[]
+        }
+        Update: {
+          application_id?: string
+          contact_email?: string | null
+          created_at?: string
+          discipline?: Database["public"]["Enums"]["pro_discipline"] | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          specialisms?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pro_application_stylists_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "pro_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pro_applications: {
         Row: {
           address_line1: string | null
@@ -2107,6 +2148,7 @@ export type Database = {
           insurance_expiry: string | null
           insurance_policy_no: string | null
           insurance_provider: string | null
+          is_salon: boolean
           location: string | null
           opening_hours: Json | null
           payment_confirmed_at: string | null
@@ -2116,6 +2158,7 @@ export type Database = {
           reviewed_by: string | null
           status: Database["public"]["Enums"]["pro_application_status"]
           stripe_checkout_session_id: string | null
+          stylist_consent_confirmed_at: string | null
           updated_at: string
           user_id: string | null
           website_url: string | null
@@ -2138,6 +2181,7 @@ export type Database = {
           insurance_expiry?: string | null
           insurance_policy_no?: string | null
           insurance_provider?: string | null
+          is_salon?: boolean
           location?: string | null
           opening_hours?: Json | null
           payment_confirmed_at?: string | null
@@ -2147,6 +2191,7 @@ export type Database = {
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["pro_application_status"]
           stripe_checkout_session_id?: string | null
+          stylist_consent_confirmed_at?: string | null
           updated_at?: string
           user_id?: string | null
           website_url?: string | null
@@ -2169,6 +2214,7 @@ export type Database = {
           insurance_expiry?: string | null
           insurance_policy_no?: string | null
           insurance_provider?: string | null
+          is_salon?: boolean
           location?: string | null
           opening_hours?: Json | null
           payment_confirmed_at?: string | null
@@ -2178,6 +2224,7 @@ export type Database = {
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["pro_application_status"]
           stripe_checkout_session_id?: string | null
+          stylist_consent_confirmed_at?: string | null
           updated_at?: string
           user_id?: string | null
           website_url?: string | null
@@ -2507,12 +2554,13 @@ export type Database = {
           referral_fee_percent: number | null
           review_note: string | null
           reviewed_at: string | null
+          salon_id: string | null
           services: Json
           specialisms: string[]
           submitted_at: string | null
           suspended_at: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           website_url: string | null
         }
         Insert: {
@@ -2559,12 +2607,13 @@ export type Database = {
           referral_fee_percent?: number | null
           review_note?: string | null
           reviewed_at?: string | null
+          salon_id?: string | null
           services?: Json
           specialisms?: string[]
           submitted_at?: string | null
           suspended_at?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           website_url?: string | null
         }
         Update: {
@@ -2611,15 +2660,24 @@ export type Database = {
           referral_fee_percent?: number | null
           review_note?: string | null
           reviewed_at?: string | null
+          salon_id?: string | null
           services?: Json
           specialisms?: string[]
           submitted_at?: string | null
           suspended_at?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           website_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pro_profiles_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pro_referral_attributions: {
         Row: {
@@ -3084,6 +3142,99 @@ export type Database = {
           reason?: string | null
           to_account_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      salon_members: {
+        Row: {
+          created_at: string
+          id: string
+          pro_profile_id: string | null
+          role: string
+          salon_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pro_profile_id?: string | null
+          role?: string
+          salon_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pro_profile_id?: string | null
+          role?: string
+          salon_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_members_pro_profile_id_fkey"
+            columns: ["pro_profile_id"]
+            isOneToOne: false
+            referencedRelation: "pro_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_members_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salons: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          avatar_path: string | null
+          business_email: string | null
+          business_phone: string | null
+          city: string | null
+          cover_path: string | null
+          created_at: string
+          id: string
+          is_published: boolean
+          name: string
+          opening_hours: Json | null
+          postcode: string | null
+          updated_at: string
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          avatar_path?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          city?: string | null
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          name: string
+          opening_hours?: Json | null
+          postcode?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          avatar_path?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          city?: string | null
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          name?: string
+          opening_hours?: Json | null
+          postcode?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4186,6 +4337,14 @@ export type Database = {
           status: Database["public"]["Enums"]["brand_offer_status"]
         }[]
       }
+      can_manage_pro_profile: {
+        Args: { _profile_id: string; _user_id?: string }
+        Returns: boolean
+      }
+      can_manage_salon_roster: {
+        Args: { _salon_id: string; _user_id?: string }
+        Returns: boolean
+      }
       chat_book_appointment: {
         Args: {
           _appointment_date: string
@@ -4255,6 +4414,10 @@ export type Database = {
       is_access_restricted: { Args: { _user_id: string }; Returns: boolean }
       is_chat_participant: {
         Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_salon_member: {
+        Args: { _salon_id: string; _user_id?: string }
         Returns: boolean
       }
       mark_booking_click_prompted: {
