@@ -26,6 +26,7 @@ import { useMoodboards } from "@/hooks/useMoodboards";
 import GoalEditorSheet from "@/components/GoalEditorSheet";
 import GoalHeroCard from "@/components/journal/GoalHeroCard";
 import GoalTipsSection from "@/components/journal/GoalTipsSection";
+import ChallengesCard from "@/components/journal/ChallengesCard";
 import GoalProgressComposer from "@/components/journal/GoalProgressComposer";
 import GoalTimelineSheet from "@/components/journal/GoalTimelineSheet";
 import PastGoalsSection from "@/components/journal/PastGoalsSection";
@@ -266,6 +267,11 @@ const Journal = () => {
             }
           />
         )}
+
+        {/* CHALLENGES — a separate feature from the goal above. A member can
+            aim for length retention while battling shedding; these are
+            different inputs, updated independently, and both feed AI. */}
+        <ChallengesCard />
 
         {futureGoals.length > 0 && (
           <div className="pt-2 space-y-3">
