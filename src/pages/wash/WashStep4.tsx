@@ -16,6 +16,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  washStepLabel,
+  rollUpStepHeat,
+  anyStepUsedHeat,
+  HEAT_COOLDOWN_TIP,
+  type StepHeat,
+} from "@/lib/washSteps";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>
