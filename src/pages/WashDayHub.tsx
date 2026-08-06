@@ -34,6 +34,8 @@ import { CircleSlash, Repeat, Ruler } from "lucide-react";
 import { useWashDaySchedules } from "@/hooks/useWashDaySchedules";
 import NextWashDayBox, { washDayCalendarEvent } from "@/components/wash/NextWashDayBox";
 import { googleCalendarUrl } from "@/lib/addToCalendar";
+import StyleProfilePrompt from "@/components/style/StyleProfilePrompt";
+
 
 
 const monthNames = [
@@ -433,7 +435,10 @@ const WashDayHub = () => {
       <TitleBar title="Wash Day" back={false} tips />
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="wash_day" />
+        <StyleProfilePrompt />
         {overdue && (
+
+
           <div role="alert">
             {/* GUIDANCE CARD ANATOMY — status row → anchor stat → one
                 consequence block → fact chips → one CTA. */}
