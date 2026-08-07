@@ -18,7 +18,6 @@ import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
 import { prepareImageForAi } from "@/lib/imagePrep";
 import { toast } from "sonner";
 import {
