@@ -7,6 +7,7 @@ import {
   cleanRules,
   rulesAreEmpty,
   type TargetingRules,
+  type TargetingOption,
 } from "@/lib/adTargeting";
 
 interface Props {
