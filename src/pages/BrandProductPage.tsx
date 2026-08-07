@@ -350,15 +350,15 @@ const BrandProductPage = () => {
             </Button>
           )}
           <Button
-            variant="outline"
+            variant={product.external_url ? "goldOutline" : "gold"}
             size="pill"
-            onClick={addToWishlist}
-            disabled={busy || alreadyWishlisted}
+            onClick={() => save("shelf")}
+            disabled={busy || alreadyOnShelf}
             className="w-full"
           >
-            {alreadyWishlisted ? (
+            {alreadyOnShelf ? (
               <>
-                <Check className="size-4 mr-1.5" /> On your wishlist
+                <Check className="size-4 mr-1.5" /> On your shelf
               </>
             ) : busy ? (
               <>
@@ -366,10 +366,34 @@ const BrandProductPage = () => {
               </>
             ) : (
               <>
-                <Heart className="size-4 mr-1.5" /> Add to wishlist
+                <Plus className="size-4 mr-1.5" /> Add to my shelf
               </>
             )}
           </Button>
+          {!alreadyOnShelf && (
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => save("wishlist")}
+              disabled={busy || alreadyWishlisted}
+              className="w-full"
+            >
+              {alreadyWishlisted ? (
+                <>
+                  <Check className="size-4 mr-1.5" /> On your wishlist
+                </>
+              ) : busy ? (
+                <>
+                  <Loader2 className="size-4 mr-1.5 animate-spin" /> Adding…
+                </>
+              ) : (
+                <>
+                  <Heart className="size-4 mr-1.5" /> Add to wishlist
+                </>
+              )}
+            </Button>
+          )}
+
         </div>
       </div>
     </ScreenLayout>
