@@ -73,8 +73,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v4-purpose-insight";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v4-purpose-insight";
+// v5 invalidates scans cached before product-specific hero-image extraction.
+const MODEL_VERSION = "claude-sonnet-4-6@v5-product-hero";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v5-product-hero";
 
 
 function levelCap(level: TipsLevel): number {
@@ -466,6 +467,10 @@ function firstMarkdownImage(md: string): string | null {
   return null;
 }
 
+function firstUsableImage(...candidates: Array<string | null | undefined>): string | null {
+  return candidates.find((candidate) => isLikelyProductImage(candidate)) ?? null;
+}
+
 
 async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeResult | null> {
   try {
@@ -500,11 +505,16 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
       console.error("Firecrawl returned no markdown", JSON.stringify(j).slice(0, 500));
       return null;
     }
-    const imageUrl =
-      metadata?.ogImage ??
-      metadata?.["og:image"] ??
-      metadata?.image ??
-      firstMarkdownImage(markdown);
+    // Firecrawl metadata can describe page chrome rather than the product
+    // (the Cantu UK page reports its location-picker flag). Apply the same
+    // chrome filter used by the HTML path before accepting metadata, then
+    // fall back to the first usable image from the main product content.
+    const imageUrl = firstUsableImage(
+      metadata?.ogImage,
+      metadata?.["og:image"],
+      metadata?.image,
+      firstMarkdownImage(markdown),
+    );
     return {
       title: metadata?.title ?? "",
       text: markdown,
@@ -518,6 +528,22 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
 }
 
 function extractOgImageFromHtml(html: string): string | null {
+  const toHttps = (u: string | null | undefined): string | null => {
+    if (!u) return null;
+    return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
+  };
+
+  // Product-specific structured data outranks social metadata. Many commerce
+  // pages use a generic og:image (or, in Cantu UK's case, a country flag) but
+  // expose the true primary pack shot through Product JSON/catalog data.
+  const catalogImage = html.match(/["']productImageURL["']\s*:\s*["']([^"']+)["']/i)?.[1];
+  if (isLikelyProductImage(catalogImage)) return toHttps(catalogImage);
+
+  const productContainer = html.match(
+    /<div[^>]+class=["'][^"']*\bproduct-image\b[^"']*["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["']/i,
+  )?.[1];
+  if (isLikelyProductImage(productContainer)) return toHttps(productContainer);
+
   // Capture every og:image / og:image:secure_url / twitter:image meta tag,
   // handling BOTH attribute orders (property-then-content and
   // content-then-property). Then prefer secure_url > og:image > twitter:image
@@ -540,14 +566,11 @@ function extractOgImageFromHtml(html: string): string | null {
   // Prefer https; if only http available, rewrite to https. iOS Safari
   // blocks http images on https pages (mixed content) more aggressively
   // than desktop, so we enforce https before returning.
-  const toHttps = (u: string | null | undefined): string | null => {
-    if (!u) return null;
-    return u.startsWith("http://") ? "https://" + u.slice("http://".length) : u;
-  };
   const pickHttps = (list: typeof found): string | null => {
-    const https = list.find((f) => f.url.startsWith("https://"))?.url;
+    const usable = list.filter((f) => isLikelyProductImage(f.url));
+    const https = usable.find((f) => f.url.startsWith("https://"))?.url;
     if (https) return https;
-    return toHttps(list[0]?.url ?? null);
+    return toHttps(usable[0]?.url ?? null);
   };
   const secure = pickHttps(found.filter((f) => f.kind === "secure"));
   if (secure) return secure;
