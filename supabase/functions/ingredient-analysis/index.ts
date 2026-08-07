@@ -162,6 +162,16 @@ function guidanceCount(level: TipsLevel): number {
   return 1;
 }
 
+/** How much prose each tip body gets. Higher levels want a genuinely detailed
+ *  explanation, not a single sentence. */
+function guidanceDepth(level: TipsLevel): { sentences: string; words: number } {
+  if (level >= 4) return { sentences: "4-6 sentences", words: 130 };
+  if (level === 3) return { sentences: "3-4 sentences", words: 90 };
+  if (level === 2) return { sentences: "2-3 sentences", words: 60 };
+  return { sentences: "2 sentences", words: 45 };
+}
+
+
 function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL) {
   // Dynamic minItems/maxItems is the explicit fix for AUDIT.md §1's
   // "EXACTLY ${ingredientCount}" prose brittleness. When count is 0 we
