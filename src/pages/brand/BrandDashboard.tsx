@@ -10,6 +10,8 @@ import ShelfEngagementSection from "@/components/brand/ShelfEngagementSection";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import UpcomingOfferCard from "@/components/brand/UpcomingOfferCard";
+
 import PastOfferCard from "@/components/brand/PastOfferCard";
 import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
@@ -170,6 +172,33 @@ const BrandDashboard = () => {
     );
   };
 
+  /** Awaiting-payment and upcoming campaigns render as the full advert card so
+   *  the brand sees the finished creative before payment. */
+  const renderUpcoming = (o: typeof withDerived[number]) => {
+    const placements = o.brand_offer_placements ?? [];
+    const dates = placements.map((p) => p.placement_date).sort();
+    const products = (o as { brand_products?: unknown[] }).brand_products ?? [];
+    return (
+      <UpcomingOfferCard
+        key={o.id}
+        headline={o.headline}
+        heroImagePath={o.hero_image_path}
+        slots={placements.map((p) => p.slot)}
+        startDate={dates[0]}
+        endDate={dates[dates.length - 1]}
+        state={o._derived === "approved_unpaid" ? "approved_unpaid" : "upcoming"}
+        submitter={ownerMode === "pro" ? null : (profile?.brand_name ?? null)}
+        pricePence={o.total_price_pence}
+        productCount={products.length}
+        hasPendingRevision={withPendingSet.has(o.id)}
+        revisionCount={revisionCounts[o.id]}
+        actionLabel={o._derived === "approved_unpaid" ? "Pay" : "Open"}
+        onOpen={() => nav(ownerOfferRoute(ownerMode, o.id))}
+      />
+    );
+  };
+
+
 
   return (
     <ScreenLayout>
@@ -303,9 +332,10 @@ const BrandDashboard = () => {
         {awaitingPayment.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Awaiting payment</SectionLabel>
-            <div className="space-y-2">{awaitingPayment.map(renderOffer)}</div>
+            <div className="space-y-3">{awaitingPayment.map(renderUpcoming)}</div>
           </div>
         )}
+
 
         <div>
           <SectionLabel className={`!px-0 ${drafts.length + underReview.length + awaitingPayment.length > 0 ? "" : "!mt-0"}`}>
@@ -351,9 +381,10 @@ const BrandDashboard = () => {
         {upcoming.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Upcoming</SectionLabel>
-            <div className="space-y-2">{upcoming.map(renderOffer)}</div>
+            <div className="space-y-3">{upcoming.map(renderUpcoming)}</div>
           </div>
         )}
+
 
         {past.length > 0 && (
           <div>

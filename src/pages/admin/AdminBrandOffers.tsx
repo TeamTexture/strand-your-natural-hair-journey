@@ -12,6 +12,8 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import UpcomingOfferCard from "@/components/brand/UpcomingOfferCard";
+
 import PastOfferCard from "@/components/brand/PastOfferCard";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
@@ -103,6 +105,24 @@ const AdminBrandOffers = () => {
   });
 
   const brandIds = Array.from(new Set(offers.map((o) => (o as { brand_user_id?: string }).brand_user_id).filter((v): v is string => !!v)));
+
+  // brand_offers.brand_user_id points at auth.users, so the embedded
+  // brand_profiles join is unreliable — resolve brand names explicitly so the
+  // submitting brand is always named on the card.
+  const { data: brandNamesById = {} } = useQuery({
+    queryKey: ["admin", "brand-offers", "brand-names", brandIds.sort().join(",")],
+    enabled: brandIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("brand_profiles")
+        .select("user_id, brand_name")
+        .in("user_id", brandIds);
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((r) => { if (r.user_id && r.brand_name) map[r.user_id] = r.brand_name; });
+      return map;
+    },
+  });
+
   const { data: subsById = {} } = useQuery({
     queryKey: ["admin", "brand-subscriptions", brandIds.sort().join(",")],
     enabled: brandIds.length > 0,
@@ -233,8 +253,13 @@ const AdminBrandOffers = () => {
     if (owner === "pro") {
       return brandUserId ? (proNamesById[brandUserId] ?? "Professional") : "Professional";
     }
-    return (o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand";
+    return (
+      (brandUserId ? brandNamesById[brandUserId] : undefined) ??
+      (o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ??
+      "Unknown brand"
+    );
   };
+
 
   const updateType = (t: OwnerType | null) => {
     const next = new URLSearchParams(params);
@@ -321,6 +346,42 @@ const AdminBrandOffers = () => {
       </button>
     );
   };
+
+  /** Awaiting-payment and scheduled campaigns get the full advert thumbnail so
+   *  admin can see the creative and who submitted it at a glance. */
+  const renderUpcoming = (o: typeof withDerived[number]) => {
+    const placements = o.brand_offer_placements ?? [];
+    const dates = placements.map((p) => p.placement_date).sort();
+    return (
+      <div key={o.id} className="space-y-1">
+        <div className="flex items-center gap-1.5 min-w-0 px-0.5">
+          <CampaignTypeBadge ownerType={ownerOf(o)} />
+          <p className="text-[10.5px] uppercase tracking-[0.14em] font-body text-muted-foreground truncate min-w-0">
+            {submitterOf(o)}
+          </p>
+        </div>
+        <UpcomingOfferCard
+          headline={o.headline}
+          heroImagePath={o.hero_image_path}
+          slots={placements.map((p) => p.slot)}
+          startDate={dates[0]}
+          endDate={dates[dates.length - 1]}
+          state={o._derived === "approved_unpaid" ? "approved_unpaid" : "upcoming"}
+          submitter={submitterOf(o)}
+          pricePence={o.total_price_pence}
+          productCount={(o.brand_products ?? []).length}
+          hasPendingRevision={pendingRevSet.has(o.id)}
+          revisionCount={revisionCounts[o.id]}
+          actionLabel="Review"
+          onOpen={() => {
+            void markEntityRead("brand_offer", o.id);
+            nav(`/admin/brand-offers/${o.id}`);
+          }}
+        />
+      </div>
+    );
+  };
+
 
   return (
     <ScreenLayout>
@@ -471,7 +532,7 @@ const AdminBrandOffers = () => {
         {showAll && awaitingPayment.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Awaiting payment</SectionLabel>
-            <div className="space-y-2">{awaitingPayment.map(renderOffer)}</div>
+            <div className="space-y-3">{awaitingPayment.map(renderUpcoming)}</div>
           </div>
         )}
 
@@ -521,7 +582,7 @@ const AdminBrandOffers = () => {
         {showScheduled && upcoming.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Scheduled</SectionLabel>
-            <div className="space-y-2">{upcoming.map(renderOffer)}</div>
+            <div className="space-y-3">{upcoming.map(renderUpcoming)}</div>
           </div>
         )}
 
