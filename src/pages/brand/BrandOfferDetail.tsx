@@ -301,18 +301,29 @@ const BrandOfferDetail = () => {
         ))}
 
         <SectionLabel className="!px-0">Performance</SectionLabel>
-        <div className="grid grid-cols-3 gap-2">
-          <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
-          <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
-          <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
-          <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
-          <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
-        </div>
-        <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
-          Impressions = distinct members who saw the advert (at least half of it, for a full second).
-          Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
-          site. {STATS_METHOD_NOTE}
-        </p>
+        {statsSuppressed ? (
+          <SurfaceCard className="py-3">
+            <p className="text-[12px] font-body leading-snug">
+              Your campaign is running. We don't report performance numbers until at least 50 members
+              match this audience, to protect member privacy.
+            </p>
+          </SurfaceCard>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
+              <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
+              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
+              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
+            </div>
+            <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
+              Impressions = distinct members who saw the advert (at least half of it, for a full second).
+              Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
+              site. {STATS_METHOD_NOTE}
+            </p>
+          </>
+        )}
 
         {derived === "ended" && (interest?.total ?? 0) > 0 && (
           <SurfaceCard className="bg-primary/5 border-primary/30">
