@@ -1,20 +1,23 @@
 // Consumer view of a brand's permanent shelf, shown on the brand page.
-// Members can add anything here straight to their own shelf or wishlist —
-// the row that's created is an ordinary product row, so it behaves exactly
-// like a scanned one everywhere else in the app.
+//
+// The cards here are the SAME component the member's own shelf uses
+// (ShelfProductCard) so a brand's listing and a member's shelf never drift.
+// Tapping a card opens the ordinary consumer product page — routed through
+// /brands/:brandUserId/product/:id, which sends members who already own the
+// product to their own shelf item instead of a brand copy.
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Heart, ExternalLink, Plus } from "lucide-react";
-import SurfaceCard from "@/components/SurfaceCard";
-import ProductThumb from "@/components/ProductThumb";
 import SectionLabel from "@/components/SectionLabel";
+import ShelfProductCard from "@/components/product/ShelfProductCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePublicBrandShelf } from "@/hooks/useBrandShelf";
 import { addBrandProductToShelf, type BrandShelfProduct } from "@/lib/addBrandProductToShelf";
+import { anchorProps } from "@/lib/scrollMemory";
 import { toast } from "sonner";
 
 const useMyBrandLinks = (ids: string[]) => {
@@ -71,7 +74,7 @@ const BrandShelfSection = ({
   };
 
   return (
-    <div>
+    <div data-scroll-section id={`brand-shelf-${brandUserId}`}>
       <SectionLabel className="!px-0">On {brandName ?? "this brand"}'s shelf</SectionLabel>
       <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-2 leading-snug">
         Added straight from the brand, with their own ingredient list.
@@ -80,70 +83,68 @@ const BrandShelfSection = ({
         {products.map((p) => {
           const mine = links[p.id];
           return (
-            <SurfaceCard key={p.id} className="p-3.5">
-              <div className="flex items-start gap-3">
-                <ProductThumb
-                  imageUrl={p.image_urls?.[0] ?? null}
-                  alt={p.name}
-                  brand={brandName}
-                  name={p.name}
-                  cover
-                  wrapperClassName="size-14 rounded-[10px] overflow-hidden bg-muted shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-display text-[15px] leading-tight break-words">{p.name}</p>
-                  {p.description && (
-                    <p className="mt-1 text-[12.5px] font-body text-foreground/80 leading-snug line-clamp-3 break-words">
-                      {p.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                {mine?.on_shelf ? (
-                  <span className="inline-flex items-center gap-1 text-[12px] font-body text-primary">
-                    <Check className="size-3.5" /> On your shelf
+            <ShelfProductCard
+              key={p.id}
+              anchor={anchorProps(`brand-product-${p.id}`)}
+              name={p.name}
+              brand={brandName ?? undefined}
+              description={p.description}
+              imageUrl={p.image_urls?.[0] ?? null}
+              onOpen={() => nav(`/brands/${brandUserId}/product/${p.id}`)}
+              chips={
+                p.kind === "tool" || p.kind === "supplement" ? (
+                  <span className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
+                    {p.kind === "tool" ? "Tool" : "Supplement"}
                   </span>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="rounded-pill"
-                    disabled={pending === p.id}
-                    onClick={() => add(p, "shelf")}
-                  >
-                    <Plus className="size-3.5 mr-1" /> Add to my shelf
-                  </Button>
-                )}
-                {mine?.on_wishlist ? (
-                  <span className="inline-flex items-center gap-1 text-[12px] font-body text-primary">
-                    <Heart className="size-3.5" /> On your wishlist
-                  </span>
-                ) : (
-                  !mine?.on_shelf && (
+                ) : undefined
+              }
+              footer={
+                <>
+                  {mine?.on_shelf ? (
+                    <span className="inline-flex items-center gap-1 text-[12px] font-body text-primary">
+                      <Check className="size-3.5" /> On your shelf
+                    </span>
+                  ) : (
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="gold"
                       className="rounded-pill"
                       disabled={pending === p.id}
-                      onClick={() => add(p, "wishlist")}
+                      onClick={() => add(p, "shelf")}
                     >
-                      <Heart className="size-3.5 mr-1" /> Wishlist
+                      <Plus className="size-3.5 mr-1" /> Add to my shelf
                     </Button>
-                  )
-                )}
-                {p.external_url && (
-                  <a
-                    href={p.external_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-auto inline-flex items-center gap-1 text-[12px] font-body text-primary"
-                  >
-                    Buy <ExternalLink className="size-3 opacity-60" />
-                  </a>
-                )}
-              </div>
-            </SurfaceCard>
+                  )}
+                  {mine?.on_wishlist ? (
+                    <span className="inline-flex items-center gap-1 text-[12px] font-body text-primary">
+                      <Heart className="size-3.5" /> On your wishlist
+                    </span>
+                  ) : (
+                    !mine?.on_shelf && (
+                      <Button
+                        size="sm"
+                        variant="goldOutline"
+                        className="rounded-pill"
+                        disabled={pending === p.id}
+                        onClick={() => add(p, "wishlist")}
+                      >
+                        <Heart className="size-3.5 mr-1" /> Save
+                      </Button>
+                    )
+                  )}
+                  {p.external_url && (
+                    <a
+                      href={p.external_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto inline-flex items-center gap-1 text-[12px] font-body text-primary"
+                    >
+                      Buy <ExternalLink className="size-3 opacity-60" />
+                    </a>
+                  )}
+                </>
+              }
+            />
           );
         })}
       </div>

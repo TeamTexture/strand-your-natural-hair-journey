@@ -179,11 +179,16 @@ const IngredientDetail = () => {
     auto_save?: boolean;
     returnTo?: string;
     product_key?: string;
+    /** Set when opened from a brand's shelf (see BrandShelfProductOpen). */
+    brand_product_id?: string;
+    external_url?: string | null;
   } | null;
   const freshAnalysis = navState?.analysis ?? null;
   const navIntent: "shelf" | "wishlist" = navState?.intent ?? "shelf";
   const autoSave = navState?.auto_save ?? false;
   const returnTo = navState?.returnTo ?? null;
+  const brandProductId = navState?.brand_product_id ?? null;
+  const brandBuyUrl = navState?.external_url ?? null;
   const isJournalReturn = !!returnTo?.startsWith("/journal/entry/");
 
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
@@ -567,6 +572,11 @@ const IngredientDetail = () => {
           ...saveFields,
           brand: saveFields.brand ?? (productBrand || null),
           storage_path: navState?.storage_path ?? null,
+          // Opened from a brand's shelf: record the catalogue link and mark the
+          // ingredient list as the brand's own, not an OCR guess.
+          ...(brandProductId
+            ? { linked_brand_product_id: brandProductId, ingredients_source: "brand", source_url: brandBuyUrl }
+            : {}),
           on_shelf: intent === "shelf",
           on_wishlist: intent === "wishlist",
           ...(intent === "shelf" ? { added_to_shelf_at: new Date().toISOString() } : {}),
@@ -593,7 +603,7 @@ const IngredientDetail = () => {
         setSavingToShelf(false);
       }
     },
-    [freshAnalysis, productKey, productName, productBrand, navState?.storage_path, upsert],
+    [freshAnalysis, productKey, productName, productBrand, navState?.storage_path, brandProductId, brandBuyUrl, upsert],
   );
 
   // Auto-save flow (e.g. journal / wash-day). Persist immediately, then bounce
@@ -1221,7 +1231,18 @@ const IngredientDetail = () => {
             >
               <Bookmark className="size-4 mr-1.5" /> Save to my wishlist
             </Button>
+            {brandBuyUrl && (
+              <a
+                href={brandBuyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center text-[12px] font-body text-primary py-1"
+              >
+                Buy it from the brand
+              </a>
+            )}
           </div>
+
         )}
 
         {/* ── Bottom shelf actions (context-aware) ────────────────────── */}

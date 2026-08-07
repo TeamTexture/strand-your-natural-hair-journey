@@ -149,6 +149,7 @@ const OfferPage = lazyRetry(() => import("./pages/OfferPage"));
 const BrandProductPage = lazyRetry(() => import("./pages/BrandProductPage"));
 const BrandsDirectory = lazyRetry(() => import("./pages/BrandsDirectory"));
 const BrandDetailPage = lazyRetry(() => import("./pages/BrandDetailPage"));
+const BrandShelfProductOpen = lazyRetry(() => import("./pages/BrandShelfProductOpen"));
 const Subscribe = lazyRetry(() => import("./pages/Subscribe"));
 
 // Main app
@@ -526,6 +527,7 @@ const App = () => (
               {/* Consumer-facing brand directory */}
               <Route path="/brands" element={<Paid><BrandsDirectory /></Paid>} />
               <Route path="/brands/:brandUserId" element={<Paid><BrandDetailPage /></Paid>} />
+              <Route path="/brands/:brandUserId/product/:brandProductId" element={<Paid><BrandShelfProductOpen /></Paid>} />
 
               {/* Brand routes */}
               <Route path="/brand/auth" element={<BrandAuth />} />
