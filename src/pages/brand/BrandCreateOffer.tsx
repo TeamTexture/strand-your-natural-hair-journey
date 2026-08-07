@@ -1162,6 +1162,16 @@ const BrandCreateOffer = () => {
                       attached ? "border-primary bg-primary/5" : "border-border"
                     }`}
                   >
+                    {item.image_urls?.[0] ? (
+                      <img
+                        src={item.image_urls[0]}
+                        alt={item.name}
+                        loading="lazy"
+                        className="size-11 rounded-[9px] object-cover bg-muted shrink-0"
+                      />
+                    ) : (
+                      <span className="size-11 rounded-[9px] bg-muted shrink-0" aria-hidden />
+                    )}
                     <span className="flex-1 min-w-0">
                       <span className="block font-body text-[13px] leading-snug [overflow-wrap:anywhere] line-clamp-2">
                         {item.name}
@@ -1170,6 +1180,7 @@ const BrandCreateOffer = () => {
                         {item.kind === "tool" ? "Tool" : "Product"}
                       </span>
                     </span>
+
                     <span className="text-[11px] font-body text-primary shrink-0">
                       {attached ? "Attached" : "Attach"}
                     </span>
