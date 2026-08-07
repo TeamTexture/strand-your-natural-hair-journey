@@ -226,6 +226,8 @@ const BrandDetailPage = () => {
   const logoUrl = useSignedUrl(brand?.logo_path ?? null);
   const catalogue = data?.catalogue ?? [];
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [pastOpen, setPastOpen] = useState(false);
+
 
 
   const openCatalogueItem = (item: CatalogueItem) => {
