@@ -83,23 +83,23 @@ const BrandShelf = () => {
   const goToEditor = (prefill: Record<string, unknown>) =>
     nav("/brand/shelf/new", { state: { prefill: { ...prefill, position: nextPosition } } });
 
+  // Photo scan — same client-side HEIC→JPEG prep the member flow uses, then
+  // hand off to the shared progress screen which invokes `product-analyse`.
   const handleScan = async (front: File, back: File) => {
     setBusy(true);
     try {
       const [pFront, pBack] = await Promise.all([prepareImageForAi(front), prepareImageForAi(back)]);
-      const { data, error } = await supabase.functions.invoke("product-analyse", {
-        body: { photos: { front: pFront.dataUrl, back: pBack.dataUrl }, force: true },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       setCaptureOpen(false);
       setAddOpen(false);
-      goToEditor({
-        name: data?.product_name ?? "",
-        description: data?.ai_summary ?? "",
-        ingredients: Array.isArray(data?.ingredients) ? data.ingredients : [],
-        ingredients_source: "scan",
-        source_type: "scan",
+      nav("/brand/shelf/scanning", {
+        state: {
+          mode: "photos",
+          position: nextPosition,
+          front_image_data_url: pFront.dataUrl,
+          back_image_data_url: pBack.dataUrl,
+          front_preview_url: pFront.dataUrl,
+          back_preview_url: pBack.dataUrl,
+        },
       });
     } catch (e) {
       toast.error((e as Error).message || "Couldn't read those photos. Please try again.");
@@ -108,34 +108,26 @@ const BrandShelf = () => {
     }
   };
 
-  const handleLink = async () => {
-    const trimmed = url.trim();
-    if (!trimmed) return;
-    setBusy(true);
+  // Product link — same normalisation and validation as the member flow,
+  // then the shared progress screen invokes `product-analyse-url`.
+  const handleLink = () => {
+    let normalised = url.trim();
+    if (!normalised) return;
+    if (!/^https?:\/\//i.test(normalised)) normalised = `https://${normalised}`;
     try {
-      const { data, error } = await supabase.functions.invoke("product-analyse-url", {
-        body: { url: trimmed },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setLinkOpen(false);
-      setAddOpen(false);
-      setUrl("");
-      goToEditor({
-        name: data?.product_name ?? "",
-        description: data?.ai_summary ?? "",
-        ingredients: Array.isArray(data?.ingredients) ? data.ingredients : [],
-        ingredients_source: "link",
-        source_type: "link",
-        source_url: trimmed,
-        external_url: trimmed,
-      });
-    } catch (e) {
-      toast.error((e as Error).message || "Couldn't read that link. Please try again.");
-    } finally {
-      setBusy(false);
+      new URL(normalised);
+    } catch {
+      toast.error("That doesn't look like a valid web link.");
+      return;
     }
+    setLinkOpen(false);
+    setAddOpen(false);
+    setUrl("");
+    nav("/brand/shelf/scanning", {
+      state: { mode: "link", url: normalised, position: nextPosition },
+    });
   };
+
 
   const move = (index: number, dir: -1 | 1) => {
     const target = index + dir;
