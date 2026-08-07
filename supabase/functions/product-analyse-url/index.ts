@@ -365,11 +365,13 @@ ABSOLUTE RULES
    word-for-word into this field. If no manufacturer directions are visible
    on the page, set this to an empty string ("") — do NOT invent or
    paraphrase. This is the manufacturer's voice; keep it untouched.
-8. use_cases: MAXIMUM ${cap} concrete tips for how THIS user should use the product
-   (this user's support level caps it at ${cap}). Each item is ONE action sentence up
-   to 30 words, optionally plus ONE "why" sentence up to 15 words, and MUST tie back
-   to one of: their hair profile, current_hairstyle, a goal, or a challenge they
-   listed. Do NOT repeat the manufacturer's directions verbatim here; build on them
+ 8. use_cases: MAXIMUM ${cap} concrete tips for how THIS user gets the MOST out of the
+    product on their hair type specifically (their support level caps it at ${cap}).
+    Each item is ONE action sentence up to 30 words that NAMES the trait it is written
+    for — curl type, porosity, density, width, scalp condition, current_hairstyle, a
+    goal or a listed challenge — plus ONE "why" sentence up to 15 words. A tip that
+    would read identically for any hair type is INVALID.
+    Do NOT repeat the manufacturer's directions verbatim here; build on them
    with personal reasoning.
 8b. tips: MAXIMUM ${cap} items, same word budget, anchored in the user's own data.
 8c. PERSONALISED APPLICATION DEPTH — LEVELS 3-4 ONLY: at this support level, at
