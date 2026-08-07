@@ -143,6 +143,7 @@ const BrandBilling = lazyRetry(() => import("./pages/brand/BrandBilling"));
 const BrandProfileEditor = lazyRetry(() => import("./pages/brand/BrandProfileEditor"));
 const BrandShelf = lazyRetry(() => import("./pages/brand/BrandShelf"));
 const BrandShelfProduct = lazyRetry(() => import("./pages/brand/BrandShelfProduct"));
+const BrandProductScanning = lazyRetry(() => import("./pages/brand/BrandProductScanning"));
 const OfferPage = lazyRetry(() => import("./pages/OfferPage"));
 const BrandProductPage = lazyRetry(() => import("./pages/BrandProductPage"));
 const BrandsDirectory = lazyRetry(() => import("./pages/BrandsDirectory"));
@@ -533,7 +534,9 @@ const App = () => (
               <Route path="/brand" element={<RoleGate allow={["brand", "admin"]}><BrandDashboard /></RoleGate>} />
               <Route path="/brand/profile" element={<RoleGate allow={["brand", "admin"]}><BrandProfileEditor /></RoleGate>} />
               <Route path="/brand/shelf" element={<RoleGate allow={["brand", "admin"]}><BrandShelf /></RoleGate>} />
+              <Route path="/brand/shelf/scanning" element={<RoleGate allow={["brand", "admin"]}><BrandProductScanning /></RoleGate>} />
               <Route path="/brand/shelf/:id" element={<RoleGate allow={["brand", "admin"]}><BrandShelfProduct /></RoleGate>} />
+
               <Route path="/brand/offers/new" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
               <Route path="/brand/offers/:id" element={<RoleGate allow={["brand", "admin"]}><BrandOfferDetail /></RoleGate>} />
               <Route path="/brand/offers/:id/edit" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
