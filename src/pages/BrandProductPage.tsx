@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ExternalLink, Heart, Check, Loader2, Sparkles } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
-import BenefitRows, { type BenefitRow } from "@/components/guidance/BenefitRows";
+import BenefitRows from "@/components/guidance/BenefitRows";
+import AdFitLine from "@/components/guidance/AdFitLine";
 import NumberedSteps from "@/components/guidance/NumberedSteps";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -19,21 +20,14 @@ import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
 import { useGoals } from "@/hooks/useGoals";
 import { useQuery } from "@tanstack/react-query";
-import { buildAiContext } from "@/lib/aiContext";
+import {
+  useBrandProductGuidance,
+  type BrandGuidanceProduct,
+} from "@/hooks/useBrandProductGuidance";
 
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
-// v2 — the guidance payload shape changed (intro/benefits/steps). Old cached
-// rows under the v1 kind are simply never read again.
-const guidanceCacheKind = (brandProductId: string) =>
-  `brand_product_guidance_v2:${brandProductId}`;
 
-type GuidancePayload = {
-  headline: string;
-  intro: string;
-  benefits: BenefitRow[];
-  steps: string[];
-};
 
 const formatDate = (iso: string | null | undefined) => {
   if (!iso) return null;
@@ -52,8 +46,6 @@ const BrandProductPage = () => {
   const { tools: userTools, reload: reloadTools } = useUserTools();
   const { goals } = useGoals();
   const [busy, setBusy] = useState(false);
-  const [guidance, setGuidance] = useState<GuidancePayload | null>(null);
-  const [guidanceLoading, setGuidanceLoading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["brand-product-page", offerId, productId],
@@ -130,79 +122,13 @@ const BrandProductPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, allProducts, userTools]);
 
-  // (Personalised suitability analysis removed — the usage playbook below is the single AI surface for brand products.)
+  // ── Personalised guidance: benefits for THIS member's hair + how to get the
+  //    most out of it. Shared with the banner and offer-page surfaces so the
+  //    same reasoning shows wherever this advert appears. ──
+  const { guidance, loading: guidanceLoading } = useBrandProductGuidance(
+    product ? { ...(product as unknown as BrandGuidanceProduct), brand: brandName } : null,
+  );
 
-
-  // ── Personalised usage guidance: "how to get the most out of this" ──
-  useEffect(() => {
-    if (!product || !user || !offer) return;
-    let cancelled = false;
-    const cacheKind = guidanceCacheKind(product.id);
-
-    (async () => {
-      setGuidanceLoading(true);
-      try {
-        const { data: cached } = await supabase
-          .from("ai_summaries")
-          .select("payload")
-          .eq("user_id", user.id)
-          .eq("kind", cacheKind)
-          .maybeSingle();
-        if (cancelled) return;
-        const cachedPayload = cached?.payload as unknown as GuidancePayload | null;
-        if (cachedPayload && Array.isArray(cachedPayload.benefits)) {
-          setGuidance(cachedPayload);
-          setGuidanceLoading(false);
-          return;
-        }
-
-
-        const context = await buildAiContext();
-        const { data: res, error } = await supabase.functions.invoke(
-          "brand-product-guidance",
-          {
-            body: {
-              product: {
-                id: product.id,
-                name: product.name,
-                brand: brandName,
-                description: product.description,
-                kind: product.kind,
-                tool_kind: product.tool_kind,
-                external_url: product.external_url,
-                ingredients: product.ingredients ?? [],
-                key_features: product.key_features ?? [],
-                materials: product.materials ?? [],
-              },
-              context,
-            },
-          },
-        );
-        if (error) throw error;
-        if (res?.error) throw new Error(String(res.error));
-        const g = res?.guidance as GuidancePayload | undefined;
-        if (!g || cancelled) return;
-        setGuidance(g);
-        await supabase.from("ai_summaries").upsert(
-          {
-            user_id: user.id,
-            kind: cacheKind,
-            payload: g as unknown as Record<string, unknown>,
-          } as never,
-          { onConflict: "user_id,kind" },
-        );
-      } catch {
-        // Silent — the other AI panel still renders.
-      } finally {
-        if (!cancelled) setGuidanceLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, user?.id, offer?.id]);
 
   const addToWishlist = async () => {
     if (!user || !product || !offer) return;
@@ -308,6 +234,12 @@ const BrandProductPage = () => {
                 {product.description}
               </p>
             )}
+            {/* The personalised hook — why this matters for THIS member's hair. */}
+            <AdFitLine
+              text={guidance?.fit_line}
+              loading={guidanceLoading}
+              className="mt-3"
+            />
           </div>
         </SurfaceCard>
 
@@ -358,7 +290,12 @@ const BrandProductPage = () => {
                   </p>
                 )}
                 {guidance.benefits.length > 0 && (
-                  <BenefitRows benefits={guidance.benefits} idPrefix="brand-benefit" />
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold font-body text-primary mb-2.5">
+                      What it does for your hair
+                    </p>
+                    <BenefitRows benefits={guidance.benefits} idPrefix="brand-benefit" />
+                  </div>
                 )}
                 {guidance.steps.length > 0 && (
                   <div className="pt-1">

@@ -7,6 +7,8 @@ import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { getSignedUrl } from "@/lib/signedUrlCache";
 import { useTargetingOptions, useDismissAdOffer } from "@/hooks/useAdTargeting";
 import { explainMatch } from "@/lib/adTargeting";
+import AdFitLine from "@/components/guidance/AdFitLine";
+import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { toast } from "sonner";
 
 
@@ -20,6 +22,12 @@ interface Props {
 type BrandProductRow = {
   id: string;
   name: string;
+  description?: string | null;
+  kind?: string | null;
+  tool_kind?: string | null;
+  ingredients?: string[] | null;
+  key_features?: string[] | null;
+  materials?: string[] | null;
   image_urls: string[] | null;
   external_url: string | null;
 };
@@ -52,6 +60,10 @@ const BrandBanner = ({ slot }: Props) => {
     external_url?: string | null;
   } | undefined;
   const product = offer?.brand_products?.[0] ?? null;
+  // The advert's product is read against this member's own hair — generated on
+  // expand (a deliberate action), never on a passing impression.
+  const { guidance: productGuidance, loading: productGuidanceLoading } =
+    useBrandProductGuidance(product, { enabled: expanded });
 
   useEffect(() => {
     if (!offer) return;
@@ -214,6 +226,13 @@ const BrandBanner = ({ slot }: Props) => {
                     </button>
                   </div>
                 )}
+                {product && (
+                  <AdFitLine
+                    text={productGuidance?.fit_line}
+                    loading={productGuidanceLoading}
+                    className="mt-2"
+                  />
+                )}
                 <button
                   type="button"
                   tabIndex={expanded ? 0 : -1}
@@ -238,6 +257,9 @@ const BrandBanner = ({ slot }: Props) => {
                     )}
                   </div>
                   <p className="mt-1 text-[10px] font-body leading-tight line-clamp-2">{product.name}</p>
+                  <p className="text-[9.5px] font-body text-primary leading-tight mt-0.5">
+                    How to use it for your hair
+                  </p>
                 </button>
               )}
             </div>

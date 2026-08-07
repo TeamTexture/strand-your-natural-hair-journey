@@ -361,7 +361,7 @@ export function useActiveBrandOffer(slot: PlacementSlot) {
 
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_products(id, name, image_urls, external_url)")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url)")
         .eq("id", chosen.offer_id)
         .maybeSingle();
       if (error) throw error;

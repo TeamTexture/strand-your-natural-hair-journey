@@ -47,6 +47,9 @@ interface Benefit {
 
 interface GuidancePayload {
   headline: string;
+  /** One-line, hair-specific reason this product is worth their time. Used as
+   *  the personalised hook on ad surfaces (banner, offer page product rows). */
+  fit_line: string;
   intro: string;
   benefits: Benefit[];
   steps: string[];
@@ -65,18 +68,26 @@ RESPONSE SHAPE
 Return ONLY valid JSON with this exact shape (no prose, no code fences):
 {
   "headline": string — ONE line, MAXIMUM 8 words,
+  "fit_line": string — exactly ONE sentence, MAXIMUM 16 words,
   "intro": string — exactly ONE sentence, MAXIMUM 20 words,
   "benefits": array of EXACTLY 3 objects (2 is acceptable ONLY if a third cannot be grounded) — { "label": 1-2 words, "text": ONE sentence, MAXIMUM 15 words },
   "steps": array of EXACTLY 3 strings — each ONE sentence, MAXIMUM 25 words
 }
 
+FIT LINE — THE PERSONALISED HOOK
+- This is the one line shown on the advert itself, before the member opens anything.
+- It must name ONE real thing about THEIR hair (from their profile data) and the ONE concrete benefit this product gives that thing. Nothing else.
+- No greetings, no brand hype, no "this product is great", no imperatives — it is an observation, not an instruction.
+- If nothing in their profile supports a benefit, say plainly what it would suit instead — never invent a fit.
+
 HARD LIMITS — output that breaks any of these is rejected and regenerated:
-- headline ≤ 8 words. intro ≤ 20 words, one sentence.
+- headline ≤ 8 words. fit_line ≤ 16 words, one sentence. intro ≤ 20 words, one sentence.
 - benefits: 3 items (2 only if the third would be unsupported). label 1-2 words, Title Case, ideally ONE noun ("Penetration", "Moisture", "Retention"). text ≤ 15 words, ONE sentence.
 - steps: 3 items, each ≤ 25 words, ONE sentence each, sequential and concrete.
 
 NO REPETITION — THIS IS THE MAIN FAILURE MODE
-- Each of the member's hair characteristics (porosity, texture, density, curl pattern, length/TWA, scalp state, a named style) may appear AT MOST ONCE across the ENTIRE card — headline, intro, benefits and steps combined. Not once per section: once in total.
+- Each of the member's hair characteristics (porosity, texture, density, curl pattern, length/TWA, scalp state, a named style) may appear AT MOST ONCE across the ENTIRE card — headline, fit_line, intro, benefits and steps combined. Not once per section: once in total.
+
 - Once the headline or intro establishes a characteristic, never restate it. Say "your hair" or nothing at all.
 - Never open an item by restating context an earlier item already gave. No item may recap another.
 - Banned: repeating phrases like "your high-porosity hair", "your TWA", "your rough-textured hair" more than once in the whole payload.
@@ -156,6 +167,7 @@ function validate(
   const raw = (p ?? {}) as Record<string, unknown>;
 
   const headline = String(raw.headline ?? "").trim();
+  const fitLine = String(raw.fit_line ?? raw.fitLine ?? "").trim();
   const intro = String(raw.intro ?? raw.fit_summary ?? "").trim();
   const benefitsRaw = Array.isArray(raw.benefits) ? raw.benefits : [];
   const stepsRaw = Array.isArray(raw.steps)
@@ -167,11 +179,18 @@ function validate(
   if (!headline) problems.push("headline is missing.");
   else if (words(headline) > 8) problems.push(`headline is ${words(headline)} words — maximum 8.`);
 
+  if (!fitLine) problems.push("fit_line is missing.");
+  else {
+    if (words(fitLine) > 16) problems.push(`fit_line is ${words(fitLine)} words — maximum 16.`);
+    if (sentenceCount(fitLine) > 1) problems.push("fit_line must be exactly one sentence.");
+  }
+
   if (!intro) problems.push("intro is missing.");
   else {
     if (words(intro) > 20) problems.push(`intro is ${words(intro)} words — maximum 20.`);
     if (sentenceCount(intro) > 1) problems.push("intro must be exactly one sentence.");
   }
+
 
   const benefits: Benefit[] = benefitsRaw
     .map((b) => {
@@ -200,6 +219,7 @@ function validate(
   // Repetition gate — each stated characteristic at most once in the whole card.
   const assembled = [
     headline,
+    fitLine,
     intro,
     ...benefits.map((b) => `${b.label} ${b.text}`),
     ...steps,
@@ -218,6 +238,7 @@ function validate(
     ok: true,
     value: {
       headline,
+      fit_line: fitLine,
       intro,
       benefits: benefits.slice(0, 3),
       steps: steps.slice(0, 3),
