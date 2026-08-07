@@ -297,9 +297,10 @@ const BrandShelf = () => {
               inputMode="url"
               autoCapitalize="none"
             />
-            <Button className="w-full rounded-pill" disabled={busy || !url.trim()} onClick={handleLink}>
-              {busy ? <><Loader2 className="size-4 mr-1.5 animate-spin" /> Reading the page…</> : "Read this page"}
+            <Button className="w-full rounded-pill" disabled={!url.trim()} onClick={handleLink}>
+              Read this page
             </Button>
+
           </div>
         </SheetContent>
       </Sheet>
