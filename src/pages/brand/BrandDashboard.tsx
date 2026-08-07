@@ -10,6 +10,8 @@ import ShelfEngagementSection from "@/components/brand/ShelfEngagementSection";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import UpcomingOfferCard from "@/components/brand/UpcomingOfferCard";
+
 import PastOfferCard from "@/components/brand/PastOfferCard";
 import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
