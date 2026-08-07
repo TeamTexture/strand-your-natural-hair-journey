@@ -316,6 +316,7 @@ const AdminHub = () => {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: dropoff } = useAdminDropOffCounts();
   const { data: pendingProfileReviews = 0 } = usePendingProProfileReviewCount();
+  const { data: pendingShelfItems = 0 } = usePendingShelfCount();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
   const { data: openComplaints = 0 } = useOpenComplaintsCount();
   const revisionCount = pendingRevisions.length;
