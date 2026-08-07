@@ -351,9 +351,10 @@ const BrandDashboard = () => {
         {upcoming.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Upcoming</SectionLabel>
-            <div className="space-y-2">{upcoming.map(renderOffer)}</div>
+            <div className="space-y-3">{upcoming.map(renderUpcoming)}</div>
           </div>
         )}
+
 
         {past.length > 0 && (
           <div>
