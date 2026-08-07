@@ -105,7 +105,7 @@ export function describeAudience(
   options: TargetingOption[] | undefined,
 ): string {
   const clean = cleanRules(rules);
-  if (rulesAreEmpty(clean)) return "Showing to everyone. Tap below to narrow it.";
+  if (rulesAreEmpty(clean)) return "Showing to everyone. Narrow it below.";
   const parts: string[] = [];
   for (const key of ATTRIBUTE_ORDER) {
     const codes = clean[key];
@@ -124,6 +124,6 @@ export function describeAudience(
       parts.push(`${labels.length} ${attributeLabel} options`);
     }
   }
-  if (parts.length === 0) return "Showing to everyone. Tap below to narrow it.";
+  if (parts.length === 0) return "Showing to everyone. Narrow it below.";
   return `Showing to members with ${parts.join("; ")}.`;
 }
