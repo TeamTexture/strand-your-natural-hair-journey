@@ -372,40 +372,42 @@ const BrandCreateOffer = () => {
   const [scrapeKind, setScrapeKind] = useState<AttachKind>("product");
 
   const runScrape = async () => {
-    if (!scrapeUrl.trim()) return;
+    const normalised = normaliseProductUrl(scrapeUrl);
+    if (!normalised) {
+      if (scrapeUrl.trim()) toast.error("That doesn't look like a valid web link.");
+      return;
+    }
     setScraping(true);
     try {
-      const { data, error } = await supabase.functions.invoke("brand-product-scrape", {
-        body: { url: scrapeUrl.trim(), kind: scrapeKind },
-      });
-      if (error) throw error;
-      const item = data?.item ?? data?.product ?? data?.tool;
-      if (!item) throw new Error("No draft data returned");
-      const kind: AttachKind = data?.kind === "tool" || item.kind === "tool" ? "tool" : "product";
+      // Same edge function the member "paste a link" flow calls. One
+      // implementation only — the old brand-product-scrape is deleted.
+      const item = await scanProductLink(normalised);
+      const kind: AttachKind = scrapeKind === "tool" ? "tool" : "product";
       setProducts((prev) => [
         ...prev,
         {
           kind,
           name: item.name ?? "",
           description: item.description ?? "",
-          external_url: item.external_url ?? scrapeUrl,
+          external_url: item.external_url ?? normalised,
           image_urls: item.image_urls ?? [],
-          ingredients: kind === "product" && Array.isArray(item.ingredients) ? item.ingredients : [],
-          tool_kind: kind === "tool" ? (item.tool_kind ?? null) : null,
-          key_features: kind === "tool" && Array.isArray(item.key_features) ? item.key_features : [],
-          materials: kind === "tool" && Array.isArray(item.materials) ? item.materials : [],
+          ingredients: kind === "product" ? item.ingredients : [],
+          tool_kind: null,
+          key_features: [],
+          materials: [],
           source_type: "ai",
-          source_url: scrapeUrl,
+          source_url: normalised,
         },
       ]);
       setScrapeUrl("");
       toast.success(kind === "tool" ? "Tool draft added — review and edit below" : "Product draft added — review and edit below");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Scrape failed");
+      toast.error(e instanceof Error ? e.message : "Couldn't read that page");
     } finally {
       setScraping(false);
     }
   };
+
 
   const isCatalogueItemAttached = (item: CatalogueItem) =>
     products.some((p) => p.linked_product_id === item.source_id && p.kind === item.kind);
