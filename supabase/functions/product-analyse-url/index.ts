@@ -438,10 +438,34 @@ interface ScrapeResult {
   source: "firecrawl" | "fetch";
 }
 
-function firstMarkdownImage(md: string): string | null {
-  const m = md.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
-  return m ? m[1] : null;
+/** Page chrome — flags, payment badges, logos, social icons, sprites — is
+ * never the hero product shot. When we fall back to "first image on the
+ * page" we must skip these or we end up prefilling a union jack. */
+const CHROME_RE =
+  /(flag|union[-_]?jack|\bicon\b|icons?\/|logo|sprite|badge|payment|visa|mastercard|amex|paypal|klarna|applepay|gpay|trustpilot|\bstar\b|rating|placeholder|avatar|profile[-_]?pic|spinner|loader|pixel|1x1|blank|transparent|social|instagram|facebook|tiktok|twitter|youtube|pinterest|cart|search|menu|arrow|chevron|close|burger|currency|country|locale|lang|shipping|delivery|van|truck|newsletter|cookie|banner|footer|header|nav)/i;
+
+export function isLikelyProductImage(u: string | null | undefined): boolean {
+  if (!u) return false;
+  const clean = u.split("?")[0];
+  if (/\.(svg|gif)$/i.test(clean)) return false;
+  if (CHROME_RE.test(u)) return false;
+  // Tiny declared dimensions in the path or query (…/32x32/…, ?w=48)
+  const dim = u.match(/(?:^|[^\d])(\d{1,3})\s*[x×]\s*(\d{1,3})(?:[^\d]|$)/);
+  if (dim && Number(dim[1]) < 200 && Number(dim[2]) < 200) return false;
+  const w = u.match(/[?&](?:w|width)=(\d+)/i);
+  if (w && Number(w[1]) < 200) return false;
+  return true;
 }
+
+function firstMarkdownImage(md: string): string | null {
+  const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(md)) !== null) {
+    if (isLikelyProductImage(m[1])) return m[1];
+  }
+  return null;
+}
+
 
 async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeResult | null> {
   try {
