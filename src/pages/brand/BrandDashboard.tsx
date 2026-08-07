@@ -303,9 +303,10 @@ const BrandDashboard = () => {
         {awaitingPayment.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Awaiting payment</SectionLabel>
-            <div className="space-y-2">{awaitingPayment.map(renderOffer)}</div>
+            <div className="space-y-3">{awaitingPayment.map(renderUpcoming)}</div>
           </div>
         )}
+
 
         <div>
           <SectionLabel className={`!px-0 ${drafts.length + underReview.length + awaitingPayment.length > 0 ? "" : "!mt-0"}`}>
