@@ -520,6 +520,7 @@ const App = () => (
               <Route path="/admin/referrals" element={<RoleGate allow={["admin"]}><AdminReferrals /></RoleGate>} />
               <Route path="/admin/view-as" element={<RoleGate allow={["admin"]}><AdminViewAs /></RoleGate>} />
               <Route path="/admin/brands" element={<RoleGate allow={["admin"]}><AdminBrands /></RoleGate>} />
+              <Route path="/admin/shelf-review" element={<RoleGate allow={["admin"]}><AdminShelfReview /></RoleGate>} />
               <Route path="/admin/messages" element={<RoleGate allow={["admin"]}><AdminMessages /></RoleGate>} />
 
               {/* Consumer-facing brand directory */}
