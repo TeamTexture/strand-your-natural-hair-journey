@@ -145,33 +145,43 @@ const BrandProductPage = () => {
   );
 
 
-  const addToWishlist = async () => {
+  const save = async (destination: "shelf" | "wishlist") => {
     if (!user || !product || !offer) return;
+    const toShelf = destination === "shelf";
     setBusy(true);
     try {
       if (isTool) {
-        const existing = findExistingTool();
+        const existing = findExistingTool() as
+          | { id: string; on_shelf?: boolean | null; on_wishlist?: boolean | null }
+          | undefined;
         if (existing) {
-          toast.success("Already on your wishlist");
-          nav("/products/wishlist");
-          return;
+          const { error } = await supabase
+            .from("user_tools")
+            .update(
+              (toShelf
+                ? { on_shelf: true, on_wishlist: false }
+                : { on_wishlist: true }) as never,
+            )
+            .eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          const insertRow = {
+            user_id: user.id,
+            tool_key: toolKeyFor(product.id),
+            name: product.name,
+            brand: brandName,
+            category: null,
+            image_url: product.image_urls?.[0] ?? null,
+            notes: product.description ?? null,
+            source_url: product.external_url ?? null,
+            on_shelf: toShelf,
+            on_wishlist: !toShelf,
+            linked_brand_offer_id: offer.id,
+            linked_brand_product_id: product.id,
+          };
+          const { error } = await supabase.from("user_tools").insert(insertRow as never);
+          if (error) throw error;
         }
-        const insertRow = {
-          user_id: user.id,
-          tool_key: toolKeyFor(product.id),
-          name: product.name,
-          brand: brandName,
-          category: null,
-          image_url: product.image_urls?.[0] ?? null,
-          notes: product.description ?? null,
-          source_url: product.external_url ?? null,
-          on_shelf: false,
-          on_wishlist: true,
-          linked_brand_offer_id: offer.id,
-          linked_brand_product_id: product.id,
-        };
-        const { error } = await supabase.from("user_tools").insert(insertRow as never);
-        if (error) throw error;
         await reloadTools();
       } else {
         const existing = findExistingProduct();
@@ -183,20 +193,23 @@ const BrandProductPage = () => {
           image_url: product.image_urls?.[0] ?? existing?.image_url ?? null,
           linked_brand_offer_id: offer.id,
           linked_brand_product_id: product.id,
-          on_wishlist: true,
+          ...(toShelf ? { on_shelf: true, on_wishlist: false } : { on_wishlist: true }),
         };
         const row = await upsert(payload);
-        if (!row) throw new Error("Could not save to wishlist");
+        if (!row) throw new Error(toShelf ? "Could not add to your shelf" : "Could not save to wishlist");
       }
       logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
-      toast.success("Added to your wishlist");
-      nav("/products/wishlist");
+      toast.success(toShelf ? "Added to your shelf" : "Added to your wishlist");
+      nav(toShelf ? "/products" : "/products/wishlist");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not add to wishlist");
+      toast.error(
+        e instanceof Error ? e.message : toShelf ? "Could not add to your shelf" : "Could not add to wishlist",
+      );
     } finally {
       setBusy(false);
     }
   };
+
 
 
   const openExternal = () => {
