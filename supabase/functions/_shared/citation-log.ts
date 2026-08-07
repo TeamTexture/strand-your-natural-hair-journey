@@ -87,7 +87,7 @@ async function logViolation(
 export async function sanitiseAndLog<T>(
   value: T,
   functionName: string,
-  opts?: { context?: unknown },
+  opts?: { context?: unknown; grounding?: string },
 ): Promise<T> {
   const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
@@ -109,9 +109,11 @@ export async function sanitiseAndLog<T>(
     }
   }
 
-  // Blood guardrail — LAST, so nothing downstream can reintroduce a
-  // fabricated blood/hair causal link. See _shared/blood-guardrail.ts.
-  return await enforceBloodSafety(out, functionName);
+  // Blood guardrail — LAST, so nothing downstream can reintroduce a fabricated
+  // blood/hair causal link or an invented mechanism. `grounding` is the
+  // retrieved manuscript text, so mechanism wording that IS in the manuscript
+  // survives. See _shared/blood-guardrail.ts.
+  return await enforceBloodSafety(out, functionName, opts?.grounding ?? "");
 }
 
 /** Collapse the duplicated "TT" the model sometimes emits immediately before
