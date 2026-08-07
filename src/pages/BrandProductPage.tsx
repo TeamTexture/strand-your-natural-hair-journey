@@ -23,17 +23,7 @@ import { buildAiContext } from "@/lib/aiContext";
 
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
-// v2 — the guidance payload shape changed (intro/benefits/steps). Old cached
-// rows under the v1 kind are simply never read again.
-const guidanceCacheKind = (brandProductId: string) =>
-  `brand_product_guidance_v2:${brandProductId}`;
 
-type GuidancePayload = {
-  headline: string;
-  intro: string;
-  benefits: BenefitRow[];
-  steps: string[];
-};
 
 const formatDate = (iso: string | null | undefined) => {
   if (!iso) return null;
