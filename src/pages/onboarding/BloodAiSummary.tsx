@@ -240,10 +240,10 @@ const BloodAiSummary = () => {
           </SurfaceCard>
         )}
 
-        <SectionLabel>What this means for your hair</SectionLabel>
         <SurfaceCard>
           <GuidanceBody text={summary.overall_summary} />
         </SurfaceCard>
+
 
         <SectionLabel>Your priority actions</SectionLabel>
         <SurfaceCard>
