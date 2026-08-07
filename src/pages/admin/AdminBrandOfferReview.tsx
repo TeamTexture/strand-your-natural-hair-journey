@@ -265,6 +265,62 @@ const AdminBrandOfferReview = () => {
     qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
   };
 
+  /** Admin override: make an approved-but-unpaid advert live without Stripe.
+   *  Keeps its own booked dates, backfills £0 placements if none exist, and
+   *  stamps `paid_at` so every downstream read treats it like a paid campaign. */
+  const goLiveWithoutPayment = async () => {
+    if (!offer) return;
+    setRelaunching(true);
+    try {
+      const start = offer.starts_on ?? londonToday;
+      const end = offer.ends_on ?? start;
+
+      const { data: existing } = await supabase
+        .from("brand_offer_placements")
+        .select("slot, placement_date")
+        .eq("offer_id", offer.id);
+
+      if (!existing?.length) {
+        const slots = ["home"];
+        const [y, m, d] = start.split("-").map(Number);
+        const rows: Array<{ offer_id: string; slot: string; placement_date: string; daily_rate_pence: number }> = [];
+        for (let i = 0; i < 60; i++) {
+          const date = new Date(Date.UTC(y, (m ?? 1) - 1, (d ?? 1) + i)).toISOString().slice(0, 10);
+          if (date > end) break;
+          for (const slot of slots) rows.push({ offer_id: offer.id, slot, placement_date: date, daily_rate_pence: 0 });
+        }
+        if (rows.length) {
+          const { error: pErr } = await supabase.from("brand_offer_placements").insert(rows as unknown as never);
+          if (pErr) throw pErr;
+        }
+      }
+
+      const nextStatus = start <= londonToday ? "live" : "paid_scheduled";
+      const { error } = await supabase
+        .from("brand_offers")
+        .update({
+          status: nextStatus as never,
+          paid_at: new Date().toISOString(),
+          approved_at: offer.approved_at ?? new Date().toISOString(),
+        })
+        .eq("id", offer.id);
+      if (error) throw error;
+
+      toast.success(nextStatus === "live" ? "Live now — payment waived" : "Scheduled — payment waived");
+      qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
+      qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
+      qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["brand-placements-taken"] });
+      qc.invalidateQueries({ queryKey: ["admin", "unified-calendar"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not make it live");
+    } finally {
+      setRelaunching(false);
+    }
+  };
+
+
   /** Admin-only free relaunch: reuse the offer's original slot mix (or `home`
    *  as a fallback) and insert new zero-cost placements starting on the chosen
    *  date. No payment, no revision — status flips straight back to scheduled/live.
