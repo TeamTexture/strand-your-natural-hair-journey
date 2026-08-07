@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { smartBack } from "@/lib/smartBack";
+import { recordConsents, withdrawConsent } from "@/lib/consent";
 
 type PrefKey =
   | "wash_day_reminders"
