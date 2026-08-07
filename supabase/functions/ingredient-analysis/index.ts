@@ -45,6 +45,7 @@ import {
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { perParagraph } from "../_shared/paragraph-rules.ts";
+import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/tips-level.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -152,7 +153,16 @@ interface RequestBody {
 }
 
 // ── Tool schema (shared between providers) ──────────────────────────────
-function buildToolSchema(ingredientCount: number) {
+/** How many usage tips each support level wants. Level 4 always shows the
+ *  most; level 1 the single highest-impact one. */
+function guidanceCount(level: TipsLevel): number {
+  if (level >= 4) return 6;
+  if (level === 3) return 4;
+  if (level === 2) return 2;
+  return 1;
+}
+
+function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL) {
   // Dynamic minItems/maxItems is the explicit fix for AUDIT.md §1's
   // "EXACTLY ${ingredientCount}" prose brittleness. When count is 0 we
   // fall back to a permissive shape so the model can infer.
@@ -186,9 +196,9 @@ function buildToolSchema(ingredientCount: number) {
       },
       personalised_guidance: {
         type: "array",
-        minItems: 1,
-        maxItems: 1,
-        description: "Exactly ONE tip on how the user gets maximum benefit FROM THIS PRODUCT ALONE. The tip must describe how to USE this exact product — technique, amount, section pattern, water/temperature, dwell time, rinse, frequency, dilution, distribution, where on the head. It must NEVER reference, name, pair with, layer with, follow with, or suggest ANY other product, product type, product category or routine step (no 'deep conditioner', 'leave-in', 'mask', 'oil', 'conditioner', 'styler', 'pre-poo', 'clarifying wash', 'protein treatment', 'heat cap', 'hat', 'towel', etc.). Do NOT mention the TT Heat Hat or any brand accessory here. If you would otherwise recommend another step, replace it with a technique-only lever on THIS product.",
+        minItems: guidanceCount(level),
+        maxItems: guidanceCount(level),
+        description: `EXACTLY ${guidanceCount(level)} tip(s), ordered most important first, on how the user gets maximum benefit FROM THIS PRODUCT ALONE. Each tip covers a DIFFERENT lever — never repeat or rephrase another tip. Each must describe how to USE this exact product — technique, amount, section pattern, water/temperature, dwell time, rinse, frequency, dilution, distribution, where on the head. It must NEVER reference, name, pair with, layer with, follow with, or suggest ANY other product, product type, product category or routine step (no 'deep conditioner', 'leave-in', 'mask', 'oil', 'conditioner', 'styler', 'pre-poo', 'clarifying wash', 'protein treatment', 'heat cap', 'hat', 'towel', etc.). Do NOT mention the TT Heat Hat or any brand accessory here. If you would otherwise recommend another step, replace it with a technique-only lever on THIS product.`,
         items: {
           type: "object",
           properties: {
@@ -204,7 +214,7 @@ function buildToolSchema(ingredientCount: number) {
 }
 
 // ── Task instructions (shared text — minus the brittle EXACTLY prose) ──
-function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number): string {
+function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL): string {
   return `You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. In every body field, lead with the molecule's mechanism in plain English (translate the cosmetic-chemistry term on first use), then bridge with a connective ("which means", "so", "this is why") into what it means for THIS user. Talk to "you", not "your hair". Warm but not saccharine; no hedging stacks.
@@ -236,7 +246,7 @@ RULES — STRICT:
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
-5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ONE tip — the single highest-impact, science-rooted piece of guidance for how this user can get the most out of THIS specific product. Do NOT return two tips.
+5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. ${level >= 4 ? "This user is at support level 4 (hand-holding): give the fullest set — more separate, short, concrete tips, each teaching one small piece in plain words, with dynamic timings scaled to their hair and the mistake to avoid named briefly. More pieces, never longer paragraphs." : level === 3 ? "This user is at support level 3: give each tip with the why behind it." : "Keep each tip short and self-sufficient: the action plus its trigger or frequency."}
 
    ABSOLUTE SCOPE — HARD BAN on referencing anything outside THIS product:
    - Do NOT recommend, name, pair with, "follow with", "layer with", "use alongside", "then apply", or otherwise suggest ANY other product, product type, or step (no "deep conditioner", "leave-in", "oil", "mask", "clarifying wash", "protein treatment", "styler", etc.). Even generic categories are banned.
@@ -325,8 +335,9 @@ async function runClaude(args: {
   userPayload: Record<string, unknown>;
   selectorContext: SelectorContext;
   avoidList: string[];
+  level: TipsLevel;
 }): Promise<AnalysisPayload> {
-  const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList } = args;
+  const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList, level } = args;
   const ingredientCount = ingredients.length;
 
   const ragOn = shouldTriggerRag(ingredients, avoidList);
@@ -334,7 +345,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount),
+    task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount, level),
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
@@ -343,7 +354,7 @@ async function runClaude(args: {
     tool: {
       name: "return_analysis",
       description: "Return the structured ingredient analysis.",
-      input_schema: buildToolSchema(ingredientCount),
+      input_schema: buildToolSchema(ingredientCount, level),
     },
     toolChoice: { type: "tool", name: "return_analysis" },
     max_tokens: 4096,
@@ -380,6 +391,7 @@ async function runLovable(args: {
   systemPrompt: string;
   userPayload: Record<string, unknown>;
   ingredientCount: number;
+  level: TipsLevel;
 }): Promise<AnalysisPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -414,7 +426,7 @@ async function runLovable(args: {
             function: {
               name: "return_analysis",
               description: "Return the structured ingredient analysis.",
-              parameters: buildToolSchema(args.ingredientCount),
+              parameters: buildToolSchema(args.ingredientCount, args.level),
             },
           },
         ],
@@ -462,7 +474,12 @@ Deno.serve(async (req) => {
       return json(400, { error: "Missing product info" });
     }
 
-    const cacheKind = `ingredient_analysis:${productKey}`;
+    const tipsLevel = coerceTipsLevel(
+      (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
+    );
+    // Level is part of the key: guidance depth differs per support level, so a
+    // level-3 payload must never be served to a level-4 reader.
+    const cacheKind = `ingredient_analysis:${productKey}:L${tipsLevel}`;
     const provider = readAiProvider("STRAND_AI_PROVIDER_INGREDIENT");
 
     // ── Cache check (model_version-aware) ─────────────────────────────
@@ -478,10 +495,11 @@ Deno.serve(async (req) => {
         // Only honour cache if it includes the separate personalised guidance
         // section. Older rows predate this field and must be regenerated.
         const hasGuidance = Array.isArray(cached.personalised_guidance) && cached.personalised_guidance.length >= 1;
+        const depthOk = cached.personalised_guidance!.length >= guidanceCount(tipsLevel);
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
           : true;
-        if (versionOk && hasGuidance) {
+        if (versionOk && hasGuidance && depthOk) {
           return json(200, { cached: true, analysis: await sanitiseAndLog(cached, "ingredient-analysis") });
         }
       }
@@ -532,6 +550,7 @@ Deno.serve(async (req) => {
         userPayload,
         selectorContext: buildSelectorContext(body),
         avoidList,
+        level: tipsLevel,
       });
       // Guard: if the tip references another product/step, retry once with
       // a hardened payload that echoes the violation back to the model.
@@ -554,6 +573,7 @@ Deno.serve(async (req) => {
           userPayload: retryPayload,
           selectorContext: buildSelectorContext(body),
           avoidList,
+          level: tipsLevel,
         });
       }
       // Last line of defence: scrub any lingering forbidden phrases from
@@ -567,11 +587,12 @@ Deno.serve(async (req) => {
       const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`;
       analysis = await runLovable({
         systemPrompt,
         userPayload,
         ingredientCount,
+        level: tipsLevel,
       });
       analysis = scrubGuidance(analysis);
       analysis._provider = "lovable";

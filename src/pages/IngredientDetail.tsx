@@ -567,10 +567,13 @@ const IngredientDetail = () => {
     // Fresh-scan path: analysis is already in state, no need to re-fetch.
     if (freshAnalysis) return;
     if (!productKey || !profileChecked) return;
-    if (ranForRef.current === productKey) return;
-    ranForRef.current = productKey;
+    // Support level is part of the identity: guidance depth is level-specific,
+    // so changing level re-runs the analysis instead of showing stale depth.
+    const runKey = `${productKey}:L${tipsLevel}`;
+    if (ranForRef.current === runKey) return;
+    ranForRef.current = runKey;
     runAnalysis(false);
-  }, [runAnalysis, productKey, freshAnalysis, profileChecked]);
+  }, [runAnalysis, productKey, freshAnalysis, profileChecked, tipsLevel]);
 
   // Save the freshly-scanned product into user_products. The scanning flow
   // already attempts this upsert, but we re-run it here to (a) cover the
@@ -1018,7 +1021,7 @@ const IngredientDetail = () => {
 
             {/* Personalised "How to use this for your hair" */}
             {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
-              <LevelGate min={2}>
+              <LevelGate min={1}>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard>
                   <TipsBlock
