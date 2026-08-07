@@ -34,7 +34,7 @@ import {
   buildCostBreakdown,
   dailyRatePence,
   money,
-  TARGETED_MULTIPLIER,
+  TRIAL_PRICING_NOTE,
   TRIAL_PRICING_NOTE,
   type PricedSlot,
 } from "@/lib/adPricing";
