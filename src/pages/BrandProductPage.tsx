@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ExternalLink, Heart, Check, Loader2, Sparkles } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
-import BenefitRows, { type BenefitRow } from "@/components/guidance/BenefitRows";
+import BenefitRows from "@/components/guidance/BenefitRows";
 import NumberedSteps from "@/components/guidance/NumberedSteps";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
