@@ -1144,7 +1144,8 @@ const BrandCreateOffer = () => {
               <p className="text-[11px] font-body text-muted-foreground leading-snug">
                 {targetingEmpty
                   ? "Broad campaign — standard slot rate, shown to all members in the slots you book."
-                  : `Targeted campaign — ${TARGETED_MULTIPLIER}× the standard slot rate, because you have narrowed the audience below. Clear your audience selection to return to the standard rate.`}
+                  : "Targeted campaign — the targeted rate for each slot you have booked applies, because you have narrowed the audience below. Clear your audience selection to return to the standard rate."}
+
               </p>
               <p className="text-[10.5px] font-body text-muted-foreground leading-snug">
                 {TRIAL_PRICING_NOTE} Your rate is fixed at booking and never changes afterwards.
