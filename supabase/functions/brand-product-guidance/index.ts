@@ -167,6 +167,7 @@ function validate(
   const raw = (p ?? {}) as Record<string, unknown>;
 
   const headline = String(raw.headline ?? "").trim();
+  const fitLine = String(raw.fit_line ?? raw.fitLine ?? "").trim();
   const intro = String(raw.intro ?? raw.fit_summary ?? "").trim();
   const benefitsRaw = Array.isArray(raw.benefits) ? raw.benefits : [];
   const stepsRaw = Array.isArray(raw.steps)
