@@ -307,6 +307,9 @@ Deno.serve(async (req) => {
     steps.map((s) => `${s.headline}. ${s.body}`),
   );
 
-  const safePayload = await sanitiseAndLog(payload, "wash-day-steps", { context: body });
+  const safePayload = await sanitiseAndLog(payload, "wash-day-steps", {
+    context: body,
+    grounding: grounding.block,
+  });
   return json(200, { steps: safePayload.steps, payload: safePayload, cached: false });
 });
