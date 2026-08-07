@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cleanRules, rulesAreEmpty, type TargetingOption, type TargetingRules } from "@/lib/adTargeting";
+import { recordConsents, withdrawConsent } from "@/lib/consent";
 
 type Rpc = (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = (supabase as unknown as { rpc: Rpc }).rpc.bind(supabase);
