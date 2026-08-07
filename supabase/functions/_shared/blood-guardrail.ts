@@ -1,50 +1,36 @@
 // Blood-marker guardrail — STRUCTURAL, not prompt-tuning.
 //
 // WHY THIS EXISTS
-// `blood_results` stores marker/value/unit/status only. Nothing in the app
-// describes what a marker means or whether it has any relationship to hair.
-// The manuscript is a book about afro hair care, not haematology, so the
-// manuscript-grounding layer has nothing to match a blood claim against.
-// The model filled that vacuum by inventing causal bridges
-// ("low LH and FSH ... so keep your hairline tension-free").
+// The model was inventing causal bridges and mechanisms it cannot support:
+//   * "Low LH and FSH signals require extra care around your hairline, so keep
+//      your cornrows tension-free."  <- fabricated bridge, whole sentence
+//   * "Your B12 reads 83 pmol/L, which is low and can slow cell division at
+//      the follicle, affecting how your TWA retains density."  <- the value and
+//      range are fine; the mechanism is invented.
 //
 // THE RULE (hard-enforced here, in code, after generation):
-//   * A blood FACT is allowed: marker, value, unit, reference range, whether
-//     it sits outside that range, and "discuss it with your GP".
-//   * Hair-care advice grounded in the manuscript is allowed.
-//   * A CAUSAL link between the two is allowed ONLY when the marker's
-//     `blood_marker_reference.hair_link_status = 'established'` AND curated
-//     `hair_link_summary` wording exists.
-//   * Mechanistic claims (follicle, cell division, hair shaft, etc.) are
-//     never allowed unless they come from an approved source.
+//   * A blood FACT is allowed: marker, value, unit, reference range, whether it
+//     sits inside or outside that range, and "discuss it with your GP".
+//   * Hair-care guidance grounded in the manuscript is allowed — including in
+//     the same card as a blood fact, as a SEPARATE statement.
+//   * A CAUSAL or CONSEQUENTIAL link joining a marker to a hair outcome or hair
+//     action in one sentence is never allowed.
+//   * A physiological MECHANISM (follicle, cell division, hair shaft, scalp
+//     biology) is never allowed unless that wording is traceable to the
+//     retrieved `manuscript_chunks` passages for this generation.
 //
-// KILL SWITCH
-// Until curated reference rows exist, `bloodGuidanceMode()` returns
-// "suppress": every sentence that mentions a blood marker AND any hair
-// language is dropped from AI output. Members seeing nothing is strictly
-// better than members seeing invented clinical reasoning.
+// THERE IS NO SUPPRESSION MODE AND NO REFERENCE TABLE.
+// Blood-referencing guidance renders normally. Nothing depends on an admin
+// populating anything. Only the two violations above are removed.
 //
-// Every drop is logged to `public.ai_citation_violations` with
+// Every rejection is logged to `public.ai_citation_violations` with
 // `function_name = '<fn>:blood-guardrail'` so the failure rate is visible.
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
-export type HairLinkStatus = "established" | "limited_evidence" | "none";
-
-export interface MarkerRef {
-  marker: string;
-  display_name: string;
-  hair_link_status: HairLinkStatus;
-  hair_link_summary: string | null;
-  unit: string | null;
-  ref_range_low: number | null;
-  ref_range_high: number | null;
-  plain_meaning: string | null;
-}
-
-/** Fallback lexicon used when the reference table cannot be read, so the
- *  guardrail never silently stops matching. Names only — no clinical data. */
-const FALLBACK_MARKERS = [
+/** Marker-name lexicon. Names ONLY — no clinical data is encoded anywhere in
+ *  the app, and nothing here says what a marker means. */
+const MARKER_NAMES = [
   "ferritin", "serum iron", "transferrin", "transferrin saturation", "TIBC",
   "haemoglobin", "haematocrit", "MCV", "MCH", "MCHC", "red blood cells",
   "white blood cells", "platelets", "vitamin d", "vitamin b12", "b12",
@@ -55,99 +41,50 @@ const FALLBACK_MARKERS = [
   "creatinine", "urea", "uric acid", "globulin", "total protein",
 ];
 
-let cache: { at: number; rows: MarkerRef[] } | null = null;
-const TTL_MS = 60_000;
-
-async function admin() {
-  const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !key) return null;
-  // @ts-ignore — esm.sh URL import is Deno-native.
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
-/** Load the curated reference rows (cached for a minute per isolate). */
-export async function loadMarkerReference(): Promise<MarkerRef[]> {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache.rows;
-  try {
-    const db = await admin();
-    if (!db) return [];
-    const { data, error } = await db
-      .from("blood_marker_reference")
-      .select("marker, display_name, hair_link_status, hair_link_summary, unit, ref_range_low, ref_range_high, plain_meaning");
-    if (error) throw error;
-    const rows = (data ?? []) as MarkerRef[];
-    cache = { at: Date.now(), rows };
-    return rows;
-  } catch (e) {
-    console.warn("[blood-guardrail] reference load failed:", e);
-    return [];
-  }
-}
-
-/** "suppress" while no curated `established` hair link exists anywhere;
- *  "curated" once Paige has approved at least one. Env override:
- *  STRAND_BLOOD_GUIDANCE=curated|suppress. */
-export async function bloodGuidanceMode(
-  rows?: MarkerRef[],
-): Promise<"suppress" | "curated"> {
-  const override = Deno.env.get("STRAND_BLOOD_GUIDANCE");
-  if (override === "curated" || override === "suppress") return override;
-  const ref = rows ?? (await loadMarkerReference());
-  const hasCurated = ref.some(
-    (r) => r.hair_link_status === "established" && (r.hair_link_summary ?? "").trim().length > 0,
-  );
-  return hasCurated ? "curated" : "suppress";
-}
-
 // ---------------------------------------------------------------- matching
 
-const CAUSAL = /\b(so|because|since|therefore|thus|hence|which is why|that is why|means (?:that )?you|means your|meaning|requires?|require|needs?|need to|drives?|causes?|caused by|leads? to|resulting in|results? in|affects?|affecting|impacts?|impacting|contributes? to|explains? why|why your|which slows|slowing|makes? your|supports?|helps? your|in order to|due to|as a result)\b/i;
+/** Banned connectors joining a marker to a hair statement. */
+const CAUSAL =
+  /\b(so|because|since|therefore|thus|hence|which is why|that is why|this is why|means (?:that )?you(?: should)?|means your|meaning|requires?|require|needs?|need to|drives?|causes?|caused by|leads? to|resulting in|results? in|affects?|affecting|impacts?|impacting|contributes? to|explains? why|why your|which slows|slowing|makes? your|supports?|helps? your|in order to|due to|as a result)\b/i;
 
-const HAIR_TERMS = /\b(hair|hairline|edges?|strand|strands|curl|curls|coil|coils|scalp|shed|shedding|breakage|growth|regrowth|density|porosity|follicle|follicles|moisture|protein|wash day|wash-day|twists?|braids?|cornrows?|locs?|wig|weave|TWA|style|styling|deep conditioner|conditioner|shampoo|leave-in|trim|retention|length|tension|traction|elasticity|frizz)\b/i;
+const HAIR_TERMS =
+  /\b(hair|hairline|edges?|strand|strands|curl|curls|coil|coils|scalp|shed|shedding|breakage|growth|regrowth|density|porosity|follicle|follicles|moisture|protein|wash day|wash-day|twists?|braids?|cornrows?|locs?|wig|weave|TWA|style|styling|deep conditioner|conditioner|shampoo|leave-in|trim|retention|length|tension|traction|elasticity|frizz)\b/i;
 
-const MECHANISM = /\b(follicle|follicular|follicles|cell division|cellular division|keratinocyte|keratinisation|keratinization|hair shaft|cortex|cuticle layer|dermal papilla|anagen|telogen|catagen|matrix cells|blood flow to the scalp|oxygen to the follicle|protein synthesis|collagen synthesis|sebum production|hormonal pathway|androgen receptor|DHT|miniaturisation|miniaturization)\b/i;
-
-const GP_SAFE = /\b(gp|doctor|clinician|nurse|pharmacist|medical professional)\b/i;
+/** Physiological-mechanism vocabulary. Allowed only when the same wording is
+ *  traceable to the retrieved manuscript passages for this generation. */
+const MECHANISM_TERMS = [
+  "follicle", "follicular", "follicles", "cell division", "cellular division",
+  "keratinocyte", "keratinisation", "keratinization", "hair shaft", "cortex",
+  "cuticle layer", "dermal papilla", "anagen", "telogen", "catagen",
+  "matrix cells", "blood flow to the scalp", "oxygen to the follicle",
+  "protein synthesis", "collagen synthesis", "sebum production",
+  "hormonal pathway", "androgen receptor", "DHT", "miniaturisation",
+  "miniaturization",
+];
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export interface MarkerLexicon {
-  /** marker name (lowercased) -> status */
-  status: Map<string, HairLinkStatus>;
-  /** curated wording for established markers, lowercased key */
-  summary: Map<string, string>;
-  /** regex matching any known marker name */
-  re: RegExp | null;
-}
+const MARKER_RE = new RegExp(
+  `(?<![a-z])(${
+    [...MARKER_NAMES]
+      .sort((a, b) => b.length - a.length)
+      .map((n) => escapeRe(n.toLowerCase()))
+      .join("|")
+  })(?![a-z])`,
+  "gi",
+);
 
-export function buildLexicon(rows: MarkerRef[]): MarkerLexicon {
-  const status = new Map<string, HairLinkStatus>();
-  const summary = new Map<string, string>();
-  const names: string[] = [];
-  for (const r of rows) {
-    for (const n of [r.marker, r.display_name]) {
-      const key = String(n ?? "").trim().toLowerCase();
-      if (!key) continue;
-      status.set(key, r.hair_link_status);
-      if (r.hair_link_summary) summary.set(key, r.hair_link_summary);
-      names.push(key);
-    }
-  }
-  for (const n of FALLBACK_MARKERS) {
-    const key = n.toLowerCase();
-    if (!status.has(key)) status.set(key, "none");
-    names.push(key);
-  }
-  const uniq = [...new Set(names)].sort((a, b) => b.length - a.length);
-  const re = uniq.length
-    ? new RegExp(`(?<![a-z])(${uniq.map(escapeRe).join("|")})(?![a-z])`, "gi")
-    : null;
-  return { status, summary, re };
-}
+const MECHANISM_RE = new RegExp(
+  `\\b(${
+    [...MECHANISM_TERMS]
+      .sort((a, b) => b.length - a.length)
+      .map((t) => escapeRe(t.toLowerCase()))
+      .join("|")
+  })\\b`,
+  "gi",
+);
 
 /** Split a block of prose into sentences, preserving the delimiter. */
 export function splitSentences(text: string): string[] {
@@ -158,54 +95,60 @@ export function splitSentences(text: string): string[] {
 
 export interface SentenceVerdict {
   ok: boolean;
-  reason?: "blood_hair_bridge" | "unsourced_mechanism" | "suppressed_blood_reference";
+  reason?: "blood_hair_bridge" | "unsourced_mechanism";
   marker?: string;
+  term?: string;
+}
+
+/** Manuscript text retrieved for this generation, used to decide whether a
+ *  mechanism phrase is grounded. Empty string = nothing retrieved. */
+export type Grounding = string;
+
+function mechanismGrounded(term: string, grounding: Grounding): boolean {
+  if (!grounding) return false;
+  return grounding.toLowerCase().includes(term.toLowerCase());
 }
 
 /**
- * Deterministic per-sentence check. `mode === "suppress"` drops ANY sentence
- * that mentions a marker together with hair language. In "curated" mode a
- * bridge is allowed only for markers whose status is `established`.
+ * Deterministic per-sentence check.
+ *
+ * REJECT when:
+ *   1. a mechanism phrase appears that is not traceable to `grounding`, or
+ *   2. a marker name and a hair-care statement appear in the same sentence
+ *      joined by a banned causal connector.
+ *
+ * Everything else passes — including a bare blood fact, a GP recommendation,
+ * and hair guidance sitting beside a blood fact with no causal connector.
  */
 export function checkSentence(
   sentence: string,
-  lex: MarkerLexicon,
-  mode: "suppress" | "curated",
+  grounding: Grounding = "",
 ): SentenceVerdict {
   const s = sentence;
 
-  // 1 — mechanistic claims are never allowed from the model.
-  if (MECHANISM.test(s) && !GP_SAFE.test(s)) {
-    return { ok: false, reason: "unsourced_mechanism" };
-  }
+  // 1 — mechanism claims, unless the wording is in the manuscript passages.
+  MECHANISM_RE.lastIndex = 0;
+  const mech = [...s.matchAll(MECHANISM_RE)].map((m) => m[1]);
+  const ungrounded = mech.find((t) => !mechanismGrounded(t, grounding));
+  if (ungrounded) return { ok: false, reason: "unsourced_mechanism", term: ungrounded };
 
-  if (!lex.re) return { ok: true };
-  lex.re.lastIndex = 0;
-  const hits = [...s.matchAll(lex.re)].map((m) => m[1].toLowerCase());
+  // 2 — marker + hair statement joined by a causal connector.
+  MARKER_RE.lastIndex = 0;
+  const hits = [...s.matchAll(MARKER_RE)].map((m) => m[1].toLowerCase());
   if (hits.length === 0) return { ok: true };
-
-  const hasHair = HAIR_TERMS.test(s);
-  if (!hasHair) return { ok: true }; // pure blood fact — allowed
-
-  if (mode === "suppress") {
-    return { ok: false, reason: "suppressed_blood_reference", marker: hits[0] };
-  }
-
-  const established = hits.some((h) => lex.status.get(h) === "established");
-  if (!CAUSAL.test(s)) return { ok: true }; // separate statements, no connector
-  if (established) return { ok: true };
+  if (!HAIR_TERMS.test(s)) return { ok: true }; // pure blood fact — allowed
+  if (!CAUSAL.test(s)) return { ok: true }; // separate statements, no bridge
   return { ok: false, reason: "blood_hair_bridge", marker: hits[0] };
 }
 
 export interface GuardResult<T> {
   value: T;
-  dropped: Array<{ text: string; reason: string; marker?: string }>;
+  dropped: Array<{ text: string; reason: string; marker?: string; term?: string }>;
 }
 
 function scrubString(
   text: string,
-  lex: MarkerLexicon,
-  mode: "suppress" | "curated",
+  grounding: Grounding,
   dropped: GuardResult<unknown>["dropped"],
 ): string {
   const paragraphs = text.split(/\n{2,}/);
@@ -213,9 +156,16 @@ function scrubString(
   for (const para of paragraphs) {
     const kept: string[] = [];
     for (const sentence of splitSentences(para)) {
-      const verdict = checkSentence(sentence, lex, mode);
+      const verdict = checkSentence(sentence, grounding);
       if (verdict.ok) kept.push(sentence);
-      else dropped.push({ text: sentence, reason: verdict.reason!, marker: verdict.marker });
+      else {
+        dropped.push({
+          text: sentence,
+          reason: verdict.reason!,
+          marker: verdict.marker,
+          term: verdict.term,
+        });
+      }
     }
     const joined = kept.join(" ").trim();
     if (joined) keptParas.push(joined);
@@ -225,14 +175,13 @@ function scrubString(
 
 function walk<T>(
   value: T,
-  lex: MarkerLexicon,
-  mode: "suppress" | "curated",
+  grounding: Grounding,
   dropped: GuardResult<unknown>["dropped"],
 ): T {
-  if (typeof value === "string") return scrubString(value, lex, mode, dropped) as unknown as T;
+  if (typeof value === "string") return scrubString(value, grounding, dropped) as unknown as T;
   if (Array.isArray(value)) {
     return value
-      .map((v) => walk(v, lex, mode, dropped))
+      .map((v) => walk(v, grounding, dropped))
       // Drop list items that were emptied entirely by the scrub.
       .filter((v) => !(typeof v === "string" && v.trim() === ""))
       .filter((v) => !(v && typeof v === "object" && isEmptyItem(v))) as unknown as T;
@@ -240,7 +189,7 @@ function walk<T>(
   if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = walk(v, lex, mode, dropped);
+      out[k] = walk(v, grounding, dropped);
     }
     return out as unknown as T;
   }
@@ -256,6 +205,15 @@ function isEmptyItem(v: unknown): boolean {
   return strings.every((s) => s.trim() === "");
 }
 
+async function admin() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  // @ts-ignore — esm.sh URL import is Deno-native.
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
 async function logDrops(
   fn: string,
   dropped: GuardResult<unknown>["dropped"],
@@ -264,7 +222,9 @@ async function logDrops(
     const db = await admin();
     if (!db) return;
     const stripped_text = dropped
-      .map((d) => `[${d.reason}${d.marker ? ` · ${d.marker}` : ""}] ${d.text}`)
+      .map((d) =>
+        `[${d.reason}${d.marker ? ` · ${d.marker}` : ""}${d.term ? ` · ${d.term}` : ""}] ${d.text}`
+      )
       .join("\n\n---\n\n")
       .slice(0, 8000);
     const original_length = dropped.reduce((a, d) => a + d.text.length, 0);
@@ -281,18 +241,22 @@ async function logDrops(
 
 /**
  * THE validation pass. Run on every generated payload BEFORE it reaches a
- * member. Drops offending sentences (and items emptied by that), logs each
+ * member. Rejects offending sentences (and items emptied by that), logs each
  * rejection, and returns the cleaned payload. Never throws.
+ *
+ * `grounding` is the retrieved manuscript text for this generation — pass it
+ * so mechanism wording that IS in the manuscript survives.
  */
-export async function enforceBloodSafety<T>(value: T, fn: string): Promise<T> {
+export async function enforceBloodSafety<T>(
+  value: T,
+  fn: string,
+  grounding: Grounding = "",
+): Promise<T> {
   try {
-    const rows = await loadMarkerReference();
-    const mode = await bloodGuidanceMode(rows);
-    const lex = buildLexicon(rows);
     const dropped: GuardResult<unknown>["dropped"] = [];
-    const cleaned = walk(value, lex, mode, dropped);
+    const cleaned = walk(value, grounding, dropped);
     if (dropped.length > 0) {
-      console.warn(`[blood-guardrail] ${fn}: dropped ${dropped.length} sentence(s), mode=${mode}`);
+      console.warn(`[blood-guardrail] ${fn}: rejected ${dropped.length} sentence(s)`);
       await logDrops(fn, dropped);
     }
     return cleaned;
@@ -307,11 +271,11 @@ export async function enforceBloodSafety<T>(value: T, fn: string): Promise<T> {
 /** Hard constraint appended to every system prompt that can see blood data.
  *  This is belt-and-braces only — enforcement is `enforceBloodSafety`. */
 export const BLOOD_CLAIM_RULES = `BLOOD MARKER RULES — ABSOLUTE, ENFORCED IN CODE AFTER YOU REPLY:
-1. You MAY state a blood fact: the marker name, the value with its unit, its reference range, and whether it sits inside or outside that range.
-2. You MAY give hair care advice grounded in the retrieved manuscript passages.
-3. You MAY NOT assert any causal or consequential link between a blood marker and a hair outcome or hair action. No "so", "which is why", "requires", "means you should", "affecting how", "therefore", "leads to", "because of" joining a marker to hair. Blood facts and hair advice are SEPARATE statements.
-4. You MAY NOT describe a physiological mechanism — nothing about follicles, cell division, the hair shaft, growth cycles, or what a nutrient "does" in the body. Never invent a mechanism.
-5. For an out-of-range marker, the ONLY correct output is: the value, the reference range, a plain statement that it sits outside the typical range, and a recommendation to discuss it with their GP. Nothing more. No hair bridge.
+1. You MAY state the member's own blood result as fact: the marker name, the value with its unit, its reference range, and whether it sits inside or outside that range. You MAY suggest they discuss it with their GP.
+2. You MAY give hair care guidance grounded in the retrieved manuscript passages, in the same answer.
+3. You MAY NOT assert a causal or consequential link between a blood marker and a hair outcome or hair action. Never join a marker to a hair statement with "so", "which is why", "requires", "means you should", "affecting how", "therefore", "as a result" or "this is why". Blood facts and hair guidance are SEPARATE statements with no connector between them.
+4. You MAY NOT describe a physiological mechanism — nothing about what is happening at the follicle, at the cell, in the hair shaft or in the scalp — unless that teaching appears in the retrieved manuscript passages. Never invent a mechanism.
+5. For an out-of-range marker, the correct output is: the value, the reference range, a plain statement that it sits outside the typical range, and a recommendation to discuss it with their GP. Then stop. No hair consequence, no mechanism, no bridge.
 6. Any sentence breaking rules 3-5 is deleted before the member sees it and logged as a violation, which removes useful content from your answer. Write within the rules instead.`;
 
 /** Verbatim-value rule for stored profile values (styles especially). */
