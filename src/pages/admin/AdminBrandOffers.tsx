@@ -532,7 +532,7 @@ const AdminBrandOffers = () => {
         {showAll && awaitingPayment.length > 0 && (
           <div>
             <SectionLabel className="!px-0">Awaiting payment</SectionLabel>
-            <div className="space-y-2">{awaitingPayment.map(renderOffer)}</div>
+            <div className="space-y-3">{awaitingPayment.map(renderUpcoming)}</div>
           </div>
         )}
 
