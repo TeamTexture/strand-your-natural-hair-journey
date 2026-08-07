@@ -103,6 +103,24 @@ const AdminBrandOffers = () => {
   });
 
   const brandIds = Array.from(new Set(offers.map((o) => (o as { brand_user_id?: string }).brand_user_id).filter((v): v is string => !!v)));
+
+  // brand_offers.brand_user_id points at auth.users, so the embedded
+  // brand_profiles join is unreliable — resolve brand names explicitly so the
+  // submitting brand is always named on the card.
+  const { data: brandNamesById = {} } = useQuery({
+    queryKey: ["admin", "brand-offers", "brand-names", brandIds.sort().join(",")],
+    enabled: brandIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("brand_profiles")
+        .select("user_id, brand_name")
+        .in("user_id", brandIds);
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((r) => { if (r.user_id && r.brand_name) map[r.user_id] = r.brand_name; });
+      return map;
+    },
+  });
+
   const { data: subsById = {} } = useQuery({
     queryKey: ["admin", "brand-subscriptions", brandIds.sort().join(",")],
     enabled: brandIds.length > 0,
