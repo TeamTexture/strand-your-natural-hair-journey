@@ -191,33 +191,28 @@ const BrandShelfProduct = () => {
           </div>
           {form.imageUrls.length > 0 && (
             <div>
-              <Label className="font-body text-[12px]">Images from the link</Label>
-              <div className="mt-1.5 flex gap-2 flex-wrap">
-                {form.imageUrls.map((u) => (
-                  <div key={u} className="relative">
-                    <img
-                      src={u}
-                      alt={form.name || "Product image"}
-                      className="size-[68px] object-cover rounded-[12px] border border-border bg-muted"
-                      onError={() =>
-                        setForm((f) => ({ ...f, imageUrls: f.imageUrls.filter((x) => x !== u) }))
-                      }
-                    />
-                    <button
-                      aria-label="Remove image"
-                      onClick={() => setForm({ ...form, imageUrls: form.imageUrls.filter((x) => x !== u) })}
-                      className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-background border border-border flex items-center justify-center"
-                    >
-                      <X className="size-3 text-muted-foreground" />
-                    </button>
-                  </div>
-                ))}
+              <Label className="font-body text-[12px]">Product image</Label>
+              <div className="relative mt-1.5 overflow-hidden rounded-[18px] border border-border bg-muted">
+                <img
+                  src={form.imageUrls[0]}
+                  alt={form.name || "Product image"}
+                  className="w-full aspect-square object-contain bg-background"
+                  onError={() => setForm((f) => ({ ...f, imageUrls: [] }))}
+                />
+                <button
+                  aria-label="Remove image"
+                  onClick={() => setForm({ ...form, imageUrls: [] })}
+                  className="absolute top-2 right-2 size-7 rounded-full bg-background/90 border border-border flex items-center justify-center"
+                >
+                  <X className="size-3.5 text-muted-foreground" />
+                </button>
               </div>
               <p className="mt-1.5 text-[11px] font-body text-muted-foreground leading-snug">
-                Pulled from the product page. Remove anything that isn't the product.
+                Pulled from the product page. Remove it if it isn't the product.
               </p>
             </div>
           )}
+
           <div>
             <Label className="font-body text-[12px]">Where to buy it</Label>
             <Input value={form.external_url} onChange={(e) => setForm({ ...form, external_url: e.target.value })} placeholder="https://" inputMode="url" autoCapitalize="none" />
