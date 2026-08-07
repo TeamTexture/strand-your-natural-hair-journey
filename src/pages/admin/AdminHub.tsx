@@ -22,6 +22,7 @@ import {
   BadgeCheck,
   Scale,
   FlaskConical,
+  PackageCheck,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -33,6 +34,7 @@ import UnifiedCampaignCalendar from "@/components/admin/UnifiedCampaignCalendar"
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { usePendingProProfileReviewCount } from "@/hooks/useProProfileReview";
+import { usePendingShelfCount } from "@/hooks/useAdminShelfReview";
 import { useAllPendingRevisions, deriveBrandOfferStatus, londonToday } from "@/hooks/useBrandOffers";
 import { useOpenComplaintsCount } from "@/hooks/useDataProtectionComplaints";
 import { cn } from "@/lib/utils";
@@ -314,6 +316,7 @@ const AdminHub = () => {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: dropoff } = useAdminDropOffCounts();
   const { data: pendingProfileReviews = 0 } = usePendingProProfileReviewCount();
+  const { data: pendingShelfItems = 0 } = usePendingShelfCount();
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
   const { data: openComplaints = 0 } = useOpenComplaintsCount();
   const revisionCount = pendingRevisions.length;
@@ -532,6 +535,14 @@ const AdminHub = () => {
             }
 
             onClick={() => nav("/admin/brand-offers")}
+          />
+
+          <NavCard
+            icon={PackageCheck}
+            title="Brand shelf review"
+            description="Approve products brands add to their permanent shelf"
+            badge={pendingShelfItems || undefined}
+            onClick={() => nav("/admin/shelf-review")}
           />
 
           <NavCard
