@@ -35,7 +35,7 @@ import {
   dailyRatePence,
   money,
   TRIAL_PRICING_NOTE,
-  TRIAL_PRICING_NOTE,
+
   type PricedSlot,
 } from "@/lib/adPricing";
 
