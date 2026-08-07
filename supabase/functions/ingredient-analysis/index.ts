@@ -195,9 +195,9 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
       },
       personalised_guidance: {
         type: "array",
-        minItems: 1,
-        maxItems: 1,
-        description: "Exactly ONE tip on how the user gets maximum benefit FROM THIS PRODUCT ALONE. The tip must describe how to USE this exact product — technique, amount, section pattern, water/temperature, dwell time, rinse, frequency, dilution, distribution, where on the head. It must NEVER reference, name, pair with, layer with, follow with, or suggest ANY other product, product type, product category or routine step (no 'deep conditioner', 'leave-in', 'mask', 'oil', 'conditioner', 'styler', 'pre-poo', 'clarifying wash', 'protein treatment', 'heat cap', 'hat', 'towel', etc.). Do NOT mention the TT Heat Hat or any brand accessory here. If you would otherwise recommend another step, replace it with a technique-only lever on THIS product.",
+        minItems: guidanceCount(level),
+        maxItems: guidanceCount(level),
+        description: `EXACTLY ${guidanceCount(level)} tip(s), ordered most important first, on how the user gets maximum benefit FROM THIS PRODUCT ALONE. Each tip covers a DIFFERENT lever — never repeat or rephrase another tip. Each must describe how to USE this exact product — technique, amount, section pattern, water/temperature, dwell time, rinse, frequency, dilution, distribution, where on the head. It must NEVER reference, name, pair with, layer with, follow with, or suggest ANY other product, product type, product category or routine step (no 'deep conditioner', 'leave-in', 'mask', 'oil', 'conditioner', 'styler', 'pre-poo', 'clarifying wash', 'protein treatment', 'heat cap', 'hat', 'towel', etc.). Do NOT mention the TT Heat Hat or any brand accessory here. If you would otherwise recommend another step, replace it with a technique-only lever on THIS product.`,
         items: {
           type: "object",
           properties: {
