@@ -190,7 +190,7 @@ Moisture comes from water. Products do NOT add, restore, replace, infuse, replen
 Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition.
 
 OUTPUT TIGHTNESS RULES (override the field rules above where they conflict):
-- use_cases: MAXIMUM ${cap} items (this user's support level caps it here — never exceed ${cap} even if more signals are relevant). Each item: ONE action sentence up to 30 words, optionally followed by ONE "why" sentence up to 15 words. Pick the ${cap} most actionable ways the user should use THIS product given their profile — not every possible use case.
+- use_cases: MAXIMUM ${cap} items (this user's support level caps it here — never exceed ${cap} even if more signals are relevant). Each item: ONE action sentence up to 30 words that names the hair trait it is for, followed by ONE "why" sentence up to 15 words explaining what that trait means for how they use it. Pick the ${cap} tips that most improve results on THIS user's hair type — never a generic instruction that applies to everyone.
 - tips: MAXIMUM ${cap} items. Each item: ONE action sentence up to 30 words, optionally followed by ONE "why" sentence up to 15 words. Pick the ${cap} most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product. For a scalp exfoliator, scalp condition + diagnosed alopecia + dermatologist context are relevant; lab values, sleep, and unrelated hair traits are NOT relevant unless they directly intersect this product's mechanism.
 
 PERSONALISED APPLICATION DEPTH — LEVELS 3-4 ONLY:
