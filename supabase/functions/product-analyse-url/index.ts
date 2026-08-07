@@ -558,11 +558,18 @@ function extractOgImageFromHtml(html: string): string | null {
 
   const container = html.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
   const scope = container ? container[1] : html;
-  const img =
-    scope.match(/<img[^>]+data-product-image[^>]*src=["']([^"']+)["']/i) ||
-    scope.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return img ? toHttps(img[1]) : null;
+  // Explicit product-image markers first, then the first inline image that
+  // isn't obvious page chrome (flags, payment badges, logos, icons).
+  const marked = scope.match(/<img[^>]+(?:data-product-image|itemprop=["']image["'])[^>]*src=["']([^"']+)["']/i);
+  if (marked && isLikelyProductImage(marked[1])) return toHttps(marked[1]);
+  const imgRe = /<img[^>]+src=["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = imgRe.exec(scope)) !== null) {
+    if (/^https?:\/\//i.test(m[1]) && isLikelyProductImage(m[1])) return toHttps(m[1]);
+  }
+  return null;
 }
+
 
 async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
   try {
