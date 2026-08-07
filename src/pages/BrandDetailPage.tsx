@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyOfferInterest, useRegisterOfferInterest } from "@/hooks/useBrandOfferInterest";
 import BrandShelfSection from "@/components/brand/BrandShelfSection";
+import BrandOfferBanner, { BannerOffer } from "@/components/brand/BrandOfferBanner";
 
 interface PastOffer {
   id: string;
