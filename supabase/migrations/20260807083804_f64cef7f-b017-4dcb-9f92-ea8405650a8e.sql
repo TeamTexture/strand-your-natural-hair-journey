@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.blood_marker_reference CASCADE;

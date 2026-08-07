@@ -329,5 +329,8 @@ Deno.serve(async (req) => {
 
   await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.technique, payload.next_time ?? ""]);
 
-  return json(200, { tip: await sanitiseAndLog(payload, "wash-day-tip", { context: body }), cached: false });
+  return json(200, {
+    tip: await sanitiseAndLog(payload, "wash-day-tip", { context: body, grounding: grounding.block }),
+    cached: false,
+  });
 });

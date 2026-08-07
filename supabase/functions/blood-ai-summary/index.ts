@@ -267,6 +267,9 @@ import {
 async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
   payload: BloodSummaryPayload;
   status: number;
+  /** Retrieved manuscript text, so the blood guardrail can verify that any
+   *  mechanism wording in the output is traceable to the manuscript. */
+  groundingText: string;
 }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -402,6 +405,7 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
       _rag_passages: grounding.passages,
     } as BloodSummaryPayload,
     status: aiResp.status,
+    groundingText: grounding.block,
   };
 }
 
@@ -493,6 +497,9 @@ Deno.serve(async (req: Request) => {
     let returnedPayload: BloodSummaryPayload;
     let providerStamp: "claude" | "lovable";
     let claudeShadow: BloodSummaryPayload | null = null;
+    // Retrieved manuscript text for this generation. Passed to the blood
+    // guardrail so mechanism wording is kept only when it IS in the manuscript.
+    let groundingText = "";
 
     if (provider === "claude") {
       returnedPayload = await runClaude({ body, recentWashSignals, ledgerBlock });
@@ -534,6 +541,7 @@ Deno.serve(async (req: Request) => {
         });
 
       const lovableRun = await runLovable(body, ledgerBlock);
+      groundingText = lovableRun.groundingText;
       console.log("[blood-debug] model call done", { provider: "parallel" });
       console.log(
         JSON.stringify({
@@ -593,6 +601,7 @@ Deno.serve(async (req: Request) => {
     } else {
 
       const r = await runLovable(body, ledgerBlock);
+      groundingText = r.groundingText;
       returnedPayload = r.payload;
       providerStamp = "lovable";
     }
@@ -671,7 +680,10 @@ Deno.serve(async (req: Request) => {
 
     return json(200, {
       cached: false,
-      summary: await sanitiseAndLog(stamped, "blood-ai-summary", { context: body.context }),
+      summary: await sanitiseAndLog(stamped, "blood-ai-summary", {
+        context: body.context,
+        grounding: groundingText,
+      }),
     });
   } catch (e) {
     console.log("[blood-debug] failed", { total_ms: Date.now() - t0 });

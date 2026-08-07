@@ -571,12 +571,6 @@ const AdminHub = () => {
             onClick={() => nav("/admin/blood-vendors")}
           />
           <NavCard
-            icon={ShieldAlert}
-            title="Blood marker reference"
-            description="Curate marker meanings and the only approved hair links AI may use"
-            onClick={() => nav("/admin/blood-markers")}
-          />
-          <NavCard
             icon={CalendarDays}
             title="STRAND+ Events"
             description="Create and manage digital and in-person events"

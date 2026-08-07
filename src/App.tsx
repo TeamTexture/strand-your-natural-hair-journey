@@ -126,7 +126,7 @@ const AdminLibrary = lazyRetry(() => import("./pages/admin/AdminLibrary"));
 const AdminEvents = lazyRetry(() => import("./pages/admin/AdminEvents"));
 const AdminBloodVendors = lazyRetry(() => import("./pages/admin/AdminBloodVendors"));
 const AdminSalons = lazyRetry(() => import("./pages/admin/AdminSalons"));
-const AdminBloodMarkers = lazyRetry(() => import("./pages/admin/AdminBloodMarkers"));
+
 const AdminCapabilities = lazyRetry(() => import("./pages/admin/AdminCapabilities"));
 
 // Brand
@@ -565,7 +565,7 @@ const App = () => (
               <Route path="/admin/events" element={<RoleGate allow={["admin"]}><AdminEvents /></RoleGate>} />
               <Route path="/admin/blood-vendors" element={<RoleGate allow={["admin"]}><AdminBloodVendors /></RoleGate>} />
               <Route path="/admin/salons" element={<RoleGate allow={["admin"]}><AdminSalons /></RoleGate>} />
-              <Route path="/admin/blood-markers" element={<RoleGate allow={["admin"]}><AdminBloodMarkers /></RoleGate>} />
+              
 
               {/* STRAND+ */}
               <Route path="/plus/upgrade" element={<Protected><PlusUpgrade /></Protected>} />
