@@ -27,26 +27,61 @@ export function useMyOfferInterest(offerId: string | undefined) {
   });
 }
 
-/** Register interest for the current user on an expired offer.
+/** Offers (ended) the signed-in member is currently waiting on. */
+export function useMyWaitingOffers() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["brand-offer-interest", "waiting", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await db
+        .from("brand_offer_interest")
+        .select("offer_id, created_at, brand_offers(id, headline, brand_user_id, status)")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      return (data ?? []) as Array<{
+        offer_id: string;
+        created_at: string;
+        brand_offers: { id: string; headline: string | null; brand_user_id: string; status: string } | null;
+      }>;
+    },
+  });
+}
+
+/** Register / withdraw interest for the current user on an expired offer.
  *  One row per (offer, user) — duplicate taps are treated as success. */
 export function useRegisterOfferInterest() {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (offerId: string) => {
+    mutationFn: async ({ offerId, interested }: { offerId: string; interested: boolean }) => {
       if (!user) throw new Error("Sign in required");
-      const { error } = await db
-        .from("brand_offer_interest")
-        .insert({ offer_id: offerId, user_id: user.id });
-      if (error && !/duplicate/i.test(error.message)) throw error;
-      return offerId;
+      if (interested) {
+        const { error } = await db
+          .from("brand_offer_interest")
+          .insert({ offer_id: offerId, user_id: user.id });
+        if (error && !/duplicate/i.test(error.message)) throw error;
+      } else {
+        const { error } = await db
+          .from("brand_offer_interest")
+          .delete()
+          .eq("offer_id", offerId)
+          .eq("user_id", user.id);
+        if (error) throw error;
+      }
+      return { offerId, interested };
     },
-    onSuccess: (offerId) => {
+    onSuccess: ({ offerId, interested }) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-interest", "mine", offerId] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-interest", "waiting"] });
       qc.invalidateQueries({ queryKey: ["brand-offer-interest", "counts"] });
-      toast.success("Interest registered — the brand will hear about it.");
+      toast.success(
+        interested
+          ? "Noted — the brand will see the demand."
+          : "Removed from your waiting list.",
+      );
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not register interest"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save that"),
   });
 }
 
@@ -56,41 +91,29 @@ interface InterestCount {
 }
 
 /** Batched interest counts for a set of offers — for the brand/admin dashboards.
- *  `unread` compares row created_at against each offer's brand_last_interest_seen_at
- *  so past cards can surface a fresh-interest badge. */
+ *  Goes through a security-definer RPC so brands only ever receive counts:
+ *  no member rows, and therefore no user ids, leave the database. Counts are
+ *  exact (no audience floor) — interest is a voluntary, non-identifying action. */
 export function useOfferInterestCounts(offerIds: string[]) {
   const key = offerIds.slice().sort().join(",");
   return useQuery({
     queryKey: ["brand-offer-interest", "counts", key],
     enabled: offerIds.length > 0,
     queryFn: async (): Promise<Record<string, InterestCount>> => {
-      const [rowsRes, offersRes] = await Promise.all([
-        db
-          .from("brand_offer_interest")
-          .select("offer_id, created_at")
-          .in("offer_id", offerIds),
-        db
-          .from("brand_offers")
-          .select("id, brand_last_interest_seen_at")
-          .in("id", offerIds),
-      ]);
-      const seenBy: Record<string, string | null> = {};
-      (offersRes.data ?? []).forEach((o: { id: string; brand_last_interest_seen_at: string | null }) => {
-        seenBy[o.id] = o.brand_last_interest_seen_at;
-      });
+      const { data, error } = await (supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: any; error: any }>;
+      }).rpc("brand_offer_interest_counts", { _offer_ids: offerIds });
+      if (error) throw error;
       const map: Record<string, InterestCount> = {};
       offerIds.forEach((id) => (map[id] = { total: 0, unread: 0 }));
-      (rowsRes.data ?? []).forEach((r: { offer_id: string; created_at: string }) => {
-        const entry = map[r.offer_id];
-        if (!entry) return;
-        entry.total += 1;
-        const seen = seenBy[r.offer_id];
-        if (!seen || new Date(r.created_at) > new Date(seen)) entry.unread += 1;
+      (data ?? []).forEach((r: { offer_id: string; total: number; unread: number }) => {
+        map[r.offer_id] = { total: r.total ?? 0, unread: r.unread ?? 0 };
       });
       return map;
     },
   });
 }
+
 
 /** Owner-only: mark this offer's interest inbox as "seen up to now" so the
  *  unread badge on the past card clears. Safe to call repeatedly. */
