@@ -152,17 +152,31 @@ const BrandShelf = () => {
                 return (
                   <SurfaceCard key={item.id} className="p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-display text-[15px] leading-tight truncate">{item.name}</p>
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                          <ApprovalPill item={item} />
-                          <span className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
-                            {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
-                          </span>
-                          {item.is_published ? (
-                            <span className="text-[10.5px] font-body text-muted-foreground">On your page</span>
-                          ) : (
-                            <span className="text-[10.5px] font-body text-muted-foreground">Hidden</span>
+                      <div className="flex items-start gap-3 min-w-0">
+                        <ProductThumb
+                          imageUrl={item.image_urls?.[0] ?? null}
+                          alt={item.name}
+                          name={item.name}
+                          cover
+                          wrapperClassName="size-14 rounded-[10px] overflow-hidden bg-muted shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-display text-[15px] leading-tight break-words">{item.name}</p>
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <ApprovalPill item={item} />
+                            <span className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
+                              {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
+                            </span>
+                            {item.is_published ? (
+                              <span className="text-[10.5px] font-body text-muted-foreground">On your page</span>
+                            ) : (
+                              <span className="text-[10.5px] font-body text-muted-foreground">Hidden</span>
+                            )}
+                          </div>
+                          {item.description && (
+                            <p className="mt-1 text-[12px] font-body text-muted-foreground leading-snug break-words line-clamp-2">
+                              {item.description}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -187,16 +201,15 @@ const BrandShelf = () => {
                     </div>
 
                     {item.approval_status === "rejected" && item.rejection_reason && (
-                      <p className="mt-2 text-[12px] font-body text-destructive leading-snug">
+                      <p className="mt-2 text-[12px] font-body text-destructive leading-snug break-words">
                         {item.rejection_reason}
                       </p>
                     )}
 
-                    <div className="mt-3 pt-3 border-t border-border/60 space-y-1">
-                      <CountLine label="On members' shelves" value={c?.shelf_count ?? null} suppressed={c?.suppressed ?? true} threshold={c?.min_threshold ?? 50} />
-                      <CountLine label="Saved to wishlists" value={c?.wishlist_count ?? null} suppressed={c?.suppressed ?? true} threshold={c?.min_threshold ?? 50} />
-                      <CountLine label="Marked a favourite" value={c?.favourite_count ?? null} suppressed={c?.suppressed ?? true} threshold={c?.min_threshold ?? 50} />
+                    <div className="mt-3 pt-3 border-t border-border/60">
+                      <MemberActivity c={c} />
                     </div>
+
 
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
                       <Button size="sm" variant="outline" className="rounded-pill" onClick={() => nav(`/brand/shelf/${item.id}`)}>
