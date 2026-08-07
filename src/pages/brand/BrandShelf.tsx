@@ -99,41 +99,12 @@ const BrandShelf = () => {
   const goToEditor = (prefill: Record<string, unknown>) =>
     nav("/brand/shelf/new", { state: { prefill: { ...prefill, position: nextPosition } } });
 
-  // Photo scan — same client-side HEIC→JPEG prep the member flow uses, then
-  // hand off to the shared progress screen which invokes `product-analyse`.
-  const handleScan = async (front: File, back: File) => {
-    setBusy(true);
-    try {
-      const [pFront, pBack] = await Promise.all([prepareImageForAi(front), prepareImageForAi(back)]);
-      setCaptureOpen(false);
-      setAddOpen(false);
-      nav("/brand/shelf/scanning", {
-        state: {
-          mode: "photos",
-          position: nextPosition,
-          front_image_data_url: pFront.dataUrl,
-          back_image_data_url: pBack.dataUrl,
-          front_preview_url: pFront.dataUrl,
-          back_preview_url: pBack.dataUrl,
-        },
-      });
-    } catch (e) {
-      toast.error((e as Error).message || "Couldn't read those photos. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   // Product link — same normalisation and validation as the member flow,
   // then the shared progress screen invokes `product-analyse-url`.
   const handleLink = () => {
-    let normalised = url.trim();
-    if (!normalised) return;
-    if (!/^https?:\/\//i.test(normalised)) normalised = `https://${normalised}`;
-    try {
-      new URL(normalised);
-    } catch {
-      toast.error("That doesn't look like a valid web link.");
+    const normalised = normaliseProductUrl(url);
+    if (!normalised) {
+      if (url.trim()) toast.error("That doesn't look like a valid web link.");
       return;
     }
     setLinkOpen(false);
@@ -143,6 +114,7 @@ const BrandShelf = () => {
       state: { mode: "link", url: normalised, position: nextPosition },
     });
   };
+
 
 
   const move = (index: number, dir: -1 | 1) => {
