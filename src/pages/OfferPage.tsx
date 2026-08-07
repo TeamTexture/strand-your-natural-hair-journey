@@ -17,6 +17,8 @@ import { useUserTools } from "@/hooks/useUserTools";
 import { useQuery } from "@tanstack/react-query";
 import { buildAiContext } from "@/lib/aiContext";
 import { ToolAdviceDialog } from "@/components/ToolAdviceDialog";
+import AdFitLine from "@/components/guidance/AdFitLine";
+import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 
 /** Deterministic keys so a brand item only ever creates a single row per user. */
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
@@ -33,6 +35,25 @@ type BrandItemRow = {
   tool_kind?: string | null;
   key_features?: string[] | null;
   materials?: string[] | null;
+};
+
+/** Personalised one-liner for a product attached to this campaign: what it
+ *  does for THIS member's hair. Opening the offer is deliberate engagement,
+ *  so the guidance is generated here (and cached) rather than on impression. */
+const OfferProductFit = ({
+  product,
+}: {
+  product: BrandItemRow;
+}) => {
+  const { guidance, loading } = useBrandProductGuidance(product);
+  if (!guidance?.fit_line && !loading) {
+    return (
+      <p className="text-[11px] text-primary font-body mt-1.5">
+        Open · Is this right for my hair?
+      </p>
+    );
+  }
+  return <AdFitLine text={guidance?.fit_line} loading={loading} className="mt-1.5" />;
 };
 
 const OfferPage = () => {
@@ -297,9 +318,7 @@ const OfferPage = () => {
                           {p.description}
                         </p>
                       )}
-                      <p className="text-[11px] text-primary font-body mt-1.5">
-                        Open · Is this right for my hair?
-                      </p>
+                      <OfferProductFit product={p} />
                     </div>
                   </div>
                 </SurfaceCard>
