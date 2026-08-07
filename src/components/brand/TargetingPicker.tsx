@@ -51,8 +51,8 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
         <p className="text-[11.5px] font-body text-foreground/80 leading-snug">
           Leave everything unselected to run a broad campaign shown to all members. Pick attributes
           to reach a narrower audience — only members who have opted in to personalised offers are
-          ever matched, and a targeted campaign needs at least {floor} matching members to run.
-          Health information is never available for targeting.
+          ever matched. A targeted campaign can run at any audience size; we simply don't report
+          audience numbers below {floor} members. Health information is never available for targeting.
         </p>
       </div>
 
