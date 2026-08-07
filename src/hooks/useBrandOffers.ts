@@ -89,6 +89,7 @@ export const SLOT_LABEL: Record<PlacementSlot, string> = {
 export const STAT_SLOT_LABEL: Record<string, string> = {
   ...SLOT_LABEL,
   brand_shelf: "Brand page shelf",
+  brand_page: "Brand page offers",
   unknown: "Other",
 };
 

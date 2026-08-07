@@ -1,0 +1,2 @@
+ALTER TABLE public.ad_events DROP CONSTRAINT ad_events_slot_check;
+ALTER TABLE public.ad_events ADD CONSTRAINT ad_events_slot_check CHECK (slot = ANY (ARRAY['home'::text,'products'::text,'wash_day'::text,'pro_welcome'::text,'brand_shelf'::text,'brand_page'::text,'unknown'::text]));
