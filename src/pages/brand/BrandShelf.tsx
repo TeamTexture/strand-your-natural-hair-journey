@@ -1,24 +1,23 @@
 // Brand shelf — the brand's permanent product catalogue.
 //
-// Adding a product reuses the member-side intelligence end to end: the same
-// `product-analyse` dual-photo function for label scans and the same
-// `product-analyse-url` function for product links. Nothing about how STRAND
-// reads an ingredient list differs because a brand typed it in.
+// Adding a product reuses the member-side intelligence end to end: the link
+// route calls the same `product-analyse-url` function a member's pasted link
+// calls. Brands get two routes only — paste a link, or enter it themselves.
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Camera, Link2, PencilLine, Eye, EyeOff, Trash2, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
+import { Plus, Link2, PencilLine, Eye, EyeOff, Trash2, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
+import ProductThumb from "@/components/ProductThumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { prepareImageForAi } from "@/lib/imagePrep";
+import { normaliseProductUrl } from "@/lib/brandLinkScan";
 import { toast } from "sonner";
 import {
   useBrandShelf,
@@ -28,6 +27,7 @@ import {
   useReorderShelf,
   APPROVAL_LABEL,
   type BrandShelfItem,
+  type BrandMemberCount,
 } from "@/hooks/useBrandShelf";
 
 const ApprovalPill = ({ item }: { item: BrandShelfItem }) => {
@@ -42,23 +42,40 @@ const ApprovalPill = ({ item }: { item: BrandShelfItem }) => {
   );
 };
 
-const CountLine = ({
-  label,
-  value,
-  suppressed,
-  threshold,
-}: { label: string; value: number | null; suppressed: boolean; threshold: number }) => (
+const CountLine = ({ label, value }: { label: string; value: number }) => (
   <div className="flex items-baseline justify-between">
     <span className="text-[11px] font-body text-muted-foreground">{label}</span>
-    <span className="font-body text-[13px]">
-      {value == null || suppressed ? (
-        <span className="text-muted-foreground">Fewer than {threshold}</span>
-      ) : (
-        value
-      )}
-    </span>
+    <span className="font-body text-[13px]">{value}</span>
   </div>
 );
+
+/**
+ * Member activity. The 50-member privacy threshold is enforced in the
+ * database — anything below it comes back NULL. Rather than repeat an absent
+ * number three times, we show one quiet line until there's something real.
+ */
+const MemberActivity = ({ c }: { c: BrandMemberCount | undefined }) => {
+  const shown = [
+    { label: "On members' shelves", value: c?.shelf_count },
+    { label: "Saved to wishlists", value: c?.wishlist_count },
+    { label: "Marked a favourite", value: c?.favourite_count },
+  ].filter((r) => typeof r.value === "number") as { label: string; value: number }[];
+
+  if (c?.suppressed !== false || shown.length === 0) {
+    return (
+      <p className="text-[11px] font-body text-muted-foreground leading-snug">
+        Member activity will appear here once enough members have engaged.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      {shown.map((r) => (
+        <CountLine key={r.label} label={r.label} value={r.value} />
+      ))}
+    </div>
+  );
+};
 
 const BrandShelf = () => {
   const nav = useNavigate();
@@ -69,10 +86,9 @@ const BrandShelf = () => {
   const reorder = useReorderShelf();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [captureOpen, setCaptureOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState(false);
+
 
   const nextPosition = useMemo(
     () => (items.length ? Math.max(...items.map((i) => i.position ?? 0)) + 1 : 0),
@@ -82,41 +98,12 @@ const BrandShelf = () => {
   const goToEditor = (prefill: Record<string, unknown>) =>
     nav("/brand/shelf/new", { state: { prefill: { ...prefill, position: nextPosition } } });
 
-  // Photo scan — same client-side HEIC→JPEG prep the member flow uses, then
-  // hand off to the shared progress screen which invokes `product-analyse`.
-  const handleScan = async (front: File, back: File) => {
-    setBusy(true);
-    try {
-      const [pFront, pBack] = await Promise.all([prepareImageForAi(front), prepareImageForAi(back)]);
-      setCaptureOpen(false);
-      setAddOpen(false);
-      nav("/brand/shelf/scanning", {
-        state: {
-          mode: "photos",
-          position: nextPosition,
-          front_image_data_url: pFront.dataUrl,
-          back_image_data_url: pBack.dataUrl,
-          front_preview_url: pFront.dataUrl,
-          back_preview_url: pBack.dataUrl,
-        },
-      });
-    } catch (e) {
-      toast.error((e as Error).message || "Couldn't read those photos. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   // Product link — same normalisation and validation as the member flow,
   // then the shared progress screen invokes `product-analyse-url`.
   const handleLink = () => {
-    let normalised = url.trim();
-    if (!normalised) return;
-    if (!/^https?:\/\//i.test(normalised)) normalised = `https://${normalised}`;
-    try {
-      new URL(normalised);
-    } catch {
-      toast.error("That doesn't look like a valid web link.");
+    const normalised = normaliseProductUrl(url);
+    if (!normalised) {
+      if (url.trim()) toast.error("That doesn't look like a valid web link.");
       return;
     }
     setLinkOpen(false);
@@ -126,6 +113,7 @@ const BrandShelf = () => {
       state: { mode: "link", url: normalised, position: nextPosition },
     });
   };
+
 
 
   const move = (index: number, dir: -1 | 1) => {
@@ -163,17 +151,31 @@ const BrandShelf = () => {
                 return (
                   <SurfaceCard key={item.id} className="p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-display text-[15px] leading-tight truncate">{item.name}</p>
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                          <ApprovalPill item={item} />
-                          <span className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
-                            {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
-                          </span>
-                          {item.is_published ? (
-                            <span className="text-[10.5px] font-body text-muted-foreground">On your page</span>
-                          ) : (
-                            <span className="text-[10.5px] font-body text-muted-foreground">Hidden</span>
+                      <div className="flex items-start gap-3 min-w-0">
+                        <ProductThumb
+                          imageUrl={item.image_urls?.[0] ?? null}
+                          alt={item.name}
+                          name={item.name}
+                          cover
+                          wrapperClassName="size-14 rounded-[10px] overflow-hidden bg-muted shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-display text-[15px] leading-tight break-words">{item.name}</p>
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <ApprovalPill item={item} />
+                            <span className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
+                              {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
+                            </span>
+                            {item.is_published ? (
+                              <span className="text-[10.5px] font-body text-muted-foreground">On your page</span>
+                            ) : (
+                              <span className="text-[10.5px] font-body text-muted-foreground">Hidden</span>
+                            )}
+                          </div>
+                          {item.description && (
+                            <p className="mt-1 text-[12px] font-body text-muted-foreground leading-snug break-words line-clamp-2">
+                              {item.description}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -198,16 +200,15 @@ const BrandShelf = () => {
                     </div>
 
                     {item.approval_status === "rejected" && item.rejection_reason && (
-                      <p className="mt-2 text-[12px] font-body text-destructive leading-snug">
+                      <p className="mt-2 text-[12px] font-body text-destructive leading-snug break-words">
                         {item.rejection_reason}
                       </p>
                     )}
 
-                    <div className="mt-3 pt-3 border-t border-border/60 space-y-1">
-                      <CountLine label="On members' shelves" value={c?.shelf_count ?? null} suppressed={c?.suppressed ?? true} threshold={c?.min_threshold ?? 50} />
-                      <CountLine label="Saved to wishlists" value={c?.wishlist_count ?? null} suppressed={c?.suppressed ?? true} threshold={c?.min_threshold ?? 50} />
-                      <CountLine label="Marked a favourite" value={c?.favourite_count ?? null} suppressed={c?.suppressed ?? true} threshold={c?.min_threshold ?? 50} />
+                    <div className="mt-3 pt-3 border-t border-border/60">
+                      <MemberActivity c={c} />
                     </div>
+
 
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
                       <Button size="sm" variant="outline" className="rounded-pill" onClick={() => nav(`/brand/shelf/${item.id}`)}>
@@ -259,9 +260,6 @@ const BrandShelf = () => {
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4 space-y-2 pb-4">
-            <Button variant="outline" className="w-full rounded-pill justify-start" onClick={() => { setAddOpen(false); setCaptureOpen(true); }}>
-              <Camera className="size-4 mr-2" /> Scan the label
-            </Button>
             <Button variant="outline" className="w-full rounded-pill justify-start" onClick={() => { setAddOpen(false); setLinkOpen(true); }}>
               <Link2 className="size-4 mr-2" /> Paste a product link
             </Button>
@@ -272,13 +270,7 @@ const BrandShelf = () => {
         </SheetContent>
       </Sheet>
 
-      <DualPhotoCaptureSheet
-        open={captureOpen}
-        onOpenChange={setCaptureOpen}
-        onSubmit={handleScan}
-        busy={busy}
-        preferCamera={false}
-      />
+
 
       <Sheet open={linkOpen} onOpenChange={setLinkOpen}>
         <SheetContent side="bottom" className="rounded-t-3xl">

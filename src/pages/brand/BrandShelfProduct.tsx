@@ -208,7 +208,7 @@ const BrandShelfProduct = () => {
                 </button>
               </div>
               <p className="mt-1.5 text-[11px] font-body text-muted-foreground leading-snug">
-                Pulled from the product page. Remove it if it isn't the product.
+                Pulled from the product page.
               </p>
             </div>
           )}
