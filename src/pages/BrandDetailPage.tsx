@@ -185,6 +185,8 @@ const BrandDetailPage = () => {
   const brand = data?.brand;
   const logoUrl = useSignedUrl(brand?.logo_path ?? null);
   const catalogue = data?.catalogue ?? [];
+  const [aboutOpen, setAboutOpen] = useState(false);
+
 
   const openCatalogueItem = (item: CatalogueItem) => {
     if (item.offer_id && item.brand_product_id) {
@@ -249,10 +251,24 @@ const BrandDetailPage = () => {
 
 
           {about && (
-            <p className="mt-3 text-sm font-body text-foreground/85 leading-relaxed whitespace-pre-wrap">
-              {about}
-            </p>
+            <>
+              <p
+                className={`mt-3 text-sm font-body text-foreground/85 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
+                  aboutOpen ? "" : "line-clamp-2"
+                }`}
+              >
+                {about}
+              </p>
+              <button
+                type="button"
+                onClick={() => setAboutOpen((v) => !v)}
+                className="mt-1 text-[12px] font-body text-primary underline underline-offset-2"
+              >
+                {aboutOpen ? "Show less" : "Read more"}
+              </button>
+            </>
           )}
+
 
           {(brand.website || instagram || tiktok || contactEmail) && (
             <div className="mt-3 pt-3 border-t border-border/60 flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-body">

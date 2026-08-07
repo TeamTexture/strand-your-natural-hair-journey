@@ -9,13 +9,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Heart, ExternalLink, Plus } from "lucide-react";
+import { Check, Heart, ExternalLink, Plus, ChevronDown } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import ShelfProductCard from "@/components/product/ShelfProductCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePublicBrandShelf } from "@/hooks/useBrandShelf";
+import BrandShelfCardDetail from "@/components/brand/BrandShelfCardDetail";
+import { useLiveOffersForProducts } from "@/hooks/useBrandProductEngagement";
+import { useLogAdEvent } from "@/hooks/useBrandOffers";
 import { addBrandProductToShelf, type BrandShelfProduct } from "@/lib/addBrandProductToShelf";
 import { anchorProps } from "@/lib/scrollMemory";
 import { toast } from "sonner";
@@ -57,6 +60,9 @@ const BrandShelfSection = ({
   const { data: products = [] } = usePublicBrandShelf(brandUserId);
   const { data: links = {} } = useMyBrandLinks(products.map((p) => p.id));
   const [pending, setPending] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const { data: offers = {} } = useLiveOffersForProducts(products.map((p) => p.id));
+  const log = useLogAdEvent();
 
   if (products.length === 0) return null;
 
@@ -137,6 +143,14 @@ const BrandShelfSection = ({
                       href={p.external_url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() =>
+                        log.mutate({
+                          brand_product_id: p.id,
+                          offer_id: offers[p.id]?.offer_id ?? null,
+                          slot: "brand_shelf",
+                          event_type: "link_click",
+                        })
+                      }
                       className="ml-auto inline-flex items-center gap-1 text-[12px] font-body text-primary"
                     >
                       Buy <ExternalLink className="size-3 opacity-60" />
@@ -144,7 +158,32 @@ const BrandShelfSection = ({
                   )}
                 </>
               }
-            />
+              headerActions={
+                <button
+                  type="button"
+                  aria-label={expanded === p.id ? "Collapse product" : "Expand product"}
+                  aria-expanded={expanded === p.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((cur) => (cur === p.id ? null : p.id));
+                  }}
+                  className="p-1 -m-1 text-muted-foreground"
+                >
+                  <ChevronDown
+                    className={`size-4 transition-transform ${expanded === p.id ? "rotate-180" : ""}`}
+                  />
+                </button>
+              }
+            >
+              {expanded === p.id && (
+                <BrandShelfCardDetail
+                  product={p}
+                  brandName={brandName}
+                  offer={offers[p.id]}
+                  onOpenDetail={() => nav(`/brands/${brandUserId}/product/${p.id}`)}
+                />
+              )}
+            </ShelfProductCard>
           );
         })}
       </div>

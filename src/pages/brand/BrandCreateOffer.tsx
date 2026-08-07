@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
+import { useBrandShelf } from "@/hooks/useBrandShelf";
 import { AlertTriangle } from "lucide-react";
 
 import { SLOT_AUDIENCE } from "@/hooks/useBrandOffers";
@@ -195,6 +196,7 @@ const BrandCreateOffer = () => {
   const [submitting, setSubmitting] = useState(false);
   const [previewMode, setPreviewMode] = useState<"collapsed" | "expanded">("collapsed");
   const [showSafeArea, setShowSafeArea] = useState(true);
+  const [shelfOpen, setShelfOpen] = useState(false);
   const [catalogueOpen, setCatalogueOpen] = useState(false);
   const [catalogueKind, setCatalogueKind] = useState<CatalogueFilter>("all");
   const [catalogueSearch, setCatalogueSearch] = useState("");
@@ -280,6 +282,9 @@ const BrandCreateOffer = () => {
     setEnabledSlots(enabled);
     setSelectedDates(Array.from(set).sort());
   }, [existingId, existing, isRevisionMode, pendingRevision]);
+
+  const { data: shelfAll = [] } = useBrandShelf();
+  const shelfItems = shelfAll.filter((i) => i.approval_status === "approved");
 
   const catalogueQuery = useQuery({
     queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
@@ -409,6 +414,49 @@ const BrandCreateOffer = () => {
     }
   };
 
+
+  // Attaching from the brand's OWN shelf. The shelf item is copied into the
+  // advert draft (adverts keep their own snapshot of a product) and tagged with
+  // linked_product_id so the shelf item it came from stays traceable.
+  const isShelfItemAttached = (id: string) =>
+    products.some((p) => p.linked_product_id === id);
+
+  const toggleShelfItem = (item: {
+    id: string;
+    name: string;
+    description: string | null;
+    kind: string;
+    tool_kind: string | null;
+    ingredients: string[] | null;
+    key_features: string[] | null;
+    materials: string[] | null;
+    image_urls: string[] | null;
+    external_url: string | null;
+  }) => {
+    if (isShelfItemAttached(item.id)) {
+      setProducts((prev) => prev.filter((p) => p.linked_product_id !== item.id));
+      toast.success("Removed from this advert");
+      return;
+    }
+    const kind: AttachKind = item.kind === "tool" ? "tool" : "product";
+    setProducts((prev) => [
+      ...prev,
+      {
+        kind,
+        name: item.name,
+        description: item.description ?? "",
+        external_url: item.external_url ?? "",
+        image_urls: item.image_urls ?? [],
+        ingredients: kind === "product" ? (item.ingredients ?? []) : [],
+        tool_kind: kind === "tool" ? item.tool_kind : null,
+        key_features: item.key_features ?? [],
+        materials: item.materials ?? [],
+        source_type: "linked",
+        linked_product_id: item.id,
+      },
+    ]);
+    toast.success("Attached from your shelf");
+  };
 
   const isCatalogueItemAttached = (item: CatalogueItem) =>
     products.some((p) => p.linked_product_id === item.source_id && p.kind === item.kind);
@@ -764,10 +812,23 @@ const BrandCreateOffer = () => {
         <SurfaceCard className="space-y-3">
           <div className="rounded-[12px] border border-primary/25 bg-primary/5 p-3">
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
+              <PackagePlus className="size-3 text-primary" /> Attach from your shelf
+            </Label>
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+              Your approved shelf products and tools. Attaching one here also lets members copy the
+              advert's discount code straight from your brand page.
+            </p>
+            <Button type="button" variant="outline" size="pill" onClick={() => setShelfOpen(true)} className="mt-2 w-full px-4">
+              Choose from your shelf
+            </Button>
+          </div>
+          <div className="rounded-[12px] border border-border p-3">
+            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
               <PackagePlus className="size-3 text-primary" /> Browse app catalogue
             </Label>
             <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
               Search anonymised products and tools already used in STRAND, then attach the item to this advert.
+              Only items matching your own brand name are shown — you can't tag another brand's product.
             </p>
             <Button type="button" variant="outline" size="pill" onClick={() => setCatalogueOpen(true)} className="mt-2 w-full px-4">
               Browse products &amp; tools
@@ -1078,6 +1139,52 @@ const BrandCreateOffer = () => {
         </div>
 
       </div>
+
+      <Dialog open={shelfOpen} onOpenChange={setShelfOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[343px] max-h-[82vh] overflow-hidden rounded-[14px] p-0">
+          <DialogHeader className="p-4 pb-2 text-left">
+            <DialogTitle className="font-display text-lg">Your shelf</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-4 space-y-2 max-h-[62vh] overflow-y-auto">
+            {shelfItems.length === 0 ? (
+              <p className="text-[12px] text-muted-foreground text-center py-8 font-body">
+                No approved shelf products yet.
+              </p>
+            ) : (
+              shelfItems.map((item) => {
+                const attached = isShelfItemAttached(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => toggleShelfItem(item)}
+                    className={`w-full text-left rounded-[12px] border p-3 flex items-center gap-2 ${
+                      attached ? "border-primary bg-primary/5" : "border-border"
+                    }`}
+                  >
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-body text-[13px] leading-snug [overflow-wrap:anywhere] line-clamp-2">
+                        {item.name}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground font-body capitalize">
+                        {item.kind === "tool" ? "Tool" : "Product"}
+                      </span>
+                    </span>
+                    <span className="text-[11px] font-body text-primary shrink-0">
+                      {attached ? "Attached" : "Attach"}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+          <div className="px-4 pb-4">
+            <Button type="button" size="sm" onClick={() => setShelfOpen(false)} className="rounded-pill px-5 w-full">
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={catalogueOpen} onOpenChange={setCatalogueOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[343px] max-h-[82vh] overflow-hidden rounded-[14px] p-0">

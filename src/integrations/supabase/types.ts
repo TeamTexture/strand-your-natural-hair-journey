@@ -40,42 +40,52 @@ export type Database = {
       }
       ad_events: {
         Row: {
+          brand_product_id: string | null
           created_at: string
           event_type: string
           id: string
           match_reason: Json | null
           occurred_at: string
-          offer_id: string
+          offer_id: string | null
           session_id: string | null
           slot: string
           user_id: string | null
           was_matched: boolean | null
         }
         Insert: {
+          brand_product_id?: string | null
           created_at?: string
           event_type: string
           id?: string
           match_reason?: Json | null
           occurred_at?: string
-          offer_id: string
+          offer_id?: string | null
           session_id?: string | null
           slot?: string
           user_id?: string | null
           was_matched?: boolean | null
         }
         Update: {
+          brand_product_id?: string | null
           created_at?: string
           event_type?: string
           id?: string
           match_reason?: Json | null
           occurred_at?: string
-          offer_id?: string
+          offer_id?: string | null
           session_id?: string | null
           slot?: string
           user_id?: string | null
           was_matched?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ad_events_brand_product_id_fkey"
+            columns: ["brand_product_id"]
+            isOneToOne: false
+            referencedRelation: "brand_products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ad_events_offer_id_fkey"
             columns: ["offer_id"]
@@ -968,6 +978,44 @@ export type Database = {
             columns: ["attached_pro_offer_id"]
             isOneToOne: false
             referencedRelation: "pro_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_product_stats_daily: {
+        Row: {
+          brand_product_id: string
+          code_copies: number
+          expands: number
+          link_clicks: number
+          members: number
+          rolled_up_at: string
+          stat_date: string
+        }
+        Insert: {
+          brand_product_id: string
+          code_copies?: number
+          expands?: number
+          link_clicks?: number
+          members?: number
+          rolled_up_at?: string
+          stat_date: string
+        }
+        Update: {
+          brand_product_id?: string
+          code_copies?: number
+          expands?: number
+          link_clicks?: number
+          members?: number
+          rolled_up_at?: string
+          stat_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_product_stats_daily_brand_product_id_fkey"
+            columns: ["brand_product_id"]
+            isOneToOne: false
+            referencedRelation: "brand_products"
             referencedColumns: ["id"]
           },
         ]
@@ -4771,6 +4819,21 @@ export type Database = {
           viewer_previously_on_shelf: boolean
         }[]
       }
+      brand_shelf_engagement: {
+        Args: { _brand_user_id?: string }
+        Returns: {
+          brand_product_id: string
+          code_copies: number
+          expands: number
+          favourite_count: number
+          link_clicks: number
+          min_threshold: number
+          name: string
+          shelf_count: number
+          suppressed: boolean
+          wishlist_count: number
+        }[]
+      }
       brand_shelf_products: {
         Args: { _brand_user_id: string }
         Returns: {
@@ -4971,9 +5034,10 @@ export type Database = {
       queue_appointment_reminders: { Args: never; Returns: number }
       record_ad_event: {
         Args: {
-          p_event_type: string
+          p_brand_product_id?: string
+          p_event_type?: string
           p_match_reason?: Json
-          p_offer_id: string
+          p_offer_id?: string
           p_slot?: string
           p_was_matched?: boolean
         }
@@ -4998,6 +5062,7 @@ export type Database = {
       }
       resolve_mention_user_ids: { Args: { _text: string }; Returns: string[] }
       rollup_ad_stats: { Args: { p_from?: string }; Returns: number }
+      rollup_brand_product_stats: { Args: { p_from?: string }; Returns: number }
       send_enquiry_to_profile: {
         Args: {
           _budget_range: string
