@@ -5,6 +5,8 @@ import { Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
+import { useMyWaitingOffers } from "@/hooks/useBrandOfferInterest";
+
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import { Input } from "@/components/ui/input";
