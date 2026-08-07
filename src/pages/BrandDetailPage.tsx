@@ -314,9 +314,9 @@ const BrandDetailPage = () => {
           )}
         </SurfaceCard>
 
-        {data!.live.length > 0 && (
-          <div>
-            <SectionLabel className="!px-0">Live offers</SectionLabel>
+        <div>
+          <SectionLabel className="!px-0">Live offers</SectionLabel>
+          {data!.live.length > 0 ? (
             <div className="space-y-2">
               {data!.live.map((o) => (
                 <SurfaceCard key={o.id} onClick={() => nav(`/offers/${o.id}`)} className="cursor-pointer hover:border-primary/50">
@@ -328,8 +328,38 @@ const BrandDetailPage = () => {
                 </SurfaceCard>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-[11px] text-muted-foreground font-body leading-snug">
+              No live offers right now.
+            </p>
+          )}
+
+          {data!.past.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium">
+                Previous offers
+              </p>
+              <p className="text-[11px] text-muted-foreground font-body mt-1 mb-2 leading-snug">
+                Missed one? Tap "I'd want this again" and the brand sees the demand.
+              </p>
+              <div className="grid grid-cols-1 gap-2.5">
+                {(pastOpen ? data!.past : data!.past.slice(0, 3)).map((o) => (
+                  <PastOfferRow key={o.id} offer={o} />
+                ))}
+              </div>
+              {data!.past.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setPastOpen((v) => !v)}
+                  className="mt-2 text-[11px] font-body text-primary"
+                >
+                  {pastOpen ? "Show fewer" : `Show all ${data!.past.length}`}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
 
 
         <BrandShelfSection brandUserId={brandUserId!} brandName={brand.brand_name ?? null} />
