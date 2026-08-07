@@ -267,6 +267,9 @@ import {
 async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
   payload: BloodSummaryPayload;
   status: number;
+  /** Retrieved manuscript text, so the blood guardrail can verify that any
+   *  mechanism wording in the output is traceable to the manuscript. */
+  groundingText: string;
 }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
