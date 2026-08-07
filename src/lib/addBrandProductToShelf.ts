@@ -53,6 +53,7 @@ export async function addBrandProductToShelf(opts: {
     brand: brandName,
     ingredients: product.ingredients ?? [],
     ai_summary: product.description ?? null,
+    image_url: product.image_urls?.[0] ?? null,
     source_url: product.external_url ?? null,
     linked_brand_product_id: product.id,
     ingredients_source: "brand",
