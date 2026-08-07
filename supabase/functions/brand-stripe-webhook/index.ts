@@ -63,7 +63,9 @@ Deno.serve(async (req) => {
                     : session.payment_intent?.id ?? null,
               })
               .eq("id", offerId);
+            await notifyRelaunchInterest(admin, offerId);
           }
+
         }
         break;
       }
