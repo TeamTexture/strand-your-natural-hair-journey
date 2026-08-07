@@ -83,12 +83,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    const matchesOwnBrand = (brand: string | null) => {
+    /** A catalogue row belongs to this brand when its brand field matches, or
+     *  when the scanned/linked product NAME carries the brand (scans often land
+     *  with an empty or mistyped brand field). Everything else is another
+     *  brand's product and must never appear in the picker. */
+    const matchesOwnBrand = (brand: string | null, name: string) => {
       if (!ownBrandKey) return true;
       const key = brand ? normalise(brand) : "";
-      if (!key) return false;
-      return key.includes(ownBrandKey) || ownBrandKey.includes(key);
+      if (key && (key.includes(ownBrandKey) || ownBrandKey.includes(key))) return true;
+      return normalise(name).includes(ownBrandKey);
     };
+
 
     const body = await req.json().catch(() => ({}));
     const kind: Kind = body?._kind === "product" || body?._kind === "tool" ? body._kind : "all";
