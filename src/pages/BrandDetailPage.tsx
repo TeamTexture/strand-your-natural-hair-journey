@@ -359,15 +359,18 @@ const BrandDetailPage = () => {
         <div>
           <SectionLabel className="!px-0">Live offers</SectionLabel>
           {data!.live.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
+              {/* The same advert card that runs in the app placements — tap to
+               *  drop down for the copy, the code and the attached product read
+               *  against your own hair. Closing an advert in the app never
+               *  loses it; it is always here. */}
               {data!.live.map((o) => (
-                <SurfaceCard key={o.id} onClick={() => nav(`/offers/${o.id}`)} className="cursor-pointer hover:border-primary/50">
-                  <p className="font-display text-[15px] leading-tight truncate">{o.headline || "Offer"}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {o.starts_on ? format(new Date(o.starts_on), "d MMM") : ""}
-                    {o.ends_on && o.ends_on !== o.starts_on ? ` – ${format(new Date(o.ends_on), "d MMM")}` : ""}
-                  </p>
-                </SurfaceCard>
+                <BrandOfferBanner
+                  key={o.id}
+                  offer={o as unknown as BannerOffer}
+                  slot="brand_page"
+                  showDismissControls={false}
+                />
               ))}
             </div>
           ) : (
@@ -375,6 +378,7 @@ const BrandDetailPage = () => {
               No live offers right now.
             </p>
           )}
+
 
           {data!.past.length > 0 && (
             <div className="mt-4">
