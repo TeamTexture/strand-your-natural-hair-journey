@@ -118,9 +118,24 @@ const BrandProductPage = () => {
 
   const alreadyWishlisted = useMemo(() => {
     if (!product) return false;
-    return isTool ? !!findExistingTool() : !!findExistingProduct()?.on_wishlist;
+    if (isTool) {
+      const t = findExistingTool() as { on_wishlist?: boolean | null } | undefined;
+      return !!t && !!t.on_wishlist;
+    }
+    return !!findExistingProduct()?.on_wishlist;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, allProducts, userTools]);
+
+  const alreadyOnShelf = useMemo(() => {
+    if (!product) return false;
+    if (isTool) {
+      const t = findExistingTool() as { on_shelf?: boolean | null } | undefined;
+      return !!t && !!t.on_shelf;
+    }
+    return !!findExistingProduct()?.on_shelf;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, allProducts, userTools]);
+
 
   // ── Personalised guidance: benefits for THIS member's hair + how to get the
   //    most out of it. Shared with the banner and offer-page surfaces so the
