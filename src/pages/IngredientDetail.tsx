@@ -1099,7 +1099,7 @@ const IngredientDetail = () => {
 
             {analysis.use_cases && analysis.use_cases.length > 0 && (
               <LevelGate min={2}>
-                <SectionLabel>How to use this for your hair</SectionLabel>
+                <SectionLabel>Getting the most from this for your hair type</SectionLabel>
                 <SurfaceCard>
                   <ActionList idPrefix="uc" actions={analysis.use_cases.map((t) => ({ action: t }))} showWhy={false} />
                 </SurfaceCard>
