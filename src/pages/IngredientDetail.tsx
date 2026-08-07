@@ -513,19 +513,17 @@ const IngredientDetail = () => {
         const stale = isScoreStale(row, hairProfileUpdatedRef.current);
 
         const context = await buildAiContext();
-        const { data, error: fnError } = await supabase.functions.invoke(
+        const { data, error: fnError } = await aiInvoke<Record<string, any>>(
           "ingredient-analysis",
           {
-            body: {
-              productKey,
-              productName,
-              productBrand,
-              hairProfile,
-              healthProfile,
-              heritage,
-              context,
-              force: force || stale,
-            },
+            productKey,
+            productName,
+            productBrand,
+            hairProfile,
+            healthProfile,
+            heritage,
+            context,
+            force: force || stale,
           },
         );
         if (fnError) throw fnError;
