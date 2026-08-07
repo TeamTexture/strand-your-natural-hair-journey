@@ -143,6 +143,7 @@ const BrandBilling = lazyRetry(() => import("./pages/brand/BrandBilling"));
 const BrandProfileEditor = lazyRetry(() => import("./pages/brand/BrandProfileEditor"));
 const BrandShelf = lazyRetry(() => import("./pages/brand/BrandShelf"));
 const BrandShelfProduct = lazyRetry(() => import("./pages/brand/BrandShelfProduct"));
+const BrandProductScanning = lazyRetry(() => import("./pages/brand/BrandProductScanning"));
 const OfferPage = lazyRetry(() => import("./pages/OfferPage"));
 const BrandProductPage = lazyRetry(() => import("./pages/BrandProductPage"));
 const BrandsDirectory = lazyRetry(() => import("./pages/BrandsDirectory"));
