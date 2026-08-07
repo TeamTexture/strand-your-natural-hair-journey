@@ -179,11 +179,18 @@ function validate(
   if (!headline) problems.push("headline is missing.");
   else if (words(headline) > 8) problems.push(`headline is ${words(headline)} words — maximum 8.`);
 
+  if (!fitLine) problems.push("fit_line is missing.");
+  else {
+    if (words(fitLine) > 16) problems.push(`fit_line is ${words(fitLine)} words — maximum 16.`);
+    if (sentenceCount(fitLine) > 1) problems.push("fit_line must be exactly one sentence.");
+  }
+
   if (!intro) problems.push("intro is missing.");
   else {
     if (words(intro) > 20) problems.push(`intro is ${words(intro)} words — maximum 20.`);
     if (sentenceCount(intro) > 1) problems.push("intro must be exactly one sentence.");
   }
+
 
   const benefits: Benefit[] = benefitsRaw
     .map((b) => {
