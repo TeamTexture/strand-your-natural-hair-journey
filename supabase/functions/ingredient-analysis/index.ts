@@ -573,6 +573,7 @@ Deno.serve(async (req) => {
           userPayload: retryPayload,
           selectorContext: buildSelectorContext(body),
           avoidList,
+          level: tipsLevel,
         });
       }
       // Last line of defence: scrub any lingering forbidden phrases from
