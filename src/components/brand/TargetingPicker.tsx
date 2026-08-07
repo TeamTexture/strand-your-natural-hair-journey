@@ -42,7 +42,26 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
     onChange({ ...value, [key]: next });
   };
 
-  const floor = estimate?.audience_floor ?? 50;
+  const allSelectedFor = (key: string, opts: TargetingOption[]) =>
+    opts.length > 0 && opts.every((o) => (value[key] ?? []).includes(o.value_code));
+
+  const toggleGroup = (key: string, opts: TargetingOption[]) => {
+    if (disabled) return;
+    onChange({ ...value, [key]: allSelectedFor(key, opts) ? [] : opts.map((o) => o.value_code) };
+  };
+
+  const everythingSelected = grouped.length > 0 && grouped.every(([k, g]) => allSelectedFor(k, (g.opts ?? []) as TargetingOption[]));
+
+  const toggleEverything = () => {
+    if (disabled) return;
+    if (everythingSelected) {
+      onChange({});
+      return;
+    }
+    const next: TargetingRules = {};
+    for (const [key, group] of grouped) next[key] = (group.opts ?? []).map((o) => o.value_code);
+    onChange(next);
+  };
 
   return (
     <SurfaceCard className="space-y-4">
@@ -50,17 +69,44 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
         <Info className="size-3.5 text-primary shrink-0 mt-[3px]" />
         <p className="text-[11.5px] font-body text-foreground/80 leading-snug">
           Leave everything unselected to run a broad campaign shown to all members. Pick attributes
-          to reach a narrower audience — only members who have opted in to personalised offers are
-          ever matched. A targeted campaign can run at any audience size; we simply don't report
-          audience numbers below {floor} members. Health information is never available for targeting.
+          to reach a narrower audience, or select all within a category to include every option —
+          only members who have opted in to personalised offers are ever matched. Audience numbers
+          are reported at any size. Health information is never available for targeting.
         </p>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={toggleEverything}
+          className={`rounded-pill border px-3 py-1 text-[11px] font-body ${
+            everythingSelected ? "border-primary bg-primary/10 text-primary" : "border-border text-foreground/80"
+          } ${disabled ? "opacity-60" : ""}`}
+        >
+          {everythingSelected ? "Clear all" : "Select all"}
+        </button>
       </div>
 
       {grouped.map(([key, group]) => (
         <div key={key}>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">
-            {group.label}
-          </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              {group.label}
+            </p>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => toggleGroup(key, (group.opts ?? []) as TargetingOption[])}
+              className={`text-[10.5px] font-body underline underline-offset-2 ${
+                allSelectedFor(key, (group.opts ?? []) as TargetingOption[])
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              } ${disabled ? "opacity-60" : ""}`}
+            >
+              {allSelectedFor(key, (group.opts ?? []) as TargetingOption[]) ? "Clear" : "All"}
+            </button>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {(group.opts ?? []).map((o) => {
               const on = (value[key] ?? []).includes(o.value_code);
@@ -93,20 +139,16 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
               <>Broad campaign — shown to all members in the slots you book.</>
             ) : isFetching ? (
               <>Estimating audience…</>
-            ) : estimate?.meets_floor ? (
-              <>
-                Around <span className="font-medium">{estimate.reach}</span> members match this
-                audience.
-              </>
             ) : (
               <>
-                Your campaign can run. We don't report audience numbers until at least {floor}{" "}
-                members match, to protect member privacy.
+                Around <span className="font-medium">{estimate?.reach ?? 0}</span> member
+                {estimate?.reach === 1 ? "" : "s"} match this audience.
               </>
             )}
           </p>
         </div>
       </div>
+
     </SurfaceCard>
   );
 };
