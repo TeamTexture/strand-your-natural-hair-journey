@@ -538,6 +538,14 @@ const AdminHub = () => {
           />
 
           <NavCard
+            icon={PackageCheck}
+            title="Brand shelf review"
+            description="Approve products brands add to their permanent shelf"
+            badge={pendingShelfItems || undefined}
+            onClick={() => nav("/admin/shelf-review")}
+          />
+
+          <NavCard
             icon={Store}
             title="Brands"
             description="Registered brands, contacts and category"
