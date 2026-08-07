@@ -18,6 +18,7 @@ import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
+import ConsentGate from "@/components/ConsentGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import MessageNotifications from "@/components/MessageNotifications";
 import NewEnquiriesAlert from "@/components/pro/NewEnquiriesAlert";
