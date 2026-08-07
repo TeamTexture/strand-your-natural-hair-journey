@@ -127,6 +127,9 @@ export function useSetPersonalisedOffersConsent() {
     mutationFn: async (on: boolean) => {
       const { error } = await rpc("set_personalised_offers_consent", { _on: on, _source: "settings" });
       if (error) throw new Error(error.message);
+      // Append-only consent ledger: a withdrawal writes a NEW granted=false row.
+      if (on) await recordConsents({ personalised_offers: true });
+      else await withdrawConsent("personalised_offers");
       return on;
     },
     onSuccess: () => {
