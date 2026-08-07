@@ -251,8 +251,13 @@ const AdminBrandOffers = () => {
     if (owner === "pro") {
       return brandUserId ? (proNamesById[brandUserId] ?? "Professional") : "Professional";
     }
-    return (o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ?? "Unknown brand";
+    return (
+      (brandUserId ? brandNamesById[brandUserId] : undefined) ??
+      (o as { brand_profiles?: { brand_name?: string } | null }).brand_profiles?.brand_name ??
+      "Unknown brand"
+    );
   };
+
 
   const updateType = (t: OwnerType | null) => {
     const next = new URLSearchParams(params);
