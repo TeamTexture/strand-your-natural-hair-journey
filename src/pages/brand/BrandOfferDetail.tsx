@@ -1,7 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
+import { CreditCard, Edit, Eye, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
