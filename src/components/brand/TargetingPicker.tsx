@@ -47,7 +47,7 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
 
   const toggleGroup = (key: string, opts: TargetingOption[]) => {
     if (disabled) return;
-    onChange({ ...value, [key]: allSelectedFor(key, opts) ? [] : opts.map((o) => o.value_code) };
+    onChange({ ...value, [key]: allSelectedFor(key, opts) ? [] : opts.map((o) => o.value_code) });
   };
 
   const everythingSelected = grouped.length > 0 && grouped.every(([k, g]) => allSelectedFor(k, (g.opts ?? []) as TargetingOption[]));
