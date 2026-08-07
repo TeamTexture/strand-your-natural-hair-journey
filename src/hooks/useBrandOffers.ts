@@ -82,6 +82,16 @@ export const SLOT_LABEL: Record<PlacementSlot, string> = {
   pro_welcome: "Pro welcome banner",
 };
 
+/** Surface labels for anything that can appear in a stats row. `brand_shelf` is
+ *  not a bookable placement — it is the brand's permanent shelf card, which can
+ *  also carry a live campaign's discount code — so it lives here and NOT in
+ *  SLOT_LABEL, which drives the placement picker. */
+export const STAT_SLOT_LABEL: Record<string, string> = {
+  ...SLOT_LABEL,
+  brand_shelf: "Brand page shelf",
+  unknown: "Other",
+};
+
 /** Which audience each slot renders to. Drives the "For consumers" /
  *  "For professionals" grouping in the campaign designer. */
 export const SLOT_AUDIENCE: Record<PlacementSlot, "consumer" | "pro"> = {

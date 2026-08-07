@@ -20,7 +20,7 @@ import CountdownClock from "@/components/brand/CountdownClock";
 import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBadge";
 
 import {
-  useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
+  useBrandOffer, STATUS_LABEL, SLOT_LABEL, STAT_SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
   useBrandOfferTotals,
   STATS_METHOD_NOTE,
@@ -522,7 +522,7 @@ const AdminBrandOfferReview = () => {
                 {slotStats.map((s) => (
                   <div key={s.slot} className="flex items-center justify-between gap-2">
                     <p className="text-[12px] font-body truncate">
-                      {SLOT_LABEL[s.slot as PlacementSlot] ?? "Other"}
+                      {STAT_SLOT_LABEL[s.slot] ?? "Other"}
                     </p>
                     <p className="text-[11px] font-body text-muted-foreground shrink-0">
                       {s.impressions} views · {s.expands} expands · {s.link_clicks} clicks
@@ -537,7 +537,7 @@ const AdminBrandOfferReview = () => {
             <SectionLabel className="!px-0">Placements</SectionLabel>
             {Object.entries(bySlot).map(([slot, dates]) => (
               <SurfaceCard key={slot} className="py-2.5">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{SLOT_LABEL[slot as PlacementSlot]}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{STAT_SLOT_LABEL[slot] ?? "Other"}</p>
                 <p className="text-[12px] mt-0.5">
                   {dates.length} day{dates.length === 1 ? "" : "s"} · {format(new Date(dates.sort()[0]), "d MMM yyyy")}
                 </p>
