@@ -124,7 +124,7 @@ const DOCS: Record<string, LegalDoc> = {
           `We provide STRAND with reasonable skill and care, but we do not promise it will be uninterrupted, error-free, or that the guidance in it will produce any particular result.`,
           `We are not liable for the acts or omissions of professionals or brands, for any decision you take based on guidance in STRAND, for any health outcome, or for loss caused by inaccurate information you have entered.`,
           `Nothing in these terms limits our liability for death or personal injury caused by our negligence, for fraud, or for anything else that cannot lawfully be limited.`,
-          `Subject to that, our total liability to you in any 12-month period is limited to the greater of the amount you paid us in that period and [LIABILITY CAP AMOUNT].`,
+          `Subject to that, our total liability to you in any 12-month period is limited to the greater of the amount you paid us in that period and £500.`,
           `If you use STRAND for business purposes, we are not liable for lost profits, lost business or lost data.`,
         ],
       },
