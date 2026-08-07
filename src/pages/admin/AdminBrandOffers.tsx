@@ -12,6 +12,8 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
+import UpcomingOfferCard from "@/components/brand/UpcomingOfferCard";
+
 import PastOfferCard from "@/components/brand/PastOfferCard";
 import CountdownClock from "@/components/brand/CountdownClock";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
