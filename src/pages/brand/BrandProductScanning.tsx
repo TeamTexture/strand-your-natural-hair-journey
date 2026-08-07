@@ -130,6 +130,20 @@ const BrandProductScanning = () => {
         // a member read produce identical fields.
         const fields = buildProductSaveFields(data ?? {});
 
+        // Pull the product imagery off the page the brand pasted. The URL
+        // function already resolves og:image / twitter:image / inline product
+        // images, so we just take whatever it surfaced and prefill it — the
+        // brand can drop it in the editor if it read the wrong picture.
+        const raw = (data ?? {}) as Record<string, unknown>;
+        const scrapedImages = [
+          raw.image_url,
+          raw._source_image_url,
+          ...(Array.isArray(raw.image_urls) ? raw.image_urls : []),
+        ]
+          .filter((u): u is string => typeof u === "string" && /^https?:\/\//i.test(u))
+          .filter((u, i, arr) => arr.indexOf(u) === i)
+          .slice(0, 4);
+
         setProgressPct(100);
         await new Promise((r) => setTimeout(r, 450));
 
@@ -142,6 +156,7 @@ const BrandProductScanning = () => {
               ingredients: fields.ingredients,
               ingredients_source: isLink ? "link" : "scan",
               source_type: isLink ? "link" : "scan",
+              image_urls: scrapedImages,
               ...(isLink ? { source_url: state.url, external_url: state.url } : {}),
               position: state.position ?? 0,
             },
