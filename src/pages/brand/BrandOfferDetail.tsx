@@ -45,6 +45,7 @@ const BrandOfferDetail = () => {
   const [heroOpen, setHeroOpen] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const deleteOffer = useDeleteBrandOffer();
+  const relaunch = useRelaunchBrandOffer();
   const markSeen = useMarkOfferInterestSeen();
   const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
   const interest = id ? interestMap[id] : undefined;
