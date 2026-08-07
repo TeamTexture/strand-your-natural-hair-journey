@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ExternalLink, Heart, Check, Loader2, Sparkles } from "lucide-react";
+import { ExternalLink, Heart, Check, Loader2, Sparkles, Plus } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import BenefitRows from "@/components/guidance/BenefitRows";
 import AdFitLine from "@/components/guidance/AdFitLine";
@@ -118,9 +118,24 @@ const BrandProductPage = () => {
 
   const alreadyWishlisted = useMemo(() => {
     if (!product) return false;
-    return isTool ? !!findExistingTool() : !!findExistingProduct()?.on_wishlist;
+    if (isTool) {
+      const t = findExistingTool() as { on_wishlist?: boolean | null } | undefined;
+      return !!t && !!t.on_wishlist;
+    }
+    return !!findExistingProduct()?.on_wishlist;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, allProducts, userTools]);
+
+  const alreadyOnShelf = useMemo(() => {
+    if (!product) return false;
+    if (isTool) {
+      const t = findExistingTool() as { on_shelf?: boolean | null } | undefined;
+      return !!t && !!t.on_shelf;
+    }
+    return !!findExistingProduct()?.on_shelf;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, allProducts, userTools]);
+
 
   // ── Personalised guidance: benefits for THIS member's hair + how to get the
   //    most out of it. Shared with the banner and offer-page surfaces so the
@@ -130,33 +145,43 @@ const BrandProductPage = () => {
   );
 
 
-  const addToWishlist = async () => {
+  const save = async (destination: "shelf" | "wishlist") => {
     if (!user || !product || !offer) return;
+    const toShelf = destination === "shelf";
     setBusy(true);
     try {
       if (isTool) {
-        const existing = findExistingTool();
+        const existing = findExistingTool() as
+          | { id: string; on_shelf?: boolean | null; on_wishlist?: boolean | null }
+          | undefined;
         if (existing) {
-          toast.success("Already on your wishlist");
-          nav("/products/wishlist");
-          return;
+          const { error } = await supabase
+            .from("user_tools")
+            .update(
+              (toShelf
+                ? { on_shelf: true, on_wishlist: false }
+                : { on_wishlist: true }) as never,
+            )
+            .eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          const insertRow = {
+            user_id: user.id,
+            tool_key: toolKeyFor(product.id),
+            name: product.name,
+            brand: brandName,
+            category: null,
+            image_url: product.image_urls?.[0] ?? null,
+            notes: product.description ?? null,
+            source_url: product.external_url ?? null,
+            on_shelf: toShelf,
+            on_wishlist: !toShelf,
+            linked_brand_offer_id: offer.id,
+            linked_brand_product_id: product.id,
+          };
+          const { error } = await supabase.from("user_tools").insert(insertRow as never);
+          if (error) throw error;
         }
-        const insertRow = {
-          user_id: user.id,
-          tool_key: toolKeyFor(product.id),
-          name: product.name,
-          brand: brandName,
-          category: null,
-          image_url: product.image_urls?.[0] ?? null,
-          notes: product.description ?? null,
-          source_url: product.external_url ?? null,
-          on_shelf: false,
-          on_wishlist: true,
-          linked_brand_offer_id: offer.id,
-          linked_brand_product_id: product.id,
-        };
-        const { error } = await supabase.from("user_tools").insert(insertRow as never);
-        if (error) throw error;
         await reloadTools();
       } else {
         const existing = findExistingProduct();
@@ -168,20 +193,23 @@ const BrandProductPage = () => {
           image_url: product.image_urls?.[0] ?? existing?.image_url ?? null,
           linked_brand_offer_id: offer.id,
           linked_brand_product_id: product.id,
-          on_wishlist: true,
+          ...(toShelf ? { on_shelf: true, on_wishlist: false } : { on_wishlist: true }),
         };
         const row = await upsert(payload);
-        if (!row) throw new Error("Could not save to wishlist");
+        if (!row) throw new Error(toShelf ? "Could not add to your shelf" : "Could not save to wishlist");
       }
       logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
-      toast.success("Added to your wishlist");
-      nav("/products/wishlist");
+      toast.success(toShelf ? "Added to your shelf" : "Added to your wishlist");
+      nav(toShelf ? "/products" : "/products/wishlist");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not add to wishlist");
+      toast.error(
+        e instanceof Error ? e.message : toShelf ? "Could not add to your shelf" : "Could not add to wishlist",
+      );
     } finally {
       setBusy(false);
     }
   };
+
 
 
   const openExternal = () => {
@@ -322,15 +350,15 @@ const BrandProductPage = () => {
             </Button>
           )}
           <Button
-            variant="outline"
+            variant={product.external_url ? "goldOutline" : "gold"}
             size="pill"
-            onClick={addToWishlist}
-            disabled={busy || alreadyWishlisted}
+            onClick={() => save("shelf")}
+            disabled={busy || alreadyOnShelf}
             className="w-full"
           >
-            {alreadyWishlisted ? (
+            {alreadyOnShelf ? (
               <>
-                <Check className="size-4 mr-1.5" /> On your wishlist
+                <Check className="size-4 mr-1.5" /> On your shelf
               </>
             ) : busy ? (
               <>
@@ -338,10 +366,34 @@ const BrandProductPage = () => {
               </>
             ) : (
               <>
-                <Heart className="size-4 mr-1.5" /> Add to wishlist
+                <Plus className="size-4 mr-1.5" /> Add to my shelf
               </>
             )}
           </Button>
+          {!alreadyOnShelf && (
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => save("wishlist")}
+              disabled={busy || alreadyWishlisted}
+              className="w-full"
+            >
+              {alreadyWishlisted ? (
+                <>
+                  <Check className="size-4 mr-1.5" /> On your wishlist
+                </>
+              ) : busy ? (
+                <>
+                  <Loader2 className="size-4 mr-1.5 animate-spin" /> Adding…
+                </>
+              ) : (
+                <>
+                  <Heart className="size-4 mr-1.5" /> Add to wishlist
+                </>
+              )}
+            </Button>
+          )}
+
         </div>
       </div>
     </ScreenLayout>
