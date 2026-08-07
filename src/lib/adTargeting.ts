@@ -89,78 +89,11 @@ export function explainMatch(
   return `This brand asked to reach members based on ${list}. Nothing about your health, blood work or medications is ever used.`;
 }
 
-/* ── Audience presets ─────────────────────────────────────────────────────────
- * One-tap shortcuts that apply several EXISTING allowlist values at once. Every
- * value below is a row in public.ad_targeting_attributes — no new attributes, no
- * new values, and nothing from the permanently banned health list.
- */
-export interface AudiencePreset {
-  id: string;
-  label: string;
-  subtitle: string;
-  rules: TargetingRules;
-}
+/* No presets, bundles or suggested audiences — every allowlisted value is
+ * selected individually by the brand. Do not reintroduce grouping controls
+ * beyond a per-attribute "select all" inside that attribute's own list. */
 
-export const AUDIENCE_PRESETS: AudiencePreset[] = [
-  {
-    id: "high_porosity",
-    label: "High porosity",
-    subtitle: "Members with high porosity hair",
-    rules: { porosity: ["high"] },
-  },
-  {
-    id: "protective_styles",
-    label: "Protective styles",
-    subtitle: "Braids, cornrows, twists and locs",
-    rules: {
-      current_style: [
-        "box_braids",
-        "knotless_braids",
-        "crochet_braids",
-        "cornrows",
-        "straight_back_cornrows",
-        "twists",
-        "two_strand_twists",
-        "mini_twists",
-        "passion_rope_twists",
-        "flat_twists",
-        "locs",
-        "faux_locs",
-      ],
-    },
-  },
-  {
-    id: "growing_length",
-    label: "Growing length",
-    subtitle: "Goal set to length retention",
-    rules: { goal_focus: ["length_retention"] },
-  },
-  {
-    id: "washes_weekly",
-    label: "Washes weekly",
-    subtitle: "Members on a weekly wash cycle",
-    rules: { wash_freq: ["weekly"] },
-  },
-];
 
-/** True when every value a preset covers is currently selected. */
-export const presetIsActive = (preset: AudiencePreset, rules: TargetingRules): boolean =>
-  Object.entries(preset.rules).every(([key, codes]) =>
-    codes.every((c) => (rules[key] ?? []).includes(c)),
-  );
-
-/** Toggle a whole preset on or off, leaving other selections intact. */
-export function togglePreset(preset: AudiencePreset, rules: TargetingRules): TargetingRules {
-  const on = presetIsActive(preset, rules);
-  const next: TargetingRules = { ...rules };
-  for (const [key, codes] of Object.entries(preset.rules)) {
-    const current = next[key] ?? [];
-    next[key] = on
-      ? current.filter((c) => !codes.includes(c))
-      : [...new Set([...current, ...codes])];
-  }
-  return cleanRules(next);
-}
 
 /** Milestone at which audience numbers start being reported. Reporting-only —
  *  a campaign can run below it. */
@@ -172,7 +105,7 @@ export function describeAudience(
   options: TargetingOption[] | undefined,
 ): string {
   const clean = cleanRules(rules);
-  if (rulesAreEmpty(clean)) return "Showing to everyone. Tap below to narrow it.";
+  if (rulesAreEmpty(clean)) return "Showing to everyone. Narrow it below.";
   const parts: string[] = [];
   for (const key of ATTRIBUTE_ORDER) {
     const codes = clean[key];
@@ -191,6 +124,6 @@ export function describeAudience(
       parts.push(`${labels.length} ${attributeLabel} options`);
     }
   }
-  if (parts.length === 0) return "Showing to everyone. Tap below to narrow it.";
+  if (parts.length === 0) return "Showing to everyone. Narrow it below.";
   return `Showing to members with ${parts.join("; ")}.`;
 }
