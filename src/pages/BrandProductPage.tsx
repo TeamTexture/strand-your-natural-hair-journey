@@ -120,79 +120,13 @@ const BrandProductPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, allProducts, userTools]);
 
-  // (Personalised suitability analysis removed — the usage playbook below is the single AI surface for brand products.)
+  // ── Personalised guidance: benefits for THIS member's hair + how to get the
+  //    most out of it. Shared with the banner and offer-page surfaces so the
+  //    same reasoning shows wherever this advert appears. ──
+  const { guidance, loading: guidanceLoading } = useBrandProductGuidance(
+    product ? { ...(product as unknown as BrandGuidanceProduct), brand: brandName } : null,
+  );
 
-
-  // ── Personalised usage guidance: "how to get the most out of this" ──
-  useEffect(() => {
-    if (!product || !user || !offer) return;
-    let cancelled = false;
-    const cacheKind = guidanceCacheKind(product.id);
-
-    (async () => {
-      setGuidanceLoading(true);
-      try {
-        const { data: cached } = await supabase
-          .from("ai_summaries")
-          .select("payload")
-          .eq("user_id", user.id)
-          .eq("kind", cacheKind)
-          .maybeSingle();
-        if (cancelled) return;
-        const cachedPayload = cached?.payload as unknown as GuidancePayload | null;
-        if (cachedPayload && Array.isArray(cachedPayload.benefits)) {
-          setGuidance(cachedPayload);
-          setGuidanceLoading(false);
-          return;
-        }
-
-
-        const context = await buildAiContext();
-        const { data: res, error } = await supabase.functions.invoke(
-          "brand-product-guidance",
-          {
-            body: {
-              product: {
-                id: product.id,
-                name: product.name,
-                brand: brandName,
-                description: product.description,
-                kind: product.kind,
-                tool_kind: product.tool_kind,
-                external_url: product.external_url,
-                ingredients: product.ingredients ?? [],
-                key_features: product.key_features ?? [],
-                materials: product.materials ?? [],
-              },
-              context,
-            },
-          },
-        );
-        if (error) throw error;
-        if (res?.error) throw new Error(String(res.error));
-        const g = res?.guidance as GuidancePayload | undefined;
-        if (!g || cancelled) return;
-        setGuidance(g);
-        await supabase.from("ai_summaries").upsert(
-          {
-            user_id: user.id,
-            kind: cacheKind,
-            payload: g as unknown as Record<string, unknown>,
-          } as never,
-          { onConflict: "user_id,kind" },
-        );
-      } catch {
-        // Silent — the other AI panel still renders.
-      } finally {
-        if (!cancelled) setGuidanceLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, user?.id, offer?.id]);
 
   const addToWishlist = async () => {
     if (!user || !product || !offer) return;
