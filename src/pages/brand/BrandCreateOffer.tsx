@@ -10,7 +10,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import TargetingPicker from "@/components/brand/TargetingPicker";
-import { useOfferTargeting, saveOfferTargeting, useReachEstimate } from "@/hooks/useAdTargeting";
+import { useOfferTargeting, saveOfferTargeting } from "@/hooks/useAdTargeting";
 import { cleanRules, rulesAreEmpty, type TargetingRules } from "@/lib/adTargeting";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
@@ -139,7 +139,7 @@ const BrandCreateOffer = () => {
   const { data: savedTargeting } = useOfferTargeting(existingId);
   const cleanTargeting = cleanRules(targeting);
   const targetingEmpty = rulesAreEmpty(cleanTargeting);
-  const { data: reachEstimate } = useReachEstimate(cleanTargeting);
+  // Reach is displayed (and privacy-suppressed) inside TargetingPicker itself.
 
   const [headline, setHeadline] = useState(existing?.headline ?? "");
   const [bodyCopy, setBodyCopy] = useState(existing?.body_copy ?? "");
@@ -501,12 +501,8 @@ const BrandCreateOffer = () => {
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
 
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
-    // A targeted campaign may only be submitted if it clears the audience floor.
-    if (!asDraft && !targetingEmpty && reachEstimate && !reachEstimate.meets_floor) {
-      return toast.error(
-        `Fewer than ${reachEstimate.audience_floor} members match this audience. Widen your targeting to submit.`,
-      );
-    }
+    // Targeted campaigns may be submitted at any audience size. The 50-member
+    // floor only suppresses REPORTING (reach + performance), never delivery.
     if (!asDraft && ownerMode === "brand" && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);

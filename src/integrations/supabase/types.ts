@@ -4597,6 +4597,7 @@ export type Database = {
           reach: number
         }[]
       }
+      ad_offer_reportable: { Args: { _offer_id: string }; Returns: boolean }
       ad_offer_rules: { Args: { _offer_id: string }; Returns: Json }
       ad_style_code: { Args: { _style: string }; Returns: string }
       admin_event_rsvps: {

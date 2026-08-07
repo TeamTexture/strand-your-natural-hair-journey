@@ -67,13 +67,18 @@ const BrandOfferDetail = () => {
 
   if (isLoading || !offer) return <LoadingDot />;
 
-  const stats = (offer.brand_offer_stats ?? []).reduce(
+  // Performance for a targeted campaign is suppressed by the database until at
+  // least 50 members are in the audience (privacy floor) — suppressed rows come
+  // back with NULL metrics rather than being hidden.
+  const statRows = offer.brand_offer_stats ?? [];
+  const statsSuppressed = statRows.length > 0 && statRows.every((s) => s.impressions === null);
+  const stats = statRows.reduce(
     (acc, s) => ({
       impressions: acc.impressions + (s.impressions ?? 0),
       expands: acc.expands + (s.expands ?? 0),
       wishlist: acc.wishlist + (s.wishlist_adds ?? 0),
-      codeCopies: acc.codeCopies + ((s as { code_copies?: number }).code_copies ?? 0),
-      linkClicks: acc.linkClicks + ((s as { link_clicks?: number }).link_clicks ?? 0),
+      codeCopies: acc.codeCopies + ((s as { code_copies?: number | null }).code_copies ?? 0),
+      linkClicks: acc.linkClicks + ((s as { link_clicks?: number | null }).link_clicks ?? 0),
     }),
     { impressions: 0, expands: 0, wishlist: 0, codeCopies: 0, linkClicks: 0 },
   );
@@ -296,18 +301,29 @@ const BrandOfferDetail = () => {
         ))}
 
         <SectionLabel className="!px-0">Performance</SectionLabel>
-        <div className="grid grid-cols-3 gap-2">
-          <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
-          <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
-          <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
-          <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
-          <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
-        </div>
-        <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
-          Impressions = distinct members who saw the advert (at least half of it, for a full second).
-          Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
-          site. {STATS_METHOD_NOTE}
-        </p>
+        {statsSuppressed ? (
+          <SurfaceCard className="py-3">
+            <p className="text-[12px] font-body leading-snug">
+              Your campaign is running. We don't report performance numbers until at least 50 members
+              match this audience, to protect member privacy.
+            </p>
+          </SurfaceCard>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
+              <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
+              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
+              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
+            </div>
+            <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
+              Impressions = distinct members who saw the advert (at least half of it, for a full second).
+              Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
+              site. {STATS_METHOD_NOTE}
+            </p>
+          </>
+        )}
 
         {derived === "ended" && (interest?.total ?? 0) > 0 && (
           <SurfaceCard className="bg-primary/5 border-primary/30">
