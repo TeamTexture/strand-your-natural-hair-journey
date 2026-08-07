@@ -49,7 +49,7 @@ import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v11-purpose-insight";
+const MODEL_VERSION = "claude-sonnet-4-6@v12-detailed-guidance";
 
 
 interface IngredientCard {
@@ -162,6 +162,16 @@ function guidanceCount(level: TipsLevel): number {
   return 1;
 }
 
+/** How much prose each tip body gets. Higher levels want a genuinely detailed
+ *  explanation, not a single sentence. */
+function guidanceDepth(level: TipsLevel): { sentences: string; words: number } {
+  if (level >= 4) return { sentences: "4-6 sentences", words: 130 };
+  if (level === 3) return { sentences: "3-4 sentences", words: 90 };
+  if (level === 2) return { sentences: "2-3 sentences", words: 60 };
+  return { sentences: "2 sentences", words: 45 };
+}
+
+
 function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL) {
   // Dynamic minItems/maxItems is the explicit fix for AUDIT.md §1's
   // "EXACTLY ${ingredientCount}" prose brittleness. When count is 0 we
@@ -203,7 +213,7 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
           type: "object",
           properties: {
             title: { type: "string", description: "Short imperative label about applying/using THIS product, max 6 words. Must be an action performed on THIS product itself. GOOD examples: 'Emulsify before it touches ends', 'Focus on the scalp only', 'Rinse with cooler water', 'Double-cleanse dense sections', 'Work through soaking-wet hair'. FORBIDDEN examples (never write these or anything similar): 'Pair with deep conditioning', 'Layer under your leave-in', 'Follow with a mask', 'Use with an oil'." },
-            body: { type: "string", description: "1-2 sentences, max 35 words. Describe HOW to use THIS product to get the most from it, tied to at least one of the user's hair traits (porosity, density, type, length, current style, hair challenge, or a signal from last_3_wash_days). Cite the mechanism of THIS product's key ingredient if helpful. Do NOT reference any other product, product type, brand, accessory, or wash-day step." },
+            body: { type: "string", description: `${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words — a proper detailed explanation, NEVER a single sentence. Cover, in order: (1) exactly what to do with THIS product (amount, where on the head, sectioning, hair state — dry/damp/soaking-wet, water temperature, dwell time, rinse, frequency), (2) why that suits at least one named trait of this user's (porosity, density, hair type, length, current style, a stated challenge or a signal from last_3_wash_days), quoting the mechanism of this product's key ingredient where it helps, (3) what it should look or feel like when done right, and (4) the specific mistake to avoid. Split into short paragraphs with a blank line between them where it aids readability. Do NOT reference any other product, product type, brand, accessory, or wash-day step.` },
           },
           required: ["title", "body"],
         },
@@ -246,7 +256,7 @@ RULES — STRICT:
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
-5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. ${level >= 4 ? "This user is at support level 4 (hand-holding): give the fullest set — more separate, short, concrete tips, each teaching one small piece in plain words, with dynamic timings scaled to their hair and the mistake to avoid named briefly. More pieces, never longer paragraphs." : level === 3 ? "This user is at support level 3: give each tip with the why behind it." : "Keep each tip short and self-sufficient: the action plus its trigger or frequency."}
+5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. Each tip body must be a DETAILED, multi-sentence explanation (${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words) — never a single sentence. Within each tip, give the action in full (amount, placement, sectioning, hair state, temperature, dwell time, rinse, frequency), the reason it fits one NAMED trait of this user, what it should look or feel like when done right, and the mistake to avoid. ${level >= 4 ? "This user is at support level 4 (hand-holding): the fullest, most explanatory version — plain words, reading age 9-10, timings scaled to their hair, everything spelled out." : level === 3 ? "This user is at support level 3: full reasoning behind each tip." : "Keep the wording efficient but still explain the why and the sign to watch for."}
 
    ABSOLUTE SCOPE — HARD BAN on referencing anything outside THIS product:
    - Do NOT recommend, name, pair with, "follow with", "layer with", "use alongside", "then apply", or otherwise suggest ANY other product, product type, or step (no "deep conditioner", "leave-in", "oil", "mask", "clarifying wash", "protein treatment", "styler", etc.). Even generic categories are banned.
