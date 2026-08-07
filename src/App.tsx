@@ -126,7 +126,7 @@ const AdminLibrary = lazyRetry(() => import("./pages/admin/AdminLibrary"));
 const AdminEvents = lazyRetry(() => import("./pages/admin/AdminEvents"));
 const AdminBloodVendors = lazyRetry(() => import("./pages/admin/AdminBloodVendors"));
 const AdminSalons = lazyRetry(() => import("./pages/admin/AdminSalons"));
-const AdminBloodMarkers = lazyRetry(() => import("./pages/admin/AdminBloodMarkers"));
+
 const AdminCapabilities = lazyRetry(() => import("./pages/admin/AdminCapabilities"));
 
 // Brand
