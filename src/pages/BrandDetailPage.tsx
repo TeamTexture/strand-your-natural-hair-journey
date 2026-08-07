@@ -352,19 +352,6 @@ const BrandDetailPage = () => {
           </div>
         )}
 
-        {data!.past.length > 0 && (
-          <div>
-            <SectionLabel className="!px-0">Previous offers</SectionLabel>
-            <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-2 leading-snug">
-              Missed one? Tap Show interest and we'll let the brand know — they may run it again.
-            </p>
-            <div className="grid grid-cols-1 gap-2.5">
-              {data!.past.map((o) => (
-                <PastOfferRow key={o.id} offer={o} />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </ScreenLayout>
   );
