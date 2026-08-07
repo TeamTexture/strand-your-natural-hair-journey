@@ -170,6 +170,33 @@ const BrandDashboard = () => {
     );
   };
 
+  /** Awaiting-payment and upcoming campaigns render as the full advert card so
+   *  the brand sees the finished creative before payment. */
+  const renderUpcoming = (o: typeof withDerived[number]) => {
+    const placements = o.brand_offer_placements ?? [];
+    const dates = placements.map((p) => p.placement_date).sort();
+    const products = (o as { brand_products?: unknown[] }).brand_products ?? [];
+    return (
+      <UpcomingOfferCard
+        key={o.id}
+        headline={o.headline}
+        heroImagePath={o.hero_image_path}
+        slots={placements.map((p) => p.slot)}
+        startDate={dates[0]}
+        endDate={dates[dates.length - 1]}
+        state={o._derived === "approved_unpaid" ? "approved_unpaid" : "upcoming"}
+        submitter={ownerMode === "pro" ? null : (profile?.brand_name ?? null)}
+        pricePence={o.total_price_pence}
+        productCount={products.length}
+        hasPendingRevision={withPendingSet.has(o.id)}
+        revisionCount={revisionCounts[o.id]}
+        actionLabel={o._derived === "approved_unpaid" ? "Pay" : "Open"}
+        onOpen={() => nav(ownerOfferRoute(ownerMode, o.id))}
+      />
+    );
+  };
+
+
 
   return (
     <ScreenLayout>
