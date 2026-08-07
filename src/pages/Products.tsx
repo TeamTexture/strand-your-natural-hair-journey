@@ -9,7 +9,7 @@ import ProductVoicenotes from "@/components/ProductVoicenotes";
 import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import MyToolsSection from "@/components/MyToolsSection";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
-import ProductThumb from "@/components/ProductThumb";
+import ShelfProductCard from "@/components/product/ShelfProductCard";
 import MatchStars from "@/components/MatchStars";
 import { matchScoreOf } from "@/lib/matchStars";
 import { UrlScanProgressButton } from "@/components/UrlScanProgressButton";
@@ -200,110 +200,82 @@ const Products = () => {
                 const isSelected = batch.selected.has(p.id);
 
                 return (
-                  <div
+                  <ShelfProductCard
                     key={p.id}
-                    {...anchorProps(p.id)}
-                    className={cn(
-                      "bg-card border border-border rounded-[14px] overflow-hidden transition-colors",
-                      batch.selectMode && isSelected && "ring-2 ring-primary",
-                    )}
-                  >
-                    <div className="p-3.5 space-y-2">
-                      <div className="flex items-start gap-2">
-                        {batch.selectMode && (
-                          <button
-                            onClick={() => batch.toggle(p.id)}
-                            className="shrink-0 mt-0.5"
-                            aria-label={isSelected ? "Deselect" : "Select"}
-                          >
-                            <SelectCheckbox checked={isSelected} />
-                          </button>
-                        )}
+                    anchor={anchorProps(p.id)}
+                    className={cn(batch.selectMode && isSelected && "ring-2 ring-primary")}
+                    name={p.name}
+                    brand={<BrandLink brand={p.brand} />}
+                    imageUrl={p.image_url}
+                    storagePath={p.storage_path}
+                    matchScore={matchScoreOf(p)}
+                    onOpen={() =>
+                      batch.selectMode ? batch.toggle(p.id) : navigate(`/products/profile/${p.id}`)
+                    }
+                    leading={
+                      batch.selectMode ? (
                         <button
-                          onClick={() =>
-                            batch.selectMode
-                              ? batch.toggle(p.id)
-                              : navigate(`/products/profile/${p.id}`)
-                          }
-                          className="flex-1 min-w-0 text-left"
+                          onClick={(e) => { e.stopPropagation(); batch.toggle(p.id); }}
+                          className="shrink-0 mt-0.5"
+                          aria-label={isSelected ? "Deselect" : "Select"}
                         >
-                          <p className="text-sm font-medium font-body leading-snug break-words">{p.name}</p>
+                          <SelectCheckbox checked={isSelected} />
                         </button>
-                        {!batch.selectMode && (
-                          <div className="flex items-center shrink-0 -mt-1">
-                            <button
-                              onClick={() => handleToggleFavourite(p)}
-                              className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                              aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
-                              aria-pressed={p.on_favourite}
-                            >
-                              <Heart
-                                className={cn(
-                                  "size-4 transition-colors",
-                                  p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
-                                )}
-                              />
-                            </button>
-                            <button
-                              onClick={() => setExpanded(isOpen ? null : p.product_key)}
-                              className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                              aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
-                              aria-expanded={isOpen}
-                            >
-                              <ChevronDown
-                                className={cn(
-                                  "size-4 text-muted-foreground transition-transform",
-                                  isOpen && "rotate-180",
-                                )}
-                              />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <ProductThumb
-                          imageUrl={p.image_url}
-                          storagePath={p.storage_path}
-                          alt={p.name}
-                          cover={!!p.storage_path}
-                        />
-                        <button
-                          onClick={() =>
-                            batch.selectMode
-                              ? batch.toggle(p.id)
-                              : navigate(`/products/profile/${p.id}`)
-                          }
-                          className="flex-1 min-w-0 text-left"
-                        >
-                          <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <MatchStars item={p} />
-                            {noteCount > 0 && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
-                                <Mic className="size-3" /> {noteCount}
-                              </span>
-                            )}
-                          </div>
-                          {sponsoredById[p.id] && (
-                            <p className="text-[9.5px] mt-1 leading-snug">
-                              <span className="uppercase tracking-wider text-muted-foreground">Sponsored</span>
-                              <span className="text-primary font-body font-medium">
-                                {" · On offer"}
-                                {sponsoredById[p.id].discountCode ? ` — code ${sponsoredById[p.id].discountCode}` : ""}
-                                {sponsoredById[p.id].endsOn ? ` until ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
-                              </span>
-                            </p>
-                          )}
-                        </button>
-                        {matchScoreOf(p) != null && (
-                          <span className="shrink-0 inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.07] px-2.5 py-1 text-[10.5px] font-semibold font-body text-primary">
-                            {matchScoreOf(p)}% match
+                      ) : undefined
+                    }
+                    meta={
+                      <>
+                        <MatchStars item={p} />
+                        {noteCount > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
+                            <Mic className="size-3" /> {noteCount}
                           </span>
                         )}
-                      </div>
-                    </div>
-
+                        {sponsoredById[p.id] && (
+                          <span className="text-[9.5px] leading-snug basis-full">
+                            <span className="uppercase tracking-wider text-muted-foreground">Sponsored</span>
+                            <span className="text-primary font-body font-medium">
+                              {" · On offer"}
+                              {sponsoredById[p.id].discountCode ? ` — code ${sponsoredById[p.id].discountCode}` : ""}
+                              {sponsoredById[p.id].endsOn ? ` until ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                            </span>
+                          </span>
+                        )}
+                      </>
+                    }
+                    headerActions={
+                      !batch.selectMode ? (
+                        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleToggleFavourite(p)}
+                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                            aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                            aria-pressed={p.on_favourite}
+                          >
+                            <Heart
+                              className={cn(
+                                "size-4 transition-colors",
+                                p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
+                              )}
+                            />
+                          </button>
+                          <button
+                            onClick={() => setExpanded(isOpen ? null : p.product_key)}
+                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                            aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
+                            aria-expanded={isOpen}
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "size-4 text-muted-foreground transition-transform",
+                                isOpen && "rotate-180",
+                              )}
+                            />
+                          </button>
+                        </div>
+                      ) : undefined
+                    }
+                  >
                     {!batch.selectMode && isOpen && (
                       <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
                         <ProductVoicenotes
@@ -333,7 +305,8 @@ const Products = () => {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </ShelfProductCard>
+
                 );
               })}
             </div>

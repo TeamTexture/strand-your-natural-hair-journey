@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import ProductThumb from "@/components/ProductThumb";
+import ShelfProductCard from "@/components/product/ShelfProductCard";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -110,45 +110,33 @@ const statusChipsFor = (item: CatalogueItem): string[] => {
   return chips;
 };
 
+// Same card as the member's own shelf — see ShelfProductCard.
 const CatalogueRow = ({ item, onOpen }: { item: CatalogueItem; onOpen: () => void }) => {
   const chips = statusChipsFor(item);
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full text-left rounded-[12px] border border-border bg-card p-2.5 flex items-start gap-3 hover:border-primary/50 transition-colors"
-    >
-      <ProductThumb
-        imageUrl={item.image_url}
-        storagePath={item.storage_path}
-        alt={item.name}
-        brand={item.brand}
-        name={item.name}
-        cover
-        wrapperClassName="size-14 rounded-[10px] overflow-hidden bg-muted shrink-0"
-      />
-      <div className="flex-1 min-w-0">
-        <p className="font-body text-[13px] font-medium leading-snug break-words">{item.name}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-body">
-            {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
+    <ShelfProductCard
+      name={item.name}
+      brand={item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
+      imageUrl={item.image_url}
+      storagePath={item.storage_path}
+      onOpen={onOpen}
+      meta={
+        item.member_count > 1 ? (
+          <span className="text-[10.5px] text-muted-foreground font-body">
+            {item.member_count} members using it
           </span>
-          {chips.length > 0 && (
-            <>
-              <span className="text-[10px] text-muted-foreground">·</span>
-              <span className="text-[10.5px] font-body font-medium text-good">
-                {chips.join(" · ")}
-              </span>
-            </>
-          )}
-          {item.member_count > 1 && (
-            <span className="text-[10px] text-muted-foreground font-body ml-auto shrink-0">
-              {item.member_count} members
-            </span>
-          )}
-        </div>
-      </div>
-    </button>
+        ) : undefined
+      }
+      chips={chips.map((c) => (
+        <span
+          key={c}
+          className="inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.07] px-2 py-0.5 text-[10px] font-body font-medium text-primary"
+        >
+          {c}
+        </span>
+      ))}
+    />
+
   );
 };
 
@@ -232,32 +220,33 @@ const BrandDetailPage = () => {
       <TitleBar title={brand.brand_name ?? "Brand"} />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="size-16 rounded-2xl bg-muted border border-border overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="flex items-start gap-3.5">
+            <div className="size-[72px] rounded-2xl bg-muted border border-border overflow-hidden shrink-0 flex items-center justify-center">
               {logoUrl ? (
                 <img src={logoUrl} alt={`${brand.brand_name} logo`} className="w-full h-full object-cover" />
               ) : (
-                <span className="font-display text-primary text-xl">
+                <span className="font-display text-primary text-2xl">
                   {brand.brand_name?.[0] ?? "✦"}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-display text-lg leading-tight">{brand.brand_name}</p>
-              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                {category && (
-                  <span className="text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-body font-semibold">
-                    {category}
-                  </span>
-                )}
-                {memberSince && (
-                  <span className="text-[10.5px] text-muted-foreground font-body">
-                    On STRAND since {memberSince}
-                  </span>
-                )}
-              </div>
+              <h1 className="font-display text-[22px] leading-[1.15] [overflow-wrap:anywhere]">
+                {brand.brand_name}
+              </h1>
+              {category && (
+                <span className="mt-1.5 inline-flex items-center text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-pill bg-primary/10 text-primary font-body font-semibold">
+                  {category}
+                </span>
+              )}
+              {memberSince && (
+                <p className="mt-1 text-[10.5px] text-muted-foreground font-body">
+                  On STRAND since {memberSince}
+                </p>
+              )}
             </div>
           </div>
+
 
           {about && (
             <p className="mt-3 text-sm font-body text-foreground/85 leading-relaxed whitespace-pre-wrap">
@@ -309,11 +298,9 @@ const BrandDetailPage = () => {
           )}
         </SurfaceCard>
 
-        <div>
-          <SectionLabel className="!px-0">Live offers</SectionLabel>
-          {data!.live.length === 0 ? (
-            <EmptyState icon="✦" message="No live offers right now" tone="card" />
-          ) : (
+        {data!.live.length > 0 && (
+          <div>
+            <SectionLabel className="!px-0">Live offers</SectionLabel>
             <div className="space-y-2">
               {data!.live.map((o) => (
                 <SurfaceCard key={o.id} onClick={() => nav(`/offers/${o.id}`)} className="cursor-pointer hover:border-primary/50">
@@ -325,8 +312,9 @@ const BrandDetailPage = () => {
                 </SurfaceCard>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
 
         <BrandShelfSection brandUserId={brandUserId!} brandName={brand.brand_name ?? null} />
 

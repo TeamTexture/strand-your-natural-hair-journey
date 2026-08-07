@@ -13,7 +13,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import ProductThumb from "@/components/ProductThumb";
+import ShelfProductCard from "@/components/product/ShelfProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -149,37 +149,23 @@ const BrandShelf = () => {
               {items.map((item, index) => {
                 const c = counts[item.id];
                 return (
-                  <SurfaceCard key={item.id} className="p-3.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <ProductThumb
-                          imageUrl={item.image_urls?.[0] ?? null}
-                          alt={item.name}
-                          name={item.name}
-                          cover
-                          wrapperClassName="size-14 rounded-[10px] overflow-hidden bg-muted shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-display text-[15px] leading-tight break-words">{item.name}</p>
-                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                            <ApprovalPill item={item} />
-                            <span className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
-                              {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
-                            </span>
-                            {item.is_published ? (
-                              <span className="text-[10.5px] font-body text-muted-foreground">On your page</span>
-                            ) : (
-                              <span className="text-[10.5px] font-body text-muted-foreground">Hidden</span>
-                            )}
-                          </div>
-                          {item.description && (
-                            <p className="mt-1 text-[12px] font-body text-muted-foreground leading-snug break-words line-clamp-2">
-                              {item.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1 shrink-0">
+                  <ShelfProductCard
+                    key={item.id}
+                    name={item.name}
+                    brand={item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
+                    description={item.description}
+                    imageUrl={item.image_urls?.[0] ?? null}
+                    onOpen={() => nav(`/brand/shelf/${item.id}`)}
+                    chips={
+                      <>
+                        <ApprovalPill item={item} />
+                        <span className="text-[10.5px] font-body text-muted-foreground">
+                          {item.is_published ? "On your page" : "Hidden"}
+                        </span>
+                      </>
+                    }
+                    headerActions={
+                      <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
                         <button
                           aria-label="Move up"
                           className="p-1.5 rounded-full border border-border text-muted-foreground disabled:opacity-40"
@@ -197,52 +183,52 @@ const BrandShelf = () => {
                           <ArrowDown className="size-3.5" />
                         </button>
                       </div>
-                    </div>
-
+                    }
+                    footer={
+                      <>
+                        <Button size="sm" variant="outline" className="rounded-pill" onClick={() => nav(`/brand/shelf/${item.id}`)}>
+                          <PencilLine className="size-3.5 mr-1" /> Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-pill"
+                          disabled={item.approval_status !== "approved"}
+                          onClick={() => setPublished.mutate({ id: item.id, published: !item.is_published })}
+                        >
+                          {item.is_published ? <EyeOff className="size-3.5 mr-1" /> : <Eye className="size-3.5 mr-1" />}
+                          {item.is_published ? "Hide" : "Show"}
+                        </Button>
+                        {item.external_url && (
+                          <a
+                            href={item.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[12px] font-body text-primary"
+                          >
+                            Buy link <ExternalLink className="size-3 opacity-60" />
+                          </a>
+                        )}
+                        <button
+                          aria-label="Remove product"
+                          className="ml-auto p-1.5 text-muted-foreground"
+                          onClick={() => remove.mutate(item.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </>
+                    }
+                  >
                     {item.approval_status === "rejected" && item.rejection_reason && (
-                      <p className="mt-2 text-[12px] font-body text-destructive leading-snug break-words">
+                      <p className="px-3.5 pb-3 text-[12px] font-body text-destructive leading-snug [overflow-wrap:anywhere]">
                         {item.rejection_reason}
                       </p>
                     )}
-
-                    <div className="mt-3 pt-3 border-t border-border/60">
+                    <div className="px-3.5 pb-3.5">
                       <MemberActivity c={c} />
                     </div>
+                  </ShelfProductCard>
 
-
-                    <div className="mt-3 flex items-center gap-2 flex-wrap">
-                      <Button size="sm" variant="outline" className="rounded-pill" onClick={() => nav(`/brand/shelf/${item.id}`)}>
-                        <PencilLine className="size-3.5 mr-1" /> Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-pill"
-                        disabled={item.approval_status !== "approved"}
-                        onClick={() => setPublished.mutate({ id: item.id, published: !item.is_published })}
-                      >
-                        {item.is_published ? <EyeOff className="size-3.5 mr-1" /> : <Eye className="size-3.5 mr-1" />}
-                        {item.is_published ? "Hide" : "Show"}
-                      </Button>
-                      {item.external_url && (
-                        <a
-                          href={item.external_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[12px] font-body text-primary"
-                        >
-                          Buy link <ExternalLink className="size-3 opacity-60" />
-                        </a>
-                      )}
-                      <button
-                        aria-label="Remove product"
-                        className="ml-auto p-1.5 text-muted-foreground"
-                        onClick={() => remove.mutate(item.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  </SurfaceCard>
                 );
               })}
             </div>
