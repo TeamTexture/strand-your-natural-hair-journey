@@ -12,6 +12,8 @@ import { useRoles } from "@/hooks/useRoles";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { money as baseMoney } from "@/lib/adPricing";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -19,7 +21,7 @@ function formatDate(iso: string | null) {
     day: "numeric", month: "long", year: "numeric",
   });
 }
-const money = (p: number | null | undefined) => `£${((p ?? 0) / 100).toFixed(2)}`;
+const money = (p: number | null | undefined) => baseMoney(p ?? 0);
 
 function statusLabel(status: string | undefined) {
   switch (status) {
@@ -244,7 +246,7 @@ const BrandBilling = () => {
                     {formatDate(o.paid_at)} · {o.starts_on ? formatDate(o.starts_on) : "—"} → {o.ends_on ? formatDate(o.ends_on) : "—"}
                   </p>
                 </div>
-                <span className="text-[13px] font-body font-semibold">{money(o.total_price_pence)}</span>
+                <span className="text-[13px] font-body font-semibold inline-flex items-center gap-1.5 shrink-0"><span>{money(o.total_price_pence)}</span><TrialPriceTag /></span>
               </button>
             ))
           )}

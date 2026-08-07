@@ -3,6 +3,8 @@ import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight, CreditCard, 
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
+import { money as baseMoney } from "@/lib/adPricing";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
 
 interface Props {
   headline: string | null;
@@ -22,7 +24,8 @@ interface Props {
   onOpen: () => void;
 }
 
-const money = (p: number) => `£${(p / 100).toFixed(2)}`;
+const money = baseMoney;
+
 
 /** Scheduled / awaiting-payment advert thumbnail. Same shape and richness as the
  *  live and ended cards so a future campaign reads as a finished advert before a
@@ -134,8 +137,9 @@ const UpcomingOfferCard = ({
             <p className="text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground font-body">
               {unpaid ? "Awaiting payment" : "Paid · starts soon"}
             </p>
-            <p className="font-display text-[13.5px] leading-none mt-0.5 text-foreground">
-              {typeof pricePence === "number" ? money(pricePence) : "—"}
+            <p className="font-display text-[13.5px] leading-none mt-0.5 text-foreground flex items-center gap-1.5">
+              <span>{typeof pricePence === "number" ? money(pricePence) : "—"}</span>
+              <TrialPriceTag />
             </p>
           </div>
           <span

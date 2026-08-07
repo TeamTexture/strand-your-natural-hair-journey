@@ -28,8 +28,10 @@ import CampaignRunCalendar from "@/components/brand/CampaignRunCalendar";
 import { useOwnerMode, ownerHomeRoute, ownerNewRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
+import { money as baseMoney } from "@/lib/adPricing";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
 
-const money = (p: number) => `£${(p / 100).toFixed(2)}`;
+const money = baseMoney;
 
 const StatusPill = ({ status }: { status: DerivedStatus }) => {
   const tone =
@@ -151,7 +153,7 @@ const BrandDashboard = () => {
                   ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}`
                   : "No dates"}
             </span>
-            <span className="font-medium text-foreground">{money(o.total_price_pence)}</span>
+            <span className="font-medium text-foreground inline-flex items-center gap-1.5"><span>{money(o.total_price_pence)}</span><TrialPriceTag /></span>
           </div>
           {showStats && (
             <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/80">

@@ -24,16 +24,24 @@ import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { scanProductLink, normaliseProductUrl } from "@/lib/brandLinkScan";
 import { useAuth } from "@/hooks/useAuth";
-import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
+import { PlacementSlot, SLOT_LABEL, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useBrandShelf } from "@/hooks/useBrandShelf";
 import { AlertTriangle } from "lucide-react";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
+import {
+  buildCostBreakdown,
+  dailyRatePence,
+  money,
+  TARGETED_MULTIPLIER,
+  TRIAL_PRICING_NOTE,
+  type PricedSlot,
+} from "@/lib/adPricing";
 
 import { SLOT_AUDIENCE } from "@/hooks/useBrandOffers";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day", "pro_welcome"];
-const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
 type AttachKind = "product" | "tool";
 
@@ -123,7 +131,6 @@ const BrandCreateOffer = () => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const ownerMode = useOwnerMode();
-  const { data: rates } = usePlacementRates();
   const { data: existing } = useBrandOffer(existingId);
   const { data: pendingRevision } = usePendingRevision(existingId);
   const submitRevision = useSubmitBrandOfferRevision();
@@ -307,10 +314,13 @@ const BrandCreateOffer = () => {
     [enabledSlots],
   );
 
-  const total = useMemo(() => {
-    if (!rates) return 0;
-    return enabledSlotList.reduce((sum, s) => sum + selectedDates.length * rates[s], 0);
-  }, [enabledSlotList, selectedDates, rates]);
+  // Pricing reads from the single config (src/lib/adPricing.ts). A campaign with
+  // any targeting rows is charged the targeted rate (1.5x the broad slot rate).
+  const costs = useMemo(
+    () => buildCostBreakdown(enabledSlotList as PricedSlot[], selectedDates.length, !targetingEmpty),
+    [enabledSlotList, selectedDates.length, targetingEmpty],
+  );
+  const total = costs.totalPence;
 
   const totalDays = selectedDates.length;
 
@@ -605,7 +615,10 @@ const BrandCreateOffer = () => {
           offer_id: offerId!,
           slot: s,
           placement_date: d,
-          daily_rate_pence: rates?.[s] ?? 0,
+          // Snapshot the rate onto the placement row: displayed and charged
+          // costs read this stored value, never live config, so a later rate
+          // change (e.g. trial pricing ending) never re-prices this booking.
+          daily_rate_pence: dailyRatePence(s as PricedSlot, !targetingEmpty),
         })),
       );
 
@@ -1074,7 +1087,7 @@ const BrandCreateOffer = () => {
                         >
                           <p className="text-[10px] font-body font-medium leading-tight">{SLOT_LABEL[s]}</p>
                           <p className={`text-[10px] ${on ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
-                            {rates ? money(rates[s]) : "…"}/day
+                            {money(dailyRatePence(s as PricedSlot, !targetingEmpty))}/day
                           </p>
                           <p className={`text-[10px] font-medium mt-0.5 ${on ? "text-primary-foreground" : "text-muted-foreground/70"}`}>
                             {on ? "Selected" : "Tap to add"}
@@ -1103,14 +1116,39 @@ const BrandCreateOffer = () => {
               )}
             </SurfaceCard>
 
-            <SurfaceCard className="flex items-center justify-between">
-              <div>
+            <SurfaceCard className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Cost</p>
+                <TrialPriceTag />
+              </div>
+              {costs.lines.length === 0 || totalDays === 0 ? (
+                <p className="text-[11px] font-body text-muted-foreground">
+                  Pick slots and dates to see your cost.
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {costs.lines.map((l) => (
+                    <div key={l.slot} className="flex items-baseline justify-between gap-2 text-[12px] font-body">
+                      <span className="min-w-0 flex-1 text-foreground/85">
+                        {SLOT_LABEL[l.slot as PlacementSlot]} · {l.days} day{l.days === 1 ? "" : "s"} × {money(l.ratePence)}/day
+                      </span>
+                      <span className="shrink-0">{money(l.subtotalPence)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-baseline justify-between gap-2 border-t border-border pt-2">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
                 <p className="font-display text-2xl">{money(total)}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {totalDays} day{totalDays === 1 ? "" : "s"} × {enabledSlotList.length} slot{enabledSlotList.length === 1 ? "" : "s"}
-                </p>
               </div>
+              <p className="text-[11px] font-body text-muted-foreground leading-snug">
+                {targetingEmpty
+                  ? "Broad campaign — standard slot rate, shown to all members in the slots you book."
+                  : `Targeted campaign — ${TARGETED_MULTIPLIER}× the standard slot rate, because you have narrowed the audience below. Clear your audience selection to return to the standard rate.`}
+              </p>
+              <p className="text-[10.5px] font-body text-muted-foreground leading-snug">
+                {TRIAL_PRICING_NOTE} Your rate is fixed at booking and never changes afterwards.
+              </p>
             </SurfaceCard>
 
             {!brandSubActive && (

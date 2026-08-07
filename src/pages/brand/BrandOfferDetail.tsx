@@ -25,8 +25,10 @@ import CountdownClock from "@/components/brand/CountdownClock";
 import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { Users } from "lucide-react";
+import { money as baseMoney, TRIAL_PRICING_NOTE } from "@/lib/adPricing";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
 
-const money = (p: number) => `£${(p / 100).toFixed(2)}`;
+const money = baseMoney;
 
 const BrandOfferDetail = () => {
   const { id } = useParams();
@@ -214,7 +216,10 @@ const BrandOfferDetail = () => {
           <SurfaceCard className="py-2.5 flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Amount paid</p>
-              <p className="font-display text-[16px] mt-0.5">{money(offer.total_price_pence)}</p>
+              <p className="font-display text-[16px] mt-0.5 flex items-center gap-1.5">
+                <span>{money(offer.total_price_pence)}</span>
+                <TrialPriceTag />
+              </p>
             </div>
             {offer.starts_on && offer.ends_on && (
               <p className="text-[11px] text-muted-foreground font-body text-right">
@@ -278,8 +283,12 @@ const BrandOfferDetail = () => {
         {needsPayment && (
           <SurfaceCard className="bg-primary/5 border-primary/40">
             <p className="font-display text-[15px]">Approved — complete payment to confirm your placement</p>
-            <p className="text-[12px] text-muted-foreground mt-1">
-              Total {money(offer.total_price_pence)}. Dates are held pending payment.
+            <p className="text-[12px] text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">
+              <span>Total {money(offer.total_price_pence)}. Dates are held pending payment.</span>
+              <TrialPriceTag />
+            </p>
+            <p className="text-[10.5px] text-muted-foreground mt-1 leading-snug font-body">
+              {TRIAL_PRICING_NOTE} This is the rate your placements were booked at and it will not change.
             </p>
             <Button variant="gold" size="pill" onClick={startCheckout} disabled={paying} className="mt-3 w-full">
               {paying ? <Loader2 className="size-4 animate-spin" /> : <><CreditCard className="size-4 mr-1.5" /> Complete payment</>}
