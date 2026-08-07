@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -30,8 +30,17 @@ type Form = {
   source_url: string;
   ingredients_source: string;
   source_type: string;
+  imageUrls: string[];
   position: number;
 };
+
+/** Category tabs. A supplement keeps the ingredient panel (supplement facts);
+ *  only a tool swaps it for features and materials. */
+const KINDS: { value: string; label: string }[] = [
+  { value: "product", label: "Product" },
+  { value: "tool", label: "Tool" },
+  { value: "supplement", label: "Supplement" },
+];
 
 const EMPTY: Form = {
   name: "",
@@ -45,6 +54,7 @@ const EMPTY: Form = {
   source_url: "",
   ingredients_source: "manual",
   source_type: "manual",
+  imageUrls: [],
   position: 0,
 };
 
@@ -75,6 +85,7 @@ const BrandShelfProduct = () => {
       source_type: (prefill.source_type as string) ?? f.source_type,
       source_url: (prefill.source_url as string) ?? f.source_url,
       external_url: (prefill.external_url as string) ?? f.external_url,
+      imageUrls: Array.isArray(prefill.image_urls) ? (prefill.image_urls as string[]) : f.imageUrls,
       position: typeof prefill.position === "number" ? prefill.position : f.position,
     }));
   }, [isNew, location.state]);
@@ -107,6 +118,7 @@ const BrandShelfProduct = () => {
         source_url: row.source_url ?? "",
         ingredients_source: row.ingredients_source ?? "manual",
         source_type: row.source_type ?? "manual",
+        imageUrls: row.image_urls ?? [],
         position: row.position ?? 0,
       });
       setLoading(false);
@@ -130,6 +142,7 @@ const BrandShelfProduct = () => {
         source_url: form.source_url.trim() || null,
         ingredients_source: form.ingredients_source,
         source_type: form.source_type,
+        image_urls: form.imageUrls,
         position: form.position,
       });
       toast.success(isNew ? "Sent for review" : "Saved — back in review");
@@ -153,15 +166,15 @@ const BrandShelfProduct = () => {
           <div>
             <Label className="font-body text-[12px]">What is it?</Label>
             <div className="mt-1 flex gap-2">
-              {(["product", "tool"] as const).map((k) => (
+              {KINDS.map((k) => (
                 <button
-                  key={k}
-                  onClick={() => setForm({ ...form, kind: k })}
+                  key={k.value}
+                  onClick={() => setForm({ ...form, kind: k.value })}
                   className={`px-3 py-1.5 rounded-pill text-[12px] font-body border ${
-                    form.kind === k ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"
+                    form.kind === k.value ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"
                   }`}
                 >
-                  {k === "product" ? "Product" : "Tool"}
+                  {k.label}
                 </button>
               ))}
             </div>
@@ -176,13 +189,42 @@ const BrandShelfProduct = () => {
             <Label className="font-body text-[12px]">Description</Label>
             <Textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
+          {form.imageUrls.length > 0 && (
+            <div>
+              <Label className="font-body text-[12px]">Images from the link</Label>
+              <div className="mt-1.5 flex gap-2 flex-wrap">
+                {form.imageUrls.map((u) => (
+                  <div key={u} className="relative">
+                    <img
+                      src={u}
+                      alt={form.name || "Product image"}
+                      className="size-[68px] object-cover rounded-[12px] border border-border bg-muted"
+                      onError={() =>
+                        setForm((f) => ({ ...f, imageUrls: f.imageUrls.filter((x) => x !== u) }))
+                      }
+                    />
+                    <button
+                      aria-label="Remove image"
+                      onClick={() => setForm({ ...form, imageUrls: form.imageUrls.filter((x) => x !== u) })}
+                      className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-background border border-border flex items-center justify-center"
+                    >
+                      <X className="size-3 text-muted-foreground" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] font-body text-muted-foreground leading-snug">
+                Pulled from the product page. Remove anything that isn't the product.
+              </p>
+            </div>
+          )}
           <div>
             <Label className="font-body text-[12px]">Where to buy it</Label>
             <Input value={form.external_url} onChange={(e) => setForm({ ...form, external_url: e.target.value })} placeholder="https://" inputMode="url" autoCapitalize="none" />
           </div>
         </SurfaceCard>
 
-        {form.kind === "product" ? (
+        {form.kind !== "tool" ? (
           <div>
             <SectionLabel className="!px-0">Ingredients</SectionLabel>
             <SurfaceCard className="p-4">
