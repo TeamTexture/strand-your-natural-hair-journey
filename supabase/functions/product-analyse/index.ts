@@ -179,7 +179,7 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
    - match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, current_hairstyle suitability, blood-marker deficiencies (only when relevant to the product), and goal alignment.
    - ai_summary: 2 short sentences max, second-person, professional and direct. Open with the SPECIFIC reason from THIS user's context (their goal, challenge, current_hairstyle, scalp condition, or porosity) and what that means for the formula in front of them — then land the verdict in the second sentence. Use a connective ("which is why", "so", "this means") to bridge the two.
    - usage_instructions: VERBATIM directions from the manufacturer if visible on photo 2 OR resolved via web_search. If neither source provides directions, return "" — never invent.
-   - use_cases: up to ${cap} concrete tips for how THIS user should use the product, anchored in their hair traits, current_hairstyle, or goals. Do NOT repeat manufacturer directions.
+   - use_cases: up to ${cap} concrete tips for how THIS user gets the MOST out of this product for their hair type specifically. EVERY item must name the actual trait it is written for — their curl type, porosity, density, width, scalp condition, current_hairstyle or a stated goal — in the sentence itself (e.g. "On low-porosity 4C hair, …"). A tip that would read the same for any hair type is INVALID; rewrite it or drop it. Do NOT repeat manufacturer directions.
    - tips: up to ${cap} personalised reasoning tips about fit/usage that go beyond use_cases. Anchor each in the user's data.
 
 ${MARKETED_PURPOSE_RULES}
