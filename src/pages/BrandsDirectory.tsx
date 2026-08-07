@@ -43,7 +43,7 @@ const BrandListItem = ({ brand, onOpen }: { brand: BrandCard; onOpen: () => void
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display text-[15px] leading-tight truncate">{brand.brand_name}</p>
+          <p className="font-display text-[15px] leading-tight break-words line-clamp-2">{brand.brand_name}</p>
           <p className="text-[11px] text-muted-foreground truncate">
             {brand.category ?? "Brand"}
             {brand.live_offers > 0 ? ` · ${brand.live_offers} live offer${brand.live_offers === 1 ? "" : "s"}` : ""}
