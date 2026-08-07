@@ -18,6 +18,7 @@ import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
+import ConsentGate from "@/components/ConsentGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import MessageNotifications from "@/components/MessageNotifications";
 import NewEnquiriesAlert from "@/components/pro/NewEnquiriesAlert";
@@ -42,6 +43,7 @@ const ForgotPassword = lazyRetry(() => import("./pages/ForgotPassword"));
 const SetupGuide = lazyRetry(() => import("./pages/SetupGuide"));
 const Walkthrough = lazyRetry(() => import("./pages/Walkthrough"));
 const OAuthConsent = lazyRetry(() => import("./pages/OAuthConsent"));
+const Legal = lazyRetry(() => import("./pages/Legal"));
 
 // Onboarding
 const ProfileStep1 = lazyRetry(() => import("./pages/onboarding/ProfileStep1"));
@@ -268,6 +270,7 @@ const App = () => (
                 <div className="flex-1 min-h-0 overflow-y-auto">
 
                 <AccessRestrictedGate>
+                <ConsentGate>
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
               <Route path="/" element={<Index />} />
@@ -276,6 +279,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/legal/:doc" element={<Legal />} />
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
 
               {/* Onboarding (auth required so data persists) */}
@@ -581,7 +585,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
                 </Routes>
                 </Suspense>
+                </ConsentGate>
                 </AccessRestrictedGate>
+
 
 
                 </div>

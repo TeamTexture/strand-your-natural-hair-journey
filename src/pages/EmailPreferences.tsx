@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { smartBack } from "@/lib/smartBack";
+import { recordConsents, withdrawConsent } from "@/lib/consent";
 
 type PrefKey =
   | "wash_day_reminders"
@@ -110,6 +111,11 @@ const EmailPreferences = () => {
         .update(row as never)
         .eq("user_id", user!.id);
       if (error) throw error;
+      // Append-only consent ledger — a withdrawal writes a new granted=false row.
+      if (patch.marketing_consent !== undefined) {
+        if (patch.marketing_consent) await recordConsents({ marketing_email: true });
+        else await withdrawConsent("marketing_email");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-preferences", user?.id] });
