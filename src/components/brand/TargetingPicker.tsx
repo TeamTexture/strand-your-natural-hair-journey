@@ -20,8 +20,6 @@ interface Props {
   disabled?: boolean;
 }
 
-/** Attribute lists long enough to warrant a select-all / clear control. */
-const LONG_LIST = 12;
 
 const prettyLabel = (label: string) =>
   label.replace(/^(Goal:|Uses|Washes)\s*/i, (m) => (m.trim() === "Goal:" ? "" : m));
@@ -219,28 +217,26 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
 
               {open && (
                 <div className="px-3 pb-3 space-y-1">
-                  {group.opts.length >= LONG_LIST && (
-                    <div className="flex items-center gap-3 pb-1">
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => setGroup(key, group.opts, true)}
-                        className={`text-[10.5px] font-body underline underline-offset-2 ${
-                          all ? "text-primary" : "text-muted-foreground"
-                        }`}
-                      >
-                        Select all
-                      </button>
-                      <button
-                        type="button"
-                        disabled={disabled || count === 0}
-                        onClick={() => setGroup(key, group.opts, false)}
-                        className="text-[10.5px] font-body underline underline-offset-2 text-muted-foreground disabled:opacity-50"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3 pb-1">
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setGroup(key, group.opts, true)}
+                      className={`text-[10.5px] font-body underline underline-offset-2 ${
+                        all ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    >
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled || count === 0}
+                      onClick={() => setGroup(key, group.opts, false)}
+                      className="text-[10.5px] font-body underline underline-offset-2 text-muted-foreground disabled:opacity-50"
+                    >
+                      Clear
+                    </button>
+                  </div>
                   {group.opts.map((o) => {
                     const on = (value[key] ?? []).includes(o.value_code);
                     return (
