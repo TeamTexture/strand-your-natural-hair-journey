@@ -44,48 +44,84 @@ const PastOfferRow = ({ offer }: { offer: PastOffer }) => {
   const { data: alreadyInterested } = useMyOfferInterest(offer.id);
   const register = useRegisterOfferInterest();
   const heroUrl = useSignedUrl(offer.hero_image_path);
+  const products = (offer.brand_products ?? []).map((p) => p.name).filter(Boolean) as string[];
 
   return (
-    <SurfaceCard className="p-0 overflow-hidden">
-      <div className="relative h-[96px] w-full bg-muted">
+    <SurfaceCard className="p-0 overflow-hidden min-w-0 opacity-95">
+      <div className="relative h-[76px] w-full bg-muted">
         {heroUrl ? (
-          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover grayscale-[35%] opacity-90" />
+          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover grayscale-[45%] opacity-80" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/50" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
         <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.18em] font-body font-medium px-2 py-0.5 rounded-full bg-foreground/85 text-background">
-          Expired
+          Ended
         </span>
-        <div className="absolute inset-x-0 bottom-0 p-2.5">
-          <p className="font-display text-white text-[14px] leading-tight line-clamp-2 drop-shadow-sm">
+        <div className="absolute inset-x-0 bottom-0 p-2.5 min-w-0">
+          <p className="font-display text-white text-[13px] leading-tight line-clamp-2 drop-shadow-sm [overflow-wrap:anywhere]">
             {offer.headline || "Offer"}
           </p>
         </div>
       </div>
-      <div className="px-3 py-2.5 flex items-center justify-between gap-2">
-        <p className="text-[11px] font-body text-muted-foreground">
-          Ended {offer.ends_on ? format(new Date(offer.ends_on), "d MMM yyyy") : ""}
+      <div className="px-3 py-2.5 space-y-1.5 min-w-0">
+        <p className="text-[10px] font-body text-muted-foreground">
+          Ran {offer.starts_on ? format(new Date(offer.starts_on), "d MMM") : ""}
+          {offer.ends_on ? ` – ${format(new Date(offer.ends_on), "d MMM yyyy")}` : ""}
         </p>
-        {alreadyInterested ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-body text-good">
-            <Check className="size-3.5" /> Interest registered
-          </span>
-        ) : (
-          <Button
-            variant="outline"
-            size="pill"
-            className="text-[11px] h-8"
-            onClick={() => register.mutate(offer.id)}
-            disabled={register.isPending}
-          >
-            <Heart className="size-3.5 mr-1" /> Show interest
-          </Button>
+        {offer.body_copy && (
+          <p className="text-[11px] font-body text-muted-foreground leading-snug line-clamp-2 [overflow-wrap:anywhere]">
+            {offer.body_copy}
+          </p>
         )}
+        {products.length > 0 && (
+          <p className="text-[11px] font-body text-muted-foreground/90 leading-snug [overflow-wrap:anywhere]">
+            {products.slice(0, 3).join(", ")}
+            {products.length > 3 ? ` +${products.length - 3} more` : ""}
+          </p>
+        )}
+        <div className="flex items-center justify-between gap-2 pt-0.5 min-w-0">
+          {offer.external_url ? (
+            <a
+              href={offer.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-body text-muted-foreground hover:underline shrink-0"
+            >
+              <ExternalLink className="size-3" /> Visit brand
+            </a>
+          ) : (
+            <span />
+          )}
+          {alreadyInterested ? (
+            <button
+              type="button"
+              onClick={() => register.mutate({ offerId: offer.id, interested: false })}
+              disabled={register.isPending}
+              className="inline-flex items-center gap-1 text-[11px] font-body text-good"
+            >
+              <Check className="size-3.5" /> Waiting on this — undo
+            </button>
+          ) : (
+            <Button
+              variant="outline"
+              size="pill"
+              className="text-[11px] h-8"
+              onClick={() => register.mutate({ offerId: offer.id, interested: true })}
+              disabled={register.isPending}
+            >
+              <Heart className="size-3.5 mr-1" /> I'd want this again
+            </Button>
+          )}
+        </div>
+        <p className="text-[10px] font-body text-muted-foreground/70 leading-snug">
+          This discount has ended.
+        </p>
       </div>
     </SurfaceCard>
   );
 };
+
 
 interface CatalogueItem {
   kind: string;
