@@ -100,8 +100,8 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
               </>
             ) : (
               <>
-                Fewer than {floor} members match. Widen the audience — we never report or run
-                campaigns below {floor} members.
+                Your campaign can run. We don't report audience numbers until at least {floor}{" "}
+                members match, to protect member privacy.
               </>
             )}
           </p>
