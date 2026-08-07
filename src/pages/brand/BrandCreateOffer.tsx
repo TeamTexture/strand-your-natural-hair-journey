@@ -10,7 +10,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import TargetingPicker from "@/components/brand/TargetingPicker";
-import { useOfferTargeting, saveOfferTargeting, useReachEstimate } from "@/hooks/useAdTargeting";
+import { useOfferTargeting, saveOfferTargeting } from "@/hooks/useAdTargeting";
 import { cleanRules, rulesAreEmpty, type TargetingRules } from "@/lib/adTargeting";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
