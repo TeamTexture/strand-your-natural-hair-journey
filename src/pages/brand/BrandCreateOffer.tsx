@@ -315,7 +315,8 @@ const BrandCreateOffer = () => {
   );
 
   // Pricing reads from the single config (src/lib/adPricing.ts). A campaign with
-  // any targeting rows is charged the targeted rate (1.5x the broad slot rate).
+  // any targeting rows is charged that slot's explicit targeted rate.
+
   const costs = useMemo(
     () => buildCostBreakdown(enabledSlotList as PricedSlot[], selectedDates.length, !targetingEmpty),
     [enabledSlotList, selectedDates.length, targetingEmpty],
