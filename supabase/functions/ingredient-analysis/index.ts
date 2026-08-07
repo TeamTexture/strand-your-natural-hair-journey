@@ -213,7 +213,7 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
 }
 
 // ── Task instructions (shared text — minus the brittle EXACTLY prose) ──
-function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number): string {
+function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL): string {
   return `You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. In every body field, lead with the molecule's mechanism in plain English (translate the cosmetic-chemistry term on first use), then bridge with a connective ("which means", "so", "this is why") into what it means for THIS user. Talk to "you", not "your hair". Warm but not saccharine; no hedging stacks.
