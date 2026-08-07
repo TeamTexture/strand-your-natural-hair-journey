@@ -152,7 +152,16 @@ interface RequestBody {
 }
 
 // ── Tool schema (shared between providers) ──────────────────────────────
-function buildToolSchema(ingredientCount: number) {
+/** How many usage tips each support level wants. Level 4 always shows the
+ *  most; level 1 the single highest-impact one. */
+function guidanceCount(level: TipsLevel): number {
+  if (level >= 4) return 6;
+  if (level === 3) return 4;
+  if (level === 2) return 2;
+  return 1;
+}
+
+function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL) {
   // Dynamic minItems/maxItems is the explicit fix for AUDIT.md §1's
   // "EXACTLY ${ingredientCount}" prose brittleness. When count is 0 we
   // fall back to a permissive shape so the model can infer.
