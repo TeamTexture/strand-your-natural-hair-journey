@@ -197,7 +197,7 @@ const BrandDetailPage = () => {
           .maybeSingle(),
         supabase
           .from("brand_offers")
-          .select("id, headline, hero_image_path, starts_on, ends_on, status")
+          .select("id, headline, body_copy, hero_image_path, external_url, discount_code, starts_on, ends_on, status, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url)")
           .eq("brand_user_id", brandUserId!)
           .in("status", ["live", "paid_scheduled"])
           .lte("starts_on", today)
