@@ -501,12 +501,8 @@ const BrandCreateOffer = () => {
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
 
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
-    // A targeted campaign may only be submitted if it clears the audience floor.
-    if (!asDraft && !targetingEmpty && reachEstimate && !reachEstimate.meets_floor) {
-      return toast.error(
-        `Fewer than ${reachEstimate.audience_floor} members match this audience. Widen your targeting to submit.`,
-      );
-    }
+    // Targeted campaigns may be submitted at any audience size. The 50-member
+    // floor only suppresses REPORTING (reach + performance), never delivery.
     if (!asDraft && ownerMode === "brand" && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);
