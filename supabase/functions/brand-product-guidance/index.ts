@@ -47,6 +47,9 @@ interface Benefit {
 
 interface GuidancePayload {
   headline: string;
+  /** One-line, hair-specific reason this product is worth their time. Used as
+   *  the personalised hook on ad surfaces (banner, offer page product rows). */
+  fit_line: string;
   intro: string;
   benefits: Benefit[];
   steps: string[];
