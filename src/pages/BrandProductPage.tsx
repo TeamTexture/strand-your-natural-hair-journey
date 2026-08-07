@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ExternalLink, Heart, Check, Loader2, Sparkles } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import BenefitRows from "@/components/guidance/BenefitRows";
+import AdFitLine from "@/components/guidance/AdFitLine";
 import NumberedSteps from "@/components/guidance/NumberedSteps";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -233,6 +234,12 @@ const BrandProductPage = () => {
                 {product.description}
               </p>
             )}
+            {/* The personalised hook — why this matters for THIS member's hair. */}
+            <AdFitLine
+              text={guidance?.fit_line}
+              loading={guidanceLoading}
+              className="mt-3"
+            />
           </div>
         </SurfaceCard>
 
@@ -283,7 +290,12 @@ const BrandProductPage = () => {
                   </p>
                 )}
                 {guidance.benefits.length > 0 && (
-                  <BenefitRows benefits={guidance.benefits} idPrefix="brand-benefit" />
+                  <div className="pt-1">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold font-body text-primary mb-2.5">
+                      What it does for your hair
+                    </p>
+                    <BenefitRows benefits={guidance.benefits} idPrefix="brand-benefit" />
+                  </div>
                 )}
                 {guidance.steps.length > 0 && (
                   <div className="pt-1">
