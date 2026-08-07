@@ -20,8 +20,6 @@ interface Props {
   disabled?: boolean;
 }
 
-/** Attribute lists long enough to warrant a select-all / clear control. */
-const LONG_LIST = 12;
 
 const prettyLabel = (label: string) =>
   label.replace(/^(Goal:|Uses|Washes)\s*/i, (m) => (m.trim() === "Goal:" ? "" : m));
