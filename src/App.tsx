@@ -43,6 +43,7 @@ const ForgotPassword = lazyRetry(() => import("./pages/ForgotPassword"));
 const SetupGuide = lazyRetry(() => import("./pages/SetupGuide"));
 const Walkthrough = lazyRetry(() => import("./pages/Walkthrough"));
 const OAuthConsent = lazyRetry(() => import("./pages/OAuthConsent"));
+const Legal = lazyRetry(() => import("./pages/Legal"));
 
 // Onboarding
 const ProfileStep1 = lazyRetry(() => import("./pages/onboarding/ProfileStep1"));
