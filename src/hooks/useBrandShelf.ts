@@ -3,8 +3,9 @@
 // A brand's shelf lives in `brand_products` keyed by `brand_user_id` and is
 // independent of any campaign — offers reference shelf items through
 // `brand_offer_products`. Every content edit drops the item back to
-// `approval_status = 'pending'` and unpublishes it (enforced by a database
-// trigger, not by this hook).
+// `approval_status = 'pending'` (enforced by a database trigger, not by this
+// hook). Approval alone makes a product live — `is_published` is not a publish
+// gate, it only records a deliberate brand-side Hide.
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

@@ -93,7 +93,9 @@ export const useDecideShelfItem = () => {
         .update(
           decision === "approved"
             ? { approval_status: "approved", rejection_reason: null }
-            : { approval_status: "rejected", rejection_reason: reason ?? null, is_published: false },
+            // Rejection hides the product through the approval gate alone —
+            // it must not touch the brand's own Hide choice.
+            : { approval_status: "rejected", rejection_reason: reason ?? null },
         )
         .eq("id", id);
       if (error) throw error;
