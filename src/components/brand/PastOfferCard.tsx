@@ -27,7 +27,7 @@ interface Props {
 }
 
 const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
-const money = (p: number) => `£${(p / 100).toFixed(2)}`;
+const money = baseMoney;
 
 /** "Ended" campaign thumbnail — mirrors LiveOfferCard's richness but muted:
  *  hero creative preserved, ENDED chip, campaign title, submitter, date range,
@@ -133,7 +133,7 @@ const PastOfferCard = ({
             {typeof amountPaidPence === "number" && (
               <div>
                 <p className="text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground font-body">Paid</p>
-                <p className="font-display text-[13.5px] leading-none mt-0.5 text-foreground">{money(amountPaidPence)}</p>
+                <p className="font-display text-[13.5px] leading-none mt-0.5 text-foreground flex items-center gap-1.5"><span>{money(amountPaidPence)}</span><TrialPriceTag /></p>
               </div>
             )}
             {interestTotal > 0 && (
