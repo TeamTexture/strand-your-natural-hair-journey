@@ -68,18 +68,26 @@ RESPONSE SHAPE
 Return ONLY valid JSON with this exact shape (no prose, no code fences):
 {
   "headline": string — ONE line, MAXIMUM 8 words,
+  "fit_line": string — exactly ONE sentence, MAXIMUM 16 words,
   "intro": string — exactly ONE sentence, MAXIMUM 20 words,
   "benefits": array of EXACTLY 3 objects (2 is acceptable ONLY if a third cannot be grounded) — { "label": 1-2 words, "text": ONE sentence, MAXIMUM 15 words },
   "steps": array of EXACTLY 3 strings — each ONE sentence, MAXIMUM 25 words
 }
 
+FIT LINE — THE PERSONALISED HOOK
+- This is the one line shown on the advert itself, before the member opens anything.
+- It must name ONE real thing about THEIR hair (from their profile data) and the ONE concrete benefit this product gives that thing. Nothing else.
+- No greetings, no brand hype, no "this product is great", no imperatives — it is an observation, not an instruction.
+- If nothing in their profile supports a benefit, say plainly what it would suit instead — never invent a fit.
+
 HARD LIMITS — output that breaks any of these is rejected and regenerated:
-- headline ≤ 8 words. intro ≤ 20 words, one sentence.
+- headline ≤ 8 words. fit_line ≤ 16 words, one sentence. intro ≤ 20 words, one sentence.
 - benefits: 3 items (2 only if the third would be unsupported). label 1-2 words, Title Case, ideally ONE noun ("Penetration", "Moisture", "Retention"). text ≤ 15 words, ONE sentence.
 - steps: 3 items, each ≤ 25 words, ONE sentence each, sequential and concrete.
 
 NO REPETITION — THIS IS THE MAIN FAILURE MODE
-- Each of the member's hair characteristics (porosity, texture, density, curl pattern, length/TWA, scalp state, a named style) may appear AT MOST ONCE across the ENTIRE card — headline, intro, benefits and steps combined. Not once per section: once in total.
+- Each of the member's hair characteristics (porosity, texture, density, curl pattern, length/TWA, scalp state, a named style) may appear AT MOST ONCE across the ENTIRE card — headline, fit_line, intro, benefits and steps combined. Not once per section: once in total.
+
 - Once the headline or intro establishes a characteristic, never restate it. Say "your hair" or nothing at all.
 - Never open an item by restating context an earlier item already gave. No item may recap another.
 - Banned: repeating phrases like "your high-porosity hair", "your TWA", "your rough-textured hair" more than once in the whole payload.
