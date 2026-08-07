@@ -67,13 +67,18 @@ const BrandOfferDetail = () => {
 
   if (isLoading || !offer) return <LoadingDot />;
 
-  const stats = (offer.brand_offer_stats ?? []).reduce(
+  // Performance for a targeted campaign is suppressed by the database until at
+  // least 50 members are in the audience (privacy floor) — suppressed rows come
+  // back with NULL metrics rather than being hidden.
+  const statRows = offer.brand_offer_stats ?? [];
+  const statsSuppressed = statRows.length > 0 && statRows.every((s) => s.impressions === null);
+  const stats = statRows.reduce(
     (acc, s) => ({
       impressions: acc.impressions + (s.impressions ?? 0),
       expands: acc.expands + (s.expands ?? 0),
       wishlist: acc.wishlist + (s.wishlist_adds ?? 0),
-      codeCopies: acc.codeCopies + ((s as { code_copies?: number }).code_copies ?? 0),
-      linkClicks: acc.linkClicks + ((s as { link_clicks?: number }).link_clicks ?? 0),
+      codeCopies: acc.codeCopies + ((s as { code_copies?: number | null }).code_copies ?? 0),
+      linkClicks: acc.linkClicks + ((s as { link_clicks?: number | null }).link_clicks ?? 0),
     }),
     { impressions: 0, expands: 0, wishlist: 0, codeCopies: 0, linkClicks: 0 },
   );
