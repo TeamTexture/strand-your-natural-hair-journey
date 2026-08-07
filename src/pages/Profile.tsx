@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, type LucideIcon , Megaphone } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, type LucideIcon , Megaphone, Scale } from "lucide-react";
 import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -694,6 +694,14 @@ const Profile = () => {
       <SectionHeader icon={Gift} className="px-5 pt-2 pb-2">Perks</SectionHeader>
       <div className="px-5 pb-4 space-y-2">
         <ListRow icon={Gift} name="Discounts & offers" to="/profile/discounts" />
+      </div>
+
+      <SectionHeader icon={Scale} className="px-5 pt-2 pb-2">Legal</SectionHeader>
+      <div className="px-5 pb-4 space-y-2">
+        <ListRow icon={Scale} name="Terms of Service" to="/legal/terms" />
+        <ListRow icon={Shield} name="Privacy Policy" to="/legal/privacy" />
+        <ListRow icon={Stethoscope} name="Medical Disclaimer" to="/legal/medical-disclaimer" />
+        <ListRow icon={Activity} name="How we use health information" to="/legal/health-data" />
       </div>
 
 
