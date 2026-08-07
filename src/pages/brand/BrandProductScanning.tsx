@@ -130,19 +130,22 @@ const BrandProductScanning = () => {
         // a member read produce identical fields.
         const fields = buildProductSaveFields(data ?? {});
 
-        // Pull the product imagery off the page the brand pasted. The URL
-        // function already resolves og:image / twitter:image / inline product
-        // images, so we just take whatever it surfaced and prefill it — the
-        // brand can drop it in the editor if it read the wrong picture.
+        // Hero image only — exactly the same resolution the member link flow
+        // uses (src/hooks/useProductUrlScan.ts): the page's own product image
+        // (og:image / twitter:image, then a product-marked inline image).
+        // Never a list of arbitrary page images.
         const raw = (data ?? {}) as Record<string, unknown>;
-        const scrapedImages = [
-          raw.image_url,
-          raw._source_image_url,
-          ...(Array.isArray(raw.image_urls) ? raw.image_urls : []),
-        ]
-          .filter((u): u is string => typeof u === "string" && /^https?:\/\//i.test(u))
-          .filter((u, i, arr) => arr.indexOf(u) === i)
-          .slice(0, 4);
+        const remoteImage =
+          (typeof raw._source_image_url === "string" ? raw._source_image_url : null) ??
+          (typeof raw.image_url === "string" ? raw.image_url : null);
+        const heroImage =
+          remoteImage && /^https?:\/\//i.test(remoteImage)
+            ? remoteImage.startsWith("http://")
+              ? "https://" + remoteImage.slice("http://".length)
+              : remoteImage
+            : null;
+        const scrapedImages = heroImage ? [heroImage] : [];
+
 
         setProgressPct(100);
         await new Promise((r) => setTimeout(r, 450));
