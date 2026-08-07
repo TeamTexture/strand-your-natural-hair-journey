@@ -1,10 +1,8 @@
 // Shelf engagement — the brand's own products, independent of any campaign.
 //
 // Deliberately separate from campaign metrics: these figures are about the
-// permanent shelf and stay meaningful when nothing is running. Every number is
-// suppressed inside the database below the member floor (see
-// public.brand_shelf_engagement); this component only renders what it is given
-// and prints one quiet line rather than repeating "Fewer than 50" per row.
+// permanent shelf and stay meaningful when nothing is running. Figures come from
+// public.brand_shelf_engagement and are exact at any size.
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";

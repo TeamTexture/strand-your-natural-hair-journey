@@ -70,7 +70,7 @@ const BrandOfferDetail = () => {
   if (isLoading || !offer) return <LoadingDot />;
 
   // Performance for a targeted campaign is suppressed by the database until at
-  // least 50 members are in the audience (privacy floor) — suppressed rows come
+  // members are in the audience — exact figures are reported at any audience size.
   // back with NULL metrics rather than being hidden.
   const statRows = offer.brand_offer_stats ?? [];
   const statsSuppressed = statRows.length > 0 && statRows.every((s) => s.impressions === null);
@@ -306,8 +306,7 @@ const BrandOfferDetail = () => {
         {statsSuppressed ? (
           <SurfaceCard className="py-3">
             <p className="text-[12px] font-body leading-snug">
-              Your campaign is running. We don't report performance numbers until at least 50 members
-              match this audience, to protect member privacy.
+              Your campaign is running. Performance numbers will appear here as members see it.
             </p>
           </SurfaceCard>
         ) : (
