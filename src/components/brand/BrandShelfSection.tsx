@@ -80,12 +80,25 @@ const BrandShelfSection = ({
           const mine = links[p.id];
           return (
             <SurfaceCard key={p.id} className="p-3.5">
-              <p className="font-display text-[15px] leading-tight">{p.name}</p>
-              {p.description && (
-                <p className="mt-1 text-[12.5px] font-body text-foreground/80 leading-snug line-clamp-3">
-                  {p.description}
-                </p>
-              )}
+              <div className="flex items-start gap-3">
+                <ProductThumb
+                  imageUrl={p.image_urls?.[0] ?? null}
+                  alt={p.name}
+                  brand={brandName}
+                  name={p.name}
+                  cover
+                  wrapperClassName="size-14 rounded-[10px] overflow-hidden bg-muted shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-[15px] leading-tight break-words">{p.name}</p>
+                  {p.description && (
+                    <p className="mt-1 text-[12.5px] font-body text-foreground/80 leading-snug line-clamp-3 break-words">
+                      {p.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="mt-3 flex items-center gap-2 flex-wrap">
                 {mine?.on_shelf ? (
                   <span className="inline-flex items-center gap-1 text-[12px] font-body text-primary">
