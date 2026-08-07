@@ -11,10 +11,9 @@ import { CONSENT_DOCUMENT_VERSION } from "@/lib/consent";
  * are PENDING SOLICITOR REVIEW. They must be reviewed and signed off by a
  * qualified solicitor before publishing.
  *
- * Company details, ICO status, data region and retention periods are now filled in.
- * ONE placeholder remains and MUST be filled in before publishing:
- * [LIABILITY CAP AMOUNT] in the Terms of Service.
- * Do not ship a document with a bracket still in it.
+ * Company details, ICO status, data region, retention periods and the liability
+ * cap are all filled in. No square-bracket placeholders remain in any of the four
+ * documents. Do not ship a document with a bracket still in it.
  *
  * When the final wording lands, bump CONSENT_DOCUMENT_VERSION so every member
  * is asked to accept the new version.
