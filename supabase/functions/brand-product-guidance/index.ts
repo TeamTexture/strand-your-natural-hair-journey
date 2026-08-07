@@ -219,6 +219,7 @@ function validate(
   // Repetition gate — each stated characteristic at most once in the whole card.
   const assembled = [
     headline,
+    fitLine,
     intro,
     ...benefits.map((b) => `${b.label} ${b.text}`),
     ...steps,
@@ -237,6 +238,7 @@ function validate(
     ok: true,
     value: {
       headline,
+      fit_line: fitLine,
       intro,
       benefits: benefits.slice(0, 3),
       steps: steps.slice(0, 3),
