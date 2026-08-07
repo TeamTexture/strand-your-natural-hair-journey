@@ -114,12 +114,13 @@ Deno.serve(async (req) => {
       materials: string[];
       source_url: string | null;
       user_count: number;
+      product_key?: string | null;
     }> = [];
 
     if (kind !== "tool") {
       const { data, error } = await admin
         .from("user_products")
-        .select("id,name,brand,category,image_url,ingredients,source_url,user_id")
+        .select("id,name,brand,category,image_url,ingredients,source_url,user_id,product_key")
         .not("name", "is", null)
         .limit(500);
       if (error) throw error;
@@ -139,6 +140,7 @@ Deno.serve(async (req) => {
           materials: [],
           source_url: clean(row.source_url),
           user_count: row.user_id ? 1 : 0,
+          product_key: clean(row.product_key),
         });
       }
     }
@@ -172,7 +174,7 @@ Deno.serve(async (req) => {
 
     const grouped = new Map<string, typeof items[number]>();
     for (const item of items) {
-      if (!matchesOwnBrand(item.brand)) continue;
+      if (!matchesOwnBrand(item.brand, item.name)) continue;
       const haystack = [item.name, item.brand, item.category].filter(Boolean).join(" ").toLowerCase();
       if (search && !haystack.includes(search)) continue;
       const key = `${item.kind}:${item.name.toLowerCase()}:${item.brand?.toLowerCase() ?? ""}`;
@@ -183,6 +185,7 @@ Deno.serve(async (req) => {
       }
       current.user_count += item.user_count;
       if (!current.image_url && item.image_url) current.image_url = item.image_url;
+      if (!current.product_key && item.product_key) current.product_key = item.product_key;
       if (!current.source_url && item.source_url) current.source_url = item.source_url;
       current.ingredients = Array.from(new Set([...current.ingredients, ...item.ingredients])).slice(0, 20);
       current.key_features = Array.from(new Set([...current.key_features, ...item.key_features])).slice(0, 10);
@@ -191,6 +194,38 @@ Deno.serve(async (req) => {
     const catalogue = Array.from(grouped.values())
       .sort((a, b) => b.user_count - a.user_count || a.name.localeCompare(b.name))
       .slice(0, limit);
+
+    // Thumbnail fallback: rows with no stored image_url often DO have a scanned
+    // front photo in `user_product_photos`. Sign the most recent one (service
+    // role) so the picker shows the same little image the product page uses.
+    const needPhoto = catalogue.filter((i) => !i.image_url && i.product_key);
+    if (needPhoto.length) {
+      const keys = Array.from(new Set(needPhoto.map((i) => i.product_key!)));
+      const { data: photos } = await admin
+        .from("user_product_photos")
+        .select("product_key, storage_path, created_at")
+        .in("product_key", keys)
+        .order("created_at", { ascending: false });
+      const latest = new Map<string, string>();
+      for (const row of photos ?? []) {
+        const key = clean(row.product_key);
+        const path = clean(row.storage_path);
+        if (!key || !path || latest.has(key)) continue;
+        latest.set(key, path);
+      }
+      await Promise.all(
+        needPhoto.map(async (item) => {
+          const path = latest.get(item.product_key!);
+          if (!path) return;
+          const { data } = await admin.storage
+            .from("product-photos")
+            .createSignedUrl(path, 60 * 60);
+          if (data?.signedUrl) item.image_url = data.signedUrl;
+        }),
+      );
+    }
+
+    for (const item of catalogue) delete item.product_key;
 
     return new Response(JSON.stringify({ items: catalogue, restricted_to: ownBrandKey ? "own_brand" : null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
