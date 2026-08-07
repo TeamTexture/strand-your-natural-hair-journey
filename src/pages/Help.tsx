@@ -132,9 +132,7 @@ const Help = () => {
       icon: <Shield className="size-5" />,
       title: "Privacy & data",
       body: "Your hair data, blood markers and photos are private to you.",
-      action: () => {
-        window.open("https://strand.app/privacy", "_blank", "noopener,noreferrer");
-      },
+      action: () => navigate("/legal/privacy"),
       cta: "Read policy",
     },
     {
@@ -151,9 +149,7 @@ const Help = () => {
       icon: <FileText className="size-5" />,
       title: "Terms of use",
       body: "How STRAND can be used, including our medical disclaimer.",
-      action: () => {
-        window.open("https://strand.app/terms", "_blank", "noopener,noreferrer");
-      },
+      action: () => navigate("/legal/terms"),
       cta: "Read terms",
     },
     {
