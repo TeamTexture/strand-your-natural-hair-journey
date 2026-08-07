@@ -73,6 +73,8 @@ const BrandsDirectory = () => {
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
+  const { data: waiting = [] } = useMyWaitingOffers();
+
 
   const { data: brands = [], isLoading } = useQuery({
     queryKey: ["consumer", "brands-directory"],
