@@ -62,6 +62,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { buildAiContext } from "@/lib/aiContext";
+import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
@@ -466,24 +467,35 @@ const IngredientDetail = () => {
 
   // When the user's hair profile changed after a score was computed, that
   // score no longer describes their hair and must be recomputed.
-  const [hairProfileUpdatedAt, setHairProfileUpdatedAt] = useState<string | null>(null);
+  // Held in a ref, not a dependency: when this resolved into `runAnalysis`'s
+  // dependency list it re-created the callback and fired a SECOND identical
+  // analysis request on every mount.
+  const hairProfileUpdatedRef = useRef<string | null>(null);
+  const [profileChecked, setProfileChecked] = useState(false);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData?.user?.id;
-      if (!uid) return;
+      if (!uid) {
+        if (!cancelled) setProfileChecked(true);
+        return;
+      }
       const { data } = await supabase
         .from("user_hair_profile")
         .select("updated_at")
         .eq("user_id", uid)
         .maybeSingle();
-      if (!cancelled) setHairProfileUpdatedAt((data?.updated_at as string | null) ?? null);
+      if (!cancelled) {
+        hairProfileUpdatedRef.current = (data?.updated_at as string | null) ?? null;
+        setProfileChecked(true);
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
 
   const runAnalysis = useCallback(
     async (force = false) => {
@@ -499,22 +511,20 @@ const IngredientDetail = () => {
         // Re-score only when there is no stored score or the stored one predates
         // the user's latest hair-profile edit. Otherwise this call is for the
         // ingredient flags and guidance, and the stored score stands.
-        const stale = isScoreStale(row, hairProfileUpdatedAt);
+        const stale = isScoreStale(row, hairProfileUpdatedRef.current);
 
         const context = await buildAiContext();
-        const { data, error: fnError } = await supabase.functions.invoke(
+        const { data, error: fnError } = await aiInvoke<Record<string, any>>(
           "ingredient-analysis",
           {
-            body: {
-              productKey,
-              productName,
-              productBrand,
-              hairProfile,
-              healthProfile,
-              heritage,
-              context,
-              force: force || stale,
-            },
+            productKey,
+            productName,
+            productBrand,
+            hairProfile,
+            healthProfile,
+            heritage,
+            context,
+            force: force || stale,
           },
         );
         if (fnError) throw fnError;
@@ -548,14 +558,19 @@ const IngredientDetail = () => {
         setLoading(false);
       }
     },
-    [productKey, productName, productBrand, reload, hairProfileUpdatedAt],
+    [productKey, productName, productBrand, reload],
   );
 
+  // One analysis request per product, once the profile check has resolved.
+  const ranForRef = useRef<string | null>(null);
   useEffect(() => {
     // Fresh-scan path: analysis is already in state, no need to re-fetch.
     if (freshAnalysis) return;
-    if (productKey) runAnalysis(false);
-  }, [runAnalysis, productKey, freshAnalysis]);
+    if (!productKey || !profileChecked) return;
+    if (ranForRef.current === productKey) return;
+    ranForRef.current = productKey;
+    runAnalysis(false);
+  }, [runAnalysis, productKey, freshAnalysis, profileChecked]);
 
   // Save the freshly-scanned product into user_products. The scanning flow
   // already attempts this upsert, but we re-run it here to (a) cover the

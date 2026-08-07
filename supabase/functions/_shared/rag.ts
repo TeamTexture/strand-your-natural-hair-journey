@@ -37,8 +37,16 @@ const EMBEDDING_MODEL = "text-embedding-3-small";
 const EMBEDDING_DIMS = 1536;
 const OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
 
+// Embedding a query is a full OpenAI round-trip (~300-800ms) on the critical
+// path of every AI call. The same query strings recur constantly (same product,
+// same marker, same wash step), so memoise per warm isolate.
+const embedCache = new Map<string, number[]>();
+const EMBED_CACHE_MAX = 200;
+
 /** Embed a single string with OpenAI text-embedding-3-small. */
 export async function embedQuery(query: string): Promise<number[]> {
+  const cached = embedCache.get(query);
+  if (cached) return cached;
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
     throw new Error(
@@ -66,6 +74,8 @@ export async function embedQuery(query: string): Promise<number[]> {
       `OpenAI returned unexpected embedding shape (length=${vec?.length ?? 0})`,
     );
   }
+  if (embedCache.size >= EMBED_CACHE_MAX) embedCache.clear();
+  embedCache.set(query, vec);
   return vec;
 }
 

@@ -223,7 +223,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .eq("on_wishlist", true),
         supabase
           .from("product_ratings")
-          .select("product_name, product_brand, rating, ingredients")
+          .select("product_name, product_brand, rating")
           .eq("user_id", userId),
         supabase
           .from("user_goals")
@@ -341,10 +341,30 @@ async function buildAiContextUncached(): Promise<AiContext> {
               },
         };
       });
-      shelf = (shelfRows.data ?? []) as Array<Record<string, unknown>>;
+      // Prompt weight matters: a full shelf with complete INCI lists pushed
+      // AI calls past 30k input tokens, which is what made every analysis slow.
+      // The model needs to know WHAT is on the shelf, not every INCI string —
+      // the product being analysed sends its own full ingredient list.
+      const trimIngredients = (v: unknown): string[] =>
+        (Array.isArray(v) ? v : []).map((i) => String(i)).filter(Boolean).slice(0, 12);
+      shelf = ((shelfRows.data ?? []) as Array<Record<string, unknown>>)
+        .slice(0, 25)
+        .map((p) => ({
+          name: p.name,
+          brand: p.brand,
+          category: p.category,
+          match_score: p.match_score,
+          rating: p.rating,
+          key_ingredients: trimIngredients(p.key_ingredients ?? p.ingredients),
+        }));
       const allRatings = (ratings.data ?? []) as Array<Record<string, unknown>>;
-      lowRated = allRatings.filter((r) => Number(r.rating) <= 2);
-      highRated = allRatings.filter((r) => Number(r.rating) >= 4);
+      const trimRating = (r: Record<string, unknown>) => ({
+        product_name: r.product_name,
+        product_brand: r.product_brand,
+        rating: r.rating,
+      });
+      lowRated = allRatings.filter((r) => Number(r.rating) <= 2).slice(0, 15).map(trimRating);
+      highRated = allRatings.filter((r) => Number(r.rating) >= 4).slice(0, 15).map(trimRating);
       goals = ((goalRows.data ?? []) as Array<Record<string, unknown>>).map((g) => ({
         kind: String(g.kind ?? ""),
         title: String(g.title ?? ""),
@@ -355,8 +375,8 @@ async function buildAiContextUncached(): Promise<AiContext> {
         unit: String(g.unit ?? ""),
         status: String(g.status ?? ""),
       })) as AiContext["goals"];
-      tools = (toolRows.data ?? []) as Array<Record<string, unknown>>;
-      wishlist = (wishRows.data ?? []) as Array<Record<string, unknown>>;
+      tools = ((toolRows.data ?? []) as Array<Record<string, unknown>>).slice(0, 25);
+      wishlist = ((wishRows.data ?? []) as Array<Record<string, unknown>>).slice(0, 25);
       standaloneChallenges = ((challengeRows.data ?? []) as Array<{ label: string | null }>)
         .map((r) => String(r.label ?? "").trim())
         .filter(Boolean);
