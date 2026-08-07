@@ -119,6 +119,7 @@ const AdminViewAs = lazyRetry(() => import("./pages/admin/AdminViewAs"));
 const AdminBrands = lazyRetry(() => import("./pages/admin/AdminBrands"));
 const AdminMessages = lazyRetry(() => import("./pages/admin/AdminMessages"));
 const AdminBrandOffers = lazyRetry(() => import("./pages/admin/AdminBrandOffers"));
+const AdminShelfReview = lazyRetry(() => import("./pages/admin/AdminShelfReview"));
 const AdminBrandCalendar = lazyRetry(() => import("./pages/admin/AdminBrandCalendar"));
 const AdminBrandOfferReview = lazyRetry(() => import("./pages/admin/AdminBrandOfferReview"));
 const AdminModeration = lazyRetry(() => import("./pages/admin/AdminModeration"));
