@@ -512,7 +512,7 @@ const ProductInfoDialog = ({ product, onClose }: { product: BrandProductRow | nu
             <div>
               <p className="font-display text-lg leading-tight">{product.name}</p>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                {product.kind === "tool" ? (product.tool_kind ?? "Tool") : "Product"}
+                {product.kind === "tool" ? (product.tool_kind ?? "Tool") : product.kind === "supplement" ? "Supplement" : "Product"}
               </p>
             </div>
             {product.description && (

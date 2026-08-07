@@ -168,7 +168,7 @@ const BrandShelf = () => {
                         <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                           <ApprovalPill item={item} />
                           <span className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
-                            {item.kind === "tool" ? "Tool" : "Product"}
+                            {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
                           </span>
                           {item.is_published ? (
                             <span className="text-[10.5px] font-body text-muted-foreground">On your page</span>

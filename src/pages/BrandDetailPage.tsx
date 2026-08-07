@@ -131,7 +131,7 @@ const CatalogueRow = ({ item, onOpen }: { item: CatalogueItem; onOpen: () => voi
         <p className="font-body text-[13px] font-medium leading-snug break-words">{item.name}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-body">
-            {item.kind === "tool" ? "Tool" : "Product"}
+            {item.kind === "tool" ? "Tool" : item.kind === "supplement" ? "Supplement" : "Product"}
           </span>
           {chips.length > 0 && (
             <>
