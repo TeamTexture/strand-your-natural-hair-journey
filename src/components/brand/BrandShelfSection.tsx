@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Heart, ExternalLink, Plus } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
+import ProductThumb from "@/components/ProductThumb";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
