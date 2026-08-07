@@ -18,10 +18,14 @@ import BrandShelfSection from "@/components/brand/BrandShelfSection";
 interface PastOffer {
   id: string;
   headline: string | null;
+  body_copy: string | null;
   hero_image_path: string | null;
+  external_url: string | null;
   starts_on: string | null;
   ends_on: string | null;
+  brand_products?: { name: string | null }[] | null;
 }
+
 
 const useSignedUrl = (path: string | null | undefined, bucket = "brand-assets") => {
   const [url, setUrl] = useState<string | null>(null);
