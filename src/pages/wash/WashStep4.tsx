@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAiContext } from "@/lib/aiContext";
+import { aiInvoke } from "@/lib/aiInvoke";
 import { useAuth } from "@/hooks/useAuth";
 import {
   washStepLabel,
@@ -178,8 +179,9 @@ const WashStep4 = () => {
         const healthProfile = safeParse<Record<string, unknown>>("strand_health_profile", {});
         const context = await buildAiContext();
 
-        const { data, error } = await supabase.functions.invoke("wash-day-observation", {
-          body: {
+        const { data, error } = await aiInvoke<{ error?: string; observation?: string }>(
+          "wash-day-observation",
+          {
             steps,
             results: { ...results, styling },
             hairFeelNote: reflectionStep3.note ?? "",
@@ -187,7 +189,7 @@ const WashStep4 = () => {
             healthProfile,
             context,
           },
-        });
+        );
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         if (!cancelled) {

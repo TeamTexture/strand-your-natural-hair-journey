@@ -16,6 +16,7 @@ import { evaluate } from "@/data/bloodRanges";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { Stethoscope } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
+import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useSavedMeals, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
 import { toast } from "sonner";
@@ -546,17 +547,15 @@ const NutritionPlan = () => {
     startProgress();
     try {
       const context = await buildAiContext();
-      const { data, error } = await supabase.functions.invoke("nutrition-plan", {
-        body: {
-          force,
-          context,
-          diet: currentProfile.diet,
-          alcohol: currentProfile.alcohol,
-          flaggedMarkers: Array.from(currentProfile.flagged),
-        },
+      const { data, error } = await aiInvoke<Record<string, unknown>>("nutrition-plan", {
+        force,
+        context,
+        diet: currentProfile.diet,
+        alcohol: currentProfile.alcohol,
+        flaggedMarkers: Array.from(currentProfile.flagged),
       });
       if (error) {
-        const msg = error.message ?? "Couldn't generate plan";
+        const msg = (error instanceof Error ? error.message : String(error)) || "Couldn't generate plan";
         if (msg.includes("429")) toast.error("Try again in a moment.");
         else if (msg.includes("402")) toast.error("AI credits needed.");
         else toast.error(msg);
