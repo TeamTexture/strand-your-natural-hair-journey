@@ -565,7 +565,7 @@ const App = () => (
               <Route path="/admin/events" element={<RoleGate allow={["admin"]}><AdminEvents /></RoleGate>} />
               <Route path="/admin/blood-vendors" element={<RoleGate allow={["admin"]}><AdminBloodVendors /></RoleGate>} />
               <Route path="/admin/salons" element={<RoleGate allow={["admin"]}><AdminSalons /></RoleGate>} />
-              <Route path="/admin/blood-markers" element={<RoleGate allow={["admin"]}><AdminBloodMarkers /></RoleGate>} />
+              
 
               {/* STRAND+ */}
               <Route path="/plus/upgrade" element={<Protected><PlusUpgrade /></Protected>} />
