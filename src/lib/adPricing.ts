@@ -1,8 +1,12 @@
 // Advert placement pricing — SINGLE SOURCE OF TRUTH.
 //
-// Every rate, multiplier and total shown to a brand (campaign designer, placement
-// calendar, cost summary, confirmation screens) reads from this module. Nothing
-// else may hardcode a rate.
+// Every rate and total shown to a brand (campaign designer, placement calendar,
+// cost summary, confirmation screens) reads from this module. Nothing else may
+// hardcode a rate.
+//
+// Broad and targeted rates are stored EXPLICITLY per slot. No targeted rate is
+// derived from a broad rate — the uplift is not uniform (pro_welcome is a
+// smaller uplift than the others, deliberately, confirmed by Paige).
 //
 // IMPORTANT: rates here are only used to PRICE A NEW BOOKING. Once a campaign is
 // booked, the rate is snapshotted onto brand_offer_placements.daily_rate_pence and
@@ -17,13 +21,16 @@ export const BROAD_DAILY_RATE_PENCE: Record<PricedSlot, number> = {
   products: 2000,
   // Wash day is the highest-intent surface.
   wash_day: 3000,
-  // NOT SPECIFIED by Paige — defaulted to match `home`. Confirm before launch.
-  pro_welcome: 2000,
+  pro_welcome: 3000,
 };
 
-/** A targeted campaign (any rows in brand_offer_targeting) costs this multiple
- *  of the broad slot rate. One edit changes every targeted rate. */
-export const TARGETED_MULTIPLIER = 1.5;
+/** Targeted rate per slot, per day, in pence. Explicit — never derived. */
+export const TARGETED_DAILY_RATE_PENCE: Record<PricedSlot, number> = {
+  home: 3000,
+  products: 3000,
+  wash_day: 4500,
+  pro_welcome: 4000,
+};
 
 /** Introductory pricing while the first cohort is onboarded. */
 export const IS_TRIAL_PRICING = true;
@@ -34,7 +41,8 @@ export const TRIAL_PRICING_NOTE =
 
 /** Rate for one slot, for one day, in pence. */
 export const dailyRatePence = (slot: PricedSlot, targeted: boolean): number =>
-  Math.round(BROAD_DAILY_RATE_PENCE[slot] * (targeted ? TARGETED_MULTIPLIER : 1));
+  targeted ? TARGETED_DAILY_RATE_PENCE[slot] : BROAD_DAILY_RATE_PENCE[slot];
+
 
 export const money = (pence: number): string => `£${(pence / 100).toFixed(2)}`;
 
