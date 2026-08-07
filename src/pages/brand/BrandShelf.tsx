@@ -1,24 +1,23 @@
 // Brand shelf — the brand's permanent product catalogue.
 //
-// Adding a product reuses the member-side intelligence end to end: the same
-// `product-analyse` dual-photo function for label scans and the same
-// `product-analyse-url` function for product links. Nothing about how STRAND
-// reads an ingredient list differs because a brand typed it in.
+// Adding a product reuses the member-side intelligence end to end: the link
+// route calls the same `product-analyse-url` function a member's pasted link
+// calls. Brands get two routes only — paste a link, or enter it themselves.
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Camera, Link2, PencilLine, Eye, EyeOff, Trash2, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
+import { Plus, Link2, PencilLine, Eye, EyeOff, Trash2, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
-import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
+import ProductThumb from "@/components/ProductThumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { prepareImageForAi } from "@/lib/imagePrep";
+import { normaliseProductUrl } from "@/lib/brandLinkScan";
 import { toast } from "sonner";
 import {
   useBrandShelf,
@@ -28,6 +27,7 @@ import {
   useReorderShelf,
   APPROVAL_LABEL,
   type BrandShelfItem,
+  type BrandMemberCount,
 } from "@/hooks/useBrandShelf";
 
 const ApprovalPill = ({ item }: { item: BrandShelfItem }) => {
@@ -42,23 +42,40 @@ const ApprovalPill = ({ item }: { item: BrandShelfItem }) => {
   );
 };
 
-const CountLine = ({
-  label,
-  value,
-  suppressed,
-  threshold,
-}: { label: string; value: number | null; suppressed: boolean; threshold: number }) => (
+const CountLine = ({ label, value }: { label: string; value: number }) => (
   <div className="flex items-baseline justify-between">
     <span className="text-[11px] font-body text-muted-foreground">{label}</span>
-    <span className="font-body text-[13px]">
-      {value == null || suppressed ? (
-        <span className="text-muted-foreground">Fewer than {threshold}</span>
-      ) : (
-        value
-      )}
-    </span>
+    <span className="font-body text-[13px]">{value}</span>
   </div>
 );
+
+/**
+ * Member activity. The 50-member privacy threshold is enforced in the
+ * database — anything below it comes back NULL. Rather than repeat an absent
+ * number three times, we show one quiet line until there's something real.
+ */
+const MemberActivity = ({ c }: { c: BrandMemberCount | undefined }) => {
+  const shown = [
+    { label: "On members' shelves", value: c?.shelf_count },
+    { label: "Saved to wishlists", value: c?.wishlist_count },
+    { label: "Marked a favourite", value: c?.favourite_count },
+  ].filter((r) => typeof r.value === "number") as { label: string; value: number }[];
+
+  if (c?.suppressed !== false || shown.length === 0) {
+    return (
+      <p className="text-[11px] font-body text-muted-foreground leading-snug">
+        Member activity will appear here once enough members have engaged.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      {shown.map((r) => (
+        <CountLine key={r.label} label={r.label} value={r.value} />
+      ))}
+    </div>
+  );
+};
 
 const BrandShelf = () => {
   const nav = useNavigate();
