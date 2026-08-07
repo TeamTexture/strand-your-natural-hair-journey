@@ -583,10 +583,20 @@ const AdminBrandOfferReview = () => {
               </Button>
             )}
             {offer.status === "approved_unpaid" && (
-              <Button variant="outline" size="pill" onClick={() => setStatus("cancelled")} className="w-full">
-                Cancel (release dates)
-              </Button>
+              <div className="space-y-2">
+                <Button variant="gold" size="pill" onClick={goLiveWithoutPayment} disabled={relaunching} className="w-full">
+                  <Rocket className="size-4 mr-1.5" /> {relaunching ? "Working…" : "Make live — no payment"}
+                </Button>
+                <p className="text-[11px] text-muted-foreground font-body leading-snug">
+                  Admin override: skips Stripe entirely and puts this advert live on its
+                  booked dates at £0.
+                </p>
+                <Button variant="outline" size="pill" onClick={() => setStatus("cancelled")} className="w-full">
+                  Cancel (release dates)
+                </Button>
+              </div>
             )}
+
             {["ended", "rejected", "cancelled"].includes(deriveBrandOfferStatus(offer)) && (
               <SurfaceCard className="space-y-2 border-primary/30 bg-primary/5">
                 <div className="flex items-start gap-2.5">
