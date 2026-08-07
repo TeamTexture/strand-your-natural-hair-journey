@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Camera, Link2, PencilLine, Eye, EyeOff, Trash2, ArrowUp, ArrowDown, ExternalLink, Loader2 } from "lucide-react";
+import { Plus, Camera, Link2, PencilLine, Eye, EyeOff, Trash2, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
