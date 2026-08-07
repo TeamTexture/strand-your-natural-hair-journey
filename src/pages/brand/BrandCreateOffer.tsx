@@ -139,7 +139,7 @@ const BrandCreateOffer = () => {
   const { data: savedTargeting } = useOfferTargeting(existingId);
   const cleanTargeting = cleanRules(targeting);
   const targetingEmpty = rulesAreEmpty(cleanTargeting);
-  const { data: reachEstimate } = useReachEstimate(cleanTargeting);
+  // Reach is displayed (and privacy-suppressed) inside TargetingPicker itself.
 
   const [headline, setHeadline] = useState(existing?.headline ?? "");
   const [bodyCopy, setBodyCopy] = useState(existing?.body_copy ?? "");
