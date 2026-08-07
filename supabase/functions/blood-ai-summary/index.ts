@@ -405,6 +405,7 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
       _rag_passages: grounding.passages,
     } as BloodSummaryPayload,
     status: aiResp.status,
+    groundingText: grounding.block,
   };
 }
 
@@ -537,6 +538,7 @@ Deno.serve(async (req: Request) => {
         });
 
       const lovableRun = await runLovable(body, ledgerBlock);
+      groundingText = lovableRun.groundingText;
       console.log("[blood-debug] model call done", { provider: "parallel" });
       console.log(
         JSON.stringify({
@@ -596,6 +598,7 @@ Deno.serve(async (req: Request) => {
     } else {
 
       const r = await runLovable(body, ledgerBlock);
+      groundingText = r.groundingText;
       returnedPayload = r.payload;
       providerStamp = "lovable";
     }
@@ -674,7 +677,10 @@ Deno.serve(async (req: Request) => {
 
     return json(200, {
       cached: false,
-      summary: await sanitiseAndLog(stamped, "blood-ai-summary", { context: body.context }),
+      summary: await sanitiseAndLog(stamped, "blood-ai-summary", {
+        context: body.context,
+        grounding: groundingText,
+      }),
     });
   } catch (e) {
     console.log("[blood-debug] failed", { total_ms: Date.now() - t0 });
