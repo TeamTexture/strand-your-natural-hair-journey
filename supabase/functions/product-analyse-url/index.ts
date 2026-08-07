@@ -73,8 +73,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v4-purpose-insight";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v4-purpose-insight";
+// v5 invalidates scans cached before product-specific hero-image extraction.
+const MODEL_VERSION = "claude-sonnet-4-6@v5-product-hero";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v5-product-hero";
 
 
 function levelCap(level: TipsLevel): number {
