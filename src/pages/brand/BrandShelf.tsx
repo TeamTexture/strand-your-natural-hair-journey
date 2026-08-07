@@ -86,10 +86,9 @@ const BrandShelf = () => {
   const reorder = useReorderShelf();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [captureOpen, setCaptureOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState(false);
+
 
   const nextPosition = useMemo(
     () => (items.length ? Math.max(...items.map((i) => i.position ?? 0)) + 1 : 0),
