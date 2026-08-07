@@ -22,6 +22,7 @@ import PlacementCalendarPicker from "@/components/PlacementCalendarPicker";
 import BannerPreview from "@/components/brand/BannerPreview";
 import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { scanProductLink, normaliseProductUrl } from "@/lib/brandLinkScan";
 import { useAuth } from "@/hooks/useAuth";
 import { PlacementSlot, SLOT_LABEL, usePlacementRates, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
