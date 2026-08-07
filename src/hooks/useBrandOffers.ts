@@ -228,7 +228,7 @@ export function useBrandOffer(id: string | undefined) {
 
 /** Broad (untargeted) daily rates. Reads from the single pricing config in
  *  src/lib/adPricing.ts — never from platform_settings, so one edit changes
- *  every quoted rate. Targeted campaigns apply TARGETED_MULTIPLIER. */
+ *  every quoted rate. Targeted rates are stored explicitly per slot there. */
 export function usePlacementRates() {
   return useQuery({
     queryKey: ["brand-placement-rates"],

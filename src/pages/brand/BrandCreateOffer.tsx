@@ -34,8 +34,8 @@ import {
   buildCostBreakdown,
   dailyRatePence,
   money,
-  TARGETED_MULTIPLIER,
   TRIAL_PRICING_NOTE,
+
   type PricedSlot,
 } from "@/lib/adPricing";
 
@@ -315,7 +315,8 @@ const BrandCreateOffer = () => {
   );
 
   // Pricing reads from the single config (src/lib/adPricing.ts). A campaign with
-  // any targeting rows is charged the targeted rate (1.5x the broad slot rate).
+  // any targeting rows is charged that slot's explicit targeted rate.
+
   const costs = useMemo(
     () => buildCostBreakdown(enabledSlotList as PricedSlot[], selectedDates.length, !targetingEmpty),
     [enabledSlotList, selectedDates.length, targetingEmpty],
@@ -1144,7 +1145,8 @@ const BrandCreateOffer = () => {
               <p className="text-[11px] font-body text-muted-foreground leading-snug">
                 {targetingEmpty
                   ? "Broad campaign — standard slot rate, shown to all members in the slots you book."
-                  : `Targeted campaign — ${TARGETED_MULTIPLIER}× the standard slot rate, because you have narrowed the audience below. Clear your audience selection to return to the standard rate.`}
+                  : "Targeted campaign — the targeted rate for each slot you have booked applies, because you have narrowed the audience below. Clear your audience selection to return to the standard rate."}
+
               </p>
               <p className="text-[10.5px] font-body text-muted-foreground leading-snug">
                 {TRIAL_PRICING_NOTE} Your rate is fixed at booking and never changes afterwards.
