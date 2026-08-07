@@ -205,7 +205,7 @@ const BrandDetailPage = () => {
           .order("starts_on"),
         supabase
           .from("brand_offers")
-          .select("id, headline, hero_image_path, starts_on, ends_on")
+          .select("id, headline, body_copy, hero_image_path, external_url, starts_on, ends_on, brand_products(name)")
           .eq("brand_user_id", brandUserId!)
           .eq("status", "ended")
           .order("ends_on", { ascending: false })
