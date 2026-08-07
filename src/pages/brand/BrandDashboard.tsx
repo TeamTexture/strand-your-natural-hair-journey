@@ -28,6 +28,8 @@ import CampaignRunCalendar from "@/components/brand/CampaignRunCalendar";
 import { useOwnerMode, ownerHomeRoute, ownerNewRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
+import { money as baseMoney } from "@/lib/adPricing";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
 
 const money = baseMoney;
 

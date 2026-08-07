@@ -25,6 +25,8 @@ import CountdownClock from "@/components/brand/CountdownClock";
 import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { Users } from "lucide-react";
+import { money as baseMoney, TRIAL_PRICING_NOTE } from "@/lib/adPricing";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
 
 const money = baseMoney;
 

@@ -3,6 +3,8 @@ import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight, Users } from
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
+import { money as baseMoney } from "@/lib/adPricing";
+import TrialPriceTag from "@/components/brand/TrialPriceTag";
 
 interface Totals {
   impressions: number;
