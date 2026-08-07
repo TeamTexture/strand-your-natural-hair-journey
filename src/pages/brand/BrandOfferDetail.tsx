@@ -1,7 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CreditCard, Edit, Eye, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2 } from "lucide-react";
+import { CreditCard, Edit, Eye, Heart, Loader2, Trash2, Ticket, ExternalLink, Clock, XCircle, Maximize2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -18,6 +18,7 @@ import {
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
   usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision, STATS_METHOD_NOTE,
+  useRelaunchBrandOffer,
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
@@ -44,6 +45,7 @@ const BrandOfferDetail = () => {
   const [heroOpen, setHeroOpen] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const deleteOffer = useDeleteBrandOffer();
+  const relaunch = useRelaunchBrandOffer();
   const markSeen = useMarkOfferInterestSeen();
   const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
   const interest = id ? interestMap[id] : undefined;
@@ -325,21 +327,41 @@ const BrandOfferDetail = () => {
           </>
         )}
 
-        {derived === "ended" && (interest?.total ?? 0) > 0 && (
+        {derived === "ended" && (
           <SurfaceCard className="bg-primary/5 border-primary/30">
             <div className="flex items-start gap-2.5">
               <Users className="size-4 text-primary mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="font-display text-[14px]">
-                  {interest?.total} member{interest?.total === 1 ? "" : "s"} interested since expiry
+                  {interest?.total ?? 0} member{(interest?.total ?? 0) === 1 ? "" : "s"} want this again
                 </p>
                 <p className="text-[11.5px] text-foreground/70 font-body mt-0.5 leading-snug">
-                  These members tapped "Show interest" on your ended offer. Consider running a new campaign to reach them again.
+                  {(interest?.total ?? 0) > 0
+                    ? "These members asked for this offer to come back. Run it again and we'll let them know."
+                    : "No one has asked for this one to come back yet."}
                 </p>
+                <Button
+                  size="pill"
+                  className="mt-2.5 h-9 text-[12px]"
+                  disabled={relaunch.isPending}
+                  onClick={async () => {
+                    try {
+                      const newId = await relaunch.mutateAsync(offer.id);
+                      toast.success("Copied to a new draft — set your dates, then pay to schedule.");
+                      nav(editRoute(newId));
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Could not duplicate this offer");
+                    }
+                  }}
+                >
+                  {relaunch.isPending ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <RotateCcw className="size-3.5 mr-1" />}
+                  Run this again
+                </Button>
               </div>
             </div>
           </SurfaceCard>
         )}
+
 
         {allRevisions.length > 0 && (
           <>

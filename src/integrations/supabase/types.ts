@@ -908,6 +908,8 @@ export type Database = {
           paid_at: string | null
           rejected_at: string | null
           rejection_reason: string | null
+          relaunch_notified_at: string | null
+          relaunched_from_offer_id: string | null
           starts_on: string | null
           status: Database["public"]["Enums"]["brand_offer_status"]
           stripe_payment_intent_id: string | null
@@ -936,6 +938,8 @@ export type Database = {
           paid_at?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
+          relaunch_notified_at?: string | null
+          relaunched_from_offer_id?: string | null
           starts_on?: string | null
           status?: Database["public"]["Enums"]["brand_offer_status"]
           stripe_payment_intent_id?: string | null
@@ -964,6 +968,8 @@ export type Database = {
           paid_at?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
+          relaunch_notified_at?: string | null
+          relaunched_from_offer_id?: string | null
           starts_on?: string | null
           status?: Database["public"]["Enums"]["brand_offer_status"]
           stripe_payment_intent_id?: string | null
@@ -978,6 +984,13 @@ export type Database = {
             columns: ["attached_pro_offer_id"]
             isOneToOne: false
             referencedRelation: "pro_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_offers_relaunched_from_offer_id_fkey"
+            columns: ["relaunched_from_offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
             referencedColumns: ["id"]
           },
         ]
@@ -4765,6 +4778,14 @@ export type Database = {
         }[]
       }
       brand_count_min_threshold: { Args: never; Returns: number }
+      brand_offer_interest_counts: {
+        Args: { _offer_ids: string[] }
+        Returns: {
+          offer_id: string
+          total: number
+          unread: number
+        }[]
+      }
       brand_offer_totals: {
         Args: { _offer_ids: string[] }
         Returns: {
@@ -5052,6 +5073,7 @@ export type Database = {
         Args: { _reason: string; _revision_id: string }
         Returns: undefined
       }
+      relaunch_brand_offer: { Args: { _offer_id: string }; Returns: string }
       resolve_ad_offer_audience: {
         Args: { _offer_id: string }
         Returns: number

@@ -589,7 +589,23 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
 
 
 
+  // ---- Member asked for an ended offer to return, and it has ----------
+  "offer-relaunch-interest": t(
+    "offer-relaunch-interest",
+    "transactional",
+    false,
+    (d) => `${s(d.brand_name, "A brand")} is running that offer again`,
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `You asked to hear if ${s(d.brand_name, "this brand")} ran "${s(d.headline, "their offer")}" again. It is scheduled to return.`,
+      "You can see the dates and details in STRAND.",
+    ],
+    (d) => ({ label: "View the offer", path: `/offers/${s(d.offer_id)}` }),
+    "brand_offers",
+  ),
+
   // ---------------- Marketing (consent required, unsubscribe rendered) ----
+
   "marketing-brand-offer": t(
     "marketing-brand-offer",
     "marketing",

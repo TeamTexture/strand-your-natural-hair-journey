@@ -18,10 +18,14 @@ import BrandShelfSection from "@/components/brand/BrandShelfSection";
 interface PastOffer {
   id: string;
   headline: string | null;
+  body_copy: string | null;
   hero_image_path: string | null;
+  external_url: string | null;
   starts_on: string | null;
   ends_on: string | null;
+  brand_products?: { name: string | null }[] | null;
 }
+
 
 const useSignedUrl = (path: string | null | undefined, bucket = "brand-assets") => {
   const [url, setUrl] = useState<string | null>(null);
@@ -40,48 +44,84 @@ const PastOfferRow = ({ offer }: { offer: PastOffer }) => {
   const { data: alreadyInterested } = useMyOfferInterest(offer.id);
   const register = useRegisterOfferInterest();
   const heroUrl = useSignedUrl(offer.hero_image_path);
+  const products = (offer.brand_products ?? []).map((p) => p.name).filter(Boolean) as string[];
 
   return (
-    <SurfaceCard className="p-0 overflow-hidden">
-      <div className="relative h-[96px] w-full bg-muted">
+    <SurfaceCard className="p-0 overflow-hidden min-w-0 opacity-95">
+      <div className="relative h-[76px] w-full bg-muted">
         {heroUrl ? (
-          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover grayscale-[35%] opacity-90" />
+          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover grayscale-[45%] opacity-80" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/50" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
         <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.18em] font-body font-medium px-2 py-0.5 rounded-full bg-foreground/85 text-background">
-          Expired
+          Ended
         </span>
-        <div className="absolute inset-x-0 bottom-0 p-2.5">
-          <p className="font-display text-white text-[14px] leading-tight line-clamp-2 drop-shadow-sm">
+        <div className="absolute inset-x-0 bottom-0 p-2.5 min-w-0">
+          <p className="font-display text-white text-[13px] leading-tight line-clamp-2 drop-shadow-sm [overflow-wrap:anywhere]">
             {offer.headline || "Offer"}
           </p>
         </div>
       </div>
-      <div className="px-3 py-2.5 flex items-center justify-between gap-2">
-        <p className="text-[11px] font-body text-muted-foreground">
-          Ended {offer.ends_on ? format(new Date(offer.ends_on), "d MMM yyyy") : ""}
+      <div className="px-3 py-2.5 space-y-1.5 min-w-0">
+        <p className="text-[10px] font-body text-muted-foreground">
+          Ran {offer.starts_on ? format(new Date(offer.starts_on), "d MMM") : ""}
+          {offer.ends_on ? ` – ${format(new Date(offer.ends_on), "d MMM yyyy")}` : ""}
         </p>
-        {alreadyInterested ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-body text-good">
-            <Check className="size-3.5" /> Interest registered
-          </span>
-        ) : (
-          <Button
-            variant="outline"
-            size="pill"
-            className="text-[11px] h-8"
-            onClick={() => register.mutate(offer.id)}
-            disabled={register.isPending}
-          >
-            <Heart className="size-3.5 mr-1" /> Show interest
-          </Button>
+        {offer.body_copy && (
+          <p className="text-[11px] font-body text-muted-foreground leading-snug line-clamp-2 [overflow-wrap:anywhere]">
+            {offer.body_copy}
+          </p>
         )}
+        {products.length > 0 && (
+          <p className="text-[11px] font-body text-muted-foreground/90 leading-snug [overflow-wrap:anywhere]">
+            {products.slice(0, 3).join(", ")}
+            {products.length > 3 ? ` +${products.length - 3} more` : ""}
+          </p>
+        )}
+        <div className="flex items-center justify-between gap-2 pt-0.5 min-w-0">
+          {offer.external_url ? (
+            <a
+              href={offer.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-body text-muted-foreground hover:underline shrink-0"
+            >
+              <ExternalLink className="size-3" /> Visit brand
+            </a>
+          ) : (
+            <span />
+          )}
+          {alreadyInterested ? (
+            <button
+              type="button"
+              onClick={() => register.mutate({ offerId: offer.id, interested: false })}
+              disabled={register.isPending}
+              className="inline-flex items-center gap-1 text-[11px] font-body text-good"
+            >
+              <Check className="size-3.5" /> Waiting on this — undo
+            </button>
+          ) : (
+            <Button
+              variant="outline"
+              size="pill"
+              className="text-[11px] h-8"
+              onClick={() => register.mutate({ offerId: offer.id, interested: true })}
+              disabled={register.isPending}
+            >
+              <Heart className="size-3.5 mr-1" /> I'd want this again
+            </Button>
+          )}
+        </div>
+        <p className="text-[10px] font-body text-muted-foreground/70 leading-snug">
+          This discount has ended.
+        </p>
       </div>
     </SurfaceCard>
   );
 };
+
 
 interface CatalogueItem {
   kind: string;
@@ -165,7 +205,7 @@ const BrandDetailPage = () => {
           .order("starts_on"),
         supabase
           .from("brand_offers")
-          .select("id, headline, hero_image_path, starts_on, ends_on")
+          .select("id, headline, body_copy, hero_image_path, external_url, starts_on, ends_on, brand_products(name)")
           .eq("brand_user_id", brandUserId!)
           .eq("status", "ended")
           .order("ends_on", { ascending: false })
@@ -186,6 +226,8 @@ const BrandDetailPage = () => {
   const logoUrl = useSignedUrl(brand?.logo_path ?? null);
   const catalogue = data?.catalogue ?? [];
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [pastOpen, setPastOpen] = useState(false);
+
 
 
   const openCatalogueItem = (item: CatalogueItem) => {
@@ -314,9 +356,9 @@ const BrandDetailPage = () => {
           )}
         </SurfaceCard>
 
-        {data!.live.length > 0 && (
-          <div>
-            <SectionLabel className="!px-0">Live offers</SectionLabel>
+        <div>
+          <SectionLabel className="!px-0">Live offers</SectionLabel>
+          {data!.live.length > 0 ? (
             <div className="space-y-2">
               {data!.live.map((o) => (
                 <SurfaceCard key={o.id} onClick={() => nav(`/offers/${o.id}`)} className="cursor-pointer hover:border-primary/50">
@@ -328,8 +370,38 @@ const BrandDetailPage = () => {
                 </SurfaceCard>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-[11px] text-muted-foreground font-body leading-snug">
+              No live offers right now.
+            </p>
+          )}
+
+          {data!.past.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body font-medium">
+                Previous offers
+              </p>
+              <p className="text-[11px] text-muted-foreground font-body mt-1 mb-2 leading-snug">
+                Missed one? Tap "I'd want this again" and the brand sees the demand.
+              </p>
+              <div className="grid grid-cols-1 gap-2.5">
+                {(pastOpen ? data!.past : data!.past.slice(0, 3)).map((o) => (
+                  <PastOfferRow key={o.id} offer={o} />
+                ))}
+              </div>
+              {data!.past.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setPastOpen((v) => !v)}
+                  className="mt-2 text-[11px] font-body text-primary"
+                >
+                  {pastOpen ? "Show fewer" : `Show all ${data!.past.length}`}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
 
 
         <BrandShelfSection brandUserId={brandUserId!} brandName={brand.brand_name ?? null} />
@@ -352,19 +424,6 @@ const BrandDetailPage = () => {
           </div>
         )}
 
-        {data!.past.length > 0 && (
-          <div>
-            <SectionLabel className="!px-0">Previous offers</SectionLabel>
-            <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-2 leading-snug">
-              Missed one? Tap Show interest and we'll let the brand know — they may run it again.
-            </p>
-            <div className="grid grid-cols-1 gap-2.5">
-              {data!.past.map((o) => (
-                <PastOfferRow key={o.id} offer={o} />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </ScreenLayout>
   );

@@ -6,6 +6,73 @@
 // Both are idempotent.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
+import { dispatchEmail } from "../_shared/app-email/core.ts";
+
+/**
+ * A relaunched campaign has just been paid for. Tell the members who registered
+ * interest on the ORIGINAL ended offer that the discount is back.
+ *
+ * Runs through the shared send path (`dispatchEmail`), so it is already behind
+ * the global `email_sending_enabled` flag and the `brand_offers` preference —
+ * nothing sends until the platform flag is switched on. Idempotent via
+ * `relaunch_notified_at` plus a per-recipient idempotency key.
+ */
+async function notifyRelaunchInterest(admin: any, offerId: string) {
+  try {
+    const { data: offer } = await admin
+      .from("brand_offers")
+      .select("id, headline, brand_user_id, relaunched_from_offer_id, relaunch_notified_at")
+      .eq("id", offerId)
+      .maybeSingle();
+    if (!offer?.relaunched_from_offer_id || offer.relaunch_notified_at) return;
+
+    const { data: interest } = await admin
+      .from("brand_offer_interest")
+      .select("user_id")
+      .eq("offer_id", offer.relaunched_from_offer_id);
+    const userIds = [...new Set((interest ?? []).map((r: any) => r.user_id))];
+    if (userIds.length === 0) {
+      await admin.from("brand_offers")
+        .update({ relaunch_notified_at: new Date().toISOString() }).eq("id", offerId);
+      return;
+    }
+
+    const { data: brand } = await admin
+      .from("brand_profiles")
+      .select("brand_name")
+      .eq("user_id", offer.brand_user_id)
+      .maybeSingle();
+
+    for (const uid of userIds) {
+      const { data: userRes } = await admin.auth.admin.getUserById(uid);
+      const email = userRes?.user?.email;
+      if (!email) continue;
+      const { data: prof } = await admin
+        .from("profiles").select("display_name").eq("user_id", uid).maybeSingle();
+      await dispatchEmail({
+        templateKey: "offer-relaunch-interest",
+        to: email,
+        recipientUserId: uid,
+        triggerEvent: "brand_offer_relaunched",
+        relatedTable: "brand_offers",
+        relatedId: offerId,
+        idempotencyKey: `offer-relaunch-${offerId}-${uid}`,
+        data: {
+          name: prof?.display_name ?? null,
+          brand_name: brand?.brand_name ?? null,
+          headline: offer.headline ?? null,
+          offer_id: offerId,
+        },
+      }, admin);
+    }
+
+    await admin.from("brand_offers")
+      .update({ relaunch_notified_at: new Date().toISOString() }).eq("id", offerId);
+  } catch (e) {
+    console.error("relaunch interest notify failed", e);
+  }
+}
+
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -63,7 +130,9 @@ Deno.serve(async (req) => {
                     : session.payment_intent?.id ?? null,
               })
               .eq("id", offerId);
+            await notifyRelaunchInterest(admin, offerId);
           }
+
         }
         break;
       }

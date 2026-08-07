@@ -779,3 +779,21 @@ export function useDeleteBrandOffer() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["brand-offers"] }),
   });
 }
+
+/** "Run this again": server-side duplicate of an ended offer into a fresh
+ *  DRAFT — headline, copy, discount code, products and targeting intact,
+ *  no dates, nothing paid, never live. Returns the new draft's id. */
+export function useRelaunchBrandOffer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (offerId: string): Promise<string> => {
+      const { data, error } = await (supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: any; error: any }>;
+      }).rpc("relaunch_brand_offer", { _offer_id: offerId });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["brand-offers"] }),
+  });
+}
+
