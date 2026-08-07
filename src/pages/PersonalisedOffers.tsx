@@ -59,8 +59,8 @@ const PersonalisedOffers = () => {
           <div className="min-w-0 flex-1">
             <p className="font-display text-[15px] leading-tight">Show me offers matched to my hair</p>
             <p className="text-[11.5px] font-body text-muted-foreground leading-snug mt-1">
-              Brands never see who you are, and never receive your data. They only ever see a
-              suppressed count of at least 50 members.
+              Brands never see who you are, and never receive your data. They only ever see
+              aggregate counts.
             </p>
           </div>
           <Switch
