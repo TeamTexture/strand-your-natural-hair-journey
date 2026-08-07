@@ -1091,47 +1091,9 @@ const IngredientDetail = () => {
 
 
 
-            {purposeInsight && (
-              <>
-                <SectionLabel>What this means for your hair</SectionLabel>
-                <SurfaceCard className="space-y-2">
-                  {purpose && (
-                    <span className="inline-flex items-center gap-1.5 rounded-pill border border-primary/25 bg-primary/8 px-3 py-1 text-[12px] font-medium text-primary">
-                      <Sparkles className="size-3" aria-hidden />
-                      {MARKETED_PURPOSE_LABEL[purpose]}
-                    </span>
-                  )}
-                  <PurposeInsight insight={purposeInsight} />
-                  {showBeginnerHelp && (
-                    <BeginnerSteps
-                      steps={[
-                        {
-                          text: "What it is built to do",
-                          detail: purposeInsight.purpose,
-                        },
-                        {
-                          text: "Why the formula behaves this way",
-                          detail: purposeInsight.ingredient_factor,
-                        },
-                        {
-                          text: "What that means for you",
-                          detail: purposeInsight.implication,
-                        },
-                        {
-                          text: "How to use it",
-                          detail: purposeInsight.usage_direction,
-                        },
-                      ].filter((s) => Boolean(s.detail))}
-                    />
-                  )}
-                  {purposeLowConfidence && tipsLevel >= 3 && (
-                    <p className="text-[11px] leading-snug text-muted-foreground">
-                      The label didn't say much, so this is judged from the ingredients alone.
-                    </p>
-                  )}
-                </SurfaceCard>
-              </>
-            )}
+            {/* "What this means for your hair" section removed — too much
+                explanatory copy on this page. */}
+
 
 
 
