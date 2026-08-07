@@ -19,7 +19,10 @@ import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
 import { useGoals } from "@/hooks/useGoals";
 import { useQuery } from "@tanstack/react-query";
-import { buildAiContext } from "@/lib/aiContext";
+import {
+  useBrandProductGuidance,
+  type BrandGuidanceProduct,
+} from "@/hooks/useBrandProductGuidance";
 
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
 const toolKeyFor = (brandProductId: string) => `brand-offer-tool:${brandProductId}`;
@@ -42,8 +45,6 @@ const BrandProductPage = () => {
   const { tools: userTools, reload: reloadTools } = useUserTools();
   const { goals } = useGoals();
   const [busy, setBusy] = useState(false);
-  const [guidance, setGuidance] = useState<GuidancePayload | null>(null);
-  const [guidanceLoading, setGuidanceLoading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["brand-product-page", offerId, productId],
