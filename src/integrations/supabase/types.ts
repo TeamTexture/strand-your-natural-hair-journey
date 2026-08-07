@@ -3395,6 +3395,8 @@ export type Database = {
           personalised_offers_consent: boolean
           phone_number: string | null
           postcode: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
           tips_level: number
           tips_level_prompted_at: string | null
           updated_at: string
@@ -3417,6 +3419,8 @@ export type Database = {
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           tips_level?: number
           tips_level_prompted_at?: string | null
           updated_at?: string
@@ -3439,6 +3443,8 @@ export type Database = {
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           tips_level?: number
           tips_level_prompted_at?: string | null
           updated_at?: string
@@ -3693,6 +3699,39 @@ export type Database = {
           id?: string
           label?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_consents: {
+        Row: {
+          consent_key: string
+          document_version: string | null
+          granted: boolean
+          granted_at: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_key: string
+          document_version?: string | null
+          granted: boolean
+          granted_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consent_key?: string
+          document_version?: string | null
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -4984,6 +5023,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_consents: {
+        Args: { _consents: Json; _user_agent?: string; _version: string }
+        Returns: undefined
+      }
       refresh_ad_audiences: { Args: never; Returns: number }
       reject_brand_offer_revision: {
         Args: { _reason: string; _revision_id: string }
@@ -5081,6 +5124,10 @@ export type Database = {
       }
       withdraw_brand_offer_revision: {
         Args: { _revision_id: string }
+        Returns: undefined
+      }
+      withdraw_consent: {
+        Args: { _key: string; _version?: string }
         Returns: undefined
       }
     }

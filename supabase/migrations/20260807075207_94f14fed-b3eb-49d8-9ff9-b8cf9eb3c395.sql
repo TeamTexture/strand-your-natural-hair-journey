@@ -1,0 +1,128 @@
+CREATE TABLE public.user_consents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  consent_key text NOT NULL,
+  granted boolean NOT NULL,
+  document_version text,
+  granted_at timestamptz NOT NULL DEFAULT now(),
+  ip_address text,
+  user_agent text
+);
+
+CREATE INDEX user_consents_user_key_idx ON public.user_consents (user_id, consent_key, granted_at DESC);
+
+GRANT SELECT, INSERT ON public.user_consents TO authenticated;
+GRANT ALL ON public.user_consents TO service_role;
+
+ALTER TABLE public.user_consents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Members read own consents"
+  ON public.user_consents FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Admins read all consents"
+  ON public.user_consents FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Members insert own consents"
+  ON public.user_consents FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS terms_version text,
+  ADD COLUMN IF NOT EXISTS terms_accepted_at timestamptz;
+
+CREATE OR REPLACE FUNCTION public.record_consents(
+  _version text,
+  _consents jsonb,
+  _user_agent text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _uid uuid := auth.uid();
+  _key text;
+  _granted boolean;
+  _mandatory text[] := ARRAY['terms','privacy','age_18','medical_disclaimer','health_data'];
+  _all_mandatory boolean := true;
+BEGIN
+  IF _uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  FOR _key, _granted IN
+    SELECT k, (v)::boolean FROM jsonb_each_text(_consents) AS t(k, v)
+  LOOP
+    IF _key NOT IN ('terms','privacy','age_18','medical_disclaimer','health_data','personalised_offers','marketing_email') THEN
+      RAISE EXCEPTION 'Unknown consent key: %', _key;
+    END IF;
+
+    INSERT INTO public.user_consents (user_id, consent_key, granted, document_version, user_agent)
+    VALUES (_uid, _key, _granted, _version, _user_agent);
+
+    IF _key = 'personalised_offers' THEN
+      UPDATE public.profiles SET personalised_offers_consent = _granted WHERE user_id = _uid;
+      INSERT INTO public.ad_consent_log (user_id, granted, source)
+      VALUES (_uid, _granted, 'onboarding_gate');
+    END IF;
+
+    IF _key = 'marketing_email' THEN
+      INSERT INTO public.email_preferences (user_id, marketing_consent)
+      VALUES (_uid, _granted)
+      ON CONFLICT (user_id) DO UPDATE SET marketing_consent = EXCLUDED.marketing_consent;
+    END IF;
+  END LOOP;
+
+  FOREACH _key IN ARRAY _mandatory LOOP
+    IF COALESCE((_consents ->> _key)::boolean, false) IS NOT TRUE THEN
+      _all_mandatory := false;
+    END IF;
+  END LOOP;
+
+  IF _all_mandatory THEN
+    UPDATE public.profiles
+       SET terms_version = _version,
+           terms_accepted_at = now()
+     WHERE user_id = _uid;
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.record_consents(text, jsonb, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_consents(text, jsonb, text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.withdraw_consent(_key text, _version text DEFAULT NULL)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _uid uuid := auth.uid();
+BEGIN
+  IF _uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+  IF _key NOT IN ('personalised_offers','marketing_email') THEN
+    RAISE EXCEPTION 'Only optional consents can be withdrawn here';
+  END IF;
+
+  INSERT INTO public.user_consents (user_id, consent_key, granted, document_version)
+  VALUES (_uid, _key, false, _version);
+
+  IF _key = 'personalised_offers' THEN
+    UPDATE public.profiles SET personalised_offers_consent = false WHERE user_id = _uid;
+    INSERT INTO public.ad_consent_log (user_id, granted, source) VALUES (_uid, false, 'withdrawal');
+  ELSE
+    INSERT INTO public.email_preferences (user_id, marketing_consent)
+    VALUES (_uid, false)
+    ON CONFLICT (user_id) DO UPDATE SET marketing_consent = false;
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.withdraw_consent(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.withdraw_consent(text, text) TO authenticated;
