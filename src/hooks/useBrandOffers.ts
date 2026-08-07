@@ -224,26 +224,22 @@ export function useBrandOffer(id: string | undefined) {
   });
 }
 
+/** Broad (untargeted) daily rates. Reads from the single pricing config in
+ *  src/lib/adPricing.ts — never from platform_settings, so one edit changes
+ *  every quoted rate. Targeted campaigns apply TARGETED_MULTIPLIER. */
 export function usePlacementRates() {
   return useQuery({
     queryKey: ["brand-placement-rates"],
-    staleTime: 5 * 60 * 1000,
-    queryFn: async (): Promise<Record<PlacementSlot, number>> => {
-      const { data } = await supabase
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "brand_placement_rates")
-        .maybeSingle();
-      const raw = (data?.value as Record<string, number>) ?? {};
-      return {
-        home: raw.home ?? 7500,
-        products: raw.products ?? 5000,
-        wash_day: raw.wash_day ?? 10000,
-        pro_welcome: raw.pro_welcome ?? 5000,
-      };
-    },
+    staleTime: Infinity,
+    queryFn: async (): Promise<Record<PlacementSlot, number>> => ({
+      home: BROAD_DAILY_RATE_PENCE.home,
+      products: BROAD_DAILY_RATE_PENCE.products,
+      wash_day: BROAD_DAILY_RATE_PENCE.wash_day,
+      pro_welcome: BROAD_DAILY_RATE_PENCE.pro_welcome,
+    }),
   });
 }
+
 
 export interface TakenPlacement {
   slot: PlacementSlot;
