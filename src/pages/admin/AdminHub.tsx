@@ -22,6 +22,7 @@ import {
   BadgeCheck,
   Scale,
   FlaskConical,
+  PackageCheck,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
