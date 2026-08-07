@@ -74,6 +74,8 @@ export async function embedQuery(query: string): Promise<number[]> {
       `OpenAI returned unexpected embedding shape (length=${vec?.length ?? 0})`,
     );
   }
+  if (embedCache.size >= EMBED_CACHE_MAX) embedCache.clear();
+  embedCache.set(query, vec);
   return vec;
 }
 
