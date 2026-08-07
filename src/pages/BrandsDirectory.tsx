@@ -117,6 +117,12 @@ const BrandsDirectory = () => {
         <p className="text-xs text-muted-foreground font-body leading-snug">
           Brands trusted enough to sit alongside your STRAND journey.
         </p>
+        {waiting.length > 0 && (
+          <p className="text-[11px] text-muted-foreground font-body leading-snug">
+            You're waiting on {waiting.length} ended offer{waiting.length === 1 ? "" : "s"} to run again.
+          </p>
+        )}
+
         <div className="relative">
           <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search brands…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
