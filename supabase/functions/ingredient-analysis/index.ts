@@ -45,6 +45,7 @@ import {
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { perParagraph } from "../_shared/paragraph-rules.ts";
+import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/tips-level.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -334,8 +335,9 @@ async function runClaude(args: {
   userPayload: Record<string, unknown>;
   selectorContext: SelectorContext;
   avoidList: string[];
+  level: TipsLevel;
 }): Promise<AnalysisPayload> {
-  const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList } = args;
+  const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList, level } = args;
   const ingredientCount = ingredients.length;
 
   const ragOn = shouldTriggerRag(ingredients, avoidList);
@@ -343,7 +345,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount),
+    task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount, level),
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
@@ -352,7 +354,7 @@ async function runClaude(args: {
     tool: {
       name: "return_analysis",
       description: "Return the structured ingredient analysis.",
-      input_schema: buildToolSchema(ingredientCount),
+      input_schema: buildToolSchema(ingredientCount, level),
     },
     toolChoice: { type: "tool", name: "return_analysis" },
     max_tokens: 4096,
@@ -389,6 +391,7 @@ async function runLovable(args: {
   systemPrompt: string;
   userPayload: Record<string, unknown>;
   ingredientCount: number;
+  level: TipsLevel;
 }): Promise<AnalysisPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -423,7 +426,7 @@ async function runLovable(args: {
             function: {
               name: "return_analysis",
               description: "Return the structured ingredient analysis.",
-              parameters: buildToolSchema(args.ingredientCount),
+              parameters: buildToolSchema(args.ingredientCount, args.level),
             },
           },
         ],
@@ -471,7 +474,12 @@ Deno.serve(async (req) => {
       return json(400, { error: "Missing product info" });
     }
 
-    const cacheKind = `ingredient_analysis:${productKey}`;
+    const tipsLevel = coerceTipsLevel(
+      (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
+    );
+    // Level is part of the key: guidance depth differs per support level, so a
+    // level-3 payload must never be served to a level-4 reader.
+    const cacheKind = `ingredient_analysis:${productKey}:L${tipsLevel}`;
     const provider = readAiProvider("STRAND_AI_PROVIDER_INGREDIENT");
 
     // ── Cache check (model_version-aware) ─────────────────────────────
@@ -487,10 +495,11 @@ Deno.serve(async (req) => {
         // Only honour cache if it includes the separate personalised guidance
         // section. Older rows predate this field and must be regenerated.
         const hasGuidance = Array.isArray(cached.personalised_guidance) && cached.personalised_guidance.length >= 1;
+        const depthOk = cached.personalised_guidance!.length >= guidanceCount(tipsLevel);
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
           : true;
-        if (versionOk && hasGuidance) {
+        if (versionOk && hasGuidance && depthOk) {
           return json(200, { cached: true, analysis: await sanitiseAndLog(cached, "ingredient-analysis") });
         }
       }
@@ -541,6 +550,7 @@ Deno.serve(async (req) => {
         userPayload,
         selectorContext: buildSelectorContext(body),
         avoidList,
+        level: tipsLevel,
       });
       // Guard: if the tip references another product/step, retry once with
       // a hardened payload that echoes the violation back to the model.
@@ -576,11 +586,12 @@ Deno.serve(async (req) => {
       const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount)}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`;
       analysis = await runLovable({
         systemPrompt,
         userPayload,
         ingredientCount,
+        level: tipsLevel,
       });
       analysis = scrubGuidance(analysis);
       analysis._provider = "lovable";
