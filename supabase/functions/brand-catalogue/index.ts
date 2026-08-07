@@ -61,6 +61,35 @@ Deno.serve(async (req) => {
       });
     }
 
+    const isAdmin = roles.some((r: { role: string }) => r.role === "admin");
+
+    // Cross-brand tagging guard. A brand may only attach catalogue items whose
+    // brand name matches their OWN brand name — otherwise a brand could tag a
+    // competitor's product into their advert. Admins are exempt (oversight).
+    const normalise = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+    let ownBrandKey: string | null = null;
+    if (!isAdmin) {
+      const { data: profile } = await anon
+        .from("brand_profiles")
+        .select("brand_name")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const own = clean(profile?.brand_name);
+      ownBrandKey = own ? normalise(own) : null;
+      if (!ownBrandKey) {
+        return new Response(JSON.stringify({ items: [], restricted_to: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    const matchesOwnBrand = (brand: string | null) => {
+      if (!ownBrandKey) return true;
+      const key = brand ? normalise(brand) : "";
+      if (!key) return false;
+      return key.includes(ownBrandKey) || ownBrandKey.includes(key);
+    };
+
     const body = await req.json().catch(() => ({}));
     const kind: Kind = body?._kind === "product" || body?._kind === "tool" ? body._kind : "all";
     const search = clean(body?._search)?.toLowerCase() ?? null;
@@ -138,6 +167,7 @@ Deno.serve(async (req) => {
 
     const grouped = new Map<string, typeof items[number]>();
     for (const item of items) {
+      if (!matchesOwnBrand(item.brand)) continue;
       const haystack = [item.name, item.brand, item.category].filter(Boolean).join(" ").toLowerCase();
       if (search && !haystack.includes(search)) continue;
       const key = `${item.kind}:${item.name.toLowerCase()}:${item.brand?.toLowerCase() ?? ""}`;
@@ -157,7 +187,7 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.user_count - a.user_count || a.name.localeCompare(b.name))
       .slice(0, limit);
 
-    return new Response(JSON.stringify({ items: catalogue }), {
+    return new Response(JSON.stringify({ items: catalogue, restricted_to: ownBrandKey ? "own_brand" : null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

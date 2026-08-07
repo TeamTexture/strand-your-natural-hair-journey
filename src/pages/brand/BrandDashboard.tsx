@@ -6,6 +6,7 @@ import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import ShelfEngagementSection from "@/components/brand/ShelfEngagementSection";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import LiveOfferCard from "@/components/brand/LiveOfferCard";
@@ -266,6 +267,8 @@ const BrandDashboard = () => {
           </button>
         )}
 
+
+        {ownerMode !== "pro" && <ShelfEngagementSection />}
 
         <div>
           <SectionLabel className="!px-0 !mt-0">Campaign calendar</SectionLabel>

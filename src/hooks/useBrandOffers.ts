@@ -610,26 +610,37 @@ export type AdEventType = "view" | "expand" | "link_click" | "code_copy" | "wish
 /** Writes one row to the append-only public.ad_events log via the
  *  record_ad_event RPC. Nothing here increments a counter and nothing fires on
  *  render — callers must wire each event to real user intent (see
- *  useAdViewTracker for the viewability-gated `view` event). */
+ *  useAdViewTracker for the viewability-gated `view` event).
+ *
+ *  One log, two attributions. `offer_id` is campaign attribution and is what
+ *  every offer-level (billing-grade) figure counts. `brand_product_id` is shelf
+ *  attribution and is what the brand's shelf engagement dashboard counts. A
+ *  campaign-tagged product interaction carries BOTH, so it lands in the
+ *  campaign's metrics exactly like a banner interaction and in the shelf figures
+ *  at the same time. At least one of the two is required by the database. */
 export function useLogAdEvent() {
   return useMutation({
     mutationFn: async ({
       offer_id,
+      brand_product_id,
       slot,
       event_type,
       was_matched,
       match_reason,
     }: {
-      offer_id: string;
-      slot: PlacementSlot | null;
+      offer_id?: string | null;
+      brand_product_id?: string | null;
+      slot: PlacementSlot | string | null;
       event_type: AdEventType;
       was_matched?: boolean | null;
       match_reason?: Record<string, unknown> | null;
     }) => {
+      if (!offer_id && !brand_product_id) return;
       // Fire-and-forget. Server-side dedupe caps billable views at one per
       // (user, offer, slot) per hour, so the client never has to guess.
       const { error } = await supabase.rpc("record_ad_event" as never, {
-        p_offer_id: offer_id,
+        p_offer_id: offer_id ?? null,
+        p_brand_product_id: brand_product_id ?? null,
         p_event_type: event_type,
         p_slot: slot ?? "unknown",
         p_was_matched: was_matched ?? null,
@@ -639,6 +650,7 @@ export function useLogAdEvent() {
     },
   });
 }
+
 
 /** Viewability gate for the `view` event: the element must be at least
  *  VIEW_THRESHOLD in the viewport for VIEW_DWELL_MS of continuous time before a
