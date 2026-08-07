@@ -261,9 +261,6 @@ const BrandShelf = () => {
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4 space-y-2 pb-4">
-            <Button variant="outline" className="w-full rounded-pill justify-start" onClick={() => { setAddOpen(false); setCaptureOpen(true); }}>
-              <Camera className="size-4 mr-2" /> Scan the label
-            </Button>
             <Button variant="outline" className="w-full rounded-pill justify-start" onClick={() => { setAddOpen(false); setLinkOpen(true); }}>
               <Link2 className="size-4 mr-2" /> Paste a product link
             </Button>
@@ -274,13 +271,7 @@ const BrandShelf = () => {
         </SheetContent>
       </Sheet>
 
-      <DualPhotoCaptureSheet
-        open={captureOpen}
-        onOpenChange={setCaptureOpen}
-        onSubmit={handleScan}
-        busy={busy}
-        preferCamera={false}
-      />
+
 
       <Sheet open={linkOpen} onOpenChange={setLinkOpen}>
         <SheetContent side="bottom" className="rounded-t-3xl">
