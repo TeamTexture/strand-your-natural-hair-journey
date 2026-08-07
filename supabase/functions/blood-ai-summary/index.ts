@@ -497,6 +497,9 @@ Deno.serve(async (req: Request) => {
     let returnedPayload: BloodSummaryPayload;
     let providerStamp: "claude" | "lovable";
     let claudeShadow: BloodSummaryPayload | null = null;
+    // Retrieved manuscript text for this generation. Passed to the blood
+    // guardrail so mechanism wording is kept only when it IS in the manuscript.
+    let groundingText = "";
 
     if (provider === "claude") {
       returnedPayload = await runClaude({ body, recentWashSignals, ledgerBlock });
