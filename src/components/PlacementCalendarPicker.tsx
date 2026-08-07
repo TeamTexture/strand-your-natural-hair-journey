@@ -4,7 +4,6 @@ import {
   PlacementSlot,
   SLOT_LABEL,
   useTakenPlacements,
-  usePlacementRates,
   deriveBrandOfferStatus,
   londonToday,
 } from "@/hooks/useBrandOffers";
