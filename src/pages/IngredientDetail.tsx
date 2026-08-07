@@ -1442,22 +1442,8 @@ const IngredientDetail = () => {
                     )}
                   </LevelGate>
 
-                  <div className="rounded-lg bg-primary/8 border border-primary/25 p-3">
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-primary font-semibold mb-1.5">
-                      What this means for your hair
-                    </p>
-                    {profileLoading && !meansForYou && (
-                      <p className="text-sm leading-relaxed text-muted-foreground italic">
-                        Tailoring this to your hair…
-                      </p>
-                    )}
-                    {meansForYou && <AiProse text={meansForYou} />}
-                    {!profileLoading && !meansForYou && profileError && (
-                      <p className="text-sm leading-relaxed text-muted-foreground italic">
-                        Personalised guidance unavailable right now.
-                      </p>
-                    )}
-                  </div>
+                  {/* "What this means for your hair" block removed. */}
+
 
                   {isFlagged && (
                     <div className="rounded-lg bg-muted/40 border border-border/60 p-3">
