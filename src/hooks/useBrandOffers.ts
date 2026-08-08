@@ -846,7 +846,7 @@ export function useAdViewTracker(
             timer = null;
             if (firedRef.current) return;
             firedRef.current = true;
-            log.mutate({ offer_id: offerId, slot, event_type: "view", was_matched: matched, match_reason: reason });
+            log.mutate({ offer_id: offerId, slot, event_type: "view", was_matched: matched, match_reason: reason, unit });
             observer.disconnect();
           }, VIEW_DWELL_MS);
         } else {
