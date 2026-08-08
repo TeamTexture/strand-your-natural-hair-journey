@@ -1024,17 +1024,19 @@ const IngredientDetail = () => {
               <LevelGate min={1}>
                 <SectionLabel>How to use this for your hair</SectionLabel>
                 <SurfaceCard>
-                  <TipsBlock
+                  {/* The body IS the guidance — it is shown at every support
+                      level; only the number of tips scales with the level. */}
+                  <ActionList
                     idPrefix="pg"
-                    tips={analysis.personalised_guidance.map((tip, idx) => ({
-                      priority: analysis.personalised_guidance!.length - idx,
-                      short: tip.title,
-                      why: tip.body,
-                    }))}
+                    showWhy
+                    actions={analysis.personalised_guidance
+                      .slice(0, tipsLevel === 1 ? 1 : tipsLevel === 2 ? 2 : tipsLevel === 3 ? 4 : 6)
+                      .map((tip) => ({ action: tip.title, why: tip.body }))}
                   />
                 </SurfaceCard>
               </LevelGate>
             )}
+
 
             <SectionLabel>Ingredients</SectionLabel>
             {tipsLevel >= 2 && (
