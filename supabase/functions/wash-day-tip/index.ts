@@ -21,6 +21,17 @@ import {
   logTipRejection,
 } from "../_shared/tip-action.ts";
 import {
+  buildEditorialProductGuard,
+  editorialProductBlock,
+  findExcludedProducts,
+  redactProductNames,
+  minimalCapViolations,
+  minimalPromptBlock,
+  trimToCap,
+  MINIMAL_ACTION_WORD_CAP,
+  MINIMAL_REASON_WORD_CAP,
+} from "../_shared/editorial-products.ts";
+import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
   recordAdvice,
