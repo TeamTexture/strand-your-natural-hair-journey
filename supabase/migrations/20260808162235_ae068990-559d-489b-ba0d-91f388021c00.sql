@@ -1,0 +1,1 @@
+delete from public.ai_summaries where kind like 'ingredient_profile:%' and coalesce(btrim(payload->>'what_it_is'), '') = '';
