@@ -99,10 +99,52 @@ const FORBIDDEN_GUIDANCE_PATTERNS: RegExp[] = [
   /\btt\s+heat\b/i,
 ];
 
-// ACTION FLOOR (shared with the goal tip and wash day tip surfaces) — usage
-// guidance that never instructs the member to do anything is an observation,
-// not a tip. We never blank the card, so failures are logged for audit and the
-// tip is kept; the prompt above is what raises quality.
+// ACTION + REASON FLOORS (the same shared helpers the goal tip, routine tips
+// and the sponsored advert tip use). Usage guidance that never instructs the
+// member to do anything is an observation, not a tip; guidance whose "why"
+// merely restates the action is a tautology. Both now trigger ONE regeneration
+// with the failures echoed back. We still never blank the card — if the retry
+// also fails we log and serve, because a weak tip beats an empty product page.
+function guidanceFloorProblems(
+  analysis: AnalysisPayload,
+  attributeTokens: string[],
+): string[] {
+  const problems: string[] = [];
+  for (const tip of analysis.personalised_guidance ?? []) {
+    const title = String(tip?.title ?? "").trim();
+    const body = String(tip?.body ?? "").trim();
+    if (!body) continue;
+    // The first sentence carries the instruction; what follows is the why.
+    const sentences = body.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
+    const action = sentences[0] ?? body;
+    const reason = sentences.slice(1).join(" ");
+    const label = title || action.slice(0, 40);
+
+    const actionCheck = validateTipAction({
+      action,
+      supporting: [title, reason],
+      attributeTokens,
+    });
+    if (!actionCheck.ok)
+      problems.push(
+        `the tip "${label}" fails the action floor (${actionCheck.reasons.join(", ")}). Its FIRST sentence must be a direct instruction for using THIS product — the physical action, where on the head, how much, and when — and must name one of this member's recorded details.`,
+      );
+
+    if (!reason)
+      problems.push(
+        `the tip "${label}" gives an instruction with no reason. Add ONE sentence after the instruction explaining why it matters for this member's hair — the mechanism or the consequence.`,
+      );
+    else {
+      const reasonCheck = validateTipReason({ reason, action });
+      if (!reasonCheck.ok)
+        problems.push(
+          `the tip "${label}" fails the reason floor (${reasonCheck.reasons.join(", ")}). The explanation must not restate the instruction in different words.`,
+        );
+    }
+  }
+  return problems;
+}
+
 function auditGuidanceActionFloor(analysis: AnalysisPayload, productKey: string): void {
   for (const tip of analysis.personalised_guidance ?? []) {
     const text = `${tip?.title ?? ""} ${tip?.body ?? ""}`;
@@ -114,6 +156,7 @@ function auditGuidanceActionFloor(analysis: AnalysisPayload, productKey: string)
     }
   }
 }
+
 
 function guidanceReferencesOtherProduct(analysis: AnalysisPayload): boolean {
   const tips = analysis.personalised_guidance ?? [];
