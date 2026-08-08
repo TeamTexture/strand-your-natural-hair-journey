@@ -56,7 +56,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v10-no-product-names";
+const MODEL_VERSION = "wash-tip@v11-reason-floor-technique-roles";
 
 interface TipPayload {
   headline: string;
@@ -121,7 +121,7 @@ OUTPUT — JSON object only, no prose outside it:
   "action": string,     // REQUIRED. Exactly ONE sentence, starting with an instruction verb, telling THIS member what to physically do on their NEXT wash day — where on the head, with what type of product, and how long or how often. Must name at least one of their own recorded details (their current style, porosity, density, a goal, a challenge or their last wash). This sentence is shown at EVERY support level, including the most minimal, so it must stand alone as usable guidance.
   "reason": string,     // REQUIRED. ONE sentence explaining WHY that action matters for THIS member — the mechanism it works through, or what happens to their hair if it is skipped. It must EXPLAIN, never restate the action. Grounded in the supplied manuscript passages. Shown at EVERY support level alongside the action.
   "why": string,        // 2-3 sentences. Ties the tip to THIS user's data (name a specific trait, pattern across their logs, marker, or goal). No filler.
-  "technique": string,  // 1-2 sentences. The concrete "how" — sequence, product type, tool, timing.
+  "technique": string,  // OPTIONAL. 1-2 sentences of HOW to do the action well — grip, direction, pressure, section order, how much product, what to avoid. It MUST contain specifics the "action" does NOT contain. If you cannot add genuinely new specifics, return "" — an omitted technique is better than the action reworded.
   "next_time": string   // OPTIONAL. 1-2 sentences framed as ONE option to try on their NEXT wash day, given where their hair is now and the style they are moving into. Return "" when there is nothing genuinely worth suggesting — never pad it.
 }
 
@@ -136,6 +136,7 @@ RULES:
 - Never contradict the Chapter 13 wash-day protocol (cleanse scalp → cleanse hair → condition).
 - No book/chapter citations. No emojis. No pleasantries.
 - REASON FLOOR — non-negotiable: "reason" is never empty and never a reworded version of "action". It explains the mechanism or the consequence, and it must be supported by the supplied manuscript passages. If the WHY cannot be grounded, choose a DIFFERENT tip whose why CAN be grounded — never drop the why.
+- FIELD ROLES: "action" is WHAT to do. "technique" is HOW to do it well. They must never be the same instruction reworded — if the technique adds nothing new, return it empty.
 - The minimum shape at every support level is: headline + action + reason. Two sentences is enough at the most minimal level.
 - ACTION FLOOR — non-negotiable: "action" is never empty, never a topic statement, and never a hedge. Do not open it with "consider", "be mindful", "it's important to", "you may want to" or "try to remember". It is an instruction they can follow on their next wash day.
 - Everything you write must stay grounded in the supplied manuscript passages. If an action cannot be grounded, choose a different grounded action — never emit an ungrounded one, and never fall back to a headline with no action.
@@ -151,7 +152,7 @@ OUTPUT — JSON object only, no prose outside it:
   "action": string,     // REQUIRED. Exactly ONE sentence, starting with an instruction verb, telling THIS member what to physically do next — naming at least one of their own recorded details. Shown at EVERY support level, so it must stand alone as usable guidance. Never a hedge ("consider", "be mindful", "it's important to").
   "reason": string,     // REQUIRED. ONE sentence explaining WHY that action matters for THIS member — the mechanism, or what happens if it is skipped. Explains, never restates the action. Grounded in the supplied manuscript passages. Shown at EVERY support level.
   "why": string,        // 2-3 sentences. Ties the tip to THIS user's style, tension, extensions or a goal they set.
-  "technique": string   // 1-2 sentences. The concrete "how" for wearing, maintaining or taking down this style.
+  "technique": string   // OPTIONAL. 1-2 sentences of HOW to do it well — grip, direction, pressure, section order, how much product, what to avoid. Must add specifics the "action" does NOT contain, otherwise return "".
 }
 
 RULES:
@@ -522,7 +523,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     // A technique that only restates the action is DROPPED, never served. The
     // card loses a block; it does not gain a duplicate.
     if (verdict.reasons.includes("technique_duplicates_action")) {
-      parsed = { ...parsed, technique: "" };
+      parsed = { ...(parsed as Parsed), technique: "" };
     }
     await logTipRejection(
       isStyle ? "style-tip" : "wash-day-tip",
