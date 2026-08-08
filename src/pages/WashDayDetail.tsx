@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Pencil,
   Trash2,
@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import BrandLink from "@/components/BrandLink";
 import { stripStaleDates } from "@/lib/stripStaleDates";
+import { toParagraphs } from "@/lib/formatTranscript";
 import AiProse from "@/components/tips/AiProse";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import LevelGate from "@/components/tips/LevelGate";
