@@ -499,10 +499,12 @@ const WashDayHub = () => {
         <SponsoredWashDayTipCard onRendered={setSponsoredTipShown} />
         {!sponsoredTipShown && <DynamicWashTipCard onShown={setDynamicTipShown} />}
 
-        {/* The brand's approved advert in full, beneath the tip. Same component
-            as the home page — the tip is added value, not a substitute for the
-            placement they paid for. */}
-        <BrandBanner slot="wash_day" />
+        {/* The brand's approved advert in full, beneath the tip — collapsed by
+            default, expanding to the identical content the home page shows.
+            Same component, no wash-day variant: the tip is added value, not a
+            substitute for the placement they paid for. */}
+        <BrandBanner slot="wash_day" collapsedCta="See full offer" />
+
 
 
         <div id="wash-calendar">
