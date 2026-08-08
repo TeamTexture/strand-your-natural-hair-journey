@@ -209,7 +209,7 @@ function healthTip(context: UnknownRecord): string | null {
     .filter(Boolean)
     .slice(0, 2);
   if (flagged.length === 0) return null;
-  return `Keep the routine gentle and consistent while ${flagged.join(" and ")} is flagged — follicles recover better with clean scalp, low tension, moisture-first conditioning and professional follow-up where needed.`;
+  return `Keep the routine gentle and consistent while ${flagged.join(" and ")} sits outside range — that means a clean scalp, low tension and moisture-first conditioning as your baseline, and the marker itself is one to take to your GP.`;
 }
 
 function cleanseModelTip(tip: string): string {
