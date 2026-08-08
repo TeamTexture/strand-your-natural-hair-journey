@@ -91,10 +91,9 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
         (o) => (o as { brand_offer_products?: unknown[] }).brand_offer_products?.length,
       );
       if (!row) return null;
-      // Preview shows what members see: the FIRST attached product by
-      // `position`, never a list.
+      // ONE PRODUCT PER ADVERT — the junction carries a single row.
       const products = ((row as { brand_offer_products?: Array<{ brand_products: unknown }> })
-        .brand_offer_products ?? []).map((r) => r.brand_products).slice(0, 1);
+        .brand_offer_products ?? []).map((r) => r.brand_products);
       return { brand_offers: { ...row, brand_products: products }, was_matched: null, match_reason: null };
     },
   });
@@ -126,9 +125,8 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
         }> | null;
       }
     | undefined;
-  // EXACTLY ONE PRODUCT. An offer may have several attached; this card promotes
-  // only the first by `position` (then earliest created) — never a list, never
-  // a carousel. The brand controls which one by ordering their shelf.
+  // ONE PRODUCT PER ADVERT — enforced at submission, so this is the advertised
+  // product, not a pick from a list.
   const product = offer?.brand_products?.[0] ?? null;
   const enabled = (preview || !!consented) && !!offer?.id && !!product;
 

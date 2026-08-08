@@ -198,28 +198,44 @@ const BrandDetailPage = () => {
           .maybeSingle(),
         supabase
           .from("brand_offers")
-          .select("id, headline, body_copy, hero_image_path, external_url, discount_code, starts_on, ends_on, status, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url)")
+          .select("id, headline, body_copy, hero_image_path, external_url, discount_code, starts_on, ends_on, status, brand_user_id, brand_offer_products(position, created_at, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))")
           .eq("brand_user_id", brandUserId!)
           .in("status", ["live", "paid_scheduled"])
           .lte("starts_on", today)
           .gte("ends_on", today)
-          .order("starts_on"),
+          .order("starts_on")
+          .order("position", { referencedTable: "brand_offer_products", ascending: true })
+          .order("created_at", { referencedTable: "brand_offer_products", ascending: true }),
         supabase
           .from("brand_offers")
-          .select("id, headline, body_copy, hero_image_path, external_url, starts_on, ends_on, brand_products(name)")
+          .select("id, headline, body_copy, hero_image_path, external_url, starts_on, ends_on, brand_offer_products(position, brand_products(name))")
           .eq("brand_user_id", brandUserId!)
           .eq("status", "ended")
           .order("ends_on", { ascending: false })
           .limit(10),
+
         supabase.rpc("brand_public_catalogue", { _brand_user_id: brandUserId! }),
       ]);
 
+      // Flatten the junction into `brand_products` — ONE PRODUCT PER ADVERT, so
+      // the first row by `position` is the advertised product.
+      const flatten = (rows: unknown[]): Array<Record<string, unknown> & { id: string }> =>
+        (rows ?? []).map((r) => {
+          const row = r as { brand_offer_products?: Array<{ brand_products: unknown }> | null };
+          return {
+            ...(r as Record<string, unknown>),
+            brand_products: (row.brand_offer_products ?? []).map((j) => j.brand_products).filter(Boolean),
+          } as unknown as Record<string, unknown> & { id: string };
+        });
+
+
       return {
         brand: brandRes.data,
-        live: liveRes.data ?? [],
-        past: (pastRes.data ?? []) as PastOffer[],
+        live: flatten(liveRes.data ?? []),
+        past: flatten(pastRes.data ?? []) as unknown as PastOffer[],
         catalogue: ((catRes.data ?? []) as CatalogueItem[]),
       };
+
     },
   });
 
@@ -370,8 +386,9 @@ const BrandDetailPage = () => {
                   key={o.id}
                   offer={o as unknown as BannerOffer}
                   slot="brand_page"
-                  
+                  brandName={brand.brand_name ?? null}
                 />
+
               ))}
             </div>
           ) : (

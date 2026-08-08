@@ -388,8 +388,8 @@ const BrandCreateOffer = () => {
       // implementation only — the old brand-product-scrape is deleted.
       const item = await scanProductLink(normalised);
       const kind: AttachKind = scrapeKind === "tool" ? "tool" : "product";
-      setProducts((prev) => [
-        ...prev,
+      // ONE PRODUCT PER ADVERT — a fresh draft replaces the attached item.
+      setProducts([
         {
           kind,
           name: item.name ?? "",
@@ -404,6 +404,7 @@ const BrandCreateOffer = () => {
           source_url: normalised,
         },
       ]);
+
       setScrapeUrl("");
       toast.success(kind === "tool" ? "Tool draft added — review and edit below" : "Product draft added — review and edit below");
     } catch (e) {
@@ -414,9 +415,11 @@ const BrandCreateOffer = () => {
   };
 
 
-  // Attaching from the brand's OWN shelf. The shelf item is copied into the
-  // advert draft (adverts keep their own snapshot of a product) and tagged with
-  // linked_product_id so the shelf item it came from stays traceable.
+  // Attaching from the brand's OWN shelf. ONE PRODUCT PER ADVERT: picking an
+  // item REPLACES whatever was attached — the shelf sheet is a swap, not a
+  // multi-select. The shelf item is copied into the advert draft (adverts keep
+  // their own snapshot) and tagged with linked_product_id so the shelf item it
+  // came from stays traceable.
   const isShelfItemAttached = (id: string) =>
     products.some((p) => p.linked_product_id === id);
 
@@ -438,8 +441,8 @@ const BrandCreateOffer = () => {
       return;
     }
     const kind: AttachKind = item.kind === "tool" ? "tool" : "product";
-    setProducts((prev) => [
-      ...prev,
+    const replaced = products.length > 0;
+    setProducts([
       {
         kind,
         name: item.name,
@@ -454,8 +457,10 @@ const BrandCreateOffer = () => {
         linked_product_id: item.id,
       },
     ]);
-    toast.success("Attached from your shelf");
+    setShelfOpen(false);
+    toast.success(replaced ? "Product swapped — this advert promotes one product" : "Attached from your shelf");
   };
+
 
 
   const { isActive: brandSubActive } = useBrandSubscription();
@@ -472,6 +477,14 @@ const BrandCreateOffer = () => {
 
   const submit = async (asDraft: boolean) => {
     if (!user) return;
+    // ONE PRODUCT PER ADVERT — blocked on submission (drafts may still carry a
+    // legacy extra row so nothing the brand entered is lost). The database
+    // enforces the same rule on the status change to `under_review`.
+    if (!asDraft && products.length > 1) {
+      return toast.error("An advert can promote only one product. Remove the extra attached item.");
+    }
+
+
 
     // ── Revision path ──────────────────────────────────────────────────────────
     // Editing an already-paid/live offer: submit a pending revision for admin
@@ -797,8 +810,12 @@ const BrandCreateOffer = () => {
         )}
 
 
-        <SectionLabel className="!px-0">Attach products &amp; tools</SectionLabel>
+        <SectionLabel className="!px-0">Attach one product or tool</SectionLabel>
         <SurfaceCard className="space-y-3">
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            An advert promotes exactly one product or tool. Attaching another replaces the one
+            currently attached.
+          </p>
           <div className="rounded-[12px] border border-primary/25 bg-primary/5 p-3">
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
               <PackagePlus className="size-3 text-primary" /> Attach from your shelf
@@ -808,7 +825,7 @@ const BrandCreateOffer = () => {
               advert's discount code straight from your brand page.
             </p>
             <Button type="button" variant="outline" size="pill" onClick={() => setShelfOpen(true)} className="mt-2 w-full px-4">
-              Choose from your shelf
+              {products.length > 0 ? "Change product" : "Choose from your shelf"}
             </Button>
           </div>
           <div>
@@ -845,20 +862,27 @@ const BrandCreateOffer = () => {
           <div className="flex flex-wrap gap-3 pt-1">
             <button
               type="button"
-              onClick={() => setProducts((p) => [...p, emptyProduct("product")])}
+              onClick={() => setProducts([emptyProduct("product")])}
               className="text-[12px] text-primary underline underline-offset-2"
             >
-              + Add product manually
+              {products.length > 0 ? "Replace with a manual product" : "+ Add product manually"}
             </button>
             <button
               type="button"
-              onClick={() => setProducts((p) => [...p, emptyProduct("tool")])}
+              onClick={() => setProducts([emptyProduct("tool")])}
               className="text-[12px] text-primary underline underline-offset-2"
             >
-              + Add tool manually
+              {products.length > 0 ? "Replace with a manual tool" : "+ Add tool manually"}
             </button>
           </div>
+          {products.length > 1 && (
+            <p className="text-[11px] font-body text-destructive leading-snug">
+              This advert has {products.length} items attached from an earlier version. Members see
+              only the first. Remove the extras before submitting for review.
+            </p>
+          )}
         </SurfaceCard>
+
 
         {products.map((p, i) => (
           <SurfaceCard key={i} className="space-y-2">
