@@ -45,12 +45,51 @@ const formatEnds = (iso: string | null | undefined) => {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 };
 
-const SponsoredWashDayTipCard = () => {
+export interface SponsoredWashDayTipCardProps {
+  /**
+   * ADMIN PREVIEW. Renders the card for review without a personalised-offers
+   * consent, without a delivery match, and — critically — WITHOUT logging any
+   * `ad_events`, so a review never contaminates a brand's reported metrics.
+   */
+  preview?: boolean;
+  /** Which offer to preview. Defaults to the most recent offer with a product. */
+  previewOfferId?: string;
+}
+
+const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredWashDayTipCardProps = {}) => {
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: consented } = usePersonalisedOffersConsent();
-  const { data: delivery } = useActiveBrandOffer(SLOT);
+  const { data: liveDelivery } = useActiveBrandOffer(preview ? (undefined as never) : SLOT);
   const logEvent = useLogAdEvent();
+
+  // Preview source: an explicit offer, else the newest offer that has a
+  // product attached — status-agnostic, because a campaign has to be
+  // reviewable BEFORE it goes live.
+  const { data: previewDelivery } = useQuery({
+    queryKey: ["sponsored-tip-preview", previewOfferId ?? "latest"],
+    enabled: preview,
+    staleTime: 60_000,
+    queryFn: async () => {
+      let q = supabase
+        .from("brand_offers")
+        .select(
+          "id, headline, body_copy, discount_code, external_url, ends_on, brand_user_id, brand_offer_products(brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))",
+        )
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (previewOfferId) q = q.eq("id", previewOfferId);
+      const { data } = await q;
+      const row = (data ?? []).find(
+        (o) => (o as { brand_offer_products?: unknown[] }).brand_offer_products?.length,
+      );
+      if (!row) return null;
+      const products = ((row as { brand_offer_products?: Array<{ brand_products: unknown }> })
+        .brand_offer_products ?? []).map((r) => r.brand_products);
+      return { brand_offers: { ...row, brand_products: products }, was_matched: null, match_reason: null };
+    },
+  });
+  const delivery = preview ? previewDelivery : liveDelivery;
   const { allProducts, upsert } = useUserProducts();
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -79,7 +118,7 @@ const SponsoredWashDayTipCard = () => {
       }
     | undefined;
   const product = offer?.brand_products?.[0] ?? null;
-  const enabled = !!consented && !!offer?.id && !!product;
+  const enabled = (preview || !!consented) && !!offer?.id && !!product;
 
   // Brand identity: name + the colours extracted once at logo upload.
   const { data: brand } = useQuery({
@@ -112,7 +151,8 @@ const SponsoredWashDayTipCard = () => {
     { enabled, surface: "wash_day" },
   );
 
-  const viewRef = useAdViewTracker(enabled ? offer!.id : undefined, SLOT as never, {
+  // No impression is logged in preview mode.
+  const viewRef = useAdViewTracker(enabled && !preview ? offer!.id : undefined, SLOT as never, {
     was_matched: delivery?.was_matched ? true : null,
     match_reason: delivery?.match_reason ? { codes: delivery.match_reason } : null,
   });
@@ -137,15 +177,21 @@ const SponsoredWashDayTipCard = () => {
 
   if (!enabled || !offer || !product) return null;
 
+  /** Every ad_event goes through here so preview mode can silence all of them. */
+  const track = (event: Parameters<typeof logEvent.mutate>[0]) => {
+    if (preview) return;
+    logEvent.mutate(event);
+  };
+
   const toggle = () => {
     setExpanded((v) => {
-      if (!v) logEvent.mutate({ offer_id: offer.id, brand_product_id: product.id, slot: SLOT, event_type: "expand" });
+      if (!v) track({ offer_id: offer.id, brand_product_id: product.id, slot: SLOT, event_type: "expand" });
       return !v;
     });
   };
 
   const openProduct = () => {
-    logEvent.mutate({ offer_id: offer.id, brand_product_id: product.id, slot: SLOT, event_type: "link_click" });
+    track({ offer_id: offer.id, brand_product_id: product.id, slot: SLOT, event_type: "link_click" });
     // Existing rule: a member who already owns it goes to their own shelf item,
     // never to a brand copy of the same product.
     if (onShelf && shelfRow) nav(`/products/profile/${shelfRow.id}`);
@@ -168,7 +214,7 @@ const SponsoredWashDayTipCard = () => {
         on_wishlist: false,
       });
       if (!row) throw new Error("Could not add to your shelf");
-      logEvent.mutate({ offer_id: offer.id, brand_product_id: product.id, slot: SLOT, event_type: "shelf_add" });
+      track({ offer_id: offer.id, brand_product_id: product.id, slot: SLOT, event_type: "shelf_add" });
       toast.success("Added to your shelf");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not add to your shelf");
@@ -194,6 +240,11 @@ const SponsoredWashDayTipCard = () => {
         borderLeft: `3px solid ${colours.primary}`,
       }}
     >
+      {preview && (
+        <p className="px-4 pt-3 text-[10px] uppercase tracking-[0.16em] font-bold font-body text-foreground/60">
+          Admin preview — not shown to members, nothing logged
+        </p>
+      )}
       <div className="p-4">
         {/* Disclosure — same prominence as the TRY THIS label, never small print. */}
         <div className="flex items-center justify-between gap-2">
@@ -289,7 +340,7 @@ const SponsoredWashDayTipCard = () => {
                 code={offer.discount_code}
                 variant="block"
                 onCopy={() =>
-                  logEvent.mutate({
+                  track({
                     offer_id: offer.id,
                     brand_product_id: product.id,
                     slot: SLOT,
