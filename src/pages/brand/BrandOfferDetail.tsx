@@ -336,10 +336,30 @@ const BrandOfferDetail = () => {
         )}
 
         <SectionLabel className="!px-0">Performance</SectionLabel>
-        {statsSuppressed ? (
+        {derived === "live" && (
+          <SurfaceCard className="py-2.5 flex items-center gap-2.5">
+            <span className="relative flex size-2 shrink-0">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-70 animate-ping" />
+              <span className="relative inline-flex size-2 rounded-full bg-primary" />
+            </span>
+            <p className="text-[11.5px] font-body flex-1 min-w-0 leading-snug">
+              Live now — figures update automatically
+              {statsFetchedAt ? ` · updated ${format(statsFetchedAt, "HH:mm")}` : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="text-[11px] font-body text-primary inline-flex items-center gap-1 shrink-0"
+            >
+              <RotateCcw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </SurfaceCard>
+        )}
+        {statsSuppressed && derived !== "live" ? (
           <SurfaceCard className="py-3">
             <p className="text-[12px] font-body leading-snug">
-              Your campaign is running. Performance figures will appear here as members see it.
+              Performance figures will appear here as members see your advert.
             </p>
           </SurfaceCard>
         ) : (
@@ -358,6 +378,7 @@ const BrandOfferDetail = () => {
             </p>
           </>
         )}
+
 
         {derived === "ended" && (
           <SurfaceCard className="bg-primary/5 border-primary/30">
