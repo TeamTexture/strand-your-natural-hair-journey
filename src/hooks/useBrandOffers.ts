@@ -765,6 +765,7 @@ export function useLogAdEvent() {
       event_type,
       was_matched,
       match_reason,
+      unit,
     }: {
       offer_id?: string | null;
       brand_product_id?: string | null;
@@ -772,10 +773,14 @@ export function useLogAdEvent() {
       event_type: AdEventType;
       was_matched?: boolean | null;
       match_reason?: Record<string, unknown> | null;
+      /** Which on-page unit produced this event. `advert` is the approved
+       *  advert placement; `wash_day_tip` is the sponsored wash day tip card,
+       *  which sits on the same page and must stay distinguishable. */
+      unit?: "advert" | "wash_day_tip";
     }) => {
       if (!offer_id && !brand_product_id) return;
       // Fire-and-forget. Server-side dedupe caps billable views at one per
-      // (user, offer, slot) per hour, so the client never has to guess.
+      // (user, offer, slot, unit) per hour, so the client never has to guess.
       const { error } = await supabase.rpc("record_ad_event" as never, {
         p_offer_id: offer_id ?? null,
         p_brand_product_id: brand_product_id ?? null,
@@ -783,11 +788,13 @@ export function useLogAdEvent() {
         p_slot: slot ?? "unknown",
         p_was_matched: was_matched ?? null,
         p_match_reason: match_reason ?? null,
+        p_unit: unit ?? "advert",
       } as never);
       if (error) console.warn("ad event log failed", error);
     },
   });
 }
+
 
 
 /** Viewability gate for the `view` event: the element must be at least
