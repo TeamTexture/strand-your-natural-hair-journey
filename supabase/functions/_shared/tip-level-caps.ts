@@ -111,7 +111,7 @@ export function tipLevelPromptBlock(level: unknown): string {
     "",
     "TIP FIELD ROLES AND HARD WORD CAPS FOR THIS MEMBER'S SUPPORT LEVEL — VALIDATED, NOT ADVISORY.",
     '- "action" and "reason" are required at EVERY level. "reason" is ALWAYS exactly ONE sentence, and it explains — it never restates the action.',
-    '- FIELD ROLES ARE DISTINCT AND VALIDATED: "action" = WHAT to do (the instruction). "technique" = HOW to do it well — grip, direction, pressure, section order, how much product, what to avoid. "technique" MUST contain specifics "action" does NOT contain. If it cannot, return "technique" as an EMPTY STRING; an omitted technique is better than the action said twice.',
+    '- There is NO "technique" field. Everything the member must physically do belongs in "action". Always return "technique" as an EMPTY STRING.',
   ];
 
   if (caps.action === 20) {
