@@ -683,6 +683,10 @@ Deno.serve(async (req) => {
 
     type GoalTipShape = {
       headline?: string;
+      /** Single-tip surface: the instruction. Never dropped. */
+      action?: string;
+      /** Single-tip surface: why it matters for her. Never dropped. */
+      reason?: string;
       body?: string;
       key_fact?: string;
       actions?: unknown[];
@@ -690,6 +694,7 @@ Deno.serve(async (req) => {
       caution?: string;
       signals?: unknown[];
     };
+
     const parseResponse = async (resp: Response): Promise<GoalTipShape | null> => {
       const aiJson = await resp.json();
       const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
