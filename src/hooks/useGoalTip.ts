@@ -8,10 +8,10 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_AI_DIRECTIVE } from "@/lib/tipsLevel";
 import {
   hashString,
-  loadResponsiveSignals,
-  responsiveSignatureParts,
-  styleSignatureParts,
+  strandTipSignatureParts,
+  strandTipStyleColumns,
 } from "@/lib/tipSignature";
+
 
 
 export interface GoalTipAction {
