@@ -592,7 +592,9 @@ const BrandCreateOffer = () => {
         const { error } = await supabase.from("brand_offers").update(payload as unknown as never).eq("id", offerId);
         if (error) throw error;
         await supabase.from("brand_offer_placements").delete().eq("offer_id", offerId);
-        await supabase.from("brand_products").delete().eq("offer_id", offerId);
+        // Unlink only. Brand product rows belong to the brand's shelf and are
+        // never deleted by an advert edit — deleting them orphaned member shelves.
+        await supabase.from("brand_offer_products").delete().eq("offer_id", offerId);
       } else {
         const { data, error } = await supabase.from("brand_offers").insert(payload as unknown as never).select("id").single();
         if (error) throw error;
