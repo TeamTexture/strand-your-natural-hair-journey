@@ -130,7 +130,7 @@ const BrandProducts = () => {
               <button
                 key={t.id}
                 type="button"
-                onClick={() => navigate("/products?tab=tools")}
+                onClick={() => navigate("/products")}
                 className="w-full text-left"
               >
                 <SurfaceCard className="!py-3">
