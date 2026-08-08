@@ -19,6 +19,7 @@ import {
 
 interface StyleTipPayload {
   headline: string;
+  action: string;
   why: string;
   technique: string;
 }
@@ -44,7 +45,7 @@ export function useStyleTip() {
 
       const fingerprint = hashString(
         [
-          "style-tip-v4-scalp",
+          "style-tip-v5-action",
           String(h?.hair_type ?? ""),
           String(h?.porosity ?? ""),
           String(h?.density ?? ""),
@@ -95,7 +96,9 @@ export function useStyleTip() {
         {
           priority: 10,
           short: tip.headline,
-          why: tip.why,
+          // The action sentence leads the "why" so it survives condensing at
+          // the minimal support level — a headline alone is never a tip.
+          why: [tip.action, tip.why].filter(Boolean).join(" "),
           alwaysShow: true,
         },
       ];
