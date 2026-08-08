@@ -54,7 +54,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v8-action-plus-reason";
+const MODEL_VERSION = "wash-tip@v9-editorial-wall-minimal-caps";
 
 interface TipPayload {
   headline: string;
@@ -418,7 +418,7 @@ Do not substitute other cleansing or sealing methods for these two.`
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+            { role: "system", content: systemPrompt },
             {
               role: "user",
               content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
