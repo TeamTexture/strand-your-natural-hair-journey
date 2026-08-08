@@ -60,7 +60,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v11-reason-floor-technique-roles";
+const MODEL_VERSION = "wash-tip@v12-procedural-method-floor";
 
 interface TipPayload {
   headline: string;

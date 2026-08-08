@@ -79,7 +79,7 @@ export function useWashDaySteps() {
   const { level } = useTipsLevel();
 
   return useQuery({
-    queryKey: ["wash_day_steps_v1", user?.id, level],
+    queryKey: ["wash_day_steps_v2", user?.id, level],
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,
