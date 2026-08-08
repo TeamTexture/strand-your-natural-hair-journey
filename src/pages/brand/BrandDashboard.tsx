@@ -285,18 +285,7 @@ const BrandDashboard = () => {
           </button>
         )}
 
-        {ownerMode !== "pro" && (
-          <button
-            onClick={() => nav("/brand/shelf")}
-            className="w-full text-left rounded-2xl border border-border bg-card p-4 hover:border-primary/50 transition-colors"
-          >
-            <p className="font-display text-[15px] leading-tight">Your shelf</p>
-            <p className="mt-1 text-[12px] font-body text-muted-foreground leading-snug">
-              Your permanent product catalogue. It stays on your brand page between campaigns,
-              and members can add from it directly.
-            </p>
-          </button>
-        )}
+        {ownerMode !== "pro" && <BrandShelfPreview />}
 
 
         {ownerMode !== "pro" && <ShelfEngagementSection />}
