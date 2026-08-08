@@ -7,13 +7,13 @@ import type { TipsLevel } from "@/lib/tipsLevel";
  * The single approved way to hide supporting detail — no page should compare
  * levels inline.
  *
- *  <LevelGate min={2}>…one-line context…</LevelGate>
- *  <LevelGate min={3}>…the full "why" paragraph…</LevelGate>
- *  <LevelGate max={3}>…standard list, replaced by the beginner guide at 4…</LevelGate>
+ *  <LevelGate min={2}>…the concrete how-to…</LevelGate>
+ *  <LevelGate min={3}>…the extended "why" paragraph, beginner detail…</LevelGate>
+ *  <LevelGate max={2}>…standard list, replaced by the beginner guide at 3…</LevelGate>
  */
 const LevelGate = ({
   min = 1,
-  max = 4,
+  max = 3,
   children,
   fallback = null,
 }: {
