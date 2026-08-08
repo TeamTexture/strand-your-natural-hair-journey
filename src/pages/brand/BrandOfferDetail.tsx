@@ -240,6 +240,62 @@ const BrandOfferDetail = () => {
 
 
 
+        {/* Audience edits held safely while the uplift is unpaid. Nothing here
+          * is live to members and the running campaign is untouched. */}
+        {awaitingPaymentRevision && (
+          <SurfaceCard className="bg-warn/5 border-warn/40">
+            <div className="flex items-start gap-2.5">
+              <Clock className="size-4 text-warn mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-display text-[14px]">Audience change awaiting payment</p>
+                <p className="text-[11.5px] text-muted-foreground font-body mt-0.5 leading-snug">
+                  Your edits are saved. Targeting costs {money(awaitingPaymentRevision.uplift_pence)} more across the{" "}
+                  {awaitingPaymentRevision.remaining_days} day
+                  {awaitingPaymentRevision.remaining_days === 1 ? "" : "s"} still to run. Once payment clears it goes to admin review — until
+                  then your campaign keeps running exactly as booked.
+                </p>
+                <div className="flex gap-1.5 mt-2">
+                  <Button
+                    variant="gold"
+                    size="pill"
+                    disabled={upliftCheckout.isPending}
+                    onClick={async () => {
+                      try {
+                        const url = await upliftCheckout.mutateAsync({ revision_id: awaitingPaymentRevision.id });
+                        window.location.href = url;
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Checkout could not be started");
+                      }
+                    }}
+                    className="flex-1 text-[11px]"
+                  >
+                    Pay {money(awaitingPaymentRevision.uplift_pence)}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="pill"
+                    disabled={withdrawRevision.isPending}
+                    onClick={async () => {
+                      try {
+                        await withdrawRevision.mutateAsync({
+                          revision_id: awaitingPaymentRevision.id,
+                          offer_id: offer.id,
+                        });
+                        toast.success("Audience change discarded");
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Discard failed");
+                      }
+                    }}
+                    className="flex-1 text-[11px] text-destructive border-destructive/30 hover:bg-destructive/5"
+                  >
+                    Discard
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SurfaceCard>
+        )}
+
         {pendingRevision && (
           <SurfaceCard className="bg-warn/5 border-warn/40">
             <div className="flex items-start gap-2.5">
