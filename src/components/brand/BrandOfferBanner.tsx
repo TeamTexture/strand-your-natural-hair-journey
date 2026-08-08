@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-import { ChevronDown, ChevronUp, ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronRight, ExternalLink, Plus, Check, Loader2 } from "lucide-react";
 import { useLogAdEvent, useAdViewTracker } from "@/hooks/useBrandOffers";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserProducts } from "@/hooks/useUserProducts";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { getSignedUrl } from "@/lib/signedUrlCache";
 import AdFitLine from "@/components/guidance/AdFitLine";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
+
 
 
 export type BannerProductRow = {
@@ -44,7 +48,16 @@ interface Props {
   matchReason?: string[] | null;
   /** Brand name shown beneath the product name; looked up when not supplied. */
   brandName?: string | null;
+  /**
+   * COLLAPSED STATE. The banner is collapsed by default everywhere (home page
+   * included) — this prop only adds an explicit worded control to the collapsed
+   * strip, e.g. "See full offer" on the wash day screen where the advert sits
+   * under the sponsored tip and needs to read as openable. Omitted on the home
+   * page, so its appearance is byte-for-byte unchanged.
+   */
+  collapsedCta?: string | null;
 }
+
 
 
 /** The advert exactly as it renders in a consumer placement: collapsed strip
@@ -56,15 +69,24 @@ interface Props {
  *  targeting is handled globally by the `personalised_offers` consent and the
  *  Personalised offers preferences page.
  *
+ *  THIS IS THE ONLY ADVERT RENDERER IN THE CODEBASE. Every placement — home,
+ *  products, wash day (beneath the sponsored tip), the public brand page —
+ *  renders this component. Never fork it for a surface-specific variant: two
+ *  advert renderers is how the duplicated product rows happened.
+ *
  *  Shared by the in-app placements (`BrandBanner`, which resolves delivery) and
  *  the public brand page, so a member who closes an advert can find the same
  *  card again in the brand directory with the same features. */
-const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null, brandName: brandNameProp = null }: Props) => {
+const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null, brandName: brandNameProp = null, collapsedCta = null }: Props) => {
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [shelfBusy, setShelfBusy] = useState(false);
   const logEvent = useLogAdEvent();
   const nav = useNavigate();
+  const { user } = useAuth();
+  const { allProducts, upsert } = useUserProducts();
+
 
   // `view` fires only after the banner has been ≥50% visible for a continuous
   // 1s — never on mount/render.
@@ -126,6 +148,49 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
     }
   };
 
+  // ADD TO SHELF lives here, in the advert's product block — it used to be
+  // duplicated in the wash day sponsored tip card. One place only.
+  const shelfRow = useMemo(() => {
+    if (!product) return null;
+    return (
+      allProducts.find(
+        (row) =>
+          row.linked_brand_product_id === product.id ||
+          row.product_key === `brand-offer:${product.id}` ||
+          (row.name.trim().toLowerCase() === product.name.trim().toLowerCase() &&
+            (row.brand ?? "").trim().toLowerCase() === (brandName ?? "").trim().toLowerCase()),
+      ) ?? null
+    );
+  }, [allProducts, product, brandName]);
+  const onShelf = !!shelfRow?.on_shelf;
+
+  const addToShelf = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user || !product) return;
+    setShelfBusy(true);
+    try {
+      const row = await upsert({
+        product_key: shelfRow?.product_key ?? `brand-offer:${product.id}`,
+        name: product.name,
+        brand: brandName,
+        ingredients: (product.ingredients ?? []) as string[],
+        image_url: product.image_urls?.[0] ?? null,
+        linked_brand_offer_id: offer.id,
+        linked_brand_product_id: product.id,
+        on_shelf: true,
+        on_wishlist: false,
+      });
+      if (!row) throw new Error("Could not add to your shelf");
+      logEvent.mutate({ offer_id: offer.id, brand_product_id: product.id, slot, event_type: "shelf_add" });
+      toast.success("Added to your shelf");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not add to your shelf");
+    } finally {
+      setShelfBusy(false);
+    }
+  };
+
+
   const toggleExpand = () => {
     setExpanded((v) => {
       const next = !v;
@@ -173,11 +238,20 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
               </p>
             </div>
           )}
+          {/* Worded open control, only where a caller asks for one (wash day).
+           *  Without `collapsedCta` the strip is exactly as the home page has
+           *  always rendered it: hero, SPONSORED label, chevron. */}
+          {collapsedCta && !expanded && (
+            <span className="absolute bottom-1.5 right-9 inline-flex items-center gap-1 rounded-pill bg-background/90 backdrop-blur px-2 py-0.5 text-[10px] font-body font-semibold text-foreground pointer-events-none">
+              {collapsedCta}
+            </span>
+          )}
           {expanded ? (
             <ChevronUp className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white drop-shadow pointer-events-none" />
           ) : (
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-white drop-shadow pointer-events-none" />
           )}
+
         </div>
       </div>
       {/* Grid-rows transition — expands the row 0fr → 1fr so the banner stays
@@ -240,16 +314,39 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
                       )}
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    tabIndex={expanded ? 0 : -1}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={openProduct}
-                    className="mt-3 -mb-1 w-full flex items-center justify-between gap-2 border-t border-border pt-2.5 text-left"
-                  >
-                    <span className="text-[12px] font-body text-foreground/90">How to use it for your hair</span>
-                    <ChevronRight className="size-4 text-primary shrink-0" />
-                  </button>
+                  <div className="mt-3 -mb-1 flex items-center gap-2 border-t border-border pt-2.5">
+                    <button
+                      type="button"
+                      tabIndex={expanded ? 0 : -1}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={openProduct}
+                      className="flex-1 min-w-0 flex items-center justify-between gap-2 text-left"
+                    >
+                      <span className="text-[12px] font-body text-foreground/90">How to use it for your hair</span>
+                      <ChevronRight className="size-4 text-primary shrink-0" />
+                    </button>
+                    {/* The only add-to-shelf in an advert. Beside the guidance
+                     *  row, never duplicated in the sponsored tip above. */}
+                    <button
+                      type="button"
+                      tabIndex={expanded ? 0 : -1}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={addToShelf}
+                      disabled={shelfBusy || onShelf}
+                      aria-label={onShelf ? "On your shelf" : "Add to my shelf"}
+                      className="shrink-0 inline-flex items-center gap-1 rounded-pill border border-primary/40 px-2.5 py-1 text-[11px] font-body font-semibold text-primary disabled:opacity-60"
+                    >
+                      {shelfBusy ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : onShelf ? (
+                        <Check className="size-3" />
+                      ) : (
+                        <Plus className="size-3" />
+                      )}
+                      {onShelf ? "On shelf" : "Add"}
+                    </button>
+                  </div>
+
                 </div>
               </>
             )}

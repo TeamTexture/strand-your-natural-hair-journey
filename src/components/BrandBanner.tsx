@@ -3,6 +3,10 @@ import BrandOfferBanner, { BannerOffer } from "@/components/brand/BrandOfferBann
 
 interface Props {
   slot: PlacementSlot;
+  /** Adds a worded open control ("See full offer") to the collapsed strip.
+   *  Used on wash day, where the advert sits under the sponsored tip. Omitted
+   *  on the home page, which keeps its existing chevron-only strip. */
+  collapsedCta?: string | null;
 }
 
 // Sponsored banners cannot be permanently dismissed — users can only collapse
@@ -12,7 +16,7 @@ interface Props {
 /** Resolves which paid campaign holds this slot today (server-side, via
  *  `ad_delivery_for_slot`) and renders the shared advert card. Silent when no
  *  offer holds the slot. */
-const BrandBanner = ({ slot }: Props) => {
+const BrandBanner = ({ slot, collapsedCta = null }: Props) => {
   const { data } = useActiveBrandOffer(slot);
   const offer = data?.brand_offers as BannerOffer | undefined;
   if (!offer) return null;
@@ -23,8 +27,10 @@ const BrandBanner = ({ slot }: Props) => {
       slot={slot}
       wasMatched={!!data?.was_matched}
       matchReason={data?.match_reason ?? null}
+      collapsedCta={collapsedCta}
     />
   );
 };
+
 
 export default BrandBanner;
