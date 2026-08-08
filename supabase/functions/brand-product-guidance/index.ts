@@ -183,7 +183,7 @@ function validate(
 
   if (!fitLine) problems.push("fit_line is missing.");
   else {
-    if (words(fitLine) > 16) problems.push(`fit_line is ${words(fitLine)} words — maximum 16.`);
+    if (words(fitLine) > 22) problems.push(`fit_line is ${words(fitLine)} words — maximum 22.`);
     if (sentenceCount(fitLine) > 1) problems.push("fit_line must be exactly one sentence.");
   }
 
