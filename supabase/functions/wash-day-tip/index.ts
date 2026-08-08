@@ -226,7 +226,15 @@ Deno.serve(async (req) => {
     // Aggregate across ALL logged wash days, not just the latest one.
     washHistoryAcrossAllLogs: body.washHistory ?? null,
     hairFeelInHerWords: (body.hairFeelNotes ?? []).slice(0, 6),
-    shelfProducts: (body.shelfProducts ?? []).slice(0, 40),
+    // NO PRODUCT NAMES reach the model for this card — only the TYPES of
+    // product she already has, so the technique can assume what's on hand.
+    shelfProductTypes: Array.from(
+      new Set(
+        (body.shelfProducts ?? [])
+          .map((p) => String(p?.category ?? "").trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ).slice(0, 20),
   };
 
   // ── Manuscript grounding: knowledge topics + retrieved passages ────
