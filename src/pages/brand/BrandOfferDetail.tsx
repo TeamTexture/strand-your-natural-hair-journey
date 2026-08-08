@@ -82,6 +82,8 @@ const BrandOfferDetail = () => {
   // ranges (banded), admins see exact figures.
   const statRows = offer.brand_offer_stats ?? [];
   const statsSuppressed = statRows.length === 0;
+  const statsFetchedAt = offer.stats_fetched_at ? new Date(offer.stats_fetched_at) : null;
+
   const stats = statRows.reduce(
     (acc, s) => ({
       impressions: acc.impressions + (s.impressions ?? 0),
