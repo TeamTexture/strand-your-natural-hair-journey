@@ -28,7 +28,7 @@ export const OUTCOME_ONLY = [
 
 /** A named intervention, tool or product TYPE. */
 const INTERVENTION =
-  /\b(treatment|mask|deep[- ]condition(?:ing|er)?|pre[- ]?poo|protein|clarify(?:ing|er)?|leave[- ]in|conditioner|cleanser|shampoo|co[- ]?wash|serum|gel|cream|butter|oil|emollient|cotton pad|cleansing pad|bonnet|satin|silk|scarf|heat hat|steam(?:er)?|wide[- ]tooth comb|denman|spray bottle|clips?|hooded dryer|diffuser|trim|protective style|braids?|twists?|cornrows?|bantu|banding)\b/i;
+  /\b(treatment|mask|deep[- ]condition(?:ing|er)?|pre[- ]?poo|protein|clarify(?:ing|er)?|leave[- ]in|conditioner|cleanser|shampoo|co[- ]?wash|serum|gel|cream|butter|oil|emollient|cotton pad|cleansing pad|bonnet|satin|silk|scarf|heat hat|steam(?:er)?|wide[- ]tooth comb|denman|spray bottle|clips?|hooded dryer|diffuser|trim|banding)\b/i;
 
 /** A verb that makes the member physically do something. */
 const METHOD_VERB =
@@ -40,7 +40,7 @@ const TIMING =
 
 /** A frequency or duration — how often / how long. */
 const CADENCE =
-  /\b(\d+\s*(?:–|-|to)?\s*\d*\s*(?:minutes?|mins?|hours?|days?|weeks?|months?)|every\s+\d+|every (?:wash day|other day|week|fortnight|month)|once a (?:week|fortnight|month)|twice a (?:week|month)|weekly|fortnightly|monthly|daily|nightly)\b/i;
+  /\b(\d+\s*(?:–|-|to)?\s*\d*\s*(?:seconds?|secs?|minutes?|mins?|hours?|days?|weeks?|months?)|every\s+\d+|every (?:wash day|other day|week|fortnight|month)|once a (?:week|fortnight|month)|twice a (?:week|month)|weekly|fortnightly|monthly|daily|nightly)\b/i;
 
 export interface SubstanceResult {
   ok: boolean;
