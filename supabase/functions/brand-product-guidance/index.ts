@@ -186,9 +186,12 @@ function countTerm(haystack: string, term: string): number {
 function validate(
   p: unknown,
   context: Record<string, unknown> | null,
+  surface?: string,
 ): { ok: true; value: GuidancePayload } | { ok: false; problems: string[] } {
   const problems: string[] = [];
+  const isWashDay = surface === "wash_day";
   const raw = (p ?? {}) as Record<string, unknown>;
+
 
   const headline = String(raw.headline ?? "").trim();
   const fitLine = String(raw.fit_line ?? raw.fitLine ?? "").trim();
