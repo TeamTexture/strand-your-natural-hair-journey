@@ -72,7 +72,7 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
       ]);
       return hashString(
         [
-          "goal-tip-sig-v1",
+          "goal-tip-sig-v2-static",
           `goal:${goal?.id ?? ""}`,
           `target:${goal?.target_text ?? ""}`,
           `date:${goal?.target_date ?? ""}`,
@@ -81,7 +81,10 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
           ...styleSignatureParts(
             (styleRes.data as Record<string, unknown> | null) ?? null,
           ),
-          ...responsiveSignatureParts(signals),
+          // Static tip: no calendar day, no recent wash/appointment churn. It
+          // only moves when the style, goal, challenges, concerns or hair
+          // characteristics move.
+          ...responsiveSignatureParts(signals, { includeDay: false, includeEvents: false }),
           `tl${level}`,
         ].join("::"),
       );
@@ -94,7 +97,7 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
  * personalisation signature so a style, goal or challenge edit refreshes the
  * tip immediately, while normal page navigation reuses the cached tip.
  */
-const CACHE_VERSION = "v9-live-signature";
+const CACHE_VERSION = "v10-static-tip";
 
 const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3") =>
   `strand:goal-tip:${CACHE_VERSION}:${sig}:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
@@ -136,7 +139,7 @@ export const useGoalTip = (
   // The tip rolls over daily AND regenerates the moment the personalisation
   // signature moves (style, goal wording, challenges, concerns, latest wash
   // day/appointment, support level) — whichever happens first.
-  const today = new Date().toISOString().slice(0, 10);
+  // No day is sent — the tip must not rotate on a calendar rollover.
   const { level } = useTipsLevel();
   const { data: signature } = useTipSignature(goal, level);
   return useQuery({
@@ -159,7 +162,6 @@ export const useGoalTip = (
         body: {
           single,
           ...(journal ? { variant: "journal" as const } : {}),
-          day: today,
           // The signature IS the fingerprint — the edge function seeds its
           // pillar rotation from it, so new data means a new angle.
           profileFingerprint: signature ?? "",
