@@ -161,64 +161,84 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null 
         aria-hidden={!expanded}
       >
         <div className="overflow-hidden">
-          <div className="rounded-b-[14px] border border-t-0 border-primary/20 bg-card p-3">
-            <div className="flex gap-3 min-w-0">
-              <div className="flex-1 min-w-0">
-                {offer.headline && (
-                  <p className="font-display text-[14px] leading-tight mb-1 [overflow-wrap:anywhere]">{offer.headline}</p>
-                )}
-                {offer.body_copy && (
-                  <p className="text-[12px] text-foreground/80 leading-snug font-body [overflow-wrap:anywhere]">{offer.body_copy}</p>
-                )}
-                {offer.discount_code && (
-                  <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                    <DiscountCodeChip
-                      code={offer.discount_code}
-                      variant="chip"
-                      onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
-                    />
-                  </div>
-                )}
-                {product && (
-
-                  <AdFitLine
-                    text={productGuidance?.fit_line}
-                    loading={productGuidanceLoading}
-                    className="mt-2"
-                  />
-                )}
-                <button
-                  type="button"
-                  tabIndex={expanded ? 0 : -1}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={visit}
-                  className="mt-2.5 w-full inline-flex items-center justify-center gap-1.5 rounded-pill bg-primary text-primary-foreground text-[12px] font-body font-medium py-1.5"
-                >
-                  Visit offer <ExternalLink className="size-3" />
-                </button>
+          {/* STACKED, never split into columns: headline/copy → discount code →
+           *  the member-specific read → the product block (full width) →
+           *  "Visit offer". The product is the second most prominent element
+           *  after the code, because this card exists to sell it. */}
+          <div className="rounded-b-[14px] border border-t-0 border-primary/20 bg-card p-3 min-w-0">
+            {offer.headline && (
+              <p className="font-display text-[14px] leading-tight mb-1 [overflow-wrap:anywhere]">{offer.headline}</p>
+            )}
+            {offer.body_copy && (
+              <p className="text-[12px] text-foreground/80 leading-snug font-body [overflow-wrap:anywhere]">{offer.body_copy}</p>
+            )}
+            {offer.discount_code && (
+              <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                <DiscountCodeChip
+                  code={offer.discount_code}
+                  variant="chip"
+                  onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
+                />
               </div>
-              {product && (
-                <button
-                  type="button"
-                  tabIndex={expanded ? 0 : -1}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={openProduct}
-                  className="w-[92px] shrink-0 text-left"
-                >
-                  <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border">
-                    {productImageUrl && (
-                      <img src={productImageUrl} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <p className="mt-1 text-[10px] font-body leading-tight line-clamp-2 [overflow-wrap:anywhere]">{product.name}</p>
-                  <p className="text-[9.5px] font-body text-primary leading-tight mt-0.5">
-                    How to use it for your hair
-                  </p>
-                </button>
-              )}
-            </div>
+            )}
+            {product && (
+              <>
+                <AdFitLine
+                  text={productGuidance?.fit_line}
+                  loading={productGuidanceLoading}
+                  className="mt-4"
+                />
+                {/* The one advertised product — full width, 12px padding,
+                 *  12px thumbnail gap, 16px clear above and below. */}
+                <div className="mt-4 rounded-[12px] border border-border bg-background/60 p-3 min-w-0">
+                  <button
+                    type="button"
+                    tabIndex={expanded ? 0 : -1}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={openProduct}
+                    className="w-full text-left flex items-start gap-3 min-w-0"
+                  >
+                    <div className="size-[72px] shrink-0 rounded-[10px] overflow-hidden bg-muted border border-border">
+                      {productImageUrl && (
+                        <img src={productImageUrl} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display text-[13.5px] leading-snug line-clamp-2 [overflow-wrap:anywhere]">
+                        {product.name}
+                      </p>
+                      {brandName && (
+                        <p className="mt-1 text-[11px] font-body text-muted-foreground leading-tight [overflow-wrap:anywhere]">
+                          {brandName}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    tabIndex={expanded ? 0 : -1}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={openProduct}
+                    className="mt-3 -mb-1 w-full flex items-center justify-between gap-2 border-t border-border pt-2.5 text-left"
+                  >
+                    <span className="text-[12px] font-body text-foreground/90">How to use it for your hair</span>
+                    <ChevronRight className="size-4 text-primary shrink-0" />
+                  </button>
+                </div>
+              </>
+            )}
+            <button
+              type="button"
+              tabIndex={expanded ? 0 : -1}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={visit}
+              className="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-pill bg-primary text-primary-foreground text-[12px] font-body font-medium py-2"
+            >
+              Visit offer <ExternalLink className="size-3" />
+            </button>
           </div>
         </div>
+
       </div>
     </div>
   );
