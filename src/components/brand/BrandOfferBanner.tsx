@@ -28,6 +28,8 @@ export type BannerOffer = {
   hero_image_path?: string | null;
   external_url?: string | null;
   discount_code?: string | null;
+  brand_user_id?: string | null;
+  /** ONE PRODUCT PER ADVERT — the array carries a single row. */
   brand_products?: BannerProductRow[] | null;
 };
 
@@ -37,7 +39,10 @@ interface Props {
   slot: string;
   wasMatched?: boolean;
   matchReason?: string[] | null;
+  /** Brand name shown beneath the product name; looked up when not supplied. */
+  brandName?: string | null;
 }
+
 
 /** The advert exactly as it renders in a consumer placement: collapsed strip
  *  (~96px) plus a drop-down carrying the body copy, discount code, the
