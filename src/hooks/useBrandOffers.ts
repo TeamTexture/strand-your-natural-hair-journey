@@ -450,7 +450,8 @@ export function usePendingBrandOffersCount() {
   });
 }
 
-/** Pending revision for a single offer (0 or 1). */
+/** Pending revision for a single offer (0 or 1). Awaiting-payment revisions are
+ *  deliberately excluded — they are not in review and must never render as one. */
 export function usePendingRevision(offerId: string | undefined) {
   return useQuery({
     queryKey: ["brand-offer-revision", "pending", offerId],
@@ -467,6 +468,26 @@ export function usePendingRevision(offerId: string | undefined) {
     },
   });
 }
+
+/** Revision parked awaiting the brand's uplift payment (0 or 1). The brand's
+ *  audience edits are preserved here so an abandoned Checkout loses nothing. */
+export function useAwaitingPaymentRevision(offerId: string | undefined) {
+  return useQuery({
+    queryKey: ["brand-offer-revision", "pending_payment", offerId],
+    enabled: !!offerId,
+    queryFn: async (): Promise<BrandOfferRevision | null> => {
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: BrandOfferRevision | null; error: { message: string } | null }> } } };
+        };
+      };
+      const { data, error } = await client.from("brand_offer_revisions").select("*").eq("offer_id", offerId!).eq("status", "pending_payment").maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
 
 /** All revision history for a single offer (newest first). */
 export function useOfferRevisions(offerId: string | undefined) {
