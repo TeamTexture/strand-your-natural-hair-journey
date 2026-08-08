@@ -1,9 +1,17 @@
-// tipSignature — shared invalidation signals for the responsive `ai_summaries`
-// tip kinds (style_tip, wash_day_tip, wash_day_steps).
+// tipSignature — invalidation signals for the `ai_summaries` tip kinds.
 //
-// Every responsive tip is cached server-side against a signature. A tip
-// regenerates when EITHER the calendar day rolls over (preserving the
-// "tip of the day" cadence) OR the signature changes — whichever comes first.
+// TWO FAMILIES, DELIBERATELY SEPARATE:
+//
+// 1. RESPONSIVE tips (style_tip, wash_day_tip, wash_day_steps) use
+//    `loadResponsiveSignals` + `responsiveSignatureParts`. They regenerate when
+//    the calendar day rolls over OR the signature changes — whichever first.
+//    A logged wash day MUST move these.
+//
+// 2. The STATIC home STRAND tip uses `strandTipSignatureParts` ONLY. It has no
+//    calendar day and no event/challenge/concern inputs: it moves only when the
+//    current style, the planned next style or the goal changes. Never add a
+//    responsive input to it — that is the whole point of the split.
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { allChallenges } from "@/lib/goalChallenges";
