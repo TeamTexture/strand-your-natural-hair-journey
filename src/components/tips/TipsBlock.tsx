@@ -56,7 +56,7 @@ const TipsBlock = ({
 
   if (shown.length === 0) return null;
 
-  // Level 4 — everything, as a fully visible numbered sequence.
+  // Level 3 (Hand-holding) — everything, as a fully visible numbered sequence.
   if (showBeginnerHelp) {
     const allDos = [...(dos ?? []), ...shown.flatMap((t) => t.dos ?? [])];
     const allDonts = [...(donts ?? []), ...shown.flatMap((t) => t.donts ?? [])];

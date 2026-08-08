@@ -11,7 +11,7 @@ export interface GuidanceAction {
   action: string;
   /** The reasoning — shown from level 3 up. */
   why?: string;
-  /** Plain-English definition of a technical term (level 4). */
+  /** Plain-English definition of a technical term (level 3). */
   define?: string;
 }
 

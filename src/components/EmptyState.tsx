@@ -26,7 +26,7 @@ interface Props {
 const EmptyState = ({ icon, message, hint, action, tone = "gold", className }: Props) => {
   const { level } = useTipsLevel();
   const visibleHint = hint && level > 1
-    ? level >= 4
+    ? level >= 3
       ? plainLanguage(hint)
       : condenseProse(hint, level)
     : "";

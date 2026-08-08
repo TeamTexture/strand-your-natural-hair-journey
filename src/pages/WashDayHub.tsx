@@ -694,22 +694,23 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
           </div>
         </div>
       )}
-      <LevelGate min={2}>
+      {/* THE EXTENDED WHY — hand-holding only. Levels 1 and 2 already carry the
+          one-sentence "Why" above; repeating it as prose is the duplication the
+          three-level scale exists to remove. */}
+      <LevelGate min={3}>
         <AiProse text={tip.why} />
       </LevelGate>
+      {/* THE HOW — from Essential upwards. */}
       {tip.technique && (
         <LevelGate min={2}>
           <AiProse text={`Technique: ${tip.technique}`} />
         </LevelGate>
       )}
 
-      {/* Optional — one thing to try on the NEXT wash day, given where her hair
-          is now and the style she is moving into. Same panel treatment as the
-          "why" and "Technique" blocks (a labelled GuidanceBody segment), so it
-          reads as part of this card. Omitted entirely when the model has
-          nothing worth suggesting. */}
+      {/* Optional — one thing to try on the NEXT wash day. Hand-holding only:
+          at the lower levels the card is deliberately this wash day only. */}
       {tip.next_time && tip.next_time.trim() && (
-        <LevelGate min={2}>
+        <LevelGate min={3}>
           <AiProse text={`Do this next wash: ${tip.next_time.trim()}`} />
         </LevelGate>
       )}

@@ -216,7 +216,7 @@ const IngredientRow = ({
               Level 1: name + one-line relevance only (the header above already
               covers this, so nothing further renders).
               Level 2-3: what it is + supporting detail, capped by level.
-              Level 4: plain-English "what this is → what it means → what to
+              Hand-holding: plain-English "what this is → what it means → what to
               do" via DetailCard. */}
           <div className="space-y-2">
             <LevelGate min={2}>

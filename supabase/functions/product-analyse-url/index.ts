@@ -79,9 +79,9 @@ const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v5-product-hero";
 
 
 function levelCap(level: TipsLevel): number {
-  if (level >= 4) return 4;
-  if (level === 3) return 3;
-  return 2;
+  if (level >= 3) return 4;
+  if (level === 2) return 3;
+  return 1;
 }
 
 const INVALID_URL_MESSAGE =

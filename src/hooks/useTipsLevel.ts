@@ -115,9 +115,9 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
     setLevel,
     answerPrompt,
     needsPrompt: !prompted,
-    /** Show the "why" behind each tip (level 3+). */
+    /** Show the EXTENDED "why" prose (level 3, Hand-holding, only). */
     showExplanations: showsExplanations(level),
-    /** Show inline beginner definitions + encouragement (level 4). */
+    /** Show inline beginner definitions + encouragement (level 3, Hand-holding). */
     showBeginnerHelp: showsBeginnerHelp(level),
   }), [answerPrompt, level, prompted, setLevel]);
 
@@ -125,7 +125,7 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Support-level preference (`profiles.tips_level`, 1–4).
+ * Support-level preference (`profiles.tips_level`, 1–3).
  *
  * Returns the global current level, a setter that persists in the background,
  * and live booleans for density-aware rendering. This must be read by guidance

@@ -552,7 +552,7 @@ export default function BloodUpload() {
             and pre-fill your panel — check them, then save.
           </p>
         </LevelGate>
-        {level >= 4 && (
+        {level >= 3 && (
           <>
             <BeginnerSteps
               steps={[

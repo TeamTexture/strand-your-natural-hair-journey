@@ -19,14 +19,14 @@ import {
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
- * Level 4 — "Dummies guide" presentation primitives.
+ * Level 3 (Hand-holding) — "Dummies guide" presentation primitives.
  *
  * Used only when the user's support level is 4. Everything here is
  * deliberately visual: one action per card, an icon per action, plain
  * language, big touch targets, visible timings and green-tick / red-cross
  * do-and-don't pairs.
  *
- * Level 4 shows the MOST information of any level. Every step is rendered in
+ * Level 3 shows the MOST information of any level. Every step is rendered in
  * full at once — never one at a time, never collapsed, never hidden behind
  * progressive disclosure. Beginner surfaces ADD to the level-3 content, they
  * never replace or reduce it.

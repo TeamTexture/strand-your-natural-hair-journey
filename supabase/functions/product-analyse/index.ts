@@ -76,11 +76,12 @@ const MODEL_VERSION = "claude-sonnet-4-6@v5-purpose-insight";
 const LOVABLE_MODEL_VERSION = "lovable-gemini@v4-purpose-insight";
 
 
-/** Level-aware item cap for use_cases/tips: 1-2 -> 2, 3 -> 3, 4 -> 4. */
+/** Level-aware item cap for use_cases/tips: 1 Minimal -> 1, 2 Essential -> 3,
+ *  3 Hand-holding -> 4. */
 function levelCap(level: TipsLevel): number {
-  if (level >= 4) return 4;
-  if (level === 3) return 3;
-  return 2;
+  if (level >= 3) return 4;
+  if (level === 2) return 3;
+  return 1;
 }
 
 interface RequestBody {

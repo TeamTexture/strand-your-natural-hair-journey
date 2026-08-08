@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * Level 1 — name, status chip and the one-line relevance.
  * Level 2 — adds the condensed "what it is".
  * Level 3 — full text, plus any extra children (diet ideas, sources…).
- * Level 4 — plain-English, icon-led, with an explicit "What to do" line.
+ * Level 3 (Hand-holding) — plain-English, icon-led, with an explicit "What to do" line.
  */
 const DetailCard = ({
   title,
@@ -42,7 +42,7 @@ const DetailCard = ({
   onClick?: () => void;
 }) => {
   const { level } = useTipsLevel();
-  const beginner = level >= 4;
+  const beginner = level >= 3;
   const Icon = pickTipIcon(action ?? relevance ?? title);
   const say = (t?: string | null) => (beginner ? plainLanguage(condenseProse(t, level)) : condenseProse(t, level));
 

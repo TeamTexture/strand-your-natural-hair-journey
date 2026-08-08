@@ -114,7 +114,7 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
               className="mt-3 touch-none"
               value={[level]}
               min={1}
-              max={4}
+              max={3}
               step={1}
               onValueChange={(v) => setLevel(coerceTipsLevel(v[0]))}
               aria-label="Guidance level"
@@ -127,8 +127,8 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
                   type="button"
                   onClick={() => setLevel(l)}
                   className={cn(
-                    "text-[9.5px] leading-tight w-1/4 transition-colors",
-                    l === 1 ? "text-left" : l === 4 ? "text-right" : "text-center",
+                    "text-[9.5px] leading-tight w-1/3 transition-colors",
+                    l === 1 ? "text-left" : l === 3 ? "text-right" : "text-center",
                     l === level ? "text-primary font-semibold" : "text-muted-foreground",
                   )}
                 >
