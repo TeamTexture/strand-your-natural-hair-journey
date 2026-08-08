@@ -14,6 +14,15 @@ import {
 import type { TopicId } from "../_shared/knowledge/types.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
+import {
+  METHOD_AND_TIMING_RULE,
+  retrieveProceduralPassages,
+} from "../_shared/procedural-rag.ts";
+import {
+  methodRetryDirective,
+  validateTipSubstance,
+} from "../_shared/tip-method.ts";
+import { logTipRejection } from "../_shared/tip-action.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
@@ -778,6 +787,8 @@ Deno.serve(async (req) => {
           ...(await sanitiseAndLog(tip, "goal-tip", { context: body.context ?? body })),
           _manuscript_grounded: grounded,
           _rag_passages: ragPassageCount,
+          _rag_procedural: ragProceduralCount,
+          _method_floor: verdict.ok,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
