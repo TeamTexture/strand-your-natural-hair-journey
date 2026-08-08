@@ -11,8 +11,12 @@ import { BROAD_DAILY_RATE_PENCE } from "@/lib/adPricing";
 function useBrandOfferLiveSync() {
   const qc = useQueryClient();
   useEffect(() => {
+    // Unique channel name per subscriber — two ad surfaces on one page (the
+    // sponsored wash day tip and the advert beneath it) would otherwise reuse
+    // one channel and Supabase rejects the second set of callbacks.
     const channel = supabase
-      .channel("brand-offers-live-sync")
+      .channel(`brand-offers-live-sync-${Math.random().toString(36).slice(2)}`)
+
       .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offers" }, () => {
         qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
         qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
