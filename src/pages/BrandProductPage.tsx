@@ -49,31 +49,57 @@ const BrandProductPage = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["brand-product-page", offerId, productId],
-    enabled: !!offerId && !!productId,
+    enabled: !!productId,
     queryFn: async () => {
+      // The product is the stable entity — fetch it by id alone. An offer id in
+      // the route is only a hint; offers end and relaunch, the product persists.
       const { data: prod, error: pe } = await supabase
         .from("brand_products")
         .select("*")
         .eq("id", productId!)
-        .eq("offer_id", offerId!)
         .maybeSingle();
       if (pe) throw pe;
-      const { data: off, error: oe } = await supabase
-        .from("brand_offers")
-        .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id")
-        .eq("id", offerId!)
-        .maybeSingle();
-      if (oe) throw oe;
+
+      // Resolve the offer to show from the product's current live/scheduled
+      // link, falling back to the route's offer id.
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: links } = await supabase
+        .from("brand_offer_products")
+        .select("offer_id, brand_offers!inner(id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id, status)")
+        .eq("brand_product_id", productId!);
+      type Row = {
+        offer_id: string;
+        brand_offers: {
+          id: string; headline: string | null; body_copy: string | null; discount_code: string | null;
+          external_url: string | null; ends_on: string | null; starts_on: string | null;
+          brand_user_id: string; status: string;
+        };
+      };
+      const rows = ((links ?? []) as unknown as Row[]).map((r) => r.brand_offers).filter(Boolean);
+      const isLive = (o: Row["brand_offers"]) =>
+        o.status === "live" && (!o.starts_on || o.starts_on <= today) && (!o.ends_on || o.ends_on >= today);
+      let off = rows.find(isLive) ?? rows.find((o) => o.id === offerId) ?? null;
+
+      if (!off && offerId) {
+        const { data: fallback } = await supabase
+          .from("brand_offers")
+          .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id, status")
+          .eq("id", offerId)
+          .maybeSingle();
+        off = (fallback as Row["brand_offers"] | null) ?? null;
+      }
+
       let brand: { brand_name: string | null } | null = null;
-      if (off?.brand_user_id) {
+      const brandOwner = off?.brand_user_id ?? prod?.brand_user_id ?? null;
+      if (brandOwner) {
         const { data: bp } = await supabase
           .from("brand_profiles")
           .select("brand_name")
-          .eq("user_id", off.brand_user_id)
+          .eq("user_id", brandOwner)
           .maybeSingle();
         brand = bp ?? null;
       }
-      return { product: prod, offer: off ? { ...off, brand_profiles: brand } : null };
+      return { product: prod, offer: off ? { ...off, brand_profiles: brand } : null, brand };
     },
   });
 
